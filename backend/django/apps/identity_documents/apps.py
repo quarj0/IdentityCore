@@ -2,4 +2,6 @@ from django.apps import AppConfig
 
 
 class IdentityDocumentsConfig(AppConfig):
-    name = 'identity_documents'
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.identity_documents"
+    label = "identity_documents"

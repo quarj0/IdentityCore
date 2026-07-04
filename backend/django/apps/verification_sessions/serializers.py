@@ -2,6 +2,8 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from apps.consent.models import ConsentRecord, ConsentTemplate, ConsentTemplateStatus
+from apps.document_captures.models import DocumentCapture, DocumentCaptureSide
+from apps.identity_documents.models import IdentityDocument, IdentityDocumentStatus
 from apps.verifications.models import VerificationSession, VerificationSessionStatus, VerificationStatus
 
 
@@ -96,3 +98,69 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
         verification.status = VerificationStatus.IN_PROGRESS
         verification.save(update_fields=["status", "updated_at"])
         return consent_record
+
+
+class DocumentCaptureInputSerializer(serializers.Serializer):
+    side = serializers.ChoiceField(choices=DocumentCaptureSide.choices)
+    upload_id = serializers.CharField(max_length=64)
+
+
+class VerificationSessionDocumentSerializer(serializers.Serializer):
+    document_type = serializers.CharField(max_length=64)
+    country_code = serializers.CharField(max_length=8, required=False, allow_blank=True)
+    captures = DocumentCaptureInputSerializer(many=True, allow_empty=False)
+
+    def validate(self, attrs):
+        request = self.context["request"]
+        verification = request.verification_session.verification
+
+        if not verification.consent_records.filter(accepted=True).exists():
+            raise serializers.ValidationError(
+                {"detail": "Consent must be accepted before document submission."}
+            )
+
+        capture_sides = [capture["side"] for capture in attrs["captures"]]
+        if len(capture_sides) != len(set(capture_sides)):
+            raise serializers.ValidationError({"captures": "Each document side may be submitted only once."})
+
+        if len(capture_sides) == 1 and capture_sides[0] == DocumentCaptureSide.BACK:
+            raise serializers.ValidationError({"captures": "Back-only document submissions are not supported."})
+
+        return attrs
+
+    def save(self, **kwargs):
+        request = self.context["request"]
+        verification_session = request.verification_session
+        verification = verification_session.verification
+
+        identity_document = IdentityDocument.objects.create(
+            tenant=verification.tenant,
+            verification=verification,
+            verification_subject=verification.verification_subject,
+            document_type_id=self.validated_data["document_type"],
+            country_profile_id=self.validated_data.get("country_code", ""),
+            local_document_name=self.validated_data["document_type"].replace("_", " ").title(),
+            status=IdentityDocumentStatus.PROCESSING,
+        )
+
+        now = timezone.now()
+        for capture in self.validated_data["captures"]:
+            upload_id = capture["upload_id"]
+            DocumentCapture.objects.create(
+                tenant=verification.tenant,
+                identity_document=identity_document,
+                side=capture["side"],
+                storage_key=f"uploads/documents/{upload_id}",
+                storage_provider="local",
+                mime_type="image/jpeg",
+                file_size_bytes=0,
+                checksum_sha256="",
+                status="uploaded",
+                captured_at=now,
+            )
+
+        verification.status = VerificationStatus.AWAITING_SELFIE
+        verification.save(update_fields=["status", "updated_at"])
+        verification_session.last_seen_at = now
+        verification_session.save(update_fields=["last_seen_at", "updated_at"])
+        return identity_document

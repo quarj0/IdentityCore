@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 
 from apps.verification_sessions.serializers import (
     VerificationSessionConsentSerializer,
+    VerificationSessionDocumentSerializer,
     serialize_verification_session,
 )
 from apps.verifications.models import VerificationSessionStatus
@@ -50,6 +51,22 @@ class VerificationSessionConsentView(VerificationSessionBaseView):
             {
                 "consent_record_id": consent_record.public_id,
                 "next_step": "document_capture",
+            },
+            request=request,
+        )
+
+
+class VerificationSessionDocumentView(VerificationSessionBaseView):
+    def post(self, request, session_id: str):
+        self._touch_session(request)
+        serializer = VerificationSessionDocumentSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        identity_document = serializer.save()
+        return success_response(
+            {
+                "identity_document_id": identity_document.public_id,
+                "status": identity_document.status,
+                "next_step": "selfie_capture",
             },
             request=request,
         )

@@ -7,6 +7,8 @@ from rest_framework.test import APITestCase
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.consent.models import ConsentRecord, ConsentTemplate, ConsentTemplateStatus
+from apps.document_captures.models import DocumentCapture
+from apps.identity_documents.models import IdentityDocument
 from apps.organizations.models import Organization
 from apps.tenants.models import Tenant
 from apps.verifications.models import Verification, VerificationSession, VerificationStatus
@@ -133,6 +135,88 @@ class VerificationSessionPortalTests(APITestCase):
         response = self.client.post(
             reverse("verification-session-consent", kwargs={"session_id": self.session.public_id}),
             {"accepted": False},
+            format="json",
+            **self.session_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_submit_documents_requires_consent(self):
+        response = self.client.post(
+            reverse("verification-session-documents", kwargs={"session_id": self.session.public_id}),
+            {
+                "document_type": "national_id",
+                "country_code": "GH",
+                "captures": [{"side": "front", "upload_id": "upl_01JABC"}],
+            },
+            format="json",
+            **self.session_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_submit_documents_creates_identity_document_and_captures(self):
+        ConsentRecord.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_subject=self.subject,
+            consent_text_snapshot="I consent to identity verification.",
+            accepted=True,
+            accepted_at=timezone.now(),
+        )
+        self.verification.status = VerificationStatus.IN_PROGRESS
+        self.verification.save(update_fields=["status", "updated_at"])
+
+        response = self.client.post(
+            reverse("verification-session-documents", kwargs={"session_id": self.session.public_id}),
+            {
+                "document_type": "national_id",
+                "country_code": "GH",
+                "captures": [
+                    {"side": "front", "upload_id": "upl_01JABC"},
+                    {"side": "back", "upload_id": "upl_01JABD"},
+                ],
+            },
+            format="json",
+            **self.session_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["data"]["status"], "processing")
+        self.assertEqual(response.data["data"]["next_step"], "selfie_capture")
+        identity_document = IdentityDocument.objects.get(public_id=response.data["data"]["identity_document_id"])
+        self.assertEqual(identity_document.document_type_id, "national_id")
+        self.assertEqual(identity_document.country_profile_id, "GH")
+        self.assertEqual(identity_document.status, "processing")
+        self.assertEqual(identity_document.captures.count(), 2)
+        self.assertSetEqual(
+            set(identity_document.captures.values_list("side", flat=True)),
+            {"front", "back"},
+        )
+        capture = DocumentCapture.objects.get(identity_document=identity_document, side="front")
+        self.assertEqual(capture.storage_key, "uploads/documents/upl_01JABC")
+        self.verification.refresh_from_db()
+        self.assertEqual(self.verification.status, VerificationStatus.AWAITING_SELFIE)
+
+    def test_submit_documents_rejects_duplicate_sides(self):
+        ConsentRecord.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_subject=self.subject,
+            consent_text_snapshot="I consent to identity verification.",
+            accepted=True,
+            accepted_at=timezone.now(),
+        )
+
+        response = self.client.post(
+            reverse("verification-session-documents", kwargs={"session_id": self.session.public_id}),
+            {
+                "document_type": "passport",
+                "captures": [
+                    {"side": "front", "upload_id": "upl_01JABC"},
+                    {"side": "front", "upload_id": "upl_01JABD"},
+                ],
+            },
             format="json",
             **self.session_headers(),
         )

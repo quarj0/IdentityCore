@@ -244,6 +244,8 @@ Verification workflow tests should cover:
 - Verification detail requires `verifications:read`
 - Verification cancellation updates status and timestamp
 - Consent acceptance
+- Document submission requires prior consent
+- Document submission creates an Identity Document and Document Captures
 - Document submission
 - Selfie submission
 - Liveness result processing

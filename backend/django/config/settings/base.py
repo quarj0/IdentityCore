@@ -35,6 +35,8 @@ INSTALLED_APPS = [
     "apps.access_control.apps.AccessControlConfig",
     "apps.api_clients.apps.ApiClientsConfig",
     "apps.consent.apps.ConsentConfig",
+    "apps.document_captures.apps.DocumentCapturesConfig",
+    "apps.identity_documents.apps.IdentityDocumentsConfig",
     "apps.organizations.apps.OrganizationsConfig",
     "apps.tenants.apps.TenantsConfig",
     "apps.verification_sessions.apps.VerificationSessionsConfig",

@@ -672,6 +672,12 @@ Request:
 }
 ```
 
+Business rules:
+
+- Consent must already be accepted for the Verification before document metadata can be submitted.
+- The current bootstrap implementation stores `document_type` and `country_code` directly on the identity document record until dedicated document type and country profile tables are introduced.
+- Each submitted capture side must be unique within the request.
+
 Response:
 
 ```json

@@ -3,6 +3,7 @@ from django.urls import path
 from apps.verification_sessions.views import (
     VerificationSessionConsentView,
     VerificationSessionDetailView,
+    VerificationSessionDocumentView,
 )
 
 
@@ -12,5 +13,10 @@ urlpatterns = [
         "<str:session_id>/consent",
         VerificationSessionConsentView.as_view(),
         name="verification-session-consent",
+    ),
+    path(
+        "<str:session_id>/documents",
+        VerificationSessionDocumentView.as_view(),
+        name="verification-session-documents",
     ),
 ]

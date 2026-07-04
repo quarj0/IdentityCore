@@ -1017,6 +1017,10 @@ document_type_id -> document_types.id
 country_profile_id -> country_profiles.id
 ```
 
+Implementation note:
+
+- The current Django bootstrap stores `document_type_id` and `country_profile_id` as string identifiers so document submission can proceed before the catalog tables are implemented.
+
 Indexes:
 
 ```
@@ -1084,6 +1088,10 @@ Relationships:
 ```
 identity_document_id -> identity_documents.id
 ```
+
+Implementation note:
+
+- During bootstrap, uploaded file metadata is represented by the provided `upload_id`, which is currently mapped into a derived `storage_key` until the dedicated upload initialization flow is added.
 
 Indexes:
 
