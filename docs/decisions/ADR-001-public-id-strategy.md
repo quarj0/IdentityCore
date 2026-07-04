@@ -137,6 +137,7 @@ At the time of this decision, prefixed ULIDs were chosen because they are mature
 - `public_id` values are immutable after creation.
 - APIs, GraphQL, webhooks, and frontend applications must use `public_id`.
 - Internal joins and foreign keys continue to use database primary keys.
+- The Django implementation now uses strict prefixed ULIDs through a shared helper in `apps.core`.
 
 ---
 

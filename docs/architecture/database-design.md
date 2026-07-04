@@ -239,6 +239,11 @@ Note:
 
 Platform-level administrators may have `tenant_id = null`.
 
+Implementation note:
+
+- The Django implementation stores hashed credentials through the framework-managed password field.
+- `last_login_at` remains an explicit application field for audit-friendly login tracking.
+
 ---
 
 ## roles
@@ -270,6 +275,7 @@ Indexes:
 ```
 unique(public_id)
 unique(tenant_id, name)
+unique(name) where tenant_id is null
 index(scope)
 ```
 
@@ -548,6 +554,12 @@ index(tenant_id)
 index(status)
 ```
 
+Implementation notes:
+
+- `client_id` is separate from `public_id` and is the identifier sent in the `X-Client-Id` header.
+- `client_secret_hash` stores only the hashed secret value.
+- `allowed_ips_json` may be empty, in which case IP restriction is not enforced.
+
 Do not store raw client secrets.
 
 ---
@@ -797,6 +809,11 @@ verification_policy_id -> verification_policies.id
 created_by_id -> platform_users.id
 ```
 
+Implementation note:
+
+- The current Django bootstrap stores the requested policy public ID in a string field while the dedicated verification policy model is still pending.
+- `policy_snapshot_json` is present now so immutable policy snapshots can be populated once policy records are connected.
+
 Indexes:
 
 ```
@@ -862,6 +879,10 @@ index(expires_at)
 ```
 
 Do not store raw session tokens.
+
+Implementation note:
+
+- Verification session URLs are derived from `VERIFICATION_PORTAL_BASE_URL` plus the session `public_id`, so the API can point subjects to a dedicated portal host without hardcoded path assumptions.
 
 ---
 

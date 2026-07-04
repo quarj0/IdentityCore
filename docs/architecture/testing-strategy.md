@@ -157,6 +157,8 @@ Required tests:
 - Permission enforcement
 - API client scope enforcement
 - API key authentication
+- API client secret hashing
+- API client tenant scoping
 - Session token expiry
 - Upload validation
 - Webhook signature verification
@@ -216,6 +218,10 @@ Authentication tests should cover:
 - Valid login
 - Invalid login
 - Locked account
+- Suspended account
+- Inactive account
+- JWT refresh
+- Authenticated `/auth/me`
 - MFA required
 - Password reset
 - Session expiry
@@ -231,6 +237,10 @@ Authentication tests should cover:
 Verification workflow tests should cover:
 
 - Verification creation
+- Verification creation creates a Verification Subject and Verification Session
+- Verification list endpoints remain tenant-scoped
+- Verification detail requires `verifications:read`
+- Verification cancellation updates status and timestamp
 - Consent acceptance
 - Document submission
 - Selfie submission

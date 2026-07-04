@@ -223,7 +223,7 @@ GET /verifications?sort=-created_at
 
 # Health
 
-## GET /health
+## GET /api/v1/health
 
 Checks API availability.
 
@@ -234,11 +234,51 @@ Response:
   "success": true,
   "data": {
     "status": "ok",
+    "service": "django",
     "version": "1.0.0"
   },
   "request_id": "req_01JABC..."
 }
 ```
+
+---
+
+# Platform User Authentication
+
+## POST /auth/login
+
+Authenticates a Platform User with email and password.
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "tokens": {
+      "access": "jwt-access-token",
+      "refresh": "jwt-refresh-token"
+    },
+    "user": {
+      "public_id": "usr_01JABC...",
+      "email": "kwame@example.com",
+      "tenant_public_id": "ten_01JABC...",
+      "is_platform_admin": false,
+      "mfa_enabled": false,
+      "roles": ["Organization Administrator"]
+    }
+  },
+  "request_id": "req_01JABC..."
+}
+```
+
+## POST /auth/refresh
+
+Refreshes a Platform User access token.
+
+## GET /auth/me
+
+Returns the currently authenticated Platform User and tenant context.
 
 ---
 
@@ -312,6 +352,12 @@ Response:
 
 Creates a Verification.
 
+Required scope:
+
+```text
+verifications:create
+```
+
 Request:
 
 ```json
@@ -339,7 +385,8 @@ Response:
   "data": {
     "id": "ver_01JABC...",
     "status": "pending_consent",
-    "verification_url": "https://verify.identitycore.com/session/vs_01JABC...",
+    "verification_url": "https://verify.identitycore.com/session/ses_01JABC...",
+    "session_id": "ses_01JABC...",
     "expires_at": "2026-07-05T12:00:00Z"
   },
   "request_id": "req_01JABC..."
@@ -351,6 +398,8 @@ Business rules:
 - Creates a Verification.
 - Creates or links a Verification Subject.
 - Creates a Verification Session.
+- Requires an API client with the `verifications:create` scope.
+- The current bootstrap implementation stores the requested `policy_id` as a public identifier reference and keeps `policy_snapshot_json` as a placeholder until verification policies are wired in.
 - Sends webhook event `verification.created`.
 
 ---
@@ -358,6 +407,12 @@ Business rules:
 ## GET /verifications
 
 Lists verifications for the authenticated tenant.
+
+Required scope:
+
+```text
+verifications:read
+```
 
 Query parameters:
 
@@ -402,6 +457,12 @@ Response:
 ## GET /verifications/{verification_id}
 
 Retrieves verification details.
+
+Required scope:
+
+```text
+verifications:read
+```
 
 Response:
 
@@ -449,6 +510,12 @@ Sensitive data must be minimized.
 ## POST /verifications/{verification_id}/cancel
 
 Cancels a Verification.
+
+Required scope:
+
+```text
+verifications:create
+```
 
 Request:
 
@@ -856,6 +923,8 @@ Response:
 
 Lists API clients for the tenant.
 
+Requires Platform User authentication and tenant context.
+
 ## POST /api-clients
 
 Creates an API client.
@@ -889,6 +958,12 @@ Response:
 Rule:
 
 `client_secret` is shown only once.
+
+Implementation note:
+
+- `client_id` is a prefixed public identifier such as `cli_01J...`.
+- Raw client secrets are never stored.
+- API client requests authenticate with `Authorization: Bearer <api_secret>` and `X-Client-Id: <client_id>`.
 
 ---
 

@@ -1,16 +1,12 @@
-import time
-import uuid
-
 from django.db import models
 from django.utils import timezone
+from ulid import ULID
 
 
 def generate_public_id(prefix: str) -> str:
-    # Timestamp keeps identifiers sortable enough for bootstrap needs while we
-    # grow into stricter ULID tooling.
-    timestamp = format(int(time.time() * 1000), "x")
-    random_bits = uuid.uuid4().hex[:16]
-    return f"{prefix}_{timestamp}{random_bits}"
+    if not prefix:
+        raise ValueError("Public ID prefix must be defined.")
+    return f"{prefix}_{ULID()}"
 
 
 class TimestampedModel(models.Model):

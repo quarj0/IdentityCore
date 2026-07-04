@@ -1,3 +1,121 @@
+import secrets
+
+from django.contrib.auth.hashers import make_password
 from django.db import models
 
-# Create your models here.
+from apps.core.models import BaseModel, PublicIdModel
+
+
+class VerificationStatus(models.TextChoices):
+    CREATED = "created", "Created"
+    PENDING_CONSENT = "pending_consent", "Pending Consent"
+    IN_PROGRESS = "in_progress", "In Progress"
+    AWAITING_DOCUMENT = "awaiting_document", "Awaiting Document"
+    AWAITING_SELFIE = "awaiting_selfie", "Awaiting Selfie"
+    PROCESSING = "processing", "Processing"
+    MANUAL_REVIEW_REQUIRED = "manual_review_required", "Manual Review Required"
+    VERIFIED = "verified", "Verified"
+    REJECTED = "rejected", "Rejected"
+    EXPIRED = "expired", "Expired"
+    CANCELLED = "cancelled", "Cancelled"
+    FAILED = "failed", "Failed"
+
+
+class VerificationSessionStatus(models.TextChoices):
+    CREATED = "created", "Created"
+    ACTIVE = "active", "Active"
+    COMPLETED = "completed", "Completed"
+    EXPIRED = "expired", "Expired"
+    REVOKED = "revoked", "Revoked"
+
+
+class Verification(PublicIdModel, BaseModel):
+    public_id_prefix = "ver"
+
+    tenant = models.ForeignKey(
+        "tenants.Tenant",
+        on_delete=models.PROTECT,
+        related_name="verifications",
+    )
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="verifications",
+    )
+    verification_subject = models.ForeignKey(
+        "verification_subjects.VerificationSubject",
+        on_delete=models.PROTECT,
+        related_name="verifications",
+    )
+    policy_public_id = models.CharField(max_length=64, blank=True)
+    policy_snapshot_json = models.JSONField(default=dict, blank=True)
+    status = models.CharField(
+        max_length=32,
+        choices=VerificationStatus.choices,
+        default=VerificationStatus.PENDING_CONSENT,
+        db_index=True,
+    )
+    purpose = models.CharField(max_length=255)
+    external_reference = models.CharField(max_length=255, blank=True, db_index=True)
+    metadata_json = models.JSONField(default=dict, blank=True)
+    redirect_url = models.URLField(blank=True)
+    expires_at = models.DateTimeField(db_index=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey(
+        "accounts.PlatformUser",
+        on_delete=models.PROTECT,
+        related_name="created_verifications",
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return self.public_id
+
+
+class VerificationSession(PublicIdModel):
+    public_id_prefix = "ses"
+
+    verification = models.ForeignKey(
+        Verification,
+        on_delete=models.CASCADE,
+        related_name="sessions",
+    )
+    tenant = models.ForeignKey(
+        "tenants.Tenant",
+        on_delete=models.PROTECT,
+        related_name="verification_sessions",
+    )
+    session_token_hash = models.CharField(max_length=255, unique=True)
+    status = models.CharField(
+        max_length=32,
+        choices=VerificationSessionStatus.choices,
+        default=VerificationSessionStatus.CREATED,
+        db_index=True,
+    )
+    started_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(db_index=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    last_seen_at = models.DateTimeField(null=True, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    device_fingerprint = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    @classmethod
+    def generate_session_token(cls) -> str:
+        return secrets.token_urlsafe(32)
+
+    def set_session_token(self, raw_token: str) -> None:
+        self.session_token_hash = make_password(raw_token)
+
+    def __str__(self) -> str:
+        return self.public_id

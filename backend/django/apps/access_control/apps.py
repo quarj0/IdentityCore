@@ -2,4 +2,6 @@ from django.apps import AppConfig
 
 
 class AccessControlConfig(AppConfig):
-    name = 'access_control'
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.access_control"
+    label = "access_control"

@@ -36,5 +36,6 @@ class TenantModelTests(TestCase):
         )
 
         self.assertTrue(tenant.public_id.startswith("ten_"))
+        self.assertEqual(len(tenant.public_id.split("_", maxsplit=1)[1]), 26)
 
 # Create your tests here.

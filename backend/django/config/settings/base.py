@@ -17,7 +17,7 @@ def env_list(name: str, default: str = "") -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "unsafe-development-secret-key")
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "unsafe-development-secret-key-for-identitycore")
 DEBUG = env_bool("DJANGO_DEBUG", False)
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
@@ -29,9 +29,15 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "rest_framework",
     "apps.core.apps.CoreConfig",
+    "apps.accounts.apps.AccountsConfig",
+    "apps.access_control.apps.AccessControlConfig",
+    "apps.api_clients.apps.ApiClientsConfig",
     "apps.organizations.apps.OrganizationsConfig",
     "apps.tenants.apps.TenantsConfig",
+    "apps.verification_subjects.apps.VerificationSubjectsConfig",
+    "apps.verifications.apps.VerificationsConfig",
 ]
 
 MIDDLEWARE = [
@@ -106,6 +112,7 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+AUTH_USER_MODEL = "accounts.PlatformUser"
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", REDIS_URL)
@@ -114,3 +121,11 @@ CELERY_TASK_ALWAYS_EAGER = False
 CELERY_TASK_EAGER_PROPAGATES = False
 
 AI_SERVICE_BASE_URL = os.getenv("AI_SERVICE_BASE_URL", "http://localhost:8001")
+VERIFICATION_PORTAL_BASE_URL = os.getenv("VERIFICATION_PORTAL_BASE_URL", "http://localhost:8000/api/v1/verification-sessions")
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+    "EXCEPTION_HANDLER": "common.exceptions.api_exception_handler",
+}

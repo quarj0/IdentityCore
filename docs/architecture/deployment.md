@@ -74,6 +74,15 @@ Example command:
 docker compose up --build
 ```
 
+Local service access:
+
+```text
+Django   -> http://localhost:8000
+AI       -> http://localhost:8001
+Postgres -> localhost:5433 (container port 5432)
+Redis    -> localhost:6379
+```
+
 ---
 
 # Development Environment
