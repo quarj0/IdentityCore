@@ -2,4 +2,6 @@ from django.apps import AppConfig
 
 
 class VerificationSessionsConfig(AppConfig):
-    name = 'verification_sessions'
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.verification_sessions"
+    label = "verification_sessions"

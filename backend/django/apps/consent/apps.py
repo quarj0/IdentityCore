@@ -2,4 +2,6 @@ from django.apps import AppConfig
 
 
 class ConsentConfig(AppConfig):
-    name = 'consent'
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.consent"
+    label = "consent"

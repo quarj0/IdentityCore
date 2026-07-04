@@ -956,6 +956,10 @@ verification_subject_id -> verification_subjects.id
 consent_template_id -> consent_templates.id
 ```
 
+Implementation note:
+
+- `consent_template_id` is currently nullable in the Django bootstrap so consent acceptance can still be recorded before tenant-managed consent templates are fully administered.
+
 Indexes:
 
 ```

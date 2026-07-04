@@ -572,6 +572,12 @@ These endpoints are used by the Verification Portal.
 
 They are not authenticated by API keys. They use secure session tokens.
 
+Required header:
+
+```http
+Authorization: Bearer <session_token>
+```
+
 ---
 
 ## GET /sessions/{session_id}
@@ -584,7 +590,7 @@ Response:
 {
   "success": true,
   "data": {
-    "session_id": "vs_01JABC...",
+    "session_id": "ses_01JABC...",
     "verification_id": "ver_01JABC...",
     "status": "active",
     "organization": {
@@ -603,6 +609,10 @@ Response:
   "request_id": "req_01JABC..."
 }
 ```
+
+Implementation note:
+
+- The current backend derives the session URL from `VERIFICATION_PORTAL_BASE_URL` and authenticates the subject by matching the session public ID plus bearer session token.
 
 ---
 
@@ -630,6 +640,12 @@ Response:
   "request_id": "req_01JABC..."
 }
 ```
+
+Business rules:
+
+- Accepting consent creates a Consent Record.
+- Accepting consent advances the Verification to `in_progress`.
+- If no active tenant consent template exists yet, the backend stores a generated consent text snapshot so the acceptance remains auditable during bootstrap.
 
 ---
 

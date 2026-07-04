@@ -238,6 +238,8 @@ Verification workflow tests should cover:
 
 - Verification creation
 - Verification creation creates a Verification Subject and Verification Session
+- Verification session retrieval validates the session token and returns portal context
+- Expired verification sessions are rejected and marked expired
 - Verification list endpoints remain tenant-scoped
 - Verification detail requires `verifications:read`
 - Verification cancellation updates status and timestamp

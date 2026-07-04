@@ -117,5 +117,9 @@ class VerificationSession(PublicIdModel):
     def set_session_token(self, raw_token: str) -> None:
         self.session_token_hash = make_password(raw_token)
 
+    @property
+    def is_authenticated(self) -> bool:
+        return True
+
     def __str__(self) -> str:
         return self.public_id
