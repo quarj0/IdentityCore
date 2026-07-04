@@ -1,0 +1,2 @@
+# Source of truth moved to backend/pyproject.toml.
+# Use: cd backend && uv add --group dev <package>

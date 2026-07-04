@@ -1,0 +1,54 @@
+[project]
+name = "backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+django = [
+    "argon2-cffi>=25.1.0",
+    "boto3>=1.43.40",
+    "celery>=5.6.3",
+    "cryptography>=49.0.0",
+    "django>=6.0.6",
+    "django-cors-headers>=4.9.0",
+    "django-filter>=25.2",
+    "djangorestframework>=3.17.1",
+    "djangorestframework-simplejwt>=5.5.1",
+    "gunicorn>=26.0.0",
+    "httpx>=0.28.1",
+    "orjson>=3.11.9",
+    "phonenumbers>=9.0.34",
+    "psycopg[binary]>=3.3.4",
+    "python-decouple>=3.8",
+    "python-ulid>=3.1.0",
+    "redis>=8.0.1",
+    "strawberry-graphql>=0.320.1",
+    "strawberry-graphql-django>=0.86.4",
+    "structlog>=26.1.0",
+    "uvicorn>=0.50.0",
+]
+ai-service = [
+    "cryptography>=49.0.0",
+    "fastapi>=0.139.0",
+    "httpx>=0.28.1",
+    "mediapipe>=0.10.35",
+    "numpy>=2.5.1",
+    "onnxruntime>=1.27.0",
+    "opencv-python-headless>=5.0.0.93",
+    "orjson>=3.11.9",
+    "pillow>=12.3.0",
+    "prometheus-client>=0.25.0",
+    "pydantic>=2.13.4",
+    "pydantic-settings>=2.14.2",
+    "python-multipart>=0.0.32",
+    "python-ulid>=3.1.0",
+    "uvicorn>=0.50.0",
+]
+dev = [
+    "black>=24.10.0",
+    "mypy>=1.11.2",
+    "pre-commit>=3.8.0",
+    "pytest>=8.3.5",
+    "ruff>=0.6.9",
+]
