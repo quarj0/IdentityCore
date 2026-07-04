@@ -74,7 +74,7 @@ identitycore/
 
 backend/
 ├── django/
-└── fastapi-ai/
+└── ai-service/
 
 frontend/
 ├── dashboard/
