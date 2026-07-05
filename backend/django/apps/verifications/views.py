@@ -5,6 +5,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from apps.audit.services import record_audit_event
+from apps.notifications.services import (
+    queue_verification_created_notifications,
+    queue_verification_status_notifications,
+)
 from apps.webhooks.services import queue_webhook_events
 from apps.verifications.serializers import (
     ManualReviewDecisionSerializer,
@@ -75,6 +79,10 @@ class VerificationListCreateView(APIView):
                 "status": verification.status,
             },
         )
+        queue_verification_created_notifications(
+            verification=verification,
+            verification_url=verification._verification_url,
+        )
         return success_response(
             {
                 "id": verification.public_id,
@@ -136,6 +144,10 @@ class VerificationCancelView(APIView):
                 "external_reference": verification.external_reference,
                 "status": verification.status,
             },
+        )
+        queue_verification_status_notifications(
+            verification=verification,
+            decision=VerificationStatus.CANCELLED,
         )
         return success_response(
             {
@@ -200,6 +212,12 @@ class ManualReviewDecisionView(APIView):
                     "external_reference": verification.external_reference,
                     "status": verification.status,
                 },
+            )
+            risk_assessment = getattr(verification, "risk_assessment", None)
+            queue_verification_status_notifications(
+                verification=verification,
+                decision=decision_record.decision,
+                risk_level=risk_assessment.risk_level if risk_assessment is not None else "",
             )
         return success_response(
             {

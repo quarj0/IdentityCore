@@ -7,6 +7,7 @@ from apps.api_clients.models import APIClient
 from apps.biometrics.models import FaceMatch, LivenessCheck
 from apps.document_captures.models import DocumentCapture
 from apps.identity_documents.models import IdentityDocument
+from apps.notifications.models import Notification
 from apps.organizations.models import Organization
 from apps.risk.models import RiskAssessment
 from apps.tenants.models import Tenant
@@ -69,6 +70,13 @@ class VerificationWorkflowTests(APITestCase):
         self.assertTrue(response.data["data"]["session_id"].startswith("ses_"))
         verification = Verification.objects.get(public_id=response.data["data"]["id"])
         self.assertEqual(verification.verification_subject.external_reference, "customer_12345")
+        self.assertTrue(
+            Notification.objects.filter(
+                tenant=self.tenant,
+                template_code="verification.created",
+                recipient="kwame@example.com",
+            ).exists()
+        )
 
     def test_list_verifications_is_tenant_scoped(self):
         response = self.client.post(
@@ -144,7 +152,10 @@ class VerificationWorkflowTests(APITestCase):
             {
                 "external_reference": "customer_12345",
                 "purpose": "Customer onboarding verification",
-                "verification_subject": {"full_name": "Kwame Mensah"},
+                "verification_subject": {
+                    "full_name": "Kwame Mensah",
+                    "email": "kwame@example.com",
+                },
             },
             format="json",
             **self.auth_headers(),
@@ -160,6 +171,12 @@ class VerificationWorkflowTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["status"], VerificationStatus.CANCELLED)
+        self.assertTrue(
+            Notification.objects.filter(
+                tenant=self.tenant,
+                template_code="verification.cancelled",
+            ).exists()
+        )
 
     def test_detail_includes_latest_liveness_and_face_match_states(self):
         subject = self.tenant.verification_subjects.create(full_name="Kwame")
@@ -272,7 +289,10 @@ class VerificationWorkflowTests(APITestCase):
         verification = Verification.objects.create(
             tenant=self.tenant,
             organization=self.organization,
-            verification_subject=self.tenant.verification_subjects.create(full_name="Reviewer Case"),
+            verification_subject=self.tenant.verification_subjects.create(
+                full_name="Reviewer Case",
+                email="reviewer@example.com",
+            ),
             purpose="Manual review case",
             expires_at=self.tenant.created_at,
             status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
@@ -318,7 +338,10 @@ class VerificationWorkflowTests(APITestCase):
         verification = Verification.objects.create(
             tenant=self.tenant,
             organization=self.organization,
-            verification_subject=self.tenant.verification_subjects.create(full_name="Reviewer Case"),
+            verification_subject=self.tenant.verification_subjects.create(
+                full_name="Reviewer Case",
+                email="reviewer@example.com",
+            ),
             purpose="Manual review case",
             expires_at=self.tenant.created_at,
             status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
@@ -341,6 +364,12 @@ class VerificationWorkflowTests(APITestCase):
         decision = VerificationDecision.objects.get(verification=verification)
         self.assertEqual(decision.decision_type, "manual")
         self.assertEqual(decision.reason_code, "evidence_confirmed")
+        self.assertTrue(
+            Notification.objects.filter(
+                tenant=self.tenant,
+                template_code="verification.verified",
+            ).exists()
+        )
 
     def test_detail_includes_decision_when_present(self):
         verification = Verification.objects.create(

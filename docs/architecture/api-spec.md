@@ -197,6 +197,10 @@ Response:
 }
 ```
 
+Implementation note:
+
+- When the verification subject email is present, the current Django implementation queues an email notification containing the verification link.
+
 ---
 
 # Filtering and Sorting
@@ -1003,6 +1007,7 @@ Business rules:
 - Manual review actions are tenant-scoped.
 - Recording a manual decision creates or updates the persisted verification decision record and updates the verification status.
 - Manual review lists should reflect the persisted verification risk assessment when one exists.
+- Verification decision transitions may queue subject-facing status notifications and reviewer notifications when manual review is required.
 
 ---
 

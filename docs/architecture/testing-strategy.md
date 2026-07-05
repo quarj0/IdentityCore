@@ -365,6 +365,7 @@ Current implemented webhook coverage includes:
 - Delivery failure retry scheduling
 - Max retry failure handling
 - Disabled endpoint cancellation
+- Duplicate delivery short-circuiting
 - Due-event processing only
 
 Current implemented provider/risk coverage includes:
@@ -373,6 +374,14 @@ Current implemented provider/risk coverage includes:
 - Completed provider checks require completion timestamps
 - Rule-based risk evaluation supports automatic approval, rejection, and manual-review routing
 - Verification detail responses include persisted risk-assessment summaries when present
+
+Current implemented notification coverage includes:
+
+- Verification-created notifications are queued when the subject email is present
+- Verification cancellation queues a subject-facing notification
+- Manual-review-required transitions queue subject and reviewer notifications
+- Manual review decisions queue subject-facing status notifications
+- Pending email notifications are delivered through the configured mail backend and marked sent
 
 ---
 

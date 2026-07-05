@@ -10,6 +10,7 @@ from apps.biometrics.models import FaceMatch, LivenessCheck, SelfieCapture
 from apps.consent.models import ConsentRecord, ConsentTemplate, ConsentTemplateStatus
 from apps.document_captures.models import DocumentCapture
 from apps.identity_documents.models import IdentityDocument
+from apps.notifications.models import Notification
 from apps.organizations.models import Organization
 from apps.providers.models import ProviderCheck
 from apps.risk.models import RiskAssessment
@@ -354,6 +355,13 @@ class VerificationSessionPortalTests(APITestCase):
         self.assertEqual(risk_assessment.recommendation, "manual_review")
         decision_record = VerificationDecision.objects.get(verification=self.verification)
         self.assertEqual(decision_record.decision_type, "automatic")
+        self.assertTrue(
+            Notification.objects.filter(
+                tenant=self.tenant,
+                template_code="verification.manual_review_required",
+                recipient="akosua@example.com",
+            ).exists()
+        )
         self.verification.refresh_from_db()
         self.assertEqual(self.verification.status, VerificationStatus.MANUAL_REVIEW_REQUIRED)
 

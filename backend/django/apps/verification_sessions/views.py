@@ -2,6 +2,7 @@ from django.utils import timezone
 from rest_framework.views import APIView
 
 from apps.audit.services import record_audit_event
+from apps.notifications.services import queue_verification_status_notifications
 from apps.risk.services import run_verification_risk_and_decision
 from apps.webhooks.services import queue_webhook_events
 from apps.verification_sessions.serializers import (
@@ -201,6 +202,11 @@ class VerificationSessionLivenessView(VerificationSessionBaseView):
                 "external_reference": verification.external_reference,
                 "status": verification.status,
             },
+        )
+        queue_verification_status_notifications(
+            verification=verification,
+            decision=decision_record.decision,
+            risk_level=risk_assessment.risk_level,
         )
         return success_response(
             {

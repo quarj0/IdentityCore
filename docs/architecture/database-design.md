@@ -1697,7 +1697,8 @@ index(created_at)
 
 Implementation note:
 
-- The current Django bootstrap stores notification records only. Outbound email/SMS/in-app delivery is still pending implementation.
+- The current Django implementation queues notification records and delivers email notifications through Django's mail layer.
+- Verification-created, verification-status, and manual-review notifications are currently implemented; SMS remains outside the MVP path.
 
 Rules:
 

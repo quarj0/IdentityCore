@@ -323,6 +323,67 @@ class WebhookEndpointTests(APITestCase):
         self.assertEqual(webhook_event.attempt_count, 0)
 
     @patch("apps.webhooks.services._send_webhook_request")
+    def test_delivered_event_is_not_sent_twice(self, mock_send_request):
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/identitycore",
+            events_json=["verification.verified"],
+            created_by=self.user,
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}},
+            status=WebhookEventStatus.DELIVERED,
+            attempt_count=1,
+            last_attempt_at=timezone.now(),
+        )
+
+        deliver_webhook_event(webhook_event)
+
+        webhook_event.refresh_from_db()
+        self.assertEqual(webhook_event.status, WebhookEventStatus.DELIVERED)
+        self.assertEqual(webhook_event.attempt_count, 1)
+        self.assertEqual(WebhookDeliveryAttempt.objects.filter(webhook_event=webhook_event).count(), 0)
+        mock_send_request.assert_not_called()
+
+    def test_missing_signing_key_marks_event_failed(self):
+        endpoint = WebhookEndpoint.objects.create(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/identitycore",
+            events_json=["verification.verified"],
+            created_by=self.user,
+            secret_hash="placeholder",
+            signing_key="",
+        )
+        webhook_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}},
+        )
+
+        deliver_webhook_event(webhook_event)
+
+        webhook_event.refresh_from_db()
+        self.assertEqual(webhook_event.status, WebhookEventStatus.FAILED)
+        self.assertEqual(webhook_event.attempt_count, 1)
+        self.assertIsNone(webhook_event.next_retry_at)
+        attempt = WebhookDeliveryAttempt.objects.get(webhook_event=webhook_event)
+        self.assertEqual(attempt.status_code, None)
+        self.assertIn("signing key is unavailable", attempt.error_message)
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                tenant=self.tenant,
+                action="webhook.delivery_failed",
+                target_id=webhook_event.public_id,
+            ).exists()
+        )
+
+    @patch("apps.webhooks.services._send_webhook_request")
     def test_process_pending_webhook_events_only_processes_due_events(self, mock_send_request):
         mock_send_request.return_value = (200, "ok", 10)
         endpoint = WebhookEndpoint(
