@@ -382,6 +382,8 @@ Current implemented notification coverage includes:
 - Manual-review-required transitions queue subject and reviewer notifications
 - Manual review decisions queue subject-facing status notifications
 - Pending email notifications are delivered through the configured mail backend and marked sent
+- Celery configuration routes webhook and notification delivery tasks to dedicated queues
+- Celery beat configuration schedules periodic processing for pending webhooks and notifications
 
 ---
 

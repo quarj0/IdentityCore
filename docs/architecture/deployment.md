@@ -663,6 +663,11 @@ notifications
 retention
 ```
 
+Implementation note:
+
+- The current Django/Celery setup routes webhook processing tasks to the `webhooks` queue and email notification tasks to the `notifications` queue.
+- Celery beat schedules periodic processing for pending webhook and notification deliveries.
+
 ---
 
 # Feature Flags

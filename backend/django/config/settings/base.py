@@ -133,6 +133,24 @@ CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", REDIS_URL)
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", REDIS_URL)
 CELERY_TASK_ALWAYS_EAGER = False
 CELERY_TASK_EAGER_PROPAGATES = False
+CELERY_TASK_ROUTES = {
+    "apps.webhooks.tasks.process_pending_webhook_events_task": {"queue": "webhooks"},
+    "apps.webhooks.tasks.deliver_webhook_event_task": {"queue": "webhooks"},
+    "apps.notifications.tasks.process_pending_notifications_task": {"queue": "notifications"},
+    "apps.notifications.tasks.deliver_notification_task": {"queue": "notifications"},
+}
+CELERY_BEAT_SCHEDULE = {
+    "process-pending-webhooks": {
+        "task": "apps.webhooks.tasks.process_pending_webhook_events_task",
+        "schedule": int(os.getenv("CELERY_WEBHOOK_BEAT_SECONDS", "30")),
+        "kwargs": {"limit": int(os.getenv("WEBHOOK_DELIVERY_BATCH_SIZE", "50"))},
+    },
+    "process-pending-notifications": {
+        "task": "apps.notifications.tasks.process_pending_notifications_task",
+        "schedule": int(os.getenv("CELERY_NOTIFICATION_BEAT_SECONDS", "30")),
+        "kwargs": {"limit": int(os.getenv("NOTIFICATION_DELIVERY_BATCH_SIZE", "50"))},
+    },
+}
 
 AI_SERVICE_BASE_URL = os.getenv("AI_SERVICE_BASE_URL", "http://localhost:8001")
 UPLOAD_URL_BASE = os.getenv("UPLOAD_URL_BASE", "http://localhost:9000/mock-upload")
@@ -140,6 +158,7 @@ VERIFICATION_PORTAL_BASE_URL = os.getenv("VERIFICATION_PORTAL_BASE_URL", "http:/
 WEBHOOK_DELIVERY_TIMEOUT_SECONDS = int(os.getenv("WEBHOOK_DELIVERY_TIMEOUT_SECONDS", "10"))
 WEBHOOK_MAX_ATTEMPTS = int(os.getenv("WEBHOOK_MAX_ATTEMPTS", "5"))
 WEBHOOK_RETRY_BASE_SECONDS = int(os.getenv("WEBHOOK_RETRY_BASE_SECONDS", "60"))
+NOTIFICATION_DELIVERY_BATCH_SIZE = int(os.getenv("NOTIFICATION_DELIVERY_BATCH_SIZE", "50"))
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
