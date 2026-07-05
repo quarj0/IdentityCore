@@ -63,12 +63,22 @@ def serialize_verification(verification: Verification) -> dict:
         "checks": {
             "document": {"status": "pending"},
             "liveness": {
-                "status": latest_liveness_check.status if latest_liveness_check else "pending",
-                "score": float(latest_liveness_check.score) if latest_liveness_check and latest_liveness_check.score is not None else None,
+                "status": (
+                    latest_liveness_check.status if latest_liveness_check else "pending"
+                ),
+                "score": (
+                    float(latest_liveness_check.score)
+                    if latest_liveness_check and latest_liveness_check.score is not None
+                    else None
+                ),
             },
             "face_match": {
                 "status": latest_face_match.status if latest_face_match else "pending",
-                "score": float(latest_face_match.match_score) if latest_face_match and latest_face_match.match_score is not None else None,
+                "score": (
+                    float(latest_face_match.match_score)
+                    if latest_face_match and latest_face_match.match_score is not None
+                    else None
+                ),
             },
         },
         "risk_assessment": serialize_risk_assessment(verification),
@@ -84,7 +94,9 @@ def serialize_verification(verification: Verification) -> dict:
             else None
         ),
         "created_at": verification.created_at.isoformat(),
-        "completed_at": verification.completed_at.isoformat() if verification.completed_at else None,
+        "completed_at": (
+            verification.completed_at.isoformat() if verification.completed_at else None
+        ),
         "expires_at": verification.expires_at.isoformat(),
     }
 
@@ -95,20 +107,26 @@ def serialize_verification_summary(verification: Verification) -> dict:
         "status": verification.status,
         "external_reference": verification.external_reference,
         "created_at": verification.created_at.isoformat(),
-        "completed_at": verification.completed_at.isoformat() if verification.completed_at else None,
+        "completed_at": (
+            verification.completed_at.isoformat() if verification.completed_at else None
+        ),
     }
 
 
 class VerificationSubjectInputSerializer(serializers.Serializer):
     full_name = serializers.CharField(max_length=255, required=False, allow_blank=True)
     email = serializers.EmailField(required=False, allow_blank=True)
-    phone_number = serializers.CharField(max_length=32, required=False, allow_blank=True)
+    phone_number = serializers.CharField(
+        max_length=32, required=False, allow_blank=True
+    )
     date_of_birth = serializers.DateField(required=False, allow_null=True)
     metadata = serializers.DictField(required=False, default=dict)
 
 
 class VerificationCreateSerializer(serializers.Serializer):
-    external_reference = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    external_reference = serializers.CharField(
+        max_length=255, required=False, allow_blank=True
+    )
     purpose = serializers.CharField(max_length=255)
     verification_subject = VerificationSubjectInputSerializer()
     policy_id = serializers.CharField(max_length=64, required=False, allow_blank=True)
@@ -135,7 +153,9 @@ class VerificationCreateSerializer(serializers.Serializer):
         verification_subject = None
         if external_reference:
             verification_subject = (
-                tenant.verification_subjects.filter(external_reference=external_reference)
+                tenant.verification_subjects.filter(
+                    external_reference=external_reference
+                )
                 .order_by("created_at")
                 .first()
             )
@@ -152,7 +172,9 @@ class VerificationCreateSerializer(serializers.Serializer):
             )
 
         if policy is not None:
-            expires_at = timezone.now() + timedelta(minutes=policy.verification_expiry_minutes)
+            expires_at = timezone.now() + timedelta(
+                minutes=policy.verification_expiry_minutes
+            )
             policy_public_id = policy.public_id
             policy_snapshot_json = policy.snapshot()
         else:
@@ -192,12 +214,18 @@ class VerificationCancelSerializer(serializers.Serializer):
     reason = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
 
+class VerificationResendLinkSerializer(serializers.Serializer):
+    channel = serializers.ChoiceField(choices=[("email", "Email")], default="email")
+
+
 def serialize_manual_review_summary(verification: Verification) -> dict:
     risk_assessment = getattr(verification, "risk_assessment", None)
     return {
         "verification_id": verification.public_id,
         "status": verification.status,
-        "risk_level": risk_assessment.risk_level if risk_assessment is not None else "medium",
+        "risk_level": (
+            risk_assessment.risk_level if risk_assessment is not None else "medium"
+        ),
         "created_at": verification.created_at.isoformat(),
     }
 
@@ -212,7 +240,7 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
         ]
     )
     reason_code = serializers.CharField(max_length=120)
-    reason_detail = serializers.CharField()
+    reason_detail = serializers.CharField(required=False, allow_blank=True)
 
     def save(self, *, verification: Verification, decided_by):
         now = timezone.now()
@@ -226,7 +254,9 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
                 "reason_detail": self.validated_data["reason_detail"],
                 "evidence_summary_json": {
                     "liveness_status": (
-                        verification.liveness_checks.order_by("-checked_at").first().status
+                        verification.liveness_checks.order_by("-checked_at")
+                        .first()
+                        .status
                         if verification.liveness_checks.exists()
                         else "pending"
                     ),
@@ -241,7 +271,11 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
             },
         )
         verification.status = self.validated_data["decision"]
-        if verification.status in {VerificationStatus.VERIFIED, VerificationStatus.REJECTED, VerificationStatus.FAILED}:
+        if verification.status in {
+            VerificationStatus.VERIFIED,
+            VerificationStatus.REJECTED,
+            VerificationStatus.FAILED,
+        }:
             verification.completed_at = now
             verification.save(update_fields=["status", "completed_at", "updated_at"])
         else:

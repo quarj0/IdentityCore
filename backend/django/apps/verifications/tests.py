@@ -210,6 +210,42 @@ class VerificationWorkflowTests(APITestCase):
             ).exists()
         )
 
+    def test_resend_link_sends_notification_when_subject_has_email(self):
+        create_response = self.client.post(
+            reverse("verification-list-create"),
+            {
+                "external_reference": "customer_12345",
+                "purpose": "Customer onboarding verification",
+                "verification_subject": {
+                    "full_name": "Kwame Mensah",
+                    "email": "kwame@example.com",
+                },
+            },
+            format="json",
+            **self.auth_headers(),
+        )
+        verification_id = create_response.data["data"]["id"]
+
+        response = self.client.post(
+            reverse(
+                "verification-resend-link", kwargs={"verification_id": verification_id}
+            ),
+            {"channel": "email"},
+            format="json",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["data"]["sent"])
+        self.assertTrue(
+            Notification.objects.filter(
+                tenant=self.tenant,
+                template_code="verification.created",
+                recipient="kwame@example.com",
+            ).count()
+            >= 2
+        )
+
     def test_detail_includes_latest_liveness_and_face_match_states(self):
         subject = self.tenant.verification_subjects.create(full_name="Kwame")
         verification = Verification.objects.create(

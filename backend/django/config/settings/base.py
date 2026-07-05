@@ -17,7 +17,9 @@ def env_list(name: str, default: str = "") -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "unsafe-development-secret-key-for-identitycore")
+SECRET_KEY = os.getenv(
+    "DJANGO_SECRET_KEY", "unsafe-development-secret-key-for-identitycore"
+)
 DEBUG = env_bool("DJANGO_DEBUG", False)
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
@@ -81,7 +83,11 @@ TEMPLATES = [
     },
 ]
 
-if os.getenv("POSTGRES_DB") and os.getenv("POSTGRES_USER") and os.getenv("POSTGRES_HOST"):
+if (
+    os.getenv("POSTGRES_DB")
+    and os.getenv("POSTGRES_USER")
+    and os.getenv("POSTGRES_HOST")
+):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -122,7 +128,9 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
+EMAIL_BACKEND = os.getenv(
+    "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
+)
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@identitycore.local")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -136,15 +144,25 @@ CELERY_TASK_EAGER_PROPAGATES = False
 CELERY_TASK_DEFAULT_QUEUE = "default"
 CELERY_TASK_DEFAULT_ROUTING_KEY = "default"
 CELERY_TASK_ROUTES = {
-    "apps.biometrics.tasks.process_verification_biometrics_task": {"queue": "ai_processing"},
-    "apps.identity_documents.tasks.process_identity_document_task": {"queue": "ai_processing"},
+    "apps.biometrics.tasks.process_verification_biometrics_task": {
+        "queue": "ai_processing"
+    },
+    "apps.identity_documents.tasks.process_identity_document_task": {
+        "queue": "ai_processing"
+    },
     "apps.uploads.tasks.cleanup_expired_uploads_task": {"queue": "retention"},
-    "apps.verifications.tasks.expire_pending_verifications_task": {"queue": "retention"},
-    "apps.verifications.tasks.cleanup_expired_verification_sessions_task": {"queue": "retention"},
+    "apps.verifications.tasks.expire_pending_verifications_task": {
+        "queue": "retention"
+    },
+    "apps.verifications.tasks.cleanup_expired_verification_sessions_task": {
+        "queue": "retention"
+    },
     "apps.verifications.tasks.cleanup_retained_media_task": {"queue": "retention"},
     "apps.webhooks.tasks.process_pending_webhook_events_task": {"queue": "webhooks"},
     "apps.webhooks.tasks.deliver_webhook_event_task": {"queue": "webhooks"},
-    "apps.notifications.tasks.process_pending_notifications_task": {"queue": "notifications"},
+    "apps.notifications.tasks.process_pending_notifications_task": {
+        "queue": "notifications"
+    },
     "apps.notifications.tasks.deliver_notification_task": {"queue": "notifications"},
 }
 CELERY_BEAT_SCHEDULE = {
@@ -166,7 +184,9 @@ CELERY_BEAT_SCHEDULE = {
     "cleanup-expired-verification-sessions": {
         "task": "apps.verifications.tasks.cleanup_expired_verification_sessions_task",
         "schedule": int(os.getenv("CELERY_SESSION_CLEANUP_BEAT_SECONDS", "300")),
-        "kwargs": {"limit": int(os.getenv("VERIFICATION_SESSION_CLEANUP_BATCH_SIZE", "200"))},
+        "kwargs": {
+            "limit": int(os.getenv("VERIFICATION_SESSION_CLEANUP_BATCH_SIZE", "200"))
+        },
     },
     "cleanup-retained-media": {
         "task": "apps.verifications.tasks.cleanup_retained_media_task",
@@ -184,11 +204,17 @@ AI_SERVICE_BASE_URL = os.getenv("AI_SERVICE_BASE_URL", "http://localhost:8001")
 AI_SERVICE_TIMEOUT_SECONDS = int(os.getenv("AI_SERVICE_TIMEOUT_SECONDS", "15"))
 UPLOAD_URL_BASE = os.getenv("UPLOAD_URL_BASE", "http://localhost:9000/mock-upload")
 UPLOAD_URL_EXPIRES_MINUTES = int(os.getenv("UPLOAD_URL_EXPIRES_MINUTES", "10"))
-VERIFICATION_PORTAL_BASE_URL = os.getenv("VERIFICATION_PORTAL_BASE_URL", "http://localhost:8000/api/v1/verification-sessions")
-WEBHOOK_DELIVERY_TIMEOUT_SECONDS = int(os.getenv("WEBHOOK_DELIVERY_TIMEOUT_SECONDS", "10"))
+VERIFICATION_PORTAL_BASE_URL = os.getenv(
+    "VERIFICATION_PORTAL_BASE_URL", "http://localhost:8000/api/v1/verification-sessions"
+)
+WEBHOOK_DELIVERY_TIMEOUT_SECONDS = int(
+    os.getenv("WEBHOOK_DELIVERY_TIMEOUT_SECONDS", "10")
+)
 WEBHOOK_MAX_ATTEMPTS = int(os.getenv("WEBHOOK_MAX_ATTEMPTS", "5"))
 WEBHOOK_RETRY_BASE_SECONDS = int(os.getenv("WEBHOOK_RETRY_BASE_SECONDS", "60"))
-NOTIFICATION_DELIVERY_BATCH_SIZE = int(os.getenv("NOTIFICATION_DELIVERY_BATCH_SIZE", "50"))
+NOTIFICATION_DELIVERY_BATCH_SIZE = int(
+    os.getenv("NOTIFICATION_DELIVERY_BATCH_SIZE", "50")
+)
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
@@ -14,12 +15,17 @@ from apps.verifications.serializers import (
     ManualReviewDecisionSerializer,
     VerificationCancelSerializer,
     VerificationCreateSerializer,
+    VerificationResendLinkSerializer,
     paginate_results,
     serialize_manual_review_summary,
     serialize_verification,
     serialize_verification_summary,
 )
-from apps.verifications.models import Verification, VerificationStatus
+from apps.verifications.models import (
+    Verification,
+    VerificationSession,
+    VerificationStatus,
+)
 from common.authentication import APIClientAuthentication
 from common.permissions import HasAPIClientScopes, IsTenantUser
 from common.responses import success_response
@@ -36,7 +42,9 @@ class VerificationListCreateView(APIView):
         return [HasAPIClientScopes()]
 
     def get(self, request):
-        verifications = request.tenant.verifications.select_related("verification_subject").order_by("-created_at")
+        verifications = request.tenant.verifications.select_related(
+            "verification_subject"
+        ).order_by("-created_at")
 
         status_value = request.query_params.get("status")
         external_reference = request.query_params.get("external_reference")
@@ -50,14 +58,19 @@ class VerificationListCreateView(APIView):
         page_obj, pagination = paginate_results(verifications, page, page_size)
         return success_response(
             {
-                "results": [serialize_verification_summary(item) for item in page_obj.object_list],
+                "results": [
+                    serialize_verification_summary(item)
+                    for item in page_obj.object_list
+                ],
                 "pagination": pagination,
             },
             request=request,
         )
 
     def post(self, request):
-        serializer = VerificationCreateSerializer(data=request.data, context={"request": request})
+        serializer = VerificationCreateSerializer(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
         verification = serializer.save()
         session = verification._initial_session
@@ -158,6 +171,61 @@ class VerificationCancelView(APIView):
         )
 
 
+class VerificationResendLinkView(APIView):
+    authentication_classes = [APIClientAuthentication]
+    required_scopes = ("verifications:create",)
+    permission_classes = [HasAPIClientScopes]
+
+    def post(self, request, verification_id: str):
+        verification = get_object_or_404(
+            Verification.objects.select_related("verification_subject", "tenant"),
+            tenant=request.tenant,
+            public_id=verification_id,
+        )
+        serializer = VerificationResendLinkSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+
+        session = (
+            verification.sessions.filter(expires_at__gt=timezone.now())
+            .order_by("-created_at")
+            .first()
+        )
+        if session is None:
+            raw_session_token = VerificationSession.generate_session_token()
+            session = VerificationSession(
+                verification=verification,
+                tenant=verification.tenant,
+                expires_at=verification.expires_at,
+            )
+            session.set_session_token(raw_session_token)
+            session.save()
+
+        verification_url = (
+            f"{settings.VERIFICATION_PORTAL_BASE_URL.rstrip('/')}/{session.public_id}"
+        )
+        notifications = queue_verification_created_notifications(
+            verification=verification,
+            verification_url=verification_url,
+        )
+        record_audit_event(
+            tenant=request.tenant,
+            actor=request.api_client,
+            request=request,
+            action="verification.link_resent",
+            target_type="verification",
+            target_id=verification.public_id,
+            metadata={
+                "channel": serializer.validated_data["channel"],
+                "session_id": session.public_id,
+            },
+        )
+        return success_response(
+            {"sent": bool(notifications)},
+            request=request,
+            status=status.HTTP_200_OK,
+        )
+
+
 class ManualReviewListView(APIView):
     permission_classes = [IsAuthenticated, IsTenantUser]
 
@@ -170,7 +238,10 @@ class ManualReviewListView(APIView):
         page_obj, pagination = paginate_results(verifications, page, page_size)
         return success_response(
             {
-                "results": [serialize_manual_review_summary(item) for item in page_obj.object_list],
+                "results": [
+                    serialize_manual_review_summary(item)
+                    for item in page_obj.object_list
+                ],
                 "pagination": pagination,
             },
             request=request,
@@ -188,7 +259,9 @@ class ManualReviewDecisionView(APIView):
         )
         serializer = ManualReviewDecisionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        decision_record = serializer.save(verification=verification, decided_by=request.user)
+        decision_record = serializer.save(
+            verification=verification, decided_by=request.user
+        )
         record_audit_event(
             tenant=request.user.tenant,
             actor=request.user,
@@ -196,7 +269,10 @@ class ManualReviewDecisionView(APIView):
             action=f"verification.{decision_record.decision}",
             target_type="verification",
             target_id=verification.public_id,
-            metadata={"decision_id": decision_record.public_id, "decision_type": decision_record.decision_type},
+            metadata={
+                "decision_id": decision_record.public_id,
+                "decision_type": decision_record.decision_type,
+            },
             sensitive_metadata={"reason_detail": decision_record.reason_detail},
         )
         if decision_record.decision in {
@@ -217,7 +293,9 @@ class ManualReviewDecisionView(APIView):
             queue_verification_status_notifications(
                 verification=verification,
                 decision=decision_record.decision,
-                risk_level=risk_assessment.risk_level if risk_assessment is not None else "",
+                risk_level=(
+                    risk_assessment.risk_level if risk_assessment is not None else ""
+                ),
             )
         return success_response(
             {
