@@ -707,6 +707,12 @@ Request:
 }
 ```
 
+Business rules:
+
+- Consent and document submission must already be complete before selfie metadata can be submitted.
+- The current bootstrap implementation maps the provided `upload_id` into a derived selfie `storage_key` until the dedicated upload-initialization flow is added.
+- Selfie submission currently creates a `SelfieCapture` record and advances the subject flow to `liveness_check`.
+
 Response:
 
 ```json

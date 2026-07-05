@@ -4,6 +4,7 @@ from rest_framework.views import APIView
 from apps.verification_sessions.serializers import (
     VerificationSessionConsentSerializer,
     VerificationSessionDocumentSerializer,
+    VerificationSessionSelfieSerializer,
     serialize_verification_session,
 )
 from apps.verifications.models import VerificationSessionStatus
@@ -67,6 +68,22 @@ class VerificationSessionDocumentView(VerificationSessionBaseView):
                 "identity_document_id": identity_document.public_id,
                 "status": identity_document.status,
                 "next_step": "selfie_capture",
+            },
+            request=request,
+        )
+
+
+class VerificationSessionSelfieView(VerificationSessionBaseView):
+    def post(self, request, session_id: str):
+        self._touch_session(request)
+        serializer = VerificationSessionSelfieSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        selfie_capture = serializer.save()
+        return success_response(
+            {
+                "selfie_capture_id": selfie_capture.public_id,
+                "status": "processing",
+                "next_step": "liveness_check",
             },
             request=request,
         )

@@ -1202,6 +1202,11 @@ index(status)
 index(captured_at)
 ```
 
+Implementation note:
+
+- During bootstrap, selfie upload metadata is represented by the provided `upload_id`, which is currently mapped into a derived `storage_key` until the dedicated upload initialization flow is added.
+- The current session flow stores a default `face_count = 1` placeholder until AI-assisted face counting is connected.
+
 ---
 
 ## biometric_templates

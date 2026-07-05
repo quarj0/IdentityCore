@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
+from apps.biometrics.models import SelfieCapture
 from apps.consent.models import ConsentRecord, ConsentTemplate, ConsentTemplateStatus
 from apps.document_captures.models import DocumentCapture
 from apps.identity_documents.models import IdentityDocument
@@ -222,3 +223,59 @@ class VerificationSessionPortalTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_submit_selfie_requires_document_submission(self):
+        ConsentRecord.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_subject=self.subject,
+            consent_text_snapshot="I consent to identity verification.",
+            accepted=True,
+            accepted_at=timezone.now(),
+        )
+
+        response = self.client.post(
+            reverse("verification-session-selfies", kwargs={"session_id": self.session.public_id}),
+            {"capture_type": "image", "upload_id": "upl_01JSELFIE"},
+            format="json",
+            **self.session_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_submit_selfie_creates_capture_and_advances_next_step(self):
+        ConsentRecord.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_subject=self.subject,
+            consent_text_snapshot="I consent to identity verification.",
+            accepted=True,
+            accepted_at=timezone.now(),
+        )
+        IdentityDocument.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_subject=self.subject,
+            document_type_id="national_id",
+            country_profile_id="GH",
+            status="processing",
+        )
+        self.verification.status = VerificationStatus.AWAITING_SELFIE
+        self.verification.save(update_fields=["status", "updated_at"])
+
+        response = self.client.post(
+            reverse("verification-session-selfies", kwargs={"session_id": self.session.public_id}),
+            {"capture_type": "image", "upload_id": "upl_01JSELFIE"},
+            format="json",
+            **self.session_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["data"]["status"], "processing")
+        self.assertEqual(response.data["data"]["next_step"], "liveness_check")
+        selfie_capture = SelfieCapture.objects.get(public_id=response.data["data"]["selfie_capture_id"])
+        self.assertEqual(selfie_capture.capture_type, "image")
+        self.assertEqual(selfie_capture.storage_key, "uploads/selfies/upl_01JSELFIE")
+        self.assertEqual(selfie_capture.status, "uploaded")
+        self.verification.refresh_from_db()
+        self.assertEqual(self.verification.status, VerificationStatus.PROCESSING)

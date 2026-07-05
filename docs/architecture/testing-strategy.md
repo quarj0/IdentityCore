@@ -247,6 +247,8 @@ Verification workflow tests should cover:
 - Document submission requires prior consent
 - Document submission creates an Identity Document and Document Captures
 - Document submission
+- Selfie submission requires prior document submission
+- Selfie submission creates a Selfie Capture and advances the next step
 - Selfie submission
 - Liveness result processing
 - Face match result processing

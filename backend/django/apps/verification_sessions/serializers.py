@@ -1,6 +1,7 @@
 from django.utils import timezone
 from rest_framework import serializers
 
+from apps.biometrics.models import SelfieCapture, SelfieCaptureStatus, SelfieCaptureType
 from apps.consent.models import ConsentRecord, ConsentTemplate, ConsentTemplateStatus
 from apps.document_captures.models import DocumentCapture, DocumentCaptureSide
 from apps.identity_documents.models import IdentityDocument, IdentityDocumentStatus
@@ -164,3 +165,51 @@ class VerificationSessionDocumentSerializer(serializers.Serializer):
         verification_session.last_seen_at = now
         verification_session.save(update_fields=["last_seen_at", "updated_at"])
         return identity_document
+
+
+class VerificationSessionSelfieSerializer(serializers.Serializer):
+    capture_type = serializers.ChoiceField(choices=SelfieCaptureType.choices)
+    upload_id = serializers.CharField(max_length=64)
+
+    def validate(self, attrs):
+        request = self.context["request"]
+        verification = request.verification_session.verification
+
+        if not verification.consent_records.filter(accepted=True).exists():
+            raise serializers.ValidationError(
+                {"detail": "Consent must be accepted before selfie submission."}
+            )
+        if not verification.identity_documents.exists():
+            raise serializers.ValidationError(
+                {"detail": "An identity document must be submitted before selfie capture."}
+            )
+        return attrs
+
+    def save(self, **kwargs):
+        request = self.context["request"]
+        verification_session = request.verification_session
+        verification = verification_session.verification
+        capture_type = self.validated_data["capture_type"]
+        upload_id = self.validated_data["upload_id"]
+        now = timezone.now()
+
+        selfie_capture = SelfieCapture.objects.create(
+            tenant=verification.tenant,
+            verification=verification,
+            verification_subject=verification.verification_subject,
+            storage_key=f"uploads/selfies/{upload_id}",
+            storage_provider="local",
+            capture_type=capture_type,
+            mime_type="video/mp4" if capture_type == SelfieCaptureType.VIDEO else "image/jpeg",
+            file_size_bytes=0,
+            checksum_sha256="",
+            face_count=1,
+            status=SelfieCaptureStatus.UPLOADED,
+            captured_at=now,
+        )
+
+        verification.status = VerificationStatus.PROCESSING
+        verification.save(update_fields=["status", "updated_at"])
+        verification_session.last_seen_at = now
+        verification_session.save(update_fields=["last_seen_at", "updated_at"])
+        return selfie_capture
