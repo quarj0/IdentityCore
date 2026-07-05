@@ -1739,8 +1739,9 @@ index(created_at)
 
 Implementation note:
 
-- The current Django implementation queues notification records and delivers email notifications through Django's mail layer.
-- Verification-created, verification-status, and manual-review notifications are currently implemented; SMS remains outside the MVP path.
+- The current Django implementation queues notification records and processes them through a dedicated Celery consumer flow.
+- Email delivery uses a provider-adapter layer and can run through the configured Django mail backend, SMTP, or a custom provider-backed adapter.
+- Verification-created, verification-status, and manual-review notifications are currently implemented; SMS delivery scaffolding exists but still requires a concrete adapter configuration.
 
 Rules:
 

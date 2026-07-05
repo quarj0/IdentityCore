@@ -1,6 +1,7 @@
 from django.core import mail
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+from django.test.utils import override_settings
 from django.utils import timezone
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
@@ -10,6 +11,7 @@ from apps.notifications.models import (
     NotificationRecipientType,
     NotificationStatus,
 )
+from apps.providers.models import Provider, ProviderStatus, ProviderType
 from apps.notifications.services import (
     deliver_notification,
     process_pending_notifications,
@@ -132,6 +134,56 @@ class NotificationModelTests(TestCase):
         self.assertIsNotNone(notification.sent_at)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ["kwame@example.com"])
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="global@example.com",
+    )
+    def test_deliver_email_notification_uses_active_notification_provider_config(self):
+        Provider.objects.create(
+            name="Primary SMTP",
+            code="primary-smtp",
+            provider_type=ProviderType.NOTIFICATION,
+            status=ProviderStatus.ACTIVE,
+            configuration_json={
+                "channel": "email",
+                "backend": "django",
+                "email_backend": "django.core.mail.backends.locmem.EmailBackend",
+                "from_email": "notify@example.com",
+            },
+        )
+        notification = Notification.objects.create(
+            tenant=self.tenant,
+            recipient_type=NotificationRecipientType.VERIFICATION_SUBJECT,
+            recipient="kwame@example.com",
+            channel=NotificationChannel.EMAIL,
+            template_code="verification.verified",
+            subject="Approved",
+            body_preview="Your verification is complete.",
+        )
+
+        deliver_notification(notification)
+
+        notification.refresh_from_db()
+        self.assertEqual(notification.status, NotificationStatus.SENT)
+        self.assertEqual(notification.provider_reference, f"primary-smtp:{notification.public_id}")
+        self.assertEqual(mail.outbox[0].from_email, "notify@example.com")
+
+    def test_sms_notification_fails_without_adapter_configuration(self):
+        notification = Notification.objects.create(
+            tenant=self.tenant,
+            recipient_type=NotificationRecipientType.VERIFICATION_SUBJECT,
+            recipient="+233201234567",
+            channel=NotificationChannel.SMS,
+            template_code="verification.created",
+            body_preview="Your verification is ready.",
+        )
+
+        deliver_notification(notification)
+
+        notification.refresh_from_db()
+        self.assertEqual(notification.status, NotificationStatus.FAILED)
+        self.assertEqual(notification.provider_reference, "sms:not_configured")
 
     def test_process_pending_notifications_delivers_in_creation_order(self):
         first = Notification.objects.create(

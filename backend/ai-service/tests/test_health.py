@@ -1,22 +1,29 @@
 import asyncio
 
+import pytest
+from fastapi import HTTPException
+
 from app.main import (
     DocumentOCRRequest,
     DocumentQualityRequest,
     FaceCompareRequest,
     LivenessCheckRequest,
+    _enforce_internal_token,
     document_ocr,
     document_quality,
     face_compare,
     healthcheck,
     liveness_check,
 )
+from app.settings import get_settings
 
 
 def test_healthcheck():
     response = asyncio.run(healthcheck())
 
-    assert response == {"status": "ok", "service": "ai-service"}
+    assert response["status"] == "ok"
+    assert response["service"] == "ai-service"
+    assert response["mode"] == "mock"
 
 
 def test_face_compare_returns_completed_match_result():
@@ -32,7 +39,7 @@ def test_face_compare_returns_completed_match_result():
     )
 
     assert response["status"] == "completed"
-    assert response["matched"] is True
+    assert response["result"]["matched"] is True
 
 
 def test_liveness_check_returns_failed_for_spoof_key():
@@ -47,7 +54,7 @@ def test_liveness_check_returns_failed_for_spoof_key():
     )
 
     assert response["status"] == "completed"
-    assert response["passed"] is False
+    assert response["result"]["passed"] is False
 
 
 def test_document_ocr_returns_extracted_fields():
@@ -63,7 +70,7 @@ def test_document_ocr_returns_extracted_fields():
     )
 
     assert response["status"] == "completed"
-    assert "full_name" in response["extracted_fields"]
+    assert "full_name" in response["result"]["extracted_fields"]
 
 
 def test_document_quality_flags_blurry_capture():
@@ -77,4 +84,23 @@ def test_document_quality_flags_blurry_capture():
     )
 
     assert response["status"] == "completed"
-    assert response["issues"] == ["blur_detected"]
+    assert response["result"]["issues"] == ["blur_detected"]
+
+
+def test_internal_token_is_enforced_when_configured(monkeypatch):
+    monkeypatch.setenv("AI_SERVICE_SHARED_TOKEN", "internal-secret")
+    get_settings.cache_clear()
+
+    from app import main as main_module
+
+    main_module.settings = get_settings()
+    with pytest.raises(HTTPException) as exc:
+        _enforce_internal_token("wrong-token")
+
+    _enforce_internal_token("internal-secret")
+
+    assert exc.value.status_code == 401
+
+    monkeypatch.delenv("AI_SERVICE_SHARED_TOKEN", raising=False)
+    get_settings.cache_clear()
+    main_module.settings = get_settings()

@@ -857,7 +857,8 @@ Implementation note:
 
 - The current Django implementation exposes upload initialization as a verification-session-scoped endpoint using `Authorization: Bearer <session_token>` plus `X-Session-Id`.
 - Upload initialization now persists a tenant-scoped `Upload` record tied to the verification session, and later document/selfie submission must reference that issued `upload_id`.
-- Returned upload URLs remain placeholder signed-style URLs derived from `UPLOAD_URL_BASE` until the object storage integration is connected.
+- When `OBJECT_STORAGE_*` settings are configured, upload URLs are generated as short-lived S3-compatible presigned `PUT` URLs, including Cloudflare R2.
+- When object storage is not configured locally, the platform falls back to placeholder signed-style URLs derived from `UPLOAD_URL_BASE`.
 
 ---
 

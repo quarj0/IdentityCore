@@ -1,20 +1,27 @@
-from pydantic import BaseModel
-from fastapi import FastAPI
+from typing import Annotated, Any
+
+from fastapi import Depends, FastAPI, Header, HTTPException, status
+from pydantic import BaseModel, Field
+
+from app.settings import get_settings
 
 
-app = FastAPI(title="IdentityCore AI Service")
+settings = get_settings()
+app = FastAPI(title="IdentityCore AI Service", version=settings.service_version)
 
 
-@app.get("/v1/health")
-async def healthcheck() -> dict[str, str]:
-    return {"status": "ok", "service": "ai-service"}
+class HealthResponse(BaseModel):
+    status: str
+    service: str
+    version: str
+    mode: str
 
 
 class FaceCompareRequest(BaseModel):
     verification_id: str
     selfie_storage_key: str
     document_storage_key: str
-    threshold: float
+    threshold: float = Field(ge=0.0, le=1.0)
 
 
 class LivenessCheckRequest(BaseModel):
@@ -27,7 +34,7 @@ class DocumentOCRRequest(BaseModel):
     verification_id: str
     document_storage_key: str
     document_type: str
-    country_code: str
+    country_code: str = Field(min_length=2, max_length=2)
 
 
 class DocumentQualityRequest(BaseModel):
@@ -35,56 +42,147 @@ class DocumentQualityRequest(BaseModel):
     document_storage_key: str
 
 
-@app.post("/v1/face/compare")
-async def face_compare(payload: FaceCompareRequest) -> dict[str, str | float | bool]:
-    matched = "mismatch" not in payload.selfie_storage_key and "mismatch" not in payload.document_storage_key
+class AIResultResponse(BaseModel):
+    status: str
+    engine: str
+    model_name: str
+    model_version: str
+    result: dict[str, Any]
+
+
+def _service_metadata() -> HealthResponse:
+    return HealthResponse(
+        status="ok",
+        service=settings.service_name,
+        version=settings.service_version,
+        mode=settings.service_mode,
+    )
+
+
+def _enforce_internal_token(
+    x_internal_token: Annotated[str | None, Header()] = None,
+) -> None:
+    if settings.shared_token and x_internal_token != settings.shared_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorized internal AI service request.",
+        )
+
+
+def _face_compare_result(payload: FaceCompareRequest) -> AIResultResponse:
+    matched = (
+        "mismatch" not in payload.selfie_storage_key
+        and "mismatch" not in payload.document_storage_key
+    )
     match_score = 0.96 if matched else 0.42
-    return {
-        "status": "completed",
-        "match_score": match_score,
-        "confidence_level": "high" if matched else "medium",
-        "matched": matched,
-        "threshold_used": payload.threshold,
-        "model_name": "mock-face-match",
-        "model_version": "v1",
-    }
+    return AIResultResponse(
+        status="completed",
+        engine=settings.service_mode,
+        model_name="mock-face-match",
+        model_version="v1",
+        result={
+            "match_score": match_score,
+            "confidence_level": "high" if matched else "medium",
+            "matched": matched,
+            "threshold_used": payload.threshold,
+        },
+    )
 
 
-@app.post("/v1/liveness/check")
-async def liveness_check(payload: LivenessCheckRequest) -> dict[str, str | float | bool]:
+def _liveness_result(payload: LivenessCheckRequest) -> AIResultResponse:
     passed = "spoof" not in payload.selfie_storage_key
     score = 0.94 if passed else 0.23
-    return {
-        "status": "completed",
-        "score": score,
-        "confidence_level": "high" if passed else "medium",
-        "passed": passed,
-        "model_name": "mock-liveness",
-        "model_version": "v1",
-    }
-
-
-@app.post("/v1/document/ocr")
-async def document_ocr(payload: DocumentOCRRequest) -> dict[str, str | float | dict]:
-    return {
-        "status": "completed",
-        "confidence_score": 0.91,
-        "extracted_fields": {
-            "full_name": "Kwame Mensah",
-            "date_of_birth": "1998-01-01",
-            "document_number": f"hash:{payload.document_type}:{payload.country_code}",
+    return AIResultResponse(
+        status="completed",
+        engine=settings.service_mode,
+        model_name="mock-liveness",
+        model_version="v1",
+        result={
+            "score": score,
+            "confidence_level": "high" if passed else "medium",
+            "passed": passed,
+            "liveness_type": payload.liveness_type,
         },
-        "model_name": "mock-ocr",
-        "model_version": "v1",
-    }
+    )
 
 
-@app.post("/v1/document/quality")
-async def document_quality(payload: DocumentQualityRequest) -> dict[str, str | float | list]:
+def _document_ocr_result(payload: DocumentOCRRequest) -> AIResultResponse:
+    return AIResultResponse(
+        status="completed",
+        engine=settings.service_mode,
+        model_name="mock-ocr",
+        model_version="v1",
+        result={
+            "confidence_score": 0.91,
+            "extracted_fields": {
+                "full_name": "Kwame Mensah",
+                "date_of_birth": "1998-01-01",
+                "document_number": f"hash:{payload.document_type}:{payload.country_code}",
+            },
+        },
+    )
+
+
+def _document_quality_result(payload: DocumentQualityRequest) -> AIResultResponse:
     issues = ["blur_detected"] if "blur" in payload.document_storage_key else []
     score = 0.42 if issues else 0.88
-    return {
-        "status": "completed",
-        "quality_score": score,
-        "issues": issues,
-    }
+    return AIResultResponse(
+        status="completed",
+        engine=settings.service_mode,
+        model_name="mock-document-quality",
+        model_version="v1",
+        result={
+            "quality_score": score,
+            "issues": issues,
+        },
+    )
+
+
+@app.get("/v1/health", response_model=HealthResponse)
+async def healthcheck() -> dict[str, str]:
+    return _service_metadata().model_dump()
+
+
+@app.get(
+    "/v1/ready",
+    response_model=HealthResponse,
+    dependencies=[Depends(_enforce_internal_token)],
+)
+async def readiness() -> dict[str, str]:
+    return _service_metadata().model_dump()
+
+
+@app.post(
+    "/v1/face/compare",
+    response_model=AIResultResponse,
+    dependencies=[Depends(_enforce_internal_token)],
+)
+async def face_compare(payload: FaceCompareRequest) -> dict[str, Any]:
+    return _face_compare_result(payload).model_dump()
+
+
+@app.post(
+    "/v1/liveness/check",
+    response_model=AIResultResponse,
+    dependencies=[Depends(_enforce_internal_token)],
+)
+async def liveness_check(payload: LivenessCheckRequest) -> dict[str, Any]:
+    return _liveness_result(payload).model_dump()
+
+
+@app.post(
+    "/v1/document/ocr",
+    response_model=AIResultResponse,
+    dependencies=[Depends(_enforce_internal_token)],
+)
+async def document_ocr(payload: DocumentOCRRequest) -> dict[str, Any]:
+    return _document_ocr_result(payload).model_dump()
+
+
+@app.post(
+    "/v1/document/quality",
+    response_model=AIResultResponse,
+    dependencies=[Depends(_enforce_internal_token)],
+)
+async def document_quality(payload: DocumentQualityRequest) -> dict[str, Any]:
+    return _document_quality_result(payload).model_dump()

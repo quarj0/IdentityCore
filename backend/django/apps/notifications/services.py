@@ -1,5 +1,4 @@
-from django.conf import settings
-from django.core.mail import send_mail
+from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.models import PlatformUserStatus
@@ -8,6 +7,11 @@ from apps.notifications.models import (
     NotificationChannel,
     NotificationRecipientType,
     NotificationStatus,
+)
+from apps.notifications.providers import (
+    NotificationDeliveryError,
+    NotificationProviderNotConfigured,
+    get_notification_provider,
 )
 
 
@@ -114,41 +118,46 @@ def deliver_notification(notification: Notification) -> Notification:
     if notification.status != NotificationStatus.PENDING:
         return notification
 
-    if notification.channel == NotificationChannel.EMAIL:
-        send_mail(
-            subject=notification.subject or "IdentityCore notification",
-            message=notification.body_preview,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[notification.recipient],
-            fail_silently=False,
-        )
-        notification.status = NotificationStatus.SENT
-        notification.sent_at = timezone.now()
-        notification.provider_reference = f"email:{notification.public_id}"
-        notification.save(
-            update_fields=["status", "sent_at", "provider_reference", "updated_at"]
-        )
+    try:
+        provider = get_notification_provider(notification)
+        result = provider.deliver(notification)
+    except NotificationProviderNotConfigured:
+        notification.status = NotificationStatus.FAILED
+        notification.provider_reference = f"{notification.channel}:not_configured"
+        notification.save(update_fields=["status", "provider_reference", "updated_at"])
+        return notification
+    except NotificationDeliveryError:
+        notification.status = NotificationStatus.FAILED
+        notification.provider_reference = f"{notification.channel}:delivery_failed"
+        notification.save(update_fields=["status", "provider_reference", "updated_at"])
+        return notification
+    except Exception:
+        notification.status = NotificationStatus.FAILED
+        notification.provider_reference = f"{notification.channel}:unexpected_error"
+        notification.save(update_fields=["status", "provider_reference", "updated_at"])
         return notification
 
-    if notification.channel == NotificationChannel.IN_APP:
-        notification.status = NotificationStatus.SENT
-        notification.sent_at = timezone.now()
-        notification.provider_reference = f"in_app:{notification.public_id}"
-        notification.save(
-            update_fields=["status", "sent_at", "provider_reference", "updated_at"]
-        )
-        return notification
-
-    notification.status = NotificationStatus.CANCELLED
-    notification.save(update_fields=["status", "updated_at"])
+    notification.status = NotificationStatus.SENT
+    notification.sent_at = result.sent_at or timezone.now()
+    notification.provider_reference = result.provider_reference
+    notification.save(
+        update_fields=["status", "sent_at", "provider_reference", "updated_at"]
+    )
     return notification
 
 
 def process_pending_notifications(*, limit: int = 50) -> int:
     processed = 0
-    for notification in Notification.objects.filter(
-        status=NotificationStatus.PENDING
-    ).order_by("created_at")[:limit]:
+    with transaction.atomic():
+        pending_ids = list(
+            Notification.objects.select_for_update()
+            .filter(status=NotificationStatus.PENDING)
+            .order_by("created_at")
+            .values_list("id", flat=True)[:limit]
+        )
+    for notification in Notification.objects.filter(id__in=pending_ids).order_by(
+        "created_at"
+    ):
         deliver_notification(notification)
         processed += 1
     return processed

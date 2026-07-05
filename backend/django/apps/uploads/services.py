@@ -1,7 +1,10 @@
-from django.conf import settings
 from django.utils import timezone
 
 from apps.uploads.models import Upload, UploadPurpose, UploadStatus
+from common.storage import (
+    build_signed_upload_url as build_presigned_upload_url,
+    determine_storage_provider,
+)
 
 
 PURPOSE_STORAGE_PREFIX = {
@@ -16,7 +19,10 @@ def build_upload_storage_key(*, purpose: str, upload_id: str) -> str:
 
 
 def build_signed_upload_url(*, upload: Upload) -> str:
-    return f"{settings.UPLOAD_URL_BASE.rstrip('/')}/{upload.storage_key}"
+    return build_presigned_upload_url(
+        storage_key=upload.storage_key,
+        mime_type=upload.mime_type,
+    )
 
 
 def create_upload(
@@ -34,7 +40,7 @@ def create_upload(
         verification_session=verification_session,
         purpose=purpose,
         storage_key="",
-        storage_provider="local",
+        storage_provider=determine_storage_provider(),
         mime_type=mime_type,
         file_size_bytes=file_size_bytes,
         status=UploadStatus.INITIATED,
