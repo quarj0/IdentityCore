@@ -11,8 +11,10 @@ from apps.consent.models import ConsentRecord, ConsentTemplate, ConsentTemplateS
 from apps.document_captures.models import DocumentCapture
 from apps.identity_documents.models import IdentityDocument
 from apps.organizations.models import Organization
+from apps.providers.models import ProviderCheck
+from apps.risk.models import RiskAssessment
 from apps.tenants.models import Tenant
-from apps.verifications.models import Verification, VerificationSession, VerificationStatus
+from apps.verifications.models import Verification, VerificationDecision, VerificationSession, VerificationStatus
 from apps.verification_subjects.models import VerificationSubject
 
 
@@ -290,7 +292,7 @@ class VerificationSessionPortalTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_submit_liveness_creates_check_and_returns_processing(self):
+    def test_submit_liveness_creates_provider_checks_and_routes_to_manual_review(self):
         identity_document = IdentityDocument.objects.create(
             tenant=self.tenant,
             verification=self.verification,
@@ -336,15 +338,24 @@ class VerificationSessionPortalTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["data"]["status"], "processing")
+        self.assertEqual(response.data["data"]["status"], VerificationStatus.MANUAL_REVIEW_REQUIRED)
         liveness_check = LivenessCheck.objects.get(public_id=response.data["data"]["liveness_check_id"])
         self.assertEqual(liveness_check.selfie_capture, selfie_capture)
         self.assertEqual(liveness_check.liveness_type, "passive")
         self.assertEqual(liveness_check.status, "inconclusive")
+        self.assertTrue(liveness_check.provider_check_id.startswith("pck_"))
         face_match = FaceMatch.objects.get(verification=self.verification, selfie_capture=selfie_capture)
         self.assertEqual(face_match.identity_document, identity_document)
         self.assertEqual(face_match.document_capture, document_capture)
         self.assertEqual(face_match.status, "inconclusive")
+        self.assertTrue(face_match.provider_check_id.startswith("pck_"))
+        self.assertEqual(ProviderCheck.objects.filter(verification=self.verification).count(), 3)
+        risk_assessment = RiskAssessment.objects.get(verification=self.verification)
+        self.assertEqual(risk_assessment.recommendation, "manual_review")
+        decision_record = VerificationDecision.objects.get(verification=self.verification)
+        self.assertEqual(decision_record.decision_type, "automatic")
+        self.verification.refresh_from_db()
+        self.assertEqual(self.verification.status, VerificationStatus.MANUAL_REVIEW_REQUIRED)
 
     def test_get_session_status_for_pending_consent(self):
         response = self.client.get(

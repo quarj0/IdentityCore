@@ -17,6 +17,18 @@ from apps.verifications.models import (
 )
 
 
+def serialize_risk_assessment(verification: Verification) -> dict | None:
+    risk_assessment = getattr(verification, "risk_assessment", None)
+    if risk_assessment is None:
+        return None
+    return {
+        "id": risk_assessment.public_id,
+        "risk_level": risk_assessment.risk_level,
+        "risk_score": float(risk_assessment.risk_score),
+        "recommendation": risk_assessment.recommendation,
+    }
+
+
 def serialize_verification_subject(subject: VerificationSubject) -> dict:
     return {
         "id": subject.public_id,
@@ -59,6 +71,7 @@ def serialize_verification(verification: Verification) -> dict:
                 "score": float(latest_face_match.match_score) if latest_face_match and latest_face_match.match_score is not None else None,
             },
         },
+        "risk_assessment": serialize_risk_assessment(verification),
         "decision": (
             {
                 "decision": decision_record.decision,
@@ -180,10 +193,11 @@ class VerificationCancelSerializer(serializers.Serializer):
 
 
 def serialize_manual_review_summary(verification: Verification) -> dict:
+    risk_assessment = getattr(verification, "risk_assessment", None)
     return {
         "verification_id": verification.public_id,
         "status": verification.status,
-        "risk_level": verification.metadata_json.get("risk_level", "medium"),
+        "risk_level": risk_assessment.risk_level if risk_assessment is not None else "medium",
         "created_at": verification.created_at.isoformat(),
     }
 

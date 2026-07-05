@@ -1441,6 +1441,10 @@ index(provider_type)
 index(status)
 ```
 
+Implementation note:
+
+- The current Django implementation includes internal provider records for bootstrap liveness, face-match, and risk-rule execution so verification workflows already produce traceable provider metadata before third-party adapters are connected.
+
 ---
 
 ## provider_checks
@@ -1508,6 +1512,10 @@ index(status)
 index(provider_reference)
 ```
 
+Implementation note:
+
+- The current Django bootstrap records completed provider checks for liveness, face match, and risk evaluation during the verification-session flow.
+
 ---
 
 # Decision and Risk Tables
@@ -1555,6 +1563,11 @@ index(tenant_id)
 index(risk_level)
 index(risk_score)
 ```
+
+Implementation note:
+
+- The current Django implementation persists one risk assessment per verification and uses simple internal rules to recommend `approve`, `reject`, or `manual_review`.
+- With the current bootstrap evidence flow, inconclusive liveness and face-match placeholders are intentionally routed to manual review instead of being auto-approved.
 
 ---
 
@@ -1680,6 +1693,10 @@ index(action)
 index(target_type, target_id)
 index(created_at)
 ```
+
+Implementation note:
+
+- The current Django bootstrap stores notification records only. Outbound email/SMS/in-app delivery is still pending implementation.
 
 Rules:
 

@@ -14,6 +14,8 @@ from apps.biometrics.models import (
 from apps.consent.models import ConsentRecord, ConsentTemplate, ConsentTemplateStatus
 from apps.document_captures.models import DocumentCapture, DocumentCaptureSide
 from apps.identity_documents.models import IdentityDocument, IdentityDocumentStatus
+from apps.providers.models import ProviderCheckStatus, ProviderCheckType
+from apps.providers.services import create_provider_check
 from apps.verifications.models import VerificationSession, VerificationSessionStatus, VerificationStatus
 
 
@@ -292,8 +294,23 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
             status=LivenessCheckStatus.INCONCLUSIVE,
             checked_at=now,
         )
+        liveness_provider_check = create_provider_check(
+            verification=verification,
+            check_type=ProviderCheckType.LIVENESS,
+            status=ProviderCheckStatus.COMPLETED,
+            normalized_result={
+                "status": LivenessCheckStatus.INCONCLUSIVE,
+                "source": "bootstrap-placeholder",
+            },
+            request_metadata={
+                "selfie_capture_id": self.validated_data["selfie_capture"].public_id,
+                "liveness_type": self.validated_data["liveness_type"],
+            },
+        )
+        liveness_check.provider_check_id = liveness_provider_check.public_id
+        liveness_check.save(update_fields=["provider_check_id", "updated_at"])
         if identity_document is not None:
-            FaceMatch.objects.create(
+            face_match = FaceMatch.objects.create(
                 tenant=verification.tenant,
                 verification=verification,
                 selfie_capture=self.validated_data["selfie_capture"],
@@ -302,6 +319,22 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
                 status=FaceMatchStatus.INCONCLUSIVE,
                 matched_at=now,
             )
+            face_match_provider_check = create_provider_check(
+                verification=verification,
+                check_type=ProviderCheckType.FACE_MATCH,
+                status=ProviderCheckStatus.COMPLETED,
+                normalized_result={
+                    "status": FaceMatchStatus.INCONCLUSIVE,
+                    "source": "bootstrap-placeholder",
+                },
+                request_metadata={
+                    "selfie_capture_id": self.validated_data["selfie_capture"].public_id,
+                    "identity_document_id": identity_document.public_id,
+                    "document_capture_id": document_capture.public_id if document_capture is not None else "",
+                },
+            )
+            face_match.provider_check_id = face_match_provider_check.public_id
+            face_match.save(update_fields=["provider_check_id", "updated_at"])
 
         verification.status = VerificationStatus.PROCESSING
         verification.save(update_fields=["status", "updated_at"])

@@ -1,7 +1,7 @@
 from django.apps import AppConfig
 
 
-class ProvidersConfig(AppConfig):
+class RiskConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "apps.providers"
-    label = "providers"
+    name = "apps.risk"
+    label = "risk"

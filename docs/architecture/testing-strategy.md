@@ -260,6 +260,9 @@ Verification workflow tests should cover:
 - Verification creation copies a policy snapshot when `policy_id` is supplied
 - Manual review listing is tenant-scoped
 - Manual review decisions create a persisted verification decision and update verification status
+- Liveness submission creates provider-check records for liveness and face match
+- Liveness submission creates a persisted risk assessment and automatic decision
+- Inconclusive bootstrap evidence routes verifications to manual review automatically
 - Face match result processing
 - Risk assessment
 - Automatic approval
@@ -357,6 +360,13 @@ Current implemented webhook coverage includes:
 - Test webhook queueing
 - Verification-created webhook queueing
 - Manual decision webhook queueing
+
+Current implemented provider/risk coverage includes:
+
+- Provider check validation enforces compatible provider/check-type combinations
+- Completed provider checks require completion timestamps
+- Rule-based risk evaluation supports automatic approval, rejection, and manual-review routing
+- Verification detail responses include persisted risk-assessment summaries when present
 
 ---
 

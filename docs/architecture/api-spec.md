@@ -491,6 +491,12 @@ Response:
         "score": 0.96
       }
     },
+    "risk_assessment": {
+      "id": "rsk_01JABC...",
+      "risk_level": "low",
+      "risk_score": 14.0,
+      "recommendation": "approve"
+    },
     "decision": {
       "decision": "verified",
       "decision_type": "automatic",
@@ -504,6 +510,11 @@ Response:
 ```
 
 Sensitive data must be minimized.
+
+Implementation note:
+
+- The current Django bootstrap creates provider-check records for liveness, face match, and risk evaluation.
+- Until external AI/provider integrations are connected, inconclusive bootstrap evidence is automatically routed into `manual_review_required` with a persisted automatic decision and risk assessment.
 
 ---
 
@@ -991,6 +1002,7 @@ Business rules:
 
 - Manual review actions are tenant-scoped.
 - Recording a manual decision creates or updates the persisted verification decision record and updates the verification status.
+- Manual review lists should reflect the persisted verification risk assessment when one exists.
 
 ---
 

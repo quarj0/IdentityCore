@@ -8,6 +8,7 @@ from apps.biometrics.models import FaceMatch, LivenessCheck
 from apps.document_captures.models import DocumentCapture
 from apps.identity_documents.models import IdentityDocument
 from apps.organizations.models import Organization
+from apps.risk.models import RiskAssessment
 from apps.tenants.models import Tenant
 from apps.verification_policies.models import VerificationPolicy
 from apps.verifications.models import Verification, VerificationDecision, VerificationStatus
@@ -229,6 +230,7 @@ class VerificationWorkflowTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["checks"]["liveness"]["status"], "inconclusive")
         self.assertEqual(response.data["data"]["checks"]["face_match"]["status"], "inconclusive")
+        self.assertIsNone(response.data["data"]["risk_assessment"])
 
     def test_create_verification_copies_policy_snapshot(self):
         policy = VerificationPolicy.objects.create(
@@ -267,14 +269,20 @@ class VerificationWorkflowTests(APITestCase):
         self.assertEqual(verification.policy_snapshot_json["required_liveness_level"], "passive")
 
     def test_manual_review_list_is_tenant_scoped(self):
-        Verification.objects.create(
+        verification = Verification.objects.create(
             tenant=self.tenant,
             organization=self.organization,
             verification_subject=self.tenant.verification_subjects.create(full_name="Reviewer Case"),
             purpose="Manual review case",
             expires_at=self.tenant.created_at,
             status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
-            metadata_json={"risk_level": "high"},
+        )
+        RiskAssessment.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            risk_score="78.00",
+            risk_level="high",
+            recommendation="manual_review",
         )
         other_org = Organization.objects.create(name="Gamma", slug="gamma")
         other_tenant = Tenant.objects.create(
@@ -353,6 +361,13 @@ class VerificationWorkflowTests(APITestCase):
             decided_by=self.user,
             decided_at=self.tenant.created_at,
         )
+        RiskAssessment.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            risk_score="14.00",
+            risk_level="low",
+            recommendation="approve",
+        )
 
         response = self.client.get(
             reverse("verification-detail", kwargs={"verification_id": verification.public_id}),
@@ -362,3 +377,4 @@ class VerificationWorkflowTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["decision"]["decision"], "verified")
         self.assertEqual(response.data["data"]["decision"]["decision_type"], "manual")
+        self.assertEqual(response.data["data"]["risk_assessment"]["risk_level"], "low")
