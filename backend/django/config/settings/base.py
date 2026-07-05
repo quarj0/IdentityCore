@@ -133,6 +133,8 @@ CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", REDIS_URL)
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", REDIS_URL)
 CELERY_TASK_ALWAYS_EAGER = False
 CELERY_TASK_EAGER_PROPAGATES = False
+CELERY_TASK_DEFAULT_QUEUE = "default"
+CELERY_TASK_DEFAULT_ROUTING_KEY = "default"
 CELERY_TASK_ROUTES = {
     "apps.webhooks.tasks.process_pending_webhook_events_task": {"queue": "webhooks"},
     "apps.webhooks.tasks.deliver_webhook_event_task": {"queue": "webhooks"},

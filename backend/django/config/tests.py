@@ -6,6 +6,10 @@ from apps.webhooks.tasks import deliver_webhook_event_task, process_pending_webh
 
 
 class CeleryConfigurationTests(SimpleTestCase):
+    def test_default_queue_is_explicit_for_general_background_work(self):
+        self.assertEqual(settings.CELERY_TASK_DEFAULT_QUEUE, "default")
+        self.assertEqual(settings.CELERY_TASK_DEFAULT_ROUTING_KEY, "default")
+
     def test_celery_beat_schedule_registers_webhook_and_notification_processors(self):
         self.assertIn("process-pending-webhooks", settings.CELERY_BEAT_SCHEDULE)
         self.assertIn("process-pending-notifications", settings.CELERY_BEAT_SCHEDULE)

@@ -384,6 +384,7 @@ Current implemented notification coverage includes:
 - Pending email notifications are delivered through the configured mail backend and marked sent
 - Celery configuration routes webhook and notification delivery tasks to dedicated queues
 - Celery beat configuration schedules periodic processing for pending webhooks and notifications
+- The general Celery default queue is pinned explicitly to `default` so compose worker topology matches routing expectations
 
 ---
 

@@ -113,13 +113,67 @@ services:
       CELERY_BROKER_URL: ${CELERY_BROKER_URL}
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND}
       AI_SERVICE_BASE_URL: ${AI_SERVICE_BASE_URL}
-    command: celery -A config worker --loglevel=info
+    command: celery -A config worker --loglevel=info --hostname=default@%h --queues=default
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
       ai-service:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    networks:
+      - identitycore
+
+  celery-worker-webhooks:
+    build:
+      context: .
+      dockerfile: backend/django/Dockerfile
+    working_dir: /app/backend/django
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      REDIS_URL: ${REDIS_URL}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND}
+      AI_SERVICE_BASE_URL: ${AI_SERVICE_BASE_URL}
+    command: celery -A config worker --loglevel=info --hostname=webhooks@%h --queues=webhooks
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    networks:
+      - identitycore
+
+  celery-worker-notifications:
+    build:
+      context: .
+      dockerfile: backend/django/Dockerfile
+    working_dir: /app/backend/django
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      REDIS_URL: ${REDIS_URL}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND}
+      AI_SERVICE_BASE_URL: ${AI_SERVICE_BASE_URL}
+    command: celery -A config worker --loglevel=info --hostname=notifications@%h --queues=notifications
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     volumes:
       - .:/app
@@ -148,6 +202,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      celery-worker:
+        condition: service_started
+      celery-worker-webhooks:
+        condition: service_started
+      celery-worker-notifications:
+        condition: service_started
     volumes:
       - .:/app
     networks:

@@ -667,6 +667,7 @@ Implementation note:
 
 - The current Django/Celery setup routes webhook processing tasks to the `webhooks` queue and email notification tasks to the `notifications` queue.
 - Celery beat schedules periodic processing for pending webhook and notification deliveries.
+- The local Docker Compose stack runs separate workers for `default`, `webhooks`, and `notifications` so lightweight delivery jobs are isolated from general background work.
 
 ---
 
