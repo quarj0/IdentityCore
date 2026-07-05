@@ -1,7 +1,14 @@
 from django.utils import timezone
 from rest_framework import serializers
 
-from apps.biometrics.models import SelfieCapture, SelfieCaptureStatus, SelfieCaptureType
+from apps.biometrics.models import (
+    LivenessCheck,
+    LivenessCheckStatus,
+    LivenessType,
+    SelfieCapture,
+    SelfieCaptureStatus,
+    SelfieCaptureType,
+)
 from apps.consent.models import ConsentRecord, ConsentTemplate, ConsentTemplateStatus
 from apps.document_captures.models import DocumentCapture, DocumentCaptureSide
 from apps.identity_documents.models import IdentityDocument, IdentityDocumentStatus
@@ -213,3 +220,43 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
         verification_session.last_seen_at = now
         verification_session.save(update_fields=["last_seen_at", "updated_at"])
         return selfie_capture
+
+
+class VerificationSessionLivenessSerializer(serializers.Serializer):
+    liveness_type = serializers.ChoiceField(choices=LivenessType.choices)
+    selfie_capture_id = serializers.CharField(max_length=64)
+
+    def validate(self, attrs):
+        request = self.context["request"]
+        verification = request.verification_session.verification
+
+        try:
+            selfie_capture = verification.selfie_captures.get(public_id=attrs["selfie_capture_id"])
+        except SelfieCapture.DoesNotExist as exc:
+            raise serializers.ValidationError(
+                {"selfie_capture_id": "Selfie capture was not found for this verification session."}
+            ) from exc
+
+        attrs["selfie_capture"] = selfie_capture
+        return attrs
+
+    def save(self, **kwargs):
+        request = self.context["request"]
+        verification_session = request.verification_session
+        verification = verification_session.verification
+        now = timezone.now()
+
+        liveness_check = LivenessCheck.objects.create(
+            tenant=verification.tenant,
+            verification=verification,
+            selfie_capture=self.validated_data["selfie_capture"],
+            liveness_type=self.validated_data["liveness_type"],
+            status=LivenessCheckStatus.INCONCLUSIVE,
+            checked_at=now,
+        )
+
+        verification.status = VerificationStatus.PROCESSING
+        verification.save(update_fields=["status", "updated_at"])
+        verification_session.last_seen_at = now
+        verification_session.save(update_fields=["last_seen_at", "updated_at"])
+        return liveness_check

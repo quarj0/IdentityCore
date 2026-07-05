@@ -55,3 +55,55 @@ class SelfieCapture(PublicIdModel, BaseModel):
 
     def __str__(self) -> str:
         return self.public_id
+
+
+class LivenessType(models.TextChoices):
+    PASSIVE = "passive", "Passive"
+    ACTIVE = "active", "Active"
+
+
+class LivenessCheckStatus(models.TextChoices):
+    PASSED = "passed", "Passed"
+    FAILED = "failed", "Failed"
+    INCONCLUSIVE = "inconclusive", "Inconclusive"
+    ERROR = "error", "Error"
+
+
+class LivenessCheck(PublicIdModel, BaseModel):
+    public_id_prefix = "liv"
+
+    tenant = models.ForeignKey(
+        "tenants.Tenant",
+        on_delete=models.PROTECT,
+        related_name="liveness_checks",
+    )
+    verification = models.ForeignKey(
+        "verifications.Verification",
+        on_delete=models.PROTECT,
+        related_name="liveness_checks",
+    )
+    selfie_capture = models.ForeignKey(
+        SelfieCapture,
+        on_delete=models.PROTECT,
+        related_name="liveness_checks",
+    )
+    provider_check_id = models.CharField(max_length=64, blank=True)
+    liveness_type = models.CharField(max_length=16, choices=LivenessType.choices)
+    status = models.CharField(
+        max_length=32,
+        choices=LivenessCheckStatus.choices,
+        default=LivenessCheckStatus.INCONCLUSIVE,
+        db_index=True,
+    )
+    score = models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True)
+    confidence_level = models.CharField(max_length=32, blank=True)
+    failure_reason = models.CharField(max_length=255, blank=True)
+    model_name = models.CharField(max_length=120, blank=True)
+    model_version = models.CharField(max_length=64, blank=True)
+    checked_at = models.DateTimeField(db_index=True)
+
+    class Meta:
+        ordering = ["-checked_at"]
+
+    def __str__(self) -> str:
+        return self.public_id

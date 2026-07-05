@@ -742,6 +742,11 @@ Request:
 }
 ```
 
+Business rules:
+
+- The referenced selfie capture must belong to the current verification session.
+- The current bootstrap implementation records a `LivenessCheck` immediately and returns `status: processing` while AI-backed liveness evaluation is still pending integration.
+
 Response:
 
 ```json

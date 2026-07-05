@@ -4,6 +4,7 @@ from apps.verification_sessions.views import (
     VerificationSessionConsentView,
     VerificationSessionDetailView,
     VerificationSessionDocumentView,
+    VerificationSessionLivenessView,
     VerificationSessionSelfieView,
 )
 
@@ -24,5 +25,10 @@ urlpatterns = [
         "<str:session_id>/selfies",
         VerificationSessionSelfieView.as_view(),
         name="verification-session-selfies",
+    ),
+    path(
+        "<str:session_id>/liveness",
+        VerificationSessionLivenessView.as_view(),
+        name="verification-session-liveness",
     ),
 ]

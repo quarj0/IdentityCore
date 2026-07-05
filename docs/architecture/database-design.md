@@ -1320,6 +1320,10 @@ index(status)
 index(checked_at)
 ```
 
+Implementation note:
+
+- The current Django bootstrap creates liveness checks with an initial placeholder status while the AI service integration is still pending, and the session API returns a subject-facing `processing` state for that handoff.
+
 ---
 
 ## face_matches

@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
-from apps.biometrics.models import SelfieCapture
+from apps.biometrics.models import LivenessCheck, SelfieCapture
 from apps.consent.models import ConsentRecord, ConsentTemplate, ConsentTemplateStatus
 from apps.document_captures.models import DocumentCapture
 from apps.identity_documents.models import IdentityDocument
@@ -279,3 +279,45 @@ class VerificationSessionPortalTests(APITestCase):
         self.assertEqual(selfie_capture.status, "uploaded")
         self.verification.refresh_from_db()
         self.assertEqual(self.verification.status, VerificationStatus.PROCESSING)
+
+    def test_submit_liveness_requires_matching_selfie_capture(self):
+        response = self.client.post(
+            reverse("verification-session-liveness", kwargs={"session_id": self.session.public_id}),
+            {"liveness_type": "passive", "selfie_capture_id": "sel_missing"},
+            format="json",
+            **self.session_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_submit_liveness_creates_check_and_returns_processing(self):
+        selfie_capture = SelfieCapture.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_subject=self.subject,
+            storage_key="uploads/selfies/upl_01JSELFIE",
+            storage_provider="local",
+            capture_type="image",
+            mime_type="image/jpeg",
+            file_size_bytes=0,
+            checksum_sha256="",
+            face_count=1,
+            status="uploaded",
+            captured_at=timezone.now(),
+        )
+        self.verification.status = VerificationStatus.PROCESSING
+        self.verification.save(update_fields=["status", "updated_at"])
+
+        response = self.client.post(
+            reverse("verification-session-liveness", kwargs={"session_id": self.session.public_id}),
+            {"liveness_type": "passive", "selfie_capture_id": selfie_capture.public_id},
+            format="json",
+            **self.session_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["data"]["status"], "processing")
+        liveness_check = LivenessCheck.objects.get(public_id=response.data["data"]["liveness_check_id"])
+        self.assertEqual(liveness_check.selfie_capture, selfie_capture)
+        self.assertEqual(liveness_check.liveness_type, "passive")
+        self.assertEqual(liveness_check.status, "inconclusive")

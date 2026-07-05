@@ -250,6 +250,8 @@ Verification workflow tests should cover:
 - Selfie submission requires prior document submission
 - Selfie submission creates a Selfie Capture and advances the next step
 - Selfie submission
+- Liveness submission requires a selfie capture from the same verification
+- Liveness submission creates a Liveness Check placeholder and returns processing
 - Liveness result processing
 - Face match result processing
 - Risk assessment
