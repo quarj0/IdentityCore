@@ -6,69 +6,112 @@
 
 ## Vision Statement
 
-IdentityCore exists to build trusted digital identity infrastructure that enables governments, businesses, and institutions to verify identities securely, protect against fraud, and deliver trusted digital services through a privacy-first, AI-powered platform.
+IdentityCore exists to build trusted digital identity infrastructure that enables governments, businesses, and institutions to establish, verify, and manage digital trust securely.
 
-IdentityCore is not simply a facial recognition system or a document verification service. It is a comprehensive identity infrastructure platform designed to establish trust between people, organizations, and digital services.
+Version 1.0 delivers a comprehensive identity verification platform, but IdentityCore is designed as the foundation for a broader ecosystem of digital identity and trust services.
 
-Our long-term ambition is to become the trusted identity layer that powers secure digital interactions across Africa and, ultimately, other regions of the world.
+Rather than providing a single verification product, IdentityCore provides the infrastructure upon which organizations can build secure digital experiences, integrate trusted identity services, and retain full ownership of their identity data.
+
+Our long-term ambition is to become the trusted digital identity layer powering governments, enterprises, and digital services across Africa and, ultimately, other regions of the world.
 
 ---
 
 ## Mission
 
-To empower organizations with secure, privacy-first identity verification and authentication technologies while giving individuals greater confidence and transparency in how their identities are verified and protected.
+To empower organizations with secure, privacy-first digital identity infrastructure that enables trusted verification, authentication, authorization, and identity-driven services while giving individuals greater confidence, transparency, and control over how their identities are used.
 
 ---
 
 ## Long-Term Vision
 
-To become Africa's leading digital identity infrastructure platform by providing secure, interoperable, and intelligent identity services that connect governments, financial institutions, healthcare providers, educational institutions, enterprises, and digital platforms through a single trusted ecosystem.
+To become Africa's leading digital identity infrastructure platform by providing secure, interoperable, and intelligent identity services that connect governments, financial institutions, healthcare providers, educational institutions, enterprises, and digital platforms through a shared trust ecosystem.
+
+IdentityCore aims to become the foundational identity layer that organizations rely on whenever trust must be established between people, systems, and services.
 
 ---
 
 ## Problem Statement
 
-Identity verification remains fragmented, expensive, slow, and inconsistent across many organizations.
+Digital identity remains fragmented across organizations.
 
-Institutions often rely on manual verification processes, disconnected systems, paper-based records, and isolated identity databases, resulting in:
+Many institutions maintain isolated identity databases, manual verification workflows, disconnected systems, and inconsistent verification standards.
+
+This fragmentation results in:
 
 - Identity fraud
 - Duplicate identities
-- Slow onboarding processes
+- Slow onboarding
 - Human error
-- Poor user experience
-- Limited interoperability
+- Poor customer experience
 - High operational costs
-- Weak audit capabilities
+- Weak interoperability
+- Limited auditability
+- Vendor lock-in
+- Difficulty integrating national identity systems
 
-Many organizations also lack secure methods for biometric verification, document authentication, and digital identity management while maintaining strong privacy protections.
+Organizations often purchase multiple disconnected products for identity verification, biometric authentication, access management, document verification, and compliance instead of using a unified identity platform.
 
-IdentityCore addresses these challenges through a unified identity infrastructure platform that enables secure, scalable, and transparent identity verification.
+IdentityCore addresses these challenges by providing a modular digital identity infrastructure platform that allows organizations to verify identities, integrate trusted identity services, enforce organizational policies, and maintain complete ownership of their data.
 
 ---
 
 ## Vision Scope
 
-IdentityCore is designed as an extensible platform capable of supporting multiple identity services, including but not limited to:
+IdentityCore is designed as a digital identity platform capable of supporting multiple identity and trust services.
+
+Version 1.0 focuses on Identity Verification.
+
+Future platform capabilities include:
+
+### Identity Services
 
 - Identity Verification
 - Facial Recognition
 - Biometric Authentication
-- Liveness Detection
+- Passive Liveness Detection
+- Active Liveness Detection
 - Document Verification
-- Digital Identity Credentials
+- Document Authenticity Analysis
+- Identity Credential Validation
+
+### Trust Services
+
+- Verification Policies
+- Risk Assessment
+- Fraud Detection
+- Decision Engine
+- Audit & Compliance
+- Consent Management
+
+### Enterprise Services
+
 - Access Control
-- Visitor Management
 - Employee Verification
 - Student Verification
+- Visitor Management
 - Customer KYC
-- Fraud Detection
-- Risk Assessment
-- Government Integrations
-- Enterprise Identity APIs
-- Digital Identity Workflows
+- Vendor Verification
 
-These capabilities are delivered through a modular architecture, allowing organizations to adopt only the components they require.
+### Government Services
+
+- National Identity Integration
+- Government Identity APIs
+- Citizen Verification
+- Digital Public Services
+- Cross-agency Identity Exchange
+
+### Platform Services
+
+- Provider Integrations
+- Country Profiles
+- Identity Workflows
+- Enterprise APIs
+- SDKs
+- Webhooks
+- Analytics
+- Developer Platform
+
+Organizations should be able to adopt only the capabilities they require while maintaining a consistent identity platform.
 
 ---
 
@@ -78,99 +121,145 @@ These capabilities are delivered through a modular architecture, allowing organi
 
 Privacy is a foundational requirement rather than an afterthought.
 
-IdentityCore collects only the minimum information required for a specific verification process, supports consent-driven workflows, and promotes responsible handling of personal and biometric data.
+IdentityCore collects only the minimum information necessary for a specific purpose, supports explicit consent, and enables organizations to implement responsible identity verification practices.
+
+Individuals should never lose confidence in how their personal or biometric information is collected, processed, stored, or deleted.
 
 ---
 
 ## Security First
 
-Every component of the platform is designed with security as its highest priority.
+Security is the foundation of digital trust.
 
-Security considerations include:
+Every component of IdentityCore is designed around:
 
-- End-to-end encryption
-- Strong authentication
-- Role-based authorization
-- Comprehensive audit logging
-- Secure API design
 - Zero Trust principles
+- Encryption in transit and at rest
+- Strong authentication
+- Fine-grained authorization
+- Tenant isolation
+- Secure API design
 - Continuous monitoring
+- Comprehensive audit logging
+
+Security is considered a product feature rather than an operational concern.
 
 ---
 
 ## Trust Through Transparency
 
-Identity verification should be understandable, explainable, and traceable.
+Trust requires explainability.
 
-Every verification event should produce a clear audit trail indicating:
+Every verification should produce an auditable record describing:
 
-- who performed the verification,
-- when it occurred,
-- why it was performed,
-- what data was accessed,
-- and the outcome of the verification.
+- Who performed the verification
+- Why it occurred
+- Which policy was applied
+- Which evidence was evaluated
+- Which systems participated
+- The resulting decision
+
+IdentityCore favors explainable verification over opaque automation.
 
 ---
 
-## AI as an Enabler
+## AI as Evidence, Not Decision
 
-Artificial Intelligence supports identity verification by assisting with biometric matching, fraud detection, document analysis, and risk assessment.
+Artificial Intelligence strengthens identity verification by providing technical evidence such as biometric similarity scores, document analysis, OCR confidence, and liveness assessment.
 
-AI provides confidence scores and recommendations rather than replacing human oversight for high-impact decisions.
+Final verification decisions remain the responsibility of configurable business policies and, where appropriate, authorized human reviewers.
+
+AI supports trust—it does not replace it.
 
 ---
 
 ## Interoperability
 
-IdentityCore is designed to integrate with existing systems rather than replace them.
+IdentityCore is designed to integrate with existing ecosystems rather than replace them.
 
-The platform will expose standardized APIs capable of connecting with government systems, enterprise applications, financial institutions, healthcare platforms, educational systems, and third-party identity providers.
+The platform provides standardized APIs capable of connecting with:
+
+- Government systems
+- National identity databases
+- Enterprise applications
+- Financial institutions
+- Healthcare platforms
+- Educational systems
+- Third-party providers
+
+IdentityCore should become an integration layer rather than another isolated identity system.
+
+---
+
+## Data Ownership
+
+Organizations should retain ownership of their identity data.
+
+IdentityCore supports deployment models that allow customers to control:
+
+- Infrastructure
+- Databases
+- Object storage
+- Encryption keys
+- Provider selection
+
+IdentityCore avoids unnecessary vendor lock-in by separating business logic from infrastructure and provider implementations.
 
 ---
 
 ## Scalability
 
-IdentityCore is built to scale from a single organization to national deployments while maintaining high availability, performance, and security.
+IdentityCore is built to scale from a single organization to nationwide deployments while maintaining security, availability, and operational simplicity.
+
+The platform architecture should support SaaS, dedicated enterprise deployments, and government-hosted environments without fundamental redesign.
 
 ---
 
 ## Modularity
 
-Organizations should only deploy the capabilities they require.
+Organizations should deploy only the capabilities they require.
 
-Every major capability of IdentityCore is designed as an independent module that can operate individually or as part of the larger platform.
+IdentityCore is built as a collection of interoperable modules that can evolve independently while sharing a common identity foundation.
 
 ---
 
 ## Target Users
 
-IdentityCore is designed for organizations that require secure identity verification and trusted authentication services, including:
+IdentityCore is designed for organizations responsible for establishing digital trust, including:
 
 - Government agencies
+- National identity authorities
 - Financial institutions
 - Healthcare providers
 - Educational institutions
 - Security organizations
 - Telecommunications companies
-- Event platforms
 - Employers
+- Event platforms
 - Technology companies
 - Digital service providers
+- Enterprise software vendors
 
 ---
 
 ## Success Vision
 
-IdentityCore will be considered successful when organizations can verify identities within seconds through secure, privacy-preserving workflows while maintaining complete transparency, strong security, and full confidence in the authenticity of every verification.
+IdentityCore will be considered successful when organizations can establish trusted digital identities within seconds using secure, privacy-preserving, explainable, and auditable workflows while retaining complete ownership of their identity infrastructure.
+
+Long-term success will be measured not only by the number of verifications performed, but by the number of critical digital services built upon the IdentityCore platform.
 
 ---
 
 ## Future Outlook
 
-IdentityCore aims to become more than an identity verification platform.
+IdentityCore begins with identity verification.
 
-It seeks to establish the digital trust infrastructure upon which future services—including digital credentials, secure access, interoperable government services, intelligent fraud prevention, and trusted digital ecosystems—can be built.
+Its destination is digital trust infrastructure.
+
+As the platform evolves, it will support digital credentials, identity federation, secure access, government identity integrations, intelligent fraud prevention, digital wallets, enterprise identity services, and trusted digital ecosystems.
 
 Our goal is not simply to verify identities.
 
-Our goal is to build trust at digital scale.
+Our goal is to provide the infrastructure that enables trusted digital interactions at national and global scale.
+
+IdentityCore is building the infrastructure for trust in the digital world.

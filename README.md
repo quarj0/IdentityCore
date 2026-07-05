@@ -1,6 +1,6 @@
 # IdentityCore
 
-> Secure, AI-powered identity verification infrastructure for organizations.
+> IdentityCore is an enterprise digital identity infrastructure platform. Version 1.0 delivers secure identity verification while establishing the foundation for trusted digital identity services across organizations and governments.
 
 IdentityCore is a multi-tenant identity verification platform that enables organizations to verify the identity of individuals through secure document capture, biometric verification, liveness detection, and policy-driven decision making.
 
