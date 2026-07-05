@@ -8,7 +8,13 @@ from rest_framework import serializers
 from apps.biometrics.models import FaceMatch, LivenessCheck
 from apps.verification_policies.models import VerificationPolicy
 from apps.verification_subjects.models import VerificationSubject
-from apps.verifications.models import Verification, VerificationSession, VerificationStatus
+from apps.verifications.models import (
+    Verification,
+    VerificationDecision,
+    VerificationDecisionType,
+    VerificationSession,
+    VerificationStatus,
+)
 
 
 def serialize_verification_subject(subject: VerificationSubject) -> dict:
@@ -32,6 +38,7 @@ def serialize_verification(verification: Verification) -> dict:
         if hasattr(verification, "face_matches")
         else None
     )
+    decision_record = getattr(verification, "decision_record", None)
     return {
         "id": verification.public_id,
         "status": verification.status,
@@ -52,7 +59,17 @@ def serialize_verification(verification: Verification) -> dict:
                 "score": float(latest_face_match.match_score) if latest_face_match and latest_face_match.match_score is not None else None,
             },
         },
-        "decision": None,
+        "decision": (
+            {
+                "decision": decision_record.decision,
+                "decision_type": decision_record.decision_type,
+                "reason_code": decision_record.reason_code,
+                "reason_detail": decision_record.reason_detail,
+                "decided_at": decision_record.decided_at.isoformat(),
+            }
+            if decision_record is not None
+            else None
+        ),
         "created_at": verification.created_at.isoformat(),
         "completed_at": verification.completed_at.isoformat() if verification.completed_at else None,
         "expires_at": verification.expires_at.isoformat(),
@@ -160,6 +177,62 @@ class VerificationCreateSerializer(serializers.Serializer):
 
 class VerificationCancelSerializer(serializers.Serializer):
     reason = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
+
+def serialize_manual_review_summary(verification: Verification) -> dict:
+    return {
+        "verification_id": verification.public_id,
+        "status": verification.status,
+        "risk_level": verification.metadata_json.get("risk_level", "medium"),
+        "created_at": verification.created_at.isoformat(),
+    }
+
+
+class ManualReviewDecisionSerializer(serializers.Serializer):
+    decision = serializers.ChoiceField(
+        choices=[
+            (VerificationStatus.VERIFIED, "Verified"),
+            (VerificationStatus.REJECTED, "Rejected"),
+            (VerificationStatus.MANUAL_REVIEW_REQUIRED, "Manual Review Required"),
+            (VerificationStatus.FAILED, "Failed"),
+        ]
+    )
+    reason_code = serializers.CharField(max_length=120)
+    reason_detail = serializers.CharField()
+
+    def save(self, *, verification: Verification, decided_by):
+        now = timezone.now()
+        decision_record, _ = VerificationDecision.objects.update_or_create(
+            verification=verification,
+            defaults={
+                "tenant": verification.tenant,
+                "decision": self.validated_data["decision"],
+                "decision_type": VerificationDecisionType.MANUAL,
+                "reason_code": self.validated_data["reason_code"],
+                "reason_detail": self.validated_data["reason_detail"],
+                "evidence_summary_json": {
+                    "liveness_status": (
+                        verification.liveness_checks.order_by("-checked_at").first().status
+                        if verification.liveness_checks.exists()
+                        else "pending"
+                    ),
+                    "face_match_status": (
+                        verification.face_matches.order_by("-matched_at").first().status
+                        if verification.face_matches.exists()
+                        else "pending"
+                    ),
+                },
+                "decided_by": decided_by,
+                "decided_at": now,
+            },
+        )
+        verification.status = self.validated_data["decision"]
+        if verification.status in {VerificationStatus.VERIFIED, VerificationStatus.REJECTED, VerificationStatus.FAILED}:
+            verification.completed_at = now
+            verification.save(update_fields=["status", "completed_at", "updated_at"])
+        else:
+            verification.save(update_fields=["status", "updated_at"])
+        return decision_record
 
 
 def paginate_results(queryset, page: int, page_size: int):

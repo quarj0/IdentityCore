@@ -1603,6 +1603,10 @@ index(decision_type)
 index(decided_at)
 ```
 
+Implementation note:
+
+- The current Django implementation stores one persisted decision record per verification and uses manual-review actions to create or update that record while synchronizing the parent verification status.
+
 ---
 
 # Audit Tables

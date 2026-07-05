@@ -1,18 +1,21 @@
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from apps.verifications.serializers import (
+    ManualReviewDecisionSerializer,
     VerificationCancelSerializer,
     VerificationCreateSerializer,
     paginate_results,
+    serialize_manual_review_summary,
     serialize_verification,
     serialize_verification_summary,
 )
 from apps.verifications.models import Verification, VerificationStatus
 from common.authentication import APIClientAuthentication
-from common.permissions import HasAPIClientScopes
+from common.permissions import HasAPIClientScopes, IsTenantUser
 from common.responses import success_response
 
 
@@ -101,4 +104,47 @@ class VerificationCancelView(APIView):
                 "status": verification.status,
             },
             request=request,
+        )
+
+
+class ManualReviewListView(APIView):
+    permission_classes = [IsAuthenticated, IsTenantUser]
+
+    def get(self, request):
+        verifications = request.user.tenant.verifications.filter(
+            status=VerificationStatus.MANUAL_REVIEW_REQUIRED
+        ).order_by("-created_at")
+        page = int(request.query_params.get("page", 1))
+        page_size = int(request.query_params.get("page_size", 20))
+        page_obj, pagination = paginate_results(verifications, page, page_size)
+        return success_response(
+            {
+                "results": [serialize_manual_review_summary(item) for item in page_obj.object_list],
+                "pagination": pagination,
+            },
+            request=request,
+        )
+
+
+class ManualReviewDecisionView(APIView):
+    permission_classes = [IsAuthenticated, IsTenantUser]
+
+    def post(self, request, verification_id: str):
+        verification = get_object_or_404(
+            Verification,
+            tenant=request.user.tenant,
+            public_id=verification_id,
+        )
+        serializer = ManualReviewDecisionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        decision_record = serializer.save(verification=verification, decided_by=request.user)
+        return success_response(
+            {
+                "verification_id": verification.public_id,
+                "decision": decision_record.decision,
+                "decision_type": decision_record.decision_type,
+                "decided_at": decision_record.decided_at.isoformat(),
+            },
+            request=request,
+            status=status.HTTP_200_OK,
         )

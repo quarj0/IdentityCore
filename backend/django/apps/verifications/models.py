@@ -29,6 +29,12 @@ class VerificationSessionStatus(models.TextChoices):
     REVOKED = "revoked", "Revoked"
 
 
+class VerificationDecisionType(models.TextChoices):
+    AUTOMATIC = "automatic", "Automatic"
+    MANUAL = "manual", "Manual"
+    SYSTEM = "system", "System"
+
+
 class Verification(PublicIdModel, BaseModel):
     public_id_prefix = "ver"
 
@@ -120,6 +126,47 @@ class VerificationSession(PublicIdModel):
     @property
     def is_authenticated(self) -> bool:
         return True
+
+    def __str__(self) -> str:
+        return self.public_id
+
+
+class VerificationDecision(PublicIdModel, BaseModel):
+    public_id_prefix = "dec"
+
+    tenant = models.ForeignKey(
+        "tenants.Tenant",
+        on_delete=models.PROTECT,
+        related_name="verification_decisions",
+    )
+    verification = models.OneToOneField(
+        Verification,
+        on_delete=models.PROTECT,
+        related_name="decision_record",
+    )
+    decision = models.CharField(
+        max_length=32,
+        choices=VerificationStatus.choices,
+        db_index=True,
+    )
+    decision_type = models.CharField(
+        max_length=32,
+        choices=VerificationDecisionType.choices,
+    )
+    reason_code = models.CharField(max_length=120, blank=True)
+    reason_detail = models.TextField(blank=True)
+    evidence_summary_json = models.JSONField(default=dict, blank=True)
+    decided_by = models.ForeignKey(
+        "accounts.PlatformUser",
+        on_delete=models.PROTECT,
+        related_name="verification_decisions",
+        null=True,
+        blank=True,
+    )
+    decided_at = models.DateTimeField(db_index=True)
+
+    class Meta:
+        ordering = ["-decided_at"]
 
     def __str__(self) -> str:
         return self.public_id

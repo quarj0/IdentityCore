@@ -258,6 +258,8 @@ Verification workflow tests should cover:
 - Verification detail responses reflect the latest liveness and face-match records
 - Policy creation is tenant-scoped and versioned by policy name
 - Verification creation copies a policy snapshot when `policy_id` is supplied
+- Manual review listing is tenant-scoped
+- Manual review decisions create a persisted verification decision and update verification status
 - Face match result processing
 - Risk assessment
 - Automatic approval

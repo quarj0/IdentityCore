@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.verifications.models import Verification, VerificationSession
+from apps.verifications.models import Verification, VerificationDecision, VerificationSession
 
 
 @admin.register(Verification)
@@ -15,3 +15,10 @@ class VerificationSessionAdmin(admin.ModelAdmin):
     list_display = ("public_id", "verification", "tenant", "status", "expires_at", "created_at")
     list_filter = ("tenant", "status")
     search_fields = ("public_id", "verification__public_id")
+
+
+@admin.register(VerificationDecision)
+class VerificationDecisionAdmin(admin.ModelAdmin):
+    list_display = ("public_id", "verification", "decision", "decision_type", "decided_at")
+    list_filter = ("decision", "decision_type")
+    search_fields = ("public_id", "verification__public_id", "reason_code")

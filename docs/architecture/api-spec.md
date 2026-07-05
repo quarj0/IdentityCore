@@ -923,6 +923,10 @@ Business rules:
 
 Lists verifications requiring manual review.
 
+Authentication:
+
+- Platform user JWT required.
+
 Response:
 
 ```json
@@ -954,6 +958,10 @@ Response:
 
 Records a manual decision.
 
+Authentication:
+
+- Platform user JWT required.
+
 Request:
 
 ```json
@@ -978,6 +986,11 @@ Response:
   "request_id": "req_01JABC..."
 }
 ```
+
+Business rules:
+
+- Manual review actions are tenant-scoped.
+- Recording a manual decision creates or updates the persisted verification decision record and updates the verification status.
 
 ---
 

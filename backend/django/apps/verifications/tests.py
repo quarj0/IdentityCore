@@ -10,7 +10,7 @@ from apps.identity_documents.models import IdentityDocument
 from apps.organizations.models import Organization
 from apps.tenants.models import Tenant
 from apps.verification_policies.models import VerificationPolicy
-from apps.verifications.models import Verification, VerificationStatus
+from apps.verifications.models import Verification, VerificationDecision, VerificationStatus
 
 
 class VerificationWorkflowTests(APITestCase):
@@ -265,3 +265,100 @@ class VerificationWorkflowTests(APITestCase):
         self.assertEqual(verification.policy_public_id, policy.public_id)
         self.assertEqual(verification.policy_snapshot_json["id"], policy.public_id)
         self.assertEqual(verification.policy_snapshot_json["required_liveness_level"], "passive")
+
+    def test_manual_review_list_is_tenant_scoped(self):
+        Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.tenant.verification_subjects.create(full_name="Reviewer Case"),
+            purpose="Manual review case",
+            expires_at=self.tenant.created_at,
+            status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
+            metadata_json={"risk_level": "high"},
+        )
+        other_org = Organization.objects.create(name="Gamma", slug="gamma")
+        other_tenant = Tenant.objects.create(
+            organization=other_org,
+            name="Gamma Tenant",
+            slug="gamma-tenant",
+            status="active",
+        )
+        other_user = PlatformUser.objects.create_user(
+            email="gamma@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            tenant=other_tenant,
+        )
+        Verification.objects.create(
+            tenant=other_tenant,
+            organization=other_org,
+            verification_subject=other_tenant.verification_subjects.create(full_name="Other Case"),
+            purpose="Other manual review case",
+            expires_at=other_tenant.created_at,
+            status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
+            metadata_json={"risk_level": "critical"},
+        )
+
+        self.client.force_authenticate(self.user)
+        response = self.client.get(reverse("manual-review-list"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["data"]["results"]), 1)
+        self.assertEqual(response.data["data"]["results"][0]["risk_level"], "high")
+
+    def test_manual_review_decision_records_manual_decision(self):
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.tenant.verification_subjects.create(full_name="Reviewer Case"),
+            purpose="Manual review case",
+            expires_at=self.tenant.created_at,
+            status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
+        )
+
+        self.client.force_authenticate(self.user)
+        response = self.client.post(
+            reverse("manual-review-decision", kwargs={"verification_id": verification.public_id}),
+            {
+                "decision": "verified",
+                "reason_code": "evidence_confirmed",
+                "reason_detail": "Document and selfie match after manual review.",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        verification.refresh_from_db()
+        self.assertEqual(verification.status, VerificationStatus.VERIFIED)
+        decision = VerificationDecision.objects.get(verification=verification)
+        self.assertEqual(decision.decision_type, "manual")
+        self.assertEqual(decision.reason_code, "evidence_confirmed")
+
+    def test_detail_includes_decision_when_present(self):
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.tenant.verification_subjects.create(full_name="Reviewer Case"),
+            purpose="Manual review case",
+            expires_at=self.tenant.created_at,
+            status=VerificationStatus.VERIFIED,
+        )
+        VerificationDecision.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            decision="verified",
+            decision_type="manual",
+            reason_code="evidence_confirmed",
+            reason_detail="Document and selfie match after manual review.",
+            decided_by=self.user,
+            decided_at=self.tenant.created_at,
+        )
+
+        response = self.client.get(
+            reverse("verification-detail", kwargs={"verification_id": verification.public_id}),
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["data"]["decision"]["decision"], "verified")
+        self.assertEqual(response.data["data"]["decision"]["decision_type"], "manual")
