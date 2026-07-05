@@ -4,6 +4,9 @@ from rest_framework.test import APITestCase
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.api_clients.models import APIClient
+from apps.biometrics.models import FaceMatch, LivenessCheck
+from apps.document_captures.models import DocumentCapture
+from apps.identity_documents.models import IdentityDocument
 from apps.organizations.models import Organization
 from apps.tenants.models import Tenant
 from apps.verifications.models import Verification, VerificationStatus
@@ -155,3 +158,73 @@ class VerificationWorkflowTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["status"], VerificationStatus.CANCELLED)
+
+    def test_detail_includes_latest_liveness_and_face_match_states(self):
+        subject = self.tenant.verification_subjects.create(full_name="Kwame")
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=subject,
+            purpose="Test",
+            expires_at=self.tenant.created_at,
+            status=VerificationStatus.PROCESSING,
+        )
+        identity_document = IdentityDocument.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            verification_subject=subject,
+            document_type_id="national_id",
+            country_profile_id="GH",
+            status="processing",
+        )
+        document_capture = DocumentCapture.objects.create(
+            tenant=self.tenant,
+            identity_document=identity_document,
+            side="front",
+            storage_key="uploads/documents/upl_01JABC",
+            storage_provider="local",
+            mime_type="image/jpeg",
+            file_size_bytes=0,
+            checksum_sha256="",
+            status="uploaded",
+            captured_at=self.tenant.created_at,
+        )
+        selfie_capture = self.tenant.selfie_captures.create(
+            verification=verification,
+            verification_subject=subject,
+            storage_key="uploads/selfies/upl_01JSELFIE",
+            storage_provider="local",
+            capture_type="image",
+            mime_type="image/jpeg",
+            file_size_bytes=0,
+            checksum_sha256="",
+            face_count=1,
+            status="uploaded",
+            captured_at=self.tenant.created_at,
+        )
+        LivenessCheck.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            selfie_capture=selfie_capture,
+            liveness_type="passive",
+            status="inconclusive",
+            checked_at=self.tenant.created_at,
+        )
+        FaceMatch.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            selfie_capture=selfie_capture,
+            identity_document=identity_document,
+            document_capture=document_capture,
+            status="inconclusive",
+            matched_at=self.tenant.created_at,
+        )
+
+        response = self.client.get(
+            reverse("verification-detail", kwargs={"verification_id": verification.public_id}),
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["data"]["checks"]["liveness"]["status"], "inconclusive")
+        self.assertEqual(response.data["data"]["checks"]["face_match"]["status"], "inconclusive")

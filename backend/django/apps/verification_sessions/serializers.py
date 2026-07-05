@@ -2,6 +2,8 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from apps.biometrics.models import (
+    FaceMatch,
+    FaceMatchStatus,
     LivenessCheck,
     LivenessCheckStatus,
     LivenessType,
@@ -22,6 +24,22 @@ REQUIRED_STEPS = [
     "liveness_check",
 ]
 
+STATUS_PRESENTATION = {
+    VerificationStatus.PENDING_CONSENT: ("consent", "Please review and accept consent to continue."),
+    VerificationStatus.IN_PROGRESS: ("document_capture", "Please submit your identity document."),
+    VerificationStatus.AWAITING_SELFIE: ("selfie_capture", "Please capture and submit your selfie."),
+    VerificationStatus.PROCESSING: ("processing", "Your verification is being processed."),
+    VerificationStatus.MANUAL_REVIEW_REQUIRED: (
+        "processing",
+        "Your verification requires additional review.",
+    ),
+    VerificationStatus.VERIFIED: ("completed", "Your verification has been completed successfully."),
+    VerificationStatus.REJECTED: ("completed", "Your verification could not be completed."),
+    VerificationStatus.EXPIRED: ("expired", "Your verification session has expired."),
+    VerificationStatus.CANCELLED: ("cancelled", "This verification has been cancelled."),
+    VerificationStatus.FAILED: ("processing", "We could not complete your verification at this time."),
+}
+
 
 def serialize_verification_session(verification_session: VerificationSession) -> dict:
     verification = verification_session.verification
@@ -38,6 +56,20 @@ def serialize_verification_session(verification_session: VerificationSession) ->
         "purpose": verification.purpose,
         "required_steps": REQUIRED_STEPS,
         "expires_at": verification_session.expires_at.isoformat(),
+    }
+
+
+def serialize_verification_session_status(verification_session: VerificationSession) -> dict:
+    verification = verification_session.verification
+    current_step, message = STATUS_PRESENTATION.get(
+        verification.status,
+        ("processing", "Your verification is being processed."),
+    )
+    return {
+        "verification_id": verification.public_id,
+        "status": verification.status,
+        "current_step": current_step,
+        "message": message,
     }
 
 
@@ -245,6 +277,12 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
         verification_session = request.verification_session
         verification = verification_session.verification
         now = timezone.now()
+        identity_document = verification.identity_documents.order_by("-created_at").first()
+        document_capture = None
+        if identity_document is not None:
+            document_capture = identity_document.captures.filter(
+                side__in=[DocumentCaptureSide.FRONT, DocumentCaptureSide.SINGLE]
+            ).order_by("created_at").first()
 
         liveness_check = LivenessCheck.objects.create(
             tenant=verification.tenant,
@@ -254,6 +292,16 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
             status=LivenessCheckStatus.INCONCLUSIVE,
             checked_at=now,
         )
+        if identity_document is not None:
+            FaceMatch.objects.create(
+                tenant=verification.tenant,
+                verification=verification,
+                selfie_capture=self.validated_data["selfie_capture"],
+                identity_document=identity_document,
+                document_capture=document_capture,
+                status=FaceMatchStatus.INCONCLUSIVE,
+                matched_at=now,
+            )
 
         verification.status = VerificationStatus.PROCESSING
         verification.save(update_fields=["status", "updated_at"])

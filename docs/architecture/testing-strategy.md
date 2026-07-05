@@ -253,6 +253,9 @@ Verification workflow tests should cover:
 - Liveness submission requires a selfie capture from the same verification
 - Liveness submission creates a Liveness Check placeholder and returns processing
 - Liveness result processing
+- Session status reflects subject-facing current step and message
+- Liveness submission creates a Face Match placeholder tied to the verification evidence
+- Verification detail responses reflect the latest liveness and face-match records
 - Face match result processing
 - Risk assessment
 - Automatic approval

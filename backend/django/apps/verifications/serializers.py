@@ -5,6 +5,7 @@ from django.core.paginator import Paginator
 from django.utils import timezone
 from rest_framework import serializers
 
+from apps.biometrics.models import FaceMatch, LivenessCheck
 from apps.verification_subjects.models import VerificationSubject
 from apps.verifications.models import Verification, VerificationSession, VerificationStatus
 
@@ -20,6 +21,16 @@ def serialize_verification_subject(subject: VerificationSubject) -> dict:
 
 
 def serialize_verification(verification: Verification) -> dict:
+    latest_liveness_check = (
+        verification.liveness_checks.order_by("-checked_at").first()
+        if hasattr(verification, "liveness_checks")
+        else None
+    )
+    latest_face_match = (
+        verification.face_matches.order_by("-matched_at").first()
+        if hasattr(verification, "face_matches")
+        else None
+    )
     return {
         "id": verification.public_id,
         "status": verification.status,
@@ -31,8 +42,14 @@ def serialize_verification(verification: Verification) -> dict:
         },
         "checks": {
             "document": {"status": "pending"},
-            "liveness": {"status": "pending", "score": None},
-            "face_match": {"status": "pending", "score": None},
+            "liveness": {
+                "status": latest_liveness_check.status if latest_liveness_check else "pending",
+                "score": float(latest_liveness_check.score) if latest_liveness_check and latest_liveness_check.score is not None else None,
+            },
+            "face_match": {
+                "status": latest_face_match.status if latest_face_match else "pending",
+                "score": float(latest_face_match.match_score) if latest_face_match and latest_face_match.match_score is not None else None,
+            },
         },
         "decision": None,
         "created_at": verification.created_at.isoformat(),

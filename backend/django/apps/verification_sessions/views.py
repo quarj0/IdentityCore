@@ -7,6 +7,7 @@ from apps.verification_sessions.serializers import (
     VerificationSessionLivenessSerializer,
     VerificationSessionSelfieSerializer,
     serialize_verification_session,
+    serialize_verification_session_status,
 )
 from apps.verifications.models import VerificationSessionStatus
 from common.authentication import VerificationSessionAuthentication
@@ -101,5 +102,14 @@ class VerificationSessionLivenessView(VerificationSessionBaseView):
                 "liveness_check_id": liveness_check.public_id,
                 "status": "processing",
             },
+            request=request,
+        )
+
+
+class VerificationSessionStatusView(VerificationSessionBaseView):
+    def get(self, request, session_id: str):
+        self._touch_session(request)
+        return success_response(
+            serialize_verification_session_status(request.verification_session),
             request=request,
         )

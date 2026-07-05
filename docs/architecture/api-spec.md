@@ -781,6 +781,11 @@ Response:
 }
 ```
 
+Business rules:
+
+- The response is a subject-facing summary and must not expose internal-only processing details.
+- The current bootstrap implementation maps internal verification statuses into a simplified `current_step` and `message` for the verification portal.
+
 ---
 
 # Upload API

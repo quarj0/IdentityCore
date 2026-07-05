@@ -47,7 +47,7 @@ Future versions may separate high-risk or high-volume data into dedicated databa
 
 Most tables should include:
 
-```
+```text
 id
 created_at
 updated_at
@@ -56,26 +56,26 @@ deleted_at
 
 Tenant-owned tables should include:
 
-```
+```text
 tenant_id
 ```
 
 Actor-tracked tables may include:
 
-```
+```text
 created_by_id
 updated_by_id
 ```
 
 External-facing records should use public identifiers:
 
-```
+```text
 public_id
 ```
 
 Example:
 
-```
+```text
 ver_01JABC...
 org_01JABC...
 ten_01JABC...
@@ -88,7 +88,7 @@ Internal database IDs should not be exposed through public APIs.
 
 # Entity Relationship Overview
 
-```
+```text
 Organization
 └── Tenant
     ├── PlatformUsers
@@ -120,7 +120,7 @@ Organization
 
 Represents a customer organization.
 
-```
+```text
 id
 public_id
 name
@@ -137,7 +137,7 @@ deleted_at
 
 Statuses:
 
-```
+```text
 active
 suspended
 pending_review
@@ -146,7 +146,7 @@ closed
 
 Indexes:
 
-```
+```text
 unique(public_id)
 unique(slug)
 index(status)
@@ -158,7 +158,7 @@ index(status)
 
 Represents the isolated technical boundary for an organization.
 
-```
+```text
 id
 public_id
 organization_id
@@ -173,13 +173,13 @@ deleted_at
 
 Relationships:
 
-```
+```text
 organization_id -> organizations.id
 ```
 
 Indexes:
 
-```
+```text
 unique(public_id)
 unique(slug)
 index(organization_id)
@@ -188,7 +188,7 @@ index(status)
 
 Version 1.0 rule:
 
-```
+```text
 One organization maps to one tenant.
 ```
 
@@ -198,7 +198,7 @@ One organization maps to one tenant.
 
 Represents people who log into IdentityCore.
 
-```
+```text
 id
 public_id
 tenant_id
@@ -218,7 +218,7 @@ deleted_at
 
 Statuses:
 
-```
+```text
 active
 inactive
 invited
@@ -228,7 +228,7 @@ locked
 
 Indexes:
 
-```
+```text
 unique(email)
 unique(public_id)
 index(tenant_id)
@@ -250,7 +250,7 @@ Implementation note:
 
 Represents named access roles.
 
-```
+```text
 id
 public_id
 tenant_id
@@ -265,14 +265,14 @@ deleted_at
 
 Scopes:
 
-```
+```text
 platform
 tenant
 ```
 
 Indexes:
 
-```
+```text
 unique(public_id)
 unique(tenant_id, name)
 unique(name) where tenant_id is null
@@ -285,7 +285,7 @@ index(scope)
 
 Represents granular permissions.
 
-```
+```text
 id
 code
 name
@@ -296,7 +296,7 @@ updated_at
 
 Examples:
 
-```
+```text
 create_verification
 view_verification
 review_verification
@@ -308,7 +308,7 @@ configure_policies
 
 Indexes:
 
-```
+```text
 unique(code)
 ```
 
@@ -318,7 +318,7 @@ unique(code)
 
 Many-to-many table between roles and permissions.
 
-```
+```text
 id
 role_id
 permission_id
@@ -327,14 +327,14 @@ created_at
 
 Relationships:
 
-```
+```text
 role_id -> roles.id
 permission_id -> permissions.id
 ```
 
 Indexes:
 
-```
+```text
 unique(role_id, permission_id)
 ```
 
@@ -344,7 +344,7 @@ unique(role_id, permission_id)
 
 Many-to-many table between platform users and roles.
 
-```
+```text
 id
 user_id
 role_id
@@ -354,7 +354,7 @@ created_at
 
 Relationships:
 
-```
+```text
 user_id -> platform_users.id
 role_id -> roles.id
 tenant_id -> tenants.id
@@ -362,7 +362,7 @@ tenant_id -> tenants.id
 
 Indexes:
 
-```
+```text
 unique(user_id, role_id, tenant_id)
 index(tenant_id)
 ```
@@ -375,7 +375,7 @@ index(tenant_id)
 
 Represents a legal or administrative region.
 
-```
+```text
 id
 public_id
 name
@@ -387,7 +387,7 @@ updated_at
 
 Examples:
 
-```
+```text
 Ghana
 Nigeria
 Kenya
@@ -396,7 +396,7 @@ European Union
 
 Types:
 
-```
+```text
 country
 region
 economic_area
@@ -405,7 +405,7 @@ agency
 
 Indexes:
 
-```
+```text
 unique(code)
 ```
 
@@ -415,7 +415,7 @@ unique(code)
 
 Represents country-specific identity configuration.
 
-```
+```text
 id
 public_id
 jurisdiction_id
@@ -429,13 +429,13 @@ updated_at
 
 Relationships:
 
-```
+```text
 jurisdiction_id -> jurisdictions.id
 ```
 
 Indexes:
 
-```
+```text
 unique(country_code)
 index(is_active)
 ```
@@ -446,7 +446,7 @@ index(is_active)
 
 Generic document classifications.
 
-```
+```text
 id
 code
 name
@@ -458,7 +458,7 @@ updated_at
 
 Codes:
 
-```
+```text
 national_id
 passport
 driver_license
@@ -472,7 +472,7 @@ other
 
 Indexes:
 
-```
+```text
 unique(code)
 ```
 
@@ -482,7 +482,7 @@ unique(code)
 
 Maps generic document types to local country names.
 
-```
+```text
 id
 country_profile_id
 document_type_id
@@ -496,7 +496,7 @@ updated_at
 
 Example for Ghana:
 
-```
+```text
 document_type: national_id
 local_name: Ghana Card
 issuing_authority: National Identification Authority
@@ -504,7 +504,7 @@ issuing_authority: National Identification Authority
 
 Indexes:
 
-```
+```text
 unique(country_profile_id, document_type_id, local_name)
 index(country_profile_id)
 index(document_type_id)
@@ -518,7 +518,7 @@ index(document_type_id)
 
 Represents external applications integrated with IdentityCore.
 
-```
+```text
 id
 public_id
 tenant_id
@@ -538,7 +538,7 @@ deleted_at
 
 Statuses:
 
-```
+```text
 active
 disabled
 rotating
@@ -547,7 +547,7 @@ revoked
 
 Indexes:
 
-```
+```text
 unique(public_id)
 unique(client_id)
 index(tenant_id)
@@ -568,7 +568,7 @@ Do not store raw client secrets.
 
 Represents organization webhook URLs.
 
-```
+```text
 id
 public_id
 tenant_id
@@ -585,7 +585,7 @@ deleted_at
 
 Statuses:
 
-```
+```text
 active
 disabled
 failed
@@ -593,7 +593,7 @@ failed
 
 Indexes:
 
-```
+```text
 unique(public_id)
 index(tenant_id)
 index(status)
@@ -605,7 +605,7 @@ index(status)
 
 Represents webhook events queued for delivery.
 
-```
+```text
 id
 public_id
 tenant_id
@@ -622,7 +622,7 @@ updated_at
 
 Statuses:
 
-```
+```text
 pending
 delivered
 failed
@@ -631,7 +631,7 @@ cancelled
 
 Indexes:
 
-```
+```text
 unique(public_id)
 index(tenant_id)
 index(webhook_endpoint_id)
@@ -646,7 +646,7 @@ index(next_retry_at)
 
 Represents each attempt to deliver a webhook.
 
-```
+```text
 id
 webhook_event_id
 status_code
@@ -658,13 +658,13 @@ duration_ms
 
 Relationships:
 
-```
+```text
 webhook_event_id -> webhook_events.id
 ```
 
 Indexes:
 
-```
+```text
 index(webhook_event_id)
 index(attempted_at)
 ```
@@ -677,7 +677,7 @@ index(attempted_at)
 
 Represents the individual whose identity is being verified.
 
-```
+```text
 id
 public_id
 tenant_id
@@ -694,7 +694,7 @@ deleted_at
 
 Indexes:
 
-```
+```text
 unique(public_id)
 index(tenant_id)
 index(external_reference)
@@ -714,7 +714,7 @@ Notes:
 
 Represents organization-defined verification rules.
 
-```
+```text
 id
 public_id
 tenant_id
@@ -737,7 +737,7 @@ deleted_at
 
 Statuses:
 
-```
+```text
 draft
 active
 archived
@@ -745,7 +745,7 @@ archived
 
 Indexes:
 
-```
+```text
 unique(public_id)
 unique(tenant_id, name, version)
 index(tenant_id)
@@ -762,7 +762,7 @@ When a Verification is created, the policy version used must be copied or refere
 
 Central workflow object.
 
-```
+```text
 id
 public_id
 tenant_id
@@ -784,7 +784,7 @@ deleted_at
 
 Statuses:
 
-```
+```text
 created
 pending_consent
 in_progress
@@ -801,7 +801,7 @@ failed
 
 Relationships:
 
-```
+```text
 tenant_id -> tenants.id
 organization_id -> organizations.id
 verification_subject_id -> verification_subjects.id
@@ -816,7 +816,7 @@ Implementation note:
 
 Indexes:
 
-```
+```text
 unique(public_id)
 index(tenant_id)
 index(organization_id)
@@ -833,7 +833,7 @@ index(external_reference)
 
 Represents time-bound subject-facing sessions.
 
-```
+```text
 id
 public_id
 tenant_id
@@ -853,7 +853,7 @@ updated_at
 
 Statuses:
 
-```
+```text
 created
 active
 completed
@@ -863,13 +863,13 @@ revoked
 
 Relationships:
 
-```
+```text
 verification_id -> verifications.id
 ```
 
 Indexes:
 
-```
+```text
 unique(public_id)
 unique(session_token_hash)
 index(tenant_id)
@@ -892,7 +892,7 @@ Implementation note:
 
 Represents versioned consent .
 
-```
+```text
 id
 public_id
 tenant_id
@@ -909,7 +909,7 @@ deleted_at
 
 Statuses:
 
-```
+```text
 draft
 active
 archived
@@ -917,7 +917,7 @@ archived
 
 Indexes:
 
-```
+```text
 unique(public_id)
 unique(tenant_id, name, version, language)
 index(tenant_id)
@@ -930,7 +930,7 @@ index(status)
 
 Represents accepted consent for a verification.
 
-```
+```text
 id
 public_id
 tenant_id
@@ -950,7 +950,7 @@ updated_at
 
 Relationships:
 
-```
+```text
 verification_id -> verifications.id
 verification_subject_id -> verification_subjects.id
 consent_template_id -> consent_templates.id
@@ -962,7 +962,7 @@ Implementation note:
 
 Indexes:
 
-```
+```text
 unique(public_id)
 index(tenant_id)
 index(verification_id)
@@ -978,7 +978,7 @@ index(accepted_at)
 
 Represents an identity document submitted for verification.
 
-```
+```text
 id
 public_id
 tenant_id
@@ -1000,7 +1000,7 @@ deleted_at
 
 Statuses:
 
-```
+```text
 submitted
 processing
 processed
@@ -1010,7 +1010,7 @@ rejected
 
 Relationships:
 
-```
+```text
 verification_id -> verifications.id
 verification_subject_id -> verification_subjects.id
 document_type_id -> document_types.id
@@ -1023,7 +1023,7 @@ Implementation note:
 
 Indexes:
 
-```
+```text
 unique(public_id)
 index(tenant_id)
 index(verification_id)
@@ -1044,7 +1044,7 @@ Notes:
 
 Represents uploaded document images or scans.
 
-```
+```text
 id
 public_id
 tenant_id
@@ -1066,7 +1066,7 @@ deleted_at
 
 Sides:
 
-```
+```text
 front
 back
 single
@@ -1076,7 +1076,7 @@ other
 
 Statuses:
 
-```
+```text
 uploaded
 validated
 rejected
@@ -1085,7 +1085,7 @@ deleted
 
 Relationships:
 
-```
+```text
 identity_document_id -> identity_documents.id
 ```
 
@@ -1095,7 +1095,7 @@ Implementation note:
 
 Indexes:
 
-```
+```text
 unique(public_id)
 index(tenant_id)
 index(identity_document_id)
@@ -1109,7 +1109,7 @@ index(captured_at)
 
 Represents OCR, classification, and quality results.
 
-```
+```text
 id
 public_id
 tenant_id
@@ -1127,7 +1127,7 @@ updated_at
 
 Processing types:
 
-```
+```text
 ocr
 classification
 quality_check
@@ -1137,7 +1137,7 @@ mrz_read
 
 Indexes:
 
-```
+```text
 unique(public_id)
 index(tenant_id)
 index(identity_document_id)
@@ -1153,7 +1153,7 @@ index(status)
 
 Represents selfie image or video evidence.
 
-```
+```text
 id
 public_id
 tenant_id
@@ -1177,14 +1177,14 @@ deleted_at
 
 Capture types:
 
-```
+```text
 image
 video
 ```
 
 Statuses:
 
-```
+```text
 uploaded
 validated
 rejected
@@ -1193,7 +1193,7 @@ deleted
 
 Indexes:
 
-```
+```text
 unique(public_id)
 index(tenant_id)
 index(verification_id)
@@ -1213,7 +1213,7 @@ Implementation note:
 
 Represents biometric embeddings or templates.
 
-```
+```text
 id
 public_id
 tenant_id
@@ -1234,20 +1234,20 @@ deleted_at
 
 Source types:
 
-```
+```text
 selfie_capture
 document_capture
 ```
 
 Template types:
 
-```
+```text
 face_embedding
 ```
 
 Statuses:
 
-```
+```text
 active
 deleted
 expired
@@ -1255,7 +1255,7 @@ expired
 
 Indexes:
 
-```
+```text
 unique(public_id)
 index(tenant_id)
 index(verification_id)
@@ -1274,7 +1274,7 @@ Biometric templates are highly sensitive and should be encrypted separately from
 
 Represents liveness detection results.
 
-```
+```text
 id
 public_id
 tenant_id
@@ -1295,14 +1295,14 @@ updated_at
 
 Liveness types:
 
-```
+```text
 passive
 active
 ```
 
 Statuses:
 
-```
+```text
 passed
 failed
 inconclusive
@@ -1311,7 +1311,7 @@ error
 
 Indexes:
 
-```
+```text
 unique(public_id)
 index(tenant_id)
 index(verification_id)
@@ -1330,7 +1330,7 @@ Implementation note:
 
 Represents face comparison results.
 
-```
+```text
 id
 public_id
 tenant_id
@@ -1352,7 +1352,7 @@ updated_at
 
 Statuses:
 
-```
+```text
 matched
 not_matched
 inconclusive
@@ -1361,7 +1361,7 @@ error
 
 Indexes:
 
-```
+```text
 unique(public_id)
 index(tenant_id)
 index(verification_id)
@@ -1369,6 +1369,11 @@ index(status)
 index(match_score)
 index(matched_at)
 ```
+
+Implementation note:
+
+- The current Django bootstrap creates a face-match placeholder record when liveness is submitted so downstream verification detail APIs can expose a concrete face-match lifecycle before AI integration is connected.
+- The bootstrap flow links the face match to the latest submitted identity document and prefers a `front` or `single` document capture when available.
 
 ---
 
@@ -1378,7 +1383,7 @@ index(matched_at)
 
 Represents internal or external providers.
 
-```
+```text
 id
 public_id
 name
@@ -1393,7 +1398,7 @@ deleted_at
 
 Provider types:
 
-```
+```text
 document
 biometric
 identity_database
@@ -1404,7 +1409,7 @@ notification
 
 Statuses:
 
-```
+```text
 active
 disabled
 testing
@@ -1413,7 +1418,7 @@ deprecated
 
 Indexes:
 
-```
+```text
 unique(public_id)
 unique(code)
 index(provider_type)
@@ -1426,7 +1431,7 @@ index(status)
 
 Represents a call to a provider during verification.
 
-```
+```text
 id
 public_id
 tenant_id
@@ -1448,7 +1453,7 @@ updated_at
 
 Check types:
 
-```
+```text
 document_ocr
 document_quality
 face_match
@@ -1459,7 +1464,7 @@ risk_check
 
 Statuses:
 
-```
+```text
 pending
 processing
 completed
@@ -1470,14 +1475,14 @@ cancelled
 
 Relationships:
 
-```
+```text
 provider_id -> providers.id
 verification_id -> verifications.id
 ```
 
 Indexes:
 
-```
+```text
 unique(public_id)
 index(tenant_id)
 index(verification_id)
@@ -1495,7 +1500,7 @@ index(provider_reference)
 
 Represents risk scoring for a verification.
 
-```
+```text
 id
 public_id
 tenant_id
@@ -1510,7 +1515,7 @@ updated_at
 
 Risk levels:
 
-```
+```text
 low
 medium
 high
@@ -1519,7 +1524,7 @@ critical
 
 Recommendations:
 
-```
+```text
 approve
 reject
 manual_review
@@ -1527,7 +1532,7 @@ manual_review
 
 Indexes:
 
-```
+```text
 unique(public_id)
 unique(verification_id)
 index(tenant_id)
@@ -1541,7 +1546,7 @@ index(risk_score)
 
 Represents the final decision for a verification.
 
-```
+```text
 id
 public_id
 tenant_id
@@ -1559,7 +1564,7 @@ updated_at
 
 Decisions:
 
-```
+```text
 verified
 rejected
 manual_review_required
@@ -1570,7 +1575,7 @@ failed
 
 Decision types:
 
-```
+```text
 automatic
 manual
 system
@@ -1578,14 +1583,14 @@ system
 
 Relationships:
 
-```
+```text
 verification_id -> verifications.id
 decided_by_id -> platform_users.id
 ```
 
 Indexes:
 
-```
+```text
 unique(public_id)
 unique(verification_id)
 index(tenant_id)
@@ -1602,7 +1607,7 @@ index(decided_at)
 
 Represents immutable audit records.
 
-```
+```text
 id
 public_id
 tenant_id
@@ -1621,7 +1626,7 @@ created_at
 
 Actor types:
 
-```
+```text
 platform_user
 api_client
 verification_subject
@@ -1631,7 +1636,7 @@ provider
 
 Examples of actions:
 
-```
+```text
 user.login
 verification.created
 consent.accepted
@@ -1647,7 +1652,7 @@ webhook.delivered
 
 Indexes:
 
-```
+```text
 unique(public_id)
 index(tenant_id)
 index(actor_type, actor_id)
@@ -1671,7 +1676,7 @@ Rules:
 
 Represents notification records.
 
-```
+```text
 id
 public_id
 tenant_id
@@ -1690,7 +1695,7 @@ updated_at
 
 Channels:
 
-```
+```text
 email
 sms
 in_app
@@ -1698,7 +1703,7 @@ in_app
 
 Statuses:
 
-```
+```text
 pending
 sent
 failed
@@ -1707,7 +1712,7 @@ cancelled
 
 Indexes:
 
-```
+```text
 unique(public_id)
 index(tenant_id)
 index(channel)
@@ -1723,7 +1728,7 @@ Version 1.0 can generate reports from transactional tables.
 
 Future versions may introduce summary tables such as:
 
-```
+```text
 daily_verification_metrics
 tenant_usage_metrics
 provider_performance_metrics
@@ -1742,7 +1747,7 @@ Different data types should have different retention rules.
 
 Raw media:
 
-```
+```text
 document captures
 selfie captures
 liveness videos
@@ -1750,7 +1755,7 @@ liveness videos
 
 Recommended default:
 
-```
+```text
 30 days
 ```
 
@@ -1758,7 +1763,7 @@ Recommended default:
 
 Verification metadata:
 
-```
+```text
 verification status
 decision
 scores
@@ -1768,7 +1773,7 @@ risk summary
 
 Recommended default:
 
-```
+```text
 1-7 years depending on organization and jurisdiction
 ```
 
@@ -1776,7 +1781,7 @@ Recommended default:
 
 Audit metadata:
 
-```
+```text
 audit events
 security logs
 decision records
@@ -1784,7 +1789,7 @@ decision records
 
 Recommended default:
 
-```
+```text
 7 years or jurisdiction-specific requirement
 ```
 
@@ -1819,7 +1824,7 @@ Rules:
 
 High-priority indexes:
 
-```
+```text
 tenant_id
 public_id
 verification_id
@@ -1832,7 +1837,7 @@ external_reference
 
 Most common queries:
 
-```
+```text
 Find verifications by tenant and status.
 Find verification by public_id.
 Find verification by external_reference.
@@ -1850,7 +1855,7 @@ Every externally visible object should have a public ID.
 
 Examples:
 
-```
+```text
 org_...
 ten_...
 usr_...
@@ -1878,7 +1883,7 @@ Reasons:
 
 As IdentityCore grows, the following may be separated:
 
-```
+```text
 Core relational database
 Audit database
 Biometric metadata database

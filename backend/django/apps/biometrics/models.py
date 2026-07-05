@@ -107,3 +107,61 @@ class LivenessCheck(PublicIdModel, BaseModel):
 
     def __str__(self) -> str:
         return self.public_id
+
+
+class FaceMatchStatus(models.TextChoices):
+    MATCHED = "matched", "Matched"
+    NOT_MATCHED = "not_matched", "Not Matched"
+    INCONCLUSIVE = "inconclusive", "Inconclusive"
+    ERROR = "error", "Error"
+
+
+class FaceMatch(PublicIdModel, BaseModel):
+    public_id_prefix = "fmt"
+
+    tenant = models.ForeignKey(
+        "tenants.Tenant",
+        on_delete=models.PROTECT,
+        related_name="face_matches",
+    )
+    verification = models.ForeignKey(
+        "verifications.Verification",
+        on_delete=models.PROTECT,
+        related_name="face_matches",
+    )
+    selfie_capture = models.ForeignKey(
+        SelfieCapture,
+        on_delete=models.PROTECT,
+        related_name="face_matches",
+    )
+    identity_document = models.ForeignKey(
+        "identity_documents.IdentityDocument",
+        on_delete=models.PROTECT,
+        related_name="face_matches",
+    )
+    document_capture = models.ForeignKey(
+        "document_captures.DocumentCapture",
+        on_delete=models.PROTECT,
+        related_name="face_matches",
+        null=True,
+        blank=True,
+    )
+    provider_check_id = models.CharField(max_length=64, blank=True)
+    status = models.CharField(
+        max_length=32,
+        choices=FaceMatchStatus.choices,
+        default=FaceMatchStatus.INCONCLUSIVE,
+        db_index=True,
+    )
+    match_score = models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True)
+    confidence_level = models.CharField(max_length=32, blank=True)
+    threshold_used = models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True)
+    model_name = models.CharField(max_length=120, blank=True)
+    model_version = models.CharField(max_length=64, blank=True)
+    matched_at = models.DateTimeField(db_index=True)
+
+    class Meta:
+        ordering = ["-matched_at"]
+
+    def __str__(self) -> str:
+        return self.public_id

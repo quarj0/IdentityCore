@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
-from apps.biometrics.models import LivenessCheck, SelfieCapture
+from apps.biometrics.models import FaceMatch, LivenessCheck, SelfieCapture
 from apps.consent.models import ConsentRecord, ConsentTemplate, ConsentTemplateStatus
 from apps.document_captures.models import DocumentCapture
 from apps.identity_documents.models import IdentityDocument
@@ -291,6 +291,26 @@ class VerificationSessionPortalTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_submit_liveness_creates_check_and_returns_processing(self):
+        identity_document = IdentityDocument.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_subject=self.subject,
+            document_type_id="national_id",
+            country_profile_id="GH",
+            status="processing",
+        )
+        document_capture = DocumentCapture.objects.create(
+            tenant=self.tenant,
+            identity_document=identity_document,
+            side="front",
+            storage_key="uploads/documents/upl_01JABC",
+            storage_provider="local",
+            mime_type="image/jpeg",
+            file_size_bytes=0,
+            checksum_sha256="",
+            status="uploaded",
+            captured_at=timezone.now(),
+        )
         selfie_capture = SelfieCapture.objects.create(
             tenant=self.tenant,
             verification=self.verification,
@@ -321,3 +341,45 @@ class VerificationSessionPortalTests(APITestCase):
         self.assertEqual(liveness_check.selfie_capture, selfie_capture)
         self.assertEqual(liveness_check.liveness_type, "passive")
         self.assertEqual(liveness_check.status, "inconclusive")
+        face_match = FaceMatch.objects.get(verification=self.verification, selfie_capture=selfie_capture)
+        self.assertEqual(face_match.identity_document, identity_document)
+        self.assertEqual(face_match.document_capture, document_capture)
+        self.assertEqual(face_match.status, "inconclusive")
+
+    def test_get_session_status_for_pending_consent(self):
+        response = self.client.get(
+            reverse("verification-session-status", kwargs={"session_id": self.session.public_id}),
+            **self.session_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["data"]["verification_id"], self.verification.public_id)
+        self.assertEqual(response.data["data"]["status"], VerificationStatus.PENDING_CONSENT)
+        self.assertEqual(response.data["data"]["current_step"], "consent")
+
+    def test_get_session_status_for_processing(self):
+        self.verification.status = VerificationStatus.PROCESSING
+        self.verification.save(update_fields=["status", "updated_at"])
+
+        response = self.client.get(
+            reverse("verification-session-status", kwargs={"session_id": self.session.public_id}),
+            **self.session_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["data"]["status"], VerificationStatus.PROCESSING)
+        self.assertEqual(response.data["data"]["current_step"], "processing")
+        self.assertEqual(response.data["data"]["message"], "Your verification is being processed.")
+
+    def test_get_session_status_for_verified(self):
+        self.verification.status = VerificationStatus.VERIFIED
+        self.verification.save(update_fields=["status", "updated_at"])
+
+        response = self.client.get(
+            reverse("verification-session-status", kwargs={"session_id": self.session.public_id}),
+            **self.session_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["data"]["status"], VerificationStatus.VERIFIED)
+        self.assertEqual(response.data["data"]["current_step"], "completed")
