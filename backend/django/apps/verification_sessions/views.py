@@ -1,6 +1,7 @@
 from django.utils import timezone
 from rest_framework.views import APIView
 
+from apps.audit.services import record_audit_event
 from apps.verification_sessions.serializers import (
     VerificationSessionConsentSerializer,
     VerificationSessionDocumentSerializer,
@@ -50,6 +51,16 @@ class VerificationSessionConsentView(VerificationSessionBaseView):
         serializer = VerificationSessionConsentSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         consent_record = serializer.save()
+        verification = request.verification_session.verification
+        record_audit_event(
+            tenant=request.tenant,
+            actor=verification.verification_subject,
+            request=request,
+            action="consent.accepted",
+            target_type="verification",
+            target_id=verification.public_id,
+            metadata={"consent_record_id": consent_record.public_id},
+        )
         return success_response(
             {
                 "consent_record_id": consent_record.public_id,
@@ -65,6 +76,16 @@ class VerificationSessionDocumentView(VerificationSessionBaseView):
         serializer = VerificationSessionDocumentSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         identity_document = serializer.save()
+        verification = request.verification_session.verification
+        record_audit_event(
+            tenant=request.tenant,
+            actor=verification.verification_subject,
+            request=request,
+            action="document.uploaded",
+            target_type="verification",
+            target_id=verification.public_id,
+            metadata={"identity_document_id": identity_document.public_id},
+        )
         return success_response(
             {
                 "identity_document_id": identity_document.public_id,
@@ -81,6 +102,16 @@ class VerificationSessionSelfieView(VerificationSessionBaseView):
         serializer = VerificationSessionSelfieSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         selfie_capture = serializer.save()
+        verification = request.verification_session.verification
+        record_audit_event(
+            tenant=request.tenant,
+            actor=verification.verification_subject,
+            request=request,
+            action="selfie.uploaded",
+            target_type="verification",
+            target_id=verification.public_id,
+            metadata={"selfie_capture_id": selfie_capture.public_id},
+        )
         return success_response(
             {
                 "selfie_capture_id": selfie_capture.public_id,
@@ -97,6 +128,27 @@ class VerificationSessionLivenessView(VerificationSessionBaseView):
         serializer = VerificationSessionLivenessSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         liveness_check = serializer.save()
+        verification = request.verification_session.verification
+        record_audit_event(
+            tenant=request.tenant,
+            actor=verification.verification_subject,
+            request=request,
+            action="liveness.completed",
+            target_type="verification",
+            target_id=verification.public_id,
+            metadata={"liveness_check_id": liveness_check.public_id},
+        )
+        latest_face_match = verification.face_matches.order_by("-matched_at").first()
+        if latest_face_match is not None:
+            record_audit_event(
+                tenant=request.tenant,
+                actor=verification.verification_subject,
+                request=request,
+                action="face_match.completed",
+                target_type="verification",
+                target_id=verification.public_id,
+                metadata={"face_match_id": latest_face_match.public_id},
+            )
         return success_response(
             {
                 "liveness_check_id": liveness_check.public_id,

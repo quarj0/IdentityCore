@@ -1676,6 +1676,10 @@ Rules:
 - Sensitive data must be masked or hashed.
 - Deletion should require special compliance process.
 
+Implementation note:
+
+- The current Django implementation records sensitive workflow events through a shared audit service and stores only a hash of explicitly marked sensitive metadata rather than raw sensitive payloads.
+
 ---
 
 # Notification Tables

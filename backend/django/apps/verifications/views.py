@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
+from apps.audit.services import record_audit_event
 from apps.verifications.serializers import (
     ManualReviewDecisionSerializer,
     VerificationCancelSerializer,
@@ -55,6 +56,15 @@ class VerificationListCreateView(APIView):
         serializer.is_valid(raise_exception=True)
         verification = serializer.save()
         session = verification._initial_session
+        record_audit_event(
+            tenant=request.tenant,
+            actor=request.api_client,
+            request=request,
+            action="verification.created",
+            target_type="verification",
+            target_id=verification.public_id,
+            metadata={"session_id": session.public_id},
+        )
         return success_response(
             {
                 "id": verification.public_id,
@@ -98,6 +108,16 @@ class VerificationCancelView(APIView):
         verification.status = VerificationStatus.CANCELLED
         verification.cancelled_at = timezone.now()
         verification.save(update_fields=["status", "cancelled_at", "updated_at"])
+        record_audit_event(
+            tenant=request.tenant,
+            actor=request.api_client,
+            request=request,
+            action="verification.cancelled",
+            target_type="verification",
+            target_id=verification.public_id,
+            metadata={"reason": serializer.validated_data.get("reason", "")},
+            sensitive_metadata={"reason": serializer.validated_data.get("reason", "")},
+        )
         return success_response(
             {
                 "id": verification.public_id,
@@ -138,6 +158,16 @@ class ManualReviewDecisionView(APIView):
         serializer = ManualReviewDecisionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         decision_record = serializer.save(verification=verification, decided_by=request.user)
+        record_audit_event(
+            tenant=request.user.tenant,
+            actor=request.user,
+            request=request,
+            action=f"verification.{decision_record.decision}",
+            target_type="verification",
+            target_id=verification.public_id,
+            metadata={"decision_id": decision_record.public_id, "decision_type": decision_record.decision_type},
+            sensitive_metadata={"reason_detail": decision_record.reason_detail},
+        )
         return success_response(
             {
                 "verification_id": verification.public_id,

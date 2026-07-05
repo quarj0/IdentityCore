@@ -1149,6 +1149,10 @@ verification.cancelled
 
 Lists audit events.
 
+Authentication:
+
+- Platform user JWT required.
+
 Query parameters:
 
 ```text
@@ -1188,6 +1192,11 @@ Response:
   "request_id": "req_01JABC..."
 }
 ```
+
+Business rules:
+
+- Audit event listing is tenant-scoped.
+- Audit events are append-only security records and must not expose raw sensitive payloads.
 
 ---
 

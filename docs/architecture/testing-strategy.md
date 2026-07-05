@@ -373,6 +373,18 @@ Required audit coverage:
 
 Audit logs should not contain sensitive raw data.
 
+Current implemented audit coverage includes:
+
+- Login
+- Verification created
+- Consent accepted
+- Document uploaded
+- Selfie uploaded
+- Liveness completed
+- Face match completed
+- Manual decision recorded
+- API Client created
+
 ---
 
 # Data Retention Testing

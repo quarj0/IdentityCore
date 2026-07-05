@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "apps.audit.apps.AuditConfig",
     "apps.biometrics.apps.BiometricsConfig",
     "apps.core.apps.CoreConfig",
     "apps.accounts.apps.AccountsConfig",
