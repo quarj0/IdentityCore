@@ -1,4 +1,8 @@
+from datetime import timedelta
+from unittest.mock import patch
+
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -8,7 +12,8 @@ from apps.organizations.models import Organization
 from apps.tenants.models import Tenant
 from apps.verifications.models import Verification, VerificationStatus
 from apps.verification_subjects.models import VerificationSubject
-from apps.webhooks.models import WebhookEndpoint, WebhookEvent
+from apps.webhooks.models import WebhookDeliveryAttempt, WebhookEndpoint, WebhookEvent, WebhookEventStatus
+from apps.webhooks.services import _build_signature, deliver_webhook_event, process_pending_webhook_events
 
 
 class WebhookEndpointTests(APITestCase):
@@ -195,3 +200,171 @@ class WebhookEndpointTests(APITestCase):
                 event_type="verification.verified",
             ).exists()
         )
+
+    @patch("apps.webhooks.services._send_webhook_request")
+    def test_deliver_webhook_event_marks_event_delivered_and_logs_attempt(self, mock_send_request):
+        mock_send_request.return_value = (202, '{"received":true}', 42)
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/identitycore",
+            events_json=["verification.verified"],
+            created_by=self.user,
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}},
+        )
+
+        deliver_webhook_event(webhook_event)
+
+        webhook_event.refresh_from_db()
+        self.assertEqual(webhook_event.status, WebhookEventStatus.DELIVERED)
+        self.assertEqual(webhook_event.attempt_count, 1)
+        attempt = WebhookDeliveryAttempt.objects.get(webhook_event=webhook_event)
+        self.assertEqual(attempt.status_code, 202)
+        self.assertEqual(attempt.duration_ms, 42)
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                tenant=self.tenant,
+                action="webhook.delivered",
+                target_id=webhook_event.public_id,
+            ).exists()
+        )
+
+    @patch("apps.webhooks.services._send_webhook_request")
+    def test_failed_delivery_schedules_retry(self, mock_send_request):
+        mock_send_request.return_value = (500, "server error", 15)
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/identitycore",
+            events_json=["verification.verified"],
+            created_by=self.user,
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}},
+        )
+
+        deliver_webhook_event(webhook_event)
+
+        webhook_event.refresh_from_db()
+        self.assertEqual(webhook_event.status, WebhookEventStatus.PENDING)
+        self.assertEqual(webhook_event.attempt_count, 1)
+        self.assertIsNotNone(webhook_event.next_retry_at)
+        attempt = WebhookDeliveryAttempt.objects.get(webhook_event=webhook_event)
+        self.assertEqual(attempt.status_code, 500)
+
+    @patch("apps.webhooks.services._send_webhook_request")
+    def test_failed_delivery_hits_max_attempts(self, mock_send_request):
+        mock_send_request.return_value = (500, "server error", 15)
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/identitycore",
+            events_json=["verification.verified"],
+            created_by=self.user,
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}},
+        )
+
+        with self.settings(WEBHOOK_MAX_ATTEMPTS=2):
+            deliver_webhook_event(webhook_event)
+            webhook_event.refresh_from_db()
+            webhook_event.next_retry_at = timezone.now()
+            webhook_event.save(update_fields=["next_retry_at", "updated_at"])
+            deliver_webhook_event(webhook_event)
+
+        webhook_event.refresh_from_db()
+        self.assertEqual(webhook_event.status, WebhookEventStatus.FAILED)
+        self.assertEqual(webhook_event.attempt_count, 2)
+        self.assertEqual(WebhookDeliveryAttempt.objects.filter(webhook_event=webhook_event).count(), 2)
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                tenant=self.tenant,
+                action="webhook.delivery_failed",
+                target_id=webhook_event.public_id,
+            ).exists()
+        )
+
+    def test_disabled_endpoint_cancels_delivery(self):
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/identitycore",
+            events_json=["verification.verified"],
+            created_by=self.user,
+            status="disabled",
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}},
+        )
+
+        deliver_webhook_event(webhook_event)
+
+        webhook_event.refresh_from_db()
+        self.assertEqual(webhook_event.status, WebhookEventStatus.CANCELLED)
+        self.assertEqual(webhook_event.attempt_count, 0)
+
+    @patch("apps.webhooks.services._send_webhook_request")
+    def test_process_pending_webhook_events_only_processes_due_events(self, mock_send_request):
+        mock_send_request.return_value = (200, "ok", 10)
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/identitycore",
+            events_json=["verification.verified"],
+            created_by=self.user,
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        due_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={"id": "evt_due", "type": "verification.verified", "data": {"status": "verified"}},
+            next_retry_at=timezone.now(),
+        )
+        future_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={"id": "evt_future", "type": "verification.verified", "data": {"status": "verified"}},
+            next_retry_at=timezone.now() + timedelta(hours=1),
+        )
+
+        processed = process_pending_webhook_events(limit=10)
+
+        self.assertEqual(processed, 1)
+        due_event.refresh_from_db()
+        future_event.refresh_from_db()
+        self.assertEqual(due_event.status, WebhookEventStatus.DELIVERED)
+        self.assertEqual(future_event.status, WebhookEventStatus.PENDING)
+
+    def test_signature_format_uses_endpoint_signing_key(self):
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/identitycore",
+            events_json=["verification.verified"],
+            created_by=self.user,
+        )
+        endpoint.set_secret("secret")
+
+        signature = _build_signature(endpoint.signing_key, "1720180800", b'{"id":"evt_1"}')
+
+        self.assertTrue(signature.startswith("sha256="))

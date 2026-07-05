@@ -1130,8 +1130,8 @@ Response:
 
 Implementation note:
 
-- The current Django scaffold queues webhook events for later delivery and records test sends as queued `webhook.test` events.
-- Full signed HTTP delivery, retry execution, and delivery-attempt recording are still the next layer on top of this queueing foundation.
+- The current Django implementation queues webhook events for later delivery, records test sends as queued `webhook.test` events, signs outbound requests, and records delivery attempts.
+- Failed webhook deliveries are retried with exponential backoff until the configured maximum attempt count is reached.
 
 ---
 
@@ -1156,6 +1156,7 @@ Webhook headers:
 
 ```http
 X-IdentityCore-Event-Id: evt_01JABC...
+X-IdentityCore-Event-Type: verification.verified
 X-IdentityCore-Signature: sha256=...
 X-IdentityCore-Timestamp: 1783159380
 ```

@@ -575,6 +575,7 @@ tenant_id
 url
 description
 secret_hash
+signing_key
 events_json
 status
 created_by_id
@@ -601,7 +602,7 @@ index(status)
 
 Implementation note:
 
-- The current Django implementation hashes webhook secrets and exposes the raw secret only once at creation time.
+- The current Django implementation hashes webhook secrets, stores a deterministic derived signing key for outbound HMAC signatures, and exposes the raw secret only once at creation time.
 
 ---
 
@@ -646,7 +647,7 @@ index(next_retry_at)
 
 Implementation note:
 
-- The current Django scaffold creates queued webhook events from verification workflow hooks and test sends, but does not yet perform outbound HTTP delivery.
+- The current Django implementation creates queued webhook events from verification workflow hooks and test sends, then delivers due events over signed HTTP with retry scheduling.
 
 ---
 
@@ -679,7 +680,7 @@ index(attempted_at)
 
 Implementation note:
 
-- The delivery-attempt model is reserved for the next delivery/retry layer and is not yet populated by the current scaffold.
+- The current Django implementation records every webhook delivery attempt, including HTTP status, response body, error details, and duration.
 
 ---
 

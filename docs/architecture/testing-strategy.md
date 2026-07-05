@@ -360,6 +360,12 @@ Current implemented webhook coverage includes:
 - Test webhook queueing
 - Verification-created webhook queueing
 - Manual decision webhook queueing
+- Signature generation
+- Delivery success handling
+- Delivery failure retry scheduling
+- Max retry failure handling
+- Disabled endpoint cancellation
+- Due-event processing only
 
 Current implemented provider/risk coverage includes:
 
