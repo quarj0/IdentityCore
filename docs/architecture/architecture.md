@@ -196,6 +196,7 @@ backend/django/
             audit/
             webhooks/
             notifications/
+            uploads/
             api_clients/
             billing/
             reporting/

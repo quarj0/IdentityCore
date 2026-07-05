@@ -1106,10 +1106,6 @@ Relationships:
 identity_document_id -> identity_documents.id
 ```
 
-Implementation note:
-
-- During bootstrap, uploaded file metadata is represented by the provided `upload_id`, which is currently mapped into a derived `storage_key` until the dedicated upload initialization flow is added.
-
 Indexes:
 
 ```text
@@ -1221,8 +1217,54 @@ index(captured_at)
 
 Implementation note:
 
-- During bootstrap, selfie upload metadata is represented by the provided `upload_id`, which is currently mapped into a derived `storage_key` until the dedicated upload initialization flow is added.
 - The current session flow stores a default `face_count = 1` placeholder until AI-assisted face counting is connected.
+
+---
+
+## uploads
+
+Represents temporary upload grants issued to a Verification Session before media is attached to domain records.
+
+```text
+id
+public_id
+tenant_id
+verification_id
+verification_session_id
+purpose
+storage_key
+storage_provider
+mime_type
+file_size_bytes
+checksum_sha256
+status
+expires_at
+consumed_at
+created_at
+updated_at
+deleted_at
+```
+
+Purposes:
+
+```text
+document_capture
+selfie_capture
+liveness_capture
+```
+
+Statuses:
+
+```text
+initiated
+consumed
+expired
+deleted
+```
+
+Implementation note:
+
+- The current Django implementation persists upload initialization in the `uploads` table and requires later document/selfie submission to reference an issued `upload_id` from the same verification session.
 
 ---
 

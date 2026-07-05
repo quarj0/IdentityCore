@@ -16,7 +16,13 @@ from apps.document_captures.models import DocumentCapture, DocumentCaptureSide
 from apps.identity_documents.models import IdentityDocument, IdentityDocumentStatus
 from apps.providers.models import ProviderCheckStatus, ProviderCheckType
 from apps.providers.services import create_provider_check
-from apps.verifications.models import VerificationSession, VerificationSessionStatus, VerificationStatus
+from apps.uploads.models import Upload, UploadPurpose, UploadStatus
+from apps.uploads.services import consume_upload
+from apps.verifications.models import (
+    VerificationSession,
+    VerificationSessionStatus,
+    VerificationStatus,
+)
 
 
 REQUIRED_STEPS = [
@@ -26,20 +32,71 @@ REQUIRED_STEPS = [
     "liveness_check",
 ]
 
+
+def resolve_session_upload(
+    *, verification_session: VerificationSession, upload_id: str, purpose: str
+) -> Upload:
+    try:
+        upload = Upload.objects.get(
+            public_id=upload_id,
+            tenant=verification_session.tenant,
+            verification=verification_session.verification,
+            verification_session=verification_session,
+            purpose=purpose,
+            deleted_at__isnull=True,
+        )
+    except Upload.DoesNotExist as exc:
+        raise serializers.ValidationError(
+            {"upload_id": "Upload is invalid for this verification session."}
+        ) from exc
+
+    if upload.status == UploadStatus.CONSUMED:
+        raise serializers.ValidationError(
+            {"upload_id": "Upload has already been used."}
+        )
+    if upload.is_expired or upload.status == UploadStatus.EXPIRED:
+        raise serializers.ValidationError({"upload_id": "Upload URL has expired."})
+    return upload
+
+
 STATUS_PRESENTATION = {
-    VerificationStatus.PENDING_CONSENT: ("consent", "Please review and accept consent to continue."),
-    VerificationStatus.IN_PROGRESS: ("document_capture", "Please submit your identity document."),
-    VerificationStatus.AWAITING_SELFIE: ("selfie_capture", "Please capture and submit your selfie."),
-    VerificationStatus.PROCESSING: ("processing", "Your verification is being processed."),
+    VerificationStatus.PENDING_CONSENT: (
+        "consent",
+        "Please review and accept consent to continue.",
+    ),
+    VerificationStatus.IN_PROGRESS: (
+        "document_capture",
+        "Please submit your identity document.",
+    ),
+    VerificationStatus.AWAITING_SELFIE: (
+        "selfie_capture",
+        "Please capture and submit your selfie.",
+    ),
+    VerificationStatus.PROCESSING: (
+        "processing",
+        "Your verification is being processed.",
+    ),
     VerificationStatus.MANUAL_REVIEW_REQUIRED: (
         "processing",
         "Your verification requires additional review.",
     ),
-    VerificationStatus.VERIFIED: ("completed", "Your verification has been completed successfully."),
-    VerificationStatus.REJECTED: ("completed", "Your verification could not be completed."),
+    VerificationStatus.VERIFIED: (
+        "completed",
+        "Your verification has been completed successfully.",
+    ),
+    VerificationStatus.REJECTED: (
+        "completed",
+        "Your verification could not be completed.",
+    ),
     VerificationStatus.EXPIRED: ("expired", "Your verification session has expired."),
-    VerificationStatus.CANCELLED: ("cancelled", "This verification has been cancelled."),
-    VerificationStatus.FAILED: ("processing", "We could not complete your verification at this time."),
+    VerificationStatus.CANCELLED: (
+        "cancelled",
+        "This verification has been cancelled.",
+    ),
+    VerificationStatus.FAILED: (
+        "processing",
+        "We could not complete your verification at this time.",
+    ),
 }
 
 
@@ -61,7 +118,9 @@ def serialize_verification_session(verification_session: VerificationSession) ->
     }
 
 
-def serialize_verification_session_status(verification_session: VerificationSession) -> dict:
+def serialize_verification_session_status(
+    verification_session: VerificationSession,
+) -> dict:
     verification = verification_session.verification
     current_step, message = STATUS_PRESENTATION.get(
         verification.status,
@@ -133,7 +192,9 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
             update_session_fields.append("started_at")
         verification_session.ip_address = request.META.get("REMOTE_ADDR")
         verification_session.user_agent = request.headers.get("User-Agent", "")
-        verification_session.device_fingerprint = request.headers.get("X-Device-Fingerprint", "")
+        verification_session.device_fingerprint = request.headers.get(
+            "X-Device-Fingerprint", ""
+        )
         update_session_fields.extend(["ip_address", "user_agent", "device_fingerprint"])
         verification_session.save(update_fields=update_session_fields)
 
@@ -154,7 +215,8 @@ class VerificationSessionDocumentSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         request = self.context["request"]
-        verification = request.verification_session.verification
+        verification_session = request.verification_session
+        verification = verification_session.verification
 
         if not verification.consent_records.filter(accepted=True).exists():
             raise serializers.ValidationError(
@@ -163,11 +225,29 @@ class VerificationSessionDocumentSerializer(serializers.Serializer):
 
         capture_sides = [capture["side"] for capture in attrs["captures"]]
         if len(capture_sides) != len(set(capture_sides)):
-            raise serializers.ValidationError({"captures": "Each document side may be submitted only once."})
+            raise serializers.ValidationError(
+                {"captures": "Each document side may be submitted only once."}
+            )
 
         if len(capture_sides) == 1 and capture_sides[0] == DocumentCaptureSide.BACK:
-            raise serializers.ValidationError({"captures": "Back-only document submissions are not supported."})
+            raise serializers.ValidationError(
+                {"captures": "Back-only document submissions are not supported."}
+            )
 
+        upload_ids = [capture["upload_id"] for capture in attrs["captures"]]
+        if len(upload_ids) != len(set(upload_ids)):
+            raise serializers.ValidationError(
+                {"captures": "Each upload may be submitted only once."}
+            )
+
+        resolved_uploads = {}
+        for capture in attrs["captures"]:
+            resolved_uploads[capture["upload_id"]] = resolve_session_upload(
+                verification_session=verification_session,
+                upload_id=capture["upload_id"],
+                purpose=UploadPurpose.DOCUMENT_CAPTURE,
+            )
+        attrs["resolved_uploads"] = resolved_uploads
         return attrs
 
     def save(self, **kwargs):
@@ -181,25 +261,28 @@ class VerificationSessionDocumentSerializer(serializers.Serializer):
             verification_subject=verification.verification_subject,
             document_type_id=self.validated_data["document_type"],
             country_profile_id=self.validated_data.get("country_code", ""),
-            local_document_name=self.validated_data["document_type"].replace("_", " ").title(),
+            local_document_name=self.validated_data["document_type"]
+            .replace("_", " ")
+            .title(),
             status=IdentityDocumentStatus.PROCESSING,
         )
 
         now = timezone.now()
         for capture in self.validated_data["captures"]:
-            upload_id = capture["upload_id"]
+            upload = self.validated_data["resolved_uploads"][capture["upload_id"]]
             DocumentCapture.objects.create(
                 tenant=verification.tenant,
                 identity_document=identity_document,
                 side=capture["side"],
-                storage_key=f"uploads/documents/{upload_id}",
-                storage_provider="local",
-                mime_type="image/jpeg",
-                file_size_bytes=0,
-                checksum_sha256="",
+                storage_key=upload.storage_key,
+                storage_provider=upload.storage_provider,
+                mime_type=upload.mime_type,
+                file_size_bytes=upload.file_size_bytes,
+                checksum_sha256=upload.checksum_sha256,
                 status="uploaded",
                 captured_at=now,
             )
+            consume_upload(upload=upload)
         create_provider_check(
             verification=verification,
             check_type=ProviderCheckType.DOCUMENT_OCR,
@@ -224,7 +307,8 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         request = self.context["request"]
-        verification = request.verification_session.verification
+        verification_session = request.verification_session
+        verification = verification_session.verification
 
         if not verification.consent_records.filter(accepted=True).exists():
             raise serializers.ValidationError(
@@ -232,8 +316,20 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
             )
         if not verification.identity_documents.exists():
             raise serializers.ValidationError(
-                {"detail": "An identity document must be submitted before selfie capture."}
+                {
+                    "detail": "An identity document must be submitted before selfie capture."
+                }
             )
+        expected_purpose = (
+            UploadPurpose.LIVENESS_CAPTURE
+            if attrs["capture_type"] == SelfieCaptureType.VIDEO
+            else UploadPurpose.SELFIE_CAPTURE
+        )
+        attrs["resolved_upload"] = resolve_session_upload(
+            verification_session=verification_session,
+            upload_id=attrs["upload_id"],
+            purpose=expected_purpose,
+        )
         return attrs
 
     def save(self, **kwargs):
@@ -241,23 +337,24 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
         verification_session = request.verification_session
         verification = verification_session.verification
         capture_type = self.validated_data["capture_type"]
-        upload_id = self.validated_data["upload_id"]
+        upload = self.validated_data["resolved_upload"]
         now = timezone.now()
 
         selfie_capture = SelfieCapture.objects.create(
             tenant=verification.tenant,
             verification=verification,
             verification_subject=verification.verification_subject,
-            storage_key=f"uploads/selfies/{upload_id}",
-            storage_provider="local",
+            storage_key=upload.storage_key,
+            storage_provider=upload.storage_provider,
             capture_type=capture_type,
-            mime_type="video/mp4" if capture_type == SelfieCaptureType.VIDEO else "image/jpeg",
-            file_size_bytes=0,
-            checksum_sha256="",
+            mime_type=upload.mime_type,
+            file_size_bytes=upload.file_size_bytes,
+            checksum_sha256=upload.checksum_sha256,
             face_count=1,
             status=SelfieCaptureStatus.UPLOADED,
             captured_at=now,
         )
+        consume_upload(upload=upload)
 
         verification.status = VerificationStatus.PROCESSING
         verification.save(update_fields=["status", "updated_at"])
@@ -275,10 +372,14 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
         verification = request.verification_session.verification
 
         try:
-            selfie_capture = verification.selfie_captures.get(public_id=attrs["selfie_capture_id"])
+            selfie_capture = verification.selfie_captures.get(
+                public_id=attrs["selfie_capture_id"]
+            )
         except SelfieCapture.DoesNotExist as exc:
             raise serializers.ValidationError(
-                {"selfie_capture_id": "Selfie capture was not found for this verification session."}
+                {
+                    "selfie_capture_id": "Selfie capture was not found for this verification session."
+                }
             ) from exc
 
         attrs["selfie_capture"] = selfie_capture
@@ -289,12 +390,18 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
         verification_session = request.verification_session
         verification = verification_session.verification
         now = timezone.now()
-        identity_document = verification.identity_documents.order_by("-created_at").first()
+        identity_document = verification.identity_documents.order_by(
+            "-created_at"
+        ).first()
         document_capture = None
         if identity_document is not None:
-            document_capture = identity_document.captures.filter(
-                side__in=[DocumentCaptureSide.FRONT, DocumentCaptureSide.SINGLE]
-            ).order_by("created_at").first()
+            document_capture = (
+                identity_document.captures.filter(
+                    side__in=[DocumentCaptureSide.FRONT, DocumentCaptureSide.SINGLE]
+                )
+                .order_by("created_at")
+                .first()
+            )
 
         liveness_check = LivenessCheck.objects.create(
             tenant=verification.tenant,
@@ -338,9 +445,15 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
                     "source": "bootstrap-placeholder",
                 },
                 request_metadata={
-                    "selfie_capture_id": self.validated_data["selfie_capture"].public_id,
+                    "selfie_capture_id": self.validated_data[
+                        "selfie_capture"
+                    ].public_id,
                     "identity_document_id": identity_document.public_id,
-                    "document_capture_id": document_capture.public_id if document_capture is not None else "",
+                    "document_capture_id": (
+                        document_capture.public_id
+                        if document_capture is not None
+                        else ""
+                    ),
                 },
             )
             face_match.provider_check_id = face_match_provider_check.public_id

@@ -12,7 +12,11 @@ class UploadCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        serializer = UploadCreateSerializer(data=request.data, context={"request": request})
+        serializer = UploadCreateSerializer(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
         payload = serializer.save()
-        return success_response(payload, request=request, status=status.HTTP_201_CREATED)
+        return success_response(
+            payload, request=request, status=status.HTTP_201_CREATED
+        )

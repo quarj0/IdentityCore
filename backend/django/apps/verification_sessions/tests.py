@@ -16,7 +16,13 @@ from apps.organizations.models import Organization
 from apps.providers.models import ProviderCheck
 from apps.risk.models import RiskAssessment
 from apps.tenants.models import Tenant
-from apps.verifications.models import Verification, VerificationDecision, VerificationSession, VerificationStatus
+from apps.uploads.models import Upload, UploadPurpose, UploadStatus
+from apps.verifications.models import (
+    Verification,
+    VerificationDecision,
+    VerificationSession,
+    VerificationStatus,
+)
 from apps.verification_subjects.models import VerificationSubject
 
 
@@ -70,9 +76,33 @@ class VerificationSessionPortalTests(APITestCase):
             "REMOTE_ADDR": "127.0.0.1",
         }
 
+    def create_upload(
+        self, *, purpose: str, suffix: str, mime_type: str = "image/jpeg"
+    ):
+        storage_prefix = {
+            UploadPurpose.DOCUMENT_CAPTURE: "uploads/documents",
+            UploadPurpose.SELFIE_CAPTURE: "uploads/selfies",
+            UploadPurpose.LIVENESS_CAPTURE: "uploads/liveness",
+        }[purpose]
+        return Upload.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_session=self.session,
+            purpose=purpose,
+            storage_key=f"{storage_prefix}/upl_{suffix}",
+            storage_provider="local",
+            mime_type=mime_type,
+            file_size_bytes=1024,
+            status=UploadStatus.INITIATED,
+            expires_at=timezone.now() + timedelta(minutes=10),
+        )
+
     def test_get_session_returns_portal_context_and_activates_session(self):
         response = self.client.get(
-            reverse("verification-session-detail", kwargs={"session_id": self.session.public_id}),
+            reverse(
+                "verification-session-detail",
+                kwargs={"session_id": self.session.public_id},
+            ),
             **self.session_headers(),
         )
 
@@ -81,7 +111,9 @@ class VerificationSessionPortalTests(APITestCase):
         self.assertEqual(self.session.status, "active")
         self.assertIsNotNone(self.session.started_at)
         self.assertEqual(response.data["data"]["session_id"], self.session.public_id)
-        self.assertEqual(response.data["data"]["organization"]["name"], self.organization.name)
+        self.assertEqual(
+            response.data["data"]["organization"]["name"], self.organization.name
+        )
         self.assertEqual(
             response.data["data"]["required_steps"],
             ["consent", "document_capture", "selfie_capture", "liveness_check"],
@@ -89,7 +121,10 @@ class VerificationSessionPortalTests(APITestCase):
 
     def test_get_session_rejects_invalid_token(self):
         response = self.client.get(
-            reverse("verification-session-detail", kwargs={"session_id": self.session.public_id}),
+            reverse(
+                "verification-session-detail",
+                kwargs={"session_id": self.session.public_id},
+            ),
             **self.session_headers(token="wrong-token"),
         )
 
@@ -100,7 +135,10 @@ class VerificationSessionPortalTests(APITestCase):
         self.session.save(update_fields=["expires_at", "updated_at"])
 
         response = self.client.get(
-            reverse("verification-session-detail", kwargs={"session_id": self.session.public_id}),
+            reverse(
+                "verification-session-detail",
+                kwargs={"session_id": self.session.public_id},
+            ),
             **self.session_headers(),
         )
 
@@ -120,7 +158,10 @@ class VerificationSessionPortalTests(APITestCase):
         )
 
         response = self.client.post(
-            reverse("verification-session-consent", kwargs={"session_id": self.session.public_id}),
+            reverse(
+                "verification-session-consent",
+                kwargs={"session_id": self.session.public_id},
+            ),
             {"accepted": True},
             format="json",
             **self.session_headers(),
@@ -132,13 +173,21 @@ class VerificationSessionPortalTests(APITestCase):
         self.session.refresh_from_db()
         self.assertEqual(self.verification.status, VerificationStatus.IN_PROGRESS)
         self.assertEqual(self.session.status, "active")
-        consent_record = ConsentRecord.objects.get(public_id=response.data["data"]["consent_record_id"])
-        self.assertEqual(consent_record.consent_template.content, "I consent to identity verification.")
+        consent_record = ConsentRecord.objects.get(
+            public_id=response.data["data"]["consent_record_id"]
+        )
+        self.assertEqual(
+            consent_record.consent_template.content,
+            "I consent to identity verification.",
+        )
         self.assertEqual(consent_record.device_fingerprint, "device-123")
 
     def test_accept_consent_requires_true(self):
         response = self.client.post(
-            reverse("verification-session-consent", kwargs={"session_id": self.session.public_id}),
+            reverse(
+                "verification-session-consent",
+                kwargs={"session_id": self.session.public_id},
+            ),
             {"accepted": False},
             format="json",
             **self.session_headers(),
@@ -148,7 +197,10 @@ class VerificationSessionPortalTests(APITestCase):
 
     def test_submit_documents_requires_consent(self):
         response = self.client.post(
-            reverse("verification-session-documents", kwargs={"session_id": self.session.public_id}),
+            reverse(
+                "verification-session-documents",
+                kwargs={"session_id": self.session.public_id},
+            ),
             {
                 "document_type": "national_id",
                 "country_code": "GH",
@@ -172,15 +224,24 @@ class VerificationSessionPortalTests(APITestCase):
         )
         self.verification.status = VerificationStatus.IN_PROGRESS
         self.verification.save(update_fields=["status", "updated_at"])
+        front_upload = self.create_upload(
+            purpose=UploadPurpose.DOCUMENT_CAPTURE, suffix="01JABC"
+        )
+        back_upload = self.create_upload(
+            purpose=UploadPurpose.DOCUMENT_CAPTURE, suffix="01JABD"
+        )
 
         response = self.client.post(
-            reverse("verification-session-documents", kwargs={"session_id": self.session.public_id}),
+            reverse(
+                "verification-session-documents",
+                kwargs={"session_id": self.session.public_id},
+            ),
             {
                 "document_type": "national_id",
                 "country_code": "GH",
                 "captures": [
-                    {"side": "front", "upload_id": "upl_01JABC"},
-                    {"side": "back", "upload_id": "upl_01JABD"},
+                    {"side": "front", "upload_id": front_upload.public_id},
+                    {"side": "back", "upload_id": back_upload.public_id},
                 ],
             },
             format="json",
@@ -190,7 +251,9 @@ class VerificationSessionPortalTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["status"], "processing")
         self.assertEqual(response.data["data"]["next_step"], "selfie_capture")
-        identity_document = IdentityDocument.objects.get(public_id=response.data["data"]["identity_document_id"])
+        identity_document = IdentityDocument.objects.get(
+            public_id=response.data["data"]["identity_document_id"]
+        )
         self.assertEqual(identity_document.document_type_id, "national_id")
         self.assertEqual(identity_document.country_profile_id, "GH")
         self.assertEqual(identity_document.status, "processing")
@@ -199,14 +262,20 @@ class VerificationSessionPortalTests(APITestCase):
             set(identity_document.captures.values_list("side", flat=True)),
             {"front", "back"},
         )
-        capture = DocumentCapture.objects.get(identity_document=identity_document, side="front")
-        self.assertEqual(capture.storage_key, "uploads/documents/upl_01JABC")
+        capture = DocumentCapture.objects.get(
+            identity_document=identity_document, side="front"
+        )
+        self.assertEqual(capture.storage_key, front_upload.storage_key)
         self.assertTrue(
             ProviderCheck.objects.filter(
                 verification=self.verification,
                 check_type="document_ocr",
             ).exists()
         )
+        front_upload.refresh_from_db()
+        back_upload.refresh_from_db()
+        self.assertEqual(front_upload.status, UploadStatus.CONSUMED)
+        self.assertEqual(back_upload.status, UploadStatus.CONSUMED)
         mock_delay.assert_called_once_with(identity_document.public_id)
         self.verification.refresh_from_db()
         self.assertEqual(self.verification.status, VerificationStatus.AWAITING_SELFIE)
@@ -220,14 +289,23 @@ class VerificationSessionPortalTests(APITestCase):
             accepted=True,
             accepted_at=timezone.now(),
         )
+        front_upload = self.create_upload(
+            purpose=UploadPurpose.DOCUMENT_CAPTURE, suffix="01JABC"
+        )
+        back_upload = self.create_upload(
+            purpose=UploadPurpose.DOCUMENT_CAPTURE, suffix="01JABD"
+        )
 
         response = self.client.post(
-            reverse("verification-session-documents", kwargs={"session_id": self.session.public_id}),
+            reverse(
+                "verification-session-documents",
+                kwargs={"session_id": self.session.public_id},
+            ),
             {
                 "document_type": "passport",
                 "captures": [
-                    {"side": "front", "upload_id": "upl_01JABC"},
-                    {"side": "front", "upload_id": "upl_01JABD"},
+                    {"side": "front", "upload_id": front_upload.public_id},
+                    {"side": "front", "upload_id": back_upload.public_id},
                 ],
             },
             format="json",
@@ -235,6 +313,32 @@ class VerificationSessionPortalTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_submit_documents_rejects_invalid_upload_id(self):
+        ConsentRecord.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_subject=self.subject,
+            consent_text_snapshot="I consent to identity verification.",
+            accepted=True,
+            accepted_at=timezone.now(),
+        )
+
+        response = self.client.post(
+            reverse(
+                "verification-session-documents",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            {
+                "document_type": "passport",
+                "captures": [{"side": "front", "upload_id": "upl_missing"}],
+            },
+            format="json",
+            **self.session_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("upload_id", str(response.data["error"]["details"]))
 
     def test_submit_selfie_requires_document_submission(self):
         ConsentRecord.objects.create(
@@ -247,7 +351,10 @@ class VerificationSessionPortalTests(APITestCase):
         )
 
         response = self.client.post(
-            reverse("verification-session-selfies", kwargs={"session_id": self.session.public_id}),
+            reverse(
+                "verification-session-selfies",
+                kwargs={"session_id": self.session.public_id},
+            ),
             {"capture_type": "image", "upload_id": "upl_01JSELFIE"},
             format="json",
             **self.session_headers(),
@@ -274,10 +381,16 @@ class VerificationSessionPortalTests(APITestCase):
         )
         self.verification.status = VerificationStatus.AWAITING_SELFIE
         self.verification.save(update_fields=["status", "updated_at"])
+        selfie_upload = self.create_upload(
+            purpose=UploadPurpose.SELFIE_CAPTURE, suffix="01JSELFIE"
+        )
 
         response = self.client.post(
-            reverse("verification-session-selfies", kwargs={"session_id": self.session.public_id}),
-            {"capture_type": "image", "upload_id": "upl_01JSELFIE"},
+            reverse(
+                "verification-session-selfies",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            {"capture_type": "image", "upload_id": selfie_upload.public_id},
             format="json",
             **self.session_headers(),
         )
@@ -285,16 +398,23 @@ class VerificationSessionPortalTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["status"], "processing")
         self.assertEqual(response.data["data"]["next_step"], "liveness_check")
-        selfie_capture = SelfieCapture.objects.get(public_id=response.data["data"]["selfie_capture_id"])
+        selfie_capture = SelfieCapture.objects.get(
+            public_id=response.data["data"]["selfie_capture_id"]
+        )
         self.assertEqual(selfie_capture.capture_type, "image")
-        self.assertEqual(selfie_capture.storage_key, "uploads/selfies/upl_01JSELFIE")
+        self.assertEqual(selfie_capture.storage_key, selfie_upload.storage_key)
         self.assertEqual(selfie_capture.status, "uploaded")
+        selfie_upload.refresh_from_db()
+        self.assertEqual(selfie_upload.status, UploadStatus.CONSUMED)
         self.verification.refresh_from_db()
         self.assertEqual(self.verification.status, VerificationStatus.PROCESSING)
 
     def test_submit_liveness_requires_matching_selfie_capture(self):
         response = self.client.post(
-            reverse("verification-session-liveness", kwargs={"session_id": self.session.public_id}),
+            reverse(
+                "verification-session-liveness",
+                kwargs={"session_id": self.session.public_id},
+            ),
             {"liveness_type": "passive", "selfie_capture_id": "sel_missing"},
             format="json",
             **self.session_headers(),
@@ -302,8 +422,12 @@ class VerificationSessionPortalTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    @patch("apps.verification_sessions.views.process_verification_biometrics_task.delay")
-    def test_submit_liveness_creates_provider_checks_and_queues_background_processing(self, mock_delay):
+    @patch(
+        "apps.verification_sessions.views.process_verification_biometrics_task.delay"
+    )
+    def test_submit_liveness_creates_provider_checks_and_queues_background_processing(
+        self, mock_delay
+    ):
         identity_document = IdentityDocument.objects.create(
             tenant=self.tenant,
             verification=self.verification,
@@ -342,7 +466,10 @@ class VerificationSessionPortalTests(APITestCase):
         self.verification.save(update_fields=["status", "updated_at"])
 
         response = self.client.post(
-            reverse("verification-session-liveness", kwargs={"session_id": self.session.public_id}),
+            reverse(
+                "verification-session-liveness",
+                kwargs={"session_id": self.session.public_id},
+            ),
             {"liveness_type": "passive", "selfie_capture_id": selfie_capture.public_id},
             format="json",
             **self.session_headers(),
@@ -350,19 +477,29 @@ class VerificationSessionPortalTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["status"], "processing")
-        liveness_check = LivenessCheck.objects.get(public_id=response.data["data"]["liveness_check_id"])
+        liveness_check = LivenessCheck.objects.get(
+            public_id=response.data["data"]["liveness_check_id"]
+        )
         self.assertEqual(liveness_check.selfie_capture, selfie_capture)
         self.assertEqual(liveness_check.liveness_type, "passive")
         self.assertEqual(liveness_check.status, "inconclusive")
         self.assertTrue(liveness_check.provider_check_id.startswith("pck_"))
-        face_match = FaceMatch.objects.get(verification=self.verification, selfie_capture=selfie_capture)
+        face_match = FaceMatch.objects.get(
+            verification=self.verification, selfie_capture=selfie_capture
+        )
         self.assertEqual(face_match.identity_document, identity_document)
         self.assertEqual(face_match.document_capture, document_capture)
         self.assertEqual(face_match.status, "inconclusive")
         self.assertTrue(face_match.provider_check_id.startswith("pck_"))
-        self.assertEqual(ProviderCheck.objects.filter(verification=self.verification).count(), 2)
-        self.assertFalse(RiskAssessment.objects.filter(verification=self.verification).exists())
-        self.assertFalse(VerificationDecision.objects.filter(verification=self.verification).exists())
+        self.assertEqual(
+            ProviderCheck.objects.filter(verification=self.verification).count(), 2
+        )
+        self.assertFalse(
+            RiskAssessment.objects.filter(verification=self.verification).exists()
+        )
+        self.assertFalse(
+            VerificationDecision.objects.filter(verification=self.verification).exists()
+        )
         self.assertFalse(Notification.objects.filter(tenant=self.tenant).exists())
         mock_delay.assert_called_once_with(liveness_check.public_id)
         self.verification.refresh_from_db()
@@ -370,13 +507,20 @@ class VerificationSessionPortalTests(APITestCase):
 
     def test_get_session_status_for_pending_consent(self):
         response = self.client.get(
-            reverse("verification-session-status", kwargs={"session_id": self.session.public_id}),
+            reverse(
+                "verification-session-status",
+                kwargs={"session_id": self.session.public_id},
+            ),
             **self.session_headers(),
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["data"]["verification_id"], self.verification.public_id)
-        self.assertEqual(response.data["data"]["status"], VerificationStatus.PENDING_CONSENT)
+        self.assertEqual(
+            response.data["data"]["verification_id"], self.verification.public_id
+        )
+        self.assertEqual(
+            response.data["data"]["status"], VerificationStatus.PENDING_CONSENT
+        )
         self.assertEqual(response.data["data"]["current_step"], "consent")
 
     def test_get_session_status_for_processing(self):
@@ -384,21 +528,29 @@ class VerificationSessionPortalTests(APITestCase):
         self.verification.save(update_fields=["status", "updated_at"])
 
         response = self.client.get(
-            reverse("verification-session-status", kwargs={"session_id": self.session.public_id}),
+            reverse(
+                "verification-session-status",
+                kwargs={"session_id": self.session.public_id},
+            ),
             **self.session_headers(),
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["status"], VerificationStatus.PROCESSING)
         self.assertEqual(response.data["data"]["current_step"], "processing")
-        self.assertEqual(response.data["data"]["message"], "Your verification is being processed.")
+        self.assertEqual(
+            response.data["data"]["message"], "Your verification is being processed."
+        )
 
     def test_get_session_status_for_verified(self):
         self.verification.status = VerificationStatus.VERIFIED
         self.verification.save(update_fields=["status", "updated_at"])
 
         response = self.client.get(
-            reverse("verification-session-status", kwargs={"session_id": self.session.public_id}),
+            reverse(
+                "verification-session-status",
+                kwargs={"session_id": self.session.public_id},
+            ),
             **self.session_headers(),
         )
 

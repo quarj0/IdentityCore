@@ -138,6 +138,7 @@ CELERY_TASK_DEFAULT_ROUTING_KEY = "default"
 CELERY_TASK_ROUTES = {
     "apps.biometrics.tasks.process_verification_biometrics_task": {"queue": "ai_processing"},
     "apps.identity_documents.tasks.process_identity_document_task": {"queue": "ai_processing"},
+    "apps.uploads.tasks.cleanup_expired_uploads_task": {"queue": "retention"},
     "apps.verifications.tasks.expire_pending_verifications_task": {"queue": "retention"},
     "apps.verifications.tasks.cleanup_expired_verification_sessions_task": {"queue": "retention"},
     "apps.verifications.tasks.cleanup_retained_media_task": {"queue": "retention"},
@@ -172,11 +173,17 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": int(os.getenv("CELERY_RETENTION_BEAT_SECONDS", "3600")),
         "kwargs": {"limit": int(os.getenv("RETENTION_CLEANUP_BATCH_SIZE", "100"))},
     },
+    "cleanup-expired-uploads": {
+        "task": "apps.uploads.tasks.cleanup_expired_uploads_task",
+        "schedule": int(os.getenv("CELERY_UPLOAD_CLEANUP_BEAT_SECONDS", "300")),
+        "kwargs": {"limit": int(os.getenv("UPLOAD_CLEANUP_BATCH_SIZE", "200"))},
+    },
 }
 
 AI_SERVICE_BASE_URL = os.getenv("AI_SERVICE_BASE_URL", "http://localhost:8001")
 AI_SERVICE_TIMEOUT_SECONDS = int(os.getenv("AI_SERVICE_TIMEOUT_SECONDS", "15"))
 UPLOAD_URL_BASE = os.getenv("UPLOAD_URL_BASE", "http://localhost:9000/mock-upload")
+UPLOAD_URL_EXPIRES_MINUTES = int(os.getenv("UPLOAD_URL_EXPIRES_MINUTES", "10"))
 VERIFICATION_PORTAL_BASE_URL = os.getenv("VERIFICATION_PORTAL_BASE_URL", "http://localhost:8000/api/v1/verification-sessions")
 WEBHOOK_DELIVERY_TIMEOUT_SECONDS = int(os.getenv("WEBHOOK_DELIVERY_TIMEOUT_SECONDS", "10"))
 WEBHOOK_MAX_ATTEMPTS = int(os.getenv("WEBHOOK_MAX_ATTEMPTS", "5"))

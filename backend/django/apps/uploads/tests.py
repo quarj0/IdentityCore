@@ -1,20 +1,30 @@
 from datetime import timedelta
 
+from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from apps.audit.models import AuditEvent
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.organizations.models import Organization
 from apps.tenants.models import Tenant
-from apps.verifications.models import Verification, VerificationSession, VerificationStatus
+from apps.uploads.models import Upload, UploadPurpose, UploadStatus
+from apps.uploads.tasks import cleanup_expired_uploads_task
+from apps.verifications.models import (
+    Verification,
+    VerificationSession,
+    VerificationStatus,
+)
 from apps.verification_subjects.models import VerificationSubject
 
 
 class UploadCreateTests(APITestCase):
     def setUp(self):
-        self.organization = Organization.objects.create(name="Example Bank", slug="example-bank")
+        self.organization = Organization.objects.create(
+            name="Example Bank", slug="example-bank"
+        )
         self.tenant = Tenant.objects.create(
             organization=self.organization,
             name="Example Tenant",
@@ -69,7 +79,16 @@ class UploadCreateTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(response.data["data"]["upload_id"].startswith("upl_"))
-        self.assertIn(response.data["data"]["upload_id"], response.data["data"]["upload_url"])
+        self.assertIn(
+            response.data["data"]["upload_id"], response.data["data"]["upload_url"]
+        )
+        upload = Upload.objects.get(public_id=response.data["data"]["upload_id"])
+        self.assertEqual(upload.tenant, self.tenant)
+        self.assertEqual(upload.verification, self.verification)
+        self.assertEqual(upload.verification_session, self.session)
+        self.assertEqual(upload.purpose, UploadPurpose.DOCUMENT_CAPTURE)
+        self.assertEqual(upload.status, UploadStatus.INITIATED)
+        self.assertEqual(upload.storage_key, f"uploads/documents/{upload.public_id}")
 
     def test_create_upload_requires_session_authentication(self):
         response = self.client.post(
@@ -142,3 +161,84 @@ class UploadCreateTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(response.data["data"]["upload_id"].startswith("upl_"))
+
+
+class UploadRetentionTaskTests(TestCase):
+    def setUp(self):
+        self.organization = Organization.objects.create(
+            name="Example Bank", slug="example-bank-retention"
+        )
+        self.tenant = Tenant.objects.create(
+            organization=self.organization,
+            name="Example Tenant Retention",
+            slug="example-tenant-retention",
+            status="active",
+        )
+        self.user = PlatformUser.objects.create_user(
+            email="ops-retention@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            tenant=self.tenant,
+        )
+        self.subject = VerificationSubject.objects.create(
+            tenant=self.tenant,
+            full_name="Akosua Owusu",
+        )
+        self.verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.subject,
+            purpose="Customer onboarding verification",
+            status=VerificationStatus.PENDING_CONSENT,
+            expires_at=timezone.now() + timedelta(hours=24),
+            created_by=self.user,
+        )
+        self.session = VerificationSession(
+            verification=self.verification,
+            tenant=self.tenant,
+            expires_at=self.verification.expires_at,
+        )
+        self.session.set_session_token("retention-secret-token")
+        self.session.save()
+
+    def test_cleanup_expired_uploads_marks_temporary_upload_expired_and_deleted(self):
+        expired_upload = Upload.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_session=self.session,
+            purpose=UploadPurpose.DOCUMENT_CAPTURE,
+            storage_key="uploads/documents/upl_expired",
+            storage_provider="local",
+            mime_type="image/jpeg",
+            file_size_bytes=1024,
+            status=UploadStatus.INITIATED,
+            expires_at=timezone.now() - timedelta(minutes=1),
+        )
+        active_upload = Upload.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_session=self.session,
+            purpose=UploadPurpose.SELFIE_CAPTURE,
+            storage_key="uploads/selfies/upl_active",
+            storage_provider="local",
+            mime_type="image/jpeg",
+            file_size_bytes=2048,
+            status=UploadStatus.INITIATED,
+            expires_at=timezone.now() + timedelta(minutes=10),
+        )
+
+        cleaned = cleanup_expired_uploads_task(limit=10)
+
+        expired_upload.refresh_from_db()
+        active_upload.refresh_from_db()
+        self.assertEqual(cleaned, 1)
+        self.assertEqual(expired_upload.status, UploadStatus.EXPIRED)
+        self.assertIsNotNone(expired_upload.deleted_at)
+        self.assertEqual(active_upload.status, UploadStatus.INITIATED)
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                tenant=self.tenant,
+                action="retention.temporary_upload_deleted",
+                target_id=expired_upload.public_id,
+            ).exists()
+        )

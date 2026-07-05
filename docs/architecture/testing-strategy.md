@@ -336,6 +336,10 @@ File upload tests should cover:
 - Upload without consent
 - Upload for expired session
 
+Implementation note:
+
+- The current backend suite covers upload initialization, purpose-specific MIME restrictions, temporary upload persistence, and cleanup of expired unconsumed uploads.
+
 ---
 
 ## Webhook Testing

@@ -693,6 +693,7 @@ Business rules:
 - Consent must already be accepted for the Verification before document metadata can be submitted.
 - The current bootstrap implementation stores `document_type` and `country_code` directly on the identity document record until dedicated document type and country profile tables are introduced.
 - Each submitted capture side must be unique within the request.
+- Each `upload_id` must refer to an issued temporary upload for the same verification session and is consumed when the corresponding `DocumentCapture` record is created.
 - The current Django implementation queues asynchronous document OCR and document-quality processing after document submission while allowing the subject flow to continue.
 
 Response:
@@ -727,7 +728,7 @@ Request:
 Business rules:
 
 - Consent and document submission must already be complete before selfie metadata can be submitted.
-- The current bootstrap implementation maps the provided `upload_id` into a derived selfie `storage_key` until the dedicated upload-initialization flow is added.
+- The provided `upload_id` must refer to an issued temporary upload for the same verification session and is consumed when the `SelfieCapture` record is created.
 - Selfie submission currently creates a `SelfieCapture` record and advances the subject flow to `liveness_check`.
 
 Response:
@@ -854,8 +855,9 @@ Rules:
 
 Implementation note:
 
-- The current Django bootstrap exposes upload initialization as a verification-session-scoped endpoint using `Authorization: Bearer <session_token>` plus `X-Session-Id`.
-- Returned upload URLs are placeholder signed-style URLs derived from `UPLOAD_URL_BASE` until the object storage integration is connected.
+- The current Django implementation exposes upload initialization as a verification-session-scoped endpoint using `Authorization: Bearer <session_token>` plus `X-Session-Id`.
+- Upload initialization now persists a tenant-scoped `Upload` record tied to the verification session, and later document/selfie submission must reference that issued `upload_id`.
+- Returned upload URLs remain placeholder signed-style URLs derived from `UPLOAD_URL_BASE` until the object storage integration is connected.
 
 ---
 
