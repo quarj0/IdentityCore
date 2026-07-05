@@ -123,6 +123,12 @@ services:
         condition: service_healthy
     volumes:
       - .:/app
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d default@$$HOSTNAME | grep -q pong"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     networks:
       - identitycore
 
@@ -150,6 +156,12 @@ services:
         condition: service_healthy
     volumes:
       - .:/app
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d webhooks@$$HOSTNAME | grep -q pong"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     networks:
       - identitycore
 
@@ -177,6 +189,12 @@ services:
         condition: service_healthy
     volumes:
       - .:/app
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d notifications@$$HOSTNAME | grep -q pong"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     networks:
       - identitycore
 
@@ -210,6 +228,12 @@ services:
         condition: service_started
     volumes:
       - .:/app
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'celery.*beat' > /dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     networks:
       - identitycore
 

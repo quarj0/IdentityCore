@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 COMPOSE := docker compose
 
-.PHONY: up down logs shell migrate makemigrations createsuperuser test lint ensure-env
+.PHONY: up down ps logs logs-django logs-ai logs-worker logs-webhooks logs-notifications logs-beat shell shell-worker shell-worker-webhooks shell-worker-notifications migrate makemigrations createsuperuser test lint ensure-env
 
 ensure-env:
 	@test -f .env || cp .env.example .env
@@ -13,11 +13,42 @@ up: ensure-env
 down:
 	$(COMPOSE) down
 
+ps:
+	$(COMPOSE) ps
+
 logs:
 	$(COMPOSE) logs -f
 
+logs-django:
+	$(COMPOSE) logs -f django
+
+logs-ai:
+	$(COMPOSE) logs -f ai-service
+
+logs-worker:
+	$(COMPOSE) logs -f celery-worker
+	
+
+logs-webhooks:
+	$(COMPOSE) logs -f celery-worker-webhooks
+
+logs-notifications:
+	$(COMPOSE) logs -f celery-worker-notifications
+
+logs-beat:
+	$(COMPOSE) logs -f celery-beat
+
 shell:
 	$(COMPOSE) exec django /bin/bash
+
+shell-worker:
+	$(COMPOSE) exec celery-worker /bin/bash
+
+shell-worker-webhooks:
+	$(COMPOSE) exec celery-worker-webhooks /bin/bash
+
+shell-worker-notifications:
+	$(COMPOSE) exec celery-worker-notifications /bin/bash
 
 migrate:
 	$(COMPOSE) run --rm django python manage.py migrate
