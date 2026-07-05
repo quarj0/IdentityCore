@@ -138,6 +138,9 @@ CELERY_TASK_DEFAULT_ROUTING_KEY = "default"
 CELERY_TASK_ROUTES = {
     "apps.biometrics.tasks.process_verification_biometrics_task": {"queue": "ai_processing"},
     "apps.identity_documents.tasks.process_identity_document_task": {"queue": "ai_processing"},
+    "apps.verifications.tasks.expire_pending_verifications_task": {"queue": "retention"},
+    "apps.verifications.tasks.cleanup_expired_verification_sessions_task": {"queue": "retention"},
+    "apps.verifications.tasks.cleanup_retained_media_task": {"queue": "retention"},
     "apps.webhooks.tasks.process_pending_webhook_events_task": {"queue": "webhooks"},
     "apps.webhooks.tasks.deliver_webhook_event_task": {"queue": "webhooks"},
     "apps.notifications.tasks.process_pending_notifications_task": {"queue": "notifications"},
@@ -153,6 +156,21 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.notifications.tasks.process_pending_notifications_task",
         "schedule": int(os.getenv("CELERY_NOTIFICATION_BEAT_SECONDS", "30")),
         "kwargs": {"limit": int(os.getenv("NOTIFICATION_DELIVERY_BATCH_SIZE", "50"))},
+    },
+    "expire-pending-verifications": {
+        "task": "apps.verifications.tasks.expire_pending_verifications_task",
+        "schedule": int(os.getenv("CELERY_VERIFICATION_EXPIRY_BEAT_SECONDS", "60")),
+        "kwargs": {"limit": int(os.getenv("VERIFICATION_EXPIRY_BATCH_SIZE", "100"))},
+    },
+    "cleanup-expired-verification-sessions": {
+        "task": "apps.verifications.tasks.cleanup_expired_verification_sessions_task",
+        "schedule": int(os.getenv("CELERY_SESSION_CLEANUP_BEAT_SECONDS", "300")),
+        "kwargs": {"limit": int(os.getenv("VERIFICATION_SESSION_CLEANUP_BATCH_SIZE", "200"))},
+    },
+    "cleanup-retained-media": {
+        "task": "apps.verifications.tasks.cleanup_retained_media_task",
+        "schedule": int(os.getenv("CELERY_RETENTION_BEAT_SECONDS", "3600")),
+        "kwargs": {"limit": int(os.getenv("RETENTION_CLEANUP_BATCH_SIZE", "100"))},
     },
 }
 

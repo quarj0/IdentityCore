@@ -1802,6 +1802,10 @@ Recommended default:
 30 days
 ```
 
+Implementation note:
+
+- The current Django retention cleanup preserves `identity_documents` metadata and extracted fields, while soft-deleting raw `document_captures` and `selfie_captures` after the media retention window.
+
 ## Medium-term retention
 
 Verification metadata:

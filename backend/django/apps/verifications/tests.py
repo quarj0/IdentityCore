@@ -1,18 +1,41 @@
+from datetime import timedelta
+
 from django.urls import reverse
+from django.test import TestCase
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.api_clients.models import APIClient
-from apps.biometrics.models import FaceMatch, LivenessCheck
-from apps.document_captures.models import DocumentCapture
+from apps.audit.models import AuditEvent
+from apps.biometrics.models import (
+    FaceMatch,
+    LivenessCheck,
+    SelfieCapture,
+    SelfieCaptureStatus,
+)
+from apps.document_captures.models import DocumentCapture, DocumentCaptureStatus
 from apps.identity_documents.models import IdentityDocument
 from apps.notifications.models import Notification
 from apps.organizations.models import Organization
 from apps.risk.models import RiskAssessment
 from apps.tenants.models import Tenant
 from apps.verification_policies.models import VerificationPolicy
-from apps.verifications.models import Verification, VerificationDecision, VerificationStatus
+from apps.verifications.models import (
+    Verification,
+    VerificationDecision,
+    VerificationSession,
+    VerificationSessionStatus,
+    VerificationStatus,
+)
+from apps.verifications.tasks import (
+    cleanup_expired_verification_sessions_task,
+    cleanup_retained_media_task,
+    expire_pending_verifications_task,
+)
+from apps.verification_subjects.models import VerificationSubject
+from apps.webhooks.models import WebhookEndpoint, WebhookEvent, WebhookEventStatus
 
 
 class VerificationWorkflowTests(APITestCase):
@@ -69,7 +92,9 @@ class VerificationWorkflowTests(APITestCase):
         self.assertTrue(response.data["data"]["id"].startswith("ver_"))
         self.assertTrue(response.data["data"]["session_id"].startswith("ses_"))
         verification = Verification.objects.get(public_id=response.data["data"]["id"])
-        self.assertEqual(verification.verification_subject.external_reference, "customer_12345")
+        self.assertEqual(
+            verification.verification_subject.external_reference, "customer_12345"
+        )
         self.assertTrue(
             Notification.objects.filter(
                 tenant=self.tenant,
@@ -124,7 +149,9 @@ class VerificationWorkflowTests(APITestCase):
             HTTP_AUTHORIZATION="Bearer other-secret",
         )
 
-        list_response = self.client.get(reverse("verification-list-create"), **self.auth_headers())
+        list_response = self.client.get(
+            reverse("verification-list-create"), **self.auth_headers()
+        )
         ids = [item["id"] for item in list_response.data["data"]["results"]]
         self.assertEqual(ids, [verification_id])
 
@@ -134,14 +161,19 @@ class VerificationWorkflowTests(APITestCase):
         verification = Verification.objects.create(
             tenant=self.tenant,
             organization=self.organization,
-            verification_subject=self.tenant.verification_subjects.create(full_name="Kwame"),
+            verification_subject=self.tenant.verification_subjects.create(
+                full_name="Kwame"
+            ),
             purpose="Test",
             expires_at=self.tenant.created_at,
             status=VerificationStatus.PENDING_CONSENT,
         )
 
         response = self.client.get(
-            reverse("verification-detail", kwargs={"verification_id": verification.public_id}),
+            reverse(
+                "verification-detail",
+                kwargs={"verification_id": verification.public_id},
+            ),
             **self.auth_headers(),
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
@@ -240,13 +272,20 @@ class VerificationWorkflowTests(APITestCase):
         )
 
         response = self.client.get(
-            reverse("verification-detail", kwargs={"verification_id": verification.public_id}),
+            reverse(
+                "verification-detail",
+                kwargs={"verification_id": verification.public_id},
+            ),
             **self.auth_headers(),
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["data"]["checks"]["liveness"]["status"], "inconclusive")
-        self.assertEqual(response.data["data"]["checks"]["face_match"]["status"], "inconclusive")
+        self.assertEqual(
+            response.data["data"]["checks"]["liveness"]["status"], "inconclusive"
+        )
+        self.assertEqual(
+            response.data["data"]["checks"]["face_match"]["status"], "inconclusive"
+        )
         self.assertIsNone(response.data["data"]["risk_assessment"])
 
     def test_create_verification_copies_policy_snapshot(self):
@@ -283,7 +322,9 @@ class VerificationWorkflowTests(APITestCase):
         verification = Verification.objects.get(public_id=response.data["data"]["id"])
         self.assertEqual(verification.policy_public_id, policy.public_id)
         self.assertEqual(verification.policy_snapshot_json["id"], policy.public_id)
-        self.assertEqual(verification.policy_snapshot_json["required_liveness_level"], "passive")
+        self.assertEqual(
+            verification.policy_snapshot_json["required_liveness_level"], "passive"
+        )
 
     def test_manual_review_list_is_tenant_scoped(self):
         verification = Verification.objects.create(
@@ -320,7 +361,9 @@ class VerificationWorkflowTests(APITestCase):
         Verification.objects.create(
             tenant=other_tenant,
             organization=other_org,
-            verification_subject=other_tenant.verification_subjects.create(full_name="Other Case"),
+            verification_subject=other_tenant.verification_subjects.create(
+                full_name="Other Case"
+            ),
             purpose="Other manual review case",
             expires_at=other_tenant.created_at,
             status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
@@ -349,7 +392,10 @@ class VerificationWorkflowTests(APITestCase):
 
         self.client.force_authenticate(self.user)
         response = self.client.post(
-            reverse("manual-review-decision", kwargs={"verification_id": verification.public_id}),
+            reverse(
+                "manual-review-decision",
+                kwargs={"verification_id": verification.public_id},
+            ),
             {
                 "decision": "verified",
                 "reason_code": "evidence_confirmed",
@@ -375,7 +421,9 @@ class VerificationWorkflowTests(APITestCase):
         verification = Verification.objects.create(
             tenant=self.tenant,
             organization=self.organization,
-            verification_subject=self.tenant.verification_subjects.create(full_name="Reviewer Case"),
+            verification_subject=self.tenant.verification_subjects.create(
+                full_name="Reviewer Case"
+            ),
             purpose="Manual review case",
             expires_at=self.tenant.created_at,
             status=VerificationStatus.VERIFIED,
@@ -399,7 +447,10 @@ class VerificationWorkflowTests(APITestCase):
         )
 
         response = self.client.get(
-            reverse("verification-detail", kwargs={"verification_id": verification.public_id}),
+            reverse(
+                "verification-detail",
+                kwargs={"verification_id": verification.public_id},
+            ),
             **self.auth_headers(),
         )
 
@@ -407,3 +458,192 @@ class VerificationWorkflowTests(APITestCase):
         self.assertEqual(response.data["data"]["decision"]["decision"], "verified")
         self.assertEqual(response.data["data"]["decision"]["decision_type"], "manual")
         self.assertEqual(response.data["data"]["risk_assessment"]["risk_level"], "low")
+
+
+class VerificationOperationsTaskTests(TestCase):
+    def setUp(self):
+        self.organization = Organization.objects.create(name="Acme", slug="acme-ops")
+        self.tenant = Tenant.objects.create(
+            organization=self.organization,
+            name="Acme Ops Tenant",
+            slug="acme-ops-tenant",
+            status="active",
+        )
+        self.user = PlatformUser.objects.create_user(
+            email="ops@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            tenant=self.tenant,
+        )
+        self.subject = VerificationSubject.objects.create(
+            tenant=self.tenant,
+            full_name="Akosua Owusu",
+            email="akosua@example.com",
+        )
+
+    def test_expire_pending_verifications_task_expires_records_and_queues_follow_up_work(
+        self,
+    ):
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.subject,
+            purpose="Customer onboarding",
+            status=VerificationStatus.IN_PROGRESS,
+            external_reference="ext-123",
+            expires_at=timezone.now() - timedelta(minutes=5),
+        )
+        session = VerificationSession.objects.create(
+            verification=verification,
+            tenant=self.tenant,
+            session_token_hash="hashed-session-token",
+            status=VerificationSessionStatus.ACTIVE,
+            expires_at=timezone.now() - timedelta(minutes=5),
+        )
+        webhook_endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            created_by=self.user,
+            url="https://example.com/webhooks/verification",
+            events_json=["verification.expired"],
+        )
+        webhook_endpoint.set_secret("webhook-secret")
+        webhook_endpoint.save()
+
+        processed = expire_pending_verifications_task(limit=10)
+
+        verification.refresh_from_db()
+        session.refresh_from_db()
+        self.assertEqual(processed, 1)
+        self.assertEqual(verification.status, VerificationStatus.EXPIRED)
+        self.assertIsNotNone(verification.completed_at)
+        self.assertEqual(session.status, VerificationSessionStatus.EXPIRED)
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                tenant=self.tenant,
+                action="verification.expired",
+                target_id=verification.public_id,
+            ).exists()
+        )
+        self.assertTrue(
+            WebhookEvent.objects.filter(
+                tenant=self.tenant,
+                webhook_endpoint=webhook_endpoint,
+                event_type="verification.expired",
+                status=WebhookEventStatus.PENDING,
+            ).exists()
+        )
+        self.assertTrue(
+            Notification.objects.filter(
+                tenant=self.tenant,
+                template_code="verification.expired",
+                recipient="akosua@example.com",
+            ).exists()
+        )
+
+    def test_cleanup_expired_verification_sessions_task_marks_due_sessions_expired(
+        self,
+    ):
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.subject,
+            purpose="Customer onboarding",
+            status=VerificationStatus.PENDING_CONSENT,
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+        due_session = VerificationSession.objects.create(
+            verification=verification,
+            tenant=self.tenant,
+            session_token_hash="due-session-hash",
+            status=VerificationSessionStatus.CREATED,
+            expires_at=timezone.now() - timedelta(minutes=2),
+        )
+        future_session = VerificationSession.objects.create(
+            verification=verification,
+            tenant=self.tenant,
+            session_token_hash="future-session-hash",
+            status=VerificationSessionStatus.ACTIVE,
+            expires_at=timezone.now() + timedelta(minutes=30),
+        )
+
+        updated = cleanup_expired_verification_sessions_task(limit=10)
+
+        due_session.refresh_from_db()
+        future_session.refresh_from_db()
+        self.assertEqual(updated, 1)
+        self.assertEqual(due_session.status, VerificationSessionStatus.EXPIRED)
+        self.assertEqual(future_session.status, VerificationSessionStatus.ACTIVE)
+
+    def test_cleanup_retained_media_task_deletes_raw_media_and_preserves_metadata(self):
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.subject,
+            purpose="Completed verification",
+            status=VerificationStatus.VERIFIED,
+            policy_snapshot_json={
+                "media_retention_days": 30,
+                "metadata_retention_days": 365,
+            },
+            expires_at=timezone.now() - timedelta(days=31),
+            completed_at=timezone.now() - timedelta(days=31),
+        )
+        identity_document = IdentityDocument.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            verification_subject=self.subject,
+            document_type_id="national_id",
+            country_profile_id="GH",
+            status="processed",
+            extracted_data_json={"full_name": "Akosua Owusu"},
+        )
+        document_capture = DocumentCapture.objects.create(
+            tenant=self.tenant,
+            identity_document=identity_document,
+            side="front",
+            storage_key="uploads/documents/upl_retention",
+            storage_provider="local",
+            mime_type="image/jpeg",
+            file_size_bytes=1024,
+            checksum_sha256="abc123",
+            status=DocumentCaptureStatus.UPLOADED,
+            captured_at=timezone.now() - timedelta(days=31),
+        )
+        selfie_capture = SelfieCapture.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            verification_subject=self.subject,
+            storage_key="uploads/selfies/upl_selfie_retention",
+            storage_provider="local",
+            capture_type="image",
+            mime_type="image/jpeg",
+            file_size_bytes=2048,
+            checksum_sha256="def456",
+            face_count=1,
+            status=SelfieCaptureStatus.UPLOADED,
+            captured_at=timezone.now() - timedelta(days=31),
+        )
+
+        cleaned = cleanup_retained_media_task(limit=10)
+
+        identity_document.refresh_from_db()
+        document_capture.refresh_from_db()
+        selfie_capture.refresh_from_db()
+        self.assertEqual(cleaned, 1)
+        self.assertIsNone(identity_document.deleted_at)
+        self.assertEqual(
+            identity_document.extracted_data_json["full_name"], "Akosua Owusu"
+        )
+        self.assertEqual(document_capture.status, DocumentCaptureStatus.DELETED)
+        self.assertIsNotNone(document_capture.deleted_at)
+        self.assertEqual(selfie_capture.status, SelfieCaptureStatus.DELETED)
+        self.assertIsNotNone(selfie_capture.deleted_at)
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                tenant=self.tenant,
+                action="retention.media_deleted",
+                target_id=verification.public_id,
+            ).exists()
+        )
+
+        self.assertEqual(cleanup_retained_media_task(limit=10), 0)

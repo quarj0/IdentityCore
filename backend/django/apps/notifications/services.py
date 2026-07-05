@@ -33,7 +33,9 @@ def create_notification(
     )
 
 
-def queue_verification_created_notifications(*, verification, verification_url: str) -> list[Notification]:
+def queue_verification_created_notifications(
+    *, verification, verification_url: str
+) -> list[Notification]:
     notifications: list[Notification] = []
     subject = verification.verification_subject
     if subject.email:
@@ -51,7 +53,9 @@ def queue_verification_created_notifications(*, verification, verification_url: 
     return notifications
 
 
-def queue_verification_status_notifications(*, verification, decision: str, risk_level: str = "") -> list[Notification]:
+def queue_verification_status_notifications(
+    *, verification, decision: str, risk_level: str = ""
+) -> list[Notification]:
     notifications: list[Notification] = []
     subject = verification.verification_subject
     status_subject_map = {
@@ -59,6 +63,7 @@ def queue_verification_status_notifications(*, verification, decision: str, risk
         "rejected": "Your verification needs attention",
         "manual_review_required": "Your verification is under review",
         "cancelled": "Your verification was cancelled",
+        "expired": "Your verification link has expired",
     }
     status_body_map = {
         "verified": f"Verification {verification.public_id} has been completed successfully.",
@@ -68,6 +73,7 @@ def queue_verification_status_notifications(*, verification, decision: str, risk
             + (f" Current risk level: {risk_level}." if risk_level else "")
         ),
         "cancelled": f"Verification {verification.public_id} has been cancelled.",
+        "expired": f"Verification {verification.public_id} expired before completion.",
     }
     if subject.email and decision in status_subject_map:
         notifications.append(
@@ -83,7 +89,9 @@ def queue_verification_status_notifications(*, verification, decision: str, risk
         )
 
     if decision == "manual_review_required":
-        platform_users = verification.tenant.platform_users.filter(status=PlatformUserStatus.ACTIVE)
+        platform_users = verification.tenant.platform_users.filter(
+            status=PlatformUserStatus.ACTIVE
+        )
         for user in platform_users:
             notifications.append(
                 create_notification(
@@ -117,14 +125,18 @@ def deliver_notification(notification: Notification) -> Notification:
         notification.status = NotificationStatus.SENT
         notification.sent_at = timezone.now()
         notification.provider_reference = f"email:{notification.public_id}"
-        notification.save(update_fields=["status", "sent_at", "provider_reference", "updated_at"])
+        notification.save(
+            update_fields=["status", "sent_at", "provider_reference", "updated_at"]
+        )
         return notification
 
     if notification.channel == NotificationChannel.IN_APP:
         notification.status = NotificationStatus.SENT
         notification.sent_at = timezone.now()
         notification.provider_reference = f"in_app:{notification.public_id}"
-        notification.save(update_fields=["status", "sent_at", "provider_reference", "updated_at"])
+        notification.save(
+            update_fields=["status", "sent_at", "provider_reference", "updated_at"]
+        )
         return notification
 
     notification.status = NotificationStatus.CANCELLED
@@ -134,7 +146,9 @@ def deliver_notification(notification: Notification) -> Notification:
 
 def process_pending_notifications(*, limit: int = 50) -> int:
     processed = 0
-    for notification in Notification.objects.filter(status=NotificationStatus.PENDING).order_by("created_at")[:limit]:
+    for notification in Notification.objects.filter(
+        status=NotificationStatus.PENDING
+    ).order_by("created_at")[:limit]:
         deliver_notification(notification)
         processed += 1
     return processed

@@ -404,6 +404,7 @@ Business rules:
 - Creates a Verification Session.
 - Requires an API client with the `verifications:create` scope.
 - The current bootstrap implementation stores the requested `policy_id` as a public identifier reference and keeps `policy_snapshot_json` as a placeholder until verification policies are wired in.
+- Expiry is enforced asynchronously by background jobs; once `expires_at` passes, the Verification and any active session may transition to `expired` without another API call.
 - Sends webhook event `verification.created`.
 
 ---

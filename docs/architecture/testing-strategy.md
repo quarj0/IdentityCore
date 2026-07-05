@@ -441,6 +441,10 @@ Retention tests should cover:
 - Audit metadata preservation
 - Deletion audit events
 
+Implementation note:
+
+- The current backend test suite covers background verification expiry, expired verification-session cleanup, media retention cleanup for raw document and selfie evidence, and preservation of verification metadata after evidence deletion.
+
 ---
 
 ## Idempotency Testing
