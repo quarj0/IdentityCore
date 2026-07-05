@@ -9,26 +9,57 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('organizations', '0001_initial'),
+        ("organizations", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Tenant',
+            name="Tenant",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('deleted_at', models.DateTimeField(blank=True, null=True)),
-                ('public_id', models.CharField(editable=False, max_length=64, unique=True)),
-                ('name', models.CharField(max_length=255)),
-                ('slug', models.SlugField(max_length=255, unique=True)),
-                ('status', models.CharField(choices=[('active', 'Active'), ('suspended', 'Suspended'), ('pending_review', 'Pending review'), ('closed', 'Closed')], db_index=True, default='pending_review', max_length=32)),
-                ('settings_json', models.JSONField(blank=True, default=dict)),
-                ('organization', models.OneToOneField(on_delete=django.db.models.deletion.PROTECT, related_name='tenant', to='organizations.organization')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("deleted_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "public_id",
+                    models.CharField(editable=False, max_length=64, unique=True),
+                ),
+                ("name", models.CharField(max_length=255)),
+                ("slug", models.SlugField(max_length=255, unique=True)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("active", "Active"),
+                            ("suspended", "Suspended"),
+                            ("pending_review", "Pending review"),
+                            ("closed", "Closed"),
+                        ],
+                        db_index=True,
+                        default="pending_review",
+                        max_length=32,
+                    ),
+                ),
+                ("settings_json", models.JSONField(blank=True, default=dict)),
+                (
+                    "organization",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="tenant",
+                        to="organizations.organization",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['name'],
+                "ordering": ["name"],
             },
         ),
     ]

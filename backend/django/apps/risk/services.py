@@ -6,13 +6,19 @@ from apps.biometrics.models import FaceMatchStatus, LivenessCheckStatus
 from apps.providers.models import ProviderCheckStatus, ProviderCheckType
 from apps.providers.services import create_provider_check
 from apps.risk.models import RiskAssessment, RiskLevel, RiskRecommendation
-from apps.verifications.models import VerificationDecision, VerificationDecisionType, VerificationStatus
+from apps.verifications.models import (
+    VerificationDecision,
+    VerificationDecisionType,
+    VerificationStatus,
+)
 
 
 def _get_policy_thresholds(verification) -> tuple[Decimal, Decimal]:
     snapshot = verification.policy_snapshot_json or {}
     face_match_threshold = Decimal(str(snapshot.get("face_match_threshold", "0.8500")))
-    manual_review_threshold = Decimal(str(snapshot.get("manual_review_threshold", "0.6500")))
+    manual_review_threshold = Decimal(
+        str(snapshot.get("manual_review_threshold", "0.6500"))
+    )
     return face_match_threshold, manual_review_threshold
 
 
@@ -24,13 +30,17 @@ def evaluate_risk_assessment(verification) -> RiskAssessment:
     signals = {
         "document_submitted": verification.identity_documents.exists(),
         "selfie_submitted": verification.selfie_captures.exists(),
-        "liveness_status": latest_liveness_check.status if latest_liveness_check else "missing",
+        "liveness_status": (
+            latest_liveness_check.status if latest_liveness_check else "missing"
+        ),
         "liveness_score": (
             float(latest_liveness_check.score)
             if latest_liveness_check and latest_liveness_check.score is not None
             else None
         ),
-        "face_match_status": latest_face_match.status if latest_face_match else "missing",
+        "face_match_status": (
+            latest_face_match.status if latest_face_match else "missing"
+        ),
         "face_match_score": (
             float(latest_face_match.match_score)
             if latest_face_match and latest_face_match.match_score is not None
@@ -46,7 +56,10 @@ def evaluate_risk_assessment(verification) -> RiskAssessment:
         risk_score = Decimal("95.00")
         risk_level = RiskLevel.CRITICAL
         recommendation = RiskRecommendation.MANUAL_REVIEW
-    elif latest_liveness_check.status in {LivenessCheckStatus.FAILED, LivenessCheckStatus.ERROR}:
+    elif latest_liveness_check.status in {
+        LivenessCheckStatus.FAILED,
+        LivenessCheckStatus.ERROR,
+    }:
         risk_score = Decimal("96.00")
         risk_level = RiskLevel.CRITICAL
         recommendation = RiskRecommendation.REJECT
@@ -74,7 +87,10 @@ def evaluate_risk_assessment(verification) -> RiskAssessment:
             recommendation = RiskRecommendation.MANUAL_REVIEW
     else:
         face_score = latest_face_match.match_score or Decimal("0")
-        if latest_liveness_check.status == LivenessCheckStatus.PASSED and face_score >= face_match_threshold:
+        if (
+            latest_liveness_check.status == LivenessCheckStatus.PASSED
+            and face_score >= face_match_threshold
+        ):
             risk_score = Decimal("14.00")
             risk_level = RiskLevel.LOW
             recommendation = RiskRecommendation.APPROVE
@@ -107,7 +123,9 @@ def evaluate_risk_assessment(verification) -> RiskAssessment:
     return assessment
 
 
-def apply_automatic_decision(verification, risk_assessment: RiskAssessment) -> VerificationDecision:
+def apply_automatic_decision(
+    verification, risk_assessment: RiskAssessment
+) -> VerificationDecision:
     now = timezone.now()
     decision_map = {
         RiskRecommendation.APPROVE: VerificationStatus.VERIFIED,
@@ -145,7 +163,11 @@ def apply_automatic_decision(verification, risk_assessment: RiskAssessment) -> V
         },
     )
     verification.status = decision
-    if decision in {VerificationStatus.VERIFIED, VerificationStatus.REJECTED, VerificationStatus.FAILED}:
+    if decision in {
+        VerificationStatus.VERIFIED,
+        VerificationStatus.REJECTED,
+        VerificationStatus.FAILED,
+    }:
         verification.completed_at = now
         verification.save(update_fields=["status", "completed_at", "updated_at"])
     else:
@@ -153,7 +175,9 @@ def apply_automatic_decision(verification, risk_assessment: RiskAssessment) -> V
     return decision_record
 
 
-def run_verification_risk_and_decision(verification) -> tuple[RiskAssessment, VerificationDecision]:
+def run_verification_risk_and_decision(
+    verification,
+) -> tuple[RiskAssessment, VerificationDecision]:
     risk_assessment = evaluate_risk_assessment(verification)
     decision_record = apply_automatic_decision(verification, risk_assessment)
     return risk_assessment, decision_record

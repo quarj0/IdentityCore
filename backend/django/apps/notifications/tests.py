@@ -4,7 +4,12 @@ from django.test import TestCase
 from django.utils import timezone
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
-from apps.notifications.models import Notification, NotificationChannel, NotificationRecipientType, NotificationStatus
+from apps.notifications.models import (
+    Notification,
+    NotificationChannel,
+    NotificationRecipientType,
+    NotificationStatus,
+)
 from apps.notifications.services import (
     deliver_notification,
     process_pending_notifications,
@@ -155,4 +160,7 @@ class NotificationModelTests(TestCase):
         self.assertEqual(processed, 2)
         self.assertEqual(first.status, NotificationStatus.SENT)
         self.assertEqual(second.status, NotificationStatus.SENT)
-        self.assertEqual([message.to[0] for message in mail.outbox], ["first@example.com", "second@example.com"])
+        self.assertEqual(
+            [message.to[0] for message in mail.outbox],
+            ["first@example.com", "second@example.com"],
+        )

@@ -23,7 +23,9 @@ class APIClientAuthentication(BaseAuthentication):
 
         raw_secret = authorization[len(self.keyword) + 1 :].strip()
         try:
-            api_client = APIClient.objects.select_related("tenant").get(client_id=client_id)
+            api_client = APIClient.objects.select_related("tenant").get(
+                client_id=client_id
+            )
         except APIClient.DoesNotExist as exc:
             raise AuthenticationFailed("Invalid API client credentials.") from exc
 
@@ -31,7 +33,9 @@ class APIClientAuthentication(BaseAuthentication):
             raise AuthenticationFailed("API client is not active.")
         if not api_client.verify_client_secret(raw_secret):
             raise AuthenticationFailed("Invalid API client credentials.")
-        if api_client.allowed_ips and not self._is_request_ip_allowed(request, api_client.allowed_ips):
+        if api_client.allowed_ips and not self._is_request_ip_allowed(
+            request, api_client.allowed_ips
+        ):
             raise AuthenticationFailed("Request IP is not allowed for this API client.")
 
         api_client.last_used_at = timezone.now()
@@ -46,7 +50,9 @@ class APIClientAuthentication(BaseAuthentication):
             return False
 
         address = ip_address(remote_addr)
-        return any(address in ip_network(network, strict=False) for network in allowed_networks)
+        return any(
+            address in ip_network(network, strict=False) for network in allowed_networks
+        )
 
 
 class VerificationSessionAuthentication(BaseAuthentication):
@@ -55,7 +61,9 @@ class VerificationSessionAuthentication(BaseAuthentication):
     def authenticate(self, request):
         authorization = request.headers.get("Authorization", "")
         parser_context = getattr(request, "parser_context", {}) or {}
-        session_id = parser_context.get("kwargs", {}).get("session_id") or request.headers.get("X-Session-Id")
+        session_id = parser_context.get("kwargs", {}).get(
+            "session_id"
+        ) or request.headers.get("X-Session-Id")
 
         if not authorization and not session_id:
             return None
@@ -71,7 +79,9 @@ class VerificationSessionAuthentication(BaseAuthentication):
                 "verification__verification_subject",
             ).get(public_id=session_id)
         except VerificationSession.DoesNotExist as exc:
-            raise AuthenticationFailed("Invalid verification session credentials.") from exc
+            raise AuthenticationFailed(
+                "Invalid verification session credentials."
+            ) from exc
 
         if not check_password(raw_token, verification_session.session_token_hash):
             raise AuthenticationFailed("Invalid verification session credentials.")

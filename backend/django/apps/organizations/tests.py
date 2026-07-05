@@ -14,4 +14,5 @@ class OrganizationModelTests(TestCase):
         self.assertEqual(len(organization.public_id.split("_", maxsplit=1)[1]), 26)
         self.assertEqual(organization.status, OrganizationStatus.PENDING_REVIEW)
 
+
 # Create your tests here.

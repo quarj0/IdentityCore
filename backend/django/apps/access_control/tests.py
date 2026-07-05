@@ -1,7 +1,13 @@
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
-from apps.access_control.models import Permission, Role, RolePermission, RoleScope, UserRole
+from apps.access_control.models import (
+    Permission,
+    Role,
+    RolePermission,
+    RoleScope,
+    UserRole,
+)
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.organizations.models import Organization
 from apps.tenants.models import Tenant
@@ -54,7 +60,9 @@ class AccessControlModelTests(TestCase):
             scope=RoleScope.TENANT,
             status="active",
         )
-        permission = Permission.objects.create(code="view_verification", name="View verification")
+        permission = Permission.objects.create(
+            code="view_verification", name="View verification"
+        )
         RolePermission.objects.create(role=role, permission=permission)
 
         with self.assertRaises(Exception):

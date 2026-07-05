@@ -40,7 +40,9 @@ class SelfieCapture(PublicIdModel, BaseModel):
     mime_type = models.CharField(max_length=100, default="image/jpeg")
     file_size_bytes = models.PositiveBigIntegerField(default=0)
     checksum_sha256 = models.CharField(max_length=64, blank=True)
-    quality_score = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    quality_score = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True
+    )
     face_count = models.PositiveIntegerField(default=1)
     status = models.CharField(
         max_length=32,
@@ -153,9 +155,13 @@ class FaceMatch(PublicIdModel, BaseModel):
         default=FaceMatchStatus.INCONCLUSIVE,
         db_index=True,
     )
-    match_score = models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True)
+    match_score = models.DecimalField(
+        max_digits=5, decimal_places=4, null=True, blank=True
+    )
     confidence_level = models.CharField(max_length=32, blank=True)
-    threshold_used = models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True)
+    threshold_used = models.DecimalField(
+        max_digits=5, decimal_places=4, null=True, blank=True
+    )
     model_name = models.CharField(max_length=120, blank=True)
     model_version = models.CharField(max_length=64, blank=True)
     matched_at = models.DateTimeField(db_index=True)

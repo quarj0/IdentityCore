@@ -14,4 +14,8 @@ class ConsentTemplateAdmin(admin.ModelAdmin):
 class ConsentRecordAdmin(admin.ModelAdmin):
     list_display = ("public_id", "verification", "verification_subject", "accepted_at")
     list_filter = ("accepted",)
-    search_fields = ("public_id", "verification__public_id", "verification_subject__public_id")
+    search_fields = (
+        "public_id",
+        "verification__public_id",
+        "verification_subject__public_id",
+    )

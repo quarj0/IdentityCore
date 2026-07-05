@@ -38,7 +38,9 @@ class DocumentCapture(PublicIdModel, BaseModel):
     mime_type = models.CharField(max_length=100, default="image/jpeg")
     file_size_bytes = models.PositiveBigIntegerField(default=0)
     checksum_sha256 = models.CharField(max_length=64, blank=True)
-    quality_score = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    quality_score = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True
+    )
     status = models.CharField(
         max_length=32,
         choices=DocumentCaptureStatus.choices,

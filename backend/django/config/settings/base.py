@@ -204,6 +204,15 @@ AI_SERVICE_BASE_URL = os.getenv("AI_SERVICE_BASE_URL", "http://localhost:8001")
 AI_SERVICE_TIMEOUT_SECONDS = int(os.getenv("AI_SERVICE_TIMEOUT_SECONDS", "15"))
 UPLOAD_URL_BASE = os.getenv("UPLOAD_URL_BASE", "http://localhost:9000/mock-upload")
 UPLOAD_URL_EXPIRES_MINUTES = int(os.getenv("UPLOAD_URL_EXPIRES_MINUTES", "10"))
+MEDIA_DOWNLOAD_URL_BASE = os.getenv("MEDIA_DOWNLOAD_URL_BASE", UPLOAD_URL_BASE)
+MEDIA_DOWNLOAD_URL_EXPIRES_SECONDS = int(
+    os.getenv("MEDIA_DOWNLOAD_URL_EXPIRES_SECONDS", "300")
+)
+OBJECT_STORAGE_BUCKET = os.getenv("OBJECT_STORAGE_BUCKET", "")
+OBJECT_STORAGE_ENDPOINT_URL = os.getenv("OBJECT_STORAGE_ENDPOINT_URL", "")
+OBJECT_STORAGE_ACCESS_KEY_ID = os.getenv("OBJECT_STORAGE_ACCESS_KEY_ID", "")
+OBJECT_STORAGE_SECRET_ACCESS_KEY = os.getenv("OBJECT_STORAGE_SECRET_ACCESS_KEY", "")
+OBJECT_STORAGE_REGION = os.getenv("OBJECT_STORAGE_REGION", "")
 VERIFICATION_PORTAL_BASE_URL = os.getenv(
     "VERIFICATION_PORTAL_BASE_URL", "http://localhost:8000/api/v1/verification-sessions"
 )
@@ -220,5 +229,15 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
+    "DEFAULT_THROTTLE_CLASSES": (
+        "common.throttling.APIClientRateThrottle",
+        "common.throttling.VerificationSessionRateThrottle",
+        "common.throttling.DashboardUserRateThrottle",
+    ),
+    "DEFAULT_THROTTLE_RATES": {
+        "api_client": "100/min",
+        "verification_session": "30/min",
+        "dashboard_user": "300/min",
+    },
     "EXCEPTION_HANDLER": "common.exceptions.api_exception_handler",
 }

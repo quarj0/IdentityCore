@@ -10,34 +10,57 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('access_control', '0001_initial'),
+        ("access_control", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='userrole',
-            name='user',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='user_roles', to=settings.AUTH_USER_MODEL),
+            model_name="userrole",
+            name="user",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="user_roles",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AddConstraint(
-            model_name='role',
-            constraint=models.UniqueConstraint(fields=('tenant', 'name'), name='access_control_role_unique_tenant_name'),
+            model_name="role",
+            constraint=models.UniqueConstraint(
+                fields=("tenant", "name"), name="access_control_role_unique_tenant_name"
+            ),
         ),
         migrations.AddConstraint(
-            model_name='role',
-            constraint=models.UniqueConstraint(condition=models.Q(('tenant__isnull', True)), fields=('name',), name='access_control_role_unique_platform_name'),
+            model_name="role",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(("tenant__isnull", True)),
+                fields=("name",),
+                name="access_control_role_unique_platform_name",
+            ),
         ),
         migrations.AddConstraint(
-            model_name='role',
-            constraint=models.CheckConstraint(condition=models.Q(models.Q(('scope', 'platform'), ('tenant__isnull', True)), models.Q(('scope', 'tenant'), ('tenant__isnull', False)), _connector='OR'), name='access_control_role_scope_matches_tenant'),
+            model_name="role",
+            constraint=models.CheckConstraint(
+                condition=models.Q(
+                    models.Q(("scope", "platform"), ("tenant__isnull", True)),
+                    models.Q(("scope", "tenant"), ("tenant__isnull", False)),
+                    _connector="OR",
+                ),
+                name="access_control_role_scope_matches_tenant",
+            ),
         ),
         migrations.AddConstraint(
-            model_name='rolepermission',
-            constraint=models.UniqueConstraint(fields=('role', 'permission'), name='access_control_role_permission_unique'),
+            model_name="rolepermission",
+            constraint=models.UniqueConstraint(
+                fields=("role", "permission"),
+                name="access_control_role_permission_unique",
+            ),
         ),
         migrations.AddConstraint(
-            model_name='userrole',
-            constraint=models.UniqueConstraint(fields=('user', 'role', 'tenant'), name='access_control_user_role_unique'),
+            model_name="userrole",
+            constraint=models.UniqueConstraint(
+                fields=("user", "role", "tenant"),
+                name="access_control_user_role_unique",
+            ),
         ),
     ]

@@ -117,16 +117,36 @@ class ProviderCheck(PublicIdModel, BaseModel):
     def clean(self):
         super().clean()
         allowed_provider_types = CHECK_TYPE_PROVIDER_TYPES.get(self.check_type, set())
-        if allowed_provider_types and self.provider.provider_type not in allowed_provider_types:
+        if (
+            allowed_provider_types
+            and self.provider.provider_type not in allowed_provider_types
+        ):
             raise ValidationError(
-                {"provider": f"{self.check_type} checks require provider types: {', '.join(sorted(allowed_provider_types))}."}
+                {
+                    "provider": f"{self.check_type} checks require provider types: {', '.join(sorted(allowed_provider_types))}."
+                }
             )
         if self.verification_id and self.tenant_id != self.verification.tenant_id:
-            raise ValidationError({"tenant": "Provider checks must belong to the same tenant as the verification."})
+            raise ValidationError(
+                {
+                    "tenant": "Provider checks must belong to the same tenant as the verification."
+                }
+            )
         if self.status == ProviderCheckStatus.COMPLETED and self.completed_at is None:
-            raise ValidationError({"completed_at": "Completed provider checks must include a completion timestamp."})
-        if self.status != ProviderCheckStatus.COMPLETED and self.completed_at is not None:
-            raise ValidationError({"completed_at": "Only completed provider checks may include a completion timestamp."})
+            raise ValidationError(
+                {
+                    "completed_at": "Completed provider checks must include a completion timestamp."
+                }
+            )
+        if (
+            self.status != ProviderCheckStatus.COMPLETED
+            and self.completed_at is not None
+        ):
+            raise ValidationError(
+                {
+                    "completed_at": "Only completed provider checks may include a completion timestamp."
+                }
+            )
 
     def save(self, *args, **kwargs):
         self.full_clean()

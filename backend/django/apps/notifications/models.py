@@ -59,9 +59,13 @@ class Notification(PublicIdModel, BaseModel):
     def clean(self):
         super().clean()
         if self.status == NotificationStatus.SENT and self.sent_at is None:
-            raise ValidationError({"sent_at": "Sent notifications must include a sent timestamp."})
+            raise ValidationError(
+                {"sent_at": "Sent notifications must include a sent timestamp."}
+            )
         if self.status != NotificationStatus.SENT and self.sent_at is not None:
-            raise ValidationError({"sent_at": "Only sent notifications may include a sent timestamp."})
+            raise ValidationError(
+                {"sent_at": "Only sent notifications may include a sent timestamp."}
+            )
 
     def save(self, *args, **kwargs):
         self.full_clean()

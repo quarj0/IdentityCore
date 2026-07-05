@@ -1,5 +1,9 @@
 from rest_framework import status
-from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated, PermissionDenied
+from rest_framework.exceptions import (
+    AuthenticationFailed,
+    NotAuthenticated,
+    PermissionDenied,
+)
 from rest_framework.views import exception_handler
 
 from common.responses import error_payload
@@ -27,6 +31,8 @@ def api_exception_handler(exc, context):
         code = "resource_not_found"
 
     message = response.data.get("detail", "The request could not be processed.")
-    details = response.data if isinstance(response.data, dict) else {"detail": response.data}
+    details = (
+        response.data if isinstance(response.data, dict) else {"detail": response.data}
+    )
     response.data = error_payload(code, str(message), details=details, request=request)
     return response

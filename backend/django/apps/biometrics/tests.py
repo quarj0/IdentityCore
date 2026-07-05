@@ -10,11 +10,20 @@ from apps.document_captures.models import DocumentCapture
 from apps.identity_documents.models import IdentityDocument
 from apps.notifications.models import Notification
 from apps.organizations.models import Organization
-from apps.providers.models import Provider, ProviderCheck, ProviderCheckStatus, ProviderType
+from apps.providers.models import (
+    Provider,
+    ProviderCheck,
+    ProviderCheckStatus,
+    ProviderType,
+)
 from apps.risk.models import RiskAssessment
 from apps.tenants.models import Tenant
 from apps.verification_subjects.models import VerificationSubject
-from apps.verifications.models import Verification, VerificationDecision, VerificationStatus
+from apps.verifications.models import (
+    Verification,
+    VerificationDecision,
+    VerificationStatus,
+)
 
 
 class BiometricsTaskTests(TestCase):
@@ -38,7 +47,10 @@ class BiometricsTaskTests(TestCase):
             purpose="Customer onboarding",
             status=VerificationStatus.PROCESSING,
             expires_at=timezone.now() + timedelta(hours=1),
-            policy_snapshot_json={"face_match_threshold": 0.85, "manual_review_threshold": 0.65},
+            policy_snapshot_json={
+                "face_match_threshold": 0.85,
+                "manual_review_threshold": 0.65,
+            },
         )
         self.identity_document = IdentityDocument.objects.create(
             tenant=self.tenant,
@@ -113,7 +125,9 @@ class BiometricsTaskTests(TestCase):
 
     @patch("apps.biometrics.tasks.run_face_compare")
     @patch("apps.biometrics.tasks.run_liveness_check")
-    def test_biometrics_task_updates_evidence_and_verifies_verification(self, mock_liveness, mock_face):
+    def test_biometrics_task_updates_evidence_and_verifies_verification(
+        self, mock_liveness, mock_face
+    ):
         mock_liveness.return_value = {
             "status": "completed",
             "score": 0.94,
@@ -141,6 +155,12 @@ class BiometricsTaskTests(TestCase):
         self.assertEqual(self.verification.status, VerificationStatus.VERIFIED)
         self.assertEqual(self.liveness_check.status, "passed")
         self.assertEqual(self.face_match.status, "matched")
-        self.assertTrue(RiskAssessment.objects.filter(verification=self.verification).exists())
-        self.assertTrue(VerificationDecision.objects.filter(verification=self.verification).exists())
-        self.assertTrue(Notification.objects.filter(template_code="verification.verified").exists())
+        self.assertTrue(
+            RiskAssessment.objects.filter(verification=self.verification).exists()
+        )
+        self.assertTrue(
+            VerificationDecision.objects.filter(verification=self.verification).exists()
+        )
+        self.assertTrue(
+            Notification.objects.filter(template_code="verification.verified").exists()
+        )

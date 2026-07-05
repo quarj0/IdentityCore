@@ -7,31 +7,71 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='DocumentCapture',
+            name="DocumentCapture",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('deleted_at', models.DateTimeField(blank=True, null=True)),
-                ('public_id', models.CharField(editable=False, max_length=64, unique=True)),
-                ('side', models.CharField(choices=[('front', 'Front'), ('back', 'Back'), ('single', 'Single'), ('mrz', 'MRZ'), ('other', 'Other')], max_length=16)),
-                ('storage_url', models.URLField(blank=True)),
-                ('storage_key', models.CharField(max_length=255)),
-                ('storage_provider', models.CharField(default='local', max_length=64)),
-                ('mime_type', models.CharField(default='image/jpeg', max_length=100)),
-                ('file_size_bytes', models.PositiveBigIntegerField(default=0)),
-                ('checksum_sha256', models.CharField(blank=True, max_length=64)),
-                ('quality_score', models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True)),
-                ('status', models.CharField(choices=[('uploaded', 'Uploaded'), ('validated', 'Validated'), ('rejected', 'Rejected'), ('deleted', 'Deleted')], db_index=True, default='uploaded', max_length=32)),
-                ('captured_at', models.DateTimeField(db_index=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("deleted_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "public_id",
+                    models.CharField(editable=False, max_length=64, unique=True),
+                ),
+                (
+                    "side",
+                    models.CharField(
+                        choices=[
+                            ("front", "Front"),
+                            ("back", "Back"),
+                            ("single", "Single"),
+                            ("mrz", "MRZ"),
+                            ("other", "Other"),
+                        ],
+                        max_length=16,
+                    ),
+                ),
+                ("storage_url", models.URLField(blank=True)),
+                ("storage_key", models.CharField(max_length=255)),
+                ("storage_provider", models.CharField(default="local", max_length=64)),
+                ("mime_type", models.CharField(default="image/jpeg", max_length=100)),
+                ("file_size_bytes", models.PositiveBigIntegerField(default=0)),
+                ("checksum_sha256", models.CharField(blank=True, max_length=64)),
+                (
+                    "quality_score",
+                    models.DecimalField(
+                        blank=True, decimal_places=2, max_digits=5, null=True
+                    ),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("uploaded", "Uploaded"),
+                            ("validated", "Validated"),
+                            ("rejected", "Rejected"),
+                            ("deleted", "Deleted"),
+                        ],
+                        db_index=True,
+                        default="uploaded",
+                        max_length=32,
+                    ),
+                ),
+                ("captured_at", models.DateTimeField(db_index=True)),
             ],
             options={
-                'ordering': ['created_at'],
+                "ordering": ["created_at"],
             },
         ),
     ]

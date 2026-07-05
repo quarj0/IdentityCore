@@ -4,7 +4,13 @@ from datetime import timedelta
 from django.test import TestCase
 from django.utils import timezone
 
-from apps.biometrics.models import FaceMatch, FaceMatchStatus, LivenessCheck, LivenessCheckStatus, SelfieCapture
+from apps.biometrics.models import (
+    FaceMatch,
+    FaceMatchStatus,
+    LivenessCheck,
+    LivenessCheckStatus,
+    SelfieCapture,
+)
 from apps.document_captures.models import DocumentCapture
 from apps.identity_documents.models import IdentityDocument, IdentityDocumentStatus
 from apps.organizations.models import Organization
@@ -24,7 +30,9 @@ class RiskDecisionTests(TestCase):
             slug="acme-tenant",
             status="active",
         )
-        self.subject = VerificationSubject.objects.create(tenant=self.tenant, full_name="Kwame Mensah")
+        self.subject = VerificationSubject.objects.create(
+            tenant=self.tenant, full_name="Kwame Mensah"
+        )
         self.verification = Verification.objects.create(
             tenant=self.tenant,
             organization=self.organization,
@@ -79,12 +87,20 @@ class RiskDecisionTests(TestCase):
             matched_at=timezone.now(),
         )
 
-        risk_assessment, decision_record = run_verification_risk_and_decision(self.verification)
+        risk_assessment, decision_record = run_verification_risk_and_decision(
+            self.verification
+        )
 
-        self.assertEqual(risk_assessment.recommendation, RiskRecommendation.MANUAL_REVIEW)
-        self.assertEqual(decision_record.decision, VerificationStatus.MANUAL_REVIEW_REQUIRED)
+        self.assertEqual(
+            risk_assessment.recommendation, RiskRecommendation.MANUAL_REVIEW
+        )
+        self.assertEqual(
+            decision_record.decision, VerificationStatus.MANUAL_REVIEW_REQUIRED
+        )
         self.verification.refresh_from_db()
-        self.assertEqual(self.verification.status, VerificationStatus.MANUAL_REVIEW_REQUIRED)
+        self.assertEqual(
+            self.verification.status, VerificationStatus.MANUAL_REVIEW_REQUIRED
+        )
 
     def test_strong_evidence_is_automatically_approved(self):
         LivenessCheck.objects.create(
@@ -107,7 +123,9 @@ class RiskDecisionTests(TestCase):
             matched_at=timezone.now(),
         )
 
-        risk_assessment, decision_record = run_verification_risk_and_decision(self.verification)
+        risk_assessment, decision_record = run_verification_risk_and_decision(
+            self.verification
+        )
 
         self.assertEqual(risk_assessment.risk_level, "low")
         self.assertEqual(decision_record.decision, VerificationStatus.VERIFIED)

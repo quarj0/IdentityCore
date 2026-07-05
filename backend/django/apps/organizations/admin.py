@@ -9,4 +9,5 @@ class OrganizationAdmin(admin.ModelAdmin):
     list_filter = ("status",)
     search_fields = ("name", "public_id", "slug")
 
+
 # Register your models here.

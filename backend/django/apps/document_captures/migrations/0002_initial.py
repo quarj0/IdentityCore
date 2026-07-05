@@ -9,20 +9,28 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('document_captures', '0001_initial'),
-        ('identity_documents', '0001_initial'),
-        ('tenants', '0001_initial'),
+        ("document_captures", "0001_initial"),
+        ("identity_documents", "0001_initial"),
+        ("tenants", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='documentcapture',
-            name='identity_document',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='captures', to='identity_documents.identitydocument'),
+            model_name="documentcapture",
+            name="identity_document",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="captures",
+                to="identity_documents.identitydocument",
+            ),
         ),
         migrations.AddField(
-            model_name='documentcapture',
-            name='tenant',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='document_captures', to='tenants.tenant'),
+            model_name="documentcapture",
+            name="tenant",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="document_captures",
+                to="tenants.tenant",
+            ),
         ),
     ]

@@ -7,35 +7,91 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('biometrics', '0001_initial'),
-        ('tenants', '0001_initial'),
-        ('verifications', '0001_initial'),
+        ("biometrics", "0001_initial"),
+        ("tenants", "0001_initial"),
+        ("verifications", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='LivenessCheck',
+            name="LivenessCheck",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('deleted_at', models.DateTimeField(blank=True, null=True)),
-                ('public_id', models.CharField(editable=False, max_length=64, unique=True)),
-                ('provider_check_id', models.CharField(blank=True, max_length=64)),
-                ('liveness_type', models.CharField(choices=[('passive', 'Passive'), ('active', 'Active')], max_length=16)),
-                ('status', models.CharField(choices=[('passed', 'Passed'), ('failed', 'Failed'), ('inconclusive', 'Inconclusive'), ('error', 'Error')], db_index=True, default='inconclusive', max_length=32)),
-                ('score', models.DecimalField(blank=True, decimal_places=4, max_digits=5, null=True)),
-                ('confidence_level', models.CharField(blank=True, max_length=32)),
-                ('failure_reason', models.CharField(blank=True, max_length=255)),
-                ('model_name', models.CharField(blank=True, max_length=120)),
-                ('model_version', models.CharField(blank=True, max_length=64)),
-                ('checked_at', models.DateTimeField(db_index=True)),
-                ('selfie_capture', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='liveness_checks', to='biometrics.selfiecapture')),
-                ('tenant', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='liveness_checks', to='tenants.tenant')),
-                ('verification', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='liveness_checks', to='verifications.verification')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("deleted_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "public_id",
+                    models.CharField(editable=False, max_length=64, unique=True),
+                ),
+                ("provider_check_id", models.CharField(blank=True, max_length=64)),
+                (
+                    "liveness_type",
+                    models.CharField(
+                        choices=[("passive", "Passive"), ("active", "Active")],
+                        max_length=16,
+                    ),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("passed", "Passed"),
+                            ("failed", "Failed"),
+                            ("inconclusive", "Inconclusive"),
+                            ("error", "Error"),
+                        ],
+                        db_index=True,
+                        default="inconclusive",
+                        max_length=32,
+                    ),
+                ),
+                (
+                    "score",
+                    models.DecimalField(
+                        blank=True, decimal_places=4, max_digits=5, null=True
+                    ),
+                ),
+                ("confidence_level", models.CharField(blank=True, max_length=32)),
+                ("failure_reason", models.CharField(blank=True, max_length=255)),
+                ("model_name", models.CharField(blank=True, max_length=120)),
+                ("model_version", models.CharField(blank=True, max_length=64)),
+                ("checked_at", models.DateTimeField(db_index=True)),
+                (
+                    "selfie_capture",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="liveness_checks",
+                        to="biometrics.selfiecapture",
+                    ),
+                ),
+                (
+                    "tenant",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="liveness_checks",
+                        to="tenants.tenant",
+                    ),
+                ),
+                (
+                    "verification",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="liveness_checks",
+                        to="verifications.verification",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-checked_at'],
+                "ordering": ["-checked_at"],
             },
         ),
     ]

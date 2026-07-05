@@ -13,11 +13,15 @@ def _post_json(path: str, payload: dict) -> dict:
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    with request.urlopen(http_request, timeout=settings.AI_SERVICE_TIMEOUT_SECONDS) as response:
+    with request.urlopen(
+        http_request, timeout=settings.AI_SERVICE_TIMEOUT_SECONDS
+    ) as response:
         return json.loads(response.read().decode("utf-8"))
 
 
-def run_liveness_check(*, verification_id: str, selfie_storage_key: str, liveness_type: str) -> dict:
+def run_liveness_check(
+    *, verification_id: str, selfie_storage_key: str, liveness_type: str
+) -> dict:
     return _post_json(
         "/v1/liveness/check",
         {

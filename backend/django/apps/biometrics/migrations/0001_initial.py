@@ -9,37 +9,92 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('tenants', '0001_initial'),
-        ('verification_subjects', '0001_initial'),
-        ('verifications', '0001_initial'),
+        ("tenants", "0001_initial"),
+        ("verification_subjects", "0001_initial"),
+        ("verifications", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='SelfieCapture',
+            name="SelfieCapture",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('deleted_at', models.DateTimeField(blank=True, null=True)),
-                ('public_id', models.CharField(editable=False, max_length=64, unique=True)),
-                ('storage_url', models.URLField(blank=True)),
-                ('storage_key', models.CharField(max_length=255)),
-                ('storage_provider', models.CharField(default='local', max_length=64)),
-                ('capture_type', models.CharField(choices=[('image', 'Image'), ('video', 'Video')], max_length=16)),
-                ('mime_type', models.CharField(default='image/jpeg', max_length=100)),
-                ('file_size_bytes', models.PositiveBigIntegerField(default=0)),
-                ('checksum_sha256', models.CharField(blank=True, max_length=64)),
-                ('quality_score', models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True)),
-                ('face_count', models.PositiveIntegerField(default=1)),
-                ('status', models.CharField(choices=[('uploaded', 'Uploaded'), ('validated', 'Validated'), ('rejected', 'Rejected'), ('deleted', 'Deleted')], db_index=True, default='uploaded', max_length=32)),
-                ('captured_at', models.DateTimeField(db_index=True)),
-                ('tenant', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='selfie_captures', to='tenants.tenant')),
-                ('verification', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='selfie_captures', to='verifications.verification')),
-                ('verification_subject', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='selfie_captures', to='verification_subjects.verificationsubject')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("deleted_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "public_id",
+                    models.CharField(editable=False, max_length=64, unique=True),
+                ),
+                ("storage_url", models.URLField(blank=True)),
+                ("storage_key", models.CharField(max_length=255)),
+                ("storage_provider", models.CharField(default="local", max_length=64)),
+                (
+                    "capture_type",
+                    models.CharField(
+                        choices=[("image", "Image"), ("video", "Video")], max_length=16
+                    ),
+                ),
+                ("mime_type", models.CharField(default="image/jpeg", max_length=100)),
+                ("file_size_bytes", models.PositiveBigIntegerField(default=0)),
+                ("checksum_sha256", models.CharField(blank=True, max_length=64)),
+                (
+                    "quality_score",
+                    models.DecimalField(
+                        blank=True, decimal_places=2, max_digits=5, null=True
+                    ),
+                ),
+                ("face_count", models.PositiveIntegerField(default=1)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("uploaded", "Uploaded"),
+                            ("validated", "Validated"),
+                            ("rejected", "Rejected"),
+                            ("deleted", "Deleted"),
+                        ],
+                        db_index=True,
+                        default="uploaded",
+                        max_length=32,
+                    ),
+                ),
+                ("captured_at", models.DateTimeField(db_index=True)),
+                (
+                    "tenant",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="selfie_captures",
+                        to="tenants.tenant",
+                    ),
+                ),
+                (
+                    "verification",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="selfie_captures",
+                        to="verifications.verification",
+                    ),
+                ),
+                (
+                    "verification_subject",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="selfie_captures",
+                        to="verification_subjects.verificationsubject",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['created_at'],
+                "ordering": ["created_at"],
             },
         ),
     ]

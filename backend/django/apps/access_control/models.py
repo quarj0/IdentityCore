@@ -39,7 +39,9 @@ class Role(PublicIdModel, BaseModel):
     class Meta:
         ordering = ["name"]
         constraints = [
-            models.UniqueConstraint(fields=["tenant", "name"], name="access_control_role_unique_tenant_name"),
+            models.UniqueConstraint(
+                fields=["tenant", "name"], name="access_control_role_unique_tenant_name"
+            ),
             models.UniqueConstraint(
                 fields=["name"],
                 condition=Q(tenant__isnull=True),
@@ -57,7 +59,9 @@ class Role(PublicIdModel, BaseModel):
     def clean(self):
         super().clean()
         if self.scope == RoleScope.PLATFORM and self.tenant_id is not None:
-            raise ValidationError({"tenant": "Platform roles cannot belong to a tenant."})
+            raise ValidationError(
+                {"tenant": "Platform roles cannot belong to a tenant."}
+            )
         if self.scope == RoleScope.TENANT and self.tenant_id is None:
             raise ValidationError({"tenant": "Tenant roles must belong to a tenant."})
 
@@ -82,13 +86,20 @@ class Permission(TimestampedModel):
 
 
 class RolePermission(models.Model):
-    role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name="role_permissions")
-    permission = models.ForeignKey(Permission, on_delete=models.CASCADE, related_name="role_permissions")
+    role = models.ForeignKey(
+        Role, on_delete=models.CASCADE, related_name="role_permissions"
+    )
+    permission = models.ForeignKey(
+        Permission, on_delete=models.CASCADE, related_name="role_permissions"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["role", "permission"], name="access_control_role_permission_unique")
+            models.UniqueConstraint(
+                fields=["role", "permission"],
+                name="access_control_role_permission_unique",
+            )
         ]
 
 
@@ -110,23 +121,36 @@ class UserRole(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["user", "role", "tenant"], name="access_control_user_role_unique")
+            models.UniqueConstraint(
+                fields=["user", "role", "tenant"],
+                name="access_control_user_role_unique",
+            )
         ]
 
     def clean(self):
         super().clean()
         if self.role.scope == RoleScope.PLATFORM:
             if self.tenant_id is not None:
-                raise ValidationError({"tenant": "Platform role assignments cannot include a tenant."})
+                raise ValidationError(
+                    {"tenant": "Platform role assignments cannot include a tenant."}
+                )
             if not self.user.is_platform_admin:
-                raise ValidationError({"user": "Only platform admins can receive platform roles."})
+                raise ValidationError(
+                    {"user": "Only platform admins can receive platform roles."}
+                )
         else:
             if self.tenant_id is None:
-                raise ValidationError({"tenant": "Tenant role assignments must include a tenant."})
+                raise ValidationError(
+                    {"tenant": "Tenant role assignments must include a tenant."}
+                )
             if self.role.tenant_id != self.tenant_id:
-                raise ValidationError({"tenant": "Assignment tenant must match the role tenant."})
+                raise ValidationError(
+                    {"tenant": "Assignment tenant must match the role tenant."}
+                )
             if self.user.tenant_id != self.tenant_id:
-                raise ValidationError({"user": "Assignment tenant must match the user tenant."})
+                raise ValidationError(
+                    {"user": "Assignment tenant must match the user tenant."}
+                )
 
     def save(self, *args, **kwargs):
         self.full_clean()

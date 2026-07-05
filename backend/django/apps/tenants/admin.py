@@ -9,4 +9,5 @@ class TenantAdmin(admin.ModelAdmin):
     list_filter = ("status",)
     search_fields = ("name", "public_id", "slug", "organization__name")
 
+
 # Register your models here.

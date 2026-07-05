@@ -10,21 +10,32 @@ from apps.providers.ai_service import run_face_compare, run_liveness_check
 from apps.providers.models import ProviderCheckStatus
 from apps.risk.services import run_verification_risk_and_decision
 from apps.webhooks.services import queue_webhook_events
-from apps.verifications.models import VerificationDecision, VerificationDecisionType, VerificationStatus
+from apps.verifications.models import (
+    VerificationDecision,
+    VerificationDecisionType,
+    VerificationStatus,
+)
 
 
 @shared_task(queue="ai_processing")
 def process_verification_biometrics_task(liveness_check_id: str) -> str:
-    liveness_check = (
-        LivenessCheck.objects.select_related("verification", "selfie_capture", "tenant")
-        .get(public_id=liveness_check_id)
-    )
+    liveness_check = LivenessCheck.objects.select_related(
+        "verification", "selfie_capture", "tenant"
+    ).get(public_id=liveness_check_id)
     verification = liveness_check.verification
     selfie_capture = liveness_check.selfie_capture
-    face_match = verification.face_matches.filter(selfie_capture=selfie_capture).order_by("-matched_at").first()
-    liveness_provider_check = verification.provider_checks.filter(public_id=liveness_check.provider_check_id).first()
+    face_match = (
+        verification.face_matches.filter(selfie_capture=selfie_capture)
+        .order_by("-matched_at")
+        .first()
+    )
+    liveness_provider_check = verification.provider_checks.filter(
+        public_id=liveness_check.provider_check_id
+    ).first()
     face_provider_check = (
-        verification.provider_checks.filter(public_id=face_match.provider_check_id).first()
+        verification.provider_checks.filter(
+            public_id=face_match.provider_check_id
+        ).first()
         if face_match is not None and face_match.provider_check_id
         else None
     )
@@ -36,13 +47,17 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             liveness_type=liveness_check.liveness_type,
         )
         liveness_check.status = (
-            LivenessCheckStatus.PASSED if liveness_result.get("passed") else LivenessCheckStatus.FAILED
+            LivenessCheckStatus.PASSED
+            if liveness_result.get("passed")
+            else LivenessCheckStatus.FAILED
         )
         liveness_check.score = Decimal(str(liveness_result.get("score", "0")))
         liveness_check.confidence_level = liveness_result.get("confidence_level", "")
         liveness_check.model_name = liveness_result.get("model_name", "")
         liveness_check.model_version = liveness_result.get("model_version", "")
-        liveness_check.failure_reason = "" if liveness_result.get("passed") else "ai_liveness_failed"
+        liveness_check.failure_reason = (
+            "" if liveness_result.get("passed") else "ai_liveness_failed"
+        )
         liveness_check.checked_at = timezone.now()
         liveness_check.save(
             update_fields=[
@@ -62,19 +77,35 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             liveness_provider_check.response_metadata_json = liveness_result
             liveness_provider_check.normalized_result_json = {
                 "status": liveness_check.status,
-                "score": float(liveness_check.score) if liveness_check.score is not None else None,
+                "score": (
+                    float(liveness_check.score)
+                    if liveness_check.score is not None
+                    else None
+                ),
                 "confidence_level": liveness_check.confidence_level,
             }
             liveness_provider_check.save(
-                update_fields=["status", "completed_at", "response_metadata_json", "normalized_result_json", "updated_at"]
+                update_fields=[
+                    "status",
+                    "completed_at",
+                    "response_metadata_json",
+                    "normalized_result_json",
+                    "updated_at",
+                ]
             )
 
         if face_match is not None:
-            threshold = float((verification.policy_snapshot_json or {}).get("face_match_threshold", 0.85))
+            threshold = float(
+                (verification.policy_snapshot_json or {}).get(
+                    "face_match_threshold", 0.85
+                )
+            )
             document_storage_key = (
                 face_match.document_capture.storage_key
                 if face_match.document_capture_id
-                else face_match.identity_document.captures.order_by("created_at").first().storage_key
+                else face_match.identity_document.captures.order_by("created_at")
+                .first()
+                .storage_key
             )
             face_result = run_face_compare(
                 verification_id=verification.public_id,
@@ -82,10 +113,16 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                 document_storage_key=document_storage_key,
                 threshold=threshold,
             )
-            face_match.status = FaceMatchStatus.MATCHED if face_result.get("matched") else FaceMatchStatus.NOT_MATCHED
+            face_match.status = (
+                FaceMatchStatus.MATCHED
+                if face_result.get("matched")
+                else FaceMatchStatus.NOT_MATCHED
+            )
             face_match.match_score = Decimal(str(face_result.get("match_score", "0")))
             face_match.confidence_level = face_result.get("confidence_level", "")
-            face_match.threshold_used = Decimal(str(face_result.get("threshold_used", threshold)))
+            face_match.threshold_used = Decimal(
+                str(face_result.get("threshold_used", threshold))
+            )
             face_match.model_name = face_result.get("model_name", "")
             face_match.model_version = face_result.get("model_version", "")
             face_match.matched_at = timezone.now()
@@ -107,11 +144,21 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                 face_provider_check.response_metadata_json = face_result
                 face_provider_check.normalized_result_json = {
                     "status": face_match.status,
-                    "match_score": float(face_match.match_score) if face_match.match_score is not None else None,
+                    "match_score": (
+                        float(face_match.match_score)
+                        if face_match.match_score is not None
+                        else None
+                    ),
                     "confidence_level": face_match.confidence_level,
                 }
                 face_provider_check.save(
-                    update_fields=["status", "completed_at", "response_metadata_json", "normalized_result_json", "updated_at"]
+                    update_fields=[
+                        "status",
+                        "completed_at",
+                        "response_metadata_json",
+                        "normalized_result_json",
+                        "updated_at",
+                    ]
                 )
 
         record_audit_event(
@@ -132,7 +179,9 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                 metadata={"face_match_id": face_match.public_id},
             )
 
-        risk_assessment, decision_record = run_verification_risk_and_decision(verification)
+        risk_assessment, decision_record = run_verification_risk_and_decision(
+            verification
+        )
         record_audit_event(
             tenant=verification.tenant,
             actor=verification.verification_subject,
@@ -169,7 +218,13 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             liveness_provider_check.error_message = str(exc)
             liveness_provider_check.completed_at = now
             liveness_provider_check.save(
-                update_fields=["status", "error_code", "error_message", "completed_at", "updated_at"]
+                update_fields=[
+                    "status",
+                    "error_code",
+                    "error_message",
+                    "completed_at",
+                    "updated_at",
+                ]
             )
         if face_provider_check is not None:
             face_provider_check.status = ProviderCheckStatus.FAILED
@@ -177,7 +232,13 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             face_provider_check.error_message = str(exc)
             face_provider_check.completed_at = now
             face_provider_check.save(
-                update_fields=["status", "error_code", "error_message", "completed_at", "updated_at"]
+                update_fields=[
+                    "status",
+                    "error_code",
+                    "error_message",
+                    "completed_at",
+                    "updated_at",
+                ]
             )
         VerificationDecision.objects.update_or_create(
             verification=verification,

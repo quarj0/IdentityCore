@@ -12,6 +12,19 @@ class ProviderAdmin(admin.ModelAdmin):
 
 @admin.register(ProviderCheck)
 class ProviderCheckAdmin(admin.ModelAdmin):
-    list_display = ("public_id", "tenant", "verification", "provider", "check_type", "status", "started_at")
+    list_display = (
+        "public_id",
+        "tenant",
+        "verification",
+        "provider",
+        "check_type",
+        "status",
+        "started_at",
+    )
     list_filter = ("check_type", "status", "provider__provider_type")
-    search_fields = ("public_id", "provider_reference", "verification__public_id", "provider__code")
+    search_fields = (
+        "public_id",
+        "provider_reference",
+        "verification__public_id",
+        "provider__code",
+    )

@@ -1,6 +1,9 @@
 from celery import shared_task
 
-from apps.notifications.services import deliver_notification, process_pending_notifications
+from apps.notifications.services import (
+    deliver_notification,
+    process_pending_notifications,
+)
 from apps.notifications.models import Notification
 
 
