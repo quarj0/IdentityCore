@@ -149,6 +149,7 @@ dependencies = [
 
 [package.dev-dependencies]
 ai-service = [
+    { name = "boto3" },
     { name = "cryptography" },
     { name = "fastapi" },
     { name = "httpx" },
@@ -204,6 +205,7 @@ requires-dist = [{ name = "strawberry-graphql-django", specifier = ">=0.86.4" }]
 
 [package.metadata.requires-dev]
 ai-service = [
+    { name = "boto3", specifier = ">=1.43.40" },
     { name = "cryptography", specifier = ">=49.0.0" },
     { name = "fastapi", specifier = ">=0.139.0" },
     { name = "httpx", specifier = ">=0.28.1" },

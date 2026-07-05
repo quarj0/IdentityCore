@@ -116,8 +116,8 @@ Implementation note:
 
 - The current Django implementation queues biometric processing onto a dedicated `ai_processing` Celery queue after liveness submission.
 - The current Django implementation also queues document OCR and document-quality processing onto the same `ai_processing` queue after document submission.
-- The internal FastAPI service currently exposes mock `face/compare` and `liveness/check` endpoints so the async evidence pipeline can run end-to-end before production-grade models are connected.
-- The internal FastAPI service also exposes mock `document/ocr` and `document/quality` endpoints for the same end-to-end pipeline coverage.
+- The internal FastAPI service now supports a real-processing path backed by OpenCV, MediaPipe, InsightFace, and PaddleOCR when object storage and local model assets are configured.
+- The same service still supports `mock` and `hybrid` runtime modes so local development can run without downloading model assets during bootstrap.
 
 ---
 

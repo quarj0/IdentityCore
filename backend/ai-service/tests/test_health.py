@@ -1,5 +1,7 @@
 import asyncio
 
+import cv2
+import numpy as np
 import pytest
 from fastapi import HTTPException
 
@@ -15,6 +17,7 @@ from app.main import (
     healthcheck,
     liveness_check,
 )
+from app.pipeline import run_document_quality_pipeline
 from app.settings import get_settings
 
 
@@ -104,3 +107,30 @@ def test_internal_token_is_enforced_when_configured(monkeypatch):
     monkeypatch.delenv("AI_SERVICE_SHARED_TOKEN", raising=False)
     get_settings.cache_clear()
     main_module.settings = get_settings()
+
+
+def test_real_document_quality_pipeline_detects_blur(monkeypatch):
+    image = np.full((320, 480, 3), 255, dtype=np.uint8)
+    cv2.putText(
+        image,
+        "IDENTITY",
+        (40, 160),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        2.0,
+        (0, 0, 0),
+        3,
+        cv2.LINE_AA,
+    )
+    blurred = cv2.GaussianBlur(image, (31, 31), 0)
+    success, encoded = cv2.imencode(".jpg", blurred)
+    assert success is True
+
+    monkeypatch.setattr(
+        "app.pipeline.fetch_object_bytes",
+        lambda storage_key: encoded.tobytes(),
+    )
+
+    result = run_document_quality_pipeline("uploads/documents/doc_blurred.jpg")
+
+    assert result["model_name"] == "opencv-quality"
+    assert "blur_detected" in result["issues"]

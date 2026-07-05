@@ -3,10 +3,23 @@ from typing import Annotated, Any
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 from pydantic import BaseModel, Field
 
+from app.pipeline import (
+    build_mock_document_ocr,
+    build_mock_document_quality,
+    build_mock_face_compare,
+    build_mock_liveness,
+    run_document_ocr_pipeline,
+    run_document_quality_pipeline,
+    run_face_compare_pipeline,
+    run_liveness_pipeline,
+    run_with_mode,
+)
+from app.runtime import configure_runtime_environment
 from app.settings import get_settings
 
 
 settings = get_settings()
+configure_runtime_environment(settings)
 app = FastAPI(title="IdentityCore AI Service", version=settings.service_version)
 
 
@@ -48,6 +61,7 @@ class AIResultResponse(BaseModel):
     model_name: str
     model_version: str
     result: dict[str, Any]
+    fallback_reason: str | None = None
 
 
 def _service_metadata() -> HealthResponse:
@@ -69,73 +83,16 @@ def _enforce_internal_token(
         )
 
 
-def _face_compare_result(payload: FaceCompareRequest) -> AIResultResponse:
-    matched = (
-        "mismatch" not in payload.selfie_storage_key
-        and "mismatch" not in payload.document_storage_key
-    )
-    match_score = 0.96 if matched else 0.42
+def _wrap_result(payload: dict[str, Any]) -> dict[str, Any]:
+    result = {key: value for key, value in payload.items() if key not in {"status", "engine", "fallback_reason"}}
     return AIResultResponse(
-        status="completed",
-        engine=settings.service_mode,
-        model_name="mock-face-match",
-        model_version="v1",
-        result={
-            "match_score": match_score,
-            "confidence_level": "high" if matched else "medium",
-            "matched": matched,
-            "threshold_used": payload.threshold,
-        },
-    )
-
-
-def _liveness_result(payload: LivenessCheckRequest) -> AIResultResponse:
-    passed = "spoof" not in payload.selfie_storage_key
-    score = 0.94 if passed else 0.23
-    return AIResultResponse(
-        status="completed",
-        engine=settings.service_mode,
-        model_name="mock-liveness",
-        model_version="v1",
-        result={
-            "score": score,
-            "confidence_level": "high" if passed else "medium",
-            "passed": passed,
-            "liveness_type": payload.liveness_type,
-        },
-    )
-
-
-def _document_ocr_result(payload: DocumentOCRRequest) -> AIResultResponse:
-    return AIResultResponse(
-        status="completed",
-        engine=settings.service_mode,
-        model_name="mock-ocr",
-        model_version="v1",
-        result={
-            "confidence_score": 0.91,
-            "extracted_fields": {
-                "full_name": "Kwame Mensah",
-                "date_of_birth": "1998-01-01",
-                "document_number": f"hash:{payload.document_type}:{payload.country_code}",
-            },
-        },
-    )
-
-
-def _document_quality_result(payload: DocumentQualityRequest) -> AIResultResponse:
-    issues = ["blur_detected"] if "blur" in payload.document_storage_key else []
-    score = 0.42 if issues else 0.88
-    return AIResultResponse(
-        status="completed",
-        engine=settings.service_mode,
-        model_name="mock-document-quality",
-        model_version="v1",
-        result={
-            "quality_score": score,
-            "issues": issues,
-        },
-    )
+        status=payload["status"],
+        engine=payload["engine"],
+        model_name=result.pop("model_name"),
+        model_version=result.pop("model_version"),
+        result=result,
+        fallback_reason=payload.get("fallback_reason"),
+    ).model_dump()
 
 
 @app.get("/v1/health", response_model=HealthResponse)
@@ -158,7 +115,21 @@ async def readiness() -> dict[str, str]:
     dependencies=[Depends(_enforce_internal_token)],
 )
 async def face_compare(payload: FaceCompareRequest) -> dict[str, Any]:
-    return _face_compare_result(payload).model_dump()
+    return _wrap_result(
+        run_with_mode(
+            real_callable=lambda: run_face_compare_pipeline(
+                selfie_storage_key=payload.selfie_storage_key,
+                document_storage_key=payload.document_storage_key,
+                threshold=payload.threshold,
+            ),
+            mock_callable=build_mock_face_compare,
+            mock_args=(
+                payload.selfie_storage_key,
+                payload.document_storage_key,
+                payload.threshold,
+            ),
+        )
+    )
 
 
 @app.post(
@@ -167,7 +138,16 @@ async def face_compare(payload: FaceCompareRequest) -> dict[str, Any]:
     dependencies=[Depends(_enforce_internal_token)],
 )
 async def liveness_check(payload: LivenessCheckRequest) -> dict[str, Any]:
-    return _liveness_result(payload).model_dump()
+    return _wrap_result(
+        run_with_mode(
+            real_callable=lambda: run_liveness_pipeline(
+                storage_key=payload.selfie_storage_key,
+                liveness_type=payload.liveness_type,
+            ),
+            mock_callable=build_mock_liveness,
+            mock_args=(payload.selfie_storage_key, payload.liveness_type),
+        )
+    )
 
 
 @app.post(
@@ -176,7 +156,21 @@ async def liveness_check(payload: LivenessCheckRequest) -> dict[str, Any]:
     dependencies=[Depends(_enforce_internal_token)],
 )
 async def document_ocr(payload: DocumentOCRRequest) -> dict[str, Any]:
-    return _document_ocr_result(payload).model_dump()
+    return _wrap_result(
+        run_with_mode(
+            real_callable=lambda: run_document_ocr_pipeline(
+                storage_key=payload.document_storage_key,
+                document_type=payload.document_type,
+                country_code=payload.country_code,
+            ),
+            mock_callable=build_mock_document_ocr,
+            mock_args=(
+                payload.document_storage_key,
+                payload.document_type,
+                payload.country_code,
+            ),
+        )
+    )
 
 
 @app.post(
@@ -185,4 +179,12 @@ async def document_ocr(payload: DocumentOCRRequest) -> dict[str, Any]:
     dependencies=[Depends(_enforce_internal_token)],
 )
 async def document_quality(payload: DocumentQualityRequest) -> dict[str, Any]:
-    return _document_quality_result(payload).model_dump()
+    return _wrap_result(
+        run_with_mode(
+            real_callable=lambda: run_document_quality_pipeline(
+                storage_key=payload.document_storage_key,
+            ),
+            mock_callable=build_mock_document_quality,
+            mock_args=(payload.document_storage_key,),
+        )
+    )

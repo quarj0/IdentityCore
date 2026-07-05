@@ -31,6 +31,7 @@ django = [
     "uvicorn>=0.50.0",
 ]
 ai-service = [
+    "boto3>=1.43.40",
     "cryptography>=49.0.0",
     "fastapi>=0.139.0",
     "httpx>=0.28.1",
