@@ -37,7 +37,7 @@ The Django backend decides whether a Verification is approved, rejected, or sent
 
 IdentityCore uses a separate internal FastAPI service for AI processing.
 
-```
+```text
 Django Backend
     |
     v
@@ -87,7 +87,7 @@ The AI service is not responsible for:
 
 # AI Processing Flow
 
-```
+```text
 Verification Subject submits document and selfie
         |
         v
@@ -193,7 +193,7 @@ Face Matching compares two face embeddings.
 
 Typical comparison:
 
-```
+```text
 Selfie Capture face
         vs
 Identity Document portrait face
@@ -236,7 +236,7 @@ Liveness Detection determines whether the Verification Subject is physically pre
 
 IdentityCore should support two approaches:
 
-```
+```text
 Passive Liveness
 Active Liveness
 ```
@@ -496,7 +496,7 @@ Raw model scores should be converted into human-readable confidence levels.
 
 Example:
 
-```
+```text
 0.90 - 1.00  high
 0.70 - 0.89  medium
 0.50 - 0.69  low
@@ -513,7 +513,7 @@ Confidence levels should support, not replace, raw scores.
 
 The AI service must not return:
 
-```
+```text
 verified
 rejected
 manual_review_required
@@ -523,7 +523,7 @@ Those are business decisions.
 
 The AI service may return:
 
-```
+```text
 matched
 not_matched
 passed
@@ -541,7 +541,7 @@ Thresholds should be configured in Verification Policies.
 
 Examples:
 
-```
+```text
 face_match_threshold = 0.85
 manual_review_threshold = 0.65
 liveness_threshold = 0.80
@@ -603,7 +603,7 @@ For liveness:
 
 Initial targets for Version 1.0:
 
-```
+```text
 Face detection: < 1 second
 Face matching: < 3 seconds
 Liveness check: < 5 seconds
@@ -635,7 +635,7 @@ For MVP, avoid requiring expensive GPU infrastructure unless necessary.
 
 Initial model candidates:
 
-```
+```text
 Face Detection:
 MediaPipe, RetinaFace
 
@@ -662,7 +662,7 @@ IdentityCore should support internal and external AI providers.
 
 Example:
 
-```
+```text
 Primary: Internal AI Service
 Fallback: Third-party KYC provider
 ```

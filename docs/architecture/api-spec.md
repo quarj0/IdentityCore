@@ -20,7 +20,7 @@ The API must be secure, tenant-aware, versioned, auditable, and predictable.
 
 IdentityCore uses two API styles:
 
-```
+```text
 REST API     → External integrations, SDKs, file uploads, webhooks
 GraphQL API  → Internal admin and organization dashboards
 ```
@@ -35,19 +35,19 @@ GraphQL is not intended for public third-party integrations in Version 1.0.
 
 Production:
 
-```
+```text
 https://api.identitycore.com/api/v1
 ```
 
 Development:
 
-```
+```text
 http://localhost:8000/api/v1
 ```
 
 AI service internal URL:
 
-```
+```text
 http://fastapi-ai:8001/v1
 ```
 
@@ -63,7 +63,7 @@ Used by Platform Users.
 
 Supported methods:
 
-```
+```text
 Email/password
 MFA
 Session authentication or JWT
@@ -107,7 +107,7 @@ X-Timestamp: <unix_timestamp>
 
 All public REST APIs must be versioned.
 
-```
+```text
 /api/v1/...
 ```
 
@@ -147,7 +147,7 @@ Non-breaking changes may be added to the current version.
 
 # Common Error Codes
 
-```
+```text
 authentication_failed
 permission_denied
 tenant_not_found
@@ -416,7 +416,7 @@ verifications:read
 
 Query parameters:
 
-```
+```text
 status
 external_reference
 created_from
@@ -798,6 +798,13 @@ For security and scalability, media uploads should use signed upload URLs.
 
 Creates a signed upload URL.
 
+Current bootstrap authentication:
+
+```http
+Authorization: Bearer <session_token>
+X-Session-Id: <session_id>
+```
+
 Request:
 
 ```json
@@ -828,6 +835,11 @@ Rules:
 - Uploads must be scanned or validated before processing.
 - Public permanent URLs must not be used for sensitive media.
 
+Implementation note:
+
+- The current Django bootstrap exposes upload initialization as a verification-session-scoped endpoint using `Authorization: Bearer <session_token>` plus `X-Session-Id`.
+- Returned upload URLs are placeholder signed-style URLs derived from `UPLOAD_URL_BASE` until the object storage integration is connected.
+
 ---
 
 # Policies API
@@ -835,6 +847,10 @@ Rules:
 ## GET /policies
 
 Lists verification policies.
+
+Authentication:
+
+- Platform user JWT required.
 
 Response:
 
@@ -858,6 +874,10 @@ Response:
 ## POST /policies
 
 Creates a verification policy.
+
+Authentication:
+
+- Platform user JWT required.
 
 Request:
 
@@ -888,6 +908,12 @@ Response:
   "request_id": "req_01JABC..."
 }
 ```
+
+Business rules:
+
+- Policies are tenant-scoped.
+- Creating a policy with an existing name creates a new version for that tenant instead of overwriting the previous record.
+- New policies are created in `draft` status by default.
 
 ---
 
@@ -1089,7 +1115,7 @@ X-IdentityCore-Timestamp: 1783159380
 
 Webhook events:
 
-```
+```text
 verification.created
 verification.consent_accepted
 verification.document_uploaded
@@ -1112,7 +1138,7 @@ Lists audit events.
 
 Query parameters:
 
-```
+```text
 actor_type
 action
 target_type
@@ -1281,7 +1307,7 @@ GraphQL powers dashboards.
 
 Endpoint:
 
-```
+```text
 /api/graphql
 ```
 
@@ -1335,7 +1361,7 @@ GraphQL rules:
 
 Default limits:
 
-```
+```text
 API clients: 100 requests/minute
 Verification sessions: 30 requests/minute
 Dashboard users: 300 requests/minute
@@ -1358,7 +1384,7 @@ Idempotency-Key: unique-key-from-client
 
 Required for:
 
-```
+```text
 POST /verifications
 POST /webhook-endpoints
 POST /api-clients

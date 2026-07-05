@@ -57,7 +57,7 @@ Use descriptive branch names.
 
 Examples:
 
-```
+```text
 feature/verification-sessions
 feature/manual-review
 feature/provider-adapters
@@ -74,7 +74,7 @@ chore/docker-update
 
 Avoid generic branch names such as:
 
-```
+```text
 test
 new
 update
@@ -90,7 +90,7 @@ Follow the Conventional Commits format.
 
 Examples:
 
-```
+```text
 feat: add verification session service
 fix: enforce tenant isolation on verification lookup
 docs: update deployment guide

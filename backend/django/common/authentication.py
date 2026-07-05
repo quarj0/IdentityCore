@@ -55,7 +55,7 @@ class VerificationSessionAuthentication(BaseAuthentication):
     def authenticate(self, request):
         authorization = request.headers.get("Authorization", "")
         parser_context = getattr(request, "parser_context", {}) or {}
-        session_id = parser_context.get("kwargs", {}).get("session_id")
+        session_id = parser_context.get("kwargs", {}).get("session_id") or request.headers.get("X-Session-Id")
 
         if not authorization and not session_id:
             return None

@@ -69,7 +69,7 @@ IdentityCore is designed to evolve from a verification platform into a broader d
 
 # Repository Structure
 
-```
+```text
 identitycore/
 
 backend/

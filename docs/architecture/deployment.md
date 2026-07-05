@@ -28,7 +28,7 @@ The platform should avoid unnecessary infrastructure complexity during the MVP w
 
 IdentityCore will support the following environments:
 
-```
+```text
 local
 development
 staging
@@ -55,7 +55,7 @@ Local deployment uses Docker Compose.
 
 Services:
 
-```
+```text
 django-backend
 fastapi-ai
 postgres
@@ -165,7 +165,7 @@ Government on-premise deployment is outside Version 1.0 but should be considered
 
 # High-Level Deployment Architecture
 
-```
+```text
 Internet
    |
    v
@@ -324,7 +324,7 @@ Responsibilities:
 
 Options:
 
-```
+```text
 S3
 Cloudflare R2
 MinIO
@@ -345,7 +345,7 @@ Requirements:
 
 IdentityCore includes multiple frontend applications:
 
-```
+```text
 admin-dashboard
 organization-dashboard
 verification-portal
@@ -387,7 +387,7 @@ Sensitive configuration should be provided through environment variables or a se
 
 Examples:
 
-```
+```text
 DATABASE_URL
 REDIS_URL
 SECRET_KEY
@@ -413,7 +413,7 @@ Rules:
 
 Recommended flow:
 
-```
+```text
 Developer pushes code
         |
         v
@@ -476,7 +476,7 @@ Migration rules:
 
 Recommended approach:
 
-```
+```text
 expand
 deploy
 migrate data
@@ -493,13 +493,13 @@ Every service should expose health checks.
 
 Django backend:
 
-```
+```text
 GET /api/v1/health
 ```
 
 FastAPI AI service:
 
-```
+```text
 GET /v1/health
 ```
 
@@ -599,7 +599,7 @@ Disaster recovery planning should define:
 
 Suggested MVP targets:
 
-```
+```text
 RTO: 4 hours
 RPO: 24 hours
 ```
@@ -630,7 +630,7 @@ Backward-compatible migrations are preferred.
 
 Version 1.0 scaling approach:
 
-```
+```text
 Scale Django horizontally
 Scale Celery workers horizontally
 Scale FastAPI AI workers separately
@@ -655,7 +655,7 @@ Therefore:
 
 Example queues:
 
-```
+```text
 default
 ai_processing
 webhooks
@@ -698,7 +698,7 @@ Rotation should not require full system downtime.
 
 Recommended release types:
 
-```
+```text
 patch
 minor
 major
@@ -709,7 +709,7 @@ Semantic versioning should be used.
 
 Example:
 
-```
+```text
 1.0.0
 1.0.1
 1.1.0
@@ -744,7 +744,7 @@ Before production launch:
 
 For early MVP:
 
-```
+```text
 Frontend:
 Vercel or Cloudflare Pages
 

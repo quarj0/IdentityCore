@@ -6,6 +6,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from apps.biometrics.models import FaceMatch, LivenessCheck
+from apps.verification_policies.models import VerificationPolicy
 from apps.verification_subjects.models import VerificationSubject
 from apps.verifications.models import Verification, VerificationSession, VerificationStatus
 
@@ -84,12 +85,22 @@ class VerificationCreateSerializer(serializers.Serializer):
     redirect_url = serializers.URLField(required=False, allow_blank=True)
     metadata = serializers.DictField(required=False, default=dict)
 
+    def validate(self, attrs):
+        request = self.context["request"]
+        tenant = request.tenant
+        policy_id = attrs.get("policy_id", "").strip()
+        if policy_id:
+            policy = tenant.verification_policies.filter(public_id=policy_id).first()
+            if policy is not None:
+                attrs["policy"] = policy
+        return attrs
+
     def create(self, validated_data):
         request = self.context["request"]
-        api_client = request.api_client
         tenant = request.tenant
         subject_data = validated_data["verification_subject"]
         external_reference = validated_data.get("external_reference", "")
+        policy = validated_data.get("policy")
 
         verification_subject = None
         if external_reference:
@@ -110,13 +121,20 @@ class VerificationCreateSerializer(serializers.Serializer):
                 metadata_json=subject_data.get("metadata", {}),
             )
 
-        expires_at = timezone.now() + timedelta(hours=24)
+        if policy is not None:
+            expires_at = timezone.now() + timedelta(minutes=policy.verification_expiry_minutes)
+            policy_public_id = policy.public_id
+            policy_snapshot_json = policy.snapshot()
+        else:
+            expires_at = timezone.now() + timedelta(hours=24)
+            policy_public_id = validated_data.get("policy_id", "")
+            policy_snapshot_json = {}
         verification = Verification.objects.create(
             tenant=tenant,
             organization=tenant.organization,
             verification_subject=verification_subject,
-            policy_public_id=validated_data.get("policy_id", ""),
-            policy_snapshot_json={},
+            policy_public_id=policy_public_id,
+            policy_snapshot_json=policy_snapshot_json,
             purpose=validated_data["purpose"],
             external_reference=external_reference,
             metadata_json=validated_data.get("metadata", {}),

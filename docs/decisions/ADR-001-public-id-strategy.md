@@ -28,7 +28,7 @@ IdentityCore will use **prefixed ULIDs** as the public identifier for every exte
 
 Examples:
 
-```
+```text
 org_01J...
 ten_01J...
 usr_01J...
@@ -65,13 +65,13 @@ The resource prefix improves readability and reduces ambiguity during developmen
 
 For example:
 
-```
+```text
 ver_01J...
 ```
 
 is immediately recognizable as a Verification identifier, while:
 
-```
+```text
 org_01J...
 ```
 

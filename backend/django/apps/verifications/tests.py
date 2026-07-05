@@ -9,6 +9,7 @@ from apps.document_captures.models import DocumentCapture
 from apps.identity_documents.models import IdentityDocument
 from apps.organizations.models import Organization
 from apps.tenants.models import Tenant
+from apps.verification_policies.models import VerificationPolicy
 from apps.verifications.models import Verification, VerificationStatus
 
 
@@ -228,3 +229,39 @@ class VerificationWorkflowTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["checks"]["liveness"]["status"], "inconclusive")
         self.assertEqual(response.data["data"]["checks"]["face_match"]["status"], "inconclusive")
+
+    def test_create_verification_copies_policy_snapshot(self):
+        policy = VerificationPolicy.objects.create(
+            tenant=self.tenant,
+            name="Default Verification",
+            version=1,
+            status="active",
+            required_document_types_json=["national_id", "passport"],
+            required_liveness_level="passive",
+            face_match_threshold="0.8500",
+            manual_review_threshold="0.6500",
+            verification_expiry_minutes=60,
+            media_retention_days=30,
+            metadata_retention_days=365,
+            created_by=self.user,
+        )
+
+        response = self.client.post(
+            reverse("verification-list-create"),
+            {
+                "external_reference": "customer_999",
+                "purpose": "Customer onboarding verification",
+                "policy_id": policy.public_id,
+                "verification_subject": {
+                    "full_name": "Kwame Mensah",
+                },
+            },
+            format="json",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        verification = Verification.objects.get(public_id=response.data["data"]["id"])
+        self.assertEqual(verification.policy_public_id, policy.public_id)
+        self.assertEqual(verification.policy_snapshot_json["id"], policy.public_id)
+        self.assertEqual(verification.policy_snapshot_json["required_liveness_level"], "passive")

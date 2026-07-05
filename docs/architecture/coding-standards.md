@@ -32,7 +32,7 @@ IdentityCore code must be:
 
 Version 1.0 uses:
 
-```
+```text
 Backend:
 Django
 Django REST Framework
@@ -65,7 +65,7 @@ GitHub Actions
 
 Recommended structure:
 
-```
+```text
 identitycore/
 
 backend/
@@ -106,7 +106,7 @@ Python code must follow:
 
 Recommended tools:
 
-```
+```text
 ruff
 black
 mypy
@@ -122,7 +122,7 @@ Django apps should be domain-based.
 
 Example:
 
-```
+```text
 apps/
 ├── accounts/
 ├── tenants/
@@ -137,7 +137,7 @@ apps/
 
 Each app should follow:
 
-```
+```text
 models.py
 serializers.py
 views.py
@@ -156,7 +156,7 @@ Business logic should not live directly in views.
 
 Preferred flow:
 
-```
+```text
 View / API endpoint
         ↓
 Serializer validation
@@ -229,7 +229,7 @@ Use prefixed ULID public IDs.
 
 Examples:
 
-```
+```text
 org_01J...
 ten_01J...
 ver_01J...
@@ -248,7 +248,7 @@ Use domain language consistently.
 
 Use:
 
-```
+```text
 Verification Subject
 Identity Document
 Document Capture
@@ -262,7 +262,7 @@ Provider Adapter
 
 Avoid:
 
-```
+```text
 End User
 User photo
 Face scan
@@ -441,7 +441,7 @@ Security-sensitive modules require extra tests.
 
 Branch naming:
 
-```
+```text
 feature/verification-sessions
 fix/webhook-retry
 chore/docker-setup
@@ -451,7 +451,7 @@ security/api-key-rotation
 
 Commit style:
 
-```
+```text
 feat: add verification session model
 fix: enforce tenant filter on verification lookup
 docs: update API specification

@@ -893,7 +893,7 @@ Provider Checks record external or internal processing outcomes.
 
 At a high level:
 
-```
+```text
 Organization
 └── Tenant
     ├── Platform Users

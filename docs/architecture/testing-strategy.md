@@ -26,7 +26,7 @@ Because the platform handles identity documents, biometric data, API credentials
 
 IdentityCore will use a layered testing approach:
 
-```
+```text
 Unit Tests
     ↓
 Integration Tests
@@ -117,7 +117,7 @@ End-to-end tests verify complete workflows.
 
 Critical E2E flows:
 
-```
+```text
 Organization creates Verification
         ↓
 Verification Subject opens link
@@ -177,7 +177,7 @@ Every tenant-owned model must be tested to ensure one tenant cannot access anoth
 
 Example:
 
-```
+```text
 Tenant A creates Verification.
 Tenant B attempts to access it.
 Expected result: 404 or permission denied.
@@ -256,6 +256,8 @@ Verification workflow tests should cover:
 - Session status reflects subject-facing current step and message
 - Liveness submission creates a Face Match placeholder tied to the verification evidence
 - Verification detail responses reflect the latest liveness and face-match records
+- Policy creation is tenant-scoped and versioned by policy name
+- Verification creation copies a policy snapshot when `policy_id` is supplied
 - Face match result processing
 - Risk assessment
 - Automatic approval
@@ -434,7 +436,7 @@ Initial performance tests should measure:
 
 Initial targets:
 
-```
+```text
 Verification creation: < 500 ms
 Verification lookup: < 300 ms
 Face match processing: < 3 seconds
@@ -466,7 +468,7 @@ Every fixed bug should include a regression test.
 
 Rule:
 
-```
+```text
 If a bug reaches staging or production, write a test that would have caught it.
 ```
 
@@ -492,7 +494,7 @@ Sensitive test data must not be committed to Git.
 
 Testing environments:
 
-```
+```text
 local
 ci
 staging
@@ -521,7 +523,7 @@ Required CI checks:
 
 Recommended tools:
 
-```
+```text
 pytest
 pytest-django
 ruff
@@ -553,7 +555,7 @@ Frontend tests should cover:
 
 Recommended tools:
 
-```
+```text
 Vitest
 React Testing Library
 Playwright
@@ -627,7 +629,7 @@ Do not create real Verification Subjects in production smoke tests unless using 
 
 Initial targets:
 
-```
+```text
 Core domain logic: 90%+
 API views: 80%+
 Security-sensitive modules: 90%+

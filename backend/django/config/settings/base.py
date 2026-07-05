@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     "apps.identity_documents.apps.IdentityDocumentsConfig",
     "apps.organizations.apps.OrganizationsConfig",
     "apps.tenants.apps.TenantsConfig",
+    "apps.uploads.apps.UploadsConfig",
+    "apps.verification_policies.apps.VerificationPoliciesConfig",
     "apps.verification_sessions.apps.VerificationSessionsConfig",
     "apps.verification_subjects.apps.VerificationSubjectsConfig",
     "apps.verifications.apps.VerificationsConfig",
@@ -126,6 +128,7 @@ CELERY_TASK_ALWAYS_EAGER = False
 CELERY_TASK_EAGER_PROPAGATES = False
 
 AI_SERVICE_BASE_URL = os.getenv("AI_SERVICE_BASE_URL", "http://localhost:8001")
+UPLOAD_URL_BASE = os.getenv("UPLOAD_URL_BASE", "http://localhost:9000/mock-upload")
 VERIFICATION_PORTAL_BASE_URL = os.getenv("VERIFICATION_PORTAL_BASE_URL", "http://localhost:8000/api/v1/verification-sessions")
 
 REST_FRAMEWORK = {

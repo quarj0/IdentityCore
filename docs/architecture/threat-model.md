@@ -54,7 +54,7 @@ IdentityCore must protect:
 
 The main trust boundaries are:
 
-```
+```text
 Verification Subject Browser
         ↓
 Verification Portal
@@ -796,7 +796,7 @@ Controls:
 
 Threats should be rated using:
 
-```
+```text
 Low
 Medium
 High

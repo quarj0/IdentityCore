@@ -28,7 +28,7 @@ The platform should be designed so that major modules can later become independe
 
 # High-Level Architecture
 
-```
+```text
 Verification Subject
         |
         v
@@ -134,7 +134,7 @@ REST will be used for external integrations.
 
 Examples:
 
-```
+```text
 POST /api/v1/verifications
 GET  /api/v1/verifications/{verification_id}
 POST /api/v1/verifications/{verification_id}/cancel
@@ -176,7 +176,7 @@ Version 1.0 will use Django as the main backend.
 
 The backend will be organized by domain modules.
 
-```
+```text
 backend/django/
     identitycore/
         apps/
@@ -499,7 +499,7 @@ AI-related processing should be isolated from the main Django backend.
 
 Version 1.0 will use a separate FastAPI service.
 
-```
+```text
 backend/fastapi-ai/
     app/
         face_detection/
@@ -522,7 +522,7 @@ backend/fastapi-ai/
 
 ## AI Service API Examples
 
-```
+```text
 POST /v1/face/compare
 POST /v1/liveness/check
 POST /v1/document/quality
@@ -629,7 +629,7 @@ Future versions may use:
 
 # Verification Flow
 
-```
+```text
 1. Organization creates Verification.
 2. Platform creates Verification Session.
 3. Verification Subject opens secure link.
@@ -655,7 +655,7 @@ Version 1.0 uses tenant-scoped data isolation.
 
 Every tenant-owned table must include:
 
-```
+```text
 tenant_id
 ```
 
@@ -705,7 +705,7 @@ IdentityCore should use domain events internally.
 
 Examples:
 
-```
+```text
 verification.created
 verification.consent_accepted
 document.capture_uploaded
@@ -737,7 +737,7 @@ Future versions may use Kafka, RabbitMQ, or another event broker.
 
 Provider integrations must use adapter patterns.
 
-```
+```text
 Core Platform
     |
     v
@@ -824,7 +824,7 @@ Modules may become services when:
 
 Likely first services to extract:
 
-```
+```text
 1. Biometric Intelligence Service
 2. Document Intelligence Service
 3. Webhook Delivery Service

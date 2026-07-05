@@ -756,6 +756,10 @@ Important:
 
 When a Verification is created, the policy version used must be copied or referenced immutably.
 
+Implementation note:
+
+- The current Django implementation resolves `policy_id` against tenant-scoped verification policies and stores an immutable snapshot in `policy_snapshot_json` at verification creation time.
+
 ---
 
 ## verifications
