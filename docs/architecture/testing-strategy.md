@@ -6,7 +6,7 @@
 
 ---
 
-# Purpose
+## Purpose
 
 This document defines the testing strategy for IdentityCore.
 
@@ -14,7 +14,7 @@ The goal is to ensure that IdentityCore is secure, reliable, tenant-safe, privac
 
 ---
 
-# Testing Principle
+## Testing Principle
 
 IdentityCore must not treat testing as optional.
 
@@ -22,7 +22,7 @@ Because the platform handles identity documents, biometric data, API credentials
 
 ---
 
-# Testing Pyramid
+## Testing Pyramid
 
 IdentityCore will use a layered testing approach:
 
@@ -46,7 +46,7 @@ End-to-end tests should cover only critical user journeys.
 
 ---
 
-# Test Categories
+## Test Categories
 
 ## Unit Tests
 
@@ -147,7 +147,7 @@ Other E2E flows:
 
 ---
 
-# Security Tests
+## Security Tests
 
 Security tests are mandatory.
 
@@ -169,7 +169,7 @@ Required tests:
 
 ---
 
-# Tenant Isolation Testing
+## Tenant Isolation Testing
 
 Tenant isolation is one of the highest-risk areas.
 
@@ -198,7 +198,7 @@ This must be tested for:
 
 ---
 
-# Permission Testing
+## Permission Testing
 
 Tests must verify that users only perform actions allowed by their roles.
 
@@ -211,7 +211,7 @@ Examples:
 
 ---
 
-# Authentication Testing
+## Authentication Testing
 
 Authentication tests should cover:
 
@@ -232,7 +232,7 @@ Authentication tests should cover:
 
 ---
 
-# Verification Workflow Testing
+## Verification Workflow Testing
 
 Verification workflow tests should cover:
 
@@ -274,7 +274,7 @@ Verification workflow tests should cover:
 
 ---
 
-# AI Service Testing
+## AI Service Testing
 
 The FastAPI AI service must be tested separately.
 
@@ -301,7 +301,7 @@ Do not use real personal data without explicit consent.
 
 ---
 
-# Mocking AI and Providers
+## Mocking AI and Providers
 
 During backend tests, external providers and AI services should be mocked.
 
@@ -321,7 +321,7 @@ Test doubles should simulate:
 
 ---
 
-# File Upload Testing
+## File Upload Testing
 
 File upload tests should cover:
 
@@ -338,7 +338,7 @@ File upload tests should cover:
 
 ---
 
-# Webhook Testing
+## Webhook Testing
 
 Webhook tests should cover:
 
@@ -370,6 +370,8 @@ Current implemented webhook coverage includes:
 
 Current implemented provider/risk coverage includes:
 
+- Document submission queues asynchronous OCR processing for the submitted identity document
+- Background document processing updates document quality scores, extracted fields, and document status
 - Provider check validation enforces compatible provider/check-type combinations
 - Completed provider checks require completion timestamps
 - Rule-based risk evaluation supports automatic approval, rejection, and manual-review routing
@@ -392,7 +394,7 @@ Current implemented notification coverage includes:
 
 ---
 
-# Audit Testing
+## Audit Testing
 
 Audit tests should verify that sensitive actions create Audit Events.
 
@@ -427,7 +429,7 @@ Current implemented audit coverage includes:
 
 ---
 
-# Data Retention Testing
+## Data Retention Testing
 
 Retention tests should cover:
 
@@ -441,7 +443,7 @@ Retention tests should cover:
 
 ---
 
-# Idempotency Testing
+## Idempotency Testing
 
 Critical POST endpoints must support idempotency.
 
@@ -461,7 +463,7 @@ Required endpoints:
 
 ---
 
-# Error Handling Testing
+## Error Handling Testing
 
 Tests should verify that errors are safe and consistent.
 
@@ -476,7 +478,7 @@ Expected error behavior:
 
 ---
 
-# Performance Testing
+## Performance Testing
 
 Initial performance tests should measure:
 
@@ -501,7 +503,7 @@ Webhook delivery queueing: < 500 ms
 
 ---
 
-# Load Testing
+## Load Testing
 
 Load testing should simulate:
 
@@ -516,7 +518,7 @@ Load testing is required before production pilots.
 
 ---
 
-# Regression Testing
+## Regression Testing
 
 Every fixed bug should include a regression test.
 
@@ -528,7 +530,7 @@ If a bug reaches staging or production, write a test that would have caught it.
 
 ---
 
-# Test Data
+## Test Data
 
 Test data must not contain real personal or biometric data unless explicitly approved.
 
@@ -544,7 +546,7 @@ Sensitive test data must not be committed to Git.
 
 ---
 
-# Test Environments
+## Test Environments
 
 Testing environments:
 
@@ -561,7 +563,7 @@ Never run destructive tests in production.
 
 ---
 
-# Continuous Integration
+## Continuous Integration
 
 CI should run on every pull request.
 
@@ -592,7 +594,7 @@ playwright
 
 ---
 
-# Frontend Testing
+## Frontend Testing
 
 Frontend tests should cover:
 
@@ -617,7 +619,7 @@ Playwright
 
 ---
 
-# Manual Testing
+## Manual Testing
 
 Some areas require human testing.
 
@@ -633,7 +635,7 @@ Manual testing should cover:
 
 ---
 
-# Accessibility Testing
+## Accessibility Testing
 
 Verification flows should be accessible.
 
@@ -648,7 +650,7 @@ Tests should check:
 
 ---
 
-# Release Testing
+## Release Testing
 
 Before every production release:
 
@@ -662,7 +664,7 @@ Before every production release:
 
 ---
 
-# Production Smoke Tests
+## Production Smoke Tests
 
 Safe production smoke tests may include:
 
@@ -679,7 +681,7 @@ Do not create real Verification Subjects in production smoke tests unless using 
 
 ---
 
-# Minimum Coverage Targets
+## Minimum Coverage Targets
 
 Initial targets:
 
@@ -695,7 +697,7 @@ Coverage is useful, but correctness matters more than chasing numbers.
 
 ---
 
-# Test Ownership
+## Test Ownership
 
 Every module owner is responsible for tests covering that module.
 
@@ -703,7 +705,7 @@ For solo development, every new feature should include tests before being consid
 
 ---
 
-# Definition of Done
+## Definition of Done
 
 A feature is complete only when:
 
@@ -718,7 +720,7 @@ A feature is complete only when:
 
 ---
 
-# Version 1.0 Testing Scope
+## Version 1.0 Testing Scope
 
 Version 1.0 testing includes:
 
@@ -744,7 +746,7 @@ Version 1.0 excludes:
 
 ---
 
-# Final Testing Principle
+## Final Testing Principle
 
 IdentityCore must be tested like a trust platform, not like an ordinary web app.
 

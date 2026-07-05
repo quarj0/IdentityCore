@@ -6,7 +6,7 @@
 
 ---
 
-# Context
+## Context
 
 IdentityCore performs computationally intensive AI operations including:
 
@@ -26,7 +26,7 @@ The platform requires an architecture that isolates AI processing while allowing
 
 ---
 
-# Decision
+## Decision
 
 IdentityCore will implement AI capabilities as a **separate FastAPI service**.
 
@@ -36,7 +36,7 @@ The AI service will **not** be publicly accessible.
 
 ---
 
-# Responsibilities
+## Responsibilities
 
 ## Django Backend
 
@@ -75,7 +75,7 @@ The AI service produces technical evidence only.
 
 ---
 
-# Processing Flow
+## Processing Flow
 
 ```id="qmh0fv"
 Verification Subject
@@ -113,7 +113,7 @@ The Django backend remains the system of record.
 
 ---
 
-# Why FastAPI?
+## Why FastAPI?
 
 FastAPI was selected because it provides:
 
@@ -128,7 +128,7 @@ It integrates naturally with Python AI libraries already planned for IdentityCor
 
 ---
 
-# Why Not Django?
+## Why Not Django?
 
 Django excels at:
 
@@ -151,7 +151,7 @@ Separating AI reduces complexity within the Django application.
 
 ---
 
-# Service Communication
+## Service Communication
 
 Communication between Django and the AI service occurs through authenticated internal HTTP requests.
 
@@ -169,7 +169,7 @@ The AI service is never called directly by external clients.
 
 ---
 
-# AI Output
+## AI Output
 
 The AI service returns technical evidence.
 
@@ -195,7 +195,7 @@ Those decisions belong exclusively to the Django Decision Engine.
 
 ---
 
-# Model Independence
+## Model Independence
 
 AI models should be replaceable without modifying business logic.
 
@@ -221,7 +221,7 @@ As long as the AI API contract remains stable, the backend should not require ch
 
 ---
 
-# Scalability
+## Scalability
 
 The AI service should scale independently from Django.
 
@@ -236,7 +236,7 @@ This allows AI workloads to grow without affecting API responsiveness.
 
 ---
 
-# Failure Handling
+## Failure Handling
 
 AI failures should not crash the platform.
 
@@ -257,7 +257,7 @@ The backend should:
 
 ---
 
-# Security
+## Security
 
 The AI service must:
 
@@ -273,7 +273,7 @@ The AI service is an internal component and should not be internet-facing.
 
 ---
 
-# Consequences
+## Consequences
 
 ## Positive
 
@@ -296,7 +296,7 @@ These trade-offs are acceptable because AI workloads differ significantly from t
 
 ---
 
-# Alternatives Considered
+## Alternatives Considered
 
 ## AI Inside Django
 
@@ -325,7 +325,7 @@ External providers may be used as optional fallback providers where appropriate.
 
 ---
 
-# Future Considerations
+## Future Considerations
 
 Future versions may include:
 
@@ -340,7 +340,7 @@ These enhancements should preserve the existing API contract between Django and 
 
 ---
 
-# Implementation Notes
+## Implementation Notes
 
 - FastAPI is an internal service.
 - Django remains the system of record.
@@ -350,7 +350,7 @@ These enhancements should preserve the existing API contract between Django and 
 
 ---
 
-# References
+## References
 
 - AI Design
 - Architecture

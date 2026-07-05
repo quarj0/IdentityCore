@@ -6,7 +6,7 @@
 
 ---
 
-# Purpose
+## Purpose
 
 This document defines the AI and computer vision design for IdentityCore Version 1.0.
 
@@ -16,7 +16,7 @@ The AI system does not make final business decisions. It produces evidence, scor
 
 ---
 
-# AI Design Principle
+## AI Design Principle
 
 AI in IdentityCore is an evidence engine, not the final authority.
 
@@ -33,7 +33,7 @@ The Django backend decides whether a Verification is approved, rejected, or sent
 
 ---
 
-# AI Service Architecture
+## AI Service Architecture
 
 IdentityCore uses a separate internal FastAPI service for AI processing.
 
@@ -57,7 +57,7 @@ It must not be exposed publicly.
 
 ---
 
-# AI Service Responsibilities
+## AI Service Responsibilities
 
 The AI service is responsible for:
 
@@ -85,7 +85,7 @@ The AI service is not responsible for:
 
 ---
 
-# AI Processing Flow
+## AI Processing Flow
 
 ```text
 Verification Subject submits document and selfie
@@ -115,11 +115,13 @@ Decision Engine applies Verification Policy
 Implementation note:
 
 - The current Django implementation queues biometric processing onto a dedicated `ai_processing` Celery queue after liveness submission.
+- The current Django implementation also queues document OCR and document-quality processing onto the same `ai_processing` queue after document submission.
 - The internal FastAPI service currently exposes mock `face/compare` and `liveness/check` endpoints so the async evidence pipeline can run end-to-end before production-grade models are connected.
+- The internal FastAPI service also exposes mock `document/ocr` and `document/quality` endpoints for the same end-to-end pipeline coverage.
 
 ---
 
-# Core AI Modules
+## Core AI Modules
 
 ## Face Detection
 
@@ -235,7 +237,7 @@ Business rules:
 
 ---
 
-# Liveness Detection
+## Liveness Detection
 
 Liveness Detection determines whether the Verification Subject is physically present.
 
@@ -324,7 +326,7 @@ Business rules:
 
 ---
 
-# Document Intelligence
+## Document Intelligence
 
 Document Intelligence processes Identity Documents.
 
@@ -461,7 +463,7 @@ Business rules:
 
 ---
 
-# Model Registry
+## Model Registry
 
 IdentityCore must track model versions.
 
@@ -495,7 +497,7 @@ Example:
 
 ---
 
-# Confidence Levels
+## Confidence Levels
 
 Raw model scores should be converted into human-readable confidence levels.
 
@@ -514,7 +516,7 @@ Confidence levels should support, not replace, raw scores.
 
 ---
 
-# Decision Boundaries
+## Decision Boundaries
 
 The AI service must not return:
 
@@ -540,7 +542,7 @@ The Django Decision Engine maps AI results to Verification Decisions.
 
 ---
 
-# Threshold Management
+## Threshold Management
 
 Thresholds should be configured in Verification Policies.
 
@@ -562,7 +564,7 @@ Business rules:
 
 ---
 
-# Bias and Fairness
+## Bias and Fairness
 
 IdentityCore must treat biometric AI bias as a serious risk.
 
@@ -578,7 +580,7 @@ The platform should avoid collecting sensitive demographic data unless legally j
 
 ---
 
-# Accuracy Metrics
+## Accuracy Metrics
 
 AI performance should be measured using:
 
@@ -604,7 +606,7 @@ For liveness:
 
 ---
 
-# Performance Targets
+## Performance Targets
 
 Initial targets for Version 1.0:
 
@@ -620,7 +622,7 @@ Targets may vary depending on hardware and media size.
 
 ---
 
-# Hardware Strategy
+## Hardware Strategy
 
 Version 1.0 should support CPU-based inference where possible.
 
@@ -636,7 +638,7 @@ For MVP, avoid requiring expensive GPU infrastructure unless necessary.
 
 ---
 
-# Model Selection
+## Model Selection
 
 Initial model candidates:
 
@@ -661,7 +663,7 @@ Final model choices must be documented in ADRs.
 
 ---
 
-# Provider Fallback Strategy
+## Provider Fallback Strategy
 
 IdentityCore should support internal and external AI providers.
 
@@ -683,7 +685,7 @@ Provider usage must be auditable.
 
 ---
 
-# Data Handling
+## Data Handling
 
 AI processing should use temporary access to media.
 
@@ -698,7 +700,7 @@ Rules:
 
 ---
 
-# AI Security
+## AI Security
 
 AI-specific security requirements:
 
@@ -714,7 +716,7 @@ AI-specific security requirements:
 
 ---
 
-# AI Observability
+## AI Observability
 
 AI processing should log:
 
@@ -731,7 +733,7 @@ AI logs must not include raw biometric or document data.
 
 ---
 
-# AI Failure Handling
+## AI Failure Handling
 
 AI failures should be handled safely.
 
@@ -747,7 +749,7 @@ AI failure should not expose internal technical details to Verification Subjects
 
 ---
 
-# Manual Review Support
+## Manual Review Support
 
 AI results should support human review.
 
@@ -766,7 +768,7 @@ Manual review screens must avoid exposing unnecessary sensitive information.
 
 ---
 
-# Model Update Strategy
+## Model Update Strategy
 
 Model updates must be controlled.
 
@@ -781,7 +783,7 @@ Requirements:
 
 ---
 
-# Future AI Capabilities
+## Future AI Capabilities
 
 Future versions may include:
 
@@ -799,7 +801,7 @@ Future versions may include:
 
 ---
 
-# Version 1.0 AI Scope
+## Version 1.0 AI Scope
 
 Version 1.0 includes:
 
@@ -828,7 +830,7 @@ Version 1.0 excludes:
 
 ---
 
-# Final AI Principle
+## Final AI Principle
 
 IdentityCore's AI must be accurate, explainable, auditable, replaceable, and privacy-preserving.
 

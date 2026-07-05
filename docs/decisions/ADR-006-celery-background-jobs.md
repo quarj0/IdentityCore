@@ -6,7 +6,7 @@
 
 ---
 
-# Context
+## Context
 
 IdentityCore performs many operations that should not execute during an HTTP request.
 
@@ -35,7 +35,7 @@ The platform requires a reliable background job processing system.
 
 ---
 
-# Decision
+## Decision
 
 IdentityCore will use **Celery** as its background task processing framework.
 
@@ -45,7 +45,7 @@ Background jobs will be executed asynchronously by dedicated Celery workers.
 
 ---
 
-# Responsibilities
+## Responsibilities
 
 Celery is responsible for:
 
@@ -72,7 +72,7 @@ Those responsibilities remain within Django.
 
 ---
 
-# Processing Flow
+## Processing Flow
 
 Example verification workflow:
 
@@ -96,7 +96,7 @@ The HTTP request returns quickly while processing continues in the background.
 
 ---
 
-# Queue Strategy
+## Queue Strategy
 
 Version 1.0 will separate workloads into logical queues.
 
@@ -118,7 +118,7 @@ This separation prevents long-running AI jobs from delaying lightweight tasks su
 
 ---
 
-# Task Design Principles
+## Task Design Principles
 
 Every task should be:
 
@@ -133,7 +133,7 @@ Tasks should perform one responsibility only.
 
 ---
 
-# Retry Strategy
+## Retry Strategy
 
 Transient failures should be retried automatically.
 
@@ -154,7 +154,7 @@ Permanent failures should be recorded and surfaced for investigation.
 
 ---
 
-# Idempotency
+## Idempotency
 
 Tasks must tolerate duplicate execution.
 
@@ -170,7 +170,7 @@ Idempotent tasks improve reliability during retries and worker failures.
 
 ---
 
-# Tenant Context
+## Tenant Context
 
 Every tenant-related task must include tenant context.
 
@@ -197,7 +197,7 @@ Worker execution must never lose tenant isolation.
 
 ---
 
-# Error Handling
+## Error Handling
 
 Task failures should:
 
@@ -211,7 +211,7 @@ Failures should never leave business data in an inconsistent state.
 
 ---
 
-# Scheduling
+## Scheduling
 
 Periodic jobs will be managed by Celery Beat.
 
@@ -227,7 +227,7 @@ Only one scheduler instance should be active in production.
 
 ---
 
-# Monitoring
+## Monitoring
 
 Background processing should expose metrics including:
 
@@ -242,7 +242,7 @@ Monitoring should allow early detection of queue backlogs and worker failures.
 
 ---
 
-# Security
+## Security
 
 Celery tasks must:
 
@@ -256,7 +256,7 @@ Background workers are subject to the same security standards as API services.
 
 ---
 
-# Scalability
+## Scalability
 
 Workers should scale independently from the Django backend.
 
@@ -270,7 +270,7 @@ Scaling should be driven by workload characteristics rather than application siz
 
 ---
 
-# Performance
+## Performance
 
 Long-running tasks should never block HTTP responses.
 
@@ -300,7 +300,7 @@ This keeps API response times predictable.
 
 ---
 
-# Consequences
+## Consequences
 
 ## Positive
 
@@ -322,7 +322,7 @@ These trade-offs are acceptable given the performance and reliability benefits.
 
 ---
 
-# Alternatives Considered
+## Alternatives Considered
 
 ## Synchronous Processing
 
@@ -352,7 +352,7 @@ Redis-backed Celery provides an appropriate balance between simplicity and capab
 
 ---
 
-# Future Considerations
+## Future Considerations
 
 Future versions may evaluate:
 
@@ -367,7 +367,7 @@ These enhancements should not change the fundamental asynchronous architecture.
 
 ---
 
-# Implementation Notes
+## Implementation Notes
 
 - Redis is the Celery broker for Version 1.0.
 - Celery Beat manages scheduled tasks.
@@ -377,7 +377,7 @@ These enhancements should not change the fundamental asynchronous architecture.
 
 ---
 
-# References
+## References
 
 - Deployment
 - Architecture

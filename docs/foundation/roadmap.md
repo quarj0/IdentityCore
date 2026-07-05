@@ -6,7 +6,7 @@
 
 ---
 
-# Purpose
+## Purpose
 
 This document defines the product and engineering roadmap for IdentityCore.
 
@@ -14,7 +14,7 @@ The roadmap exists to prevent scope creep, guide development priorities, and ens
 
 ---
 
-# Roadmap Principle
+## Roadmap Principle
 
 IdentityCore must start small, secure, and useful.
 
@@ -24,7 +24,7 @@ The platform should first prove that it can reliably verify a person's identity 
 
 ---
 
-# Phase 0: Foundation
+## Phase 0: Foundation
 
 Status: In Progress
 
@@ -59,7 +59,7 @@ Success criteria:
 
 ---
 
-# Phase 1: Core Platform MVP
+## Phase 1: Core Platform MVP
 
 Purpose:
 
@@ -98,7 +98,7 @@ Success criteria:
 
 ---
 
-# Phase 2: Identity Verification MVP
+## Phase 2: Identity Verification MVP
 
 Purpose:
 
@@ -131,7 +131,7 @@ Success criteria:
 
 ---
 
-# Phase 3: Dashboard and Developer Experience
+## Phase 3: Dashboard and Developer Experience
 
 Purpose:
 
@@ -161,7 +161,7 @@ Success criteria:
 
 ---
 
-# Phase 4: Production Readiness
+## Phase 4: Production Readiness
 
 Purpose:
 
@@ -194,7 +194,7 @@ Success criteria:
 
 ---
 
-# Phase 5: Pilot Program
+## Phase 5: Pilot Program
 
 Purpose:
 
@@ -231,7 +231,7 @@ Success criteria:
 
 ---
 
-# Phase 6: Provider and Country Expansion
+## Phase 6: Provider and Country Expansion
 
 Purpose:
 
@@ -259,7 +259,7 @@ Success criteria:
 
 ---
 
-# Phase 7: Advanced Risk and Fraud
+## Phase 7: Advanced Risk and Fraud
 
 Purpose:
 
@@ -285,7 +285,7 @@ Success criteria:
 
 ---
 
-# Phase 8: Mobile and Field Verification
+## Phase 8: Mobile and Field Verification
 
 Purpose:
 
@@ -311,7 +311,7 @@ Success criteria:
 
 ---
 
-# Phase 9: Enterprise and Government Readiness
+## Phase 9: Enterprise and Government Readiness
 
 Purpose:
 
@@ -338,7 +338,7 @@ Success criteria:
 
 ---
 
-# Phase 10: Digital Trust Platform
+## Phase 10: Digital Trust Platform
 
 Purpose:
 
@@ -364,7 +364,7 @@ Success criteria:
 
 ---
 
-# Long-Term Vision
+## Long-Term Vision
 
 IdentityCore may eventually support:
 
@@ -384,7 +384,7 @@ These are long-term possibilities, not Version 1.0 commitments.
 
 ---
 
-# Explicitly Out of Scope for Version 1.0
+## Explicitly Out of Scope for Version 1.0
 
 Version 1.0 will not include:
 
@@ -405,7 +405,7 @@ Version 1.0 will not include:
 
 ---
 
-# Release Milestones
+## Release Milestones
 
 ## 0.1 Internal Prototype
 
@@ -485,7 +485,7 @@ Includes:
 
 ---
 
-# Roadmap Discipline
+## Roadmap Discipline
 
 A feature may be added to the active roadmap only if it satisfies at least one of the following:
 
@@ -501,7 +501,7 @@ Features that do not support these goals should be postponed.
 
 ---
 
-# Final Roadmap Principle
+## Final Roadmap Principle
 
 IdentityCore should grow through disciplined phases.
 

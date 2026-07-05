@@ -6,7 +6,7 @@
 
 ---
 
-# Purpose
+## Purpose
 
 This document defines the initial database design for IdentityCore Version 1.0.
 
@@ -14,7 +14,7 @@ The database must support multi-tenancy, verification workflows, document captur
 
 ---
 
-# Database Strategy
+## Database Strategy
 
 IdentityCore Version 1.0 will use PostgreSQL as the primary relational database.
 
@@ -29,7 +29,7 @@ Future versions may separate high-risk or high-volume data into dedicated databa
 
 ---
 
-# Core Design Rules
+## Core Design Rules
 
 - Every tenant-owned table must include `tenant_id`.
 - Every sensitive action must create an audit event.
@@ -43,7 +43,7 @@ Future versions may separate high-risk or high-volume data into dedicated databa
 
 ---
 
-# Common Fields
+## Common Fields
 
 Most tables should include:
 
@@ -86,7 +86,7 @@ Internal database IDs should not be exposed through public APIs.
 
 ---
 
-# Entity Relationship Overview
+## Entity Relationship Overview
 
 ```text
 Organization
@@ -114,7 +114,7 @@ Organization
 
 ---
 
-# Tables
+## Tables
 
 ## organizations
 
@@ -369,7 +369,7 @@ index(tenant_id)
 
 ---
 
-# Country and Jurisdiction Tables
+## Country and Jurisdiction Tables
 
 ## jurisdictions
 
@@ -512,7 +512,7 @@ index(document_type_id)
 
 ---
 
-# API and Integration Tables
+## API and Integration Tables
 
 ## api_clients
 
@@ -684,7 +684,7 @@ Implementation note:
 
 ---
 
-# Verification Tables
+## Verification Tables
 
 ## verification_subjects
 
@@ -903,7 +903,7 @@ Implementation note:
 
 ---
 
-# Consent Tables
+## Consent Tables
 
 ## consent_templates
 
@@ -989,7 +989,7 @@ index(accepted_at)
 
 ---
 
-# Document Tables
+## Document Tables
 
 ## identity_documents
 
@@ -1164,7 +1164,7 @@ index(status)
 
 ---
 
-# Biometric Tables
+## Biometric Tables
 
 ## selfie_captures
 
@@ -1394,7 +1394,7 @@ Implementation note:
 
 ---
 
-# Provider Tables
+## Provider Tables
 
 ## providers
 
@@ -1519,7 +1519,7 @@ Implementation note:
 
 ---
 
-# Decision and Risk Tables
+## Decision and Risk Tables
 
 ## risk_assessments
 
@@ -1635,7 +1635,7 @@ Implementation note:
 
 ---
 
-# Audit Tables
+## Audit Tables
 
 ## audit_events
 
@@ -1713,7 +1713,7 @@ Implementation note:
 
 ---
 
-# Notification Tables
+## Notification Tables
 
 ## notifications
 
@@ -1765,7 +1765,7 @@ index(created_at)
 
 ---
 
-# Reporting Tables
+## Reporting Tables
 
 Version 1.0 can generate reports from transactional tables.
 
@@ -1782,7 +1782,7 @@ For MVP, avoid premature reporting tables unless performance requires them.
 
 ---
 
-# Retention and Deletion
+## Retention and Deletion
 
 Different data types should have different retention rules.
 
@@ -1838,7 +1838,7 @@ Recommended default:
 
 ---
 
-# Sensitive Data Rules
+## Sensitive Data Rules
 
 The following data should be treated as highly sensitive:
 
@@ -1863,7 +1863,7 @@ Rules:
 
 ---
 
-# Indexing Strategy
+## Indexing Strategy
 
 High-priority indexes:
 
@@ -1892,7 +1892,7 @@ Find expired verifications.
 
 ---
 
-# Public ID Strategy
+## Public ID Strategy
 
 Every externally visible object should have a public ID.
 
@@ -1922,7 +1922,7 @@ Reasons:
 
 ---
 
-# Future Database Separation
+## Future Database Separation
 
 As IdentityCore grows, the following may be separated:
 
@@ -1944,7 +1944,7 @@ First candidates for separation:
 
 ---
 
-# Version 1.0 Database Scope
+## Version 1.0 Database Scope
 
 Version 1.0 includes:
 
@@ -1987,7 +1987,7 @@ Version 1.0 excludes:
 
 ---
 
-# Final Database Principle
+## Final Database Principle
 
 The database must support trust.
 

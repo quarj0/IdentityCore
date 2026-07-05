@@ -6,7 +6,7 @@
 
 ---
 
-# Context
+## Context
 
 IdentityCore relies on external providers for services that are outside the platform's core responsibilities.
 
@@ -26,7 +26,7 @@ Directly integrating these providers into business logic would tightly couple Id
 
 ---
 
-# Decision
+## Decision
 
 IdentityCore will implement the **Provider Adapter Pattern**.
 
@@ -36,7 +36,7 @@ The rest of the application communicates only with the adapter, never directly w
 
 ---
 
-# Architecture
+## Architecture
 
 ``` id="7s0d2a"
 Business Logic
@@ -55,7 +55,7 @@ Business logic should not know which vendor is being used.
 
 ---
 
-# Responsibilities
+## Responsibilities
 
 The Provider Adapter is responsible for:
 
@@ -71,7 +71,7 @@ Business logic remains provider-agnostic.
 
 ---
 
-# Examples
+## Examples
 
 ## OCR
 
@@ -151,7 +151,7 @@ Each adapter implements the same internal contract.
 
 ---
 
-# Interface Design
+## Interface Design
 
 Every provider category should define a common interface.
 
@@ -173,7 +173,7 @@ Business logic depends on the interface rather than a concrete implementation.
 
 ---
 
-# Response Normalization
+## Response Normalization
 
 Providers return different response formats.
 
@@ -209,7 +209,7 @@ This keeps business logic simple and consistent.
 
 ---
 
-# Error Handling
+## Error Handling
 
 Provider-specific errors should never propagate directly into business logic.
 
@@ -226,7 +226,7 @@ The rest of the application should not need to understand provider-specific erro
 
 ---
 
-# Configuration
+## Configuration
 
 Organizations may configure different providers where supported.
 
@@ -256,7 +256,7 @@ The backend selects the appropriate adapter at runtime.
 
 ---
 
-# Fallback Strategy
+## Fallback Strategy
 
 Provider adapters support fallback.
 
@@ -286,7 +286,7 @@ Fallback logic should be configurable and auditable.
 
 ---
 
-# Security
+## Security
 
 Provider adapters must:
 
@@ -301,7 +301,7 @@ Credentials must never be hardcoded.
 
 ---
 
-# Testing
+## Testing
 
 Business logic tests should mock provider interfaces rather than provider implementations.
 
@@ -311,7 +311,7 @@ This allows provider changes without affecting business logic tests.
 
 ---
 
-# Monitoring
+## Monitoring
 
 Metrics should include:
 
@@ -326,7 +326,7 @@ Monitoring should identify provider degradation early.
 
 ---
 
-# Consequences
+## Consequences
 
 ## Positive
 
@@ -348,7 +348,7 @@ These trade-offs are acceptable because provider flexibility is a strategic goal
 
 ---
 
-# Alternatives Considered
+## Alternatives Considered
 
 ## Direct Provider Integration
 
@@ -374,7 +374,7 @@ A generic HTTP client alone does not provide sufficient abstraction.
 
 ---
 
-# Future Considerations
+## Future Considerations
 
 Future versions may support:
 
@@ -388,7 +388,7 @@ These enhancements should remain behind the adapter interface.
 
 ---
 
-# Implementation Notes
+## Implementation Notes
 
 * Business logic depends on provider interfaces.
 * Providers are selected through configuration.
@@ -399,7 +399,7 @@ These enhancements should remain behind the adapter interface.
 
 ---
 
-# References
+## References
 
 * Architecture
 * AI Design

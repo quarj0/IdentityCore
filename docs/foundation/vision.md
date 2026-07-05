@@ -72,7 +72,7 @@ These capabilities are delivered through a modular architecture, allowing organi
 
 ---
 
-# Core Principles
+## Core Principles
 
 ## Privacy by Design
 
@@ -142,7 +142,7 @@ Every major capability of IdentityCore is designed as an independent module that
 
 ---
 
-# Target Users
+## Target Users
 
 IdentityCore is designed for organizations that require secure identity verification and trusted authentication services, including:
 
@@ -159,13 +159,13 @@ IdentityCore is designed for organizations that require secure identity verifica
 
 ---
 
-# Success Vision
+## Success Vision
 
 IdentityCore will be considered successful when organizations can verify identities within seconds through secure, privacy-preserving workflows while maintaining complete transparency, strong security, and full confidence in the authenticity of every verification.
 
 ---
 
-# Future Outlook
+## Future Outlook
 
 IdentityCore aims to become more than an identity verification platform.
 

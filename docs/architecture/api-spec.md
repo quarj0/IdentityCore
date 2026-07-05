@@ -6,7 +6,7 @@
 
 ---
 
-# Purpose
+## Purpose
 
 This document defines the API design for IdentityCore Version 1.0.
 
@@ -16,7 +16,7 @@ The API must be secure, tenant-aware, versioned, auditable, and predictable.
 
 ---
 
-# API Strategy
+## API Strategy
 
 IdentityCore uses two API styles:
 
@@ -31,7 +31,7 @@ GraphQL is not intended for public third-party integrations in Version 1.0.
 
 ---
 
-# Base URL
+## Base URL
 
 Production:
 
@@ -55,7 +55,7 @@ The AI service must not be exposed publicly in Version 1.0.
 
 ---
 
-# Authentication
+## Authentication
 
 ## Dashboard Authentication
 
@@ -92,7 +92,7 @@ X-Timestamp: <unix_timestamp>
 
 ---
 
-# API Key Rules
+## API Key Rules
 
 - API secrets must never be stored in plain .
 - API keys must be scoped.
@@ -103,7 +103,7 @@ X-Timestamp: <unix_timestamp>
 
 ---
 
-# API Versioning
+## API Versioning
 
 All public REST APIs must be versioned.
 
@@ -117,7 +117,7 @@ Non-breaking changes may be added to the current version.
 
 ---
 
-# Common Response Format
+## Common Response Format
 
 ## Success Response
 
@@ -145,7 +145,7 @@ Non-breaking changes may be added to the current version.
 
 ---
 
-# Common Error Codes
+## Common Error Codes
 
 ```text
 authentication_failed
@@ -169,7 +169,7 @@ internal_error
 
 ---
 
-# Pagination
+## Pagination
 
 List endpoints must support pagination.
 
@@ -203,7 +203,7 @@ Implementation note:
 
 ---
 
-# Filtering and Sorting
+## Filtering and Sorting
 
 List endpoints should support filtering.
 
@@ -221,11 +221,11 @@ GET /verifications?sort=-created_at
 
 ---
 
-# Public REST API
+## Public REST API
 
 ---
 
-# Health
+## Health
 
 ## GET /api/v1/health
 
@@ -247,7 +247,7 @@ Response:
 
 ---
 
-# Platform User Authentication
+## Platform User Authentication
 
 ## POST /auth/login
 
@@ -286,7 +286,7 @@ Returns the currently authenticated Platform User and tenant context.
 
 ---
 
-# Document Types
+## Document Types
 
 ## GET /document-types
 
@@ -317,7 +317,7 @@ Response:
 
 ---
 
-# Country Profiles
+## Country Profiles
 
 ## GET /country-profiles
 
@@ -350,7 +350,7 @@ Response:
 
 ---
 
-# Verifications
+## Verifications
 
 ## POST /verifications
 
@@ -581,7 +581,7 @@ Response:
 
 ---
 
-# Verification Session API
+## Verification Session API
 
 These endpoints are used by the Verification Portal.
 
@@ -692,6 +692,7 @@ Business rules:
 - Consent must already be accepted for the Verification before document metadata can be submitted.
 - The current bootstrap implementation stores `document_type` and `country_code` directly on the identity document record until dedicated document type and country profile tables are introduced.
 - Each submitted capture side must be unique within the request.
+- The current Django implementation queues asynchronous document OCR and document-quality processing after document submission while allowing the subject flow to continue.
 
 Response:
 
@@ -803,7 +804,7 @@ Business rules:
 
 ---
 
-# Upload API
+## Upload API
 
 For security and scalability, media uploads should use signed upload URLs.
 
@@ -857,7 +858,7 @@ Implementation note:
 
 ---
 
-# Policies API
+## Policies API
 
 ## GET /policies
 
@@ -932,7 +933,7 @@ Business rules:
 
 ---
 
-# Manual Review API
+## Manual Review API
 
 ## GET /manual-reviews
 
@@ -1011,7 +1012,7 @@ Business rules:
 
 ---
 
-# API Clients API
+## API Clients API
 
 ## GET /api-clients
 
@@ -1061,7 +1062,7 @@ Implementation note:
 
 ---
 
-# Webhooks API
+## Webhooks API
 
 ## GET /webhook-endpoints
 
@@ -1140,7 +1141,7 @@ Implementation note:
 
 ---
 
-# Webhook Event Format
+## Webhook Event Format
 
 Webhook payload:
 
@@ -1183,7 +1184,7 @@ verification.cancelled
 
 ---
 
-# Audit API
+## Audit API
 
 ## GET /audit-events
 
@@ -1240,7 +1241,7 @@ Business rules:
 
 ---
 
-# Internal AI Service API
+## Internal AI Service API
 
 The AI service is internal only.
 
@@ -1363,7 +1364,7 @@ Response:
 
 ---
 
-# GraphQL API
+## GraphQL API
 
 GraphQL powers dashboards.
 
@@ -1419,7 +1420,7 @@ GraphQL rules:
 
 ---
 
-# Rate Limiting
+## Rate Limiting
 
 Default limits:
 
@@ -1434,7 +1435,7 @@ Limits may vary by plan and tenant.
 
 ---
 
-# Idempotency
+## Idempotency
 
 Critical POST requests should support idempotency.
 
@@ -1461,7 +1462,7 @@ Rules:
 
 ---
 
-# Security Requirements
+## Security Requirements
 
 All APIs must enforce:
 
@@ -1485,7 +1486,7 @@ Public APIs must never expose:
 
 ---
 
-# Version 1.0 API Scope
+## Version 1.0 API Scope
 
 Version 1.0 includes:
 
@@ -1517,7 +1518,7 @@ Version 1.0 excludes:
 
 ---
 
-# Final API Principle
+## Final API Principle
 
 The API should make identity verification simple for organizations while keeping privacy, security, auditability, and tenant isolation strict by default.
 

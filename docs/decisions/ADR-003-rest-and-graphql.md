@@ -6,7 +6,7 @@
 
 ---
 
-# Context
+## Context
 
 IdentityCore exposes functionality to multiple types of consumers.
 
@@ -31,7 +31,7 @@ The primary architectural decision is whether to use REST, GraphQL, or both.
 
 ---
 
-# Decision
+## Decision
 
 IdentityCore will expose:
 
@@ -42,7 +42,7 @@ GraphQL will not be part of the public API in Version 1.0.
 
 ---
 
-# REST Responsibilities
+## REST Responsibilities
 
 REST is the official public integration interface.
 
@@ -76,7 +76,7 @@ REST APIs must be:
 
 ---
 
-# GraphQL Responsibilities
+## GraphQL Responsibilities
 
 GraphQL is intended for internal applications owned by IdentityCore.
 
@@ -91,7 +91,7 @@ GraphQL allows frontend applications to request exactly the data they require wh
 
 ---
 
-# Why REST for External APIs?
+## Why REST for External APIs?
 
 REST was selected because it provides:
 
@@ -107,7 +107,7 @@ Most organizations integrating with IdentityCore will already be familiar with R
 
 ---
 
-# Why GraphQL for Internal Applications?
+## Why GraphQL for Internal Applications?
 
 Internal dashboards often require data from multiple domains.
 
@@ -131,7 +131,7 @@ GraphQL allows these related resources to be retrieved efficiently in a single r
 
 ---
 
-# Security Considerations
+## Security Considerations
 
 GraphQL introduces additional security considerations.
 
@@ -149,7 +149,7 @@ Public GraphQL access is intentionally excluded from Version 1.0.
 
 ---
 
-# API Versioning
+## API Versioning
 
 REST APIs will use URL versioning.
 
@@ -166,7 +166,7 @@ Breaking GraphQL changes should be avoided whenever possible.
 
 ---
 
-# Public API Stability
+## Public API Stability
 
 REST APIs are considered long-term contracts.
 
@@ -181,7 +181,7 @@ Breaking changes should be introduced only in a new API version.
 
 ---
 
-# Internal Flexibility
+## Internal Flexibility
 
 GraphQL is considered an implementation detail of IdentityCore.
 
@@ -189,7 +189,7 @@ The schema may evolve more frequently to support frontend development while main
 
 ---
 
-# Consequences
+## Consequences
 
 ## Positive
 
@@ -210,7 +210,7 @@ These trade-offs are acceptable because each technology is used where it provide
 
 ---
 
-# Alternatives Considered
+## Alternatives Considered
 
 ## REST Only
 
@@ -237,7 +237,7 @@ gRPC may be considered later for internal service-to-service communication if re
 
 ---
 
-# Implementation Notes
+## Implementation Notes
 
 - REST remains the primary public interface.
 - GraphQL remains internal.
@@ -247,7 +247,7 @@ gRPC may be considered later for internal service-to-service communication if re
 
 ---
 
-# Future Considerations
+## Future Considerations
 
 Future versions may consider:
 
@@ -260,7 +260,7 @@ These features should be evaluated based on customer demand and operational matu
 
 ---
 
-# References
+## References
 
 - API Specification
 - Architecture

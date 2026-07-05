@@ -6,7 +6,7 @@
 
 ---
 
-# Purpose
+## Purpose
 
 This document defines the security architecture, principles, controls, and operational requirements for IdentityCore.
 
@@ -18,7 +18,7 @@ Every component of the platform must be designed with confidentiality, integrity
 
 ---
 
-# Security Principles
+## Security Principles
 
 IdentityCore follows these principles:
 
@@ -37,7 +37,7 @@ Every request must be authenticated, authorized, validated, and logged where app
 
 ---
 
-# Security Objectives
+## Security Objectives
 
 IdentityCore must:
 
@@ -54,7 +54,7 @@ IdentityCore must:
 
 ---
 
-# Data Classification
+## Data Classification
 
 IdentityCore classifies data into four levels.
 
@@ -110,7 +110,7 @@ Requires the highest level of protection.
 
 ---
 
-# Authentication
+## Authentication
 
 IdentityCore supports two authentication models.
 
@@ -149,7 +149,7 @@ API credentials must:
 
 ---
 
-# Authorization
+## Authorization
 
 IdentityCore uses Role-Based Access Control (RBAC).
 
@@ -176,7 +176,7 @@ Organization Administrator
 
 ---
 
-# Tenant Isolation
+## Tenant Isolation
 
 Tenant isolation is mandatory.
 
@@ -198,7 +198,7 @@ Tenant isolation must be enforced:
 
 ---
 
-# Identity Verification Security
+## Identity Verification Security
 
 Verification Sessions must:
 
@@ -212,7 +212,7 @@ Verification URLs must never expose internal identifiers.
 
 ---
 
-# Biometric Security
+## Biometric Security
 
 Biometric data receives the highest protection.
 
@@ -232,7 +232,7 @@ Rules:
 
 ---
 
-# Document Security
+## Document Security
 
 Identity documents must:
 
@@ -247,7 +247,7 @@ Document images should be virus scanned where applicable.
 
 ---
 
-# Object Storage Security
+## Object Storage Security
 
 Media storage must support:
 
@@ -261,7 +261,7 @@ Direct public bucket access is prohibited.
 
 ---
 
-# Encryption
+## Encryption
 
 ## Data in Transit
 
@@ -298,7 +298,7 @@ Future versions may support Hardware Security Modules (HSMs).
 
 ---
 
-# Secrets Management
+## Secrets Management
 
 Secrets include:
 
@@ -317,7 +317,7 @@ Secrets must:
 
 ---
 
-# API Security
+## API Security
 
 Every API must enforce:
 
@@ -336,7 +336,7 @@ Sensitive endpoints should also support:
 
 ---
 
-# File Upload Security
+## File Upload Security
 
 Uploads must validate:
 
@@ -350,7 +350,7 @@ Executable files are prohibited.
 
 ---
 
-# Rate Limiting
+## Rate Limiting
 
 Rate limits help mitigate abuse.
 
@@ -366,7 +366,7 @@ Limits should be configurable per tenant and API client.
 
 ---
 
-# Logging
+## Logging
 
 IdentityCore uses structured logging.
 
@@ -391,7 +391,7 @@ Sensitive values should be masked or hashed.
 
 ---
 
-# Audit Logging
+## Audit Logging
 
 Every sensitive action creates an immutable Audit Event.
 
@@ -412,7 +412,7 @@ Audit logs must be append-only.
 
 ---
 
-# Webhook Security
+## Webhook Security
 
 Webhooks must:
 
@@ -427,7 +427,7 @@ Consumers should verify signatures before processing events.
 
 ---
 
-# GraphQL Security
+## GraphQL Security
 
 GraphQL introduces unique risks.
 
@@ -443,7 +443,7 @@ IdentityCore shall enforce:
 
 ---
 
-# AI Service Security
+## AI Service Security
 
 The AI service is internal.
 
@@ -458,7 +458,7 @@ Rules:
 
 ---
 
-# Infrastructure Security
+## Infrastructure Security
 
 Infrastructure requirements include:
 
@@ -473,7 +473,7 @@ Infrastructure requirements include:
 
 ---
 
-# Database Security
+## Database Security
 
 Rules:
 
@@ -486,7 +486,7 @@ Rules:
 
 ---
 
-# Background Worker Security
+## Background Worker Security
 
 Background workers must:
 
@@ -498,7 +498,7 @@ Background workers must:
 
 ---
 
-# Provider Security
+## Provider Security
 
 Every provider integration must:
 
@@ -513,7 +513,7 @@ Providers must never bypass IdentityCore authorization.
 
 ---
 
-# Security Headers
+## Security Headers
 
 HTTP responses should include:
 
@@ -526,7 +526,7 @@ HTTP responses should include:
 
 ---
 
-# Password Policy
+## Password Policy
 
 Minimum requirements:
 
@@ -539,7 +539,7 @@ Password reset links must expire.
 
 ---
 
-# Multi-Factor Authentication
+## Multi-Factor Authentication
 
 Supported methods:
 
@@ -551,7 +551,7 @@ MFA should be mandatory for privileged accounts.
 
 ---
 
-# Session Security
+## Session Security
 
 Sessions must support:
 
@@ -563,7 +563,7 @@ Sessions must support:
 
 ---
 
-# Threat Detection
+## Threat Detection
 
 IdentityCore should detect:
 
@@ -577,7 +577,7 @@ IdentityCore should detect:
 
 ---
 
-# Backup Security
+## Backup Security
 
 Backups must:
 
@@ -589,7 +589,7 @@ Backups must:
 
 ---
 
-# Incident Response
+## Incident Response
 
 Every security incident should include:
 
@@ -603,7 +603,7 @@ All incidents should produce audit records.
 
 ---
 
-# Secure Development
+## Secure Development
 
 Developers must follow:
 
@@ -616,7 +616,7 @@ Developers must follow:
 
 ---
 
-# Future Security Enhancements
+## Future Security Enhancements
 
 Future versions may include:
 
@@ -631,7 +631,7 @@ Future versions may include:
 
 ---
 
-# Security Standards
+## Security Standards
 
 IdentityCore should be designed to align with widely recognized security standards, including:
 
@@ -646,7 +646,7 @@ Alignment with these standards guides the platform's security posture but does n
 
 ---
 
-# Final Security Principle
+## Final Security Principle
 
 IdentityCore must assume that every component can be attacked.
 

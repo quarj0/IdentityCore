@@ -17,7 +17,7 @@ ADRs preserve the reasoning behind architectural choices so future contributors 
 
 ---
 
-# Why ADRs?
+## Why ADRs?
 
 Software architecture evolves over time.
 
@@ -27,7 +27,7 @@ ADRs help preserve institutional knowledge, improve onboarding, and support long
 
 ---
 
-# When to Create an ADR
+## When to Create an ADR
 
 Create an ADR when making a significant architectural or engineering decision.
 
@@ -52,7 +52,7 @@ Do **not** create ADRs for:
 
 ---
 
-# ADR Lifecycle
+## ADR Lifecycle
 
 Each ADR progresses through one of the following states:
 
@@ -67,7 +67,7 @@ If a decision changes in the future, create a new ADR rather than rewriting hist
 
 ---
 
-# ADR Format
+## ADR Format
 
 Every ADR should follow the standard structure:
 
@@ -97,7 +97,7 @@ Keeping every ADR consistent makes them easier to read and maintain.
 
 ---
 
-# Numbering
+## Numbering
 
 ADRs use sequential numbering.
 
@@ -117,7 +117,7 @@ If an ADR is removed, its number remains reserved.
 
 ---
 
-# Updating Decisions
+## Updating Decisions
 
 ADRs should be treated as historical records.
 
@@ -133,7 +133,7 @@ This preserves the project's architectural history.
 
 ---
 
-# Current ADR Index
+## Current ADR Index
 
 ```id="q5mpml"
 ADR-001  Public ID Strategy
@@ -159,7 +159,7 @@ ADR-010  AI as Evidence, Not Decision
 
 ---
 
-# Guiding Principles
+## Guiding Principles
 
 Architecture decisions should prioritize:
 
@@ -176,7 +176,7 @@ Architectural consistency is generally more valuable than adopting new technolog
 
 ---
 
-# Final Principle
+## Final Principle
 
 Every significant architectural decision should be documented before or alongside implementation.
 

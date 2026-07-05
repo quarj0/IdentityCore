@@ -6,7 +6,7 @@
 
 ---
 
-# Purpose
+## Purpose
 
 This glossary defines the standard terminology used throughout IdentityCore.
 
@@ -16,7 +16,7 @@ When introducing new concepts, this glossary should be updated before implementa
 
 ---
 
-# A
+## A
 
 ## Access Token
 
@@ -77,7 +77,7 @@ The process of determining whether an authenticated Actor has permission to perf
 
 ---
 
-# B
+## B
 
 ## Biometric Data
 
@@ -108,7 +108,7 @@ IdentityCore uses Celery workers for this purpose.
 
 ---
 
-# C
+## C
 
 ## Celery
 
@@ -152,7 +152,7 @@ Supported document types:
 
 ---
 
-# D
+## D
 
 ## Decision Engine
 
@@ -186,7 +186,7 @@ An AI process that determines whether an uploaded document image is suitable for
 
 ---
 
-# E
+## E
 
 ## Embedding
 
@@ -209,7 +209,7 @@ Evidence supports decisions but is not itself a decision.
 
 ---
 
-# F
+## F
 
 ## Face Detection
 
@@ -237,7 +237,7 @@ Higher scores generally indicate greater similarity.
 
 ---
 
-# G
+## G
 
 ## GraphQL
 
@@ -247,7 +247,7 @@ GraphQL is not intended as the public integration API in Version 1.0.
 
 ---
 
-# H
+## H
 
 ## Health Check
 
@@ -255,7 +255,7 @@ An endpoint used to determine whether a service is operating correctly.
 
 ---
 
-# I
+## I
 
 ## Identity Document
 
@@ -297,7 +297,7 @@ FastAPI AI Service.
 
 ---
 
-# J
+## J
 
 ## Jurisdiction
 
@@ -311,7 +311,7 @@ Examples:
 
 ---
 
-# L
+## L
 
 ## Liveness Check
 
@@ -325,7 +325,7 @@ A confidence score produced by the liveness detection model.
 
 ---
 
-# M
+## M
 
 ## Manual Review
 
@@ -339,7 +339,7 @@ The system that records AI model names, versions, and metadata used during proce
 
 ---
 
-# N
+## N
 
 ## National ID
 
@@ -352,7 +352,7 @@ Examples:
 
 ---
 
-# O
+## O
 
 ## Object Storage
 
@@ -394,7 +394,7 @@ A user belonging to an Organization who accesses the Organization Dashboard.
 
 ---
 
-# P
+## P
 
 ## Platform Administrator
 
@@ -452,7 +452,7 @@ Public IDs are immutable and safe to expose externally.
 
 ---
 
-# R
+## R
 
 ## Request ID
 
@@ -492,7 +492,7 @@ Examples:
 
 ---
 
-# S
+## S
 
 ## Selfie Capture
 
@@ -525,7 +525,7 @@ A structured threat modeling framework covering:
 
 ---
 
-# T
+## T
 
 ## Tenant
 
@@ -553,7 +553,7 @@ Examples:
 
 ---
 
-# U
+## U
 
 ## ULID
 
@@ -563,7 +563,7 @@ IdentityCore uses prefixed ULIDs as Public IDs.
 
 ---
 
-# V
+## V
 
 ## Verification
 
@@ -633,7 +633,7 @@ This term replaces generic labels such as "end user" or "customer" because it ac
 
 ---
 
-# W
+## W
 
 ## Webhook
 
@@ -653,7 +653,7 @@ A registered destination that receives webhook events from IdentityCore.
 
 ---
 
-# Standard Terminology Rules
+## Standard Terminology Rules
 
 Throughout IdentityCore:
 
@@ -681,7 +681,7 @@ Country-specific terminology should be handled through Country Profiles rather t
 
 ---
 
-# Final Principle
+## Final Principle
 
 Every technical, business, and user-facing component of IdentityCore should use the terminology defined in this glossary.
 

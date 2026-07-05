@@ -6,7 +6,7 @@
 
 ---
 
-# Purpose
+## Purpose
 
 This document defines the technical architecture for IdentityCore Version 1.0.
 
@@ -16,7 +16,7 @@ The architecture must support a focused MVP while remaining flexible enough to e
 
 ---
 
-# Architectural Philosophy
+## Architectural Philosophy
 
 IdentityCore will begin as a modular monolith with clearly separated internal domains.
 
@@ -26,7 +26,7 @@ The platform should be designed so that major modules can later become independe
 
 ---
 
-# High-Level Architecture
+## High-Level Architecture
 
 ```text
 Verification Subject
@@ -60,7 +60,7 @@ Organization System / External Client
 
 ---
 
-# Main Applications
+## Main Applications
 
 ## Admin Dashboard
 
@@ -124,7 +124,7 @@ Responsibilities:
 
 ---
 
-# API Strategy
+## API Strategy
 
 IdentityCore uses both REST and GraphQL.
 
@@ -170,7 +170,7 @@ GraphQL should not replace the public REST API in Version 1.0.
 
 ---
 
-# Backend Architecture
+## Backend Architecture
 
 Version 1.0 will use Django as the main backend.
 
@@ -203,7 +203,7 @@ backend/django/
 
 ---
 
-# Core Backend Modules
+## Core Backend Modules
 
 ## Accounts Module
 
@@ -493,7 +493,7 @@ Responsibilities:
 
 ---
 
-# AI Service Architecture
+## AI Service Architecture
 
 AI-related processing should be isolated from the main Django backend.
 
@@ -539,7 +539,7 @@ GET  /v1/models
 
 ---
 
-# Data Architecture
+## Data Architecture
 
 ## Primary Database
 
@@ -627,7 +627,7 @@ Future versions may use:
 
 ---
 
-# Verification Flow
+## Verification Flow
 
 ```text
 1. Organization creates Verification.
@@ -649,7 +649,7 @@ Future versions may use:
 
 ---
 
-# Multi-Tenancy Architecture
+## Multi-Tenancy Architecture
 
 Version 1.0 uses tenant-scoped data isolation.
 
@@ -674,7 +674,7 @@ No Platform User or API Client may access data outside their authorized tenant u
 
 ---
 
-# Security Architecture
+## Security Architecture
 
 Security is a core architectural requirement.
 
@@ -699,7 +699,7 @@ Minimum controls:
 
 ---
 
-# Event Architecture
+## Event Architecture
 
 IdentityCore should use domain events internally.
 
@@ -733,7 +733,7 @@ Future versions may use Kafka, RabbitMQ, or another event broker.
 
 ---
 
-# Provider Adapter Architecture
+## Provider Adapter Architecture
 
 Provider integrations must use adapter patterns.
 
@@ -759,7 +759,7 @@ Rules:
 
 ---
 
-# Deployment Architecture
+## Deployment Architecture
 
 ## Local Development
 
@@ -809,7 +809,7 @@ Future versions should support:
 
 ---
 
-# Service Extraction Strategy
+## Service Extraction Strategy
 
 IdentityCore begins as a modular monolith.
 
@@ -834,7 +834,7 @@ Likely first services to extract:
 
 ---
 
-# Recommended Technology Stack
+## Recommended Technology Stack
 
 ## Backend
 
@@ -881,7 +881,7 @@ Likely first services to extract:
 
 ---
 
-# Observability
+## Observability
 
 Version 1.0 should include:
 
@@ -904,7 +904,7 @@ Future versions should include:
 
 ---
 
-# Architecture Boundaries
+## Architecture Boundaries
 
 The core platform must not:
 
@@ -918,7 +918,7 @@ The core platform must not:
 
 ---
 
-# Version 1.0 Architecture Scope
+## Version 1.0 Architecture Scope
 
 Version 1.0 includes:
 
@@ -957,7 +957,7 @@ Version 1.0 excludes:
 
 ---
 
-# Final Architectural Principle
+## Final Architectural Principle
 
 IdentityCore must be designed as identity infrastructure, not a single-purpose verification application.
 

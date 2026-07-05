@@ -200,6 +200,16 @@ class VerificationSessionDocumentSerializer(serializers.Serializer):
                 status="uploaded",
                 captured_at=now,
             )
+        create_provider_check(
+            verification=verification,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+            status=ProviderCheckStatus.PENDING,
+            request_metadata={
+                "identity_document_id": identity_document.public_id,
+                "document_type": identity_document.document_type_id,
+                "country_code": identity_document.country_profile_id,
+            },
+        )
 
         verification.status = VerificationStatus.AWAITING_SELFIE
         verification.save(update_fields=["status", "updated_at"])

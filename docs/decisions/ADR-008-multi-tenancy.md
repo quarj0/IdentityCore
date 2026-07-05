@@ -6,7 +6,7 @@
 
 ---
 
-# Context
+## Context
 
 IdentityCore is designed as a Software-as-a-Service (SaaS) platform where multiple independent organizations use the same application.
 
@@ -25,7 +25,7 @@ The platform requires a multi-tenancy strategy that provides strong logical isol
 
 ---
 
-# Decision
+## Decision
 
 IdentityCore will implement a **shared database, shared schema** multi-tenancy architecture.
 
@@ -37,7 +37,7 @@ Every tenant-owned resource must belong to exactly one tenant.
 
 ---
 
-# Tenant Ownership
+## Tenant Ownership
 
 Every tenant-owned model must reference its owning tenant.
 
@@ -61,7 +61,7 @@ Tenant ownership must be explicit rather than inferred.
 
 ---
 
-# Data Isolation
+## Data Isolation
 
 Every request accessing tenant-owned resources must validate:
 
@@ -76,7 +76,7 @@ No exceptions are permitted.
 
 ---
 
-# Request Flow
+## Request Flow
 
 ```id="epr42n"
 Client Request
@@ -98,7 +98,7 @@ Tenant resolution occurs before business logic execution.
 
 ---
 
-# Public APIs
+## Public APIs
 
 Every public API request must operate only within the authenticated tenant.
 
@@ -126,7 +126,7 @@ Returning `404 Not Found` for inaccessible tenant resources reduces information 
 
 ---
 
-# Background Tasks
+## Background Tasks
 
 Tenant context must be preserved in asynchronous processing.
 
@@ -139,7 +139,7 @@ Tasks must never assume tenant ownership based solely on resource identifiers.
 
 ---
 
-# Internal Services
+## Internal Services
 
 Internal services such as the FastAPI AI service do not determine tenant ownership.
 
@@ -153,7 +153,7 @@ The AI service processes only media explicitly provided by the backend.
 
 ---
 
-# Database Queries
+## Database Queries
 
 Tenant filtering should be explicit.
 
@@ -178,7 +178,7 @@ Every tenant-owned query must include tenant context.
 
 ---
 
-# Audit Events
+## Audit Events
 
 Audit Events must include:
 
@@ -192,7 +192,7 @@ This enables tenant-specific auditing while maintaining platform-wide observabil
 
 ---
 
-# Caching
+## Caching
 
 Cached data must be tenant-aware.
 
@@ -208,7 +208,7 @@ Tenant context must never be omitted from cache keys.
 
 ---
 
-# Search
+## Search
 
 Search functionality must operate only within the requesting tenant.
 
@@ -218,7 +218,7 @@ Cross-tenant searching is prohibited unless explicitly performed by authorized p
 
 ---
 
-# Monitoring
+## Monitoring
 
 Monitoring systems should detect:
 
@@ -231,7 +231,7 @@ Security alerts should be generated for repeated isolation failures.
 
 ---
 
-# Security
+## Security
 
 Tenant isolation is considered a primary security boundary.
 
@@ -248,7 +248,7 @@ All components must preserve tenant isolation, including:
 
 ---
 
-# Enterprise Deployments
+## Enterprise Deployments
 
 Future enterprise customers may require stronger isolation.
 
@@ -264,7 +264,7 @@ The shared-schema architecture should not prevent these future deployment models
 
 ---
 
-# Government Deployments
+## Government Deployments
 
 Government customers may require:
 
@@ -279,7 +279,7 @@ The application architecture should support both approaches.
 
 ---
 
-# Consequences
+## Consequences
 
 ## Positive
 
@@ -302,7 +302,7 @@ These trade-offs are acceptable for Version 1.0.
 
 ---
 
-# Alternatives Considered
+## Alternatives Considered
 
 ## Database Per Tenant
 
@@ -337,7 +337,7 @@ Supporting only single-organization deployments would significantly reduce the p
 
 ---
 
-# Future Considerations
+## Future Considerations
 
 Future enhancements may include:
 
@@ -352,7 +352,7 @@ These enhancements should preserve existing business logic wherever possible.
 
 ---
 
-# Implementation Notes
+## Implementation Notes
 
 - Every tenant-owned model includes a tenant reference.
 - Every tenant-owned query filters by tenant.
@@ -363,7 +363,7 @@ These enhancements should preserve existing business logic wherever possible.
 
 ---
 
-# References
+## References
 
 - Architecture
 - Database Design

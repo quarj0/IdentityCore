@@ -6,7 +6,7 @@
 
 ---
 
-# Context
+## Context
 
 IdentityCore stores highly structured and relational data, including:
 
@@ -35,7 +35,7 @@ The platform requires a database that provides:
 
 ---
 
-# Decision
+## Decision
 
 IdentityCore will use **PostgreSQL** as the primary database for Version 1.0.
 
@@ -45,7 +45,7 @@ All domain models will be stored in PostgreSQL unless there is a compelling arch
 
 ---
 
-# Why PostgreSQL?
+## Why PostgreSQL?
 
 PostgreSQL was selected because it provides:
 
@@ -64,7 +64,7 @@ These capabilities align well with IdentityCore's security, auditability, and co
 
 ---
 
-# Data Ownership
+## Data Ownership
 
 PostgreSQL stores:
 
@@ -90,7 +90,7 @@ Large binary files are **not** stored inside PostgreSQL.
 
 ---
 
-# Object Storage
+## Object Storage
 
 Binary media such as:
 
@@ -111,7 +111,7 @@ This keeps the database efficient while allowing secure handling of large media 
 
 ---
 
-# JSONB Usage
+## JSONB Usage
 
 PostgreSQL's JSONB type may be used for data that is:
 
@@ -132,7 +132,7 @@ Core business entities should remain relational.
 
 ---
 
-# Transactions
+## Transactions
 
 Critical operations should execute within database transactions.
 
@@ -148,7 +148,7 @@ Transactions help maintain consistency during failures.
 
 ---
 
-# Constraints
+## Constraints
 
 Database constraints should enforce data integrity wherever possible.
 
@@ -163,7 +163,7 @@ Business rules that cannot be represented as database constraints belong in the 
 
 ---
 
-# Indexing
+## Indexing
 
 Indexes should be created for:
 
@@ -180,7 +180,7 @@ Indexes should be added based on measured performance rather than assumptions.
 
 ---
 
-# Multi-Tenancy
+## Multi-Tenancy
 
 IdentityCore uses a shared PostgreSQL database with a shared schema.
 
@@ -192,7 +192,7 @@ Future versions may evaluate row-level security or dedicated databases for speci
 
 ---
 
-# Migrations
+## Migrations
 
 Schema changes must be managed through Django migrations.
 
@@ -207,7 +207,7 @@ Destructive migrations should be planned carefully and executed only when necess
 
 ---
 
-# Backup Strategy
+## Backup Strategy
 
 PostgreSQL backups must support:
 
@@ -220,7 +220,7 @@ Backups should be monitored and periodically verified.
 
 ---
 
-# Performance Strategy
+## Performance Strategy
 
 Performance improvements should follow this order:
 
@@ -234,7 +234,7 @@ Avoid premature optimization.
 
 ---
 
-# High Availability
+## High Availability
 
 Version 1.0 does not require a highly available PostgreSQL cluster.
 
@@ -249,7 +249,7 @@ These features should be introduced only when operational requirements justify t
 
 ---
 
-# Consequences
+## Consequences
 
 ## Positive
 
@@ -270,7 +270,7 @@ These trade-offs are acceptable for the expected growth of Version 1.0.
 
 ---
 
-# Alternatives Considered
+## Alternatives Considered
 
 ## MySQL
 
@@ -300,7 +300,7 @@ Rejected because it is intended primarily for local development and is not suita
 
 ---
 
-# Future Considerations
+## Future Considerations
 
 Future versions may evaluate:
 
@@ -316,7 +316,7 @@ These enhancements should not compromise the platform's core transactional integ
 
 ---
 
-# Implementation Notes
+## Implementation Notes
 
 - PostgreSQL is the authoritative source of business data.
 - Object storage is used for binary media.
@@ -326,7 +326,7 @@ These enhancements should not compromise the platform's core transactional integ
 
 ---
 
-# References
+## References
 
 - Database Design
 - Architecture

@@ -6,7 +6,7 @@
 
 ---
 
-# Purpose
+## Purpose
 
 This document identifies major security threats against IdentityCore and defines the controls required to reduce risk.
 
@@ -14,7 +14,7 @@ IdentityCore handles personal data, identity documents, biometric data, API cred
 
 ---
 
-# Threat Modeling Approach
+## Threat Modeling Approach
 
 IdentityCore uses the STRIDE framework:
 
@@ -27,7 +27,7 @@ IdentityCore uses the STRIDE framework:
 
 ---
 
-# Assets to Protect
+## Assets to Protect
 
 IdentityCore must protect:
 
@@ -50,7 +50,7 @@ IdentityCore must protect:
 
 ---
 
-# Trust Boundaries
+## Trust Boundaries
 
 The main trust boundaries are:
 
@@ -74,7 +74,7 @@ Every boundary requires authentication, validation, authorization, rate limiting
 
 ---
 
-# Threat Actors
+## Threat Actors
 
 Potential attackers include:
 
@@ -92,7 +92,7 @@ Potential attackers include:
 
 ---
 
-# Spoofing Threats
+## Spoofing Threats
 
 ## Threat: Stolen Platform User Credentials
 
@@ -182,7 +182,7 @@ Controls:
 
 ---
 
-# Tampering Threats
+## Tampering Threats
 
 ## Threat: Modified Verification Payload
 
@@ -269,7 +269,7 @@ Controls:
 
 ---
 
-# Repudiation Threats
+## Repudiation Threats
 
 ## Threat: User Denies Performing Manual Review
 
@@ -333,7 +333,7 @@ Controls:
 
 ---
 
-# Information Disclosure Threats
+## Information Disclosure Threats
 
 ## Threat: Cross-Tenant Data Exposure
 
@@ -436,7 +436,7 @@ Controls:
 
 ---
 
-# Denial of Service Threats
+## Denial of Service Threats
 
 ## Threat: API Flooding
 
@@ -520,7 +520,7 @@ Controls:
 
 ---
 
-# Elevation of Privilege Threats
+## Elevation of Privilege Threats
 
 ## Threat: Organization User Becomes Platform Admin
 
@@ -598,7 +598,7 @@ Controls:
 
 ---
 
-# AI-Specific Threats
+## AI-Specific Threats
 
 ## Threat: Spoofed Selfie
 
@@ -680,7 +680,7 @@ Controls:
 
 ---
 
-# Infrastructure Threats
+## Infrastructure Threats
 
 ## Threat: Database Compromise
 
@@ -764,7 +764,7 @@ Controls:
 
 ---
 
-# Web Threats
+## Web Threats
 
 IdentityCore must protect against common web threats:
 
@@ -792,7 +792,7 @@ Controls:
 
 ---
 
-# Risk Ratings
+## Risk Ratings
 
 Threats should be rated using:
 
@@ -815,7 +815,7 @@ Critical risks must be addressed before production.
 
 ---
 
-# Highest Priority Risks for Version 1.0
+## Highest Priority Risks for Version 1.0
 
 The highest priority risks are:
 
@@ -832,7 +832,7 @@ The highest priority risks are:
 
 ---
 
-# Required Security Tests
+## Required Security Tests
 
 Before production, IdentityCore must test:
 
@@ -850,7 +850,7 @@ Before production, IdentityCore must test:
 
 ---
 
-# Residual Risk
+## Residual Risk
 
 Some risks cannot be fully eliminated.
 
@@ -866,7 +866,7 @@ IdentityCore reduces these risks through layered controls, auditability, manual 
 
 ---
 
-# Review Frequency
+## Review Frequency
 
 This threat model should be reviewed:
 
@@ -879,7 +879,7 @@ This threat model should be reviewed:
 
 ---
 
-# Final Threat Model Principle
+## Final Threat Model Principle
 
 IdentityCore must assume that identity systems attract serious attackers.
 

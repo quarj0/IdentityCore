@@ -2,6 +2,7 @@ from django.conf import settings
 from django.test import SimpleTestCase
 
 from apps.biometrics.tasks import process_verification_biometrics_task
+from apps.identity_documents.tasks import process_identity_document_task
 from apps.notifications.tasks import deliver_notification_task, process_pending_notifications_task
 from apps.webhooks.tasks import deliver_webhook_event_task, process_pending_webhook_events_task
 
@@ -25,6 +26,7 @@ class CeleryConfigurationTests(SimpleTestCase):
 
     def test_celery_routes_use_dedicated_lightweight_queues(self):
         self.assertEqual(settings.CELERY_TASK_ROUTES[process_verification_biometrics_task.name]["queue"], "ai_processing")
+        self.assertEqual(settings.CELERY_TASK_ROUTES[process_identity_document_task.name]["queue"], "ai_processing")
         self.assertEqual(settings.CELERY_TASK_ROUTES[process_pending_webhook_events_task.name]["queue"], "webhooks")
         self.assertEqual(settings.CELERY_TASK_ROUTES[deliver_webhook_event_task.name]["queue"], "webhooks")
         self.assertEqual(

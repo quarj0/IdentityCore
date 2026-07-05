@@ -6,7 +6,7 @@
 
 ---
 
-# Context
+## Context
 
 IdentityCore is expected to evolve into a large identity verification platform supporting:
 
@@ -31,7 +31,7 @@ Choosing too much complexity too early can significantly slow development, while
 
 ---
 
-# Decision
+## Decision
 
 IdentityCore will adopt a **Modular Monolith** architecture for Version 1.0.
 
@@ -43,7 +43,7 @@ Modules communicate through well-defined service interfaces rather than direct c
 
 ---
 
-# Architecture
+## Architecture
 
 Example structure:
 
@@ -89,7 +89,7 @@ Business logic should remain inside the owning module.
 
 ---
 
-# Rationale
+## Rationale
 
 A modular monolith provides the advantages of both traditional monoliths and microservices while avoiding much of their complexity.
 
@@ -108,7 +108,7 @@ For an early-stage platform, these advantages outweigh the operational flexibili
 
 ---
 
-# Module Communication
+## Module Communication
 
 Modules should communicate through:
 
@@ -136,7 +136,7 @@ from unrelated modules.
 
 ---
 
-# Database Strategy
+## Database Strategy
 
 The modular monolith uses:
 
@@ -148,7 +148,7 @@ Database ownership follows domain boundaries rather than physical database separ
 
 ---
 
-# Why Not Microservices?
+## Why Not Microservices?
 
 Microservices were rejected for Version 1.0 because they introduce significant operational complexity, including:
 
@@ -165,7 +165,7 @@ These challenges provide little value during the MVP stage.
 
 ---
 
-# Service Extraction Strategy
+## Service Extraction Strategy
 
 The architecture should allow selected modules to be extracted into independent services when justified.
 
@@ -182,7 +182,7 @@ Extraction should occur only when driven by measurable operational or scalabilit
 
 ---
 
-# Domain Ownership
+## Domain Ownership
 
 Every domain module owns:
 
@@ -198,7 +198,7 @@ Other modules should interact through public service interfaces rather than inte
 
 ---
 
-# Consequences
+## Consequences
 
 ## Positive
 
@@ -222,7 +222,7 @@ These trade-offs are acceptable for Version 1.0.
 
 ---
 
-# Alternatives Considered
+## Alternatives Considered
 
 ## Traditional Monolith
 
@@ -248,7 +248,7 @@ Serverless may still be appropriate for selected supporting functions in the fut
 
 ---
 
-# Migration Strategy
+## Migration Strategy
 
 IdentityCore should remain deployable as a single application until clear evidence supports extracting a module.
 
@@ -264,7 +264,7 @@ Extraction should preserve existing API contracts wherever possible.
 
 ---
 
-# Implementation Notes
+## Implementation Notes
 
 - Every domain should be implemented as a Django app.
 - Business logic belongs in the service layer.
@@ -274,7 +274,7 @@ Extraction should preserve existing API contracts wherever possible.
 
 ---
 
-# References
+## References
 
 - Architecture
 - Database Design

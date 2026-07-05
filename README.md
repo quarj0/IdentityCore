@@ -8,7 +8,7 @@ The platform is designed with security, privacy, auditability, and scalability a
 
 ---
 
-# Vision
+## Vision
 
 To build trusted identity infrastructure that organizations can rely on for secure, privacy-preserving, and auditable identity verification.
 
@@ -16,7 +16,7 @@ IdentityCore is designed to evolve from a verification platform into a broader d
 
 ---
 
-# Core Principles
+## Core Principles
 
 - Security by Default
 - Privacy by Design
@@ -29,7 +29,7 @@ IdentityCore is designed to evolve from a verification platform into a broader d
 
 ---
 
-# Technology Stack
+## Technology Stack
 
 ## Backend
 
@@ -67,7 +67,7 @@ IdentityCore is designed to evolve from a verification platform into a broader d
 
 ---
 
-# Repository Structure
+## Repository Structure
 
 ```text
 identitycore/
@@ -96,7 +96,7 @@ docs/
 
 ---
 
-# Project Documentation
+## Project Documentation
 
 ## Foundation
 
@@ -132,7 +132,7 @@ General ideas, future enhancements, lessons learned, and project observations.
 
 ---
 
-# Key Features
+## Key Features
 
 Version 1.0 includes:
 
@@ -156,7 +156,7 @@ Version 1.0 includes:
 
 ---
 
-# Project Status
+## Project Status
 
 Current Phase:
 
@@ -168,7 +168,7 @@ The next phase is implementation.
 
 ---
 
-# Development Roadmap
+## Development Roadmap
 
 Implementation will follow this sequence:
 
@@ -185,7 +185,7 @@ Implementation will follow this sequence:
 
 ---
 
-# Engineering Principles
+## Engineering Principles
 
 IdentityCore follows these engineering principles:
 
@@ -197,7 +197,7 @@ IdentityCore follows these engineering principles:
 
 ---
 
-# Security
+## Security
 
 IdentityCore handles highly sensitive information including identity documents and biometric data.
 
@@ -214,7 +214,7 @@ Security is considered a core product feature.
 
 ---
 
-# Contributing
+## Contributing
 
 As the project grows, all contributions should:
 
@@ -227,13 +227,13 @@ As the project grows, all contributions should:
 
 ---
 
-# License
+## License
 
 License information will be added before the first public release.
 
 ---
 
-# Contact
+## Contact
 
 IdentityCore is currently under active development.
 
@@ -241,7 +241,7 @@ For questions, feature requests, or future collaboration, project contact inform
 
 ---
 
-# Final Statement
+## Final Statement
 
 IdentityCore is being built as long-term identity infrastructure rather than a single-purpose application.
 

@@ -160,7 +160,8 @@ class VerificationSessionPortalTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_submit_documents_creates_identity_document_and_captures(self):
+    @patch("apps.verification_sessions.views.process_identity_document_task.delay")
+    def test_submit_documents_creates_identity_document_and_captures(self, mock_delay):
         ConsentRecord.objects.create(
             tenant=self.tenant,
             verification=self.verification,
@@ -200,6 +201,13 @@ class VerificationSessionPortalTests(APITestCase):
         )
         capture = DocumentCapture.objects.get(identity_document=identity_document, side="front")
         self.assertEqual(capture.storage_key, "uploads/documents/upl_01JABC")
+        self.assertTrue(
+            ProviderCheck.objects.filter(
+                verification=self.verification,
+                check_type="document_ocr",
+            ).exists()
+        )
+        mock_delay.assert_called_once_with(identity_document.public_id)
         self.verification.refresh_from_db()
         self.assertEqual(self.verification.status, VerificationStatus.AWAITING_SELFIE)
 

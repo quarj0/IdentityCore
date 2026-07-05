@@ -6,7 +6,7 @@
 
 ---
 
-# Context
+## Context
 
 IdentityCore exposes resources through public APIs, frontend applications, webhook payloads, and audit records.
 
@@ -22,7 +22,7 @@ The platform requires identifiers that are globally unique, difficult to guess, 
 
 ---
 
-# Decision
+## Decision
 
 IdentityCore will use **prefixed ULIDs** as the public identifier for every externally accessible resource.
 
@@ -50,7 +50,7 @@ Internal database IDs must never be exposed outside trusted internal services.
 
 ---
 
-# Rationale
+## Rationale
 
 Prefixed ULIDs were selected because they:
 
@@ -79,7 +79,7 @@ clearly identifies an Organization.
 
 ---
 
-# Consequences
+## Consequences
 
 ## Positive
 
@@ -100,7 +100,7 @@ These trade-offs are considered acceptable given the security, maintainability, 
 
 ---
 
-# Alternatives Considered
+## Alternatives Considered
 
 ## Auto-incrementing Integers
 
@@ -130,7 +130,7 @@ At the time of this decision, prefixed ULIDs were chosen because they are mature
 
 ---
 
-# Implementation Notes
+## Implementation Notes
 
 - Every externally accessible model should include a `public_id`.
 - `public_id` values must be generated automatically.
@@ -141,7 +141,7 @@ At the time of this decision, prefixed ULIDs were chosen because they are mature
 
 ---
 
-# References
+## References
 
 - Database Design
 - API Specification

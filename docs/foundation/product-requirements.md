@@ -6,7 +6,7 @@
 
 ---
 
-# Purpose
+## Purpose
 
 This document defines the functional and non-functional requirements for the first release (MVP) of IdentityCore.
 
@@ -16,13 +16,13 @@ This document intentionally limits scope to ensure the platform is reliable, sec
 
 ---
 
-# Product Goal
+## Product Goal
 
 Build a trusted identity verification platform that organizations can integrate into their applications to verify users securely, quickly, and transparently.
 
 ---
 
-# Success Metrics
+## Success Metrics
 
 The MVP will be considered successful when it can:
 
@@ -38,7 +38,7 @@ The MVP will be considered successful when it can:
 
 ---
 
-# Target Customers
+## Target Customers
 
 Initial customers include:
 
@@ -57,7 +57,7 @@ Government agencies are **not** considered initial customers for Version 1.0.
 
 ---
 
-# User Roles
+## User Roles
 
 ## Platform Administrator
 
@@ -114,7 +114,7 @@ Capabilities include:
 
 ---
 
-# Functional Requirements
+## Functional Requirements
 
 ## Authentication
 
@@ -251,7 +251,7 @@ GraphQL will initially power internal dashboards only.
 
 ---
 
-# Non-Functional Requirements
+## Non-Functional Requirements
 
 ## Security
 
@@ -315,7 +315,7 @@ The platform shall:
 
 ---
 
-# Out of Scope (Version 1.0)
+## Out of Scope (Version 1.0)
 
 The following features are intentionally excluded:
 
@@ -339,7 +339,7 @@ These features remain part of the long-term roadmap.
 
 ---
 
-# MVP Deliverables
+## MVP Deliverables
 
 Version 1.0 will deliver:
 
@@ -361,7 +361,7 @@ Version 1.0 will deliver:
 
 ---
 
-# Acceptance Criteria
+## Acceptance Criteria
 
 IdentityCore Version 1.0 is complete when an organization can:
 
@@ -380,7 +380,7 @@ IdentityCore Version 1.0 is complete when an organization can:
 
 ---
 
-# Product Philosophy
+## Product Philosophy
 
 IdentityCore is not a facial recognition application.
 

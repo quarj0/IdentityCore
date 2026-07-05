@@ -8,7 +8,7 @@ Please read this guide before contributing.
 
 ---
 
-# Code of Conduct
+## Code of Conduct
 
 All contributors are expected to:
 
@@ -20,7 +20,7 @@ All contributors are expected to:
 
 ---
 
-# Before You Start
+## Before You Start
 
 Before writing code:
 
@@ -33,7 +33,7 @@ If your work changes the architecture, create or update an ADR before implementa
 
 ---
 
-# Development Environment
+## Development Environment
 
 IdentityCore is developed using Ubuntu and Docker.
 
@@ -51,7 +51,7 @@ Follow the setup instructions in the project README.
 
 ---
 
-# Branch Naming
+## Branch Naming
 
 Use descriptive branch names.
 
@@ -84,7 +84,7 @@ branch1
 
 ---
 
-# Commit Messages
+## Commit Messages
 
 Follow the Conventional Commits format.
 
@@ -104,7 +104,7 @@ Commit messages should describe **what changed**, not the entire implementation.
 
 ---
 
-# Pull Requests
+## Pull Requests
 
 Every pull request should include:
 
@@ -119,7 +119,7 @@ Keep pull requests focused. Avoid combining unrelated features into one pull req
 
 ---
 
-# Coding Standards
+## Coding Standards
 
 All contributions must follow the project's Coding Standards document.
 
@@ -135,7 +135,7 @@ Key principles include:
 
 ---
 
-# Security Requirements
+## Security Requirements
 
 Security is mandatory.
 
@@ -152,7 +152,7 @@ If a change introduces a new security risk, document it and discuss it before me
 
 ---
 
-# Testing Requirements
+## Testing Requirements
 
 New features should include appropriate tests.
 
@@ -169,7 +169,7 @@ Code that cannot be tested should include a clear explanation.
 
 ---
 
-# Documentation
+## Documentation
 
 Update documentation whenever changes affect:
 
@@ -185,7 +185,7 @@ Documentation should remain synchronized with the implementation.
 
 ---
 
-# Architecture Decisions
+## Architecture Decisions
 
 Significant architectural changes should be documented using an Architecture Decision Record (ADR).
 
@@ -199,7 +199,7 @@ Examples include:
 
 ---
 
-# Dependencies
+## Dependencies
 
 Before adding a new dependency, consider:
 
@@ -212,7 +212,7 @@ Prefer fewer, well-maintained dependencies over many small packages.
 
 ---
 
-# Performance
+## Performance
 
 Contributors should consider:
 
@@ -226,7 +226,7 @@ Avoid premature optimization, but do not ignore obvious performance issues.
 
 ---
 
-# AI Contributions
+## AI Contributions
 
 Changes to the AI service should:
 
@@ -240,7 +240,7 @@ New AI models should be evaluated before replacing existing ones.
 
 ---
 
-# Security Reporting
+## Security Reporting
 
 If you discover a security vulnerability:
 
@@ -251,7 +251,7 @@ If you discover a security vulnerability:
 
 ---
 
-# Development Philosophy
+## Development Philosophy
 
 IdentityCore values:
 
@@ -265,7 +265,7 @@ Every contribution should leave the codebase better than it was found.
 
 ---
 
-# Definition of Done
+## Definition of Done
 
 A contribution is considered complete when:
 
@@ -279,7 +279,7 @@ A contribution is considered complete when:
 
 ---
 
-# Thank You
+## Thank You
 
 Thank you for contributing to IdentityCore.
 

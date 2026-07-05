@@ -6,7 +6,7 @@
 
 ---
 
-# Purpose
+## Purpose
 
 This document defines coding standards for IdentityCore.
 
@@ -14,7 +14,7 @@ The goal is to keep the codebase secure, readable, consistent, maintainable, and
 
 ---
 
-# Core Principles
+## Core Principles
 
 IdentityCore code must be:
 
@@ -28,7 +28,7 @@ IdentityCore code must be:
 
 ---
 
-# Technology Stack
+## Technology Stack
 
 Version 1.0 uses:
 
@@ -61,7 +61,7 @@ GitHub Actions
 
 ---
 
-# Repository Structure
+## Repository Structure
 
 Recommended structure:
 
@@ -92,7 +92,7 @@ docs/
 
 ---
 
-# Python Standards
+## Python Standards
 
 Python code must follow:
 
@@ -116,7 +116,7 @@ bandit
 
 ---
 
-# Django Standards
+## Django Standards
 
 Django apps should be domain-based.
 
@@ -150,7 +150,7 @@ tests/
 
 ---
 
-# Service Layer Pattern
+## Service Layer Pattern
 
 Business logic should not live directly in views.
 
@@ -181,7 +181,7 @@ create_verification(
 
 ---
 
-# Selectors Pattern
+## Selectors Pattern
 
 Read-heavy queries should live in selectors.
 
@@ -198,7 +198,7 @@ This keeps query logic reusable and tenant-safe.
 
 ---
 
-# Tenant Safety
+## Tenant Safety
 
 Every tenant-owned query must include tenant context.
 
@@ -221,7 +221,7 @@ Tenant filtering is mandatory.
 
 ---
 
-# Public IDs
+## Public IDs
 
 Do not expose internal database IDs.
 
@@ -242,7 +242,7 @@ Internal IDs are for database relationships only.
 
 ---
 
-# Naming Conventions
+## Naming Conventions
 
 Use domain language consistently.
 
@@ -272,7 +272,7 @@ Customer document
 
 ---
 
-# API Standards
+## API Standards
 
 All REST responses must follow the standard format.
 
@@ -302,7 +302,7 @@ Error:
 
 ---
 
-# Error Handling
+## Error Handling
 
 Errors should be explicit and safe.
 
@@ -319,7 +319,7 @@ Use domain-specific errors where possible.
 
 ---
 
-# Logging Standards
+## Logging Standards
 
 Logs must be structured.
 
@@ -344,7 +344,7 @@ Never log:
 
 ---
 
-# Audit Events
+## Audit Events
 
 Sensitive actions must create audit events.
 
@@ -364,7 +364,7 @@ Audit events should be emitted from the service layer.
 
 ---
 
-# Celery Standards
+## Celery Standards
 
 Celery tasks must be:
 
@@ -378,7 +378,7 @@ Tasks should receive public IDs or explicit tenant context, not random unscoped 
 
 ---
 
-# FastAPI AI Service Standards
+## FastAPI AI Service Standards
 
 The AI service must:
 
@@ -393,7 +393,7 @@ AI endpoints return technical results, not business decisions.
 
 ---
 
-# Frontend Standards
+## Frontend Standards
 
 Frontend code must use:
 
@@ -408,7 +408,7 @@ Do not expose secrets in frontend code.
 
 ---
 
-# Security Standards
+## Security Standards
 
 All code must follow:
 
@@ -423,7 +423,7 @@ Security-sensitive changes require careful review.
 
 ---
 
-# Testing Standards
+## Testing Standards
 
 Every feature should include tests for:
 
@@ -437,7 +437,7 @@ Security-sensitive modules require extra tests.
 
 ---
 
-# Git Standards
+## Git Standards
 
 Branch naming:
 
@@ -461,7 +461,7 @@ security: mask API secrets in logs
 
 ---
 
-# Pull Request Standards
+## Pull Request Standards
 
 Every pull request should include:
 
@@ -473,7 +473,7 @@ Every pull request should include:
 
 ---
 
-# Dependency Standards
+## Dependency Standards
 
 Dependencies must be:
 
@@ -486,7 +486,7 @@ Avoid adding packages for simple functionality.
 
 ---
 
-# Environment Configuration
+## Environment Configuration
 
 Use environment variables for configuration.
 
@@ -500,7 +500,7 @@ Do not hardcode:
 
 ---
 
-# Documentation Standards
+## Documentation Standards
 
 Update documentation when changing:
 
@@ -515,7 +515,7 @@ Major decisions require an ADR.
 
 ---
 
-# Code Review Checklist
+## Code Review Checklist
 
 Before merging code, check:
 
@@ -530,7 +530,7 @@ Before merging code, check:
 
 ---
 
-# Final Coding Principle
+## Final Coding Principle
 
 IdentityCore code should be boring, clear, secure, and predictable.
 

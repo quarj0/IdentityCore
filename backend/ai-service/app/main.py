@@ -23,6 +23,18 @@ class LivenessCheckRequest(BaseModel):
     liveness_type: str
 
 
+class DocumentOCRRequest(BaseModel):
+    verification_id: str
+    document_storage_key: str
+    document_type: str
+    country_code: str
+
+
+class DocumentQualityRequest(BaseModel):
+    verification_id: str
+    document_storage_key: str
+
+
 @app.post("/v1/face/compare")
 async def face_compare(payload: FaceCompareRequest) -> dict[str, str | float | bool]:
     matched = "mismatch" not in payload.selfie_storage_key and "mismatch" not in payload.document_storage_key
@@ -49,4 +61,30 @@ async def liveness_check(payload: LivenessCheckRequest) -> dict[str, str | float
         "passed": passed,
         "model_name": "mock-liveness",
         "model_version": "v1",
+    }
+
+
+@app.post("/v1/document/ocr")
+async def document_ocr(payload: DocumentOCRRequest) -> dict[str, str | float | dict]:
+    return {
+        "status": "completed",
+        "confidence_score": 0.91,
+        "extracted_fields": {
+            "full_name": "Kwame Mensah",
+            "date_of_birth": "1998-01-01",
+            "document_number": f"hash:{payload.document_type}:{payload.country_code}",
+        },
+        "model_name": "mock-ocr",
+        "model_version": "v1",
+    }
+
+
+@app.post("/v1/document/quality")
+async def document_quality(payload: DocumentQualityRequest) -> dict[str, str | float | list]:
+    issues = ["blur_detected"] if "blur" in payload.document_storage_key else []
+    score = 0.42 if issues else 0.88
+    return {
+        "status": "completed",
+        "quality_score": score,
+        "issues": issues,
     }

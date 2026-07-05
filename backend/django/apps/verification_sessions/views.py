@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 
 from apps.audit.services import record_audit_event
 from apps.biometrics.tasks import process_verification_biometrics_task
+from apps.identity_documents.tasks import process_identity_document_task
 from apps.webhooks.services import queue_webhook_events
 from apps.verification_sessions.serializers import (
     VerificationSessionConsentSerializer,
@@ -106,6 +107,7 @@ class VerificationSessionDocumentView(VerificationSessionBaseView):
                 "status": verification.status,
             },
         )
+        process_identity_document_task.delay(identity_document.public_id)
         return success_response(
             {
                 "identity_document_id": identity_document.public_id,

@@ -11,6 +11,11 @@ from apps.providers.models import (
 
 
 SYSTEM_PROVIDER_DEFAULTS = {
+    ProviderCheckType.DOCUMENT_OCR: {
+        "code": "internal-document-ocr",
+        "name": "Internal Document OCR Engine",
+        "provider_type": ProviderType.DOCUMENT,
+    },
     ProviderCheckType.LIVENESS: {
         "code": "internal-liveness",
         "name": "Internal Liveness Engine",

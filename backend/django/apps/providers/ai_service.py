@@ -44,3 +44,31 @@ def run_face_compare(
             "threshold": threshold,
         },
     )
+
+
+def run_document_ocr(
+    *,
+    verification_id: str,
+    document_storage_key: str,
+    document_type: str,
+    country_code: str,
+) -> dict:
+    return _post_json(
+        "/v1/document/ocr",
+        {
+            "verification_id": verification_id,
+            "document_storage_key": document_storage_key,
+            "document_type": document_type,
+            "country_code": country_code,
+        },
+    )
+
+
+def run_document_quality(*, verification_id: str, document_storage_key: str) -> dict:
+    return _post_json(
+        "/v1/document/quality",
+        {
+            "verification_id": verification_id,
+            "document_storage_key": document_storage_key,
+        },
+    )

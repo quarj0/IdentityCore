@@ -6,7 +6,7 @@
 
 ---
 
-# Context
+## Context
 
 IdentityCore uses Artificial Intelligence to assist identity verification through capabilities such as:
 
@@ -33,7 +33,7 @@ For these reasons, AI should support decision-making rather than replace it.
 
 ---
 
-# Decision
+## Decision
 
 IdentityCore adopts the principle:
 
@@ -45,7 +45,7 @@ Instead, it returns measurable technical outputs that the platform evaluates acc
 
 ---
 
-# AI Responsibilities
+## AI Responsibilities
 
 The AI service is responsible for:
 
@@ -64,7 +64,7 @@ The AI service is not responsible for business decisions.
 
 ---
 
-# Decision Engine Responsibilities
+## Decision Engine Responsibilities
 
 The Decision Engine is responsible for:
 
@@ -80,7 +80,7 @@ The Decision Engine operates within the Django backend.
 
 ---
 
-# Example Workflow
+## Example Workflow
 
 ```id="t0zqg4"
 Document Uploaded
@@ -122,7 +122,7 @@ The outcome depends on policy, not the AI model.
 
 ---
 
-# Why This Approach?
+## Why This Approach?
 
 Separating evidence from decisions provides:
 
@@ -140,7 +140,7 @@ Likewise, AI models can be upgraded without changing business logic.
 
 ---
 
-# Explainability
+## Explainability
 
 Every Verification Decision should be explainable.
 
@@ -168,7 +168,7 @@ This improves trust, debugging, and compliance.
 
 ---
 
-# Manual Review
+## Manual Review
 
 AI uncertainty should trigger human review rather than automatic rejection where appropriate.
 
@@ -184,7 +184,7 @@ Manual Review remains an important safety mechanism.
 
 ---
 
-# Verification Policies
+## Verification Policies
 
 Different organizations may configure different thresholds.
 
@@ -212,7 +212,7 @@ Only policy changes.
 
 ---
 
-# AI Independence
+## AI Independence
 
 The Decision Engine should not depend on:
 
@@ -232,7 +232,7 @@ without rewriting business logic.
 
 ---
 
-# Auditability
+## Auditability
 
 Every Verification should record:
 
@@ -248,7 +248,7 @@ This enables complete traceability.
 
 ---
 
-# Security
+## Security
 
 The AI service should never receive responsibilities related to:
 
@@ -262,7 +262,7 @@ These remain within the trusted backend.
 
 ---
 
-# Consequences
+## Consequences
 
 ## Positive
 
@@ -284,7 +284,7 @@ These trade-offs are acceptable because they produce a safer and more maintainab
 
 ---
 
-# Alternatives Considered
+## Alternatives Considered
 
 ## AI Makes Final Decisions
 
@@ -319,7 +319,7 @@ External providers supply evidence, not authoritative business outcomes.
 
 ---
 
-# Future Considerations
+## Future Considerations
 
 Future versions may introduce:
 
@@ -335,7 +335,7 @@ These enhancements should continue to support, rather than replace, the Decision
 
 ---
 
-# Implementation Notes
+## Implementation Notes
 
 - AI returns evidence.
 - Django Decision Engine returns Verification Decisions.
@@ -346,7 +346,7 @@ These enhancements should continue to support, rather than replace, the Decision
 
 ---
 
-# References
+## References
 
 - AI Design
 - Architecture

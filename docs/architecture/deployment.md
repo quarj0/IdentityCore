@@ -6,7 +6,7 @@
 
 ---
 
-# Purpose
+## Purpose
 
 This document defines the deployment strategy for IdentityCore Version 1.0.
 
@@ -16,7 +16,7 @@ The deployment design must support security, reliability, observability, backups
 
 ---
 
-# Deployment Principle
+## Deployment Principle
 
 IdentityCore should be easy to run locally, safe to deploy, and flexible enough to move between cloud providers.
 
@@ -24,7 +24,7 @@ The platform should avoid unnecessary infrastructure complexity during the MVP w
 
 ---
 
-# Deployment Environments
+## Deployment Environments
 
 IdentityCore will support the following environments:
 
@@ -39,7 +39,7 @@ government_on_premise
 
 ---
 
-# Local Environment
+## Local Environment
 
 Used by developers.
 
@@ -85,7 +85,7 @@ Redis    -> localhost:6379
 
 ---
 
-# Development Environment
+## Development Environment
 
 Used for shared engineering testing.
 
@@ -105,7 +105,7 @@ Characteristics:
 
 ---
 
-# Staging Environment
+## Staging Environment
 
 Used as production rehearsal.
 
@@ -122,7 +122,7 @@ Staging should mirror production as closely as possible.
 
 ---
 
-# Production Environment
+## Production Environment
 
 Used for real customers and real verification workflows.
 
@@ -141,7 +141,7 @@ Requirements:
 
 ---
 
-# Government On-Premise Environment
+## Government On-Premise Environment
 
 Future deployment option.
 
@@ -163,7 +163,7 @@ Government on-premise deployment is outside Version 1.0 but should be considered
 
 ---
 
-# High-Level Deployment Architecture
+## High-Level Deployment Architecture
 
 ```text
 Internet
@@ -196,7 +196,7 @@ Object Storage
 
 ---
 
-# Services
+## Services
 
 ## Django Backend
 
@@ -341,7 +341,7 @@ Requirements:
 
 ---
 
-# Frontend Deployment
+## Frontend Deployment
 
 IdentityCore includes multiple frontend applications:
 
@@ -368,7 +368,7 @@ Possible platforms:
 
 ---
 
-# Network Security
+## Network Security
 
 Production services should follow these rules:
 
@@ -381,7 +381,7 @@ Production services should follow these rules:
 
 ---
 
-# Environment Variables
+## Environment Variables
 
 Sensitive configuration should be provided through environment variables or a secrets manager.
 
@@ -409,7 +409,7 @@ Rules:
 
 ---
 
-# CI/CD Pipeline
+## CI/CD Pipeline
 
 Recommended flow:
 
@@ -449,7 +449,7 @@ Deploy to production
 
 ---
 
-# Deployment Steps
+## Deployment Steps
 
 A production deployment should perform:
 
@@ -464,7 +464,7 @@ A production deployment should perform:
 
 ---
 
-# Database Migrations
+## Database Migrations
 
 Migration rules:
 
@@ -487,7 +487,7 @@ This avoids downtime during schema changes.
 
 ---
 
-# Health Checks
+## Health Checks
 
 Every service should expose health checks.
 
@@ -513,7 +513,7 @@ Health checks should verify:
 
 ---
 
-# Logging
+## Logging
 
 Production logging must be centralized.
 
@@ -538,7 +538,7 @@ Logs must not include:
 
 ---
 
-# Monitoring
+## Monitoring
 
 Minimum monitoring:
 
@@ -556,7 +556,7 @@ Minimum monitoring:
 
 ---
 
-# Alerting
+## Alerting
 
 Alerts should be configured for:
 
@@ -573,7 +573,7 @@ Alerts should be configured for:
 
 ---
 
-# Backups
+## Backups
 
 Backup requirements:
 
@@ -587,7 +587,7 @@ Object storage backups should follow retention and compliance requirements.
 
 ---
 
-# Disaster Recovery
+## Disaster Recovery
 
 Disaster recovery planning should define:
 
@@ -608,7 +608,7 @@ These targets may become stricter for enterprise customers.
 
 ---
 
-# Rollback Strategy
+## Rollback Strategy
 
 Every deployment should support rollback.
 
@@ -626,7 +626,7 @@ Backward-compatible migrations are preferred.
 
 ---
 
-# Scaling Strategy
+## Scaling Strategy
 
 Version 1.0 scaling approach:
 
@@ -643,7 +643,7 @@ AI workloads may require separate scaling from ordinary API workloads.
 
 ---
 
-# Resource Isolation
+## Resource Isolation
 
 AI workloads can be CPU- or memory-heavy.
 
@@ -673,7 +673,7 @@ Implementation note:
 
 ---
 
-# Feature Flags
+## Feature Flags
 
 Feature flags should be used for:
 
@@ -687,7 +687,7 @@ Feature flags allow gradual rollout and safe rollback.
 
 ---
 
-# Secrets Rotation
+## Secrets Rotation
 
 Production deployment must support rotating:
 
@@ -702,7 +702,7 @@ Rotation should not require full system downtime.
 
 ---
 
-# Release Strategy
+## Release Strategy
 
 Recommended release types:
 
@@ -726,7 +726,7 @@ Example:
 
 ---
 
-# Production Readiness Checklist
+## Production Readiness Checklist
 
 Before production launch:
 
@@ -748,7 +748,7 @@ Before production launch:
 
 ---
 
-# MVP Hosting Recommendation
+## MVP Hosting Recommendation
 
 For early MVP:
 
@@ -776,7 +776,7 @@ This keeps the MVP simple while avoiding unnecessary Kubernetes complexity.
 
 ---
 
-# Future Infrastructure
+## Future Infrastructure
 
 Future versions may support:
 
@@ -793,7 +793,7 @@ Future versions may support:
 
 ---
 
-# Version 1.0 Deployment Scope
+## Version 1.0 Deployment Scope
 
 Version 1.0 includes:
 
@@ -824,7 +824,7 @@ Version 1.0 excludes:
 
 ---
 
-# Final Deployment Principle
+## Final Deployment Principle
 
 IdentityCore deployment must balance simplicity and seriousness.
 

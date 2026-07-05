@@ -6,7 +6,7 @@
 
 ---
 
-# Purpose
+## Purpose
 
 This document defines the core business concepts used across IdentityCore.
 
@@ -16,7 +16,7 @@ IdentityCore uses domain-driven design principles. The platform architecture sho
 
 ---
 
-# Core Principle
+## Core Principle
 
 IdentityCore is an identity infrastructure platform.
 
@@ -24,13 +24,13 @@ The platform does not simply process users, photos, or documents. It manages ide
 
 ---
 
-# Ubiquitous Language
+## Ubiquitous Language
 
 The following terms must be used consistently across the platform.
 
 ---
 
-# Platform
+## Platform
 
 ## Definition
 
@@ -48,7 +48,7 @@ The Platform provides secure identity verification capabilities to organizations
 
 ---
 
-# Organization
+## Organization
 
 ## Definition
 
@@ -85,7 +85,7 @@ Organizations create and manage verification workflows for Verification Subjects
 
 ---
 
-# Tenant
+## Tenant
 
 ## Definition
 
@@ -115,7 +115,7 @@ Future versions may support:
 
 ---
 
-# Platform User
+## Platform User
 
 ## Definition
 
@@ -141,7 +141,7 @@ Platform Users manage organizations, configure verification workflows, review ve
 
 ---
 
-# Verification Subject
+## Verification Subject
 
 ## Definition
 
@@ -170,7 +170,7 @@ The Verification Subject provides identity evidence such as documents, selfies, 
 
 ---
 
-# Verification
+## Verification
 
 ## Definition
 
@@ -219,7 +219,7 @@ The Verification is the central workflow object in IdentityCore.
 
 ---
 
-# Verification Session
+## Verification Session
 
 ## Definition
 
@@ -246,7 +246,7 @@ The Verification Session manages the subject-facing journey.
 
 ---
 
-# Identity Document
+## Identity Document
 
 ## Definition
 
@@ -276,7 +276,7 @@ Identity Documents provide biographical and visual evidence used during verifica
 
 ---
 
-# Document Type
+## Document Type
 
 ## Definition
 
@@ -307,7 +307,7 @@ Document Types prevent the platform from hardcoding country-specific document na
 
 ---
 
-# Country Profile
+## Country Profile
 
 ## Definition
 
@@ -334,7 +334,7 @@ Ghana Country Profile:
 
 ---
 
-# Jurisdiction
+## Jurisdiction
 
 ## Definition
 
@@ -361,7 +361,7 @@ Jurisdiction determines applicable compliance rules, data retention requirements
 
 ---
 
-# Document Capture
+## Document Capture
 
 ## Definition
 
@@ -381,7 +381,7 @@ Document Captures provide raw evidence for document processing, OCR, classificat
 
 ---
 
-# Selfie Capture
+## Selfie Capture
 
 ## Definition
 
@@ -400,7 +400,7 @@ Selfie Captures provide biometric evidence for liveness detection and face match
 
 ---
 
-# Biometric Template
+## Biometric Template
 
 ## Definition
 
@@ -419,7 +419,7 @@ Biometric Templates enable comparison without repeatedly processing raw biometri
 
 ---
 
-# Liveness Check
+## Liveness Check
 
 ## Definition
 
@@ -442,7 +442,7 @@ Liveness Checks reduce impersonation and presentation attacks.
 
 ---
 
-# Face Match
+## Face Match
 
 ## Definition
 
@@ -469,7 +469,7 @@ Face Matching helps determine whether the Verification Subject matches the submi
 
 ---
 
-# Consent
+## Consent
 
 ## Definition
 
@@ -499,7 +499,7 @@ Consent establishes lawful and transparent participation in identity verificatio
 
 ---
 
-# Verification Policy
+## Verification Policy
 
 ## Definition
 
@@ -528,7 +528,7 @@ Verification Policies allow Organizations to configure verification workflows wi
 
 ---
 
-# Verification Decision
+## Verification Decision
 
 ## Definition
 
@@ -556,7 +556,7 @@ The Verification Decision summarizes the outcome of all verification checks.
 
 ---
 
-# Manual Review
+## Manual Review
 
 ## Definition
 
@@ -575,7 +575,7 @@ Manual Review provides human oversight for uncertain, sensitive, or high-risk ca
 
 ---
 
-# Risk Assessment
+## Risk Assessment
 
 ## Definition
 
@@ -603,7 +603,7 @@ Risk Assessment helps determine whether a Verification should be approved, rejec
 
 ---
 
-# Audit Event
+## Audit Event
 
 ## Definition
 
@@ -635,7 +635,7 @@ Audit Events provide transparency, accountability, forensic traceability, and co
 
 ---
 
-# API Client
+## API Client
 
 ## Definition
 
@@ -654,7 +654,7 @@ API Clients allow external systems to create verifications, retrieve results, an
 
 ---
 
-# Webhook Event
+## Webhook Event
 
 ## Definition
 
@@ -683,7 +683,7 @@ Webhook Events allow external systems to react to verification progress and outc
 
 ---
 
-# Notification
+## Notification
 
 ## Definition
 
@@ -708,7 +708,7 @@ Notifications keep relevant parties informed about verification activity.
 
 ---
 
-# Provider
+## Provider
 
 ## Definition
 
@@ -736,7 +736,7 @@ Providers allow IdentityCore to connect to different verification technologies a
 
 ---
 
-# Provider Adapter
+## Provider Adapter
 
 ## Definition
 
@@ -755,7 +755,7 @@ Provider Adapters prevent external provider differences from leaking into the co
 
 ---
 
-# Role
+## Role
 
 ## Definition
 
@@ -782,7 +782,7 @@ Roles simplify access control.
 
 ---
 
-# Permission
+## Permission
 
 ## Definition
 
@@ -810,7 +810,7 @@ Permissions enforce granular access control.
 
 ---
 
-# Data Retention Policy
+## Data Retention Policy
 
 ## Definition
 
@@ -835,7 +835,7 @@ Retention policies reduce privacy risk and support compliance.
 
 ---
 
-# Evidence
+## Evidence
 
 ## Definition
 
@@ -863,7 +863,7 @@ Evidence provides traceability for why a Verification Decision was made.
 
 ---
 
-# Provider Check
+## Provider Check
 
 ## Definition
 
@@ -889,7 +889,7 @@ Provider Checks record external or internal processing outcomes.
 
 ---
 
-# Business Object Relationships
+## Business Object Relationships
 
 At a high level:
 
@@ -919,7 +919,7 @@ Organization
 
 ---
 
-# Naming Rules
+## Naming Rules
 
 The following naming rules must be followed across code, APIs, documentation, and user interfaces.
 
@@ -951,7 +951,7 @@ Country-specific names may appear in Country Profiles, Provider Adapters, UI lab
 
 ---
 
-# Country-Specific Rule
+## Country-Specific Rule
 
 IdentityCore must never hardcode country-specific business logic into the core platform.
 
@@ -964,7 +964,7 @@ Country-specific rules, document names, issuing authorities, formats, validation
 
 ---
 
-# Version 1.0 Domain Boundary
+## Version 1.0 Domain Boundary
 
 Version 1.0 includes:
 
@@ -1005,7 +1005,7 @@ Version 1.0 excludes:
 
 ---
 
-# Final Principle
+## Final Principle
 
 The domain model exists to keep IdentityCore focused.
 

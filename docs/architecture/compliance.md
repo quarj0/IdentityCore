@@ -6,7 +6,7 @@
 
 ---
 
-# Purpose
+## Purpose
 
 This document defines the governance, privacy, legal, regulatory, and operational compliance requirements for IdentityCore.
 
@@ -16,7 +16,7 @@ Compliance is treated as a continuous business process rather than a one-time ce
 
 ---
 
-# Compliance Principles
+## Compliance Principles
 
 IdentityCore is built around the following principles:
 
@@ -35,7 +35,7 @@ Every new feature should be evaluated against these principles before implementa
 
 ---
 
-# Regulatory Philosophy
+## Regulatory Philosophy
 
 IdentityCore is designed to support multiple jurisdictions.
 
@@ -53,7 +53,7 @@ This allows the platform to expand internationally without changing core busines
 
 ---
 
-# Personal Data
+## Personal Data
 
 Personal data includes information that can identify an individual directly or indirectly.
 
@@ -73,7 +73,7 @@ IdentityCore shall collect only the minimum personal data required to complete a
 
 ---
 
-# Biometric Data
+## Biometric Data
 
 Biometric information receives the highest level of protection.
 
@@ -97,7 +97,7 @@ Biometric data must never be used for unrelated purposes without an appropriate 
 
 ---
 
-# Consent
+## Consent
 
 Consent is required whenever applicable law or organizational policy requires it.
 
@@ -122,7 +122,7 @@ Consent must be:
 
 ---
 
-# Purpose Limitation
+## Purpose Limitation
 
 IdentityCore shall process data only for the purposes communicated to the Verification Subject.
 
@@ -137,7 +137,7 @@ Collected data shall not be reused for unrelated purposes without a valid legal 
 
 ---
 
-# Data Minimization
+## Data Minimization
 
 Only information necessary for verification shall be collected.
 
@@ -157,7 +157,7 @@ Avoid:
 
 ---
 
-# Data Retention
+## Data Retention
 
 Every Organization must define a retention policy.
 
@@ -187,7 +187,7 @@ Retention policies should support automatic deletion after expiry.
 
 ---
 
-# Data Deletion
+## Data Deletion
 
 IdentityCore should support deletion when legally appropriate.
 
@@ -204,7 +204,7 @@ Where legal retention requirements apply, deletion may be delayed until those ob
 
 ---
 
-# Data Portability
+## Data Portability
 
 Organizations should be able to export their own verification data in a structured format.
 
@@ -218,7 +218,7 @@ Exports must respect permissions and audit requirements.
 
 ---
 
-# Data Residency
+## Data Residency
 
 IdentityCore should support jurisdiction-specific data residency.
 
@@ -233,7 +233,7 @@ Data residency requirements should be configurable by Organization or Jurisdicti
 
 ---
 
-# Cross-Border Data Transfers
+## Cross-Border Data Transfers
 
 Cross-border transfer of personal or biometric data should occur only when:
 
@@ -245,7 +245,7 @@ The platform should be capable of restricting transfers based on Jurisdiction Pr
 
 ---
 
-# Verification Subject Rights
+## Verification Subject Rights
 
 Where applicable, IdentityCore should support requests to:
 
@@ -260,7 +260,7 @@ Requests should be tracked and audited.
 
 ---
 
-# Organization Responsibilities
+## Organization Responsibilities
 
 Organizations using IdentityCore remain responsible for:
 
@@ -275,7 +275,7 @@ IdentityCore provides the infrastructure but does not replace the organization's
 
 ---
 
-# IdentityCore Responsibilities
+## IdentityCore Responsibilities
 
 IdentityCore is responsible for:
 
@@ -291,7 +291,7 @@ IdentityCore is responsible for:
 
 ---
 
-# Auditability
+## Auditability
 
 Every sensitive operation must be traceable.
 
@@ -311,7 +311,7 @@ Audit records should be immutable.
 
 ---
 
-# Manual Review Governance
+## Manual Review Governance
 
 Manual verification decisions require:
 
@@ -325,7 +325,7 @@ High-impact decisions should remain reviewable.
 
 ---
 
-# AI Governance
+## AI Governance
 
 Artificial Intelligence supports, but does not replace, human decision-making.
 
@@ -341,7 +341,7 @@ IdentityCore should avoid fully autonomous high-impact identity decisions where 
 
 ---
 
-# Provider Governance
+## Provider Governance
 
 Provider integrations must:
 
@@ -355,7 +355,7 @@ Provider-specific logic should remain isolated behind Provider Adapters.
 
 ---
 
-# Third-Party Data
+## Third-Party Data
 
 Third-party providers should receive only the minimum information required to perform their task.
 
@@ -374,7 +374,7 @@ Does not receive:
 
 ---
 
-# Records Management
+## Records Management
 
 IdentityCore should maintain records for:
 
@@ -389,7 +389,7 @@ Historical versions should remain available for compliance review.
 
 ---
 
-# Policy Versioning
+## Policy Versioning
 
 The platform should version:
 
@@ -402,7 +402,7 @@ Every Verification should reference the versions used during processing.
 
 ---
 
-# Compliance Monitoring
+## Compliance Monitoring
 
 IdentityCore should continuously monitor:
 
@@ -418,7 +418,7 @@ Compliance events should generate alerts where appropriate.
 
 ---
 
-# Internal Governance
+## Internal Governance
 
 IdentityCore should implement separation of duties.
 
@@ -444,7 +444,7 @@ No single role should have unrestricted authority without accountability.
 
 ---
 
-# Documentation Requirements
+## Documentation Requirements
 
 The platform should maintain documentation for:
 
@@ -462,7 +462,7 @@ Documentation should be reviewed regularly.
 
 ---
 
-# Supported Compliance Frameworks
+## Supported Compliance Frameworks
 
 IdentityCore is designed to align with recognized international frameworks where appropriate, including:
 
@@ -477,7 +477,7 @@ Country-specific legal obligations should be implemented through Jurisdiction Pr
 
 ---
 
-# Future Compliance Features
+## Future Compliance Features
 
 Future versions may include:
 
@@ -493,7 +493,7 @@ Future versions may include:
 
 ---
 
-# Version 1.0 Compliance Scope
+## Version 1.0 Compliance Scope
 
 Version 1.0 includes:
 
@@ -521,7 +521,7 @@ Version 1.0 excludes:
 
 ---
 
-# Final Compliance Principle
+## Final Compliance Principle
 
 IdentityCore is designed to earn and maintain trust.
 
