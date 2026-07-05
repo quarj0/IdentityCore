@@ -2,8 +2,7 @@ from django.utils import timezone
 from rest_framework.views import APIView
 
 from apps.audit.services import record_audit_event
-from apps.notifications.services import queue_verification_status_notifications
-from apps.risk.services import run_verification_risk_and_decision
+from apps.biometrics.tasks import process_verification_biometrics_task
 from apps.webhooks.services import queue_webhook_events
 from apps.verification_sessions.serializers import (
     VerificationSessionConsentSerializer,
@@ -158,60 +157,11 @@ class VerificationSessionLivenessView(VerificationSessionBaseView):
         serializer = VerificationSessionLivenessSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         liveness_check = serializer.save()
-        verification = request.verification_session.verification
-        record_audit_event(
-            tenant=request.tenant,
-            actor=verification.verification_subject,
-            request=request,
-            action="liveness.completed",
-            target_type="verification",
-            target_id=verification.public_id,
-            metadata={"liveness_check_id": liveness_check.public_id},
-        )
-        latest_face_match = verification.face_matches.order_by("-matched_at").first()
-        if latest_face_match is not None:
-            record_audit_event(
-                tenant=request.tenant,
-                actor=verification.verification_subject,
-                request=request,
-                action="face_match.completed",
-                target_type="verification",
-                target_id=verification.public_id,
-                metadata={"face_match_id": latest_face_match.public_id},
-            )
-        risk_assessment, decision_record = run_verification_risk_and_decision(verification)
-        record_audit_event(
-            tenant=request.tenant,
-            actor=verification.verification_subject,
-            request=request,
-            action=f"verification.{decision_record.decision}",
-            target_type="verification",
-            target_id=verification.public_id,
-            metadata={
-                "decision_id": decision_record.public_id,
-                "decision_type": decision_record.decision_type,
-                "risk_assessment_id": risk_assessment.public_id,
-            },
-            sensitive_metadata={"reason_detail": decision_record.reason_detail},
-        )
-        queue_webhook_events(
-            tenant=request.tenant,
-            event_type=f"verification.{decision_record.decision}",
-            payload={
-                "verification_id": verification.public_id,
-                "external_reference": verification.external_reference,
-                "status": verification.status,
-            },
-        )
-        queue_verification_status_notifications(
-            verification=verification,
-            decision=decision_record.decision,
-            risk_level=risk_assessment.risk_level,
-        )
+        process_verification_biometrics_task.delay(liveness_check.public_id)
         return success_response(
             {
                 "liveness_check_id": liveness_check.public_id,
-                "status": verification.status,
+                "status": "processing",
             },
             request=request,
         )

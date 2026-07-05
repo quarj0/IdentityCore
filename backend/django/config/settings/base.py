@@ -136,6 +136,7 @@ CELERY_TASK_EAGER_PROPAGATES = False
 CELERY_TASK_DEFAULT_QUEUE = "default"
 CELERY_TASK_DEFAULT_ROUTING_KEY = "default"
 CELERY_TASK_ROUTES = {
+    "apps.biometrics.tasks.process_verification_biometrics_task": {"queue": "ai_processing"},
     "apps.webhooks.tasks.process_pending_webhook_events_task": {"queue": "webhooks"},
     "apps.webhooks.tasks.deliver_webhook_event_task": {"queue": "webhooks"},
     "apps.notifications.tasks.process_pending_notifications_task": {"queue": "notifications"},
@@ -155,6 +156,7 @@ CELERY_BEAT_SCHEDULE = {
 }
 
 AI_SERVICE_BASE_URL = os.getenv("AI_SERVICE_BASE_URL", "http://localhost:8001")
+AI_SERVICE_TIMEOUT_SECONDS = int(os.getenv("AI_SERVICE_TIMEOUT_SECONDS", "15"))
 UPLOAD_URL_BASE = os.getenv("UPLOAD_URL_BASE", "http://localhost:9000/mock-upload")
 VERIFICATION_PORTAL_BASE_URL = os.getenv("VERIFICATION_PORTAL_BASE_URL", "http://localhost:8000/api/v1/verification-sessions")
 WEBHOOK_DELIVERY_TIMEOUT_SECONDS = int(os.getenv("WEBHOOK_DELIVERY_TIMEOUT_SECONDS", "10"))

@@ -382,10 +382,13 @@ Current implemented notification coverage includes:
 - Manual-review-required transitions queue subject and reviewer notifications
 - Manual review decisions queue subject-facing status notifications
 - Pending email notifications are delivered through the configured mail backend and marked sent
+- Liveness submission queues biometric AI processing instead of finalizing the verification inline
+- Background biometric processing updates liveness evidence, face-match evidence, risk assessment, and final decision state
 - Celery configuration routes webhook and notification delivery tasks to dedicated queues
 - Celery beat configuration schedules periodic processing for pending webhooks and notifications
 - The general Celery default queue is pinned explicitly to `default` so compose worker topology matches routing expectations
 - Compose health checks cover the split Celery worker roles and beat process
+- The local tooling exposes AI-worker-specific log and shell targets alongside the existing worker commands
 
 ---
 

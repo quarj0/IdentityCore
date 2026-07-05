@@ -760,7 +760,7 @@ Request:
 Business rules:
 
 - The referenced selfie capture must belong to the current verification session.
-- The current bootstrap implementation records a `LivenessCheck` immediately and returns `status: processing` while AI-backed liveness evaluation is still pending integration.
+- The current Django implementation records a `LivenessCheck` immediately and returns `status: processing` while queued background AI processing completes liveness and face-match evaluation asynchronously.
 
 Response:
 

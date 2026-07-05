@@ -198,6 +198,41 @@ services:
     networks:
       - identitycore
 
+  celery-worker-ai:
+    build:
+      context: .
+      dockerfile: backend/django/Dockerfile
+    working_dir: /app/backend/django
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      REDIS_URL: ${REDIS_URL}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND}
+      AI_SERVICE_BASE_URL: ${AI_SERVICE_BASE_URL}
+    command: celery -A config worker --loglevel=info --hostname=ai@%h --queues=ai_processing
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d ai@$$HOSTNAME | grep -q pong"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - identitycore
+
   celery-beat:
     build:
       context: .
@@ -225,6 +260,8 @@ services:
       celery-worker-webhooks:
         condition: service_started
       celery-worker-notifications:
+        condition: service_started
+      celery-worker-ai:
         condition: service_started
     volumes:
       - .:/app

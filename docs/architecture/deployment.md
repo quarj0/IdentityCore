@@ -665,9 +665,10 @@ retention
 
 Implementation note:
 
+- The current Docker Compose stack runs a dedicated `celery-worker-ai` service for the `ai_processing` queue.
 - The current Django/Celery setup routes webhook processing tasks to the `webhooks` queue and email notification tasks to the `notifications` queue.
 - Celery beat schedules periodic processing for pending webhook and notification deliveries.
-- The local Docker Compose stack runs separate workers for `default`, `webhooks`, and `notifications` so lightweight delivery jobs are isolated from general background work.
+- The local Docker Compose stack runs separate workers for `default`, `ai_processing`, `webhooks`, and `notifications` so lightweight delivery jobs are isolated from general background work.
 - The compose stack also defines health checks for each worker role and queue-specific log entry points so worker failures are easier to spot during local operations.
 
 ---

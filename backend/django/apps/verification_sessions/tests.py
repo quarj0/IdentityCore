@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.urls import reverse
 from django.utils import timezone
@@ -293,7 +294,8 @@ class VerificationSessionPortalTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_submit_liveness_creates_provider_checks_and_routes_to_manual_review(self):
+    @patch("apps.verification_sessions.views.process_verification_biometrics_task.delay")
+    def test_submit_liveness_creates_provider_checks_and_queues_background_processing(self, mock_delay):
         identity_document = IdentityDocument.objects.create(
             tenant=self.tenant,
             verification=self.verification,
@@ -339,7 +341,7 @@ class VerificationSessionPortalTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["data"]["status"], VerificationStatus.MANUAL_REVIEW_REQUIRED)
+        self.assertEqual(response.data["data"]["status"], "processing")
         liveness_check = LivenessCheck.objects.get(public_id=response.data["data"]["liveness_check_id"])
         self.assertEqual(liveness_check.selfie_capture, selfie_capture)
         self.assertEqual(liveness_check.liveness_type, "passive")
@@ -350,20 +352,13 @@ class VerificationSessionPortalTests(APITestCase):
         self.assertEqual(face_match.document_capture, document_capture)
         self.assertEqual(face_match.status, "inconclusive")
         self.assertTrue(face_match.provider_check_id.startswith("pck_"))
-        self.assertEqual(ProviderCheck.objects.filter(verification=self.verification).count(), 3)
-        risk_assessment = RiskAssessment.objects.get(verification=self.verification)
-        self.assertEqual(risk_assessment.recommendation, "manual_review")
-        decision_record = VerificationDecision.objects.get(verification=self.verification)
-        self.assertEqual(decision_record.decision_type, "automatic")
-        self.assertTrue(
-            Notification.objects.filter(
-                tenant=self.tenant,
-                template_code="verification.manual_review_required",
-                recipient="akosua@example.com",
-            ).exists()
-        )
+        self.assertEqual(ProviderCheck.objects.filter(verification=self.verification).count(), 2)
+        self.assertFalse(RiskAssessment.objects.filter(verification=self.verification).exists())
+        self.assertFalse(VerificationDecision.objects.filter(verification=self.verification).exists())
+        self.assertFalse(Notification.objects.filter(tenant=self.tenant).exists())
+        mock_delay.assert_called_once_with(liveness_check.public_id)
         self.verification.refresh_from_db()
-        self.assertEqual(self.verification.status, VerificationStatus.MANUAL_REVIEW_REQUIRED)
+        self.assertEqual(self.verification.status, VerificationStatus.PROCESSING)
 
     def test_get_session_status_for_pending_consent(self):
         response = self.client.get(

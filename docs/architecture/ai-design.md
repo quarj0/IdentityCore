@@ -112,6 +112,11 @@ Django stores normalized results
 Decision Engine applies Verification Policy
 ```
 
+Implementation note:
+
+- The current Django implementation queues biometric processing onto a dedicated `ai_processing` Celery queue after liveness submission.
+- The internal FastAPI service currently exposes mock `face/compare` and `liveness/check` endpoints so the async evidence pipeline can run end-to-end before production-grade models are connected.
+
 ---
 
 # Core AI Modules

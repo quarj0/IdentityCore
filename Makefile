@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 COMPOSE := docker compose
 
-.PHONY: up down ps logs logs-django logs-ai logs-worker logs-webhooks logs-notifications logs-beat shell shell-worker shell-worker-webhooks shell-worker-notifications migrate makemigrations createsuperuser test lint ensure-env
+.PHONY: up down ps logs logs-django logs-ai logs-worker logs-worker-ai logs-webhooks logs-notifications logs-beat shell shell-worker shell-worker-ai shell-worker-webhooks shell-worker-notifications migrate makemigrations createsuperuser test lint ensure-env
 
 ensure-env:
 	@test -f .env || cp .env.example .env
@@ -27,7 +27,9 @@ logs-ai:
 
 logs-worker:
 	$(COMPOSE) logs -f celery-worker
-	
+
+logs-worker-ai:
+	$(COMPOSE) logs -f celery-worker-ai
 
 logs-webhooks:
 	$(COMPOSE) logs -f celery-worker-webhooks
@@ -43,6 +45,9 @@ shell:
 
 shell-worker:
 	$(COMPOSE) exec celery-worker /bin/bash
+
+shell-worker-ai:
+	$(COMPOSE) exec celery-worker-ai /bin/bash
 
 shell-worker-webhooks:
 	$(COMPOSE) exec celery-worker-webhooks /bin/bash
