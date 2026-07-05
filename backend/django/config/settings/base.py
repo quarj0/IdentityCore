@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "apps.verification_sessions.apps.VerificationSessionsConfig",
     "apps.verification_subjects.apps.VerificationSubjectsConfig",
     "apps.verifications.apps.VerificationsConfig",
+    "apps.webhooks.apps.WebhooksConfig",
 ]
 
 MIDDLEWARE = [

@@ -1050,9 +1050,17 @@ Implementation note:
 
 Lists webhook endpoints.
 
+Authentication:
+
+- Platform user JWT required.
+
 ## POST /webhook-endpoints
 
 Creates webhook endpoint.
+
+Authentication:
+
+- Platform user JWT required.
 
 Request:
 
@@ -1081,11 +1089,20 @@ Response:
 }
 ```
 
+Business rules:
+
+- Webhook endpoints are tenant-scoped.
+- The raw webhook secret is shown only once and is never stored in plain text.
+
 ---
 
 ## POST /webhook-endpoints/{webhook_id}/test
 
 Sends a test webhook.
+
+Authentication:
+
+- Platform user JWT required.
 
 Response:
 
@@ -1098,6 +1115,11 @@ Response:
   "request_id": "req_01JABC..."
 }
 ```
+
+Implementation note:
+
+- The current Django scaffold queues webhook events for later delivery and records test sends as queued `webhook.test` events.
+- Full signed HTTP delivery, retry execution, and delivery-attempt recording are still the next layer on top of this queueing foundation.
 
 ---
 

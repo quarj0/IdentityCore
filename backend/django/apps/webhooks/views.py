@@ -1,3 +1,74 @@
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
 
-# Create your views here.
+from apps.audit.services import record_audit_event
+from apps.verifications.serializers import paginate_results
+from apps.webhooks.serializers import (
+    WebhookEndpointCreateSerializer,
+    WebhookTestSerializer,
+    serialize_webhook_endpoint,
+)
+from apps.webhooks.services import queue_webhook_events
+from common.permissions import IsTenantUser
+from common.responses import success_response
+from apps.webhooks.models import WebhookEndpoint
+
+
+class WebhookEndpointListCreateView(APIView):
+    permission_classes = [IsAuthenticated, IsTenantUser]
+
+    def get(self, request):
+        endpoints = request.user.tenant.webhook_endpoints.order_by("url")
+        return success_response(
+            {"results": [serialize_webhook_endpoint(endpoint) for endpoint in endpoints]},
+            request=request,
+        )
+
+    def post(self, request):
+        serializer = WebhookEndpointCreateSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        endpoint = serializer.save()
+        record_audit_event(
+            tenant=request.user.tenant,
+            actor=request.user,
+            request=request,
+            action="webhook_endpoint.created",
+            target_type="webhook_endpoint",
+            target_id=endpoint.public_id,
+            metadata={"url": endpoint.url, "events": endpoint.events},
+        )
+        return success_response(
+            {
+                "id": endpoint.public_id,
+                "secret": endpoint._raw_secret,
+                "status": endpoint.status,
+            },
+            request=request,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class WebhookEndpointTestView(APIView):
+    permission_classes = [IsAuthenticated, IsTenantUser]
+
+    def post(self, request, webhook_id: str):
+        endpoint = get_object_or_404(
+            WebhookEndpoint,
+            tenant=request.user.tenant,
+            public_id=webhook_id,
+        )
+        serializer = WebhookTestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(endpoint=endpoint)
+        record_audit_event(
+            tenant=request.user.tenant,
+            actor=request.user,
+            request=request,
+            action="webhook.test_queued",
+            target_type="webhook_endpoint",
+            target_id=endpoint.public_id,
+            metadata={"webhook_id": endpoint.public_id},
+        )
+        return success_response({"queued": True}, request=request, status=status.HTTP_200_OK)

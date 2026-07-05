@@ -18,6 +18,7 @@ urlpatterns = [
     path("api/v1/auth/", include("apps.accounts.urls")),
     path("api/v1/api-clients/", include("apps.api_clients.urls")),
     path("api/v1/policies/", include("apps.verification_policies.urls")),
+    path("api/v1/webhook-endpoints/", include("apps.webhooks.urls")),
     path("api/v1/uploads/", include("apps.uploads.urls")),
     path("api/v1/sessions/", include("apps.verification_sessions.urls")),
     path("api/v1/verifications/", include("apps.verifications.urls")),

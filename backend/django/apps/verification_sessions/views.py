@@ -2,6 +2,7 @@ from django.utils import timezone
 from rest_framework.views import APIView
 
 from apps.audit.services import record_audit_event
+from apps.webhooks.services import queue_webhook_events
 from apps.verification_sessions.serializers import (
     VerificationSessionConsentSerializer,
     VerificationSessionDocumentSerializer,
@@ -61,6 +62,15 @@ class VerificationSessionConsentView(VerificationSessionBaseView):
             target_id=verification.public_id,
             metadata={"consent_record_id": consent_record.public_id},
         )
+        queue_webhook_events(
+            tenant=request.tenant,
+            event_type="verification.consent_accepted",
+            payload={
+                "verification_id": verification.public_id,
+                "external_reference": verification.external_reference,
+                "status": verification.status,
+            },
+        )
         return success_response(
             {
                 "consent_record_id": consent_record.public_id,
@@ -85,6 +95,15 @@ class VerificationSessionDocumentView(VerificationSessionBaseView):
             target_type="verification",
             target_id=verification.public_id,
             metadata={"identity_document_id": identity_document.public_id},
+        )
+        queue_webhook_events(
+            tenant=request.tenant,
+            event_type="verification.document_uploaded",
+            payload={
+                "verification_id": verification.public_id,
+                "external_reference": verification.external_reference,
+                "status": verification.status,
+            },
         )
         return success_response(
             {
@@ -111,6 +130,15 @@ class VerificationSessionSelfieView(VerificationSessionBaseView):
             target_type="verification",
             target_id=verification.public_id,
             metadata={"selfie_capture_id": selfie_capture.public_id},
+        )
+        queue_webhook_events(
+            tenant=request.tenant,
+            event_type="verification.selfie_uploaded",
+            payload={
+                "verification_id": verification.public_id,
+                "external_reference": verification.external_reference,
+                "status": verification.status,
+            },
         )
         return success_response(
             {
@@ -149,6 +177,15 @@ class VerificationSessionLivenessView(VerificationSessionBaseView):
                 target_id=verification.public_id,
                 metadata={"face_match_id": latest_face_match.public_id},
             )
+        queue_webhook_events(
+            tenant=request.tenant,
+            event_type="verification.processing",
+            payload={
+                "verification_id": verification.public_id,
+                "external_reference": verification.external_reference,
+                "status": verification.status,
+            },
+        )
         return success_response(
             {
                 "liveness_check_id": liveness_check.public_id,

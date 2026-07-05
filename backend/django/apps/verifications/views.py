@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from apps.audit.services import record_audit_event
+from apps.webhooks.services import queue_webhook_events
 from apps.verifications.serializers import (
     ManualReviewDecisionSerializer,
     VerificationCancelSerializer,
@@ -65,6 +66,15 @@ class VerificationListCreateView(APIView):
             target_id=verification.public_id,
             metadata={"session_id": session.public_id},
         )
+        queue_webhook_events(
+            tenant=request.tenant,
+            event_type="verification.created",
+            payload={
+                "verification_id": verification.public_id,
+                "external_reference": verification.external_reference,
+                "status": verification.status,
+            },
+        )
         return success_response(
             {
                 "id": verification.public_id,
@@ -118,6 +128,15 @@ class VerificationCancelView(APIView):
             metadata={"reason": serializer.validated_data.get("reason", "")},
             sensitive_metadata={"reason": serializer.validated_data.get("reason", "")},
         )
+        queue_webhook_events(
+            tenant=request.tenant,
+            event_type="verification.cancelled",
+            payload={
+                "verification_id": verification.public_id,
+                "external_reference": verification.external_reference,
+                "status": verification.status,
+            },
+        )
         return success_response(
             {
                 "id": verification.public_id,
@@ -168,6 +187,20 @@ class ManualReviewDecisionView(APIView):
             metadata={"decision_id": decision_record.public_id, "decision_type": decision_record.decision_type},
             sensitive_metadata={"reason_detail": decision_record.reason_detail},
         )
+        if decision_record.decision in {
+            VerificationStatus.VERIFIED,
+            VerificationStatus.REJECTED,
+            VerificationStatus.MANUAL_REVIEW_REQUIRED,
+        }:
+            queue_webhook_events(
+                tenant=request.user.tenant,
+                event_type=f"verification.{decision_record.decision}",
+                payload={
+                    "verification_id": verification.public_id,
+                    "external_reference": verification.external_reference,
+                    "status": verification.status,
+                },
+            )
         return success_response(
             {
                 "verification_id": verification.public_id,

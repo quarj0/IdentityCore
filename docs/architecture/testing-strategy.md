@@ -350,6 +350,14 @@ Webhook tests should cover:
 - Duplicate delivery handling
 - Idempotency on receiver side documentation
 
+Current implemented webhook coverage includes:
+
+- Webhook endpoint creation
+- Tenant-scoped webhook endpoint listing
+- Test webhook queueing
+- Verification-created webhook queueing
+- Manual decision webhook queueing
+
 ---
 
 # Audit Testing
