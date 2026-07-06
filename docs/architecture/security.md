@@ -114,6 +114,31 @@ Requires the highest level of protection.
 
 IdentityCore supports two authentication models.
 
+## Implemented Cryptographic Mechanisms
+
+The current codebase already implements these mechanisms:
+
+- Password hashing for Platform Users through Django's password hasher framework.
+- Hashed API client secrets through Django's password hasher framework.
+- Hashed verification session tokens through Django's password hasher framework.
+- Hashed webhook secrets through Django's password hasher framework.
+- AES-256-GCM field-level encryption for selected sensitive JSON columns.
+- AES-256-GCM application-managed encryption for Django-generated evidence objects.
+- HKDF-SHA256 key derivation for the default application encryption key when no explicit keyring is configured.
+- SHA-256 hashing for email verification tokens before persistence.
+- SHA-256 hashing for audit sensitive metadata fingerprints.
+- HMAC-SHA256 webhook signatures for outbound webhook delivery.
+- SHA-256 checksums for uploaded and generated media integrity metadata.
+- JWT-based dashboard authentication through `djangorestframework-simplejwt`.
+- Storage-level server-side encryption parameters for object writes, copies, and presigned uploads.
+
+Implementation note:
+
+- In non-test settings, Django password hashing currently uses the framework default hasher configuration because `PASSWORD_HASHERS` is not overridden in base settings.
+- In test settings, the project intentionally switches to `MD5PasswordHasher` for speed only.
+- Direct-to-bucket uploads still rely on storage-layer encryption because the browser/mobile client uploads media without streaming bytes through Django.
+- Django-generated evidence artifacts are encrypted again at the application layer before object storage persistence.
+
 ## Platform Users
 
 Authentication methods:
@@ -138,6 +163,19 @@ Authentication uses:
 - Client ID
 - API Secret
 - Optional request signing
+
+## Encryption Boundaries
+
+IdentityCore now applies protection at multiple layers:
+
+- Database field protection:
+  selected sensitive JSON columns are encrypted in the application before database persistence.
+- Stored media written by Django:
+  generated evidence objects are encrypted in the application before upload.
+- Direct uploads from clients:
+  presigned upload operations enforce storage-side server-side encryption parameters.
+- Object copy and write operations:
+  storage helpers propagate server-side encryption settings automatically.
 - Optional IP/network restrictions
 
 API credentials must:

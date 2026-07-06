@@ -494,6 +494,144 @@
           }
         }
       ]
+    },
+    {
+      "name": "GraphQL - Onboarding",
+      "item": [
+        {
+          "name": "Register Organization Onboarding",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const payload = pm.response.json();",
+                  "const result = payload.data.registerOrganizationOnboarding;",
+                  "pm.environment.set('onboarding_organization_id', result.onboarding.organizationId);",
+                  "pm.environment.set('onboarding_admin_user_id', result.onboarding.administratorUserId);",
+                  "if (result.debugEmailVerificationUrl) {",
+                  "  pm.environment.set('email_verification_debug_url', result.debugEmailVerificationUrl);",
+                  "  const token = result.debugEmailVerificationUrl.split('token=')[1] || '';",
+                  "  pm.environment.set('email_verification_token', decodeURIComponent(token));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"mutation RegisterOnboarding($input: RegisterOrganizationOnboardingInput!) { registerOrganizationOnboarding(input: $input) { nextAction debugEmailVerificationUrl onboarding { organizationId administratorUserId organizationName organizationTier onboardingStatus currentStep } } }\",\n  \"variables\": {\n    \"input\": {\n      \"fullName\": \"Ama Mensah\",\n      \"businessEmail\": \"ama@sunrise.example\",\n      \"password\": \"StrongPassword123!\",\n      \"country\": \"GH\",\n      \"organizationName\": \"Sunrise Health\",\n      \"organizationType\": \"healthcare_provider\",\n      \"organizationCountry\": \"GH\",\n      \"website\": \"https://sunrise.example\",\n      \"supportEmail\": \"support@sunrise.example\",\n      \"phoneNumber\": \"+233201234567\"\n    }\n  }\n}"
+            },
+            "url": "{{baseUrl}}{{graphqlPath}}"
+          }
+        },
+        {
+          "name": "Verify Onboarding Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"mutation VerifyOnboardingEmail($token: String!) { verifyOrganizationOnboardingEmail(token: $token) { nextAction onboarding { administratorStatus onboardingStatus currentStep } } }\",\n  \"variables\": {\n    \"token\": \"{{email_verification_token}}\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}{{graphqlPath}}"
+          }
+        },
+        {
+          "name": "Platform Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const payload = pm.response.json();",
+                  "pm.environment.set('platform_admin_access_token', payload.data.tokens.access);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{platform_admin_email}}\",\n  \"password\": \"{{platform_admin_password}}\"\n}"
+            },
+            "url": "{{baseUrl}}{{restBase}}/auth/login"
+          }
+        },
+        {
+          "name": "Organization Onboarding Status",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{dashboard_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"query OrganizationOnboarding { organizationOnboarding { organizationId organizationType organizationTier onboardingStatus currentStep supportEmail phoneNumber website } }\"\n}"
+            },
+            "url": "{{baseUrl}}{{graphqlPath}}"
+          }
+        },
+        {
+          "name": "Submit Organization Verification",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{dashboard_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"mutation SubmitOrganizationVerification($input: OrganizationVerificationInput!) { submitOrganizationOnboardingVerification(input: $input) { nextAction onboarding { organizationVerificationSubmittedAt onboardingStatus currentStep } } }\",\n  \"variables\": {\n    \"input\": {\n      \"businessRegistrationNumber\": \"BRN-2026-001\",\n      \"registeredAddress\": \"10 Liberation Road, Accra\",\n      \"officialWebsite\": \"https://sunrise.example\",\n      \"taxIdentificationNumber\": \"TIN-8899\",\n      \"supportingDocumentKeys\": [\"organizations/documents/certificate.pdf\"]\n    }\n  }\n}"
+            },
+            "url": "{{baseUrl}}{{graphqlPath}}"
+          }
+        },
+        {
+          "name": "Submit Administrator Identity Verification",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{dashboard_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"mutation SubmitAdministratorIdentity($verificationId: String!) { submitAdministratorIdentityOnboardingVerification(verificationId: $verificationId) { nextAction onboarding { administratorIdentityVerificationStatus administratorIdentityVerificationId onboardingStatus currentStep } } }\",\n  \"variables\": {\n    \"verificationId\": \"ver_admin_identity_001\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}{{graphqlPath}}"
+          }
+        },
+        {
+          "name": "Review Organization Onboarding",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{platform_admin_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"mutation ReviewOrganizationOnboarding($organizationId: String!, $decision: String!, $note: String!) { reviewOrganizationOnboarding(organizationId: $organizationId decision: $decision note: $note) { nextAction onboarding { organizationStatus tenantStatus organizationTier onboardingStatus } } }\",\n  \"variables\": {\n    \"organizationId\": \"{{onboarding_organization_id}}\",\n    \"decision\": \"approved\",\n    \"note\": \"Approved from Postman manual testing.\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}{{graphqlPath}}"
+          }
+        }
+      ]
     }
   ]
 }

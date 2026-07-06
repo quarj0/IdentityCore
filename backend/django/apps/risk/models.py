@@ -1,6 +1,7 @@
 from django.db import models
 
 from apps.core.models import BaseModel, PublicIdModel
+from common.fields import EncryptedJSONField
 
 
 class RiskLevel(models.TextChoices):
@@ -35,7 +36,11 @@ class RiskAssessment(PublicIdModel, BaseModel):
         choices=RiskLevel.choices,
         db_index=True,
     )
-    signals_json = models.JSONField(default=dict, blank=True)
+    signals_json = EncryptedJSONField(
+        default=dict,
+        blank=True,
+        encryption_purpose="risk.signals",
+    )
     recommendation = models.CharField(
         max_length=32,
         choices=RiskRecommendation.choices,

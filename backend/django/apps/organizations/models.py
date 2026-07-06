@@ -1,11 +1,16 @@
 from django.db import models
 
 from apps.core.models import BaseModel, PublicIdModel
+from common.fields import EncryptedJSONField
 
 
 class OrganizationStatus(models.TextChoices):
     ACTIVE = "active", "Active"
     SUSPENDED = "suspended", "Suspended"
+    PENDING_EMAIL_VERIFICATION = (
+        "pending_email_verification",
+        "Pending email verification",
+    )
     PENDING_REVIEW = "pending_review", "Pending review"
     CLOSED = "closed", "Closed"
 
@@ -24,7 +29,11 @@ class Organization(PublicIdModel, BaseModel):
     )
     default_country_profile_id = models.CharField(max_length=64, blank=True)
     default_jurisdiction_id = models.CharField(max_length=64, blank=True)
-    settings_json = models.JSONField(default=dict, blank=True)
+    settings_json = EncryptedJSONField(
+        default=dict,
+        blank=True,
+        encryption_purpose="organizations.settings",
+    )
 
     class Meta:
         ordering = ["name"]

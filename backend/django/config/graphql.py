@@ -1,13 +1,27 @@
 import strawberry
+from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from graphql import GraphQLError
 from strawberry.extensions.query_depth_limiter import QueryDepthLimiter
 from strawberry.types import Info
 
+from apps.accounts.verification import build_email_verification_url, verify_email_token
+from apps.accounts.models import PlatformUser
 from apps.audit.serializers import serialize_audit_event
 from apps.audit.services import record_audit_event
 from apps.api_clients.serializers import serialize_api_client
 from apps.notifications.services import queue_verification_status_notifications
+from apps.organizations.models import Organization
+from apps.organizations.onboarding import (
+    ORGANIZATION_TYPE_CHOICES,
+    confirm_onboarding_email_verification,
+    register_organization_onboarding,
+    review_organization_onboarding,
+    serialize_onboarding_state,
+    submit_administrator_identity_verification,
+    submit_organization_verification,
+)
 from apps.verification_policies.serializers import serialize_verification_policy
 from apps.verifications.models import Verification, VerificationStatus
 from apps.verifications.serializers import (
@@ -31,6 +45,21 @@ def require_tenant_user(info: Info):
     ):
         raise GraphQLError("A tenant-scoped platform user is required.")
     return user
+
+
+def require_platform_admin(info: Info):
+    request = info.context["request"]
+    user = request.user
+    if not getattr(user, "is_authenticated", False):
+        raise GraphQLError("Authentication required.")
+    if not getattr(user, "is_platform_admin", False):
+        raise GraphQLError("A platform administrator is required.")
+    return user
+
+
+def raise_graphql_validation_error(exc: ValidationError) -> None:
+    messages = exc.messages if hasattr(exc, "messages") else [str(exc)]
+    raise GraphQLError(" ".join(message for message in messages if message))
 
 
 @strawberry.type
@@ -160,6 +189,69 @@ class ManualDecisionPayload:
     decided_at: str
 
 
+@strawberry.input
+class RegisterOrganizationOnboardingInput:
+    full_name: str
+    business_email: str
+    password: str
+    country: str
+    organization_name: str
+    organization_type: str
+    organization_country: str
+    website: str = ""
+    support_email: str
+    phone_number: str
+
+
+@strawberry.input
+class OrganizationVerificationInput:
+    business_registration_number: str
+    registered_address: str
+    official_website: str = ""
+    tax_identification_number: str = ""
+    supporting_document_keys: list[str] = strawberry.field(default_factory=list)
+
+
+@strawberry.type
+class OrganizationOnboardingNode:
+    organization_id: str
+    organization_name: str
+    organization_slug: str
+    organization_type: str
+    organization_country: str
+    organization_status: str
+    organization_tier: str
+    tenant_id: str
+    tenant_slug: str
+    tenant_status: str
+    administrator_user_id: str
+    administrator_full_name: str
+    administrator_email: str
+    administrator_country: str
+    administrator_status: str
+    support_email: str
+    phone_number: str
+    website: str
+    requires_email_verification: bool
+    email_verified_at: str | None
+    onboarding_status: str
+    current_step: str
+    organization_verification_submitted_at: str | None
+    administrator_identity_verification_status: str
+    administrator_identity_verification_id: str
+    administrator_identity_submitted_at: str | None
+    platform_review_status: str
+    platform_review_note: str
+    platform_reviewed_at: str | None
+
+
+@strawberry.type
+class OrganizationOnboardingPayload:
+    onboarding: OrganizationOnboardingNode
+    next_action: str
+    debug_email_verification_url: str | None = None
+
+
 def to_verification_node(payload: dict) -> VerificationNode:
     risk_payload = payload["risk_assessment"]
     decision_payload = payload["decision"]
@@ -184,8 +276,27 @@ def to_verification_node(payload: dict) -> VerificationNode:
     )
 
 
+def to_onboarding_node(payload: dict) -> OrganizationOnboardingNode:
+    return OrganizationOnboardingNode(**payload)
+
+
 @strawberry.type
 class Query:
+    @strawberry.field
+    def organization_onboarding_types(self) -> list[str]:
+        return list(ORGANIZATION_TYPE_CHOICES)
+
+    @strawberry.field
+    def organization_onboarding(self, info: Info) -> OrganizationOnboardingNode:
+        user = require_tenant_user(info)
+        return to_onboarding_node(
+            serialize_onboarding_state(
+                organization=user.tenant.organization,
+                tenant=user.tenant,
+                user=user,
+            )
+        )
+
     @strawberry.field
     def verifications(
         self,
@@ -205,7 +316,9 @@ class Query:
             queryset = queryset.filter(external_reference=external_reference)
         page_obj, _ = paginate_results(queryset, page, page_size)
         return [
-            to_verification_node(serialize_verification(item))
+            to_verification_node(
+                serialize_verification(item, request=info.context["request"])
+            )
             for item in page_obj.object_list
         ]
 
@@ -218,7 +331,9 @@ class Query:
             .first()
         )
         return (
-            to_verification_node(serialize_verification(verification))
+            to_verification_node(
+                serialize_verification(verification, request=info.context["request"])
+            )
             if verification
             else None
         )
@@ -306,6 +421,169 @@ class Query:
 
 @strawberry.type
 class Mutation:
+    @strawberry.mutation
+    def register_organization_onboarding(
+        self,
+        info: Info,
+        input: RegisterOrganizationOnboardingInput,
+    ) -> OrganizationOnboardingPayload:
+        request = info.context["request"]
+        try:
+            organization, tenant, user, raw_verification_token = register_organization_onboarding(
+                full_name=input.full_name,
+                business_email=input.business_email,
+                password=input.password,
+                user_country=input.country,
+                organization_name=input.organization_name,
+                organization_type=input.organization_type,
+                organization_country=input.organization_country,
+                website=input.website,
+                support_email=input.support_email,
+                phone_number=input.phone_number,
+                request=request,
+            )
+        except ValidationError as exc:
+            raise_graphql_validation_error(exc)
+        return OrganizationOnboardingPayload(
+            onboarding=to_onboarding_node(
+                serialize_onboarding_state(
+                    organization=organization,
+                    tenant=tenant,
+                    user=user,
+                )
+            ),
+            next_action="verify_email",
+            debug_email_verification_url=(
+                build_email_verification_url(raw_verification_token)
+                if settings.DEBUG
+                else None
+            ),
+        )
+
+    @strawberry.mutation
+    def verify_organization_onboarding_email(
+        self, info: Info, token: str
+    ) -> OrganizationOnboardingPayload:
+        request = info.context["request"]
+        try:
+            user = verify_email_token(token)
+            organization, tenant, verified_user = confirm_onboarding_email_verification(
+                user=user,
+                actor=user,
+                request=request,
+            )
+        except (ValidationError, ValueError) as exc:
+            raise GraphQLError(str(exc))
+        return OrganizationOnboardingPayload(
+            onboarding=to_onboarding_node(
+                serialize_onboarding_state(
+                    organization=organization,
+                    tenant=tenant,
+                    user=verified_user,
+                )
+            ),
+            next_action="submit_organization_verification",
+        )
+
+    @strawberry.mutation
+    def submit_organization_onboarding_verification(
+        self,
+        info: Info,
+        input: OrganizationVerificationInput,
+    ) -> OrganizationOnboardingPayload:
+        user = require_tenant_user(info)
+        request = info.context["request"]
+        try:
+            organization, tenant, tenant_user = submit_organization_verification(
+                user=user,
+                business_registration_number=input.business_registration_number,
+                registered_address=input.registered_address,
+                official_website=input.official_website,
+                tax_identification_number=input.tax_identification_number,
+                supporting_document_keys=input.supporting_document_keys,
+                request=request,
+            )
+        except ValidationError as exc:
+            raise_graphql_validation_error(exc)
+        return OrganizationOnboardingPayload(
+            onboarding=to_onboarding_node(
+                serialize_onboarding_state(
+                    organization=organization,
+                    tenant=tenant,
+                    user=tenant_user,
+                )
+            ),
+            next_action="submit_administrator_identity_verification",
+        )
+
+    @strawberry.mutation
+    def submit_administrator_identity_onboarding_verification(
+        self, info: Info, verification_id: str = ""
+    ) -> OrganizationOnboardingPayload:
+        user = require_tenant_user(info)
+        request = info.context["request"]
+        try:
+            organization, tenant, tenant_user = (
+                submit_administrator_identity_verification(
+                    user=user,
+                    verification_id=verification_id,
+                    request=request,
+                )
+            )
+        except ValidationError as exc:
+            raise_graphql_validation_error(exc)
+        return OrganizationOnboardingPayload(
+            onboarding=to_onboarding_node(
+                serialize_onboarding_state(
+                    organization=organization,
+                    tenant=tenant,
+                    user=tenant_user,
+                )
+            ),
+            next_action="await_platform_review",
+        )
+
+    @strawberry.mutation
+    def review_organization_onboarding(
+        self,
+        info: Info,
+        organization_id: str,
+        decision: str,
+        note: str = "",
+    ) -> OrganizationOnboardingPayload:
+        actor = require_platform_admin(info)
+        request = info.context["request"]
+        organization = get_object_or_404(Organization, public_id=organization_id)
+        try:
+            reviewed_organization, tenant, user = review_organization_onboarding(
+                organization=organization,
+                actor=actor,
+                decision=decision,
+                note=note,
+                request=request,
+            )
+        except ValidationError as exc:
+            raise_graphql_validation_error(exc)
+        if user is None:
+            raise GraphQLError("Onboarding organization does not have an administrator.")
+        next_action = (
+            "organization_active"
+            if decision == "approved"
+            else "provide_additional_information"
+            if decision == "needs_information"
+            else "contact_support"
+        )
+        return OrganizationOnboardingPayload(
+            onboarding=to_onboarding_node(
+                serialize_onboarding_state(
+                    organization=reviewed_organization,
+                    tenant=tenant,
+                    user=user,
+                )
+            ),
+            next_action=next_action,
+        )
+
     @strawberry.mutation
     def record_manual_decision(
         self,

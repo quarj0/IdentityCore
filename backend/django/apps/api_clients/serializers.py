@@ -2,6 +2,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from apps.api_clients.models import APIClient
+from apps.organizations.models import OrganizationStatus
 
 
 def serialize_api_client(api_client: APIClient, include_secret: str | None = None) -> dict:
@@ -33,6 +34,20 @@ class APIClientCreateSerializer(serializers.Serializer):
         default=list,
     )
     rate_limit_per_minute = serializers.IntegerField(min_value=1, default=60)
+
+    def validate(self, attrs):
+        tenant = self.context["request"].user.tenant
+        organization = tenant.organization
+        if organization.status != OrganizationStatus.ACTIVE:
+            raise serializers.ValidationError(
+                {
+                    "detail": (
+                        "Production API keys are unavailable until the organization "
+                        "has completed platform approval."
+                    )
+                }
+            )
+        return attrs
 
     def create(self, validated_data):
         request = self.context["request"]

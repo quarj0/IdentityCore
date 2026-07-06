@@ -4,6 +4,7 @@ from django.contrib.auth.hashers import make_password
 from django.db import models
 
 from apps.core.models import BaseModel, PublicIdModel
+from common.fields import EncryptedJSONField
 
 
 class VerificationStatus(models.TextChoices):
@@ -54,7 +55,11 @@ class Verification(PublicIdModel, BaseModel):
         related_name="verifications",
     )
     policy_public_id = models.CharField(max_length=64, blank=True)
-    policy_snapshot_json = models.JSONField(default=dict, blank=True)
+    policy_snapshot_json = EncryptedJSONField(
+        default=dict,
+        blank=True,
+        encryption_purpose="verifications.policy_snapshot",
+    )
     status = models.CharField(
         max_length=32,
         choices=VerificationStatus.choices,
@@ -63,7 +68,11 @@ class Verification(PublicIdModel, BaseModel):
     )
     purpose = models.CharField(max_length=255)
     external_reference = models.CharField(max_length=255, blank=True, db_index=True)
-    metadata_json = models.JSONField(default=dict, blank=True)
+    metadata_json = EncryptedJSONField(
+        default=dict,
+        blank=True,
+        encryption_purpose="verifications.metadata",
+    )
     redirect_url = models.URLField(blank=True)
     expires_at = models.DateTimeField(db_index=True)
     completed_at = models.DateTimeField(null=True, blank=True)
@@ -155,7 +164,11 @@ class VerificationDecision(PublicIdModel, BaseModel):
     )
     reason_code = models.CharField(max_length=120, blank=True)
     reason_detail = models.TextField(blank=True)
-    evidence_summary_json = models.JSONField(default=dict, blank=True)
+    evidence_summary_json = EncryptedJSONField(
+        default=dict,
+        blank=True,
+        encryption_purpose="verifications.decision.evidence_summary",
+    )
     decided_by = models.ForeignKey(
         "accounts.PlatformUser",
         on_delete=models.PROTECT,

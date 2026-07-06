@@ -38,6 +38,7 @@ from apps.verifications.tasks import (
 )
 from apps.verification_subjects.models import VerificationSubject
 from apps.webhooks.models import WebhookEndpoint, WebhookEvent, WebhookEventStatus
+from common.crypto import encrypt_object_bytes
 
 
 class VerificationWorkflowTests(APITestCase):
@@ -623,12 +624,15 @@ class VerificationWorkflowTests(APITestCase):
         verification.refresh_from_db()
         self.assertIn("evidence_report_storage_key", verification.metadata_json)
         self.assertIn("evidence_report_pdf_storage_key", verification.metadata_json)
-        self.assertEqual(
-            response.data["data"]["download_url"], "https://r2.example/evidence-download"
+        self.assertTrue(
+            response.data["data"]["download_url"].endswith(
+                f"/api/v1/verifications/{verification.public_id}/evidence-report/download"
+            )
         )
-        self.assertEqual(
-            response.data["data"]["pdf_download_url"],
-            "https://r2.example/evidence-download.pdf",
+        self.assertTrue(
+            response.data["data"]["pdf_download_url"].endswith(
+                f"/api/v1/verifications/{verification.public_id}/evidence-report/download.pdf"
+            )
         )
         self.assertEqual(mock_client.put_object.call_count, 2)
 
@@ -675,9 +679,10 @@ class VerificationWorkflowTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(
-            response.data["data"]["pdf_download_url"],
-            "https://r2.example/evidence-download.pdf",
+        self.assertTrue(
+            response.data["data"]["pdf_download_url"].endswith(
+                f"/api/v1/verifications/{verification.public_id}/evidence-report/download.pdf"
+            )
         )
 
     @override_settings(
@@ -712,6 +717,8 @@ class VerificationWorkflowTests(APITestCase):
                 "evidence_report_pdf_storage_key": (
                     f"organizations/{self.organization.public_id}/verifications/ver_test/reports/verification-report.pdf"
                 ),
+                "evidence_report_encrypted": True,
+                "evidence_report_pdf_encrypted": True,
             },
         )
 
@@ -724,14 +731,69 @@ class VerificationWorkflowTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(
-            response.data["data"]["evidence_report"]["download_url"],
-            "https://r2.example/evidence-download",
+        self.assertTrue(
+            response.data["data"]["evidence_report"]["download_url"].endswith(
+                f"/api/v1/verifications/{verification.public_id}/evidence-report/download"
+            )
         )
-        self.assertEqual(
-            response.data["data"]["evidence_report"]["pdf_download_url"],
-            "https://r2.example/evidence-download.pdf",
+        self.assertTrue(
+            response.data["data"]["evidence_report"]["pdf_download_url"].endswith(
+                f"/api/v1/verifications/{verification.public_id}/evidence-report/download.pdf"
+            )
         )
+
+    @override_settings(
+        OBJECT_STORAGE_EVIDENCE_BUCKET="identitycore-evidence",
+        OBJECT_STORAGE_ENDPOINT_URL="https://example.r2.cloudflarestorage.com",
+        OBJECT_STORAGE_ACCESS_KEY_ID="key",
+        OBJECT_STORAGE_SECRET_ACCESS_KEY="secret",
+        OBJECT_STORAGE_REGION="auto",
+        OBJECT_STORAGE_SIGNATURE_VERSION="s3v4",
+        APP_MANAGED_MEDIA_ENCRYPTION_ENABLED=True,
+    )
+    @patch("common.storage.boto3.client")
+    def test_encrypted_evidence_download_endpoint_decrypts_pdf_payload(
+        self, mock_client_factory
+    ):
+        encrypted_payload = encrypt_object_bytes(
+            content=b"%PDF-test",
+            content_type="application/pdf",
+            purpose="evidence.reports",
+        )
+        mock_client = Mock()
+        mock_client.get_object.return_value = {
+            "Body": Mock(read=Mock(return_value=encrypted_payload)),
+            "ContentType": "application/vnd.identitycore.encrypted+json",
+        }
+        mock_client_factory.return_value = mock_client
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.tenant.verification_subjects.create(
+                full_name="Encrypted Evidence"
+            ),
+            purpose="Encrypted evidence case",
+            expires_at=self.tenant.created_at,
+            status=VerificationStatus.VERIFIED,
+            metadata_json={
+                "evidence_report_pdf_storage_key": (
+                    f"organizations/{self.organization.public_id}/verifications/ver_pdf/reports/verification-report.pdf"
+                ),
+                "evidence_report_pdf_encrypted": True,
+            },
+        )
+
+        response = self.client.get(
+            reverse(
+                "verification-evidence-report-pdf-download",
+                kwargs={"verification_id": verification.public_id},
+            ),
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertEqual(response.content, b"%PDF-test")
 
 
 class VerificationOperationsTaskTests(TestCase):

@@ -1,3 +1,6 @@
+import json
+
+from django.db import connection
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.utils import timezone
@@ -56,6 +59,27 @@ class ProviderModelTests(TestCase):
         )
 
         self.assertTrue(check.public_id.startswith("pck_"))
+
+    def test_provider_configuration_is_encrypted_at_rest(self):
+        provider = Provider.objects.create(
+            name="SMTP Provider",
+            code="smtp-provider",
+            provider_type=ProviderType.NOTIFICATION,
+            configuration_json={"api_key": "super-secret", "region": "eu-west-1"},
+        )
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT configuration_json FROM providers_provider WHERE id = %s",
+                [provider.id],
+            )
+            raw_value = cursor.fetchone()[0]
+
+        if isinstance(raw_value, str):
+            raw_value = json.loads(raw_value)
+        self.assertEqual(provider.configuration_json["api_key"], "super-secret")
+        self.assertEqual(raw_value["__enc__"], "ic-field-v1")
+        self.assertNotIn("super-secret", json.dumps(raw_value))
 
     def test_provider_check_rejects_mismatched_provider_type(self):
         provider = Provider.objects.create(

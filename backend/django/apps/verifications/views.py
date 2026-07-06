@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
@@ -14,6 +15,7 @@ from apps.notifications.services import (
 from apps.verifications.evidence import (
     build_verification_evidence_download_url,
     build_verification_evidence_pdf_download_url,
+    download_verification_evidence_object,
     ensure_verification_evidence_report,
 )
 from apps.webhooks.services import queue_webhook_events
@@ -154,7 +156,10 @@ class VerificationDetailView(VerificationAccessMixin, APIView):
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
-        return success_response(serialize_verification(verification), request=request)
+        return success_response(
+            serialize_verification(verification, request=request),
+            request=request,
+        )
 
 
 class VerificationCancelView(VerificationAccessMixin, APIView):
@@ -279,16 +284,58 @@ class VerificationEvidenceReportView(VerificationAccessMixin, APIView):
                 "storage_key": verification.metadata_json.get(
                     "evidence_report_storage_key", ""
                 ),
-                "download_url": build_verification_evidence_download_url(verification),
+                "download_url": build_verification_evidence_download_url(
+                    verification,
+                    request=request,
+                ),
                 "pdf_storage_key": verification.metadata_json.get(
                     "evidence_report_pdf_storage_key", ""
                 ),
                 "pdf_download_url": build_verification_evidence_pdf_download_url(
-                    verification
+                    verification,
+                    request=request,
                 ),
             },
             request=request,
         )
+
+
+class VerificationEvidenceReportDownloadView(VerificationAccessMixin, APIView):
+    required_scopes = ("verifications:read",)
+
+    def get(self, request, verification_id: str):
+        verification = get_object_or_404(
+            Verification.objects.select_related("verification_subject", "organization"),
+            tenant=self._get_tenant(request),
+            public_id=verification_id,
+        )
+        ensure_verification_evidence_report(verification)
+        content, content_type, filename = download_verification_evidence_object(
+            verification,
+            pdf=False,
+        )
+        response = HttpResponse(content, content_type=content_type)
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+
+
+class VerificationEvidenceReportPDFDownloadView(VerificationAccessMixin, APIView):
+    required_scopes = ("verifications:read",)
+
+    def get(self, request, verification_id: str):
+        verification = get_object_or_404(
+            Verification.objects.select_related("verification_subject", "organization"),
+            tenant=self._get_tenant(request),
+            public_id=verification_id,
+        )
+        ensure_verification_evidence_report(verification)
+        content, content_type, filename = download_verification_evidence_object(
+            verification,
+            pdf=True,
+        )
+        response = HttpResponse(content, content_type=content_type)
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
 
 
 class ManualReviewListView(APIView):

@@ -2,11 +2,13 @@ from django.db import models
 
 from apps.core.models import BaseModel, PublicIdModel
 from apps.organizations.models import Organization
+from common.fields import EncryptedJSONField
 
 
 class TenantStatus(models.TextChoices):
     ACTIVE = "active", "Active"
     SUSPENDED = "suspended", "Suspended"
+    PENDING = "pending", "Pending"
     PENDING_REVIEW = "pending_review", "Pending review"
     CLOSED = "closed", "Closed"
 
@@ -27,7 +29,11 @@ class Tenant(PublicIdModel, BaseModel):
         default=TenantStatus.PENDING_REVIEW,
         db_index=True,
     )
-    settings_json = models.JSONField(default=dict, blank=True)
+    settings_json = EncryptedJSONField(
+        default=dict,
+        blank=True,
+        encryption_purpose="tenants.settings",
+    )
 
     class Meta:
         ordering = ["name"]

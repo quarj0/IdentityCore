@@ -1,14 +1,19 @@
 import json
 
+from django.conf import settings
+from django.urls import reverse
+
 from apps.verifications.models import Verification
 from common.storage import (
     build_signed_download_url,
+    get_object_bytes,
     get_object_storage_evidence_bucket_name,
     put_object_bytes,
 )
 
 
 TERMINAL_EVIDENCE_STATUSES = {"verified", "rejected", "cancelled", "expired", "failed"}
+EVIDENCE_OBJECT_ENCRYPTION_PURPOSE = "evidence.reports"
 
 
 def build_verification_evidence_storage_key(verification: Verification) -> str:
@@ -27,10 +32,18 @@ def build_verification_evidence_pdf_storage_key(verification: Verification) -> s
     )
 
 
-def build_verification_evidence_download_url(verification: Verification) -> str | None:
+def build_verification_evidence_download_url(
+    verification: Verification, request=None
+) -> str | None:
     storage_key = (verification.metadata_json or {}).get("evidence_report_storage_key", "")
     if not storage_key:
         return None
+    if (verification.metadata_json or {}).get("evidence_report_encrypted", False):
+        url = reverse(
+            "verification-evidence-report-download",
+            kwargs={"verification_id": verification.public_id},
+        )
+        return request.build_absolute_uri(url) if request is not None else url
     bucket_name = get_object_storage_evidence_bucket_name()
     if not bucket_name:
         return None
@@ -41,12 +54,20 @@ def build_verification_evidence_download_url(verification: Verification) -> str 
     )
 
 
-def build_verification_evidence_pdf_download_url(verification: Verification) -> str | None:
+def build_verification_evidence_pdf_download_url(
+    verification: Verification, request=None
+) -> str | None:
     storage_key = (verification.metadata_json or {}).get(
         "evidence_report_pdf_storage_key", ""
     )
     if not storage_key:
         return None
+    if (verification.metadata_json or {}).get("evidence_report_pdf_encrypted", False):
+        url = reverse(
+            "verification-evidence-report-pdf-download",
+            kwargs={"verification_id": verification.public_id},
+        )
+        return request.build_absolute_uri(url) if request is not None else url
     bucket_name = get_object_storage_evidence_bucket_name()
     if not bucket_name:
         return None
@@ -324,6 +345,40 @@ def build_verification_evidence_pdf_bytes(payload: dict) -> bytes:
     )
 
 
+def should_encrypt_evidence_objects() -> bool:
+    return bool(getattr(settings, "APP_MANAGED_MEDIA_ENCRYPTION_ENABLED", True))
+
+
+def download_verification_evidence_object(
+    verification: Verification, *, pdf: bool = False
+) -> tuple[bytes, str, str]:
+    bucket_name = get_object_storage_evidence_bucket_name()
+    storage_key = (
+        (verification.metadata_json or {}).get("evidence_report_pdf_storage_key", "")
+        if pdf
+        else (verification.metadata_json or {}).get("evidence_report_storage_key", "")
+    )
+    encrypted = (
+        (verification.metadata_json or {}).get("evidence_report_pdf_encrypted", False)
+        if pdf
+        else (verification.metadata_json or {}).get("evidence_report_encrypted", False)
+    )
+    filename = (
+        f"{verification.public_id}-verification-report.pdf"
+        if pdf
+        else f"{verification.public_id}-verification-report.json"
+    )
+    if not bucket_name or not storage_key:
+        raise ValueError("Evidence report object is not available.")
+    content, content_type = get_object_bytes(
+        bucket_name=bucket_name,
+        key=storage_key,
+        decrypt=encrypted,
+        encryption_purpose=EVIDENCE_OBJECT_ENCRYPTION_PURPOSE,
+    )
+    return content, content_type, filename
+
+
 def ensure_verification_evidence_report(verification: Verification) -> str | None:
     if verification.status not in TERMINAL_EVIDENCE_STATUSES:
         return None
@@ -339,16 +394,22 @@ def ensure_verification_evidence_report(verification: Verification) -> str | Non
         key=storage_key,
         content=json.dumps(payload, indent=2, sort_keys=True).encode("utf-8"),
         content_type="application/json",
+        encrypt=should_encrypt_evidence_objects(),
+        encryption_purpose=EVIDENCE_OBJECT_ENCRYPTION_PURPOSE,
     )
     put_object_bytes(
         bucket_name=bucket_name,
         key=pdf_storage_key,
         content=build_verification_evidence_pdf_bytes(payload),
         content_type="application/pdf",
+        encrypt=should_encrypt_evidence_objects(),
+        encryption_purpose=EVIDENCE_OBJECT_ENCRYPTION_PURPOSE,
     )
     metadata_json = dict(verification.metadata_json or {})
     metadata_json["evidence_report_storage_key"] = storage_key
     metadata_json["evidence_report_pdf_storage_key"] = pdf_storage_key
+    metadata_json["evidence_report_encrypted"] = should_encrypt_evidence_objects()
+    metadata_json["evidence_report_pdf_encrypted"] = should_encrypt_evidence_objects()
     verification.metadata_json = metadata_json
     verification.save(update_fields=["metadata_json", "updated_at"])
     return storage_key

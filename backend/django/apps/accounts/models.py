@@ -70,3 +70,31 @@ class PlatformUser(PublicIdModel, BaseModel, AbstractBaseUser, PermissionsMixin)
 
     def __str__(self) -> str:
         return self.email
+
+
+class EmailVerificationToken(PublicIdModel, BaseModel):
+    public_id_prefix = "evt"
+
+    user = models.ForeignKey(
+        PlatformUser,
+        on_delete=models.CASCADE,
+        related_name="email_verification_tokens",
+    )
+    token_hash = models.CharField(max_length=64, unique=True)
+    expires_at = models.DateTimeField(db_index=True)
+    used_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def clean(self):
+        super().clean()
+        if self.used_at is not None and self.revoked_at is not None:
+            raise ValidationError(
+                {"used_at": "A verification token cannot be both used and revoked."}
+            )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)

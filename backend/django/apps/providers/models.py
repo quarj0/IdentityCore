@@ -2,6 +2,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 from apps.core.models import BaseModel, PublicIdModel
+from common.fields import EncryptedJSONField
 
 
 class ProviderType(models.TextChoices):
@@ -73,7 +74,11 @@ class Provider(PublicIdModel, BaseModel):
         default=ProviderStatus.ACTIVE,
         db_index=True,
     )
-    configuration_json = models.JSONField(default=dict, blank=True)
+    configuration_json = EncryptedJSONField(
+        default=dict,
+        blank=True,
+        encryption_purpose="providers.configuration",
+    )
 
     class Meta:
         ordering = ["provider_type", "name"]
@@ -112,9 +117,21 @@ class ProviderCheck(PublicIdModel, BaseModel):
         db_index=True,
     )
     provider_reference = models.CharField(max_length=255, blank=True, db_index=True)
-    request_metadata_json = models.JSONField(default=dict, blank=True)
-    response_metadata_json = models.JSONField(default=dict, blank=True)
-    normalized_result_json = models.JSONField(default=dict, blank=True)
+    request_metadata_json = EncryptedJSONField(
+        default=dict,
+        blank=True,
+        encryption_purpose="providers.check.request_metadata",
+    )
+    response_metadata_json = EncryptedJSONField(
+        default=dict,
+        blank=True,
+        encryption_purpose="providers.check.response_metadata",
+    )
+    normalized_result_json = EncryptedJSONField(
+        default=dict,
+        blank=True,
+        encryption_purpose="providers.check.normalized_result",
+    )
     error_code = models.CharField(max_length=120, blank=True)
     error_message = models.TextField(blank=True)
     started_at = models.DateTimeField()

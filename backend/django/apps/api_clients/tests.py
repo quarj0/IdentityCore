@@ -5,13 +5,17 @@ from rest_framework.test import APITestCase
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.api_clients.models import APIClient, APIClientStatus
-from apps.organizations.models import Organization
+from apps.organizations.models import Organization, OrganizationStatus
 from apps.tenants.models import Tenant
 
 
 class APIClientModelTests(APITestCase):
     def setUp(self):
-        self.organization = Organization.objects.create(name="Acme", slug="acme")
+        self.organization = Organization.objects.create(
+            name="Acme",
+            slug="acme",
+            status=OrganizationStatus.ACTIVE,
+        )
         self.tenant = Tenant.objects.create(
             organization=self.organization,
             name="Acme Tenant",
@@ -54,7 +58,11 @@ class APIClientModelTests(APITestCase):
 
 class APIClientEndpointTests(APITestCase):
     def setUp(self):
-        self.organization = Organization.objects.create(name="Acme", slug="acme")
+        self.organization = Organization.objects.create(
+            name="Acme",
+            slug="acme",
+            status=OrganizationStatus.ACTIVE,
+        )
         self.tenant = Tenant.objects.create(
             organization=self.organization,
             name="Acme Tenant",
@@ -147,3 +155,21 @@ class APIClientEndpointTests(APITestCase):
 
         response = self.client.get(reverse("api-client-list-create"))
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_create_api_client_requires_approved_organization(self):
+        self.organization.status = OrganizationStatus.PENDING_REVIEW
+        self.organization.save(update_fields=["status", "updated_at"])
+
+        response = self.client.post(
+            reverse("api-client-list-create"),
+            {
+                "name": "Production Backend",
+                "scopes": ["verifications:create", "verifications:read"],
+                "allowed_networks": ["197.251.0.15/32"],
+                "rate_limit_per_minute": 100,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("platform approval", response.data["error"]["details"]["detail"][0])

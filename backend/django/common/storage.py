@@ -4,6 +4,8 @@ import boto3
 from botocore.config import Config
 from django.conf import settings
 
+from common.crypto import decrypt_object_bytes, encrypt_object_bytes, is_encrypted_object_payload
+
 
 def determine_storage_provider() -> str:
     configured_provider = getattr(settings, "OBJECT_STORAGE_PROVIDER", "").strip()
@@ -76,6 +78,19 @@ def get_object_storage_client():
     return boto3.client(**client_kwargs)
 
 
+def _get_server_side_encryption_params() -> dict:
+    if not bool(getattr(settings, "OBJECT_STORAGE_ENFORCE_SERVER_SIDE_ENCRYPTION", True)):
+        return {}
+    algorithm = getattr(settings, "OBJECT_STORAGE_SERVER_SIDE_ENCRYPTION", "").strip()
+    if not algorithm:
+        return {}
+    params = {"ServerSideEncryption": algorithm}
+    kms_key_id = getattr(settings, "OBJECT_STORAGE_KMS_KEY_ID", "").strip()
+    if kms_key_id:
+        params["SSEKMSKeyId"] = kms_key_id
+    return params
+
+
 def copy_object(
     source_bucket: str,
     source_key: str,
@@ -92,6 +107,7 @@ def copy_object(
         CopySource={"Bucket": source_bucket, "Key": source_key},
         Bucket=destination_bucket,
         Key=destination_key or source_key,
+        **_get_server_side_encryption_params(),
     )
 
 
@@ -126,16 +142,50 @@ def put_object_bytes(
     key: str,
     content: bytes,
     content_type: str = "application/octet-stream",
+    encrypt: bool = False,
+    encryption_purpose: str = "",
 ) -> None:
     client = get_object_storage_client()
     if not client:
         raise RuntimeError("Object storage is not configured for writing objects.")
+    object_content = content
+    object_content_type = content_type
+    if encrypt:
+        if not encryption_purpose:
+            raise ValueError("An encryption purpose is required when encrypting object bytes.")
+        object_content = encrypt_object_bytes(
+            content=content,
+            content_type=content_type,
+            purpose=encryption_purpose,
+        )
+        object_content_type = "application/vnd.identitycore.encrypted+json"
     client.put_object(
         Bucket=bucket_name,
         Key=key,
-        Body=content,
-        ContentType=content_type,
+        Body=object_content,
+        ContentType=object_content_type,
+        **_get_server_side_encryption_params(),
     )
+
+
+def get_object_bytes(
+    *,
+    bucket_name: str,
+    key: str,
+    decrypt: bool = False,
+    encryption_purpose: str = "",
+) -> tuple[bytes, str]:
+    client = get_object_storage_client()
+    if not client:
+        raise RuntimeError("Object storage is not configured for reading objects.")
+    response = client.get_object(Bucket=bucket_name, Key=key)
+    payload = response["Body"].read()
+    content_type = response.get("ContentType", "application/octet-stream")
+    if decrypt and is_encrypted_object_payload(payload):
+        if not encryption_purpose:
+            raise ValueError("An encryption purpose is required when decrypting object bytes.")
+        return decrypt_object_bytes(payload=payload, purpose=encryption_purpose)
+    return payload, content_type
 
 
 def build_signed_download_url(
@@ -181,6 +231,7 @@ def build_signed_upload_url(
         params = {"Bucket": bucket_name, "Key": storage_key}
         if mime_type:
             params["ContentType"] = mime_type
+        params.update(_get_server_side_encryption_params())
         return client.generate_presigned_url(
             "put_object",
             Params=params,

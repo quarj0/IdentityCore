@@ -1,6 +1,7 @@
 from django.db import models
 
 from apps.core.models import BaseModel, PublicIdModel
+from common.fields import EncryptedJSONField
 
 
 class IdentityDocumentStatus(models.TextChoices):
@@ -42,7 +43,11 @@ class IdentityDocument(PublicIdModel, BaseModel):
         default=IdentityDocumentStatus.SUBMITTED,
         db_index=True,
     )
-    extracted_data_json = models.JSONField(default=dict, blank=True)
+    extracted_data_json = EncryptedJSONField(
+        default=dict,
+        blank=True,
+        encryption_purpose="identity_documents.extracted_data",
+    )
 
     class Meta:
         ordering = ["-created_at"]

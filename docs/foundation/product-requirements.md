@@ -158,9 +158,17 @@ IdentityCore is an organization-first platform. Organizations are the customers 
 
 Before an organization can use production features, it shall complete the onboarding process.
 
+For the MVP implementation, registration is organization-first:
+
+- A user registers themselves and their organization together.
+- The user account remains inactive until email verification succeeds.
+- The default Tenant Administrator role is assigned only after email verification succeeds.
+- Trial onboarding access may begin after email verification.
+- Production API credentials remain blocked until platform approval.
+
 ### Step 1 – User Registration
 
-A platform administrator shall create a personal IdentityCore account using:
+A primary organization administrator shall register using:
 
 - Full Name
 - Business Email Address
@@ -169,11 +177,19 @@ A platform administrator shall create a personal IdentityCore account using:
 
 The email address shall be verified before the account becomes active.
 
+During this step, the system shall:
+
+- Create the Platform User in an inactive state.
+- Create the Organization in a Pending Email Verification state.
+- Create the Tenant in a Pending state.
+- Create onboarding state for the organization.
+- Queue an email verification message.
+
 ---
 
 ### Step 2 – Organization Registration
 
-After authentication, the administrator shall create an organization by providing:
+The initial registration request shall also capture organization information:
 
 - Organization Name
 - Organization Type
@@ -192,6 +208,13 @@ Supported organization types may include:
 - Non-Governmental Organization (NGO)
 - Startup
 - Other
+
+After email verification succeeds, the system shall:
+
+- Activate the Platform User.
+- Assign the default Tenant Administrator role.
+- Move onboarding to Organization Verification Required.
+- Move the Organization and Tenant into Pending Review for the remaining onboarding steps.
 
 ---
 
@@ -243,6 +266,7 @@ IdentityCore administrators may:
 - Request additional information
 
 Organizations shall not receive production API credentials until the review process has been completed successfully.
+Sandbox or trial access may be allowed earlier where explicitly supported by the platform.
 
 ---
 

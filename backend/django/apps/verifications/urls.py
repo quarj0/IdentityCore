@@ -5,6 +5,8 @@ from apps.verifications.views import (
     ManualReviewListView,
     VerificationCancelView,
     VerificationDetailView,
+    VerificationEvidenceReportDownloadView,
+    VerificationEvidenceReportPDFDownloadView,
     VerificationEvidenceReportView,
     VerificationListCreateView,
     VerificationResendLinkView,
@@ -24,6 +26,16 @@ urlpatterns = [
         "<str:verification_id>/evidence-report",
         VerificationEvidenceReportView.as_view(),
         name="verification-evidence-report",
+    ),
+    path(
+        "<str:verification_id>/evidence-report/download",
+        VerificationEvidenceReportDownloadView.as_view(),
+        name="verification-evidence-report-download",
+    ),
+    path(
+        "<str:verification_id>/evidence-report/download.pdf",
+        VerificationEvidenceReportPDFDownloadView.as_view(),
+        name="verification-evidence-report-pdf-download",
     ),
     path("<str:verification_id>/cancel", VerificationCancelView.as_view(), name="verification-cancel"),
     path(

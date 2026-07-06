@@ -51,7 +51,7 @@ def serialize_verification_subject(subject: VerificationSubject) -> dict:
     }
 
 
-def serialize_verification(verification: Verification) -> dict:
+def serialize_verification(verification: Verification, request=None) -> dict:
     latest_liveness_check = (
         verification.liveness_checks.order_by("-checked_at").first()
         if hasattr(verification, "liveness_checks")
@@ -99,12 +99,14 @@ def serialize_verification(verification: Verification) -> dict:
                 "storage_key": verification.metadata_json.get(
                     "evidence_report_storage_key", ""
                 ),
-                "download_url": build_verification_evidence_download_url(verification),
+                "download_url": build_verification_evidence_download_url(
+                    verification, request=request
+                ),
                 "pdf_storage_key": verification.metadata_json.get(
                     "evidence_report_pdf_storage_key", ""
                 ),
                 "pdf_download_url": build_verification_evidence_pdf_download_url(
-                    verification
+                    verification, request=request
                 ),
             }
             if verification.metadata_json.get("evidence_report_storage_key")
