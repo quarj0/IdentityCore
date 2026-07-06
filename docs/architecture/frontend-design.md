@@ -21,11 +21,27 @@ IdentityCore will use separate frontend applications:
 ```text
 frontend/
 
+├── identitycore/
 ├── dashboard/
 ├── verification-portal/
 ├── developer-portal/
 └── platform-admin/
 ```
+
+### Public Website
+
+`frontend/identitycore` is the public website and landing experience for IdentityCore.
+
+Main features:
+
+- Product landing pages
+- Pricing and packaging pages
+- Trust, security, and compliance pages
+- Company and contact pages
+- Public onboarding entry points
+- Navigation into dashboard, verification, and developer experiences
+
+This frontend is separate from the product applications so marketing, trust messaging, and public discovery do not compete with authenticated workflows.
 
 ---
 
@@ -245,6 +261,16 @@ Avoid:
 - Complex gradients
 - Low contrast text
 - Dark-only design
+
+## Suggested Domain Split
+
+Recommended routing:
+
+- `www.identitycore.com` or root domain -> `identitycore`
+- `app.identitycore.com` -> `dashboard`
+- `verify.identitycore.com` or `/verify` -> `verification-portal`
+- `docs.identitycore.com` -> `developer-portal`
+- `admin.identitycore.com` -> `platform-admin`
 
 ---
 
