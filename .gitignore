@@ -19,6 +19,7 @@ site/
 venv/
 env/
 backend/django/env/
+celerybeat-schedule
 
 # Node
 node_modules/
@@ -33,9 +34,12 @@ pnpm-debug.log*
 .env
 .env.*
 !.env.example
+celerybeat-schedule
 
 # Docker
 *.pid
+celerybeat-schedule
+db.sqlite3
 
 # Editors
 .vscode/
@@ -45,3 +49,7 @@ pnpm-debug.log*
 # OS files
 .DS_Store
 Thumbs.db
+
+#Miscelaneous
+celerybeat-schedule
+*.sqlite3

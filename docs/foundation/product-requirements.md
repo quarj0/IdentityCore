@@ -152,6 +152,210 @@ SMS link sharing may be implemented later, but it is not part of the active MVP 
 
 ---
 
+## Organization Onboarding
+
+IdentityCore is an organization-first platform. Organizations are the customers of the platform, while the individuals being verified are referred to as Verification Subjects.
+
+Before an organization can use production features, it shall complete the onboarding process.
+
+### Step 1 – User Registration
+
+A platform administrator shall create a personal IdentityCore account using:
+
+- Full Name
+- Business Email Address
+- Password
+- Country
+
+The email address shall be verified before the account becomes active.
+
+---
+
+### Step 2 – Organization Registration
+
+After authentication, the administrator shall create an organization by providing:
+
+- Organization Name
+- Organization Type
+- Country
+- Website (optional)
+- Support Email
+- Phone Number
+
+Supported organization types may include:
+
+- Government
+- Financial Institution
+- Educational Institution
+- Healthcare Provider
+- Enterprise
+- Non-Governmental Organization (NGO)
+- Startup
+- Other
+
+---
+
+### Step 3 – Organization Verification
+
+Organizations requesting access to production services shall provide sufficient information to establish their legitimacy.
+
+Information may include:
+
+- Business Registration Number
+- Tax Identification Number (where applicable)
+- Registered Address
+- Official Website
+- Supporting documentation
+
+Examples of supporting documentation include:
+
+- Certificate of Incorporation
+- Business Registration Certificate
+- Government Authorization
+- Operating License
+
+Verification may be performed manually or through automated processes depending on jurisdiction and future platform capabilities.
+
+---
+
+### Step 4 – Administrator Identity Verification
+
+The primary administrator shall complete identity verification using IdentityCore.
+
+Verification may include:
+
+- Identity Document
+- Selfie Capture
+- Liveness Detection
+
+This establishes trust between the platform, the organization, and its primary administrator.
+
+---
+
+### Step 5 – Platform Review
+
+Upon successful submission of all required information, the organization enters a Pending Review state.
+
+IdentityCore administrators may:
+
+- Approve the organization
+- Reject the organization
+- Request additional information
+
+Organizations shall not receive production API credentials until the review process has been completed successfully.
+
+---
+
+### Step 6 – Organization Activation
+
+Once approved, the organization may:
+
+- Create Projects
+- Configure Verification Policies
+- Generate API Keys
+- Configure Webhooks
+- Invite Team Members
+- Create Verification Requests
+- Access Production APIs
+
+---
+
+## Organization Organization Tier
+
+IdentityCore assigns every organization an Organization Tier that determines the capabilities available to that organization.
+
+Organization Tier are designed to reduce platform abuse while allowing organizations to gain access to additional functionality as trust is established.
+
+### Tier 0 – Trial
+
+Purpose:
+
+Evaluate the platform.
+
+Capabilities:
+
+- Sandbox environment only
+- Test API Keys
+- Mock verification responses
+- Limited dashboard functionality
+- No production verification
+- No production webhooks
+
+---
+
+### Tier 1 – Verified
+
+Purpose:
+
+Verified organizations beginning production usage.
+
+Requirements:
+
+- Organization approved
+- Administrator identity verified
+
+Capabilities:
+
+- Production API access
+- Production verification
+- Webhooks
+- Basic reporting
+- Standard rate limits
+
+---
+
+### Tier 2 – Trusted
+
+Purpose:
+
+Organizations with an established operational history.
+
+Requirements may include:
+
+- Sustained platform usage
+- Good compliance history
+- Successful billing history
+- Internal review
+
+Additional capabilities:
+
+- Increased API limits
+- Higher verification quotas
+- Advanced verification policies
+- Priority support
+- Additional provider integrations
+
+---
+
+### Tier 3 – Enterprise
+
+Purpose:
+
+Large organizations requiring dedicated enterprise capabilities.
+
+Examples:
+
+- Governments
+- National Identity Authorities
+- Banks
+- Large Enterprises
+
+Capabilities:
+
+- Dedicated deployments
+- Private Cloud or On-Premises deployment
+- Custom provider integrations
+- Dedicated support
+- Custom SLAs
+- Advanced compliance features
+- Government integrations
+
+---
+
+Organization Tier are administrative controls and shall not affect the integrity or outcome of verification decisions.
+
+Their purpose is to govern platform access, operational limits, deployment options, and customer support.
+
 ## Multi-Tenant Architecture
 
 The system shall:
