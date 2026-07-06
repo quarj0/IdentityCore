@@ -2,6 +2,7 @@ from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.settings import api_settings
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
@@ -36,18 +37,47 @@ from common.permissions import HasAPIClientScopes, IsTenantUser
 from common.responses import success_response
 
 
-class VerificationListCreateView(APIView):
-    authentication_classes = [APIClientAuthentication]
+class VerificationAccessMixin:
+    authentication_classes = [
+        APIClientAuthentication,
+        *api_settings.DEFAULT_AUTHENTICATION_CLASSES,
+    ]
+
+    def _is_api_client_request(self, request) -> bool:
+        return getattr(request, "api_client", None) is not None
+
+    def _get_tenant(self, request):
+        if self._is_api_client_request(request):
+            return request.tenant
+        return request.user.tenant
+
+    def _get_actor(self, request):
+        if self._is_api_client_request(request):
+            return request.api_client
+        return request.user
+
+    def _set_request_tenant(self, request) -> None:
+        if not hasattr(request, "tenant") or request.tenant is None:
+            request.tenant = self._get_tenant(request)
 
     def get_permissions(self):
-        if self.request.method == "GET":
-            self.required_scopes = ("verifications:read",)
-        else:
-            self.required_scopes = ("verifications:create",)
-        return [HasAPIClientScopes()]
+        if self._is_api_client_request(self.request):
+            return [HasAPIClientScopes()]
+        return [IsAuthenticated(), IsTenantUser()]
+
+
+class VerificationListCreateView(VerificationAccessMixin, APIView):
+
+    def get_permissions(self):
+        self.required_scopes = (
+            ("verifications:read",)
+            if self.request.method == "GET"
+            else ("verifications:create",)
+        )
+        return super().get_permissions()
 
     def get(self, request):
-        verifications = request.tenant.verifications.select_related(
+        verifications = self._get_tenant(request).verifications.select_related(
             "verification_subject"
         ).order_by("-created_at")
 
@@ -73,6 +103,7 @@ class VerificationListCreateView(APIView):
         )
 
     def post(self, request):
+        self._set_request_tenant(request)
         serializer = VerificationCreateSerializer(
             data=request.data, context={"request": request}
         )
@@ -80,8 +111,8 @@ class VerificationListCreateView(APIView):
         verification = serializer.save()
         session = verification._initial_session
         record_audit_event(
-            tenant=request.tenant,
-            actor=request.api_client,
+            tenant=self._get_tenant(request),
+            actor=self._get_actor(request),
             request=request,
             action="verification.created",
             target_type="verification",
@@ -89,7 +120,7 @@ class VerificationListCreateView(APIView):
             metadata={"session_id": session.public_id},
         )
         queue_webhook_events(
-            tenant=request.tenant,
+            tenant=self._get_tenant(request),
             event_type="verification.created",
             payload={
                 "verification_id": verification.public_id,
@@ -114,29 +145,25 @@ class VerificationListCreateView(APIView):
         )
 
 
-class VerificationDetailView(APIView):
-    authentication_classes = [APIClientAuthentication]
+class VerificationDetailView(VerificationAccessMixin, APIView):
     required_scopes = ("verifications:read",)
-    permission_classes = [HasAPIClientScopes]
 
     def get(self, request, verification_id: str):
         verification = get_object_or_404(
             Verification.objects.select_related("verification_subject"),
-            tenant=request.tenant,
+            tenant=self._get_tenant(request),
             public_id=verification_id,
         )
         return success_response(serialize_verification(verification), request=request)
 
 
-class VerificationCancelView(APIView):
-    authentication_classes = [APIClientAuthentication]
+class VerificationCancelView(VerificationAccessMixin, APIView):
     required_scopes = ("verifications:create",)
-    permission_classes = [HasAPIClientScopes]
 
     def post(self, request, verification_id: str):
         verification = get_object_or_404(
             Verification,
-            tenant=request.tenant,
+            tenant=self._get_tenant(request),
             public_id=verification_id,
         )
         serializer = VerificationCancelSerializer(data=request.data)
@@ -145,8 +172,8 @@ class VerificationCancelView(APIView):
         verification.cancelled_at = timezone.now()
         verification.save(update_fields=["status", "cancelled_at", "updated_at"])
         record_audit_event(
-            tenant=request.tenant,
-            actor=request.api_client,
+            tenant=self._get_tenant(request),
+            actor=self._get_actor(request),
             request=request,
             action="verification.cancelled",
             target_type="verification",
@@ -155,7 +182,7 @@ class VerificationCancelView(APIView):
             sensitive_metadata={"reason": serializer.validated_data.get("reason", "")},
         )
         queue_webhook_events(
-            tenant=request.tenant,
+            tenant=self._get_tenant(request),
             event_type="verification.cancelled",
             payload={
                 "verification_id": verification.public_id,
@@ -177,15 +204,13 @@ class VerificationCancelView(APIView):
         )
 
 
-class VerificationResendLinkView(APIView):
-    authentication_classes = [APIClientAuthentication]
+class VerificationResendLinkView(VerificationAccessMixin, APIView):
     required_scopes = ("verifications:create",)
-    permission_classes = [HasAPIClientScopes]
 
     def post(self, request, verification_id: str):
         verification = get_object_or_404(
             Verification.objects.select_related("verification_subject", "tenant"),
-            tenant=request.tenant,
+            tenant=self._get_tenant(request),
             public_id=verification_id,
         )
         serializer = VerificationResendLinkSerializer(data=request.data or {})
@@ -214,8 +239,8 @@ class VerificationResendLinkView(APIView):
             verification_url=verification_url,
         )
         record_audit_event(
-            tenant=request.tenant,
-            actor=request.api_client,
+            tenant=self._get_tenant(request),
+            actor=self._get_actor(request),
             request=request,
             action="verification.link_resent",
             target_type="verification",
@@ -226,21 +251,24 @@ class VerificationResendLinkView(APIView):
             },
         )
         return success_response(
-            {"sent": bool(notifications)},
+            {
+                "sent": bool(notifications),
+                "verification_url": verification_url,
+                "session_id": session.public_id,
+                "channel": serializer.validated_data["channel"],
+            },
             request=request,
             status=status.HTTP_200_OK,
         )
 
 
-class VerificationEvidenceReportView(APIView):
-    authentication_classes = [APIClientAuthentication]
+class VerificationEvidenceReportView(VerificationAccessMixin, APIView):
     required_scopes = ("verifications:read",)
-    permission_classes = [HasAPIClientScopes]
 
     def get(self, request, verification_id: str):
         verification = get_object_or_404(
             Verification.objects.select_related("verification_subject", "organization"),
-            tenant=request.tenant,
+            tenant=self._get_tenant(request),
             public_id=verification_id,
         )
         ensure_verification_evidence_report(verification)

@@ -1,0 +1,499 @@
+{
+  "info": {
+    "_postman_id": "2d6bd013-8f75-4a5d-92b4-identitycore",
+    "name": "IdentityCore",
+    "description": "IdentityCore REST and GraphQL requests for local/manual testing.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "graphqlPath", "value": "/api/graphql" },
+    { "key": "restBase", "value": "/api/v1" }
+  ],
+  "item": [
+    {
+      "name": "REST - Dashboard Auth",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}{{restBase}}/health"
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const payload = pm.response.json();",
+                  "pm.environment.set('dashboard_access_token', payload.data.tokens.access);",
+                  "pm.environment.set('dashboard_refresh_token', payload.data.tokens.refresh);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{dashboard_email}}\",\n  \"password\": \"{{dashboard_password}}\"\n}"
+            },
+            "url": "{{baseUrl}}{{restBase}}/auth/login"
+          }
+        },
+        {
+          "name": "Refresh",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const payload = pm.response.json();",
+                  "pm.environment.set('dashboard_access_token', payload.data.tokens.access);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{dashboard_refresh_token}}\"\n}"
+            },
+            "url": "{{baseUrl}}{{restBase}}/auth/refresh"
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{dashboard_access_token}}" }
+            ],
+            "url": "{{baseUrl}}{{restBase}}/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "REST - API Client Verification Flow",
+      "item": [
+        {
+          "name": "Create Verification",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const payload = pm.response.json();",
+                  "pm.environment.set('verification_id', payload.data.id);",
+                  "pm.environment.set('verification_session_id', payload.data.session_id);",
+                  "if (payload.data.verification_url) { pm.environment.set('verification_url', payload.data.verification_url); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
+              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"external_reference\": \"customer_12345\",\n  \"purpose\": \"Customer onboarding verification\",\n  \"verification_subject\": {\n    \"full_name\": \"Akosua Owusu\",\n    \"email\": \"akosua@example.com\",\n    \"phone_number\": \"+233500000000\"\n  },\n  \"metadata\": {\n    \"source\": \"postman\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}{{restBase}}/verifications/"
+          }
+        },
+        {
+          "name": "List Verifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
+              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+            ],
+            "url": "{{baseUrl}}{{restBase}}/verifications/"
+          }
+        },
+        {
+          "name": "Verification Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
+              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+            ],
+            "url": "{{baseUrl}}{{restBase}}/verifications/{{verification_id}}"
+          }
+        },
+        {
+          "name": "Evidence Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
+              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+            ],
+            "url": "{{baseUrl}}{{restBase}}/verifications/{{verification_id}}/evidence-report"
+          }
+        },
+        {
+          "name": "Resend Verification Link",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
+              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channel\": \"email\"\n}"
+            },
+            "url": "{{baseUrl}}{{restBase}}/verifications/{{verification_id}}/resend-link"
+          }
+        },
+        {
+          "name": "Cancel Verification",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
+              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Testing cancel flow from Postman\"\n}"
+            },
+            "url": "{{baseUrl}}{{restBase}}/verifications/{{verification_id}}/cancel"
+          }
+        }
+      ]
+    },
+    {
+      "name": "REST - Uploads",
+      "item": [
+        {
+          "name": "Create Document Upload",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const payload = pm.response.json();",
+                  "pm.environment.set('document_upload_id', payload.data.upload_id);",
+                  "pm.environment.set('document_upload_key', payload.data.storage_key);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
+              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"verification_id\": \"{{verification_id}}\",\n  \"purpose\": \"document_capture\",\n  \"filename\": \"document-front.jpg\",\n  \"mime_type\": \"image/jpeg\",\n  \"file_size_bytes\": 102400\n}"
+            },
+            "url": "{{baseUrl}}{{restBase}}/uploads/"
+          }
+        },
+        {
+          "name": "Create Selfie Upload",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const payload = pm.response.json();",
+                  "pm.environment.set('selfie_upload_id', payload.data.upload_id);",
+                  "pm.environment.set('selfie_upload_key', payload.data.storage_key);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
+              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"verification_id\": \"{{verification_id}}\",\n  \"purpose\": \"selfie_capture\",\n  \"filename\": \"selfie.jpg\",\n  \"mime_type\": \"image/jpeg\",\n  \"file_size_bytes\": 76800\n}"
+            },
+            "url": "{{baseUrl}}{{restBase}}/uploads/"
+          }
+        },
+        {
+          "name": "Create Liveness Upload",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const payload = pm.response.json();",
+                  "pm.environment.set('liveness_upload_id', payload.data.upload_id);",
+                  "pm.environment.set('liveness_upload_key', payload.data.storage_key);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
+              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"verification_id\": \"{{verification_id}}\",\n  \"purpose\": \"liveness_capture\",\n  \"filename\": \"liveness.mp4\",\n  \"mime_type\": \"video/mp4\",\n  \"file_size_bytes\": 512000\n}"
+            },
+            "url": "{{baseUrl}}{{restBase}}/uploads/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "REST - Verification Session Portal",
+      "item": [
+        {
+          "name": "Session Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{session_token}}" }
+            ],
+            "url": "{{baseUrl}}{{restBase}}/sessions/{{verification_session_id}}"
+          }
+        },
+        {
+          "name": "Accept Consent",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{session_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accepted\": true\n}"
+            },
+            "url": "{{baseUrl}}{{restBase}}/sessions/{{verification_session_id}}/consent"
+          }
+        },
+        {
+          "name": "Submit Document",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const payload = pm.response.json();",
+                  "pm.environment.set('identity_document_id', payload.data.identity_document_id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{session_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"document_type\": \"national_id\",\n  \"country_code\": \"GH\",\n  \"captures\": [\n    {\n      \"side\": \"front\",\n      \"upload_id\": \"{{document_upload_id}}\"\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}{{restBase}}/sessions/{{verification_session_id}}/documents"
+          }
+        },
+        {
+          "name": "Submit Selfie",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const payload = pm.response.json();",
+                  "pm.environment.set('selfie_capture_id', payload.data.selfie_capture_id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{session_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"capture_type\": \"image\",\n  \"upload_id\": \"{{selfie_upload_id}}\"\n}"
+            },
+            "url": "{{baseUrl}}{{restBase}}/sessions/{{verification_session_id}}/selfies"
+          }
+        },
+        {
+          "name": "Submit Liveness",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const payload = pm.response.json();",
+                  "pm.environment.set('liveness_check_id', payload.data.liveness_check_id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{session_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"liveness_type\": \"passive\",\n  \"selfie_capture_id\": \"{{selfie_capture_id}}\"\n}"
+            },
+            "url": "{{baseUrl}}{{restBase}}/sessions/{{verification_session_id}}/liveness"
+          }
+        },
+        {
+          "name": "Session Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{session_token}}" }
+            ],
+            "url": "{{baseUrl}}{{restBase}}/sessions/{{verification_session_id}}/status"
+          }
+        }
+      ]
+    },
+    {
+      "name": "REST - Manual Review and Admin",
+      "item": [
+        {
+          "name": "Manual Review List",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{dashboard_access_token}}" }
+            ],
+            "url": "{{baseUrl}}{{restBase}}/verifications/manual-reviews"
+          }
+        },
+        {
+          "name": "Record Manual Decision",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{dashboard_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"verified\",\n  \"reason_code\": \"evidence_confirmed\",\n  \"reason_detail\": \"Confirmed during manual review in Postman.\"\n}"
+            },
+            "url": "{{baseUrl}}{{restBase}}/verifications/manual-reviews/{{verification_id}}/decision"
+          }
+        },
+        {
+          "name": "Organization Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{dashboard_access_token}}" }
+            ],
+            "url": "{{baseUrl}}{{restBase}}/organization/me/"
+          }
+        },
+        {
+          "name": "Policy List",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{dashboard_access_token}}" }
+            ],
+            "url": "{{baseUrl}}{{restBase}}/policies/"
+          }
+        },
+        {
+          "name": "API Client List",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{dashboard_access_token}}" }
+            ],
+            "url": "{{baseUrl}}{{restBase}}/api-clients/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "GraphQL - Dashboard",
+      "item": [
+        {
+          "name": "Verifications Query",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{dashboard_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"query VerificationList { verifications(status: \\\"manual_review_required\\\") { id status riskAssessment { riskLevel riskScore } verificationSubject { fullName } } }\"\n}"
+            },
+            "url": "{{baseUrl}}{{graphqlPath}}"
+          }
+        },
+        {
+          "name": "Manual Decision Mutation",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{dashboard_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"mutation ManualDecision($verificationId: String!, $decision: String!, $reasonCode: String!) { recordManualDecision(verificationId: $verificationId decision: $decision reasonCode: $reasonCode) { verificationId decision decisionType } }\",\n  \"variables\": {\n    \"verificationId\": \"{{verification_id}}\",\n    \"decision\": \"verified\",\n    \"reasonCode\": \"evidence_confirmed\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}{{graphqlPath}}"
+          }
+        }
+      ]
+    }
+  ]
+}

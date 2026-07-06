@@ -71,6 +71,9 @@ class VerificationWorkflowTests(APITestCase):
             "HTTP_AUTHORIZATION": f"Bearer {self.raw_secret}",
         }
 
+    def authenticate_dashboard_user(self):
+        self.client.force_authenticate(self.user)
+
     def test_create_verification_creates_subject_and_session(self):
         response = self.client.post(
             reverse("verification-list-create"),
@@ -104,6 +107,28 @@ class VerificationWorkflowTests(APITestCase):
                 recipient="kwame@example.com",
             ).exists()
         )
+
+    def test_dashboard_user_can_create_verification(self):
+        self.authenticate_dashboard_user()
+
+        response = self.client.post(
+            reverse("verification-list-create"),
+            {
+                "external_reference": "customer_dash_123",
+                "purpose": "No-code dashboard verification",
+                "verification_subject": {
+                    "full_name": "Akosua Dashboard",
+                    "email": "akosua.dashboard@example.com",
+                },
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(response.data["data"]["id"].startswith("ver_"))
+        self.assertTrue(response.data["data"]["verification_url"])
+        verification = Verification.objects.get(public_id=response.data["data"]["id"])
+        self.assertEqual(verification.tenant, self.tenant)
 
     def test_list_verifications_is_tenant_scoped(self):
         response = self.client.post(
@@ -156,6 +181,29 @@ class VerificationWorkflowTests(APITestCase):
         )
         ids = [item["id"] for item in list_response.data["data"]["results"]]
         self.assertEqual(ids, [verification_id])
+
+    def test_dashboard_user_can_list_and_view_verifications(self):
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.tenant.verification_subjects.create(
+                full_name="Dashboard Subject"
+            ),
+            purpose="Dashboard detail",
+            expires_at=timezone.now() + timedelta(hours=1),
+            status=VerificationStatus.PENDING_CONSENT,
+        )
+
+        self.authenticate_dashboard_user()
+        list_response = self.client.get(reverse("verification-list-create"))
+        detail_response = self.client.get(
+            reverse("verification-detail", kwargs={"verification_id": verification.public_id})
+        )
+
+        self.assertEqual(list_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(detail_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(list_response.data["data"]["results"][0]["id"], verification.public_id)
+        self.assertEqual(detail_response.data["data"]["id"], verification.public_id)
 
     def test_detail_requires_read_scope(self):
         self.api_client.scopes_json = ["verifications:create"]
@@ -247,6 +295,32 @@ class VerificationWorkflowTests(APITestCase):
             ).count()
             >= 2
         )
+        self.assertTrue(response.data["data"]["verification_url"])
+        self.assertTrue(response.data["data"]["session_id"].startswith("ses_"))
+
+    def test_dashboard_user_can_resend_link(self):
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.tenant.verification_subjects.create(
+                full_name="Resend Dashboard",
+                email="resend@example.com",
+            ),
+            purpose="Resend flow",
+            expires_at=timezone.now() + timedelta(hours=1),
+            status=VerificationStatus.PENDING_CONSENT,
+        )
+
+        self.authenticate_dashboard_user()
+        response = self.client.post(
+            reverse("verification-resend-link", kwargs={"verification_id": verification.public_id}),
+            {"channel": "email"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["data"]["sent"])
+        self.assertTrue(response.data["data"]["verification_url"])
 
     def test_detail_includes_latest_liveness_and_face_match_states(self):
         subject = self.tenant.verification_subjects.create(full_name="Kwame")
@@ -557,6 +631,54 @@ class VerificationWorkflowTests(APITestCase):
             "https://r2.example/evidence-download.pdf",
         )
         self.assertEqual(mock_client.put_object.call_count, 2)
+
+    @override_settings(
+        OBJECT_STORAGE_EVIDENCE_BUCKET="identitycore-evidence",
+        OBJECT_STORAGE_ENDPOINT_URL="https://example.r2.cloudflarestorage.com",
+        OBJECT_STORAGE_ACCESS_KEY_ID="key",
+        OBJECT_STORAGE_SECRET_ACCESS_KEY="secret",
+        OBJECT_STORAGE_REGION="auto",
+        OBJECT_STORAGE_SIGNATURE_VERSION="s3v4",
+    )
+    @patch("common.storage.boto3.client")
+    def test_dashboard_user_can_fetch_evidence_report(self, mock_client_factory):
+        mock_client = Mock()
+        mock_client.generate_presigned_url.side_effect = [
+            "https://r2.example/evidence-download",
+            "https://r2.example/evidence-download.pdf",
+        ]
+        mock_client_factory.return_value = mock_client
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.tenant.verification_subjects.create(
+                full_name="Dashboard Evidence"
+            ),
+            purpose="Dashboard evidence case",
+            expires_at=timezone.now() + timedelta(hours=1),
+            status=VerificationStatus.VERIFIED,
+            completed_at=timezone.now(),
+        )
+        VerificationDecision.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            decision="verified",
+            decision_type="manual",
+            reason_code="evidence_confirmed",
+            decided_by=self.user,
+            decided_at=timezone.now(),
+        )
+
+        self.authenticate_dashboard_user()
+        response = self.client.get(
+            reverse("verification-evidence-report", kwargs={"verification_id": verification.public_id})
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data["data"]["pdf_download_url"],
+            "https://r2.example/evidence-download.pdf",
+        )
 
     @override_settings(
         OBJECT_STORAGE_EVIDENCE_BUCKET="identitycore-evidence",

@@ -135,7 +135,7 @@ Organization Administrators shall be able to:
 
 - Create verification requests from the dashboard.
 - Generate secure verification links.
-- Share verification links manually by email, SMS, or copy link.
+- Share verification links manually by email or copy link.
 - Configure verification policies without writing code.
 - Select accepted Document Types.
 - Configure liveness requirements.
@@ -147,6 +147,8 @@ Organization Administrators shall be able to:
 - Export verification reports where permitted.
 
 No-code workflows shall use the same Verification Engine, Verification Policies, Consent Records, Audit Events, and Decision Engine as API-based workflows.
+
+SMS link sharing may be implemented later, but it is not part of the active MVP no-code workflow requirements.
 
 ---
 

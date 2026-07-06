@@ -21,6 +21,14 @@ from apps.verifications.models import (
 )
 
 
+def get_request_tenant(request):
+    tenant = getattr(request, "tenant", None)
+    if tenant is not None:
+        return tenant
+    user = getattr(request, "user", None)
+    return getattr(user, "tenant", None)
+
+
 def serialize_risk_assessment(verification: Verification) -> dict | None:
     risk_assessment = getattr(verification, "risk_assessment", None)
     if risk_assessment is None:
@@ -155,7 +163,7 @@ class VerificationCreateSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         request = self.context["request"]
-        tenant = request.tenant
+        tenant = get_request_tenant(request)
         policy_id = attrs.get("policy_id", "").strip()
         if policy_id:
             policy = tenant.verification_policies.filter(public_id=policy_id).first()
@@ -165,7 +173,7 @@ class VerificationCreateSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         request = self.context["request"]
-        tenant = request.tenant
+        tenant = get_request_tenant(request)
         subject_data = validated_data["verification_subject"]
         external_reference = validated_data.get("external_reference", "")
         policy = validated_data.get("policy")

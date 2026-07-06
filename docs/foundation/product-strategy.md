@@ -104,9 +104,16 @@ Includes:
 
 - Dashboard-based verification creation
 - Hosted verification links
+- Email link sharing
+- Copy-link sharing
 - Verification policy builder
 - Manual review interface
 - Reports and exports
+
+Future enhancements for this access model may include:
+
+- SMS link sharing
+- Additional messaging channels
 
 Both access models use the same underlying verification infrastructure.
 
