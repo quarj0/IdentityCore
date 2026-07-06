@@ -80,6 +80,38 @@ Primary markets include:
 
 ---
 
+## Product Access Models
+
+IdentityCore supports two access models.
+
+### Developer Integration
+
+For technical organizations that want to embed IdentityCore directly into their own systems.
+
+Includes:
+
+- REST APIs
+- API Clients
+- Webhooks
+- SDKs
+- Developer documentation
+
+### No-Code Hosted Verification
+
+For organizations that want to verify people without building a custom integration.
+
+Includes:
+
+- Dashboard-based verification creation
+- Hosted verification links
+- Verification policy builder
+- Manual review interface
+- Reports and exports
+
+Both access models use the same underlying verification infrastructure.
+
+---
+
 ## Geographic Strategy
 
 ## Phase One

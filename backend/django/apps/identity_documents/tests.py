@@ -84,10 +84,23 @@ class IdentityDocumentTaskTests(TestCase):
             started_at=timezone.now(),
         )
 
+    @patch("apps.identity_documents.tasks.run_document_classification")
     @patch("apps.identity_documents.tasks.run_document_ocr")
     @patch("apps.identity_documents.tasks.run_document_quality")
-    def test_process_identity_document_task_marks_document_processed(self, mock_quality, mock_ocr):
+    def test_process_identity_document_task_marks_document_processed(
+        self, mock_quality, mock_ocr, mock_classification
+    ):
         mock_quality.return_value = {"status": "completed", "quality_score": 0.88, "issues": []}
+        mock_classification.return_value = {
+            "status": "completed",
+            "predicted_document_type": "national_id",
+            "expected_document_type": "national_id",
+            "matched_expected_document_type": True,
+            "confidence_score": 0.95,
+            "issues": [],
+            "model_name": "mock-document-classifier",
+            "model_version": "v1",
+        }
         mock_ocr.return_value = {
             "status": "completed",
             "confidence_score": 0.91,
@@ -106,13 +119,32 @@ class IdentityDocumentTaskTests(TestCase):
         self.assertEqual(self.capture.status, "validated")
         self.assertEqual(self.upload.status, UploadStatus.PROMOTED)
         self.assertEqual(self.identity_document.extracted_data_json["full_name"], "Kwame Mensah")
+        self.assertIn(
+            "document_classification", self.identity_document.extracted_data_json
+        )
         self.assertEqual(mock_quality.call_args.kwargs["document_storage_bucket"], "")
+        self.assertEqual(
+            mock_classification.call_args.kwargs["document_storage_bucket"], ""
+        )
         self.assertEqual(mock_ocr.call_args.kwargs["document_storage_bucket"], "")
 
+    @patch("apps.identity_documents.tasks.run_document_classification")
     @patch("apps.identity_documents.tasks.run_document_ocr")
     @patch("apps.identity_documents.tasks.run_document_quality")
-    def test_process_identity_document_task_marks_document_rejected_when_quality_fails(self, mock_quality, mock_ocr):
+    def test_process_identity_document_task_marks_document_rejected_when_quality_fails(
+        self, mock_quality, mock_ocr, mock_classification
+    ):
         mock_quality.return_value = {"status": "completed", "quality_score": 0.42, "issues": ["blur_detected"]}
+        mock_classification.return_value = {
+            "status": "completed",
+            "predicted_document_type": "national_id",
+            "expected_document_type": "national_id",
+            "matched_expected_document_type": True,
+            "confidence_score": 0.95,
+            "issues": [],
+            "model_name": "mock-document-classifier",
+            "model_version": "v1",
+        }
         mock_ocr.return_value = {
             "status": "completed",
             "confidence_score": 0.91,

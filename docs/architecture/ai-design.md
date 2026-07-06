@@ -118,6 +118,7 @@ Implementation note:
 - The current Django implementation also queues document OCR and document-quality processing onto the same `ai_processing` queue after document submission.
 - The internal FastAPI service now supports a real-processing path backed by OpenCV, MediaPipe, InsightFace, and PaddleOCR when object storage and local model assets are configured.
 - The same service still supports `mock` and `hybrid` runtime modes so local development can run without downloading model assets during bootstrap.
+- Supported `AI_SERVICE_MODE` values are `mock`, `hybrid`, and `real`. The legacy `local` value is normalized to `mock` for backward compatibility.
 
 ---
 

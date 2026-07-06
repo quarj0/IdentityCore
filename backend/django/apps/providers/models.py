@@ -22,6 +22,7 @@ class ProviderStatus(models.TextChoices):
 
 class ProviderCheckType(models.TextChoices):
     DOCUMENT_OCR = "document_ocr", "Document OCR"
+    DOCUMENT_CLASSIFICATION = "document_classification", "Document Classification"
     DOCUMENT_QUALITY = "document_quality", "Document Quality"
     FACE_MATCH = "face_match", "Face Match"
     LIVENESS = "liveness", "Liveness"
@@ -40,6 +41,7 @@ class ProviderCheckStatus(models.TextChoices):
 
 CHECK_TYPE_PROVIDER_TYPES = {
     ProviderCheckType.DOCUMENT_OCR: {ProviderType.DOCUMENT},
+    ProviderCheckType.DOCUMENT_CLASSIFICATION: {ProviderType.DOCUMENT},
     ProviderCheckType.DOCUMENT_QUALITY: {ProviderType.DOCUMENT},
     ProviderCheckType.FACE_MATCH: {ProviderType.BIOMETRIC},
     ProviderCheckType.LIVENESS: {ProviderType.LIVENESS, ProviderType.BIOMETRIC},

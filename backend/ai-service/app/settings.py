@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -83,6 +83,16 @@ class Settings(BaseSettings):
         default=False, alias="PADDLE_OCR_ALLOW_DOWNLOAD"
     )
 
+    @field_validator("service_mode", mode="before")
+    @classmethod
+    def normalize_service_mode(cls, value: str) -> str:
+        normalized = str(value or "mock").strip().lower()
+        if normalized == "local":
+            return "mock"
+        if normalized not in {"mock", "hybrid", "real"}:
+            raise ValueError("AI_SERVICE_MODE must be one of: mock, hybrid, real.")
+        return normalized
+
     @property
     def cache_path(self) -> Path:
         return Path(self.cache_dir)
@@ -116,12 +126,46 @@ class Settings(BaseSettings):
         return self.paddle_root_dir / "cls"
 
     @property
+    def insightface_model_dir(self) -> Path:
+        return self.insightface_root_dir / "models" / self.insightface_model_name
+
+    def real_inference_missing_requirements(self) -> list[str]:
+        missing: list[str] = []
+
+        if not (self.object_storage_media_bucket or self.object_storage_bucket):
+            missing.append("object_storage.media_bucket")
+        if not self.object_storage_endpoint_url:
+            missing.append("object_storage.endpoint_url")
+        if not self.object_storage_access_key_id:
+            missing.append("object_storage.access_key_id")
+        if not self.object_storage_secret_access_key:
+            missing.append("object_storage.secret_access_key")
+
+        if not self.insightface_allow_download and not self.insightface_model_dir.exists():
+            missing.append(f"models.insightface:{self.insightface_model_dir}")
+
+        if not self.paddle_allow_download:
+            for label, path in (
+                ("models.paddleocr.det", self.paddle_text_detection_model_dir),
+                ("models.paddleocr.rec", self.paddle_text_recognition_model_dir),
+                ("models.paddleocr.cls", self.paddle_textline_orientation_model_dir),
+            ):
+                if not path.exists():
+                    missing.append(f"{label}:{path}")
+
+        return missing
+
+    @property
     def real_mode_enabled(self) -> bool:
         return self.service_mode in {"real", "hybrid"}
 
     @property
     def mock_fallback_enabled(self) -> bool:
         return self.service_mode in {"mock", "hybrid"}
+
+    @property
+    def real_inference_ready(self) -> bool:
+        return not self.real_inference_missing_requirements()
 
 
 @lru_cache

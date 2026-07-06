@@ -152,6 +152,24 @@ def _bbox_center(bbox: dict[str, float]) -> tuple[float, float]:
     )
 
 
+def _infer_motion_directions(
+    centers: list[tuple[float, float]], *, movement_threshold: float = 0.03
+) -> list[str]:
+    directions: list[str] = []
+    for prev, curr in zip(centers, centers[1:]):
+        x_delta = curr[0] - prev[0]
+        y_delta = curr[1] - prev[1]
+        if x_delta >= movement_threshold:
+            directions.append("turn_right")
+        elif x_delta <= -movement_threshold:
+            directions.append("turn_left")
+        if y_delta >= movement_threshold:
+            directions.append("look_down")
+        elif y_delta <= -movement_threshold:
+            directions.append("look_up")
+    return list(dict.fromkeys(directions))
+
+
 def _compute_image_quality_metrics(frame: np.ndarray) -> dict[str, float]:
     grayscale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     blur_variance = float(cv2.Laplacian(grayscale, cv2.CV_64F).var())
@@ -206,7 +224,11 @@ def run_document_quality_pipeline(
 
 
 def run_liveness_pipeline(
-    storage_key: str, liveness_type: str, *, bucket_name: str | None = None
+    storage_key: str,
+    liveness_type: str,
+    *,
+    challenge_actions: list[str] | None = None,
+    bucket_name: str | None = None,
 ) -> dict[str, Any]:
     settings = get_settings()
     asset = load_media_asset(storage_key, bucket_name=bucket_name)
@@ -236,6 +258,8 @@ def run_liveness_pipeline(
             for prev, curr in zip(centers, centers[1:])
         ]
         movement_score = _clamp(_safe_mean(deltas) * 3.0)
+    detected_actions = _infer_motion_directions(centers)
+    challenge_actions = challenge_actions or []
 
     score_components = [
         face_presence_ratio * 0.45,
@@ -263,6 +287,13 @@ def run_liveness_pipeline(
         elif movement_score < settings.active_liveness_motion_threshold:
             issues.append("insufficient_live_motion")
             passed = False
+        if challenge_actions:
+            missing_actions = [
+                action for action in challenge_actions if action not in detected_actions
+            ]
+            if missing_actions:
+                issues.append("challenge_actions_not_completed")
+                passed = False
 
     return {
         "passed": passed,
@@ -276,7 +307,11 @@ def run_liveness_pipeline(
             "avg_detection_confidence": avg_detection_confidence,
             "movement_score": movement_score,
             "quality_score": quality_metrics["quality_score"],
+            "detected_actions": detected_actions,
+            "challenge_actions": challenge_actions,
         },
+        "challenge_passed": not challenge_actions
+        or all(action in detected_actions for action in challenge_actions),
         "model_name": "mediapipe-liveness",
         "model_version": "v1",
     }
@@ -421,6 +456,24 @@ def _normalize_ocr_fields(texts: list[str], document_type: str, country_code: st
     }
 
 
+def _infer_document_type_from_texts(texts: list[str], storage_key: str) -> tuple[str, float]:
+    joined = " ".join(texts).upper()
+    if "PASSPORT" in joined:
+        return "passport", 0.94
+    if "DRIVER" in joined and ("LICENCE" in joined or "LICENSE" in joined):
+        return "drivers_license", 0.9
+    if "NATIONAL" in joined and "ID" in joined:
+        return "national_id", 0.92
+    key_name = Path(storage_key).stem.lower()
+    if "passport" in key_name:
+        return "passport", 0.74
+    if "license" in key_name or "licence" in key_name:
+        return "drivers_license", 0.72
+    if "national" in key_name or "nid" in key_name:
+        return "national_id", 0.7
+    return "unknown", 0.35
+
+
 def run_document_ocr_pipeline(
     storage_key: str,
     document_type: str,
@@ -446,6 +499,47 @@ def run_document_ocr_pipeline(
     }
 
 
+def run_document_classification_pipeline(
+    storage_key: str,
+    expected_document_type: str,
+    country_code: str,
+    *,
+    bucket_name: str | None = None,
+) -> dict[str, Any]:
+    asset = load_media_asset(storage_key, bucket_name=bucket_name)
+    ocr_engine = get_paddle_ocr_engine()
+    rgb_image = cv2.cvtColor(asset.primary_frame, cv2.COLOR_BGR2RGB)
+    predictions = ocr_engine.predict(rgb_image)
+    prediction = predictions[0] if predictions else {}
+    texts, _scores = _extract_text_lines(prediction)
+    predicted_document_type, confidence_score = _infer_document_type_from_texts(
+        texts,
+        storage_key,
+    )
+    matched_expected_document_type = (
+        predicted_document_type == expected_document_type
+        if predicted_document_type != "unknown"
+        else False
+    )
+    issues: list[str] = []
+    if predicted_document_type == "unknown":
+        issues.append("document_type_not_confident")
+    elif not matched_expected_document_type:
+        issues.append("document_type_mismatch")
+
+    return {
+        "predicted_document_type": predicted_document_type,
+        "expected_document_type": expected_document_type,
+        "matched_expected_document_type": matched_expected_document_type,
+        "country_code": country_code,
+        "confidence_score": round(confidence_score, 4),
+        "issues": issues,
+        "raw_text_lines": texts,
+        "model_name": "paddleocr-classifier",
+        "model_version": get_settings().paddle_ocr_version,
+    }
+
+
 def build_mock_face_compare(
     selfie_storage_key: str, document_storage_key: str, threshold: float
 ) -> dict[str, Any]:
@@ -461,14 +555,19 @@ def build_mock_face_compare(
     }
 
 
-def build_mock_liveness(selfie_storage_key: str, liveness_type: str) -> dict[str, Any]:
+def build_mock_liveness(
+    selfie_storage_key: str, liveness_type: str, challenge_actions: list[str] | None = None
+) -> dict[str, Any]:
     passed = "spoof" not in selfie_storage_key
     score = 0.94 if passed else 0.23
+    challenge_actions = challenge_actions or []
     return {
         "passed": passed,
         "score": score,
         "confidence_level": "high" if passed else "medium",
         "liveness_type": liveness_type,
+        "challenge_passed": passed if challenge_actions else True,
+        "metrics": {"challenge_actions": challenge_actions, "detected_actions": challenge_actions},
         "model_name": "mock-liveness",
         "model_version": "v1",
     }
@@ -497,6 +596,22 @@ def build_mock_document_quality(document_storage_key: str) -> dict[str, Any]:
         "quality_score": score,
         "issues": issues,
         "model_name": "mock-document-quality",
+        "model_version": "v1",
+    }
+
+
+def build_mock_document_classification(
+    document_storage_key: str, document_type: str, country_code: str
+) -> dict[str, Any]:
+    predicted_document_type = document_type if "mismatch" not in document_storage_key else "passport"
+    return {
+        "predicted_document_type": predicted_document_type,
+        "expected_document_type": document_type,
+        "matched_expected_document_type": predicted_document_type == document_type,
+        "country_code": country_code,
+        "confidence_score": 0.89,
+        "issues": [] if predicted_document_type == document_type else ["document_type_mismatch"],
+        "model_name": "mock-document-classifier",
         "model_version": "v1",
     }
 

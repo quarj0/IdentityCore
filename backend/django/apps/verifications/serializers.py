@@ -8,7 +8,10 @@ from rest_framework import serializers
 from apps.biometrics.models import FaceMatch, LivenessCheck
 from apps.verification_policies.models import VerificationPolicy
 from apps.verification_subjects.models import VerificationSubject
-from apps.verifications.evidence import build_verification_evidence_download_url
+from apps.verifications.evidence import (
+    build_verification_evidence_download_url,
+    build_verification_evidence_pdf_download_url,
+)
 from apps.verifications.models import (
     Verification,
     VerificationDecision,
@@ -89,6 +92,12 @@ def serialize_verification(verification: Verification) -> dict:
                     "evidence_report_storage_key", ""
                 ),
                 "download_url": build_verification_evidence_download_url(verification),
+                "pdf_storage_key": verification.metadata_json.get(
+                    "evidence_report_pdf_storage_key", ""
+                ),
+                "pdf_download_url": build_verification_evidence_pdf_download_url(
+                    verification
+                ),
             }
             if verification.metadata_json.get("evidence_report_storage_key")
             else None

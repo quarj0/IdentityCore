@@ -127,6 +127,27 @@ The system shall support:
 - Password reset
 - Device/session revocation
 
+## No-Code Verification Workflows
+
+IdentityCore shall support no-code verification workflows for organizations that do not have technical teams or do not want to integrate through APIs.
+
+Organization Administrators shall be able to:
+
+- Create verification requests from the dashboard.
+- Generate secure verification links.
+- Share verification links manually by email, SMS, or copy link.
+- Configure verification policies without writing code.
+- Select accepted Document Types.
+- Configure liveness requirements.
+- Configure face match thresholds.
+- Configure manual review thresholds.
+- Customize basic organization branding.
+- View verification results from the dashboard.
+- Review cases requiring manual review.
+- Export verification reports where permitted.
+
+No-code workflows shall use the same Verification Engine, Verification Policies, Consent Records, Audit Events, and Decision Engine as API-based workflows.
+
 ---
 
 ## Multi-Tenant Architecture

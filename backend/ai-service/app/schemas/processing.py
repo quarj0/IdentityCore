@@ -10,6 +10,12 @@ class HealthResponse(BaseModel):
     mode: str
 
 
+class ReadinessResponse(HealthResponse):
+    ready: bool
+    checks: dict[str, str]
+    missing_requirements: list[str] = Field(default_factory=list)
+
+
 class FaceCompareRequest(BaseModel):
     verification_id: str
     selfie_storage_key: str
@@ -24,6 +30,7 @@ class LivenessCheckRequest(BaseModel):
     selfie_storage_key: str
     selfie_storage_bucket: str | None = None
     liveness_type: str
+    challenge_actions: list[str] = Field(default_factory=list)
 
 
 class DocumentOCRRequest(BaseModel):
@@ -31,13 +38,21 @@ class DocumentOCRRequest(BaseModel):
     document_storage_key: str
     document_storage_bucket: str | None = None
     document_type: str
-    country_code: str = Field(min_length=2, max_length=2)
+    country_code: str = Field(default="", max_length=2)
 
 
 class DocumentQualityRequest(BaseModel):
     verification_id: str
     document_storage_key: str
     document_storage_bucket: str | None = None
+
+
+class DocumentClassificationRequest(BaseModel):
+    verification_id: str
+    document_storage_key: str
+    document_storage_bucket: str | None = None
+    document_type: str
+    country_code: str = Field(default="", max_length=2)
 
 
 class AIResultResponse(BaseModel):

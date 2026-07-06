@@ -12,6 +12,7 @@ from apps.notifications.services import (
 )
 from apps.verifications.evidence import (
     build_verification_evidence_download_url,
+    build_verification_evidence_pdf_download_url,
     ensure_verification_evidence_report,
 )
 from apps.webhooks.services import queue_webhook_events
@@ -251,6 +252,12 @@ class VerificationEvidenceReportView(APIView):
                     "evidence_report_storage_key", ""
                 ),
                 "download_url": build_verification_evidence_download_url(verification),
+                "pdf_storage_key": verification.metadata_json.get(
+                    "evidence_report_pdf_storage_key", ""
+                ),
+                "pdf_download_url": build_verification_evidence_pdf_download_url(
+                    verification
+                ),
             },
             request=request,
         )

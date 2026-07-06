@@ -6,12 +6,14 @@ from app.core.auth import enforce_internal_token
 from app.core.responses import wrap_result
 from app.schemas.processing import (
     AIResultResponse,
+    DocumentClassificationRequest,
     DocumentOCRRequest,
     DocumentQualityRequest,
     FaceCompareRequest,
     LivenessCheckRequest,
 )
 from app.services.processing import (
+    process_document_classification,
     process_document_ocr,
     process_document_quality,
     process_face_compare,
@@ -56,3 +58,12 @@ async def document_ocr(payload: DocumentOCRRequest) -> dict[str, Any]:
 )
 async def document_quality(payload: DocumentQualityRequest) -> dict[str, Any]:
     return wrap_result(process_document_quality(payload))
+
+
+@router.post(
+    "/v1/document/classify",
+    response_model=AIResultResponse,
+    dependencies=[Depends(enforce_internal_token)],
+)
+async def document_classify(payload: DocumentClassificationRequest) -> dict[str, Any]:
+    return wrap_result(process_document_classification(payload))

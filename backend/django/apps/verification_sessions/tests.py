@@ -276,6 +276,18 @@ class VerificationSessionPortalTests(APITestCase):
                 check_type="document_ocr",
             ).exists()
         )
+        self.assertTrue(
+            ProviderCheck.objects.filter(
+                verification=self.verification,
+                check_type="document_quality",
+            ).exists()
+        )
+        self.assertTrue(
+            ProviderCheck.objects.filter(
+                verification=self.verification,
+                check_type="document_classification",
+            ).exists()
+        )
         front_upload.refresh_from_db()
         back_upload.refresh_from_db()
         self.assertEqual(front_upload.status, UploadStatus.CONSUMED)

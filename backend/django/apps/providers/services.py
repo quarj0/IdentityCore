@@ -16,6 +16,16 @@ SYSTEM_PROVIDER_DEFAULTS = {
         "name": "Internal Document OCR Engine",
         "provider_type": ProviderType.DOCUMENT,
     },
+    ProviderCheckType.DOCUMENT_CLASSIFICATION: {
+        "code": "internal-document-classifier",
+        "name": "Internal Document Classification Engine",
+        "provider_type": ProviderType.DOCUMENT,
+    },
+    ProviderCheckType.DOCUMENT_QUALITY: {
+        "code": "internal-document-quality",
+        "name": "Internal Document Quality Engine",
+        "provider_type": ProviderType.DOCUMENT,
+    },
     ProviderCheckType.LIVENESS: {
         "code": "internal-liveness",
         "name": "Internal Liveness Engine",

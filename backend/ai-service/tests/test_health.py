@@ -6,19 +6,22 @@ import pytest
 from fastapi import HTTPException
 
 from app.main import (
+    DocumentClassificationRequest,
     DocumentOCRRequest,
     DocumentQualityRequest,
     FaceCompareRequest,
     LivenessCheckRequest,
     _enforce_internal_token,
+    document_classify,
     document_ocr,
     document_quality,
     face_compare,
     healthcheck,
     liveness_check,
+    readiness,
 )
 from app.pipeline import run_document_quality_pipeline
-from app.settings import get_settings
+from app.settings import Settings, get_settings
 
 
 def test_healthcheck():
@@ -27,6 +30,12 @@ def test_healthcheck():
     assert response["status"] == "ok"
     assert response["service"] == "ai-service"
     assert response["mode"] == "mock"
+
+
+def test_readiness_is_ok_in_mock_mode():
+    response = asyncio.run(readiness())
+
+    assert response.status_code == 200
 
 
 def test_face_compare_returns_completed_match_result():
@@ -60,6 +69,22 @@ def test_liveness_check_returns_failed_for_spoof_key():
     assert response["result"]["passed"] is False
 
 
+def test_active_liveness_returns_challenge_metadata():
+    response = asyncio.run(
+        liveness_check(
+            LivenessCheckRequest(
+                verification_id="ver_01TEST",
+                selfie_storage_key="uploads/selfies/sel_good",
+                liveness_type="active",
+                challenge_actions=["turn_left", "turn_right"],
+            )
+        )
+    )
+
+    assert response["status"] == "completed"
+    assert response["result"]["challenge_passed"] is True
+
+
 def test_document_ocr_returns_extracted_fields():
     response = asyncio.run(
         document_ocr(
@@ -88,6 +113,22 @@ def test_document_quality_flags_blurry_capture():
 
     assert response["status"] == "completed"
     assert response["result"]["issues"] == ["blur_detected"]
+
+
+def test_document_classification_returns_predicted_type():
+    response = asyncio.run(
+        document_classify(
+            DocumentClassificationRequest(
+                verification_id="ver_01TEST",
+                document_storage_key="uploads/documents/national_id_front",
+                document_type="national_id",
+                country_code="GH",
+            )
+        )
+    )
+
+    assert response["status"] == "completed"
+    assert response["result"]["predicted_document_type"] == "national_id"
 
 
 def test_internal_token_is_enforced_when_configured(monkeypatch):
@@ -134,3 +175,50 @@ def test_real_document_quality_pipeline_detects_blur(monkeypatch):
 
     assert result["model_name"] == "opencv-quality"
     assert "blur_detected" in result["issues"]
+
+
+def test_local_service_mode_alias_normalizes_to_mock():
+    settings = Settings(AI_SERVICE_MODE="local")
+
+    assert settings.service_mode == "mock"
+
+
+def test_real_mode_requires_storage_and_models():
+    settings = Settings(
+        AI_SERVICE_MODE="real",
+        OBJECT_STORAGE_MEDIA_BUCKET="identitycore-media",
+        OBJECT_STORAGE_ENDPOINT_URL="https://example.r2.cloudflarestorage.com",
+        OBJECT_STORAGE_ACCESS_KEY_ID="key",
+        OBJECT_STORAGE_SECRET_ACCESS_KEY="secret",
+        INSIGHTFACE_ALLOW_DOWNLOAD=False,
+        PADDLE_OCR_ALLOW_DOWNLOAD=False,
+    )
+
+    missing = settings.real_inference_missing_requirements()
+
+    assert any(item.startswith("models.insightface:") for item in missing)
+    assert any(item.startswith("models.paddleocr.det:") for item in missing)
+
+
+def test_hybrid_mode_is_degraded_but_ready_when_real_requirements_are_missing(monkeypatch):
+    monkeypatch.setenv("AI_SERVICE_MODE", "hybrid")
+    monkeypatch.delenv("OBJECT_STORAGE_MEDIA_BUCKET", raising=False)
+    monkeypatch.delenv("OBJECT_STORAGE_BUCKET", raising=False)
+    monkeypatch.delenv("OBJECT_STORAGE_ENDPOINT_URL", raising=False)
+    monkeypatch.delenv("OBJECT_STORAGE_ACCESS_KEY_ID", raising=False)
+    monkeypatch.delenv("OBJECT_STORAGE_SECRET_ACCESS_KEY", raising=False)
+    monkeypatch.setenv("INSIGHTFACE_ALLOW_DOWNLOAD", "0")
+    monkeypatch.setenv("PADDLE_OCR_ALLOW_DOWNLOAD", "0")
+    get_settings.cache_clear()
+
+    response = asyncio.run(readiness())
+    payload = response.body.decode("utf-8")
+
+    assert response.status_code == 200
+    assert "\"status\":\"degraded\"" in payload
+    assert "\"ready\":true" in payload
+
+    monkeypatch.delenv("AI_SERVICE_MODE", raising=False)
+    monkeypatch.delenv("INSIGHTFACE_ALLOW_DOWNLOAD", raising=False)
+    monkeypatch.delenv("PADDLE_OCR_ALLOW_DOWNLOAD", raising=False)
+    get_settings.cache_clear()

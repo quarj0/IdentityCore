@@ -230,6 +230,56 @@ Responsibilities:
 - Document OCR
 - Document quality checks
 
+Runtime modes:
+
+- `mock` for local development without model assets
+- `hybrid` to prefer real inference and fall back to mock responses
+- `real` to require configured object storage and local AI model files
+
+Model asset behavior:
+
+- If `INSIGHTFACE_ALLOW_DOWNLOAD=1`, InsightFace may download missing model assets at runtime into its configured cache/model location.
+- If `PADDLE_OCR_ALLOW_DOWNLOAD=1`, PaddleOCR may download missing OCR model assets at runtime.
+- If those flags are `0`, the AI service expects the model files to already exist under `AI_MODEL_ROOT`.
+- For predictable production deployments, prefer preloading models and keeping both download flags disabled.
+
+Real-mode prerequisites:
+
+- `OBJECT_STORAGE_MEDIA_BUCKET` or `OBJECT_STORAGE_BUCKET`
+- `OBJECT_STORAGE_ENDPOINT_URL`
+- `OBJECT_STORAGE_ACCESS_KEY_ID`
+- `OBJECT_STORAGE_SECRET_ACCESS_KEY`
+- Local InsightFace assets under `AI_MODEL_ROOT/insightface/models/<INSIGHTFACE_MODEL_NAME>` unless `INSIGHTFACE_ALLOW_DOWNLOAD=1`
+- Local PaddleOCR assets under `AI_MODEL_ROOT/paddleocr/det`, `AI_MODEL_ROOT/paddleocr/rec`, and `AI_MODEL_ROOT/paddleocr/cls` unless `PADDLE_OCR_ALLOW_DOWNLOAD=1`
+
+Expected model root layout:
+
+```text
+/opt/identitycore/models
+├── insightface/
+│   └── models/
+│       └── buffalo_l/
+├── paddleocr/
+│   ├── det/
+│   ├── rec/
+│   └── cls/
+├── mediapipe/
+└── onnx/
+```
+
+Bucket access expectations for the AI service:
+
+- Read from `identitycore-temp` during pre-finalization processing when a temp bucket key is explicitly supplied
+- Read from `identitycore-media` for finalized verification media
+- No direct write requirement to `identitycore-public`
+- No direct write requirement to `identitycore-evidence` in the current implementation
+
+Operational note:
+
+- `/v1/health` only reports service identity and runtime mode
+- `/v1/ready` validates whether the configured mode can actually run
+- In `hybrid` mode the readiness status may be `degraded` while remaining serviceable because mock fallback is still available
+
 Deployment:
 
 - Internal-only service

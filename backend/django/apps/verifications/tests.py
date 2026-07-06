@@ -510,7 +510,10 @@ class VerificationWorkflowTests(APITestCase):
         self, mock_client_factory
     ):
         mock_client = Mock()
-        mock_client.generate_presigned_url.return_value = "https://r2.example/evidence-download"
+        mock_client.generate_presigned_url.side_effect = [
+            "https://r2.example/evidence-download",
+            "https://r2.example/evidence-download.pdf",
+        ]
         mock_client_factory.return_value = mock_client
         verification = Verification.objects.create(
             tenant=self.tenant,
@@ -545,10 +548,15 @@ class VerificationWorkflowTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         verification.refresh_from_db()
         self.assertIn("evidence_report_storage_key", verification.metadata_json)
+        self.assertIn("evidence_report_pdf_storage_key", verification.metadata_json)
         self.assertEqual(
             response.data["data"]["download_url"], "https://r2.example/evidence-download"
         )
-        mock_client.put_object.assert_called_once()
+        self.assertEqual(
+            response.data["data"]["pdf_download_url"],
+            "https://r2.example/evidence-download.pdf",
+        )
+        self.assertEqual(mock_client.put_object.call_count, 2)
 
     @override_settings(
         OBJECT_STORAGE_EVIDENCE_BUCKET="identitycore-evidence",
@@ -561,7 +569,10 @@ class VerificationWorkflowTests(APITestCase):
     @patch("common.storage.boto3.client")
     def test_detail_includes_evidence_report_when_generated(self, mock_client_factory):
         mock_client = Mock()
-        mock_client.generate_presigned_url.return_value = "https://r2.example/evidence-download"
+        mock_client.generate_presigned_url.side_effect = [
+            "https://r2.example/evidence-download",
+            "https://r2.example/evidence-download.pdf",
+        ]
         mock_client_factory.return_value = mock_client
         verification = Verification.objects.create(
             tenant=self.tenant,
@@ -575,7 +586,10 @@ class VerificationWorkflowTests(APITestCase):
             metadata_json={
                 "evidence_report_storage_key": (
                     f"organizations/{self.organization.public_id}/verifications/ver_test/reports/verification-report.json"
-                )
+                ),
+                "evidence_report_pdf_storage_key": (
+                    f"organizations/{self.organization.public_id}/verifications/ver_test/reports/verification-report.pdf"
+                ),
             },
         )
 
@@ -591,6 +605,10 @@ class VerificationWorkflowTests(APITestCase):
         self.assertEqual(
             response.data["data"]["evidence_report"]["download_url"],
             "https://r2.example/evidence-download",
+        )
+        self.assertEqual(
+            response.data["data"]["evidence_report"]["pdf_download_url"],
+            "https://r2.example/evidence-download.pdf",
         )
 
 

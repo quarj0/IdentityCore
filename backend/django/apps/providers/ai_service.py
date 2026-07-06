@@ -36,6 +36,7 @@ def run_liveness_check(
     selfie_storage_key: str,
     liveness_type: str,
     selfie_storage_bucket: str = "",
+    challenge_actions: list[str] | None = None,
 ) -> dict:
     payload = {
         "verification_id": verification_id,
@@ -44,6 +45,8 @@ def run_liveness_check(
     }
     if selfie_storage_bucket:
         payload["selfie_storage_bucket"] = selfie_storage_bucket
+    if challenge_actions:
+        payload["challenge_actions"] = challenge_actions
     return _post_json("/v1/liveness/check", payload)
 
 
@@ -101,3 +104,22 @@ def run_document_quality(
     if document_storage_bucket:
         payload["document_storage_bucket"] = document_storage_bucket
     return _post_json("/v1/document/quality", payload)
+
+
+def run_document_classification(
+    *,
+    verification_id: str,
+    document_storage_key: str,
+    document_type: str,
+    country_code: str,
+    document_storage_bucket: str = "",
+) -> dict:
+    payload = {
+        "verification_id": verification_id,
+        "document_storage_key": document_storage_key,
+        "document_type": document_type,
+        "country_code": country_code,
+    }
+    if document_storage_bucket:
+        payload["document_storage_bucket"] = document_storage_bucket
+    return _post_json("/v1/document/classify", payload)

@@ -59,3 +59,7 @@ dev = [
     "pytest>=9.0.3",
     "ruff>=0.6.9",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["ai-service/tests"]
+python_files = ["test_*.py"]

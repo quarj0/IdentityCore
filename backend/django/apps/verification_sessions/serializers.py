@@ -285,6 +285,25 @@ class VerificationSessionDocumentSerializer(serializers.Serializer):
             consume_upload(upload=upload)
         create_provider_check(
             verification=verification,
+            check_type=ProviderCheckType.DOCUMENT_QUALITY,
+            status=ProviderCheckStatus.PENDING,
+            request_metadata={
+                "identity_document_id": identity_document.public_id,
+                "capture_count": len(self.validated_data["captures"]),
+            },
+        )
+        create_provider_check(
+            verification=verification,
+            check_type=ProviderCheckType.DOCUMENT_CLASSIFICATION,
+            status=ProviderCheckStatus.PENDING,
+            request_metadata={
+                "identity_document_id": identity_document.public_id,
+                "document_type": identity_document.document_type_id,
+                "country_code": identity_document.country_profile_id,
+            },
+        )
+        create_provider_check(
+            verification=verification,
             check_type=ProviderCheckType.DOCUMENT_OCR,
             status=ProviderCheckStatus.PENDING,
             request_metadata={
