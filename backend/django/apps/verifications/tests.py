@@ -1,7 +1,9 @@
 from datetime import timedelta
+from unittest.mock import Mock, patch
 
 from django.urls import reverse
 from django.test import TestCase
+from django.test import override_settings
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -494,6 +496,102 @@ class VerificationWorkflowTests(APITestCase):
         self.assertEqual(response.data["data"]["decision"]["decision"], "verified")
         self.assertEqual(response.data["data"]["decision"]["decision_type"], "manual")
         self.assertEqual(response.data["data"]["risk_assessment"]["risk_level"], "low")
+
+    @override_settings(
+        OBJECT_STORAGE_EVIDENCE_BUCKET="identitycore-evidence",
+        OBJECT_STORAGE_ENDPOINT_URL="https://example.r2.cloudflarestorage.com",
+        OBJECT_STORAGE_ACCESS_KEY_ID="key",
+        OBJECT_STORAGE_SECRET_ACCESS_KEY="secret",
+        OBJECT_STORAGE_REGION="auto",
+        OBJECT_STORAGE_SIGNATURE_VERSION="s3v4",
+    )
+    @patch("common.storage.boto3.client")
+    def test_evidence_report_endpoint_generates_report_in_evidence_bucket(
+        self, mock_client_factory
+    ):
+        mock_client = Mock()
+        mock_client.generate_presigned_url.return_value = "https://r2.example/evidence-download"
+        mock_client_factory.return_value = mock_client
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.tenant.verification_subjects.create(
+                full_name="Reviewer Case"
+            ),
+            purpose="Manual review case",
+            expires_at=self.tenant.created_at,
+            status=VerificationStatus.VERIFIED,
+            completed_at=timezone.now(),
+        )
+        VerificationDecision.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            decision="verified",
+            decision_type="manual",
+            reason_code="evidence_confirmed",
+            reason_detail="Document and selfie match after manual review.",
+            decided_by=self.user,
+            decided_at=self.tenant.created_at,
+        )
+
+        response = self.client.get(
+            reverse(
+                "verification-evidence-report",
+                kwargs={"verification_id": verification.public_id},
+            ),
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        verification.refresh_from_db()
+        self.assertIn("evidence_report_storage_key", verification.metadata_json)
+        self.assertEqual(
+            response.data["data"]["download_url"], "https://r2.example/evidence-download"
+        )
+        mock_client.put_object.assert_called_once()
+
+    @override_settings(
+        OBJECT_STORAGE_EVIDENCE_BUCKET="identitycore-evidence",
+        OBJECT_STORAGE_ENDPOINT_URL="https://example.r2.cloudflarestorage.com",
+        OBJECT_STORAGE_ACCESS_KEY_ID="key",
+        OBJECT_STORAGE_SECRET_ACCESS_KEY="secret",
+        OBJECT_STORAGE_REGION="auto",
+        OBJECT_STORAGE_SIGNATURE_VERSION="s3v4",
+    )
+    @patch("common.storage.boto3.client")
+    def test_detail_includes_evidence_report_when_generated(self, mock_client_factory):
+        mock_client = Mock()
+        mock_client.generate_presigned_url.return_value = "https://r2.example/evidence-download"
+        mock_client_factory.return_value = mock_client
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.tenant.verification_subjects.create(
+                full_name="Evidence Case"
+            ),
+            purpose="Evidence case",
+            expires_at=self.tenant.created_at,
+            status=VerificationStatus.VERIFIED,
+            metadata_json={
+                "evidence_report_storage_key": (
+                    f"organizations/{self.organization.public_id}/verifications/ver_test/reports/verification-report.json"
+                )
+            },
+        )
+
+        response = self.client.get(
+            reverse(
+                "verification-detail",
+                kwargs={"verification_id": verification.public_id},
+            ),
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data["data"]["evidence_report"]["download_url"],
+            "https://r2.example/evidence-download",
+        )
 
 
 class VerificationOperationsTaskTests(TestCase):

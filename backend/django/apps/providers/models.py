@@ -47,6 +47,13 @@ CHECK_TYPE_PROVIDER_TYPES = {
     ProviderCheckType.RISK_CHECK: {ProviderType.RISK},
 }
 
+TERMINAL_PROVIDER_CHECK_STATUSES = {
+    ProviderCheckStatus.COMPLETED,
+    ProviderCheckStatus.FAILED,
+    ProviderCheckStatus.TIMEOUT,
+    ProviderCheckStatus.CANCELLED,
+}
+
 
 class Provider(PublicIdModel, BaseModel):
     public_id_prefix = "prv"
@@ -132,19 +139,19 @@ class ProviderCheck(PublicIdModel, BaseModel):
                     "tenant": "Provider checks must belong to the same tenant as the verification."
                 }
             )
-        if self.status == ProviderCheckStatus.COMPLETED and self.completed_at is None:
+        if self.status in TERMINAL_PROVIDER_CHECK_STATUSES and self.completed_at is None:
             raise ValidationError(
                 {
-                    "completed_at": "Completed provider checks must include a completion timestamp."
+                    "completed_at": "Terminal provider checks must include a completion timestamp."
                 }
             )
         if (
-            self.status != ProviderCheckStatus.COMPLETED
+            self.status not in TERMINAL_PROVIDER_CHECK_STATUSES
             and self.completed_at is not None
         ):
             raise ValidationError(
                 {
-                    "completed_at": "Only completed provider checks may include a completion timestamp."
+                    "completed_at": "Only terminal provider checks may include a completion timestamp."
                 }
             )
 

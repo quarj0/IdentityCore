@@ -18,8 +18,39 @@ def determine_storage_provider() -> str:
     return "local"
 
 
-def _build_object_storage_client():
-    bucket_name = getattr(settings, "OBJECT_STORAGE_BUCKET", "")
+def _get_object_storage_bucket(bucket_name: str | None = None) -> str:
+    if bucket_name:
+        return bucket_name
+    return getattr(settings, "OBJECT_STORAGE_MEDIA_BUCKET", "") or getattr(
+        settings, "OBJECT_STORAGE_BUCKET", ""
+    )
+
+
+def get_object_storage_media_bucket_name() -> str:
+    return _get_object_storage_bucket(
+        getattr(settings, "OBJECT_STORAGE_MEDIA_BUCKET", "")
+    )
+
+
+def get_object_storage_temp_bucket_name() -> str:
+    return getattr(settings, "OBJECT_STORAGE_TEMP_BUCKET", "") or getattr(
+        settings, "OBJECT_STORAGE_BUCKET", ""
+    )
+
+
+def get_object_storage_evidence_bucket_name() -> str:
+    return getattr(settings, "OBJECT_STORAGE_EVIDENCE_BUCKET", "")
+
+
+def get_object_storage_public_bucket_name() -> str:
+    return getattr(settings, "OBJECT_STORAGE_PUBLIC_BUCKET", "")
+
+
+def _get_upload_bucket() -> str:
+    return get_object_storage_temp_bucket_name() or get_object_storage_media_bucket_name()
+
+
+def get_object_storage_client():
     endpoint_url = getattr(settings, "OBJECT_STORAGE_ENDPOINT_URL", "")
     access_key = getattr(settings, "OBJECT_STORAGE_ACCESS_KEY_ID", "")
     secret_key = getattr(settings, "OBJECT_STORAGE_SECRET_ACCESS_KEY", "")
@@ -27,7 +58,7 @@ def _build_object_storage_client():
     use_path_style = bool(getattr(settings, "OBJECT_STORAGE_USE_PATH_STYLE", False))
     signature_version = getattr(settings, "OBJECT_STORAGE_SIGNATURE_VERSION", "s3v4")
 
-    if not (bucket_name and access_key and secret_key):
+    if not (access_key and secret_key):
         return None
 
     client_kwargs = {
@@ -45,10 +76,74 @@ def _build_object_storage_client():
     return boto3.client(**client_kwargs)
 
 
-def build_signed_download_url(*, storage_key: str, filename: str | None = None) -> str:
-    bucket_name = getattr(settings, "OBJECT_STORAGE_BUCKET", "")
+def copy_object(
+    source_bucket: str,
+    source_key: str,
+    destination_bucket: str,
+    destination_key: str | None = None,
+) -> None:
+    client = get_object_storage_client()
+    if not client:
+        raise RuntimeError("Object storage is not configured for copying objects.")
+    if source_bucket == destination_bucket:
+        return
+
+    client.copy_object(
+        CopySource={"Bucket": source_bucket, "Key": source_key},
+        Bucket=destination_bucket,
+        Key=destination_key or source_key,
+    )
+
+
+def move_object(
+    source_bucket: str,
+    source_key: str,
+    destination_bucket: str,
+    destination_key: str | None = None,
+) -> None:
+    if source_bucket == destination_bucket:
+        return
+
+    copy_object(
+        source_bucket=source_bucket,
+        source_key=source_key,
+        destination_bucket=destination_bucket,
+        destination_key=destination_key,
+    )
+    delete_object(bucket_name=source_bucket, key=source_key)
+
+
+def delete_object(bucket_name: str, key: str) -> None:
+    client = get_object_storage_client()
+    if not client:
+        raise RuntimeError("Object storage is not configured for deleting objects.")
+    client.delete_object(Bucket=bucket_name, Key=key)
+
+
+def put_object_bytes(
+    *,
+    bucket_name: str,
+    key: str,
+    content: bytes,
+    content_type: str = "application/octet-stream",
+) -> None:
+    client = get_object_storage_client()
+    if not client:
+        raise RuntimeError("Object storage is not configured for writing objects.")
+    client.put_object(
+        Bucket=bucket_name,
+        Key=key,
+        Body=content,
+        ContentType=content_type,
+    )
+
+
+def build_signed_download_url(
+    *, storage_key: str, filename: str | None = None, bucket_name: str | None = None
+) -> str:
+    bucket_name = _get_object_storage_bucket(bucket_name)
     expires_in = int(getattr(settings, "MEDIA_DOWNLOAD_URL_EXPIRES_SECONDS", 300))
-    client = _build_object_storage_client()
+    client = get_object_storage_client()
 
     if client and bucket_name:
         params = {"Bucket": bucket_name, "Key": storage_key}
@@ -69,8 +164,10 @@ def build_signed_download_url(*, storage_key: str, filename: str | None = None) 
     return f"{base}/{storage_key}?{urlencode(query)}"
 
 
-def build_signed_upload_url(*, storage_key: str, mime_type: str | None = None) -> str:
-    bucket_name = getattr(settings, "OBJECT_STORAGE_BUCKET", "")
+def build_signed_upload_url(
+    *, storage_key: str, mime_type: str | None = None, bucket_name: str | None = None
+) -> str:
+    bucket_name = bucket_name or _get_upload_bucket()
     expires_in = int(
         getattr(
             settings,
@@ -78,7 +175,7 @@ def build_signed_upload_url(*, storage_key: str, mime_type: str | None = None) -
             settings.UPLOAD_URL_EXPIRES_MINUTES * 60,
         )
     )
-    client = _build_object_storage_client()
+    client = get_object_storage_client()
 
     if client and bucket_name:
         params = {"Bucket": bucket_name, "Key": storage_key}
@@ -96,3 +193,13 @@ def build_signed_upload_url(*, storage_key: str, mime_type: str | None = None) -
         query["content_type"] = mime_type
     base = getattr(settings, "UPLOAD_URL_BASE", "").rstrip("/")
     return f"{base}/{storage_key}?{urlencode(query)}"
+
+
+def build_public_asset_url(storage_key: str) -> str:
+    base = getattr(settings, "PUBLIC_ASSET_URL_BASE", "").rstrip("/")
+    if base:
+        return f"{base}/{storage_key}"
+    return build_signed_download_url(
+        storage_key=storage_key,
+        bucket_name=get_object_storage_public_bucket_name(),
+    )

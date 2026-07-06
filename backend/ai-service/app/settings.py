@@ -14,10 +14,15 @@ class Settings(BaseSettings):
     shared_token: str = Field(default="", alias="AI_SERVICE_SHARED_TOKEN")
 
     cache_dir: str = Field(default="/tmp/identitycore-ai", alias="AI_SERVICE_CACHE_DIR")
+    ai_model_root: Path = Field(default=Path("/opt/identitycore/models"), alias="AI_MODEL_ROOT")
     object_storage_bucket: str = Field(default="", alias="OBJECT_STORAGE_BUCKET")
-    object_storage_endpoint_url: str = Field(
-        default="", alias="OBJECT_STORAGE_ENDPOINT_URL"
+    object_storage_media_bucket: str = Field(default="", alias="OBJECT_STORAGE_MEDIA_BUCKET")
+    object_storage_temp_bucket: str = Field(default="", alias="OBJECT_STORAGE_TEMP_BUCKET")
+    object_storage_evidence_bucket: str = Field(
+        default="", alias="OBJECT_STORAGE_EVIDENCE_BUCKET"
     )
+    object_storage_public_bucket: str = Field(default="", alias="OBJECT_STORAGE_PUBLIC_BUCKET")
+    object_storage_endpoint_url: str = Field(default="", alias="OBJECT_STORAGE_ENDPOINT_URL")
     object_storage_access_key_id: str = Field(
         default="", alias="OBJECT_STORAGE_ACCESS_KEY_ID"
     )
@@ -56,9 +61,6 @@ class Settings(BaseSettings):
     insightface_model_name: str = Field(
         default="buffalo_l", alias="INSIGHTFACE_MODEL_NAME"
     )
-    insightface_root_dir: str = Field(
-        default="/tmp/identitycore-ai/insightface", alias="INSIGHTFACE_ROOT_DIR"
-    )
     insightface_allow_download: bool = Field(
         default=False, alias="INSIGHTFACE_ALLOW_DOWNLOAD"
     )
@@ -66,35 +68,52 @@ class Settings(BaseSettings):
         default=640, alias="INSIGHTFACE_DETECTION_SIZE"
     )
 
-    paddle_pdx_cache_home: str = Field(
-        default="/tmp/identitycore-ai/paddlex", alias="PADDLE_PDX_CACHE_HOME"
-    )
-    paddle_home: str = Field(
-        default="/tmp/identitycore-ai/paddle", alias="PADDLE_HOME"
-    )
+    paddle_pdx_cache_home: str = Field(default="/tmp/identitycore-ai/paddlex")
+    paddle_home: str = Field(default="/tmp/identitycore-ai/paddle")
     matplotlib_config_dir: str = Field(
-        default="/tmp/identitycore-ai/matplotlib", alias="MPLCONFIGDIR"
+        default="/tmp/identitycore-ai/matplotlib"
     )
-    xdg_cache_home: str = Field(default="/tmp/identitycore-ai/.cache", alias="XDG_CACHE_HOME")
+    xdg_cache_home: str = Field(default="/tmp/identitycore-ai/.cache")
     paddle_disable_model_source_check: bool = Field(
         default=True, alias="PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"
     )
     paddle_lang: str = Field(default="en", alias="PADDLE_OCR_LANG")
     paddle_ocr_version: str = Field(default="PP-OCRv5", alias="PADDLE_OCR_VERSION")
-    paddle_allow_download: bool = Field(default=False, alias="PADDLE_OCR_ALLOW_DOWNLOAD")
-    paddle_text_detection_model_dir: str = Field(
-        default="", alias="PADDLE_OCR_TEXT_DETECTION_MODEL_DIR"
-    )
-    paddle_text_recognition_model_dir: str = Field(
-        default="", alias="PADDLE_OCR_TEXT_RECOGNITION_MODEL_DIR"
-    )
-    paddle_textline_orientation_model_dir: str = Field(
-        default="", alias="PADDLE_OCR_TEXTLINE_ORIENTATION_MODEL_DIR"
+    paddle_allow_download: bool = Field(
+        default=False, alias="PADDLE_OCR_ALLOW_DOWNLOAD"
     )
 
     @property
     def cache_path(self) -> Path:
         return Path(self.cache_dir)
+
+    @property
+    def insightface_root_dir(self) -> Path:
+        return self.ai_model_root / "insightface"
+
+    @property
+    def paddle_root_dir(self) -> Path:
+        return self.ai_model_root / "paddleocr"
+
+    @property
+    def mediapipe_root_dir(self) -> Path:
+        return self.ai_model_root / "mediapipe"
+
+    @property
+    def onnx_root_dir(self) -> Path:
+        return self.ai_model_root / "onnx"
+
+    @property
+    def paddle_text_detection_model_dir(self) -> Path:
+        return self.paddle_root_dir / "det"
+
+    @property
+    def paddle_text_recognition_model_dir(self) -> Path:
+        return self.paddle_root_dir / "rec"
+
+    @property
+    def paddle_textline_orientation_model_dir(self) -> Path:
+        return self.paddle_root_dir / "cls"
 
     @property
     def real_mode_enabled(self) -> bool:

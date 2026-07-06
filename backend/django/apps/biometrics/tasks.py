@@ -4,16 +4,27 @@ from celery import shared_task
 from django.utils import timezone
 
 from apps.audit.services import record_audit_event
-from apps.biometrics.models import FaceMatchStatus, LivenessCheck, LivenessCheckStatus
+from apps.biometrics.models import (
+    FaceMatchStatus,
+    LivenessCheck,
+    LivenessCheckStatus,
+    SelfieCaptureStatus,
+)
 from apps.notifications.services import queue_verification_status_notifications
 from apps.providers.ai_service import run_face_compare, run_liveness_check
 from apps.providers.models import ProviderCheckStatus
 from apps.risk.services import run_verification_risk_and_decision
+from apps.uploads.services import promote_upload_to_media_by_storage_key
+from apps.verifications.evidence import ensure_verification_evidence_report
 from apps.webhooks.services import queue_webhook_events
 from apps.verifications.models import (
     VerificationDecision,
     VerificationDecisionType,
     VerificationStatus,
+)
+from common.storage import (
+    get_object_storage_media_bucket_name,
+    get_object_storage_temp_bucket_name,
 )
 
 
@@ -39,12 +50,15 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
         if face_match is not None and face_match.provider_check_id
         else None
     )
+    temp_bucket = get_object_storage_temp_bucket_name()
+    media_bucket = get_object_storage_media_bucket_name()
 
     try:
         liveness_result = run_liveness_check(
             verification_id=verification.public_id,
             selfie_storage_key=selfie_capture.storage_key,
             liveness_type=liveness_check.liveness_type,
+            selfie_storage_bucket=temp_bucket,
         )
         liveness_check.status = (
             LivenessCheckStatus.PASSED
@@ -100,18 +114,23 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                     "face_match_threshold", 0.85
                 )
             )
-            document_storage_key = (
-                face_match.document_capture.storage_key
+            source_document_capture = (
+                face_match.document_capture
                 if face_match.document_capture_id
-                else face_match.identity_document.captures.order_by("created_at")
-                .first()
-                .storage_key
+                else face_match.identity_document.captures.order_by("created_at").first()
             )
+            document_storage_key = source_document_capture.storage_key
             face_result = run_face_compare(
                 verification_id=verification.public_id,
                 selfie_storage_key=selfie_capture.storage_key,
                 document_storage_key=document_storage_key,
                 threshold=threshold,
+                selfie_storage_bucket=temp_bucket,
+                document_storage_bucket=(
+                    media_bucket
+                    if source_document_capture and source_document_capture.status != "uploaded"
+                    else temp_bucket
+                ),
             )
             face_match.status = (
                 FaceMatchStatus.MATCHED
@@ -161,6 +180,14 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                     ]
                 )
 
+        selfie_capture.status = (
+            SelfieCaptureStatus.VALIDATED
+            if liveness_check.status == LivenessCheckStatus.PASSED
+            else SelfieCaptureStatus.REJECTED
+        )
+        selfie_capture.save(update_fields=["status", "updated_at"])
+        promote_upload_to_media_by_storage_key(selfie_capture.storage_key)
+
         record_audit_event(
             tenant=verification.tenant,
             actor=verification.verification_subject,
@@ -209,6 +236,7 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             decision=decision_record.decision,
             risk_level=risk_assessment.risk_level,
         )
+        ensure_verification_evidence_report(verification)
         return verification.status
     except Exception as exc:
         now = timezone.now()
@@ -256,6 +284,7 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
         verification.status = VerificationStatus.FAILED
         verification.completed_at = now
         verification.save(update_fields=["status", "completed_at", "updated_at"])
+        ensure_verification_evidence_report(verification)
         record_audit_event(
             tenant=verification.tenant,
             actor=verification.verification_subject,

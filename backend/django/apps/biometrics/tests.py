@@ -18,6 +18,7 @@ from apps.providers.models import (
 )
 from apps.risk.models import RiskAssessment
 from apps.tenants.models import Tenant
+from apps.uploads.models import Upload, UploadPurpose, UploadStatus
 from apps.verification_subjects.models import VerificationSubject
 from apps.verifications.models import (
     Verification,
@@ -74,6 +75,24 @@ class BiometricsTaskTests(TestCase):
             storage_key="uploads/selfies/sel_good",
             capture_type="image",
             captured_at=timezone.now(),
+        )
+        self.session = self.verification.sessions.create(
+            tenant=self.tenant,
+            session_token_hash="placeholder",
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+        self.selfie_upload = Upload.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_session=self.session,
+            purpose=UploadPurpose.SELFIE_CAPTURE,
+            storage_key=self.selfie_capture.storage_key,
+            storage_provider="local",
+            mime_type="image/jpeg",
+            file_size_bytes=1024,
+            status=UploadStatus.CONSUMED,
+            expires_at=timezone.now() + timedelta(minutes=10),
+            consumed_at=timezone.now(),
         )
         self.liveness_provider = Provider.objects.create(
             name="Internal Liveness Engine",
@@ -152,9 +171,13 @@ class BiometricsTaskTests(TestCase):
         self.verification.refresh_from_db()
         self.liveness_check.refresh_from_db()
         self.face_match.refresh_from_db()
+        self.selfie_capture.refresh_from_db()
+        self.selfie_upload.refresh_from_db()
         self.assertEqual(self.verification.status, VerificationStatus.VERIFIED)
         self.assertEqual(self.liveness_check.status, "passed")
         self.assertEqual(self.face_match.status, "matched")
+        self.assertEqual(self.selfie_capture.status, "validated")
+        self.assertEqual(self.selfie_upload.status, UploadStatus.PROMOTED)
         self.assertTrue(
             RiskAssessment.objects.filter(verification=self.verification).exists()
         )
@@ -164,3 +187,5 @@ class BiometricsTaskTests(TestCase):
         self.assertTrue(
             Notification.objects.filter(template_code="verification.verified").exists()
         )
+        self.assertEqual(mock_liveness.call_args.kwargs["selfie_storage_bucket"], "")
+        self.assertEqual(mock_face.call_args.kwargs["selfie_storage_bucket"], "")

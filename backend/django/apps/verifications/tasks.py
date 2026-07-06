@@ -6,6 +6,11 @@ from django.utils import timezone
 from apps.audit.services import record_audit_event
 from apps.biometrics.models import SelfieCaptureStatus
 from apps.document_captures.models import DocumentCaptureStatus
+from apps.verifications.evidence import ensure_verification_evidence_report
+from common.storage import (
+    delete_object,
+    get_object_storage_media_bucket_name,
+)
 from apps.notifications.services import queue_verification_status_notifications
 from apps.verifications.models import (
     Verification,
@@ -14,7 +19,6 @@ from apps.verifications.models import (
     VerificationStatus,
 )
 from apps.webhooks.services import queue_webhook_events
-
 
 EXPIRABLE_VERIFICATION_STATUSES = {
     VerificationStatus.CREATED,
@@ -77,6 +81,7 @@ def expire_pending_verifications_task(limit: int = 100) -> int:
             verification=verification,
             decision=VerificationStatus.EXPIRED,
         )
+        ensure_verification_evidence_report(verification)
         expired += 1
     return expired
 
@@ -119,6 +124,7 @@ def cleanup_retained_media_task(limit: int = 100) -> int:
 
         media_deleted = False
 
+        media_bucket = get_object_storage_media_bucket_name()
         for identity_document in verification.identity_documents.prefetch_related(
             "captures"
         ):
@@ -127,12 +133,22 @@ def cleanup_retained_media_task(limit: int = 100) -> int:
                 capture.deleted_at = now
                 capture.save(update_fields=["status", "deleted_at", "updated_at"])
                 media_deleted = True
+                if media_bucket:
+                    try:
+                        delete_object(bucket_name=media_bucket, key=capture.storage_key)
+                    except Exception:
+                        pass
 
         for selfie in verification.selfie_captures.filter(deleted_at__isnull=True):
             selfie.status = SelfieCaptureStatus.DELETED
             selfie.deleted_at = now
             selfie.save(update_fields=["status", "deleted_at", "updated_at"])
             media_deleted = True
+            if media_bucket:
+                try:
+                    delete_object(bucket_name=media_bucket, key=selfie.storage_key)
+                except Exception:
+                    pass
 
         if not media_deleted:
             continue

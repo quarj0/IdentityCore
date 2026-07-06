@@ -14,6 +14,7 @@ class UploadPurpose(models.TextChoices):
 class UploadStatus(models.TextChoices):
     INITIATED = "initiated", "Initiated"
     CONSUMED = "consumed", "Consumed"
+    PROMOTED = "promoted", "Promoted"
     EXPIRED = "expired", "Expired"
     DELETED = "deleted", "Deleted"
 
@@ -83,13 +84,13 @@ class Upload(PublicIdModel, BaseModel):
                     "verification_session": "Upload session must belong to the same verification."
                 }
             )
-        if self.status == UploadStatus.CONSUMED and self.consumed_at is None:
+        if self.status in {UploadStatus.CONSUMED, UploadStatus.PROMOTED} and self.consumed_at is None:
             raise ValidationError(
-                {"consumed_at": "Consumed uploads must record when they were used."}
+                {"consumed_at": "Consumed or promoted uploads must record when they were used."}
             )
-        if self.status != UploadStatus.CONSUMED and self.consumed_at is not None:
+        if self.status not in {UploadStatus.CONSUMED, UploadStatus.PROMOTED} and self.consumed_at is not None:
             raise ValidationError(
-                {"consumed_at": "Only consumed uploads may include consumed_at."}
+                {"consumed_at": "Only consumed or promoted uploads may include consumed_at."}
             )
 
     @property

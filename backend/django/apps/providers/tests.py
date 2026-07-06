@@ -94,3 +94,23 @@ class ProviderModelTests(TestCase):
             )
 
         self.assertIn("completed_at", exc.exception.message_dict)
+
+    def test_failed_provider_check_allows_completion_timestamp(self):
+        provider = Provider.objects.create(
+            name="Internal Face Match Engine",
+            code="internal-face-match-failed",
+            provider_type=ProviderType.BIOMETRIC,
+        )
+
+        check = ProviderCheck.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            provider=provider,
+            check_type=ProviderCheckType.FACE_MATCH,
+            status=ProviderCheckStatus.FAILED,
+            started_at=timezone.now(),
+            completed_at=timezone.now(),
+            error_code="provider_unavailable",
+        )
+
+        self.assertEqual(check.status, ProviderCheckStatus.FAILED)

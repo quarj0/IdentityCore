@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-
+from decouple import config
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 
@@ -15,6 +15,17 @@ def env_bool(name: str, default: bool = False) -> bool:
 def env_list(name: str, default: str = "") -> list[str]:
     value = os.getenv(name, default)
     return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def env_one_of(name: str, fallback_names: list[str], default: str = "") -> str:
+    value = os.getenv(name)
+    if value:
+        return value
+    for fallback in fallback_names:
+        value = os.getenv(fallback)
+        if value:
+            return value
+    return default
 
 
 SECRET_KEY = os.getenv(
@@ -216,15 +227,32 @@ MEDIA_DOWNLOAD_URL_BASE = os.getenv("MEDIA_DOWNLOAD_URL_BASE", UPLOAD_URL_BASE)
 MEDIA_DOWNLOAD_URL_EXPIRES_SECONDS = int(
     os.getenv("MEDIA_DOWNLOAD_URL_EXPIRES_SECONDS", "300")
 )
-OBJECT_STORAGE_PROVIDER = os.getenv("OBJECT_STORAGE_PROVIDER", "")
-OBJECT_STORAGE_BUCKET = os.getenv("OBJECT_STORAGE_BUCKET", "")
-OBJECT_STORAGE_ENDPOINT_URL = os.getenv("OBJECT_STORAGE_ENDPOINT_URL", "")
-OBJECT_STORAGE_ACCESS_KEY_ID = os.getenv("OBJECT_STORAGE_ACCESS_KEY_ID", "")
-OBJECT_STORAGE_SECRET_ACCESS_KEY = os.getenv("OBJECT_STORAGE_SECRET_ACCESS_KEY", "")
-OBJECT_STORAGE_REGION = os.getenv("OBJECT_STORAGE_REGION", "")
-OBJECT_STORAGE_SIGNATURE_VERSION = os.getenv(
-    "OBJECT_STORAGE_SIGNATURE_VERSION", "s3v4"
+PUBLIC_ASSET_URL_BASE = os.getenv("PUBLIC_ASSET_URL_BASE", "")
+OBJECT_STORAGE_PROVIDER = env_one_of("OBJECT_STORAGE_PROVIDER", ["R2_PROVIDER"], "")
+OBJECT_STORAGE_BUCKET = env_one_of("OBJECT_STORAGE_BUCKET", ["R2_MEDIA_BUCKET"], "")
+OBJECT_STORAGE_MEDIA_BUCKET = env_one_of(
+    "OBJECT_STORAGE_MEDIA_BUCKET", ["R2_MEDIA_BUCKET"], OBJECT_STORAGE_BUCKET
 )
+OBJECT_STORAGE_TEMP_BUCKET = env_one_of(
+    "OBJECT_STORAGE_TEMP_BUCKET", ["R2_TEMP_BUCKET"], OBJECT_STORAGE_BUCKET
+)
+OBJECT_STORAGE_EVIDENCE_BUCKET = env_one_of(
+    "OBJECT_STORAGE_EVIDENCE_BUCKET", ["R2_EVIDENCE_BUCKET"], ""
+)
+OBJECT_STORAGE_PUBLIC_BUCKET = env_one_of(
+    "OBJECT_STORAGE_PUBLIC_BUCKET", ["R2_PUBLIC_BUCKET"], ""
+)
+OBJECT_STORAGE_ENDPOINT_URL = env_one_of(
+    "OBJECT_STORAGE_ENDPOINT_URL", ["R2_ENDPOINT_URL"], ""
+)
+OBJECT_STORAGE_ACCESS_KEY_ID = env_one_of(
+    "OBJECT_STORAGE_ACCESS_KEY_ID", ["R2_ACCESS_KEY_ID"], ""
+)
+OBJECT_STORAGE_SECRET_ACCESS_KEY = env_one_of(
+    "OBJECT_STORAGE_SECRET_ACCESS_KEY", ["R2_SECRET_ACCESS_KEY"], ""
+)
+OBJECT_STORAGE_REGION = env_one_of("OBJECT_STORAGE_REGION", ["R2_REGION"], "")
+OBJECT_STORAGE_SIGNATURE_VERSION = os.getenv("OBJECT_STORAGE_SIGNATURE_VERSION", "s3v4")
 OBJECT_STORAGE_USE_PATH_STYLE = env_bool("OBJECT_STORAGE_USE_PATH_STYLE", False)
 OBJECT_STORAGE_PRESIGNED_UPLOAD_EXPIRES_SECONDS = int(
     os.getenv(

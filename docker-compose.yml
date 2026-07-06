@@ -82,8 +82,6 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    command: >
-      uvicorn app.main:app --host 0.0.0.0 --port 8001
     ports:
       - "8001:8001"
     volumes:

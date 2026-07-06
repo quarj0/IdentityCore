@@ -88,7 +88,14 @@ class UploadCreateTests(APITestCase):
         self.assertEqual(upload.verification_session, self.session)
         self.assertEqual(upload.purpose, UploadPurpose.DOCUMENT_CAPTURE)
         self.assertEqual(upload.status, UploadStatus.INITIATED)
-        self.assertEqual(upload.storage_key, f"uploads/documents/{upload.public_id}")
+        self.assertEqual(
+            upload.storage_key,
+            (
+                f"organizations/{self.organization.public_id}"
+                f"/verifications/{self.verification.public_id}"
+                f"/documents/{upload.public_id}"
+            ),
+        )
 
     def test_create_upload_requires_session_authentication(self):
         response = self.client.post(
@@ -207,7 +214,10 @@ class UploadRetentionTaskTests(TestCase):
             verification=self.verification,
             verification_session=self.session,
             purpose=UploadPurpose.DOCUMENT_CAPTURE,
-            storage_key="uploads/documents/upl_expired",
+            storage_key=(
+                f"organizations/{self.organization.public_id}"
+                f"/verifications/{self.verification.public_id}/documents/upl_expired"
+            ),
             storage_provider="local",
             mime_type="image/jpeg",
             file_size_bytes=1024,
@@ -219,7 +229,10 @@ class UploadRetentionTaskTests(TestCase):
             verification=self.verification,
             verification_session=self.session,
             purpose=UploadPurpose.SELFIE_CAPTURE,
-            storage_key="uploads/selfies/upl_active",
+            storage_key=(
+                f"organizations/{self.organization.public_id}"
+                f"/verifications/{self.verification.public_id}/selfies/upl_active"
+            ),
             storage_provider="local",
             mime_type="image/jpeg",
             file_size_bytes=2048,
@@ -242,3 +255,28 @@ class UploadRetentionTaskTests(TestCase):
                 target_id=expired_upload.public_id,
             ).exists()
         )
+
+    def test_cleanup_expired_uploads_deletes_consumed_temp_upload_after_retention_window(self):
+        consumed_upload = Upload.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_session=self.session,
+            purpose=UploadPurpose.SELFIE_CAPTURE,
+            storage_key=(
+                f"organizations/{self.organization.public_id}"
+                f"/verifications/{self.verification.public_id}/selfies/upl_consumed"
+            ),
+            storage_provider="local",
+            mime_type="image/jpeg",
+            file_size_bytes=1024,
+            status=UploadStatus.CONSUMED,
+            expires_at=timezone.now() + timedelta(minutes=10),
+            consumed_at=timezone.now() - timedelta(hours=25),
+        )
+
+        cleaned = cleanup_expired_uploads_task(limit=10)
+
+        consumed_upload.refresh_from_db()
+        self.assertEqual(cleaned, 1)
+        self.assertEqual(consumed_upload.status, UploadStatus.EXPIRED)
+        self.assertIsNotNone(consumed_upload.deleted_at)

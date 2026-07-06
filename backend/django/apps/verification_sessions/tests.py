@@ -79,17 +79,21 @@ class VerificationSessionPortalTests(APITestCase):
     def create_upload(
         self, *, purpose: str, suffix: str, mime_type: str = "image/jpeg"
     ):
-        storage_prefix = {
-            UploadPurpose.DOCUMENT_CAPTURE: "uploads/documents",
-            UploadPurpose.SELFIE_CAPTURE: "uploads/selfies",
-            UploadPurpose.LIVENESS_CAPTURE: "uploads/liveness",
+        storage_segment = {
+            UploadPurpose.DOCUMENT_CAPTURE: "documents",
+            UploadPurpose.SELFIE_CAPTURE: "selfies",
+            UploadPurpose.LIVENESS_CAPTURE: "liveness",
         }[purpose]
         return Upload.objects.create(
             tenant=self.tenant,
             verification=self.verification,
             verification_session=self.session,
             purpose=purpose,
-            storage_key=f"{storage_prefix}/upl_{suffix}",
+            storage_key=(
+                f"organizations/{self.organization.public_id}"
+                f"/verifications/{self.verification.public_id}"
+                f"/{storage_segment}/upl_{suffix}"
+            ),
             storage_provider="local",
             mime_type=mime_type,
             file_size_bytes=1024,

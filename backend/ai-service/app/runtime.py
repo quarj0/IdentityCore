@@ -9,7 +9,7 @@ def configure_runtime_environment(settings: Settings) -> None:
     os.environ.setdefault("XDG_CACHE_HOME", settings.xdg_cache_home)
     os.environ.setdefault("PADDLE_HOME", settings.paddle_home)
     os.environ.setdefault("PADDLE_PDX_CACHE_HOME", settings.paddle_pdx_cache_home)
-    os.environ.setdefault("INSIGHTFACE_HOME", settings.insightface_root_dir)
+    os.environ.setdefault("INSIGHTFACE_HOME", str(settings.insightface_root_dir))
     if settings.paddle_disable_model_source_check:
         os.environ.setdefault("PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK", "True")
 
@@ -19,6 +19,5 @@ def configure_runtime_environment(settings: Settings) -> None:
         settings.xdg_cache_home,
         settings.paddle_home,
         settings.paddle_pdx_cache_home,
-        settings.insightface_root_dir,
     ):
         Path(path).mkdir(parents=True, exist_ok=True)

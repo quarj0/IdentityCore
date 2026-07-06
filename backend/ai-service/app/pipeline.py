@@ -11,9 +11,8 @@ from typing import Any
 import cv2
 import numpy as np
 
-from app.settings import Settings, get_settings
+from app.settings import get_settings
 from app.storage import fetch_object_bytes
-from backend.django.config import settings
 
 
 class ProcessingConfigurationError(RuntimeError):
@@ -82,9 +81,12 @@ def _sample_video_frames(content: bytes, storage_key: str, limit: int) -> list[n
     return frames
 
 
-def load_media_asset(storage_key: str) -> MediaAsset:
+def load_media_asset(storage_key: str, bucket_name: str | None = None) -> MediaAsset:
     settings = get_settings()
-    content = fetch_object_bytes(storage_key)
+    if bucket_name is None:
+        content = fetch_object_bytes(storage_key)
+    else:
+        content = fetch_object_bytes(storage_key, bucket_name=bucket_name)
     image = _decode_image_bytes(content)
     if image is not None:
         return MediaAsset(
@@ -177,9 +179,11 @@ def _compute_image_quality_metrics(frame: np.ndarray) -> dict[str, float]:
     }
 
 
-def run_document_quality_pipeline(storage_key: str) -> dict[str, Any]:
+def run_document_quality_pipeline(
+    storage_key: str, *, bucket_name: str | None = None
+) -> dict[str, Any]:
     settings = get_settings()
-    asset = load_media_asset(storage_key)
+    asset = load_media_asset(storage_key, bucket_name=bucket_name)
     metrics = _compute_image_quality_metrics(asset.primary_frame)
     issues: list[str] = []
 
@@ -201,9 +205,11 @@ def run_document_quality_pipeline(storage_key: str) -> dict[str, Any]:
     }
 
 
-def run_liveness_pipeline(storage_key: str, liveness_type: str) -> dict[str, Any]:
+def run_liveness_pipeline(
+    storage_key: str, liveness_type: str, *, bucket_name: str | None = None
+) -> dict[str, Any]:
     settings = get_settings()
-    asset = load_media_asset(storage_key)
+    asset = load_media_asset(storage_key, bucket_name=bucket_name)
     frame_detections = [_detect_faces(frame) for frame in asset.frames]
     face_presence_ratio = _safe_mean(
         [1.0 if len(detections) == 1 else 0.0 for detections in frame_detections]
@@ -279,11 +285,11 @@ def run_liveness_pipeline(storage_key: str, liveness_type: str) -> dict[str, Any
 @lru_cache
 def get_insightface_analyzer():
     settings = get_settings()
-    model_root = Path(settings.insightface_root_dir)
+    model_root = settings.insightface_root_dir
     model_dir = model_root / "models" / settings.insightface_model_name
     if not model_dir.exists() and not settings.insightface_allow_download:
         raise ProcessingConfigurationError(
-            "InsightFace model files are missing. Configure INSIGHTFACE_ROOT_DIR with local models or enable INSIGHTFACE_ALLOW_DOWNLOAD."
+            "InsightFace model files are missing under AI_MODEL_ROOT/insightface. Provide local models or enable INSIGHTFACE_ALLOW_DOWNLOAD."
         )
 
     from insightface.app import FaceAnalysis
@@ -309,9 +315,13 @@ def run_face_compare_pipeline(
     selfie_storage_key: str,
     document_storage_key: str,
     threshold: float,
+    *,
+    selfie_bucket_name: str | None = None,
+    document_bucket_name: str | None = None,
 ) -> dict[str, Any]:
-    selfie_asset = load_media_asset(selfie_storage_key)
-    document_asset = load_media_asset(document_storage_key)
+    settings = get_settings()
+    selfie_asset = load_media_asset(selfie_storage_key, bucket_name=selfie_bucket_name)
+    document_asset = load_media_asset(document_storage_key, bucket_name=document_bucket_name)
 
     selfie_detections = _detect_faces(selfie_asset.primary_frame)
     document_detections = _detect_faces(document_asset.primary_frame)
@@ -359,11 +369,11 @@ def get_paddle_ocr_engine():
     settings = get_settings()
     if (
         not settings.paddle_allow_download
-        and not settings.paddle_text_detection_model_dir
-        and not settings.paddle_text_recognition_model_dir
+        and not settings.paddle_text_detection_model_dir.exists()
+        and not settings.paddle_text_recognition_model_dir.exists()
     ):
         raise ProcessingConfigurationError(
-            "PaddleOCR models are not configured. Provide local model directories or enable PADDLE_OCR_ALLOW_DOWNLOAD."
+            "PaddleOCR models are not configured under AI_MODEL_ROOT/paddleocr. Provide local models or enable PADDLE_OCR_ALLOW_DOWNLOAD."
         )
 
     from paddleocr import PaddleOCR
@@ -371,10 +381,9 @@ def get_paddle_ocr_engine():
     kwargs = {
         "lang": settings.paddle_lang,
         "ocr_version": settings.paddle_ocr_version,
-        "text_detection_model_dir": settings.paddle_text_detection_model_dir or None,
-        "text_recognition_model_dir": settings.paddle_text_recognition_model_dir or None,
-        "textline_orientation_model_dir": settings.paddle_textline_orientation_model_dir
-        or None,
+        "text_detection_model_dir": str(settings.paddle_text_detection_model_dir),
+        "text_recognition_model_dir": str(settings.paddle_text_recognition_model_dir),
+        "textline_orientation_model_dir": str(settings.paddle_textline_orientation_model_dir),
         "use_textline_orientation": True,
     }
     return PaddleOCR(**kwargs)
@@ -416,8 +425,10 @@ def run_document_ocr_pipeline(
     storage_key: str,
     document_type: str,
     country_code: str,
+    *,
+    bucket_name: str | None = None,
 ) -> dict[str, Any]:
-    asset = load_media_asset(storage_key)
+    asset = load_media_asset(storage_key, bucket_name=bucket_name)
     ocr_engine = get_paddle_ocr_engine()
     rgb_image = cv2.cvtColor(asset.primary_frame, cv2.COLOR_BGR2RGB)
     predictions = ocr_engine.predict(rgb_image)

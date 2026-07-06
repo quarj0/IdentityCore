@@ -45,11 +45,11 @@ Used by developers.
 
 Purpose:
 
-* Build features
-* Run tests
-* Debug services
-* Develop APIs
-* Work without cloud dependency
+- Build features
+- Run tests
+- Debug services
+- Develop APIs
+- Work without cloud dependency
 
 Local deployment uses Docker Compose.
 
@@ -91,17 +91,17 @@ Used for shared engineering testing.
 
 Purpose:
 
-* Test integrated features
-* Validate API behavior
-* Test frontend/backend integration
-* Run early QA
+- Test integrated features
+- Validate API behavior
+- Test frontend/backend integration
+- Run early QA
 
 Characteristics:
 
-* Uses test data only
-* May reset frequently
-* Not used for real Verification Subjects
-* Lower infrastructure cost
+- Uses test data only
+- May reset frequently
+- Not used for real Verification Subjects
+- Lower infrastructure cost
 
 ---
 
@@ -111,12 +111,12 @@ Used as production rehearsal.
 
 Purpose:
 
-* Test releases before production
-* Run migrations safely
-* Validate deployment process
-* Test webhooks
-* Test monitoring
-* Test rollback
+- Test releases before production
+- Run migrations safely
+- Validate deployment process
+- Test webhooks
+- Test monitoring
+- Test rollback
 
 Staging should mirror production as closely as possible.
 
@@ -128,16 +128,16 @@ Used for real customers and real verification workflows.
 
 Requirements:
 
-* HTTPS
-* Managed database
-* Managed Redis or reliable Redis deployment
-* Private object storage
-* Centralized logging
-* Monitoring
-* Backups
-* Alerts
-* Secure secrets management
-* Strict access control
+- HTTPS
+- Managed database
+- Managed Redis or reliable Redis deployment
+- Private object storage
+- Centralized logging
+- Monitoring
+- Backups
+- Alerts
+- Secure secrets management
+- Strict access control
 
 ---
 
@@ -149,15 +149,15 @@ Used when a government or large enterprise requires the platform to run in their
 
 May require:
 
-* Private network
-* Dedicated database
-* Dedicated object storage
-* No public internet exposure
-* SIEM integration
-* HSM integration
-* Local identity provider
-* Strict data residency
-* Offline or limited-connectivity support
+- Private network
+- Dedicated database
+- Dedicated object storage
+- No public internet exposure
+- SIEM integration
+- HSM integration
+- Local identity provider
+- Strict data residency
+- Offline or limited-connectivity support
 
 Government on-premise deployment is outside Version 1.0 but should be considered in architectural decisions.
 
@@ -202,21 +202,21 @@ Object Storage
 
 Responsibilities:
 
-* REST API
-* GraphQL API
-* Authentication
-* Tenant isolation
-* Verification workflow
-* Audit logging
-* Webhooks
-* Admin and organization dashboard API
+- REST API
+- GraphQL API
+- Authentication
+- Tenant isolation
+- Verification workflow
+- Audit logging
+- Webhooks
+- Admin and organization dashboard API
 
 Deployment:
 
-* Containerized
-* Stateless
-* Horizontally scalable
-* Behind reverse proxy
+- Containerized
+- Stateless
+- Horizontally scalable
+- Behind reverse proxy
 
 ---
 
@@ -224,18 +224,18 @@ Deployment:
 
 Responsibilities:
 
-* Face detection
-* Face matching
-* Liveness checks
-* Document OCR
-* Document quality checks
+- Face detection
+- Face matching
+- Liveness checks
+- Document OCR
+- Document quality checks
 
 Deployment:
 
-* Internal-only service
-* Not exposed publicly
-* May require CPU optimization
-* GPU optional in future
+- Internal-only service
+- Not exposed publicly
+- May require CPU optimization
+- GPU optional in future
 
 ---
 
@@ -243,18 +243,18 @@ Deployment:
 
 Responsibilities:
 
-* AI job orchestration
-* OCR processing tasks
-* Webhook delivery
-* Email notifications
-* Retention cleanup
-* Verification expiry jobs
+- AI job orchestration
+- OCR processing tasks
+- Webhook delivery
+- Email notifications
+- Retention cleanup
+- Verification expiry jobs
 
 Deployment:
 
-* Separate container
-* Horizontally scalable
-* Queue-based processing
+- Separate container
+- Horizontally scalable
+- Queue-based processing
 
 ---
 
@@ -262,15 +262,15 @@ Deployment:
 
 Responsibilities:
 
-* Scheduled tasks
-* Verification expiry checks
-* Retention cleanup
-* Periodic reporting jobs
+- Scheduled tasks
+- Verification expiry checks
+- Retention cleanup
+- Periodic reporting jobs
 
 Deployment:
 
-* Single active instance
-* Must avoid duplicate schedulers
+- Single active instance
+- Must avoid duplicate schedulers
 
 ---
 
@@ -278,20 +278,20 @@ Deployment:
 
 Responsibilities:
 
-* Core platform data
-* Verification metadata
-* Audit events
-* Policies
-* Users
-* Tenants
-* Decisions
+- Core platform data
+- Verification metadata
+- Audit events
+- Policies
+- Users
+- Tenants
+- Decisions
 
 Deployment:
 
-* Managed PostgreSQL preferred for MVP
-* Encrypted storage
-* Automated backups
-* Point-in-time recovery where possible
+- Managed PostgreSQL preferred for MVP
+- Encrypted storage
+- Automated backups
+- Point-in-time recovery where possible
 
 ---
 
@@ -299,17 +299,17 @@ Deployment:
 
 Responsibilities:
 
-* Celery broker
-* Cache
-* Rate limiting
-* Short-lived tokens
-* Temporary state
+- Celery broker
+- Cache
+- Rate limiting
+- Short-lived tokens
+- Temporary state
 
 Deployment:
 
-* Managed Redis preferred for production
-* Persistence depends on usage
-* Should be protected from public access
+- Managed Redis preferred for production
+- Persistence depends on usage
+- Should be protected from public access
 
 ---
 
@@ -317,10 +317,10 @@ Deployment:
 
 Responsibilities:
 
-* Document captures
-* Selfie captures
-* Liveness media
-* Temporary uploads
+- Document captures
+- Selfie captures
+- Liveness media
+- Temporary uploads
 
 Options:
 
@@ -333,11 +333,11 @@ Government private object storage
 
 Requirements:
 
-* Private buckets
-* Encryption
-* Signed upload URLs
-* Signed download URLs
-* Retention cleanup
+- Private buckets
+- Encryption
+- Signed upload URLs
+- Signed download URLs
+- Retention cleanup
 
 ---
 
@@ -354,17 +354,17 @@ developer-portal
 
 Recommended deployment:
 
-* Next.js applications
-* Deployed separately from backend
-* HTTPS enforced
-* Environment-specific API base URLs
+- Next.js applications
+- Deployed separately from backend
+- HTTPS enforced
+- Environment-specific API base URLs
 
 Possible platforms:
 
-* Vercel for MVP
-* Cloudflare Pages
-* Self-hosted Node server
-* Static export where applicable
+- Vercel for MVP
+- Cloudflare Pages
+- Self-hosted Node server
+- Static export where applicable
 
 ---
 
@@ -372,12 +372,12 @@ Possible platforms:
 
 Production services should follow these rules:
 
-* Only reverse proxy/load balancer exposed publicly.
-* PostgreSQL must not be publicly accessible.
-* Redis must not be publicly accessible.
-* FastAPI AI service must not be publicly accessible.
-* Internal services should communicate over private network where possible.
-* Admin interfaces should support IP/network restrictions where practical.
+- Only reverse proxy/load balancer exposed publicly.
+- PostgreSQL must not be publicly accessible.
+- Redis must not be publicly accessible.
+- FastAPI AI service must not be publicly accessible.
+- Internal services should communicate over private network where possible.
+- Admin interfaces should support IP/network restrictions where practical.
 
 ---
 
@@ -393,8 +393,14 @@ REDIS_URL
 SECRET_KEY
 JWT_SIGNING_KEY
 ENCRYPTION_KEY
-OBJECT_STORAGE_ACCESS_KEY
-OBJECT_STORAGE_SECRET_KEY
+OBJECT_STORAGE_BUCKET
+OBJECT_STORAGE_MEDIA_BUCKET
+OBJECT_STORAGE_TEMP_BUCKET
+OBJECT_STORAGE_EVIDENCE_BUCKET
+OBJECT_STORAGE_PUBLIC_BUCKET
+OBJECT_STORAGE_ENDPOINT_URL
+OBJECT_STORAGE_ACCESS_KEY_ID
+OBJECT_STORAGE_SECRET_ACCESS_KEY
 EMAIL_PROVIDER_API_KEY
 WEBHOOK_SIGNING_SECRET
 AI_SERVICE_URL
@@ -402,10 +408,10 @@ AI_SERVICE_URL
 
 Rules:
 
-* Never commit secrets to Git.
-* Use separate secrets per environment.
-* Rotate secrets periodically.
-* Restrict access to production secrets.
+- Never commit secrets to Git.
+- Use separate secrets per environment.
+- Rotate secrets periodically.
+- Restrict access to production secrets.
 
 ---
 
@@ -468,11 +474,11 @@ A production deployment should perform:
 
 Migration rules:
 
-* Migrations must be reviewed.
-* Migrations must be tested in staging.
-* Destructive migrations require special approval.
-* Large migrations should be backward compatible.
-* Production migrations should be auditable.
+- Migrations must be reviewed.
+- Migrations must be tested in staging.
+- Destructive migrations require special approval.
+- Large migrations should be backward compatible.
+- Production migrations should be auditable.
 
 Recommended approach:
 
@@ -505,11 +511,11 @@ GET /v1/health
 
 Health checks should verify:
 
-* Service is running
-* Database connection
-* Redis connection
-* Object storage connectivity
-* AI model availability where applicable
+- Service is running
+- Database connection
+- Redis connection
+- Object storage connectivity
+- AI model availability where applicable
 
 ---
 
@@ -519,22 +525,22 @@ Production logging must be centralized.
 
 Logs should include:
 
-* Request ID
-* Tenant ID
-* Actor type
-* Service name
-* Endpoint
-* Status code
-* Duration
-* Error code
+- Request ID
+- Tenant ID
+- Actor type
+- Service name
+- Endpoint
+- Status code
+- Duration
+- Error code
 
 Logs must not include:
 
-* API secrets
-* Passwords
-* Session tokens
-* Raw biometric data
-* Full document numbers
+- API secrets
+- Passwords
+- Session tokens
+- Raw biometric data
+- Full document numbers
 
 ---
 
@@ -542,17 +548,17 @@ Logs must not include:
 
 Minimum monitoring:
 
-* API uptime
-* Error rate
-* Response time
-* Database CPU/memory/storage
-* Redis health
-* Celery queue depth
-* Worker failures
-* Webhook failures
-* AI processing latency
-* Storage usage
-* Failed login attempts
+- API uptime
+- Error rate
+- Response time
+- Database CPU/memory/storage
+- Redis health
+- Celery queue depth
+- Worker failures
+- Webhook failures
+- AI processing latency
+- Storage usage
+- Failed login attempts
 
 ---
 
@@ -560,16 +566,16 @@ Minimum monitoring:
 
 Alerts should be configured for:
 
-* API downtime
-* High error rate
-* Database unavailable
-* Redis unavailable
-* High queue backlog
-* Webhook delivery failures
-* Storage failures
-* Abnormal login failures
-* Cross-tenant access attempts
-* Failed backups
+- API downtime
+- High error rate
+- Database unavailable
+- Redis unavailable
+- High queue backlog
+- Webhook delivery failures
+- Storage failures
+- Abnormal login failures
+- Cross-tenant access attempts
+- Failed backups
 
 ---
 
@@ -577,11 +583,11 @@ Alerts should be configured for:
 
 Backup requirements:
 
-* Automated database backups
-* Encrypted backups
-* Regular backup verification
-* Point-in-time recovery where possible
-* Backup access restrictions
+- Automated database backups
+- Encrypted backups
+- Regular backup verification
+- Point-in-time recovery where possible
+- Backup access restrictions
 
 Object storage backups should follow retention and compliance requirements.
 
@@ -591,11 +597,11 @@ Object storage backups should follow retention and compliance requirements.
 
 Disaster recovery planning should define:
 
-* Recovery Time Objective
-* Recovery Point Objective
-* Backup restoration process
-* Incident communication process
-* Service restoration order
+- Recovery Time Objective
+- Recovery Point Objective
+- Backup restoration process
+- Incident communication process
+- Service restoration order
 
 Suggested MVP targets:
 
@@ -614,11 +620,11 @@ Every deployment should support rollback.
 
 Rollback may include:
 
-* Reverting container image
-* Reverting environment configuration
-* Disabling feature flags
-* Pausing background workers
-* Rolling forward with a fix
+- Reverting container image
+- Reverting environment configuration
+- Disabling feature flags
+- Pausing background workers
+- Rolling forward with a fix
 
 Database rollbacks are risky and should be avoided where possible.
 
@@ -649,9 +655,9 @@ AI workloads can be CPU- or memory-heavy.
 
 Therefore:
 
-* AI service should run separately from Django.
-* Celery workers for AI jobs may be separated from webhook/email workers.
-* Future GPU workers should be isolated.
+- AI service should run separately from Django.
+- Celery workers for AI jobs may be separated from webhook/email workers.
+- Future GPU workers should be isolated.
 
 Example queues:
 
@@ -665,13 +671,13 @@ retention
 
 Implementation note:
 
-* The current Docker Compose stack runs a dedicated `celery-worker-ai` service for the `ai_processing` queue.
+- The current Docker Compose stack runs a dedicated `celery-worker-ai` service for the `ai_processing` queue.
 
-* The current Django/Celery setup routes webhook processing tasks to the `webhooks` queue and notification consumer tasks to the `notifications` queue.
-* Verification expiry, expired-session cleanup, temporary upload cleanup, and retention cleanup tasks run on the `retention` queue.
-* Celery beat schedules periodic processing for pending webhook and notification deliveries, verification expiry, expired session cleanup, temporary upload cleanup, and retention cleanup.
-* The local Docker Compose stack runs separate workers for `default`, `ai_processing`, `webhooks`, `notifications`, and `retention` so lightweight delivery jobs are isolated from general background work.
-* The compose stack also defines health checks for each worker role and queue-specific log entry points so worker failures are easier to spot during local operations.
+- The current Django/Celery setup routes webhook processing tasks to the `webhooks` queue and notification consumer tasks to the `notifications` queue.
+- Verification expiry, expired-session cleanup, temporary upload cleanup, and retention cleanup tasks run on the `retention` queue.
+- Celery beat schedules periodic processing for pending webhook and notification deliveries, verification expiry, expired session cleanup, temporary upload cleanup, and retention cleanup.
+- The local Docker Compose stack runs separate workers for `default`, `ai_processing`, `webhooks`, `notifications`, and `retention` so lightweight delivery jobs are isolated from general background work.
+- The compose stack also defines health checks for each worker role and queue-specific log entry points so worker failures are easier to spot during local operations.
 
 ---
 
@@ -679,11 +685,11 @@ Implementation note:
 
 Feature flags should be used for:
 
-* New AI models
-* New verification flows
-* New providers
-* New document types
-* New dashboard features
+- New AI models
+- New verification flows
+- New providers
+- New document types
+- New dashboard features
 
 Feature flags allow gradual rollout and safe rollback.
 
@@ -693,12 +699,12 @@ Feature flags allow gradual rollout and safe rollback.
 
 Production deployment must support rotating:
 
-* API signing keys
-* JWT signing keys
-* Object storage keys
-* Provider credentials
-* Database credentials
-* Webhook secrets
+- API signing keys
+- JWT signing keys
+- Object storage keys
+- Provider credentials
+- Database credentials
+- Webhook secrets
 
 Rotation should not require full system downtime.
 
@@ -732,21 +738,21 @@ Example:
 
 Before production launch:
 
-* HTTPS enabled
-* Database backups configured
-* Redis secured
-* Object storage private
-* Environment secrets configured
-* Admin MFA enabled
-* API rate limiting enabled
-* Audit logging enabled
-* Error tracking enabled
-* Monitoring enabled
-* Health checks enabled
-* Smoke tests passing
-* Retention cleanup configured
-* Webhook signing enabled
-* Security headers configured
+- HTTPS enabled
+- Database backups configured
+- Redis secured
+- Object storage private
+- Environment secrets configured
+- Admin MFA enabled
+- API rate limiting enabled
+- Audit logging enabled
+- Error tracking enabled
+- Monitoring enabled
+- Health checks enabled
+- Smoke tests passing
+- Retention cleanup configured
+- Webhook signing enabled
+- Security headers configured
 
 ---
 
@@ -782,16 +788,16 @@ This keeps the MVP simple while avoiding unnecessary Kubernetes complexity.
 
 Future versions may support:
 
-* Kubernetes
-* Helm charts
-* Terraform
-* Multi-region deployment
-* Private cloud deployment
-* Government data center deployment
-* HSM integration
-* SIEM integration
-* GPU inference nodes
-* Dedicated tenant infrastructure
+- Kubernetes
+- Helm charts
+- Terraform
+- Multi-region deployment
+- Private cloud deployment
+- Government data center deployment
+- HSM integration
+- SIEM integration
+- GPU inference nodes
+- Dedicated tenant infrastructure
 
 ---
 
@@ -799,30 +805,30 @@ Future versions may support:
 
 Version 1.0 includes:
 
-* Docker Compose local development
-* Containerized Django backend
-* Containerized FastAPI AI service
-* PostgreSQL
-* Redis
-* Celery workers
-* Celery beat
-* Object storage
-* Frontend deployment
-* Health checks
-* Logging
-* Backups
-* Monitoring
-* Rollback plan
+- Docker Compose local development
+- Containerized Django backend
+- Containerized FastAPI AI service
+- PostgreSQL
+- Redis
+- Celery workers
+- Celery beat
+- Object storage
+- Frontend deployment
+- Health checks
+- Logging
+- Backups
+- Monitoring
+- Rollback plan
 
 Version 1.0 excludes:
 
-* Kubernetes requirement
-* Multi-region production
-* GPU cluster requirement
-* Government on-premise deployment
-* Automated Terraform production infrastructure
-* Zero-downtime guarantee
-* Dedicated tenant infrastructure
+- Kubernetes requirement
+- Multi-region production
+- GPU cluster requirement
+- Government on-premise deployment
+- Automated Terraform production infrastructure
+- Zero-downtime guarantee
+- Dedicated tenant infrastructure
 
 ---
 

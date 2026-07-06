@@ -10,6 +10,10 @@ from apps.notifications.services import (
     queue_verification_created_notifications,
     queue_verification_status_notifications,
 )
+from apps.verifications.evidence import (
+    build_verification_evidence_download_url,
+    ensure_verification_evidence_report,
+)
 from apps.webhooks.services import queue_webhook_events
 from apps.verifications.serializers import (
     ManualReviewDecisionSerializer,
@@ -162,6 +166,7 @@ class VerificationCancelView(APIView):
             verification=verification,
             decision=VerificationStatus.CANCELLED,
         )
+        ensure_verification_evidence_report(verification)
         return success_response(
             {
                 "id": verification.public_id,
@@ -223,6 +228,31 @@ class VerificationResendLinkView(APIView):
             {"sent": bool(notifications)},
             request=request,
             status=status.HTTP_200_OK,
+        )
+
+
+class VerificationEvidenceReportView(APIView):
+    authentication_classes = [APIClientAuthentication]
+    required_scopes = ("verifications:read",)
+    permission_classes = [HasAPIClientScopes]
+
+    def get(self, request, verification_id: str):
+        verification = get_object_or_404(
+            Verification.objects.select_related("verification_subject", "organization"),
+            tenant=request.tenant,
+            public_id=verification_id,
+        )
+        ensure_verification_evidence_report(verification)
+        verification.refresh_from_db()
+        return success_response(
+            {
+                "verification_id": verification.public_id,
+                "storage_key": verification.metadata_json.get(
+                    "evidence_report_storage_key", ""
+                ),
+                "download_url": build_verification_evidence_download_url(verification),
+            },
+            request=request,
         )
 
 
@@ -297,6 +327,7 @@ class ManualReviewDecisionView(APIView):
                     risk_assessment.risk_level if risk_assessment is not None else ""
                 ),
             )
+        ensure_verification_evidence_report(verification)
         return success_response(
             {
                 "verification_id": verification.public_id,

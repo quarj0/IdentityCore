@@ -10,6 +10,7 @@ from apps.identity_documents.tasks import process_identity_document_task
 from apps.organizations.models import Organization
 from apps.providers.models import Provider, ProviderCheck, ProviderCheckStatus, ProviderType
 from apps.tenants.models import Tenant
+from apps.uploads.models import Upload, UploadPurpose, UploadStatus
 from apps.verification_subjects.models import VerificationSubject
 from apps.verifications.models import Verification, VerificationStatus
 
@@ -51,6 +52,23 @@ class IdentityDocumentTaskTests(TestCase):
             storage_key="uploads/documents/doc_good",
             captured_at=timezone.now(),
         )
+        self.upload = Upload.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_session=self.verification.sessions.create(
+                tenant=self.tenant,
+                session_token_hash="placeholder",
+                expires_at=timezone.now() + timedelta(hours=1),
+            ),
+            purpose=UploadPurpose.DOCUMENT_CAPTURE,
+            storage_key=self.capture.storage_key,
+            storage_provider="local",
+            mime_type="image/jpeg",
+            file_size_bytes=1024,
+            status=UploadStatus.CONSUMED,
+            expires_at=timezone.now() + timedelta(minutes=10),
+            consumed_at=timezone.now(),
+        )
         self.provider = Provider.objects.create(
             name="Internal OCR Engine",
             code="internal-ocr-test",
@@ -83,9 +101,13 @@ class IdentityDocumentTaskTests(TestCase):
         self.assertEqual(result, IdentityDocumentStatus.PROCESSED)
         self.identity_document.refresh_from_db()
         self.capture.refresh_from_db()
+        self.upload.refresh_from_db()
         self.assertEqual(self.identity_document.status, IdentityDocumentStatus.PROCESSED)
         self.assertEqual(self.capture.status, "validated")
+        self.assertEqual(self.upload.status, UploadStatus.PROMOTED)
         self.assertEqual(self.identity_document.extracted_data_json["full_name"], "Kwame Mensah")
+        self.assertEqual(mock_quality.call_args.kwargs["document_storage_bucket"], "")
+        self.assertEqual(mock_ocr.call_args.kwargs["document_storage_bucket"], "")
 
     @patch("apps.identity_documents.tasks.run_document_ocr")
     @patch("apps.identity_documents.tasks.run_document_quality")
@@ -104,4 +126,6 @@ class IdentityDocumentTaskTests(TestCase):
         self.assertEqual(result, IdentityDocumentStatus.REJECTED)
         self.identity_document.refresh_from_db()
         self.capture.refresh_from_db()
+        self.upload.refresh_from_db()
         self.assertEqual(self.capture.status, "rejected")
+        self.assertEqual(self.upload.status, UploadStatus.PROMOTED)

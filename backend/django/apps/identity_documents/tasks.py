@@ -8,6 +8,8 @@ from apps.document_captures.models import DocumentCaptureStatus
 from apps.identity_documents.models import IdentityDocument, IdentityDocumentStatus
 from apps.providers.ai_service import run_document_ocr, run_document_quality
 from apps.providers.models import ProviderCheckStatus
+from apps.uploads.services import promote_upload_to_media_by_storage_key
+from common.storage import get_object_storage_temp_bucket_name
 
 
 @shared_task(queue="ai_processing")
@@ -33,12 +35,14 @@ def process_identity_document_task(identity_document_id: str) -> str:
     latest_quality_status = DocumentCaptureStatus.VALIDATED
     lowest_quality_score: Decimal | None = None
     issues_found: list[str] = []
+    temp_bucket = get_object_storage_temp_bucket_name()
 
     try:
         for capture in captures:
             quality_result = run_document_quality(
                 verification_id=verification.public_id,
                 document_storage_key=capture.storage_key,
+                document_storage_bucket=temp_bucket,
             )
             capture.quality_score = Decimal(str(quality_result.get("quality_score", "0")))
             capture.status = (
@@ -59,6 +63,7 @@ def process_identity_document_task(identity_document_id: str) -> str:
             document_storage_key=primary_capture.storage_key,
             document_type=identity_document.document_type_id,
             country_code=identity_document.country_profile_id,
+            document_storage_bucket=temp_bucket,
         )
         identity_document.extracted_data_json = ocr_result.get("extracted_fields", {})
         identity_document.status = (
@@ -81,6 +86,9 @@ def process_identity_document_task(identity_document_id: str) -> str:
             ocr_provider_check.save(
                 update_fields=["status", "completed_at", "response_metadata_json", "normalized_result_json", "updated_at"]
             )
+
+        for capture in captures:
+            promote_upload_to_media_by_storage_key(capture.storage_key)
 
         record_audit_event(
             tenant=verification.tenant,

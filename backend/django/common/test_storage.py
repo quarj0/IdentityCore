@@ -6,6 +6,7 @@ from common.storage import (
     build_signed_download_url,
     build_signed_upload_url,
     determine_storage_provider,
+    move_object,
 )
 
 
@@ -63,3 +64,70 @@ class StorageHelpersTests(SimpleTestCase):
         self.assertEqual(download_url, "https://r2.example/download")
         self.assertEqual(determine_storage_provider(), "cloudflare_r2")
         self.assertEqual(mock_client.generate_presigned_url.call_count, 2)
+
+    @override_settings(
+        OBJECT_STORAGE_PROVIDER="cloudflare_r2",
+        OBJECT_STORAGE_BUCKET="identitycore-media",
+        OBJECT_STORAGE_TEMP_BUCKET="identitycore-temp",
+        OBJECT_STORAGE_ENDPOINT_URL="https://example.r2.cloudflarestorage.com",
+        OBJECT_STORAGE_ACCESS_KEY_ID="key",
+        OBJECT_STORAGE_SECRET_ACCESS_KEY="secret",
+        OBJECT_STORAGE_REGION="auto",
+        OBJECT_STORAGE_SIGNATURE_VERSION="s3v4",
+        OBJECT_STORAGE_PRESIGNED_UPLOAD_EXPIRES_SECONDS=600,
+    )
+    @patch("common.storage.boto3.client")
+    def test_signed_upload_url_uses_temp_bucket_when_configured(
+        self, mock_client_factory
+    ):
+        mock_client = Mock()
+        mock_client.generate_presigned_url.return_value = "https://r2.example/upload"
+        mock_client_factory.return_value = mock_client
+
+        upload_url = build_signed_upload_url(
+            storage_key="uploads/documents/upl_02TEST",
+            mime_type="image/png",
+        )
+
+        self.assertEqual(upload_url, "https://r2.example/upload")
+        self.assertEqual(mock_client.generate_presigned_url.call_count, 1)
+        self.assertEqual(
+            mock_client.generate_presigned_url.call_args.kwargs["Params"]["Bucket"],
+            "identitycore-temp",
+        )
+
+    @override_settings(
+        OBJECT_STORAGE_PROVIDER="cloudflare_r2",
+        OBJECT_STORAGE_BUCKET="identitycore-media",
+        OBJECT_STORAGE_TEMP_BUCKET="identitycore-temp",
+        OBJECT_STORAGE_ENDPOINT_URL="https://example.r2.cloudflarestorage.com",
+        OBJECT_STORAGE_ACCESS_KEY_ID="key",
+        OBJECT_STORAGE_SECRET_ACCESS_KEY="secret",
+        OBJECT_STORAGE_REGION="auto",
+        OBJECT_STORAGE_SIGNATURE_VERSION="s3v4",
+    )
+    @patch("common.storage.boto3.client")
+    def test_move_object_moves_and_deletes_source(self, mock_client_factory):
+        mock_client = Mock()
+        mock_client.copy_object.return_value = {}
+        mock_client.delete_object.return_value = {}
+        mock_client_factory.return_value = mock_client
+
+        move_object(
+            source_bucket="identitycore-temp",
+            source_key="uploads/documents/upl_03TEST",
+            destination_bucket="identitycore-media",
+        )
+
+        mock_client.copy_object.assert_called_once_with(
+            CopySource={
+                "Bucket": "identitycore-temp",
+                "Key": "uploads/documents/upl_03TEST",
+            },
+            Bucket="identitycore-media",
+            Key="uploads/documents/upl_03TEST",
+        )
+        mock_client.delete_object.assert_called_once_with(
+            Bucket="identitycore-temp",
+            Key="uploads/documents/upl_03TEST",
+        )
