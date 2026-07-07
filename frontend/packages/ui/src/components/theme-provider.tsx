@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-type Theme = "system" | "light" | "dark";
+type Theme = "light" | "dark";
 
 type ThemeProviderProps = {
   children: React.ReactNode;
@@ -16,37 +16,34 @@ type ThemeProviderState = {
 };
 
 const initialState: ThemeProviderState = {
-  theme: "system",
+  theme: "light",
   setTheme: () => null,
 };
 
 const ThemeProviderContext = React.createContext<ThemeProviderState>(initialState);
 
+const isTheme = (value: string | null): value is Theme =>
+  value === "light" || value === "dark";
+
 const ThemeProvider = ({
   children,
-  defaultTheme = "system",
+  defaultTheme = "light",
   storageKey = "identitycore-theme",
   ...props
 }: ThemeProviderProps) => {
   const [theme, setTheme] = React.useState<Theme>(
-    () => (typeof window !== "undefined" && (localStorage.getItem(storageKey) as Theme)) || defaultTheme
+    () => {
+      if (typeof window === "undefined") return defaultTheme;
+
+      const storedTheme = localStorage.getItem(storageKey);
+      return isTheme(storedTheme) ? storedTheme : defaultTheme;
+    }
   );
 
   React.useEffect(() => {
     const root = window.document.documentElement;
 
     root.classList.remove("light", "dark");
-
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-        .matches
-        ? "dark"
-        : "light";
-
-      root.classList.add(systemTheme);
-      return;
-    }
-
     root.classList.add(theme);
   }, [theme]);
 

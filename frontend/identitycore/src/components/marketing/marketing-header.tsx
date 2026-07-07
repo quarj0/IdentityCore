@@ -17,8 +17,6 @@ const NAV_LINKS = [
 ];
 
 const DOCS_URL = process.env.NEXT_PUBLIC_DOCS_URL ?? "http://localhost:3003";
-const DASHBOARD_URL =
-  process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3000";
 
 export function MarketingHeader({
   activePath,
@@ -62,12 +60,10 @@ export function MarketingHeader({
 
           {rightSlot ?? (
             <>
-              <MarketingExternalLink href={DASHBOARD_URL}>
-                Sign in
-              </MarketingExternalLink>
+              <MarketingNavLink href="/login">Sign in</MarketingNavLink>
 
               <Button asChild size="sm" className="ml-2">
-                <a href={DASHBOARD_URL}>Get started</a>
+                <Link href="/register">Create workspace</Link>
               </Button>
             </>
           )}
@@ -111,15 +107,18 @@ export function MarketingHeader({
 
             {rightSlot ?? (
               <div className="grid grid-cols-2 gap-2 px-3 pt-1">
-                <a
-                  href={DASHBOARD_URL}
+                <Link
+                  href="/login"
+                  onClick={closeMenu}
                   className="rounded-md border border-border px-3 py-2 text-center text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 >
                   Sign in
-                </a>
+                </Link>
 
                 <Button asChild size="sm">
-                  <a href={DASHBOARD_URL}>Get started</a>
+                  <Link href="/register" onClick={closeMenu}>
+                    Create workspace
+                  </Link>
                 </Button>
               </div>
             )}

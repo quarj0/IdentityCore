@@ -37,7 +37,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full bg-background text-foreground antialiased">
-        <ThemeProvider defaultTheme="dark" storageKey="identitycore-admin-theme">
+        <ThemeProvider defaultTheme="light" storageKey="identitycore-admin-theme">
           {children}
           <Toaster />
         </ThemeProvider>
