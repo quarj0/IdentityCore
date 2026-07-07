@@ -1,0 +1,12 @@
+{
+  "name": "identitycore",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev:dashboard": "pnpm --filter dashboard dev",
+    "dev:verify": "pnpm --filter verification-portal dev",
+    "dev:web": "pnpm --filter identitycore-web dev",
+    "dev:docs": "pnpm --filter developer-portal dev",
+    "dev:admin": "pnpm --filter platform-admin dev"
+  }
+}

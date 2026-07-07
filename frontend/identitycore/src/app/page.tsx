@@ -1,65 +1,125 @@
-import Image from "next/image";
+import React from "react";
+import Link from "next/link";
+import { ArrowRight, Shield, Zap, Lock, Fingerprint, Code, Server, Check } from "lucide-react";
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@identitycore/ui";
 
-export default function Home() {
+export default function LandingPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="flex flex-col min-h-screen">
+      {/* Navigation */}
+      <header className="px-6 lg:px-8 h-16 flex items-center border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <Fingerprint className="h-4.5 w-4.5" />
+          </div>
+          <span className="font-semibold text-base tracking-tight">IdentityCore</span>
+        </div>
+        <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
+          <Link className="text-sm font-medium hover:underline underline-offset-4 text-muted-foreground hover:text-foreground transition-colors" href="/pricing">
+            Pricing
+          </Link>
+          <Link className="text-sm font-medium hover:underline underline-offset-4 text-muted-foreground hover:text-foreground transition-colors" href="/security">
+            Security
+          </Link>
+          <Link className="text-sm font-medium hover:underline underline-offset-4 text-muted-foreground hover:text-foreground transition-colors" href="/company">
+            Company
+          </Link>
+          <Separator />
+          <a href="http://localhost:3000" className="text-sm font-medium hover:underline underline-offset-4 text-muted-foreground hover:text-foreground transition-colors">
+            Sign In
+          </a>
+          <Button asChild size="sm">
+            <a href="http://localhost:3000">Get Started</a>
+          </Button>
+        </nav>
+      </header>
+
+      {/* Hero Section */}
+      <section className="py-20 lg:py-32 px-6 lg:px-8 bg-slate-50 dark:bg-slate-950 flex flex-col items-center text-center">
+        <div className="max-w-3xl space-y-6">
+          <Badge variant="secondary" className="px-3 py-1 text-xs gap-1.5">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            Identity Verification for Developers
+          </Badge>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1]">
+            Build secure verification into your product in minutes
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            Enterprise-grade identity verification infrastructure. OCR document processing, real-time face matching, and liveness detection. Developer-first API integration.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
+            <Button size="lg" className="gap-2" asChild>
+              <a href="http://localhost:3000">
+                Start verifying now
+                <ArrowRight className="h-4 w-4" />
+              </a>
+            </Button>
+            <Button size="lg" variant="outline" className="gap-2" asChild>
+              <a href="http://localhost:3003">
+                <Code className="h-4 w-4" />
+                Read API docs
+              </a>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section className="py-20 px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Everything you need to verify users securely</h2>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            A comprehensive suite of identity tools designed to eliminate fraud and streamline compliance.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="grid gap-6 md:grid-cols-3">
+          <Card className="bg-transparent border-slate-200/80">
+            <CardHeader>
+              <div className="h-10 w-10 rounded-lg bg-primary/5 flex items-center justify-center mb-3">
+                <Shield className="h-5 w-5 text-primary" />
+              </div>
+              <CardTitle className="text-base font-semibold">Smart Document OCR</CardTitle>
+              <CardDescription className="text-xs">
+                Extract details from passports, driver's licenses, and identity cards globally with precision models.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="bg-transparent border-slate-200/80">
+            <CardHeader>
+              <div className="h-10 w-10 rounded-lg bg-primary/5 flex items-center justify-center mb-3">
+                <Zap className="h-5 w-5 text-primary" />
+              </div>
+              <CardTitle className="text-base font-semibold">Real-Time Liveness Check</CardTitle>
+              <CardDescription className="text-xs">
+                Verify presence instantly using lightweight biometric models directly in the user's browser.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="bg-transparent border-slate-200/80">
+            <CardHeader>
+              <div className="h-10 w-10 rounded-lg bg-primary/5 flex items-center justify-center mb-3">
+                <Code className="h-5 w-5 text-primary" />
+              </div>
+              <CardTitle className="text-base font-semibold">Flexible Policy Builder</CardTitle>
+              <CardDescription className="text-xs">
+                Create customized rules and flows that fit your unique geographic and regulatory demands without writing code.
+              </CardDescription>
+            </CardHeader>
+          </Card>
         </div>
-      </main>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border py-8 px-6 lg:px-8 text-center text-xs text-muted-foreground mt-auto">
+        <p>© 2026 IdentityCore, Inc. All rights reserved.</p>
+      </footer>
     </div>
   );
 }
+
+import { Badge } from "@identitycore/ui";
+import { Separator } from "@identitycore/ui";
+import { Sparkles } from "lucide-react";

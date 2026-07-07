@@ -1,64 +1,106 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useState } from "react";
+import { ShieldAlert, CheckCircle2, XCircle, Building, AlertTriangle, Fingerprint, Activity } from "lucide-react";
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Badge } from "@identitycore/ui";
+
+const orgs = [
+  { id: "org-1", name: "Acme Corporation", tier: "Growth", status: "Active", verifications: 1420 },
+  { id: "org-2", name: "CyberDyne Systems", tier: "Enterprise", status: "Pending Approval", verifications: 0 },
+  { id: "org-3", name: "Globex Corporation", tier: "Developer", status: "Active", verifications: 84 },
+  { id: "org-4", name: "Initech", tier: "Growth", status: "Suspended", verifications: 410 },
+];
+
+export default function PlatformAdminPage() {
+  const [activeTab, setActiveTab] = useState("orgs");
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      {/* Header */}
+      <header className="px-6 h-16 border-b border-border bg-white dark:bg-slate-950 flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-950 text-white">
+            <Fingerprint className="h-4.5 w-4.5" />
+          </div>
+          <span className="font-semibold text-sm tracking-tight text-slate-900 dark:text-white">Platform Admin</span>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <Badge variant="destructive" className="text-[10px]">Internal Operations</Badge>
+      </header>
+
+      {/* Main Grid */}
+      <main className="p-6 max-w-7xl mx-auto space-y-6">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription className="text-xs uppercase tracking-wider">Total Tenants</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-extrabold">248</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription className="text-xs uppercase tracking-wider">Platform Verifications (30d)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-extrabold">142,847</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription className="text-xs uppercase tracking-wider">System Status</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Badge variant="success" className="text-xs font-semibold">All Systems Operational</Badge>
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Organizations Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Organization Accounts</CardTitle>
+            <CardDescription className="text-xs">Manage tiers and approve new customer tenants.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/40">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground font-semibold">Organization</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground font-semibold">Tier</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground font-semibold">Verifications</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground font-semibold">Status</th>
+                  <th className="px-6 py-3" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {orgs.map((org) => (
+                  <tr key={org.id} className="transition-colors hover:bg-muted/30">
+                    <td className="px-6 py-3.5 flex items-center gap-2">
+                      <Building className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{org.name}</span>
+                    </td>
+                    <td className="px-6 py-3.5 text-muted-foreground">{org.tier}</td>
+                    <td className="px-6 py-3.5 text-muted-foreground font-mono">{org.verifications}</td>
+                    <td className="px-6 py-3.5">
+                      <Badge variant={org.status === "Active" ? "success" : org.status.includes("Pending") ? "warning" : "destructive"}>
+                        {org.status}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-3.5 text-right flex gap-2 justify-end">
+                      {org.status.includes("Pending") && (
+                        <>
+                          <Button size="sm" id={`approve-${org.id}`} className="bg-emerald-600 hover:bg-emerald-700 text-white">Approve</Button>
+                          <Button size="sm" variant="destructive" id={`reject-${org.id}`}>Reject</Button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );

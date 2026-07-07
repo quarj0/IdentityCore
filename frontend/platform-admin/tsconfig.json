@@ -19,7 +19,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@identitycore/ui": ["../packages/ui/src/index.ts"],
+      "@identitycore/ui/*": ["../packages/ui/src/*"]
     }
   },
   "include": [
