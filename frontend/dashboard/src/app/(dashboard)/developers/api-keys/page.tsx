@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Plus, Copy, Trash2, Key } from "lucide-react";
 import {
   Card,
@@ -58,7 +59,11 @@ export default function ApiKeysPage() {
             <TableBody>
               {apiKeys.map((k) => (
                 <TableRow key={k.id} id={`key-row-${k.id}`}>
-                  <TableCell className="font-medium">{k.name}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link href={`/developers/api-keys/${k.id}`} className="hover:text-primary">
+                      {k.name}
+                    </Link>
+                  </TableCell>
                   <TableCell>
                     <code className="rounded bg-muted px-2 py-1 font-mono text-xs">
                       {k.prefix}••••••••{k.suffix}

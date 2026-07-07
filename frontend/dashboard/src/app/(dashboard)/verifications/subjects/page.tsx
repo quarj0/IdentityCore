@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
   CheckCircle2,
   XCircle,
@@ -111,8 +112,10 @@ export default function SubjectsPage() {
                     <td className="hidden px-6 py-3.5 text-muted-foreground md:table-cell">{s.verifications}</td>
                     <td className="hidden px-6 py-3.5 text-muted-foreground lg:table-cell">{s.lastVerified}</td>
                     <td className="px-6 py-3.5">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" id={`view-subject-${s.id}`}>
-                        <ExternalLink className="h-3.5 w-3.5" />
+                      <Button variant="ghost" size="icon" className="h-7 w-7" asChild id={`view-subject-${s.id}`}>
+                        <Link href={`/verifications/subjects/${s.id}`}>
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Link>
                       </Button>
                     </td>
                   </tr>

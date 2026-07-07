@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Plus, Edit2, Trash2, Webhook, CheckCircle2, XCircle } from "lucide-react";
 import {
   Card,
@@ -85,9 +86,11 @@ export default function WebhooksPage() {
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <Button variant="outline" size="sm" className="h-8 gap-1.5" id={`edit-webhook-${wh.id}`}>
-                    <Edit2 className="h-3.5 w-3.5" />
-                    Edit
+                  <Button variant="outline" size="sm" className="h-8 gap-1.5" asChild id={`edit-webhook-${wh.id}`}>
+                    <Link href={`/developers/webhooks/${wh.id}`}>
+                      <Edit2 className="h-3.5 w-3.5" />
+                      Edit
+                    </Link>
                   </Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" id={`delete-webhook-${wh.id}`}>
                     <Trash2 className="h-3.5 w-3.5" />

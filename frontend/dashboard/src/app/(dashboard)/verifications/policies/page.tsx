@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Plus, Settings, Shield, Eye, ToggleRight } from "lucide-react";
 import {
   Card,
@@ -138,13 +139,17 @@ export default function PoliciesPage() {
 
               {/* Actions */}
               <div className="mt-auto flex gap-2 pt-2">
-                <Button variant="outline" size="sm" className="flex-1 h-8 gap-1.5" id={`view-policy-${policy.id}`}>
-                  <Eye className="h-3.5 w-3.5" />
-                  View
+                <Button variant="outline" size="sm" className="flex-1 h-8 gap-1.5" asChild id={`view-policy-${policy.id}`}>
+                  <Link href={`/verifications/policies/${policy.id}`}>
+                    <Eye className="h-3.5 w-3.5" />
+                    View
+                  </Link>
                 </Button>
-                <Button variant="outline" size="sm" className="flex-1 h-8 gap-1.5" id={`edit-policy-${policy.id}`}>
-                  <Settings className="h-3.5 w-3.5" />
-                  Edit
+                <Button variant="outline" size="sm" className="flex-1 h-8 gap-1.5" asChild id={`edit-policy-${policy.id}`}>
+                  <Link href={`/verifications/policies/${policy.id}`}>
+                    <Settings className="h-3.5 w-3.5" />
+                    Edit
+                  </Link>
                 </Button>
               </div>
             </CardContent>

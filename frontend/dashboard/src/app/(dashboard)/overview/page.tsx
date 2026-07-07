@@ -58,10 +58,12 @@ export default function OverviewPage() {
         description="Monitor verification volume, review backlog, and operational health."
         actions={
           <>
-            <Button variant="outline" id="open-policy-builder">
-              Manage policies
+            <Button variant="outline" asChild id="open-policy-builder">
+              <Link href="/verifications/policies">Manage policies</Link>
             </Button>
-            <Button id="launch-verification-flow">New verification</Button>
+            <Button asChild id="launch-verification-flow">
+              <Link href="/verifications/create">New verification</Link>
+            </Button>
           </>
         }
       />

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
   CheckCircle2,
   XCircle,
@@ -56,9 +57,11 @@ export default function VerificationRequestsPage() {
         title="Verification requests"
         description="All verification requests across your organization."
         actions={
-          <Button id="create-verification-request">
-            <Plus className="h-4 w-4" />
-            New request
+          <Button asChild id="create-verification-request">
+            <Link href="/verifications/create">
+              <Plus className="h-4 w-4" />
+              New request
+            </Link>
           </Button>
         }
       />
@@ -125,8 +128,10 @@ export default function VerificationRequestsPage() {
                     <TableCell className="hidden text-muted-foreground lg:table-cell">{r.created}</TableCell>
                     <TableCell className="hidden text-muted-foreground xl:table-cell">{r.expires}</TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" id={`view-request-${r.id}`}>
-                        <ExternalLink className="h-3.5 w-3.5" />
+                      <Button variant="ghost" size="icon" className="h-8 w-8" asChild id={`view-request-${r.id}`}>
+                        <Link href={`/verifications/requests/${r.id}`}>
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Link>
                       </Button>
                     </TableCell>
                   </TableRow>

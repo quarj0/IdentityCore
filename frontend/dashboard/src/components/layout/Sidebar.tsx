@@ -5,21 +5,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Building2,
-  ChevronDown,
-  ChevronRight,
-  ClipboardCheck,
-  FileText,
+  FolderKanban,
   KeyRound,
   LayoutDashboard,
   PanelLeft,
   PanelLeftClose,
-  Receipt,
   ScrollText,
-  Settings,
-  Settings2,
   ShieldCheck,
-  UserCog,
-  Users,
   Webhook,
 } from "lucide-react";
 import { BrandMark, cn, ThemeToggle } from "@identitycore/ui";
@@ -33,6 +25,8 @@ type NavItem = {
 
 const NAV: NavItem[] = [
   { label: "Overview", href: "/overview", icon: LayoutDashboard },
+  { label: "Onboarding", href: "/onboarding", icon: ScrollText },
+  { label: "Projects", href: "/projects", icon: FolderKanban },
   {
     label: "Verifications",
     icon: ShieldCheck,
@@ -56,12 +50,14 @@ const NAV: NavItem[] = [
     label: "Organization",
     icon: Building2,
     children: [
+      { label: "Profile", href: "/organization/profile" },
       { label: "Team", href: "/organization/team" },
       { label: "Audit Logs", href: "/organization/audit-logs" },
       { label: "Billing", href: "/organization/billing" },
       { label: "Settings", href: "/organization/settings" },
     ],
   },
+  { label: "Reports", href: "/reports", icon: ScrollText },
 ];
 
 export function Sidebar() {
