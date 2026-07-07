@@ -18,9 +18,7 @@ export function DocsLayout({ title, description, children }: DocsLayoutProps) {
           <MobileDocsNav />
 
           <div className="mt-10 lg:mt-0">
-            <p className="text-sm font-medium text-blue-600">
-              IdentityCore Developers
-            </p>
+          
             <div className="mb-8">
               <DocsSearch />
             </div>
