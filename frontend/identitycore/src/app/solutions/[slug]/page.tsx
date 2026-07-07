@@ -10,8 +10,8 @@ import {
   CardTitle,
 } from "@identitycore/ui";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
-import { MarketingCTA } from "@/components/marketing/cta-section"; 
-import { MarketingFooter } from "@/components/marketing/footer"; 
+import { MarketingCTA } from "@/components/marketing/cta-section";
+import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { getSolution, solutions } from "@/data/solutions";
 
 export function generateStaticParams() {
@@ -20,12 +20,13 @@ export function generateStaticParams() {
   }));
 }
 
-export default function SolutionDetailPage({
+export default async function SolutionDetailPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const solution = getSolution(params.slug);
+  const { slug } = await params;
+  const solution = getSolution(slug);
 
   if (!solution) {
     notFound();

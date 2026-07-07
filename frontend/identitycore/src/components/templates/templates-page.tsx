@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ArrowRight, Search } from "lucide-react";
 import { Badge, Button, Input, cn } from "@identitycore/ui";
+import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { TemplateCard } from "@/components/marketing/template-card";
 import { workflowTemplates } from "@/data/templates";
@@ -188,6 +189,8 @@ export function TemplatesPageContent() {
           </div>
         </section>
       </main>
+
+      <MarketingFooter />
     </div>
   );
 }

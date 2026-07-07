@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@identitycore/ui";
-import { MarketingFooter } from "@/components/marketing/footer";
+import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 
 const plans = [

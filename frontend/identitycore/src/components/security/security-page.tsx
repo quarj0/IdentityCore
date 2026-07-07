@@ -18,7 +18,7 @@ import {
   CardTitle,
 } from "@identitycore/ui";
 import { MarketingCTA } from "@/components/marketing/cta-section";
-import { MarketingFooter } from "@/components/marketing/footer";
+import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 
 const securityPillars = [
@@ -208,9 +208,7 @@ export function SecurityPageContent() {
         <section className="py-24">
           <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-2 lg:items-center">
             <div>
-              <p className="text-sm font-medium text-blue-600">
-                AI governance
-              </p>
+              <p className="text-sm font-medium text-blue-600">AI governance</p>
               <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
                 AI provides evidence. Policies make decisions.
               </h2>

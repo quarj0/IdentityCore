@@ -17,7 +17,7 @@ import {
 } from "@identitycore/ui";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { MarketingCTA } from "@/components/marketing/cta-section";
-import { MarketingFooter } from "@/components/marketing/footer";
+import { MarketingFooter } from "@/components/marketing/marketing-footer";
 
 const DOCS_URL = process.env.NEXT_PUBLIC_DOCS_URL ?? "http://localhost:3003";
 

@@ -3,7 +3,7 @@ import { ArrowRight, Code2 } from "lucide-react";
 import { Badge, Button } from "@identitycore/ui";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { MarketingCTA } from "@/components/marketing/cta-section";
-import { MarketingFooter } from "@/components/marketing/footer";
+import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { SolutionGrid } from "@/components/solutions/solution-grid";
 import { IndustryUseCase } from "@/components/solutions/industry-use-case";
 

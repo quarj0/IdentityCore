@@ -21,7 +21,7 @@ import {
 } from "@identitycore/ui";
 import type { ReactNode } from "react";
 import { MarketingCTA } from "@/components/marketing/cta-section";
-import { MarketingFooter } from "@/components/marketing/footer";
+import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { getTemplate, workflowTemplates } from "@/data/templates";
 
@@ -93,7 +93,12 @@ export default async function TemplateDetailPage({
                   </a>
                 </Button>
 
-                <Button asChild variant="outline" size="lg" className="rounded-xl">
+                <Button
+                  asChild
+                  variant="outline"
+                  size="lg"
+                  className="rounded-xl"
+                >
                   <Link href="/templates">Back to templates</Link>
                 </Button>
               </div>
@@ -191,8 +196,8 @@ export default async function TemplateDetailPage({
                 <CardHeader>
                   <CardTitle>Launch checklist</CardTitle>
                   <CardDescription>
-                    The operational work most teams finish before publishing this
-                    workflow.
+                    The operational work most teams finish before publishing
+                    this workflow.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-3 px-6 pb-6 sm:grid-cols-2">

@@ -9,6 +9,7 @@ import {
   Workflow,
 } from "lucide-react";
 import { Badge, Button } from "@identitycore/ui";
+import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { FlowPreview } from "@/components/how-it-works/flow-preview";
 import { ProviderRoutingList } from "@/components/how-it-works/provider-routing-list";
@@ -209,6 +210,8 @@ export function HowItWorksPageContent() {
           </div>
         </section>
       </main>
+
+      <MarketingFooter />
     </div>
   );
 }

@@ -18,6 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@identitycore/ui";
+import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { PlatformDiagram } from "@/components/marketing/platform-diagram";
 import { ArchitectureLayerList } from "@/components/platform/architecture-layer-list";
@@ -320,6 +321,8 @@ export function PlatformPageContent() {
           </div>
         </section>
       </main>
+
+      <MarketingFooter />
     </div>
   );
 }

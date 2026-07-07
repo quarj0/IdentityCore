@@ -1,10 +1,22 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@identitycore/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@identitycore/ui";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
-import { MarketingFooter } from "../marketing/footer";
-import { onboardingSteps, getOnboardingStepIndex, onboardingStepPaths } from "@/components/onboarding/onboarding-steps";
+import { MarketingFooter } from "../marketing/marketing-footer";
+import {
+  onboardingSteps,
+  getOnboardingStepIndex,
+  onboardingStepPaths,
+} from "@/components/onboarding/onboarding-steps";
 
 interface OnboardingPageShellProps {
   eyebrow: string;
@@ -86,7 +98,8 @@ export function OnboardingPageShell({
                   </Badge>
                   <CardTitle className="mt-2">Complete in one pass</CardTitle>
                   <CardDescription>
-                    Move step by step without returning to the overview after each page.
+                    Move step by step without returning to the overview after
+                    each page.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">

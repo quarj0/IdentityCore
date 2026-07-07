@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@identitycore/ui";
-import { MarketingFooter } from "@/components/marketing/footer";
+import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 
 interface AuthShellProps {

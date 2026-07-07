@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "@identitycore/ui";
 import { MarketingCTA } from "@/components/marketing/cta-section";
-import { MarketingFooter } from "@/components/marketing/footer";
+import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 
 const values = [

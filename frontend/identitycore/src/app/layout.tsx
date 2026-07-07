@@ -37,7 +37,10 @@ export default function RootLayout({
       className={`${manrope.variable} ${plexMono.variable} h-full`}
       suppressHydrationWarning
     >
-      <body className="min-h-full bg-background text-foreground antialiased">
+      <body
+        className="min-h-full bg-background text-foreground antialiased"
+        suppressHydrationWarning
+      >
         <ThemeProvider defaultTheme="light" storageKey="identitycore-web-theme">
           {children}
           <Toaster />

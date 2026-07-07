@@ -24,7 +24,7 @@ import {
   Textarea,
 } from "@identitycore/ui";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
-import { MarketingFooter } from "@/components/marketing/footer";
+import { MarketingFooter } from "@/components/marketing/marketing-footer";
 
 export default function ContactPage() {
   return (
