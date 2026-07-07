@@ -15,9 +15,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@identitycore/ui";
+import { FeatureCard } from "@/components/marketing/feature-card";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { MarketingCTA } from "@/components/marketing/cta-section";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
+import { Section } from "@/components/marketing/section";
+import { SectionHeader } from "@/components/marketing/section-header";
 
 const DOCS_URL = process.env.NEXT_PUBLIC_DOCS_URL ?? "http://localhost:3003";
 
@@ -53,28 +56,32 @@ export default function DevelopersPage() {
     <div className="min-h-screen bg-background text-foreground">
       <MarketingHeader activePath="/developers" />
 
-      <main>
+      <main id="main-content">
         <section className="relative overflow-hidden">
           <div className="absolute inset-x-0 top-0 -z-10 h-[600px] bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]" />
 
-          <div className="mx-auto grid max-w-7xl gap-16 px-6 py-24 lg:grid-cols-[0.95fr_1.05fr] lg:items-center lg:py-32">
+          <div className="mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[0.95fr_1.05fr] lg:items-center lg:gap-16 lg:py-32">
             <div>
               <Badge variant="secondary" className="rounded-full px-3 py-1">
                 Developers
               </Badge>
 
-              <h1 className="mt-6 max-w-5xl text-5xl font-semibold tracking-tight sm:text-6xl lg:text-7xl lg:leading-[0.98]">
+              <h1 className="mt-6 max-w-5xl text-4xl font-semibold tracking-tight sm:text-6xl lg:text-7xl lg:leading-[0.98]">
                 APIs for building identity workflows into your product.
               </h1>
 
-              <p className="mt-7 max-w-2xl text-lg leading-8 text-muted-foreground">
+              <p className="mt-7 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">
                 IdentityCore gives developers the APIs, webhooks, sandbox,
                 events, and documentation needed to build identity workflows
                 without rebuilding identity infrastructure.
               </p>
 
-              <div className="mt-10 flex flex-wrap gap-3">
-                <Button asChild size="lg" className="rounded-xl">
+              <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <Button
+                  asChild
+                  size="lg"
+                  className="w-full justify-between rounded-xl sm:w-auto sm:justify-center"
+                >
                   <a href={DOCS_URL}>
                     Open documentation
                     <ArrowRight className="h-4 w-4" />
@@ -85,7 +92,7 @@ export default function DevelopersPage() {
                   asChild
                   variant="outline"
                   size="lg"
-                  className="rounded-xl"
+                  className="w-full justify-between rounded-xl sm:w-auto sm:justify-center"
                 >
                   <Link href="/platform">
                     <BookOpen className="h-4 w-4" />
@@ -95,7 +102,7 @@ export default function DevelopersPage() {
               </div>
             </div>
 
-            <Card className="rounded-[2rem] border-slate-200/80 bg-slate-950 text-white shadow-[0_24px_80px_rgba(15,23,42,0.16)]">
+            <Card className="overflow-hidden rounded-[2rem] border-slate-200/80 bg-slate-950 text-white shadow-[0_24px_80px_rgba(15,23,42,0.16)]">
               <CardHeader className="border-b border-white/10">
                 <CardTitle className="text-base">
                   Create workflow session
@@ -105,7 +112,7 @@ export default function DevelopersPage() {
                 </CardDescription>
               </CardHeader>
 
-              <pre className="overflow-x-auto p-6 text-sm leading-7 text-slate-200">
+              <pre className="overflow-x-auto whitespace-pre-wrap break-words p-5 text-xs leading-7 text-slate-200 sm:p-6 sm:text-sm sm:whitespace-pre">
                 {`POST /api/v1/workflow-sessions
 
 {
@@ -124,41 +131,18 @@ export default function DevelopersPage() {
           </div>
         </section>
 
-        <section className="py-24">
-          <div className="mx-auto max-w-7xl px-6">
-            <div className="max-w-3xl">
-              <p className="text-sm font-medium text-blue-600">
-                Developer platform
-              </p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                Everything needed to integrate identity infrastructure.
-              </h2>
-            </div>
+        <Section>
+          <SectionHeader
+            eyebrow="Developer platform"
+            title="Everything needed to integrate identity infrastructure."
+          />
 
-            <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              {developerFeatures.map((feature) => {
-                const Icon = feature.icon;
-
-                return (
-                  <Card
-                    key={feature.title}
-                    className="rounded-3xl border-slate-200 bg-white p-2 shadow-sm"
-                  >
-                    <CardHeader>
-                      <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 ring-1 ring-blue-100">
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <CardTitle>{feature.title}</CardTitle>
-                      <CardDescription className="leading-7">
-                        {feature.description}
-                      </CardDescription>
-                    </CardHeader>
-                  </Card>
-                );
-              })}
-            </div>
+          <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {developerFeatures.map((feature) => (
+              <FeatureCard key={feature.title} {...feature} />
+            ))}
           </div>
-        </section>
+        </Section>
 
         <section className="bg-slate-950 py-24 text-white">
           <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-2 lg:items-center">

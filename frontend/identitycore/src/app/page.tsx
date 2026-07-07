@@ -24,8 +24,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@identitycore/ui";
+import { FeatureCard } from "@/components/marketing/feature-card";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
+import { Section } from "@/components/marketing/section";
+import { SectionHeader } from "@/components/marketing/section-header";
 
 const DOCS_URL = process.env.NEXT_PUBLIC_DOCS_URL ?? "http://localhost:3003";
 
@@ -127,7 +130,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-background text-foreground">
       <MarketingHeader />
 
-      <main>
+      <main id="main-content">
         <section className="relative overflow-hidden">
           <div className="absolute inset-x-0 top-0 -z-10 h-[760px] bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_34%),radial-gradient(circle_at_top_right,rgba(79,70,229,0.12),transparent_30%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]" />
 
@@ -186,50 +189,26 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="py-24">
-          <div className="mx-auto max-w-7xl px-6">
-            <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
-              <div>
-                <p className="text-sm font-medium text-blue-600">
-                  Infrastructure layer
-                </p>
-                <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                  Everything needed to build trusted identity systems.
-                </h2>
-              </div>
+        <Section>
+          <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+            <SectionHeader
+              eyebrow="Infrastructure layer"
+              title="Everything needed to build trusted identity systems."
+            />
 
-              <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
-                IdentityCore gives organizations the core infrastructure for
-                identity workflows: providers, policies, verification services,
-                data controls, auditability, and developer integration.
-              </p>
-            </div>
-
-            <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {infrastructureLayers.map((item) => {
-                const Icon = item.icon;
-
-                return (
-                  <Card
-                    key={item.title}
-                    className="group rounded-3xl border-slate-200 bg-white p-2 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl"
-                  >
-                    <CardHeader className="p-6">
-                      <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 ring-1 ring-slate-200 group-hover:bg-blue-50 group-hover:text-blue-700">
-                        <Icon className="h-5 w-5" strokeWidth={1.75} />
-                      </div>
-
-                      <CardTitle>{item.title}</CardTitle>
-                      <CardDescription className="pt-2 leading-7">
-                        {item.description}
-                      </CardDescription>
-                    </CardHeader>
-                  </Card>
-                );
-              })}
-            </div>
+            <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
+              IdentityCore gives organizations the core infrastructure for
+              identity workflows: providers, policies, verification services,
+              data controls, auditability, and developer integration.
+            </p>
           </div>
-        </section>
+
+          <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {infrastructureLayers.map((item) => (
+              <FeatureCard key={item.title} {...item} />
+            ))}
+          </div>
+        </Section>
 
         <section className="bg-slate-950 py-24 text-white">
           <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
@@ -298,21 +277,13 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="py-24">
-          <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-            <div>
-              <p className="text-sm font-medium text-blue-600">
-                Workflow operating system
-              </p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                Build identity workflows without rebuilding identity logic.
-              </h2>
-              <p className="mt-5 text-lg leading-8 text-muted-foreground">
-                Create workflows for onboarding, verification, access,
-                credential checks, and trust operations. Start with templates or
-                build your own from reusable identity services.
-              </p>
-            </div>
+        <Section>
+          <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+            <SectionHeader
+              eyebrow="Workflow operating system"
+              title="Build identity workflows without rebuilding identity logic."
+              description="Create workflows for onboarding, verification, access, credential checks, and trust operations. Start with templates or build your own from reusable identity services."
+            />
 
             <Card className="rounded-[2rem] border-slate-200 bg-white p-2 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
               <CardContent className="p-6">
@@ -331,55 +302,37 @@ export default function LandingPage() {
               </CardContent>
             </Card>
           </div>
-        </section>
+        </Section>
 
-        <section className="bg-slate-50 py-24">
-          <div className="mx-auto max-w-7xl px-6">
-            <div className="max-w-3xl">
-              <p className="text-sm font-medium text-blue-600">
-                Identity services
-              </p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                Verification is one service. The platform is the foundation.
-              </h2>
-              <p className="mt-5 text-lg leading-8 text-muted-foreground">
-                IdentityCore starts with verification and expands into the
-                reusable trust services organizations need to run modern digital
-                identity operations.
-              </p>
-            </div>
+        <Section variant="muted">
+          <SectionHeader
+            eyebrow="Identity services"
+            title="Verification is one service. The platform is the foundation."
+            description="IdentityCore starts with verification and expands into the reusable trust services organizations need to run modern digital identity operations."
+          />
 
-            <div className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {identityServices.map((service) => (
-                <div
-                  key={service}
-                  className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-                >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
-                    <Layers3 className="h-4 w-4" />
-                  </div>
-                  <span className="text-sm font-medium">{service}</span>
+          <div className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {identityServices.map((service) => (
+              <div
+                key={service}
+                className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+                  <Layers3 className="h-4 w-4" />
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="py-24">
-          <div className="mx-auto grid max-w-7xl gap-6 px-6 lg:grid-cols-4">
-            {deploymentOptions.map((option) => (
-              <Card key={option.title} className="rounded-3xl p-2 shadow-sm">
-                <CardHeader>
-                  <Cloud className="mb-4 h-6 w-6 text-blue-600" />
-                  <CardTitle>{option.title}</CardTitle>
-                  <CardDescription className="leading-7">
-                    {option.description}
-                  </CardDescription>
-                </CardHeader>
-              </Card>
+                <span className="text-sm font-medium">{service}</span>
+              </div>
             ))}
           </div>
-        </section>
+        </Section>
+
+        <Section>
+          <div className="grid gap-6 lg:grid-cols-4">
+            {deploymentOptions.map((option) => (
+              <FeatureCard key={option.title} {...option} icon={Cloud} />
+            ))}
+          </div>
+        </Section>
 
         <section className="bg-slate-950 py-24 text-white">
           <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-2 lg:items-center">

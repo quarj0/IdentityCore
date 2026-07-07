@@ -9,6 +9,8 @@ import {
   Workflow,
 } from "lucide-react";
 import { Badge, Button } from "@identitycore/ui";
+import { Section } from "@/components/marketing/section";
+import { SectionHeader } from "@/components/marketing/section-header";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { FlowPreview } from "@/components/how-it-works/flow-preview";
@@ -57,7 +59,7 @@ export function HowItWorksPageContent() {
     <div className="min-h-screen bg-background text-foreground">
       <MarketingHeader activePath="/how-it-works" />
 
-      <main>
+      <main id="main-content">
         <section className="relative overflow-hidden">
           <div className="absolute inset-x-0 top-0 -z-10 h-[640px] bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]" />
 
@@ -103,112 +105,73 @@ export function HowItWorksPageContent() {
           </div>
         </section>
 
-        <section className="py-24">
-          <div className="mx-auto max-w-7xl px-6">
-            <div className="max-w-3xl">
-              <p className="text-sm font-medium text-blue-600">
-                Workflow lifecycle
-              </p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                One flow. Multiple services. Complete control.
-              </h2>
-              <p className="mt-5 text-lg leading-8 text-muted-foreground">
-                Every workflow follows the same foundation: define what should
-                happen, route work to the right providers, apply policies, and
-                return an auditable result.
-              </p>
-            </div>
+        <Section>
+          <SectionHeader
+            eyebrow="Workflow lifecycle"
+            title="One flow. Multiple services. Complete control."
+            description="Every workflow follows the same foundation: define what should happen, route work to the right providers, apply policies, and return an auditable result."
+          />
 
-            <div className="mt-12 grid gap-6 lg:grid-cols-5">
-              {steps.map((step, index) => (
-                <WorkflowStepCard key={step.title} index={index} {...step} />
-              ))}
-            </div>
+          <div className="mt-12 grid gap-6 lg:grid-cols-5">
+            {steps.map((step, index) => (
+              <WorkflowStepCard key={step.title} index={index} {...step} />
+            ))}
           </div>
-        </section>
+        </Section>
 
-        <section className="bg-slate-950 py-24 text-white">
-          <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-2 lg:items-center">
-            <div>
-              <p className="text-sm font-medium text-blue-300">
-                Provider orchestration
-              </p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                Bring your own systems without rebuilding the workflow.
-              </h2>
-              <p className="mt-5 text-lg leading-8 text-slate-300">
-                Swap OCR, face matching, liveness, risk, or government identity
-                providers without changing the customer-facing experience or
-                business workflow.
-              </p>
-            </div>
+        <Section variant="dark">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+            <SectionHeader
+              eyebrow="Provider orchestration"
+              title="Bring your own systems without rebuilding the workflow."
+              description="Swap OCR, face matching, liveness, risk, or government identity providers without changing the customer-facing experience or business workflow."
+              variant="dark"
+            />
 
             <ProviderRoutingList />
           </div>
-        </section>
+        </Section>
 
-        <section className="bg-slate-50 py-24">
-          <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
-            <div>
-              <p className="text-sm font-medium text-blue-600">
-                Built for different teams
-              </p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                Developers integrate. Operations configure. Reviewers decide.
-              </h2>
-              <p className="mt-5 text-lg leading-8 text-muted-foreground">
-                IdentityCore gives technical and non-technical teams one shared
-                platform for building and operating identity workflows.
-              </p>
-            </div>
+        <Section variant="muted">
+          <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+            <SectionHeader
+              eyebrow="Built for different teams"
+              title="Developers integrate. Operations configure. Reviewers decide."
+              description="IdentityCore gives technical and non-technical teams one shared platform for building and operating identity workflows."
+            />
 
             <TeamCardGrid />
           </div>
-        </section>
+        </Section>
 
-        <section className="py-24">
-          <div className="mx-auto max-w-7xl px-6">
-            <div className="max-w-3xl">
-              <p className="text-sm font-medium text-blue-600">
-                What you can build
-              </p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                Identity workflows for many products and industries.
-              </h2>
-            </div>
+        <Section>
+          <SectionHeader
+            eyebrow="What you can build"
+            title="Identity workflows for many products and industries."
+          />
 
-            <UseCaseGrid />
+          <UseCaseGrid />
+        </Section>
+
+        <Section className="border-t">
+          <SectionHeader
+            title="Start from a workflow, not a blank system."
+            description="Use templates, connect providers, configure policies, and publish identity workflows through APIs or hosted links."
+            centered
+          />
+
+          <div className="mt-10 flex justify-center gap-3">
+            <Button asChild size="lg" className="rounded-xl">
+              <Link href="/templates">
+                Browse templates
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="rounded-xl">
+              <Link href="/platform">Explore platform</Link>
+            </Button>
           </div>
-        </section>
-
-        <section className="border-t py-24">
-          <div className="mx-auto max-w-4xl px-6 text-center">
-            <h2 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-              Start from a workflow, not a blank system.
-            </h2>
-            <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
-              Use templates, connect providers, configure policies, and publish
-              identity workflows through APIs or hosted links.
-            </p>
-
-            <div className="mt-10 flex justify-center gap-3">
-              <Button asChild size="lg" className="rounded-xl">
-                <Link href="/templates">
-                  Browse templates
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                size="lg"
-                className="rounded-xl"
-              >
-                <Link href="/platform">Explore platform</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
+        </Section>
       </main>
 
       <MarketingFooter />

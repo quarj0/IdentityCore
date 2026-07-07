@@ -9,7 +9,7 @@ export default function NotFound() {
     <div className="min-h-screen bg-background text-foreground">
       <MarketingHeader />
 
-      <main className="relative overflow-hidden">
+      <main id="main-content" className="relative overflow-hidden">
         <div className="absolute inset-x-0 top-0 -z-10 h-[520px] bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.14),transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]" />
 
         <section className="mx-auto flex min-h-[70vh] max-w-4xl items-center px-4 py-20 sm:px-6">
@@ -36,7 +36,12 @@ export default function NotFound() {
                   </Link>
                 </Button>
 
-                <Button asChild variant="outline" size="lg" className="rounded-xl">
+                <Button
+                  asChild
+                  variant="outline"
+                  size="lg"
+                  className="rounded-xl"
+                >
                   <Link href="/platform">Explore platform</Link>
                 </Button>
               </div>

@@ -24,7 +24,7 @@ export function LegalPage({
     <div className="min-h-screen bg-background text-foreground">
       <MarketingHeader />
 
-      <main>
+      <main id="main-content">
         <section className="relative overflow-hidden">
           <div className="absolute inset-x-0 top-0 -z-10 h-[420px] bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.14),transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]" />
 

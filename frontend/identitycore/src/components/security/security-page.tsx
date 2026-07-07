@@ -18,8 +18,11 @@ import {
   CardTitle,
 } from "@identitycore/ui";
 import { MarketingCTA } from "@/components/marketing/cta-section";
+import { FeatureCard } from "@/components/marketing/feature-card";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
+import { Section } from "@/components/marketing/section";
+import { SectionHeader } from "@/components/marketing/section-header";
 
 const securityPillars = [
   {
@@ -71,7 +74,7 @@ export function SecurityPageContent() {
     <div className="min-h-screen bg-background text-foreground">
       <MarketingHeader activePath="/security" />
 
-      <main>
+      <main id="main-content">
         <section className="relative overflow-hidden">
           <div className="absolute inset-x-0 top-0 -z-10 h-[600px] bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]" />
 
@@ -137,41 +140,18 @@ export function SecurityPageContent() {
           </div>
         </section>
 
-        <section className="py-24">
-          <div className="mx-auto max-w-7xl px-6">
-            <div className="max-w-3xl">
-              <p className="text-sm font-medium text-blue-600">
-                Security model
-              </p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                Built around the realities of identity data.
-              </h2>
-            </div>
+        <Section>
+          <SectionHeader
+            eyebrow="Security model"
+            title="Built around the realities of identity data."
+          />
 
-            <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              {securityPillars.map((pillar) => {
-                const Icon = pillar.icon;
-
-                return (
-                  <Card
-                    key={pillar.title}
-                    className="rounded-3xl border-slate-200 bg-white p-2 shadow-sm"
-                  >
-                    <CardHeader>
-                      <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 ring-1 ring-blue-100">
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <CardTitle>{pillar.title}</CardTitle>
-                      <CardDescription className="leading-7">
-                        {pillar.description}
-                      </CardDescription>
-                    </CardHeader>
-                  </Card>
-                );
-              })}
-            </div>
+          <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {securityPillars.map((pillar) => (
+              <FeatureCard key={pillar.title} {...pillar} />
+            ))}
           </div>
-        </section>
+        </Section>
 
         <section className="bg-slate-950 py-24 text-white">
           <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-2 lg:items-center">

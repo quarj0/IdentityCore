@@ -18,11 +18,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@identitycore/ui";
+import { FeatureCard } from "@/components/marketing/feature-card";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { PlatformDiagram } from "@/components/marketing/platform-diagram";
+import { Section } from "@/components/marketing/section";
+import { SectionHeader } from "@/components/marketing/section-header";
 import { ArchitectureLayerList } from "@/components/platform/architecture-layer-list";
-import { PlatformComponentCard } from "@/components/platform/platform-component-card";
 import { ProviderGrid } from "@/components/platform/provider-grid";
 import { ServiceGrid } from "@/components/platform/service-grid";
 
@@ -104,7 +106,7 @@ export function PlatformPageContent() {
     <div className="min-h-screen bg-background text-foreground">
       <MarketingHeader activePath="/platform" />
 
-      <main>
+      <main id="main-content">
         <section className="relative overflow-hidden">
           <div className="absolute inset-x-0 top-0 -z-10 h-[620px] bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]" />
 
@@ -150,30 +152,19 @@ export function PlatformPageContent() {
           </div>
         </section>
 
-        <section className="py-24">
-          <div className="mx-auto max-w-7xl px-6">
-            <div className="max-w-3xl">
-              <p className="text-sm font-medium text-blue-600">
-                Core components
-              </p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                IdentityCore is built as a platform, not a single verification
-                product.
-              </h2>
-              <p className="mt-5 text-lg leading-8 text-muted-foreground">
-                Verification is only one capability. The platform provides the
-                infrastructure needed to orchestrate trust across many identity
-                workflows.
-              </p>
-            </div>
+        <Section>
+          <SectionHeader
+            eyebrow="Core components"
+            title="IdentityCore is built as a platform, not a single verification product."
+            description="Verification is only one capability. The platform provides the infrastructure needed to orchestrate trust across many identity workflows."
+          />
 
-            <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {components.map((item) => (
-                <PlatformComponentCard key={item.title} {...item} />
-              ))}
-            </div>
+          <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {components.map((item) => (
+              <FeatureCard key={item.title} {...item} />
+            ))}
           </div>
-        </section>
+        </Section>
 
         <section className="bg-slate-950 py-24 text-white">
           <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
@@ -195,71 +186,47 @@ export function PlatformPageContent() {
           </div>
         </section>
 
-        <section className="py-24">
-          <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-            <div>
-              <p className="text-sm font-medium text-blue-600">Architecture</p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                A layered identity platform for modern organizations.
-              </h2>
-              <p className="mt-5 text-lg leading-8 text-muted-foreground">
-                Each layer has a clear responsibility, making the platform
-                easier to extend, secure, integrate, and deploy.
-              </p>
-            </div>
+        <Section>
+          <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+            <SectionHeader
+              eyebrow="Architecture"
+              title="A layered identity platform for modern organizations."
+              description="Each layer has a clear responsibility, making the platform easier to extend, secure, integrate, and deploy."
+            />
 
             <ArchitectureLayerList />
           </div>
-        </section>
+        </Section>
 
-        <section className="bg-slate-50 py-24">
-          <div className="mx-auto max-w-7xl px-6">
-            <div className="max-w-3xl">
-              <p className="text-sm font-medium text-blue-600">
-                Identity services
-              </p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                Reusable trust services for many identity workflows.
-              </h2>
-            </div>
+        <Section variant="muted">
+          <SectionHeader
+            eyebrow="Identity services"
+            title="Reusable trust services for many identity workflows."
+          />
 
-            <ServiceGrid />
+          <ServiceGrid />
+        </Section>
+
+        <Section>
+          <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+            <SectionHeader
+              eyebrow="Deployment"
+              title="Deploy identity infrastructure where your organization needs it."
+            />
+
+            <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
+              IdentityCore is designed to support hosted SaaS first, while
+              keeping the architecture ready for private, hybrid, and
+              on-premise deployments.
+            </p>
           </div>
-        </section>
 
-        <section className="py-24">
-          <div className="mx-auto max-w-7xl px-6">
-            <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
-              <div>
-                <p className="text-sm font-medium text-blue-600">Deployment</p>
-                <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                  Deploy identity infrastructure where your organization needs
-                  it.
-                </h2>
-              </div>
-
-              <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
-                IdentityCore is designed to support hosted SaaS first, while
-                keeping the architecture ready for private, hybrid, and
-                on-premise deployments.
-              </p>
-            </div>
-
-            <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              {deployments.map((item) => (
-                <Card key={item.title} className="rounded-3xl p-2 shadow-sm">
-                  <CardHeader>
-                    <Cloud className="mb-4 h-6 w-6 text-blue-600" />
-                    <CardTitle>{item.title}</CardTitle>
-                    <CardDescription className="leading-7">
-                      {item.description}
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-              ))}
-            </div>
+          <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {deployments.map((item) => (
+              <FeatureCard key={item.title} {...item} icon={Cloud} />
+            ))}
           </div>
-        </section>
+        </Section>
 
         <section className="bg-slate-950 py-24 text-white">
           <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-2 lg:items-center">

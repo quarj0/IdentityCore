@@ -3,14 +3,13 @@ import { ArrowRight, Globe2, Landmark, Shield, Workflow } from "lucide-react";
 import {
   Badge,
   Button,
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@identitycore/ui";
 import { MarketingCTA } from "@/components/marketing/cta-section";
+import { FeatureCard } from "@/components/marketing/feature-card";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
+import { Section } from "@/components/marketing/section";
+import { SectionHeader } from "@/components/marketing/section-header";
 
 const values = [
   {
@@ -44,7 +43,7 @@ export default function CompanyPage() {
     <div className="min-h-screen bg-background text-foreground">
       <MarketingHeader activePath="/company" />
 
-      <main>
+      <main id="main-content">
         <section className="relative overflow-hidden">
           <div className="absolute inset-x-0 top-0 -z-10 h-[560px] bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]" />
 
@@ -74,41 +73,21 @@ export default function CompanyPage() {
           </div>
         </section>
 
-        <section className="py-24">
-          <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
-            <div>
-              <p className="text-sm font-medium text-blue-600">Mission</p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                Give organizations the identity layer they can control.
-              </h2>
-              <p className="mt-5 text-lg leading-8 text-muted-foreground">
-                IdentityCore starts with verification, but the long-term vision
-                is broader: workflows, credentials, access, risk, provider
-                orchestration, and trust services across Africa and beyond.
-              </p>
-            </div>
+        <Section>
+          <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+            <SectionHeader
+              eyebrow="Mission"
+              title="Give organizations the identity layer they can control."
+              description="IdentityCore starts with verification, but the long-term vision is broader: workflows, credentials, access, risk, provider orchestration, and trust services across Africa and beyond."
+            />
 
             <div className="grid gap-6 sm:grid-cols-2">
-              {values.map((value) => {
-                const Icon = value.icon;
-
-                return (
-                  <Card key={value.title} className="rounded-3xl p-2 shadow-sm">
-                    <CardHeader>
-                      <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 ring-1 ring-blue-100">
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <CardTitle>{value.title}</CardTitle>
-                      <CardDescription className="leading-7">
-                        {value.description}
-                      </CardDescription>
-                    </CardHeader>
-                  </Card>
-                );
-              })}
+              {values.map((value) => (
+                <FeatureCard key={value.title} {...value} />
+              ))}
             </div>
           </div>
-        </section>
+        </Section>
 
         <section className="bg-slate-950 py-24 text-white">
           <div className="mx-auto max-w-7xl px-6">

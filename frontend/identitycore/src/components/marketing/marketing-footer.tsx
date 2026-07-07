@@ -14,7 +14,7 @@ const footerGroups = [
     title: "Resources",
     links: [
       ["Security", "/security"],
-      ["Pricing", "/pricing"],
+      // ["Pricing", "/pricing"],
       ["Developers", "/developers"],
       ["Contact", "/contact"],
     ],

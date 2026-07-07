@@ -20,9 +20,13 @@ import {
   CardTitle,
 } from "@identitycore/ui";
 import type { ReactNode } from "react";
+import { RelatedTemplates } from "@/components/templates/related-templates";
 import { MarketingCTA } from "@/components/marketing/cta-section";
+import { FeatureCard } from "@/components/marketing/feature-card";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
+import { Section } from "@/components/marketing/section";
+import { SectionHeader } from "@/components/marketing/section-header";
 import { getTemplate, workflowTemplates } from "@/data/templates";
 
 const DASHBOARD_URL =
@@ -52,7 +56,7 @@ export default async function TemplateDetailPage({
     <div className="min-h-screen bg-background text-foreground">
       <MarketingHeader activePath="/templates" />
 
-      <main>
+      <main id="main-content">
         <section className="relative overflow-hidden">
           <div className="absolute inset-x-0 top-0 -z-10 h-[560px] bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]" />
 
@@ -133,8 +137,8 @@ export default async function TemplateDetailPage({
           </div>
         </section>
 
-        <section className="py-24">
-          <div className="mx-auto grid max-w-7xl gap-6 px-6 lg:grid-cols-3">
+        <Section>
+          <div className="grid gap-6 lg:grid-cols-3">
             <InfoCard
               icon={<Sparkles className="h-5 w-5" />}
               title="Template highlights"
@@ -156,11 +160,10 @@ export default async function TemplateDetailPage({
               items={template.policies}
             />
           </div>
-        </section>
+        </Section>
 
-        <section className="bg-slate-50 py-24">
-          <div className="mx-auto max-w-7xl px-6">
-            <div className="grid gap-6 lg:grid-cols-[0.78fr_1.22fr]">
+        <Section variant="muted">
+          <div className="grid gap-6 lg:grid-cols-[0.78fr_1.22fr]">
               <Card className="rounded-3xl border-slate-200 bg-white shadow-sm">
                 <CardHeader>
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
@@ -202,39 +205,30 @@ export default async function TemplateDetailPage({
                 </CardHeader>
                 <CardContent className="grid gap-3 px-6 pb-6 sm:grid-cols-2">
                   {template.launchChecklist.map((item, index) => (
-                    <div
-                      key={item}
-                      className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                    >
-                      <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
+                    <div key={item}>
+                      <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-blue-600">
                         Item {index + 1}
                       </p>
-                      <p className="mt-2 text-sm leading-7 text-slate-700">
-                        {item}
-                      </p>
+                      <FeatureCard
+                        title={item}
+                        description="Operational setup to complete before publishing this workflow."
+                        icon={Check}
+                      />
                     </div>
                   ))}
                 </CardContent>
               </Card>
-            </div>
           </div>
-        </section>
+        </Section>
 
-        <section className="bg-slate-950 py-24 text-white">
-          <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-2 lg:items-center">
-            <div>
-              <p className="text-sm font-medium text-blue-300">
-                Customizable workflow
-              </p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                Clone it, adjust it, and connect your own providers.
-              </h2>
-              <p className="mt-5 text-lg leading-8 text-slate-300">
-                This template is only a starting point. Your organization can
-                change document requirements, thresholds, review logic,
-                retention rules, provider routing, and webhook behavior.
-              </p>
-            </div>
+        <Section variant="dark">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+            <SectionHeader
+              eyebrow="Customizable workflow"
+              title="Clone it, adjust it, and connect your own providers."
+              description="This template is only a starting point. Your organization can change document requirements, thresholds, review logic, retention rules, provider routing, and webhook behavior."
+              variant="dark"
+            />
 
             <div className="grid gap-3">
               {template.whyItMatters.map((item) => (
@@ -250,7 +244,9 @@ export default async function TemplateDetailPage({
               ))}
             </div>
           </div>
-        </section>
+        </Section>
+
+        <RelatedTemplates currentSlug={template.slug} category={template.category} />
 
         <MarketingCTA
           title="Start from a template, then make it yours."

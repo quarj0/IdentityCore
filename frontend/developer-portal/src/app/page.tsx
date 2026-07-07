@@ -133,7 +133,8 @@ export default function DeveloperPortalPage() {
                 Production checklist
               </div>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Use secret keys on the server, keep policies versioned, and subscribe to verification status webhooks before launch.
+                Use secret keys on the server, keep policies versioned, and
+                subscribe to verification status webhooks before launch.
               </p>
             </div>
 
@@ -151,7 +152,7 @@ export default function DeveloperPortalPage() {
                           "flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors",
                           index === 0 && group.title === "Getting started"
                             ? "bg-primary font-medium text-primary-foreground"
-                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground",
                         )}
                       >
                         <span>{item}</span>
@@ -170,13 +171,16 @@ export default function DeveloperPortalPage() {
           </div>
         </aside>
 
-        <main className="px-6 py-8 lg:px-10 xl:px-14">
+        <main id="main-content" className="px-6 py-8 lg:px-10 xl:px-14">
           <div className="mx-auto max-w-4xl space-y-10">
             <section className="space-y-4">
               <div>
-                <h1 className="text-2xl font-semibold tracking-tight">Quickstart</h1>
+                <h1 className="text-2xl font-semibold tracking-tight">
+                  Quickstart
+                </h1>
                 <p className="mt-2 max-w-3xl text-muted-foreground leading-7">
-                  Create a verification session server-side, redirect the user to the hosted flow, and process results via webhooks.
+                  Create a verification session server-side, redirect the user
+                  to the hosted flow, and process results via webhooks.
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
@@ -199,7 +203,9 @@ export default function DeveloperPortalPage() {
                         <Icon className="h-4 w-4" />
                       </div>
                       <div className="space-y-2">
-                        <CardTitle className="text-base">{step.title}</CardTitle>
+                        <CardTitle className="text-base">
+                          {step.title}
+                        </CardTitle>
                         <CardDescription>{step.description}</CardDescription>
                       </div>
                     </CardHeader>
@@ -214,7 +220,8 @@ export default function DeveloperPortalPage() {
                   Integration flow
                 </h2>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  Start with one route on your backend and one redirect in your frontend.
+                  Start with one route on your backend and one redirect in your
+                  frontend.
                 </p>
               </div>
 
@@ -228,7 +235,9 @@ export default function DeveloperPortalPage() {
                   <Card>
                     <CardContent className="flex gap-3 p-6 text-sm text-muted-foreground">
                       <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                      Build the session server-side so your policy IDs, audit metadata, and internal identifiers stay under your control.
+                      Build the session server-side so your policy IDs, audit
+                      metadata, and internal identifiers stay under your
+                      control.
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -236,7 +245,8 @@ export default function DeveloperPortalPage() {
                   <Card>
                     <CardContent className="flex gap-3 p-6 text-sm text-muted-foreground">
                       <PlayCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                      Present the hosted verification URL and let the user complete capture in a branded, guided flow.
+                      Present the hosted verification URL and let the user
+                      complete capture in a branded, guided flow.
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -244,7 +254,9 @@ export default function DeveloperPortalPage() {
                   <Card>
                     <CardContent className="flex gap-3 p-6 text-sm text-muted-foreground">
                       <Webhook className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                      Subscribe to lifecycle updates so your product reacts to approval, manual review, and expiration events in near real time.
+                      Subscribe to lifecycle updates so your product reacts to
+                      approval, manual review, and expiration events in near
+                      real time.
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -258,7 +270,9 @@ export default function DeveloperPortalPage() {
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
               <div>
                 <div className="text-sm font-medium">Example request</div>
-                <div className="text-xs text-muted-foreground">Create a verification session</div>
+                <div className="text-xs text-muted-foreground">
+                  Create a verification session
+                </div>
               </div>
               <Button
                 variant="ghost"
@@ -283,10 +297,14 @@ export default function DeveloperPortalPage() {
                     "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
                     lang === entry
                       ? "bg-primary text-primary-foreground"
-                      : "bg-background text-muted-foreground hover:text-foreground"
+                      : "bg-background text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  {entry === "node" ? "Node.js" : entry === "python" ? "Python" : "cURL"}
+                  {entry === "node"
+                    ? "Node.js"
+                    : entry === "python"
+                      ? "Python"
+                      : "cURL"}
                 </button>
               ))}
             </div>

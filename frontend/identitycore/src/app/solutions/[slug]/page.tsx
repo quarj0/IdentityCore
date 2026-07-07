@@ -12,6 +12,8 @@ import {
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { MarketingCTA } from "@/components/marketing/cta-section";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
+import { Section } from "@/components/marketing/section";
+import { SectionHeader } from "@/components/marketing/section-header";
 import { getSolution, solutions } from "@/data/solutions";
 
 export function generateStaticParams() {
@@ -38,7 +40,7 @@ export default async function SolutionDetailPage({
     <div className="min-h-screen bg-background text-foreground">
       <MarketingHeader activePath="/solutions" />
 
-      <main>
+      <main id="main-content">
         <section className="relative overflow-hidden">
           <div className="absolute inset-x-0 top-0 -z-10 h-[560px] bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]" />
 
@@ -112,8 +114,8 @@ export default async function SolutionDetailPage({
           </div>
         </section>
 
-        <section className="py-24">
-          <div className="mx-auto grid max-w-7xl gap-6 px-6 lg:grid-cols-3">
+        <Section>
+          <div className="grid gap-6 lg:grid-cols-3">
             <InfoCard
               icon={<Workflow className="h-5 w-5" />}
               title="Workflow model"
@@ -135,22 +137,16 @@ export default async function SolutionDetailPage({
               ]}
             />
           </div>
-        </section>
+        </Section>
 
-        <section className="bg-slate-950 py-24 text-white">
-          <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-2 lg:items-center">
-            <div>
-              <p className="text-sm font-medium text-blue-300">
-                Built for flexibility
-              </p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                Your industry defines the rules. IdentityCore runs the workflow.
-              </h2>
-              <p className="mt-5 text-lg leading-8 text-slate-300">
-                Use IdentityCore services, bring your own providers, or combine
-                both through one policy-driven identity infrastructure layer.
-              </p>
-            </div>
+        <Section variant="dark">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+            <SectionHeader
+              eyebrow="Built for flexibility"
+              title="Your industry defines the rules. IdentityCore runs the workflow."
+              description="Use IdentityCore services, bring your own providers, or combine both through one policy-driven identity infrastructure layer."
+              variant="dark"
+            />
 
             <div className="grid gap-3">
               {[
@@ -171,7 +167,7 @@ export default async function SolutionDetailPage({
               ))}
             </div>
           </div>
-        </section>
+        </Section>
 
         <MarketingCTA
           title={`Build ${solution.title.toLowerCase()} identity workflows on IdentityCore.`}

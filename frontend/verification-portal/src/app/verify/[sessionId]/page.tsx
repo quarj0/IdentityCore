@@ -76,7 +76,9 @@ export default function VerificationSessionPage({
                 Verify your identity for Acme Corp.
               </h1>
               <p className="text-sm leading-6 text-muted-foreground">
-                This guided flow keeps the experience short while giving the reviewing team enough structured evidence to make a confident decision.
+                This guided flow keeps the experience short while giving the
+                reviewing team enough structured evidence to make a confident
+                decision.
               </p>
             </div>
 
@@ -90,7 +92,7 @@ export default function VerificationSessionPage({
                       ? "border-primary/40 bg-primary/5"
                       : index < currentStep
                         ? "border-emerald-500/30 bg-emerald-500/5"
-                        : "border-border bg-background"
+                        : "border-border bg-background",
                   )}
                 >
                   <div className="flex items-start gap-3">
@@ -101,7 +103,7 @@ export default function VerificationSessionPage({
                           ? "bg-emerald-500 text-white"
                           : index === currentStep
                             ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-muted-foreground"
+                            : "bg-muted text-muted-foreground",
                       )}
                     >
                       {index < currentStep ? (
@@ -111,8 +113,12 @@ export default function VerificationSessionPage({
                       )}
                     </div>
                     <div>
-                      <div className="font-medium text-foreground">{step.title}</div>
-                      <div className="text-sm text-muted-foreground">{step.description}</div>
+                      <div className="font-medium text-foreground">
+                        {step.title}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {step.description}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -120,18 +126,23 @@ export default function VerificationSessionPage({
             </div>
 
             <div className="rounded-lg bg-muted/60 p-4 text-sm leading-6 text-muted-foreground">
-              Your information is encrypted in transit and at rest. Only authorized reviewers at Acme Corp can access your submission.
+              Your information is encrypted in transit and at rest. Only
+              authorized reviewers at Acme Corp can access your submission.
             </div>
           </div>
         </section>
 
-        <main className="flex items-stretch">
+        <main id="main-content" className="flex items-stretch">
           <Card className="flex w-full flex-col overflow-hidden shadow-sm">
             <CardHeader className="space-y-4 border-b border-border">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-xl">{STEPS[currentStep].title}</CardTitle>
-                  <CardDescription>{STEPS[currentStep].description}</CardDescription>
+                  <CardTitle className="text-xl">
+                    {STEPS[currentStep].title}
+                  </CardTitle>
+                  <CardDescription>
+                    {STEPS[currentStep].description}
+                  </CardDescription>
                 </div>
                 <Badge variant="outline">
                   Step {currentStep + 1} of {STEPS.length}
@@ -151,7 +162,10 @@ export default function VerificationSessionPage({
                           Consent to identity processing
                         </div>
                         <p className="text-sm leading-6 text-muted-foreground">
-                          Acme Corp uses IdentityCore to collect document and facial verification evidence. Continue only if you agree to the secure processing of this information for trust and compliance purposes.
+                          Acme Corp uses IdentityCore to collect document and
+                          facial verification evidence. Continue only if you
+                          agree to the secure processing of this information for
+                          trust and compliance purposes.
                         </p>
                       </div>
                     </div>
@@ -163,7 +177,8 @@ export default function VerificationSessionPage({
                         Protected session
                       </div>
                       <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                        All evidence remains encrypted during capture and review.
+                        All evidence remains encrypted during capture and
+                        review.
                       </p>
                     </div>
                     <div className="rounded-lg border border-border p-4">
@@ -172,7 +187,8 @@ export default function VerificationSessionPage({
                         Guided flow
                       </div>
                       <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                        The process adapts as you move forward so you only see what is needed.
+                        The process adapts as you move forward so you only see
+                        what is needed.
                       </p>
                     </div>
                   </div>
@@ -182,26 +198,29 @@ export default function VerificationSessionPage({
               {currentStep === 1 ? (
                 <div className="space-y-6">
                   <div className="grid gap-3 sm:grid-cols-3">
-                    {["Passport", "National ID", "Driver's License"].map((type) => (
-                      <button
-                        key={type}
-                        onClick={() => setDocumentType(type)}
-                        className={cn(
-                          "rounded-lg border p-4 text-sm font-medium transition-colors",
-                          documentType === type
-                            ? "border-primary bg-primary/5 text-primary"
-                            : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
-                        )}
-                      >
-                        {type}
-                      </button>
-                    ))}
+                    {["Passport", "National ID", "Driver's License"].map(
+                      (type) => (
+                        <button
+                          key={type}
+                          onClick={() => setDocumentType(type)}
+                          className={cn(
+                            "rounded-lg border p-4 text-sm font-medium transition-colors",
+                            documentType === type
+                              ? "border-primary bg-primary/5 text-primary"
+                              : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground",
+                          )}
+                        >
+                          {type}
+                        </button>
+                      ),
+                    )}
                   </div>
 
                   <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/30 px-6 py-12 text-center transition-colors hover:bg-muted/50">
                     <Upload className="h-8 w-8 text-primary" />
                     <div className="mt-4 text-base font-semibold text-foreground">
-                      Upload the front of your {documentType || "identity document"}
+                      Upload the front of your{" "}
+                      {documentType || "identity document"}
                     </div>
                     <div className="mt-2 text-sm text-muted-foreground">
                       PNG, JPG, or PDF up to 10MB
@@ -209,7 +228,9 @@ export default function VerificationSessionPage({
                     <input
                       type="file"
                       className="hidden"
-                      onChange={(event) => setDocumentFile(event.target.files?.[0] || null)}
+                      onChange={(event) =>
+                        setDocumentFile(event.target.files?.[0] || null)
+                      }
                     />
                     {documentFile ? (
                       <div className="mt-4 text-sm font-medium text-emerald-600 dark:text-emerald-400">
@@ -230,7 +251,8 @@ export default function VerificationSessionPage({
                       Capture a clear selfie
                     </div>
                     <p className="text-sm leading-6 text-muted-foreground">
-                      Keep your face centered, avoid strong backlight, and remove anything that obscures the photo.
+                      Keep your face centered, avoid strong backlight, and
+                      remove anything that obscures the photo.
                     </p>
                   </div>
                   <label className="inline-flex cursor-pointer items-center gap-2">
@@ -245,7 +267,9 @@ export default function VerificationSessionPage({
                       accept="image/*"
                       capture="user"
                       className="hidden"
-                      onChange={(event) => setSelfieFile(event.target.files?.[0] || null)}
+                      onChange={(event) =>
+                        setSelfieFile(event.target.files?.[0] || null)
+                      }
                     />
                   </label>
                   {selfieFile ? (
@@ -265,12 +289,16 @@ export default function VerificationSessionPage({
                         Liveness check
                       </div>
                       <p className="text-sm leading-6 text-sidebar-muted-foreground">
-                        Position your face within the frame and follow the prompt to blink naturally.
+                        Position your face within the frame and follow the
+                        prompt to blink naturally.
                       </p>
                     </div>
                   </div>
                   {!livenessPassed ? (
-                    <Button className="w-full" onClick={() => setLivenessPassed(true)}>
+                    <Button
+                      className="w-full"
+                      onClick={() => setLivenessPassed(true)}
+                    >
                       Start liveness check
                     </Button>
                   ) : (
@@ -292,7 +320,8 @@ export default function VerificationSessionPage({
                       Verification submitted
                     </div>
                     <p className="max-w-md text-sm leading-6 text-muted-foreground">
-                      Acme Corp can now review your submission. You can safely close this tab.
+                      Acme Corp can now review your submission. You can safely
+                      close this tab.
                     </p>
                   </div>
                 </div>
@@ -302,7 +331,11 @@ export default function VerificationSessionPage({
             <CardFooter className="border-t border-border px-6 py-4">
               <div className="flex w-full items-center justify-between">
                 {currentStep > 0 && currentStep < 4 ? (
-                  <Button variant="outline" onClick={previousStep} disabled={loading}>
+                  <Button
+                    variant="outline"
+                    onClick={previousStep}
+                    disabled={loading}
+                  >
                     Back
                   </Button>
                 ) : (
