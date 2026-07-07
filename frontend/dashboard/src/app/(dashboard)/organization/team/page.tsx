@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Badge, Button, Card, CardContent, Avatar, AvatarFallback } from "@identitycore/ui";
+import { Badge, Button, Card, CardContent, Avatar, AvatarFallback, PageHeader } from "@identitycore/ui";
 import { Plus, UserPlus, Shield, MoreVertical } from "lucide-react";
 
 export const metadata: Metadata = { title: "Team Management" };
@@ -17,19 +17,17 @@ function initials(name: string) {
 
 export default function TeamPage() {
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">Team Management</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage your team members and control their roles and permissions.
-          </p>
-        </div>
-        <Button id="invite-member" className="gap-2 self-start sm:self-auto">
-          <UserPlus className="h-4 w-4" />
-          Invite Member
-        </Button>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Team"
+        description="Manage team members, roles, and permissions."
+        actions={
+          <Button id="invite-member">
+            <UserPlus className="h-4 w-4" />
+            Invite member
+          </Button>
+        }
+      />
 
       <Card>
         <CardContent className="p-0">

@@ -21,6 +21,7 @@ import {
   SelectValue,
   Avatar,
   AvatarFallback,
+  PageHeader,
 } from "@identitycore/ui";
 
 export const metadata: Metadata = { title: "Verification Subjects" };
@@ -48,13 +49,11 @@ function initials(name: string) {
 
 export default function SubjectsPage() {
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">Subjects</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Individuals who have been submitted for verification.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Subjects"
+        description="Individuals who have been submitted for verification."
+      />
 
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">

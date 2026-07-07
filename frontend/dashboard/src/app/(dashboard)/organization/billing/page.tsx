@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Badge, Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Progress } from "@identitycore/ui";
+import { Badge, Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, PageHeader, Progress } from "@identitycore/ui";
 import { CreditCard, Check, ArrowUpRight } from "lucide-react";
 
 export const metadata: Metadata = { title: "Billing & Plans" };
@@ -12,13 +12,11 @@ const invoices = [
 
 export default function BillingPage() {
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">Billing & Subscription</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Manage your organization's subscription plan, usage, and invoices.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Billing"
+        description="Manage your subscription plan, usage, and invoices."
+      />
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Active plan card */}

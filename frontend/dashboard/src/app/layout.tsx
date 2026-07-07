@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Manrope } from "next/font/google";
+import { ThemeProvider, Toaster } from "@identitycore/ui";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -37,7 +38,10 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full bg-background text-foreground antialiased">
-        {children}
+        <ThemeProvider defaultTheme="system" storageKey="identitycore-dashboard-theme">
+          {children}
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

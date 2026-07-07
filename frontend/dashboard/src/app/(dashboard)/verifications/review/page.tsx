@@ -10,6 +10,7 @@ import {
   Button,
   Avatar,
   AvatarFallback,
+  PageHeader,
 } from "@identitycore/ui";
 
 export const metadata: Metadata = { title: "Manual Review" };
@@ -65,15 +66,11 @@ function initials(name: string) {
 
 export default function ManualReviewPage() {
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">Manual Review</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {queue.length} cases requiring your attention.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Manual review"
+        description={`${queue.length} cases requiring your attention.`}
+      />
 
       <div className="space-y-3">
         {queue.map((item) => {

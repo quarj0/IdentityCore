@@ -5,7 +5,6 @@ import {
   ArrowRight,
   Camera,
   CheckCircle2,
-  Fingerprint,
   Lock,
   ScanFace,
   ShieldCheck,
@@ -14,6 +13,7 @@ import {
 } from "lucide-react";
 import {
   Badge,
+  BrandMark,
   Button,
   Card,
   CardContent,
@@ -22,6 +22,7 @@ import {
   CardHeader,
   CardTitle,
   Progress,
+  cn,
 } from "@identitycore/ui";
 
 const STEPS = [
@@ -60,59 +61,57 @@ export default function VerificationSessionPage({
   }
 
   return (
-    <div className="min-h-screen px-4 py-6 md:px-6 md:py-8">
+    <div className="min-h-screen bg-background px-4 py-6 md:px-6 md:py-8">
       <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-6xl gap-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-        <section className="rounded-[2rem] border border-border/70 bg-background/72 p-6 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.45)] backdrop-blur-xl">
+        <section className="rounded-lg border border-border bg-card p-6 shadow-sm">
           <div className="space-y-8">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-                <Fingerprint className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-sm font-semibold tracking-[0.18em]">IDENTITYCORE</div>
-                <div className="text-xs text-muted-foreground">Secure verification session</div>
-              </div>
-            </div>
+            <BrandMark subtitle="Secure verification session" size="lg" />
 
             <div className="space-y-4">
-              <Badge variant="info" className="px-4 py-1.5">
+              <Badge variant="info" className="px-3 py-1">
                 <ShieldCheck className="h-3.5 w-3.5" />
                 Session {resolvedParams.sessionId}
               </Badge>
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
                 Verify your identity for Acme Corp.
               </h1>
-              <p className="text-base leading-7 text-muted-foreground">
+              <p className="text-sm leading-6 text-muted-foreground">
                 This guided flow keeps the experience short while giving the reviewing team enough structured evidence to make a confident decision.
               </p>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               {STEPS.map((step, index) => (
                 <div
                   key={step.title}
-                  className={`rounded-2xl border p-4 transition-colors ${
+                  className={cn(
+                    "rounded-lg border p-4 transition-colors",
                     index === currentStep
-                      ? "border-primary/40 bg-primary/[0.06]"
+                      ? "border-primary/40 bg-primary/5"
                       : index < currentStep
-                        ? "border-emerald-500/30 bg-emerald-500/8"
-                        : "border-border/70 bg-background/65"
-                  }`}
+                        ? "border-emerald-500/30 bg-emerald-500/5"
+                        : "border-border bg-background"
+                  )}
                 >
                   <div className="flex items-start gap-3">
                     <div
-                      className={`mt-0.5 flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold ${
+                      className={cn(
+                        "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
                         index < currentStep
                           ? "bg-emerald-500 text-white"
                           : index === currentStep
                             ? "bg-primary text-primary-foreground"
-                            : "bg-secondary text-secondary-foreground"
-                      }`}
+                            : "bg-muted text-muted-foreground"
+                      )}
                     >
-                      {index < currentStep ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
+                      {index < currentStep ? (
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      ) : (
+                        index + 1
+                      )}
                     </div>
                     <div>
-                      <div className="font-semibold text-foreground">{step.title}</div>
+                      <div className="font-medium text-foreground">{step.title}</div>
                       <div className="text-sm text-muted-foreground">{step.description}</div>
                     </div>
                   </div>
@@ -120,35 +119,37 @@ export default function VerificationSessionPage({
               ))}
             </div>
 
-            <div className="rounded-2xl bg-secondary/65 p-4 text-sm leading-6 text-muted-foreground">
+            <div className="rounded-lg bg-muted/60 p-4 text-sm leading-6 text-muted-foreground">
               Your information is encrypted in transit and at rest. Only authorized reviewers at Acme Corp can access your submission.
             </div>
           </div>
         </section>
 
         <main className="flex items-stretch">
-          <Card className="flex w-full flex-col overflow-hidden">
-            <CardHeader className="space-y-4 border-b border-border/70 bg-linear-to-br from-primary/[0.06] via-background to-accent/[0.12]">
+          <Card className="flex w-full flex-col overflow-hidden shadow-sm">
+            <CardHeader className="space-y-4 border-b border-border">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-2xl">{STEPS[currentStep].title}</CardTitle>
+                  <CardTitle className="text-xl">{STEPS[currentStep].title}</CardTitle>
                   <CardDescription>{STEPS[currentStep].description}</CardDescription>
                 </div>
                 <Badge variant="outline">
                   Step {currentStep + 1} of {STEPS.length}
                 </Badge>
               </div>
-              <Progress value={progressPercentage} className="h-2" />
+              <Progress value={progressPercentage} className="h-1.5" />
             </CardHeader>
 
             <CardContent className="flex-1 p-6">
               {currentStep === 0 ? (
                 <div className="space-y-5">
-                  <div className="rounded-3xl border border-border/70 bg-secondary/55 p-5">
+                  <div className="rounded-lg border border-border bg-muted/40 p-5">
                     <div className="flex gap-3">
-                      <ShieldCheck className="mt-0.5 h-5 w-5 text-primary" />
+                      <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                       <div className="space-y-2">
-                        <div className="font-semibold text-foreground">Consent to identity processing</div>
+                        <div className="font-semibold text-foreground">
+                          Consent to identity processing
+                        </div>
                         <p className="text-sm leading-6 text-muted-foreground">
                           Acme Corp uses IdentityCore to collect document and facial verification evidence. Continue only if you agree to the secure processing of this information for trust and compliance purposes.
                         </p>
@@ -156,7 +157,7 @@ export default function VerificationSessionPage({
                     </div>
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">
-                    <div className="rounded-2xl border border-border/70 p-4">
+                    <div className="rounded-lg border border-border p-4">
                       <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                         <Lock className="h-4 w-4 text-primary" />
                         Protected session
@@ -165,7 +166,7 @@ export default function VerificationSessionPage({
                         All evidence remains encrypted during capture and review.
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-border/70 p-4">
+                    <div className="rounded-lg border border-border p-4">
                       <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                         <Sparkles className="h-4 w-4 text-primary" />
                         Guided flow
@@ -185,18 +186,19 @@ export default function VerificationSessionPage({
                       <button
                         key={type}
                         onClick={() => setDocumentType(type)}
-                        className={`rounded-2xl border p-4 text-sm font-medium transition-colors ${
+                        className={cn(
+                          "rounded-lg border p-4 text-sm font-medium transition-colors",
                           documentType === type
-                            ? "border-primary/50 bg-primary/[0.06] text-primary"
-                            : "border-border/70 bg-background/70 text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
-                        }`}
+                            ? "border-primary bg-primary/5 text-primary"
+                            : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+                        )}
                       >
                         {type}
                       </button>
                     ))}
                   </div>
 
-                  <label className="flex cursor-pointer flex-col items-center justify-center rounded-[1.75rem] border border-dashed border-border/80 bg-secondary/45 px-6 py-12 text-center">
+                  <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/30 px-6 py-12 text-center transition-colors hover:bg-muted/50">
                     <Upload className="h-8 w-8 text-primary" />
                     <div className="mt-4 text-base font-semibold text-foreground">
                       Upload the front of your {documentType || "identity document"}
@@ -210,7 +212,7 @@ export default function VerificationSessionPage({
                       onChange={(event) => setDocumentFile(event.target.files?.[0] || null)}
                     />
                     {documentFile ? (
-                      <div className="mt-4 text-sm font-medium text-emerald-600 dark:text-emerald-300">
+                      <div className="mt-4 text-sm font-medium text-emerald-600 dark:text-emerald-400">
                         Selected: {documentFile.name}
                       </div>
                     ) : null}
@@ -220,18 +222,24 @@ export default function VerificationSessionPage({
 
               {currentStep === 2 ? (
                 <div className="space-y-6 text-center">
-                  <div className="mx-auto flex h-40 w-40 items-center justify-center rounded-full border border-border/70 bg-secondary/55">
-                    <Camera className="h-10 w-10 text-primary" />
+                  <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border-2 border-dashed border-primary/30 bg-primary/5">
+                    <Camera className="h-8 w-8 text-primary" />
                   </div>
                   <div className="space-y-2">
-                    <div className="text-lg font-semibold text-foreground">Capture a clear selfie</div>
+                    <div className="text-base font-semibold text-foreground">
+                      Capture a clear selfie
+                    </div>
                     <p className="text-sm leading-6 text-muted-foreground">
                       Keep your face centered, avoid strong backlight, and remove anything that obscures the photo.
                     </p>
                   </div>
-                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground">
-                    <Camera className="h-4 w-4" />
-                    Capture photo
+                  <label className="inline-flex cursor-pointer items-center gap-2">
+                    <Button asChild>
+                      <span>
+                        <Camera className="h-4 w-4" />
+                        Capture photo
+                      </span>
+                    </Button>
                     <input
                       type="file"
                       accept="image/*"
@@ -241,7 +249,7 @@ export default function VerificationSessionPage({
                     />
                   </label>
                   {selfieFile ? (
-                    <div className="text-sm font-medium text-emerald-600 dark:text-emerald-300">
+                    <div className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
                       Selfie captured successfully
                     </div>
                   ) : null}
@@ -250,11 +258,13 @@ export default function VerificationSessionPage({
 
               {currentStep === 3 ? (
                 <div className="space-y-6">
-                  <div className="flex aspect-video items-center justify-center rounded-[1.75rem] border border-border/70 bg-slate-950 text-center text-slate-100">
+                  <div className="flex aspect-video items-center justify-center rounded-lg border border-border bg-sidebar text-center">
                     <div className="space-y-3 px-6">
-                      <ScanFace className="mx-auto h-8 w-8 text-cyan-300" />
-                      <div className="text-base font-semibold">Liveness check</div>
-                      <p className="text-sm leading-6 text-slate-300">
+                      <ScanFace className="mx-auto h-8 w-8 text-sidebar-primary" />
+                      <div className="text-base font-semibold text-sidebar-foreground">
+                        Liveness check
+                      </div>
+                      <p className="text-sm leading-6 text-sidebar-muted-foreground">
                         Position your face within the frame and follow the prompt to blink naturally.
                       </p>
                     </div>
@@ -264,8 +274,8 @@ export default function VerificationSessionPage({
                       Start liveness check
                     </Button>
                   ) : (
-                    <div className="flex items-center gap-3 rounded-2xl bg-emerald-500/10 p-4 text-sm text-emerald-700 dark:text-emerald-300">
-                      <CheckCircle2 className="h-4 w-4" />
+                    <div className="flex items-center gap-3 rounded-lg bg-emerald-500/10 p-4 text-sm text-emerald-700 dark:text-emerald-300">
+                      <CheckCircle2 className="h-4 w-4 shrink-0" />
                       Liveness check passed successfully
                     </div>
                   )}
@@ -273,12 +283,14 @@ export default function VerificationSessionPage({
               ) : null}
 
               {currentStep === 4 ? (
-                <div className="flex h-full flex-col items-center justify-center space-y-4 text-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/12 text-emerald-600 dark:text-emerald-300">
-                    <CheckCircle2 className="h-8 w-8" />
+                <div className="flex h-full flex-col items-center justify-center space-y-4 py-8 text-center">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle2 className="h-7 w-7" />
                   </div>
                   <div className="space-y-2">
-                    <div className="text-2xl font-semibold text-foreground">Verification submitted</div>
+                    <div className="text-xl font-semibold text-foreground">
+                      Verification submitted
+                    </div>
                     <p className="max-w-md text-sm leading-6 text-muted-foreground">
                       Acme Corp can now review your submission. You can safely close this tab.
                     </p>
@@ -287,7 +299,7 @@ export default function VerificationSessionPage({
               ) : null}
             </CardContent>
 
-            <CardFooter className="border-t border-border/70 px-6 py-5">
+            <CardFooter className="border-t border-border px-6 py-4">
               <div className="flex w-full items-center justify-between">
                 {currentStep > 0 && currentStep < 4 ? (
                   <Button variant="outline" onClick={previousStep} disabled={loading}>
@@ -308,7 +320,11 @@ export default function VerificationSessionPage({
                     }
                     onClick={nextStep}
                   >
-                    {loading ? "Processing..." : currentStep === 0 ? "Accept and continue" : "Continue"}
+                    {loading
+                      ? "Processing..."
+                      : currentStep === 0
+                        ? "Accept and continue"
+                        : "Continue"}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 ) : null}

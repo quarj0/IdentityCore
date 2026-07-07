@@ -6,16 +6,14 @@ import {
   BookOpen,
   Check,
   ChevronRight,
-  Code2,
   Copy,
-  Fingerprint,
   KeyRound,
   PlayCircle,
   ShieldCheck,
   Webhook,
 } from "lucide-react";
 import {
-  Badge,
+  BrandMark,
   Button,
   Card,
   CardContent,
@@ -26,6 +24,8 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
+  ThemeToggle,
+  cn,
 } from "@identitycore/ui";
 
 const codeSnippets = {
@@ -119,21 +119,15 @@ export default function DeveloperPortalPage() {
   }
 
   return (
-    <div className="min-h-screen">
-      <div className="mx-auto grid min-h-screen max-w-[1600px] lg:grid-cols-[280px_minmax(0,1fr)_520px]">
-        <aside className="border-r border-border/70 bg-background/72 px-5 py-6 backdrop-blur-xl">
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto grid min-h-screen max-w-[1600px] lg:grid-cols-[280px_minmax(0,1fr)_480px]">
+        <aside className="border-r border-border bg-card px-5 py-6">
           <div className="sticky top-6 space-y-8">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-                <Fingerprint className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-sm font-semibold tracking-[0.18em]">IDENTITYCORE</div>
-                <div className="text-xs text-muted-foreground">Developer portal</div>
-              </div>
+            <Link href="/">
+              <BrandMark subtitle="Developer portal" />
             </Link>
 
-            <div className="rounded-2xl border border-border/70 bg-card/70 p-4">
+            <div className="rounded-lg border border-border bg-muted/40 p-4">
               <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                 <ShieldCheck className="h-4 w-4 text-primary" />
                 Production checklist
@@ -146,64 +140,66 @@ export default function DeveloperPortalPage() {
             <nav className="space-y-6">
               {navGroups.map((group) => (
                 <div key={group.title}>
-                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     {group.title}
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     {group.items.map((item, index) => (
                       <button
                         key={item}
-                        className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-colors ${
+                        className={cn(
+                          "flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors",
                           index === 0 && group.title === "Getting started"
-                            ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
-                        }`}
+                            ? "bg-primary font-medium text-primary-foreground"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        )}
                       >
                         <span>{item}</span>
-                        <ChevronRight className="h-3.5 w-3.5" />
+                        <ChevronRight className="h-3.5 w-3.5 opacity-50" />
                       </button>
                     ))}
                   </div>
                 </div>
               ))}
             </nav>
+
+            <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+              <span className="text-xs text-muted-foreground">Theme</span>
+              <ThemeToggle />
+            </div>
           </div>
         </aside>
 
         <main className="px-6 py-8 lg:px-10 xl:px-14">
           <div className="mx-auto max-w-4xl space-y-10">
-            <section className="space-y-5">
-              <Badge variant="info" className="px-4 py-1.5">
-                <Code2 className="h-3.5 w-3.5" />
-                API quickstart
-              </Badge>
-              <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-                Launch a verification flow with clean server-side primitives.
-              </h1>
-              <p className="max-w-3xl text-lg leading-8 text-muted-foreground">
-                IdentityCore is built so your integration reads clearly: create a session, send the user to the hosted flow, listen for updates, and escalate to reviewers only when the policy says so.
-              </p>
+            <section className="space-y-4">
+              <div>
+                <h1 className="text-2xl font-semibold tracking-tight">Quickstart</h1>
+                <p className="mt-2 max-w-3xl text-muted-foreground leading-7">
+                  Create a verification session server-side, redirect the user to the hosted flow, and process results via webhooks.
+                </p>
+              </div>
               <div className="flex flex-wrap gap-3">
                 <Button asChild>
                   <a href="http://localhost:3000">Open dashboard</a>
                 </Button>
                 <Button asChild variant="outline">
-                  <Link href="/">Back to product site</Link>
+                  <a href="http://localhost:3001">Back to product site</a>
                 </Button>
               </div>
             </section>
 
-            <section className="grid gap-5 md:grid-cols-3">
+            <section className="grid gap-4 md:grid-cols-3">
               {quickstartSteps.map((step) => {
                 const Icon = step.icon;
                 return (
                   <Card key={step.title}>
                     <CardHeader className="space-y-4">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                        <Icon className="h-5 w-5" />
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <Icon className="h-4 w-4" />
                       </div>
                       <div className="space-y-2">
-                        <CardTitle className="text-lg">{step.title}</CardTitle>
+                        <CardTitle className="text-base">{step.title}</CardTitle>
                         <CardDescription>{step.description}</CardDescription>
                       </div>
                     </CardHeader>
@@ -212,12 +208,12 @@ export default function DeveloperPortalPage() {
               })}
             </section>
 
-            <section className="space-y-5">
+            <section className="space-y-4">
               <div className="space-y-2">
-                <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+                <h2 className="text-xl font-semibold tracking-tight text-foreground">
                   Integration flow
                 </h2>
-                <p className="text-base leading-7 text-muted-foreground">
+                <p className="text-sm leading-6 text-muted-foreground">
                   Start with one route on your backend and one redirect in your frontend.
                 </p>
               </div>
@@ -230,31 +226,25 @@ export default function DeveloperPortalPage() {
                 </TabsList>
                 <TabsContent value="session">
                   <Card>
-                    <CardContent className="space-y-3 p-6">
-                      <div className="flex gap-3 text-sm text-muted-foreground">
-                        <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                        Build the session server-side so your policy IDs, audit metadata, and internal identifiers stay under your control.
-                      </div>
+                    <CardContent className="flex gap-3 p-6 text-sm text-muted-foreground">
+                      <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      Build the session server-side so your policy IDs, audit metadata, and internal identifiers stay under your control.
                     </CardContent>
                   </Card>
                 </TabsContent>
                 <TabsContent value="redirect">
                   <Card>
-                    <CardContent className="space-y-3 p-6">
-                      <div className="flex gap-3 text-sm text-muted-foreground">
-                        <PlayCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                        Present the hosted verification URL and let the user complete capture in a branded, guided flow.
-                      </div>
+                    <CardContent className="flex gap-3 p-6 text-sm text-muted-foreground">
+                      <PlayCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      Present the hosted verification URL and let the user complete capture in a branded, guided flow.
                     </CardContent>
                   </Card>
                 </TabsContent>
                 <TabsContent value="webhooks">
                   <Card>
-                    <CardContent className="space-y-3 p-6">
-                      <div className="flex gap-3 text-sm text-muted-foreground">
-                        <Webhook className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                        Subscribe to lifecycle updates so your product reacts to approval, manual review, and expiration events in near real time.
-                      </div>
+                    <CardContent className="flex gap-3 p-6 text-sm text-muted-foreground">
+                      <Webhook className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      Subscribe to lifecycle updates so your product reacts to approval, manual review, and expiration events in near real time.
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -263,22 +253,24 @@ export default function DeveloperPortalPage() {
           </div>
         </main>
 
-        <section className="hidden border-l border-border/70 bg-slate-950 text-slate-100 lg:flex">
+        <section className="hidden border-l border-border bg-muted/30 lg:flex">
           <div className="sticky top-0 flex h-screen w-full flex-col">
-            <div className="flex items-center justify-between border-b border-white/8 px-6 py-5">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
               <div>
-                <div className="text-sm font-semibold">Request example</div>
-                <div className="text-xs text-slate-400">
-                  Copy a starter snippet and wire it into your backend route.
-                </div>
+                <div className="text-sm font-medium">Example request</div>
+                <div className="text-xs text-muted-foreground">Create a verification session</div>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-slate-300 hover:bg-white/10 hover:text-white"
+                className="h-8 w-8"
                 onClick={copyCode}
               >
-                {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                {copied ? (
+                  <Check className="h-4 w-4 text-emerald-400" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
               </Button>
             </div>
 
@@ -287,11 +279,12 @@ export default function DeveloperPortalPage() {
                 <button
                   key={entry}
                   onClick={() => setLang(entry)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
                     lang === entry
-                      ? "bg-cyan-400/20 text-cyan-200"
-                      : "bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-100"
-                  }`}
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background text-muted-foreground hover:text-foreground"
+                  )}
                 >
                   {entry === "node" ? "Node.js" : entry === "python" ? "Python" : "cURL"}
                 </button>
@@ -299,7 +292,7 @@ export default function DeveloperPortalPage() {
             </div>
 
             <div className="flex-1 overflow-auto px-6 pb-6">
-              <pre className="rounded-3xl border border-white/8 bg-black/30 p-6 font-mono text-[13px] leading-6 text-slate-300">
+              <pre className="rounded-md border border-border bg-background p-5 font-mono text-[13px] leading-6 text-foreground">
                 <code>{codeSnippets[lang]}</code>
               </pre>
             </div>

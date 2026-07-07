@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Card, CardContent, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@identitycore/ui";
+import { Card, CardContent, Input, PageHeader, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@identitycore/ui";
 import { Search } from "lucide-react";
 
 export const metadata: Metadata = { title: "Audit Logs" };
@@ -14,13 +14,11 @@ const auditLogs = [
 
 export default function AuditLogsPage() {
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">Audit Logs</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Track all operations and configuration changes made by your team.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Audit logs"
+        description="Track operations and configuration changes made by your team."
+      />
 
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">

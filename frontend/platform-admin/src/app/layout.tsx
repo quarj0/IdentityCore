@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Manrope } from "next/font/google";
+import { ThemeProvider, Toaster } from "@identitycore/ui";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -35,8 +36,11 @@ export default function RootLayout({
       className={`${manrope.variable} ${plexMono.variable} h-full`}
       suppressHydrationWarning
     >
-      <body className="min-h-full bg-background text-foreground antialiased flex flex-col justify-between">
-        {children}
+      <body className="min-h-full bg-background text-foreground antialiased">
+        <ThemeProvider defaultTheme="dark" storageKey="identitycore-admin-theme">
+          {children}
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

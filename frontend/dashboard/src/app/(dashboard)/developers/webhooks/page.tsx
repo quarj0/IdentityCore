@@ -4,6 +4,7 @@ import {
   Card,
   CardContent,
   Badge,
+  PageHeader,
   Button,
 } from "@identitycore/ui";
 
@@ -38,19 +39,17 @@ const webhooks = [
 
 export default function WebhooksPage() {
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">Webhooks</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Receive real-time event notifications for verification activity.
-          </p>
-        </div>
-        <Button id="create-webhook" className="gap-2 self-start sm:self-auto">
-          <Plus className="h-4 w-4" />
-          Add Endpoint
-        </Button>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Webhooks"
+        description="Receive real-time event notifications for verification activity."
+        actions={
+          <Button id="create-webhook">
+            <Plus className="h-4 w-4" />
+            Add endpoint
+          </Button>
+        }
+      />
 
       <div className="space-y-3">
         {webhooks.map((wh) => (

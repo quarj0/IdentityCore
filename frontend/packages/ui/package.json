@@ -7,7 +7,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./components/*": "./src/components/*.tsx",
-    "./lib/*": "./src/lib/*.ts"
+    "./lib/*": "./src/lib/*.ts",
+    "./styles/*": "./src/styles/*"
   },
   "peerDependencies": {
     "react": ">=18",

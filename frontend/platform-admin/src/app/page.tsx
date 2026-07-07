@@ -5,7 +5,6 @@ import {
   AlertTriangle,
   Building2,
   CheckCircle2,
-  Fingerprint,
   Layers3,
   ShieldAlert,
   Siren,
@@ -14,12 +13,14 @@ import {
 } from "lucide-react";
 import {
   Badge,
+  BrandMark,
   Button,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
+  ThemeToggle,
 } from "@identitycore/ui";
 
 const orgs = [
@@ -39,57 +40,50 @@ export default function PlatformAdminPage() {
   const [activeView, setActiveView] = useState("tenants");
 
   return (
-    <div className="min-h-screen px-6 py-8 lg:px-8">
-      <div className="mx-auto max-w-7xl space-y-8">
-        <header className="rounded-[2rem] border border-border/70 bg-background/76 p-5 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.45)] backdrop-blur-xl">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-                  <Fingerprint className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-sm font-semibold tracking-[0.18em]">PLATFORM ADMIN</div>
-                  <div className="text-xs text-muted-foreground">Internal operations console</div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <h1 className="text-4xl font-semibold tracking-tight text-foreground">
-                  Keep platform trust operations readable at a glance.
-                </h1>
-                <p className="max-w-3xl text-base leading-7 text-muted-foreground">
-                  This surface should feel closer to an operating room than a demo page: current risk, account health, and approval backlog all visible without hunting.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <Badge variant="destructive" className="px-4 py-1.5">
-                <ShieldAlert className="h-3.5 w-3.5" />
-                Internal use only
-              </Badge>
-              <Button variant="outline">Review incidents</Button>
-              <Button>Approve queue</Button>
-            </div>
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
+          <BrandMark subtitle="Platform admin" />
+          <div className="flex items-center gap-3">
+            <Badge variant="destructive" className="hidden sm:inline-flex">
+              <ShieldAlert className="h-3.5 w-3.5" />
+              Internal use only
+            </Badge>
+            <ThemeToggle />
           </div>
-        </header>
+        </div>
+      </header>
 
-        <section className="grid gap-5 md:grid-cols-3">
+      <div className="mx-auto max-w-7xl space-y-8 px-6 py-8 lg:px-8">
+        <section className="space-y-4">
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+            Platform trust operations
+          </h1>
+          <p className="max-w-3xl text-muted-foreground leading-7">
+            Current risk, account health, and approval backlog — all visible without hunting.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="outline">Review incidents</Button>
+            <Button>Approve queue</Button>
+          </div>
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-3">
           {statCards.map((card) => {
             const Icon = card.icon;
             return (
               <Card key={card.label}>
                 <CardHeader className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <CardDescription className="text-xs font-semibold uppercase tracking-[0.16em]">
+                    <CardDescription className="text-xs font-semibold uppercase tracking-wider">
                       {card.label}
                     </CardDescription>
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                      <Icon className="h-5 w-5" />
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <Icon className="h-4 w-4" />
                     </div>
                   </div>
                   <div>
-                    <CardTitle className="text-3xl">{card.value}</CardTitle>
+                    <CardTitle className="text-2xl">{card.value}</CardTitle>
                     <CardDescription className="mt-2">{card.description}</CardDescription>
                   </div>
                 </CardHeader>
@@ -103,7 +97,7 @@ export default function PlatformAdminPage() {
             <CardHeader>
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                  <CardTitle className="text-xl">Organization accounts</CardTitle>
+                  <CardTitle className="text-lg">Organization accounts</CardTitle>
                   <CardDescription>
                     Approvals, suspensions, and current customer health.
                   </CardDescription>
@@ -130,14 +124,14 @@ export default function PlatformAdminPage() {
               {orgs.map((org) => (
                 <div
                   key={org.id}
-                  className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-background/80 p-4 lg:flex-row lg:items-center"
+                  className="flex flex-col gap-4 rounded-lg border border-border p-4 transition-colors hover:bg-muted/30 lg:flex-row lg:items-center"
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                      <Building2 className="h-5 w-5" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <Building2 className="h-4 w-4" />
                     </div>
                     <div className="min-w-0">
-                      <div className="truncate text-base font-semibold text-foreground">
+                      <div className="truncate text-sm font-semibold text-foreground">
                         {org.name}
                       </div>
                       <div className="text-sm text-muted-foreground">
@@ -179,22 +173,20 @@ export default function PlatformAdminPage() {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Platform status</CardTitle>
-                <CardDescription>
-                  Current trust and service posture.
-                </CardDescription>
+                <CardTitle className="text-base">Platform status</CardTitle>
+                <CardDescription>Current trust and service posture.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex items-center gap-3 rounded-2xl bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-300">
-                  <CheckCircle2 className="h-4 w-4" />
+                <div className="flex items-center gap-3 rounded-lg bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-300">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
                   Review systems and webhooks operational
                 </div>
-                <div className="flex items-center gap-3 rounded-2xl bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
-                  <AlertTriangle className="h-4 w-4" />
+                <div className="flex items-center gap-3 rounded-lg bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
                   Elevated manual review volume in West Africa queue
                 </div>
-                <div className="flex items-center gap-3 rounded-2xl bg-rose-500/10 p-3 text-sm text-rose-700 dark:text-rose-300">
-                  <XCircle className="h-4 w-4" />
+                <div className="flex items-center gap-3 rounded-lg bg-rose-500/10 p-3 text-sm text-rose-700 dark:text-rose-300">
+                  <XCircle className="h-4 w-4 shrink-0" />
                   One tenant awaiting final suspension decision
                 </div>
               </CardContent>
@@ -202,24 +194,20 @@ export default function PlatformAdminPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Ops principles</CardTitle>
-                <CardDescription>
-                  What this console is optimizing for.
-                </CardDescription>
+                <CardTitle className="text-base">Ops principles</CardTitle>
+                <CardDescription>What this console is optimizing for.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 text-sm leading-6 text-muted-foreground">
-                <div className="flex gap-3">
-                  <Layers3 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  Put urgent account state in the first viewport.
-                </div>
-                <div className="flex gap-3">
-                  <Layers3 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  Keep approvals and escalations one action away.
-                </div>
-                <div className="flex gap-3">
-                  <Layers3 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  Make platform health legible without decorative noise.
-                </div>
+                {[
+                  "Put urgent account state in the first viewport.",
+                  "Keep approvals and escalations one action away.",
+                  "Make platform health legible without decorative noise.",
+                ].map((principle) => (
+                  <div key={principle} className="flex gap-3">
+                    <Layers3 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    {principle}
+                  </div>
+                ))}
               </CardContent>
             </Card>
           </div>

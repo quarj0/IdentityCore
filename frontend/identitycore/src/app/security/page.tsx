@@ -1,81 +1,64 @@
-import Link from "next/link";
-import { Award, Fingerprint, Lock, ShieldCheck, Workflow } from "lucide-react";
-import {
-  Badge,
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@identitycore/ui";
+import { Award, Lock, Workflow } from "lucide-react";
+import { Card, CardDescription, CardHeader, CardTitle } from "@identitycore/ui";
+import { MarketingHeader } from "@/components/marketing/marketing-header";
 
 const securityAreas = [
   {
-    title: "Protected data handling",
+    title: "Data protection",
     description:
-      "Uploaded documents, biometric media, and reviewer notes follow encrypted transport and storage boundaries throughout the flow.",
+      "Documents, biometric media, and reviewer notes are encrypted in transit and at rest with strict access boundaries.",
     icon: Lock,
   },
   {
-    title: "Operational control",
+    title: "Operational controls",
     description:
-      "Reviewer actions, approvals, and escalations remain attributable so compliance teams can understand exactly what happened and why.",
+      "Every reviewer action, approval, and escalation is logged with attribution for compliance and incident response.",
     icon: Workflow,
   },
   {
-    title: "Standards alignment",
+    title: "Governance alignment",
     description:
-      "The platform is shaped for serious governance expectations including vendor review, retention controls, and least-privilege access patterns.",
+      "Built to support vendor assessments, retention policies, and least-privilege access patterns required in regulated industries.",
     icon: Award,
   },
 ];
 
 export default function SecurityPage() {
   return (
-    <div className="min-h-screen px-6 py-8 lg:px-8">
-      <div className="mx-auto max-w-6xl space-y-12">
-        <header className="flex items-center justify-between rounded-3xl border border-border/70 bg-background/72 px-5 py-4 backdrop-blur-xl">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-              <Fingerprint className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="text-sm font-semibold tracking-[0.18em]">IDENTITYCORE</div>
-              <div className="text-xs text-muted-foreground">Security</div>
-            </div>
-          </Link>
-          <Badge variant="info">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Trust posture
-          </Badge>
-        </header>
+    <div className="min-h-screen bg-background">
+      <MarketingHeader activePath="/security" />
 
-        <section className="space-y-5">
-          <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-            Security needs to feel operational, not decorative.
+      <div className="mx-auto max-w-6xl px-6 py-20">
+        <div className="max-w-2xl">
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+            Security
           </h1>
-          <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
-            Verification products carry sensitive identity evidence. We design the system so storage, review, and decision-making all support that reality.
+          <p className="mt-4 text-lg text-muted-foreground leading-7">
+            Identity verification handles sensitive personal data. Our platform
+            is designed with security and compliance as foundational
+            requirements, not add-ons.
           </p>
-        </section>
+        </div>
 
-        <section className="grid gap-6 md:grid-cols-3">
+        <div className="mt-14 grid gap-6 md:grid-cols-3">
           {securityAreas.map((area) => {
             const Icon = area.icon;
             return (
-              <Card key={area.title}>
-                <CardHeader className="space-y-4">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div className="space-y-2">
-                    <CardTitle>{area.title}</CardTitle>
-                    <CardDescription>{area.description}</CardDescription>
-                  </div>
+              <Card key={area.title} className="shadow-none">
+                <CardHeader>
+                  <Icon
+                    className="mb-3 h-5 w-5 text-muted-foreground"
+                    strokeWidth={1.75}
+                  />
+                  <CardTitle className="text-base">{area.title}</CardTitle>
+                  <CardDescription className="leading-6">
+                    {area.description}
+                  </CardDescription>
                 </CardHeader>
               </Card>
             );
           })}
-        </section>
+        </div>
       </div>
     </div>
   );

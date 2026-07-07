@@ -7,6 +7,7 @@ import {
   CardTitle,
   CardDescription,
   Badge,
+  PageHeader,
   Button,
 } from "@identitycore/ui";
 
@@ -56,19 +57,17 @@ const policies = [
 
 export default function PoliciesPage() {
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">Verification Policies</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Configure what documents and checks are required for each verification flow.
-          </p>
-        </div>
-        <Button id="create-policy" className="gap-2 self-start sm:self-auto">
-          <Plus className="h-4 w-4" />
-          New Policy
-        </Button>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Verification policies"
+        description="Configure documents and checks required for each verification flow."
+        actions={
+          <Button id="create-policy">
+            <Plus className="h-4 w-4" />
+            New policy
+          </Button>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {policies.map((policy) => (

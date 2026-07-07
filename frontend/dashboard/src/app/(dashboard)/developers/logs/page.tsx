@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Badge, Button, Card, CardContent, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@identitycore/ui";
+import { Badge, Button, Card, CardContent, Input, PageHeader, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@identitycore/ui";
 import { Search, ArrowUpRight, ArrowDownRight, RefreshCw } from "lucide-react";
 
 export const metadata: Metadata = { title: "API Logs" };
@@ -15,19 +15,17 @@ const logs = [
 
 export default function LogsPage() {
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">API Logs</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Monitor API request logs and response codes in real time.
-          </p>
-        </div>
-        <Button variant="outline" className="gap-2 self-start sm:self-auto" id="refresh-logs">
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="API logs"
+        description="Monitor API request logs and response codes."
+        actions={
+          <Button variant="outline" id="refresh-logs">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+        }
+      />
 
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">

@@ -1,17 +1,15 @@
 import type { Metadata } from "next";
-import { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Input, Label, Separator } from "@identitycore/ui";
+import { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Input, Label, PageHeader, Separator } from "@identitycore/ui";
 
 export const metadata: Metadata = { title: "Organization Settings" };
 
 export default function SettingsPage() {
   return (
-    <div className="p-6 space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">Organization Settings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Configure your organization details, verification settings, and security policies.
-        </p>
-      </div>
+    <div className="space-y-6 max-w-4xl">
+      <PageHeader
+        title="Organization settings"
+        description="Configure your organization details, verification settings, and security policies."
+      />
 
       <div className="space-y-6">
         {/* Profile Details */}
