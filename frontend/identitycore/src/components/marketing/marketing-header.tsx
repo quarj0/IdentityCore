@@ -11,9 +11,11 @@ interface MarketingHeaderProps {
 }
 
 const NAV_LINKS = [
-  { href: "/pricing", label: "Pricing" },
+  { href: "/platform", label: "Platform" },
+  { href: "/how-it-works", label: "How it works" },
+  { href: "/templates", label: "Templates" },
   { href: "/security", label: "Security" },
-  { href: "/company", label: "Company" },
+  { href: "/pricing", label: "Pricing" },
 ];
 
 const DOCS_URL = process.env.NEXT_PUBLIC_DOCS_URL ?? "http://localhost:3003";
@@ -27,7 +29,7 @@ export function MarketingHeader({
   const closeMenu = () => setMenuOpen(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80">
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center px-4 sm:px-6">
         <Link
           href="/"

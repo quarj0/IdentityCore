@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
+import { useMemo, useState } from "react";
 import { ArrowRight, Search } from "lucide-react";
-import { Badge, Button } from "@identitycore/ui";
+import { Badge, Button, Input, cn } from "@identitycore/ui";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { TemplateCard } from "@/components/marketing/template-card";
 import { workflowTemplates } from "@/data/templates";
@@ -23,6 +26,29 @@ const productionSteps = [
 ];
 
 export function TemplatesPageContent() {
+  const [query, setQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState("All");
+
+  const filteredTemplates = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return workflowTemplates.filter((template) => {
+      const matchesFilter =
+        activeFilter === "All" || template.category === activeFilter;
+
+      const matchesQuery =
+        normalizedQuery.length === 0 ||
+        template.title.toLowerCase().includes(normalizedQuery) ||
+        template.description.toLowerCase().includes(normalizedQuery) ||
+        template.category.toLowerCase().includes(normalizedQuery) ||
+        template.tags.some((tag) =>
+          tag.toLowerCase().includes(normalizedQuery),
+        );
+
+      return matchesFilter && matchesQuery;
+    });
+  }, [activeFilter, query]);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <MarketingHeader activePath="/templates" />
@@ -69,21 +95,32 @@ export function TemplatesPageContent() {
 
         <section className="border-y bg-slate-50 py-8">
           <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm lg:w-96">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">
-                Search templates...
-              </span>
+            <div className="relative lg:w-96">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search templates..."
+                className="rounded-2xl border-slate-200 bg-white py-6 pl-11 shadow-sm"
+              />
             </div>
 
             <div className="flex flex-wrap gap-2">
               {filters.map((filter) => (
-                <span
+                <button
                   key={filter}
-                  className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-muted-foreground shadow-sm"
+                  type="button"
+                  onClick={() => setActiveFilter(filter)}
+                  className={cn(
+                    "rounded-full border px-4 py-2 text-sm shadow-sm transition-colors",
+                    activeFilter === filter
+                      ? "border-blue-200 bg-blue-50 text-blue-700"
+                      : "border-slate-200 bg-white text-muted-foreground hover:border-blue-200 hover:text-blue-700",
+                  )}
                 >
                   {filter}
-                </span>
+                </button>
               ))}
             </div>
           </div>
@@ -91,11 +128,31 @@ export function TemplatesPageContent() {
 
         <section className="py-24">
           <div className="mx-auto max-w-7xl px-6">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {workflowTemplates.map((template) => (
-                <TemplateCard key={template.title} {...template} />
-              ))}
-            </div>
+            {filteredTemplates.length > 0 ? (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {filteredTemplates.map((template) => (
+                  <TemplateCard key={template.title} {...template} />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-[2rem] border border-slate-200 bg-slate-50 px-6 py-16 text-center">
+                <p className="text-lg font-semibold">No templates found</p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Try a different search term or choose another category.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-6 rounded-xl"
+                  onClick={() => {
+                    setQuery("");
+                    setActiveFilter("All");
+                  }}
+                >
+                  Reset filters
+                </Button>
+              </div>
+            )}
           </div>
         </section>
 

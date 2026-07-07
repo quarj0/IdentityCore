@@ -8,6 +8,7 @@ export { Badge, badgeVariants } from "./components/badge";
 export type { BadgeProps } from "./components/badge";
 export { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./components/card";
 export { Input } from "./components/input";
+export { Textarea } from "./components/textarea";
 export { Label } from "./components/label";
 export { Separator } from "./components/separator";
 export { Avatar, AvatarFallback, AvatarImage } from "./components/avatar";
