@@ -1,125 +1,246 @@
-import React from "react";
 import Link from "next/link";
-import { ArrowRight, Shield, Zap, Lock, Fingerprint, Code, Server, Check } from "lucide-react";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@identitycore/ui";
+import {
+  ArrowRight,
+  BadgeCheck,
+  Check,
+  Code2,
+  Fingerprint,
+  Globe2,
+  LockKeyhole,
+  ScanFace,
+  Shield,
+  Sparkles,
+  Workflow,
+} from "lucide-react";
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Separator,
+} from "@identitycore/ui";
+
+const featureCards = [
+  {
+    title: "Global document intelligence",
+    description:
+      "Parse passports, residence permits, licenses, and national IDs with confidence scoring and normalized outputs.",
+    icon: Globe2,
+  },
+  {
+    title: "Face match and liveness",
+    description:
+      "Combine selfie capture, spoof detection, and biometric verification in one guided session.",
+    icon: ScanFace,
+  },
+  {
+    title: "Policy-first orchestration",
+    description:
+      "Design reusable verification flows that adapt by market, risk profile, or business line without rewriting client code.",
+    icon: Workflow,
+  },
+];
+
+const stats = [
+  { label: "Verification completion", value: "92.4%" },
+  { label: "Median decision time", value: "< 45 sec" },
+  { label: "Supported markets", value: "190+" },
+];
+
+const trustPoints = [
+  "Built for onboarding, marketplace trust, and regulated account recovery.",
+  "Secure audit trails, reviewer workflows, and webhook-driven handoffs.",
+  "Developer docs and dashboard tools designed for fast internal adoption.",
+];
 
 export default function LandingPage() {
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Navigation */}
-      <header className="px-6 lg:px-8 h-16 flex items-center border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Fingerprint className="h-4.5 w-4.5" />
-          </div>
-          <span className="font-semibold text-base tracking-tight">IdentityCore</span>
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-50 border-b border-border/70 bg-background/72 backdrop-blur-xl">
+        <div className="mx-auto flex h-18 w-full max-w-7xl items-center px-6 lg:px-8">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-[0_18px_40px_-22px_hsl(var(--primary)/0.9)]">
+              <Fingerprint className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold tracking-[0.18em] text-foreground">
+                IDENTITYCORE
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Verification infrastructure
+              </div>
+            </div>
+          </Link>
+
+          <nav className="ml-auto hidden items-center gap-6 md:flex">
+            <Link href="/pricing" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+              Pricing
+            </Link>
+            <Link href="/security" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+              Security
+            </Link>
+            <Link href="/company" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+              Company
+            </Link>
+            <Separator orientation="vertical" className="h-6" />
+            <a href="http://localhost:3003" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+              Docs
+            </a>
+            <Button asChild variant="outline" size="sm">
+              <a href="http://localhost:3000">Dashboard</a>
+            </Button>
+          </nav>
         </div>
-        <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
-          <Link className="text-sm font-medium hover:underline underline-offset-4 text-muted-foreground hover:text-foreground transition-colors" href="/pricing">
-            Pricing
-          </Link>
-          <Link className="text-sm font-medium hover:underline underline-offset-4 text-muted-foreground hover:text-foreground transition-colors" href="/security">
-            Security
-          </Link>
-          <Link className="text-sm font-medium hover:underline underline-offset-4 text-muted-foreground hover:text-foreground transition-colors" href="/company">
-            Company
-          </Link>
-          <Separator />
-          <a href="http://localhost:3000" className="text-sm font-medium hover:underline underline-offset-4 text-muted-foreground hover:text-foreground transition-colors">
-            Sign In
-          </a>
-          <Button asChild size="sm">
-            <a href="http://localhost:3000">Get Started</a>
-          </Button>
-        </nav>
       </header>
 
-      {/* Hero Section */}
-      <section className="py-20 lg:py-32 px-6 lg:px-8 bg-slate-50 dark:bg-slate-950 flex flex-col items-center text-center">
-        <div className="max-w-3xl space-y-6">
-          <Badge variant="secondary" className="px-3 py-1 text-xs gap-1.5">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
-            Identity Verification for Developers
-          </Badge>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1]">
-            Build secure verification into your product in minutes
-          </h1>
-          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Enterprise-grade identity verification infrastructure. OCR document processing, real-time face matching, and liveness detection. Developer-first API integration.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
-            <Button size="lg" className="gap-2" asChild>
-              <a href="http://localhost:3000">
-                Start verifying now
-                <ArrowRight className="h-4 w-4" />
-              </a>
-            </Button>
-            <Button size="lg" variant="outline" className="gap-2" asChild>
-              <a href="http://localhost:3003">
-                <Code className="h-4 w-4" />
-                Read API docs
-              </a>
-            </Button>
+      <main>
+        <section className="relative overflow-hidden px-6 pb-20 pt-16 lg:px-8 lg:pb-28 lg:pt-24">
+          <div className="absolute inset-x-0 top-0 -z-10 h-[32rem] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.18),transparent_28%),radial-gradient(circle_at_top_right,rgba(37,99,235,0.14),transparent_24%)]" />
+          <div className="mx-auto grid w-full max-w-7xl gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center">
+            <div className="space-y-8">
+              <Badge variant="info" className="px-4 py-1.5">
+                <Sparkles className="h-3.5 w-3.5" />
+                Built for modern trust and compliance teams
+              </Badge>
+
+              <div className="space-y-5">
+                <h1 className="max-w-4xl text-5xl font-semibold tracking-tight text-foreground sm:text-6xl lg:text-7xl">
+                  Verification flows your product team can actually ship.
+                </h1>
+                <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
+                  IdentityCore gives engineering, compliance, and operations one shared system for identity checks, manual review, and policy control.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Button asChild size="lg" className="gap-2">
+                  <a href="http://localhost:3000">
+                    Open dashboard
+                    <ArrowRight className="h-4 w-4" />
+                  </a>
+                </Button>
+                <Button asChild size="lg" variant="outline" className="gap-2">
+                  <a href="http://localhost:3003">
+                    <Code2 className="h-4 w-4" />
+                    Explore docs
+                  </a>
+                </Button>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                {stats.map((stat) => (
+                  <div
+                    key={stat.label}
+                    className="rounded-2xl border border-border/70 bg-background/72 px-4 py-4 shadow-[0_20px_48px_-40px_rgba(15,23,42,0.45)] backdrop-blur-sm"
+                  >
+                    <div className="text-2xl font-semibold tracking-tight text-foreground">
+                      {stat.value}
+                    </div>
+                    <div className="mt-1 text-sm text-muted-foreground">
+                      {stat.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="lg:pl-8">
+              <Card className="overflow-hidden">
+                <CardHeader className="border-b border-border/70 bg-linear-to-br from-primary/[0.08] via-background to-accent/[0.18]">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <CardTitle className="text-xl">Verification stack</CardTitle>
+                      <CardDescription>
+                        One operating layer across capture, review, and risk decisions.
+                      </CardDescription>
+                    </div>
+                    <Badge variant="outline">Live system view</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4 p-6">
+                  {featureCards.map((feature) => {
+                    const Icon = feature.icon;
+                    return (
+                      <div
+                        key={feature.title}
+                        className="rounded-2xl border border-border/60 bg-background/80 p-4"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Icon className="h-5 w-5" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <div className="text-base font-semibold text-foreground">
+                              {feature.title}
+                            </div>
+                            <p className="text-sm leading-6 text-muted-foreground">
+                              {feature.description}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Features Grid */}
-      <section className="py-20 px-6 lg:px-8 max-w-7xl mx-auto w-full">
-        <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Everything you need to verify users securely</h2>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            A comprehensive suite of identity tools designed to eliminate fraud and streamline compliance.
-          </p>
-        </div>
+        <section className="px-6 py-20 lg:px-8">
+          <div className="mx-auto grid w-full max-w-7xl gap-10 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)]">
+            <div className="space-y-4">
+              <Badge variant="secondary">Why teams choose us</Badge>
+              <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                Serious verification product, not a stitched-together set of endpoints.
+              </h2>
+              <p className="max-w-xl text-base leading-7 text-muted-foreground">
+                The strongest products here are the ones that feel aligned across compliance expectations, engineering ergonomics, and customer trust. That’s the standard we’re aiming for.
+              </p>
+            </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
-          <Card className="bg-transparent border-slate-200/80">
-            <CardHeader>
-              <div className="h-10 w-10 rounded-lg bg-primary/5 flex items-center justify-center mb-3">
-                <Shield className="h-5 w-5 text-primary" />
-              </div>
-              <CardTitle className="text-base font-semibold">Smart Document OCR</CardTitle>
-              <CardDescription className="text-xs">
-                Extract details from passports, driver's licenses, and identity cards globally with precision models.
-              </CardDescription>
-            </CardHeader>
-          </Card>
+            <div className="grid gap-5 md:grid-cols-2">
+              <Card className="md:col-span-2">
+                <CardContent className="grid gap-4 p-6 md:grid-cols-3">
+                  {trustPoints.map((point) => (
+                    <div key={point} className="flex gap-3">
+                      <div className="mt-0.5 text-primary">
+                        <Check className="h-4 w-4" />
+                      </div>
+                      <p className="text-sm leading-6 text-muted-foreground">
+                        {point}
+                      </p>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
 
-          <Card className="bg-transparent border-slate-200/80">
-            <CardHeader>
-              <div className="h-10 w-10 rounded-lg bg-primary/5 flex items-center justify-center mb-3">
-                <Zap className="h-5 w-5 text-primary" />
-              </div>
-              <CardTitle className="text-base font-semibold">Real-Time Liveness Check</CardTitle>
-              <CardDescription className="text-xs">
-                Verify presence instantly using lightweight biometric models directly in the user's browser.
-              </CardDescription>
-            </CardHeader>
-          </Card>
+              <Card>
+                <CardHeader>
+                  <Shield className="h-5 w-5 text-primary" />
+                  <CardTitle>Designed for regulated trust</CardTitle>
+                  <CardDescription>
+                    Strong operator surfaces, review states, and structured auditability.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
 
-          <Card className="bg-transparent border-slate-200/80">
-            <CardHeader>
-              <div className="h-10 w-10 rounded-lg bg-primary/5 flex items-center justify-center mb-3">
-                <Code className="h-5 w-5 text-primary" />
-              </div>
-              <CardTitle className="text-base font-semibold">Flexible Policy Builder</CardTitle>
-              <CardDescription className="text-xs">
-                Create customized rules and flows that fit your unique geographic and regulatory demands without writing code.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t border-border py-8 px-6 lg:px-8 text-center text-xs text-muted-foreground mt-auto">
-        <p>© 2026 IdentityCore, Inc. All rights reserved.</p>
-      </footer>
+              <Card>
+                <CardHeader>
+                  <LockKeyhole className="h-5 w-5 text-primary" />
+                  <CardTitle>Security is native</CardTitle>
+                  <CardDescription>
+                    Encryption, access control boundaries, and evidentiary workflows are part of the product shape.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }
-
-import { Badge } from "@identitycore/ui";
-import { Separator } from "@identitycore/ui";
-import { Sparkles } from "lucide-react";

@@ -1,60 +1,66 @@
-import React from "react";
 import Link from "next/link";
-import { Fingerprint, Building, Users, Calendar } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@identitycore/ui";
+import { Building, Calendar, Fingerprint, Users } from "lucide-react";
+import {
+  Badge,
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@identitycore/ui";
+
+const companyFacts = [
+  { label: "Headquarters", value: "San Francisco, California", icon: Building },
+  { label: "Team footprint", value: "45 operators, engineers, and risk specialists", icon: Users },
+  { label: "Founded", value: "2024", icon: Calendar },
+];
 
 export default function CompanyPage() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <header className="px-6 lg:px-8 h-16 flex items-center border-b border-border bg-background/80 backdrop-blur-md">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Fingerprint className="h-4.5 w-4.5" />
+    <div className="min-h-screen px-6 py-8 lg:px-8">
+      <div className="mx-auto max-w-6xl space-y-12">
+        <header className="flex items-center justify-between rounded-3xl border border-border/70 bg-background/72 px-5 py-4 backdrop-blur-xl">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+              <Fingerprint className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold tracking-[0.18em]">IDENTITYCORE</div>
+              <div className="text-xs text-muted-foreground">Company</div>
+            </div>
+          </Link>
+          <Badge variant="secondary">People behind the platform</Badge>
+        </header>
+
+        <section className="grid gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
+          <div className="space-y-4">
+            <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+              We’re building verification infrastructure that teams can trust under pressure.
+            </h1>
+            <p className="text-lg leading-8 text-muted-foreground">
+              IdentityCore exists to make identity operations clearer for engineers, safer for compliance teams, and easier for end users moving through high-trust flows.
+            </p>
           </div>
-          <span className="font-semibold text-base tracking-tight">IdentityCore</span>
-        </Link>
-      </header>
 
-      <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-12 lg:py-20 space-y-12">
-        <div className="space-y-4">
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">About IdentityCore</h1>
-          <p className="text-base text-muted-foreground leading-relaxed">
-            Our mission is to make identity infrastructure simple, safe, and trustworthy. We build developer-first APIs and portals that enable organizations to verify users reliably and keep fraud out.
-          </p>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-3 pt-6">
-          <Card className="border-slate-200/80">
-            <CardHeader>
-              <div className="h-8 w-8 rounded-lg bg-primary/5 flex items-center justify-center mb-2">
-                <Building className="h-4 w-4 text-primary" />
-              </div>
-              <CardTitle className="text-sm font-semibold">Headquarters</CardTitle>
-              <CardDescription className="text-xs">San Francisco, California</CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="border-slate-200/80">
-            <CardHeader>
-              <div className="h-8 w-8 rounded-lg bg-primary/5 flex items-center justify-center mb-2">
-                <Users className="h-4 w-4 text-primary" />
-              </div>
-              <CardTitle className="text-sm font-semibold">Team Size</CardTitle>
-              <CardDescription className="text-xs">45 global team members</CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="border-slate-200/80">
-            <CardHeader>
-              <div className="h-8 w-8 rounded-lg bg-primary/5 flex items-center justify-center mb-2">
-                <Calendar className="h-4 w-4 text-primary" />
-              </div>
-              <CardTitle className="text-sm font-semibold">Founded</CardTitle>
-              <CardDescription className="text-xs">Established in 2024</CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
-      </main>
+          <div className="grid gap-5 md:grid-cols-3">
+            {companyFacts.map((fact) => {
+              const Icon = fact.icon;
+              return (
+                <Card key={fact.label}>
+                  <CardHeader className="space-y-4">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <CardTitle className="text-base">{fact.label}</CardTitle>
+                      <CardDescription>{fact.value}</CardDescription>
+                    </div>
+                  </CardHeader>
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

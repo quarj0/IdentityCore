@@ -1,66 +1,59 @@
 @import "tailwindcss";
 
-/* ─── Design Tokens ─────────────────────────────────────── */
 :root {
-  /* Backgrounds */
-  --background: 0 0% 100%;
-  --foreground: 222 47% 11%;
-
-  /* Brand / Primary */
-  --primary: 222 47% 11%;
-  --primary-foreground: 210 40% 98%;
-
-  /* Secondary */
-  --secondary: 210 40% 96%;
-  --secondary-foreground: 222 47% 11%;
-
-  /* Muted */
-  --muted: 210 40% 96%;
-  --muted-foreground: 215 16% 47%;
-
-  /* Accent */
-  --accent: 210 40% 96%;
-  --accent-foreground: 222 47% 11%;
-
-  /* Destructive */
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 98%;
-
-  /* Border / Input */
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 222 47% 11%;
-
-  --radius: 0.5rem;
+  --background: 24 33% 98%;
+  --foreground: 224 34% 12%;
+  --card: 0 0% 100%;
+  --card-foreground: 224 34% 12%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 224 34% 12%;
+  --primary: 12 77% 44%;
+  --primary-foreground: 36 100% 98%;
+  --secondary: 24 42% 94%;
+  --secondary-foreground: 224 34% 14%;
+  --muted: 24 28% 95%;
+  --muted-foreground: 218 13% 42%;
+  --accent: 32 100% 91%;
+  --accent-foreground: 20 91% 27%;
+  --destructive: 0 76% 56%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 28 26% 86%;
+  --input: 28 26% 86%;
+  --ring: 12 77% 44%;
+  --radius: 1rem;
 }
 
 .dark {
-  --background: 222 47% 6%;
-  --foreground: 210 40% 98%;
-
-  --primary: 210 40% 98%;
-  --primary-foreground: 222 47% 11%;
-
-  --secondary: 217 33% 17%;
-  --secondary-foreground: 210 40% 98%;
-
-  --muted: 217 33% 17%;
-  --muted-foreground: 215 20% 65%;
-
-  --accent: 217 33% 17%;
-  --accent-foreground: 210 40% 98%;
-
-  --border: 217 33% 17%;
-  --input: 217 33% 17%;
-  --ring: 213 27% 84%;
+  --background: 18 28% 8%;
+  --foreground: 40 30% 96%;
+  --card: 18 23% 11%;
+  --card-foreground: 40 30% 96%;
+  --popover: 18 23% 11%;
+  --popover-foreground: 40 30% 96%;
+  --primary: 24 95% 68%;
+  --primary-foreground: 20 40% 12%;
+  --secondary: 18 16% 16%;
+  --secondary-foreground: 40 30% 96%;
+  --muted: 18 16% 16%;
+  --muted-foreground: 28 18% 70%;
+  --accent: 18 16% 18%;
+  --accent-foreground: 40 30% 96%;
+  --destructive: 0 68% 45%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 18 16% 19%;
+  --input: 18 16% 19%;
+  --ring: 24 95% 68%;
 }
 
 @theme inline {
-  --font-sans: var(--font-inter);
-  --font-mono: var(--font-geist-mono);
-
+  --font-sans: var(--font-brand-sans);
+  --font-mono: var(--font-brand-mono);
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
   --color-secondary: hsl(var(--secondary));
@@ -74,20 +67,39 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 8px);
+  --radius-md: calc(var(--radius) - 4px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
 }
 
 * {
-  border-color: hsl(var(--border));
   box-sizing: border-box;
+  border-color: hsl(var(--border));
+}
+
+html {
+  height: 100%;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background-color: hsl(var(--background));
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top left, hsl(28 100% 72% / 0.16), transparent 26%),
+    radial-gradient(circle at top right, hsl(6 87% 61% / 0.14), transparent 30%),
+    linear-gradient(180deg, hsl(var(--background)), hsl(24 36% 95%));
   color: hsl(var(--foreground));
-  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
-  height: 100%;
+  font-family: var(--font-sans), sans-serif;
+}
+
+::selection {
+  background: hsl(var(--primary) / 0.16);
+}
+
+:focus-visible {
+  outline: 2px solid hsl(var(--ring) / 0.8);
+  outline-offset: 2px;
 }
