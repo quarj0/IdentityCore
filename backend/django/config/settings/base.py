@@ -313,7 +313,7 @@ VERIFICATION_PORTAL_BASE_URL = os.getenv(
 )
 ACCOUNT_EMAIL_VERIFICATION_BASE_URL = os.getenv(
     "ACCOUNT_EMAIL_VERIFICATION_BASE_URL",
-    "http://localhost:3000/onboarding/verify-email",
+    "http://localhost:3001/verify-email",
 )
 ACCOUNT_PASSWORD_RESET_BASE_URL = os.getenv(
     "ACCOUNT_PASSWORD_RESET_BASE_URL",
