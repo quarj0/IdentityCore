@@ -33,7 +33,8 @@
     "class-variance-authority": "latest",
     "clsx": "latest",
     "lucide-react": "latest",
-    "tailwind-merge": "latest"
+    "tailwind-merge": "latest",
+    "tailwindcss": "^4"
   },
   "devDependencies": {
     "@types/react": "^19",
