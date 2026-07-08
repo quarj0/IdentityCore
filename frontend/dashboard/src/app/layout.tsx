@@ -1,29 +1,10 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Manrope } from "next/font/google";
-import { ThemeProvider, Toaster } from "@identitycore/ui";
 import "./globals.css";
-
-const manrope = Manrope({
-  variable: "--font-brand-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const plexMono = IBM_Plex_Mono({
-  variable: "--font-brand-mono",
-  weight: ["400", "500"],
-  subsets: ["latin"],
-  display: "swap",
-});
+import { DashboardShell } from "@/components/layout/dashboard-shell";
 
 export const metadata: Metadata = {
-  title: {
-    default: "IdentityCore Dashboard",
-    template: "%s | IdentityCore",
-  },
-  description:
-    "Manage your identity verification workflows, policies, API keys, and team from a single dashboard.",
-  robots: { index: false, follow: false }, // dashboard is authenticated — not for indexing
+  title: "IdentityCore Dashboard",
+  description: "IdentityCore organization workspace dashboard.",
 };
 
 export default function RootLayout({
@@ -32,16 +13,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${manrope.variable} ${plexMono.variable} h-full`}
-      suppressHydrationWarning
-    >
-      <body className="min-h-full bg-background text-foreground antialiased">
-        <ThemeProvider defaultTheme="light" storageKey="identitycore-dashboard-theme">
-          {children}
-          <Toaster />
-        </ThemeProvider>
+    <html lang="en">
+      <body>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-100 focus:rounded-xl focus:bg-blue-600 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+        >
+          Skip to content
+        </a>
+
+        <DashboardShell>{children}</DashboardShell>
       </body>
     </html>
   );
