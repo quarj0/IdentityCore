@@ -140,6 +140,7 @@ class VerificationListCreateView(VerificationAccessMixin, APIView):
                 "status": verification.status,
                 "verification_url": verification._verification_url,
                 "session_id": session.public_id,
+                "session_token": verification._initial_session_token,
                 "expires_at": verification.expires_at.isoformat(),
             },
             request=request,
@@ -238,6 +239,7 @@ class VerificationResendLinkView(VerificationAccessMixin, APIView):
 
         verification_url = (
             f"{settings.VERIFICATION_PORTAL_BASE_URL.rstrip('/')}/{session.public_id}"
+            f"?token={raw_session_token}"
         )
         notifications = queue_verification_created_notifications(
             verification=verification,
@@ -260,6 +262,7 @@ class VerificationResendLinkView(VerificationAccessMixin, APIView):
                 "sent": bool(notifications),
                 "verification_url": verification_url,
                 "session_id": session.public_id,
+                "session_token": raw_session_token,
                 "channel": serializer.validated_data["channel"],
             },
             request=request,

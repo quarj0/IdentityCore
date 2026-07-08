@@ -1,46 +1,24 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Manrope } from "next/font/google";
-import { ThemeProvider, Toaster } from "@identitycore/ui";
 import "./globals.css";
 
-const manrope = Manrope({
-  variable: "--font-brand-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const plexMono = IBM_Plex_Mono({
-  variable: "--font-brand-mono",
-  weight: ["400", "500"],
-  subsets: ["latin"],
-  display: "swap",
-});
-
 export const metadata: Metadata = {
-  title: {
-    default: "Identity Verification Portal",
-    template: "%s | Identity Verification",
-  },
-  description: "Secure and quick identity verification flow powered by IdentityCore.",
-  robots: { index: false, follow: false },
+  title: "IdentityCore Verify",
+  description: "Secure verification portal powered by IdentityCore.",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="en"
-      className={`${manrope.variable} ${plexMono.variable} h-full`}
-      suppressHydrationWarning
-    >
-      <body className="min-h-full bg-background text-foreground antialiased">
-        <ThemeProvider defaultTheme="light" storageKey="identitycore-verify-theme">
-          {children}
-          <Toaster />
-        </ThemeProvider>
+    <html lang="en">
+      <body>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-100 focus:rounded-xl focus:bg-blue-600 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+        >
+          Skip to content
+        </a>
+        {children}
       </body>
     </html>
   );

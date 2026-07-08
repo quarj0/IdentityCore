@@ -3,9 +3,25 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from graphql import GraphQLError
+from rest_framework.exceptions import (
+    AuthenticationFailed,
+    ValidationError as DRFValidationError,
+)
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from strawberry.extensions.query_depth_limiter import QueryDepthLimiter
 from strawberry.types import Info
 
+from apps.accounts.serializers import (
+    LoginSerializer,
+    RefreshInputSerializer,
+    serialize_user,
+)
+from apps.accounts.contact import submit_contact_inquiry
+from apps.accounts.passwords import (
+    request_password_reset,
+    reset_password_with_token,
+    change_password as perform_password_change,
+)
 from apps.accounts.verification import build_email_verification_url, verify_email_token
 from apps.accounts.models import PlatformUser
 from apps.audit.serializers import serialize_audit_event
@@ -17,6 +33,7 @@ from apps.organizations.onboarding import (
     ORGANIZATION_TYPE_CHOICES,
     confirm_onboarding_email_verification,
     register_organization_onboarding,
+    resend_onboarding_email_verification,
     review_organization_onboarding,
     serialize_onboarding_state,
     submit_administrator_identity_verification,
@@ -32,6 +49,7 @@ from apps.verifications.serializers import (
 )
 from apps.webhooks.serializers import serialize_webhook_endpoint
 from apps.webhooks.services import queue_webhook_events
+from common.catalog import COUNTRY_PROFILES, DOCUMENT_TYPES
 
 
 def require_tenant_user(info: Info):
@@ -44,6 +62,14 @@ def require_tenant_user(info: Info):
         or getattr(user, "tenant_id", None) is None
     ):
         raise GraphQLError("A tenant-scoped platform user is required.")
+    return user
+
+
+def require_authenticated_user(info: Info):
+    request = info.context["request"]
+    user = request.user
+    if not getattr(user, "is_authenticated", False):
+        raise GraphQLError("Authentication required.")
     return user
 
 
@@ -252,6 +278,74 @@ class OrganizationOnboardingPayload:
     debug_email_verification_url: str | None = None
 
 
+@strawberry.type
+class DocumentTypeNode:
+    code: str
+    name: str
+
+
+@strawberry.type
+class SupportedDocumentTypeNode:
+    document_type: str
+    local_name: str
+
+
+@strawberry.type
+class CountryProfileNode:
+    code: str
+    name: str
+    supported_document_types: list[SupportedDocumentTypeNode]
+
+
+@strawberry.type
+class AuthUserNode:
+    public_id: str
+    email: str
+    first_name: str
+    last_name: str
+    phone_number: str
+    status: str
+    tenant_public_id: str | None
+    is_platform_admin: bool
+    mfa_enabled: bool
+    roles: list[str]
+
+
+@strawberry.type
+class AuthTokensNode:
+    access: str
+    refresh: str | None = None
+
+
+@strawberry.type
+class AuthPayload:
+    tokens: AuthTokensNode
+    user: AuthUserNode | None = None
+
+
+@strawberry.type
+class PublicActionPayload:
+    ok: bool
+    message: str
+    next_action: str | None = None
+
+
+@strawberry.type
+class ContactInquiryPayload:
+    inquiry_id: str
+    ok: bool
+    message: str
+
+
+@strawberry.input
+class ContactInquiryInput:
+    full_name: str
+    business_email: str
+    organization_name: str = ""
+    interest: str = ""
+    message: str
+
+
 def to_verification_node(payload: dict) -> VerificationNode:
     risk_payload = payload["risk_assessment"]
     decision_payload = payload["decision"]
@@ -282,6 +376,24 @@ def to_onboarding_node(payload: dict) -> OrganizationOnboardingNode:
 
 @strawberry.type
 class Query:
+    @strawberry.field
+    def document_types(self) -> list[DocumentTypeNode]:
+        return [DocumentTypeNode(**item) for item in DOCUMENT_TYPES]
+
+    @strawberry.field
+    def country_profiles(self) -> list[CountryProfileNode]:
+        return [
+            CountryProfileNode(
+                code=item["code"],
+                name=item["name"],
+                supported_document_types=[
+                    SupportedDocumentTypeNode(**supported_document_type)
+                    for supported_document_type in item["supported_document_types"]
+                ],
+            )
+            for item in COUNTRY_PROFILES
+        ]
+
     @strawberry.field
     def organization_onboarding_types(self) -> list[str]:
         return list(ORGANIZATION_TYPE_CHOICES)
@@ -422,6 +534,105 @@ class Query:
 @strawberry.type
 class Mutation:
     @strawberry.mutation
+    def login(self, info: Info, email: str, password: str) -> AuthPayload:
+        request = info.context["request"]
+        serializer = LoginSerializer(
+            data={"email": email, "password": password},
+            context={"request": request},
+        )
+        try:
+            serializer.is_valid(raise_exception=True)
+        except (DRFValidationError, AuthenticationFailed) as exc:
+            raise GraphQLError(str(exc.detail))
+        user = serializer.validated_data["user"]
+        if user.tenant is not None:
+            record_audit_event(
+                tenant=user.tenant,
+                actor=user,
+                request=request,
+                action="user.login",
+                target_type="platform_user",
+                target_id=user.public_id,
+                metadata={"email": user.email},
+                sensitive_metadata={"email": user.email},
+            )
+        return AuthPayload(
+            tokens=AuthTokensNode(**serializer.validated_data["tokens"]),
+            user=AuthUserNode(**serialize_user(user)),
+        )
+
+    @strawberry.mutation
+    def refresh_access_token(self, refresh_token: str) -> AuthPayload:
+        try:
+            serializer = RefreshInputSerializer(data={"refresh": refresh_token})
+            serializer.is_valid(raise_exception=True)
+        except (DRFValidationError, ValidationError, InvalidToken, TokenError) as exc:
+            raise GraphQLError(str(exc))
+        return AuthPayload(
+            tokens=AuthTokensNode(access=serializer.validated_data["access"])
+        )
+
+    @strawberry.mutation
+    def request_password_reset(
+        self,
+        info: Info,
+        email: str,
+    ) -> PublicActionPayload:
+        request = info.context["request"]
+        sent = request_password_reset(email=email, request=request)
+        return PublicActionPayload(
+            ok=sent,
+            message="If that email exists, a password reset link has been sent.",
+            next_action="reset_password",
+        )
+
+    @strawberry.mutation
+    def reset_password(
+        self,
+        info: Info,
+        token: str,
+        new_password: str,
+    ) -> PublicActionPayload:
+        request = info.context["request"]
+        try:
+            reset_password_with_token(
+                token=token,
+                new_password=new_password,
+                request=request,
+            )
+        except (ValidationError, ValueError) as exc:
+            raise GraphQLError(str(exc))
+        return PublicActionPayload(
+            ok=True,
+            message="Your password has been reset successfully.",
+            next_action="sign_in",
+        )
+
+    @strawberry.mutation
+    def change_password(
+        self,
+        info: Info,
+        current_password: str,
+        new_password: str,
+    ) -> PublicActionPayload:
+        user = require_authenticated_user(info)
+        request = info.context["request"]
+        try:
+            perform_password_change(
+                user=user,
+                current_password=current_password,
+                new_password=new_password,
+                request=request,
+            )
+        except ValidationError as exc:
+            raise_graphql_validation_error(exc)
+        return PublicActionPayload(
+            ok=True,
+            message="Your password has been changed successfully.",
+            next_action="account_updated",
+        )
+
+    @strawberry.mutation
     def register_organization_onboarding(
         self,
         info: Info,
@@ -458,6 +669,52 @@ class Mutation:
                 if settings.DEBUG
                 else None
             ),
+        )
+
+    @strawberry.mutation
+    def resend_organization_onboarding_email_verification(
+        self,
+        info: Info,
+        business_email: str,
+    ) -> PublicActionPayload:
+        request = info.context["request"]
+        try:
+            sent = resend_onboarding_email_verification(
+                business_email=business_email,
+                request=request,
+            )
+        except ValidationError as exc:
+            raise_graphql_validation_error(exc)
+        return PublicActionPayload(
+            ok=sent,
+            message=(
+                "If the workspace is still awaiting email verification, a new link has been sent."
+                if sent
+                else "No pending onboarding email verification was found for that address."
+            ),
+            next_action="verify_email",
+        )
+
+    @strawberry.mutation
+    def submit_contact_inquiry(
+        self,
+        info: Info,
+        input: ContactInquiryInput,
+    ) -> ContactInquiryPayload:
+        try:
+            inquiry = submit_contact_inquiry(
+                full_name=input.full_name,
+                business_email=input.business_email,
+                organization_name=input.organization_name,
+                interest=input.interest,
+                message=input.message,
+            )
+        except ValidationError as exc:
+            raise_graphql_validation_error(exc)
+        return ContactInquiryPayload(
+            inquiry_id=inquiry.public_id,
+            ok=True,
+            message="Your message has been received. Our team will follow up soon.",
         )
 
     @strawberry.mutation

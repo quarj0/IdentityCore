@@ -46,7 +46,7 @@ const developerFeatures = [
   {
     title: "Sandbox",
     description:
-      "Test workflows safely with mock responses before requesting production access.",
+      "Test workflows safely with sandbox verification responses before requesting production access.",
     icon: TerminalSquare,
   },
 ];

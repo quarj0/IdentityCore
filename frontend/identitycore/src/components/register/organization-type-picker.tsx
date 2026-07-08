@@ -26,13 +26,13 @@ const ORGANIZATION_TYPES = [
     icon: Building2,
   },
   {
-    value: "education",
+    value: "educational_institution",
     label: "Education",
     description: "Schools, universities, and exam bodies",
     icon: GraduationCap,
   },
   {
-    value: "healthcare",
+    value: "healthcare_provider",
     label: "Healthcare",
     description: "Clinics, hospitals, and telehealth",
     icon: HeartPulse,
@@ -67,12 +67,14 @@ interface OrganizationTypePickerProps {
   id?: string;
   label?: string;
   value?: string;
+  onChange?: (value: string) => void;
 }
 
 export function OrganizationTypePicker({
   id = "organizationType",
   label = "Organization type",
   value = "",
+  onChange,
 }: OrganizationTypePickerProps) {
   const [selectedValue, setSelectedValue] = useState(value);
 
@@ -107,7 +109,10 @@ export function OrganizationTypePicker({
                 name={id}
                 value={type.value}
                 checked={isSelected}
-                onChange={() => setSelectedValue(type.value)}
+                onChange={() => {
+                  setSelectedValue(type.value);
+                  onChange?.(type.value);
+                }}
                 className="sr-only"
               />
 

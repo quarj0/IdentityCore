@@ -280,6 +280,10 @@ ACCOUNT_EMAIL_VERIFICATION_BASE_URL = os.getenv(
     "ACCOUNT_EMAIL_VERIFICATION_BASE_URL",
     "http://localhost:3000/onboarding/verify-email",
 )
+ACCOUNT_PASSWORD_RESET_BASE_URL = os.getenv(
+    "ACCOUNT_PASSWORD_RESET_BASE_URL",
+    "http://localhost:3001/reset-password",
+)
 WEBHOOK_DELIVERY_TIMEOUT_SECONDS = int(
     os.getenv("WEBHOOK_DELIVERY_TIMEOUT_SECONDS", "10")
 )

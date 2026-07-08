@@ -485,3 +485,36 @@ def review_organization_onboarding(
         metadata={"note": note.strip()},
     )
     return organization, tenant, user
+
+
+@transaction.atomic
+def resend_onboarding_email_verification(
+    *, business_email: str, request=None
+) -> bool:
+    normalized_email = _normalized_email(business_email)
+    user = (
+        PlatformUser.objects.select_related("tenant", "tenant__organization")
+        .filter(email=normalized_email, tenant__isnull=False)
+        .first()
+    )
+    if user is None or user.tenant is None:
+        return False
+
+    organization = user.tenant.organization
+    onboarding = _get_onboarding_settings(organization)
+    email_verification = dict(onboarding.get("email_verification") or {})
+    already_verified = bool(email_verification.get("verified_at"))
+    if already_verified or user.status == PlatformUserStatus.ACTIVE:
+        return False
+
+    issue_and_queue_email_verification(user=user)
+    record_audit_event(
+        tenant=user.tenant,
+        actor=user,
+        request=request,
+        action="onboarding.email_verification_resent",
+        target_type="platform_user",
+        target_id=user.public_id,
+        metadata={"organization_id": organization.public_id},
+    )
+    return True

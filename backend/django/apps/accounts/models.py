@@ -98,3 +98,60 @@ class EmailVerificationToken(PublicIdModel, BaseModel):
     def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
+
+
+class PasswordResetToken(PublicIdModel, BaseModel):
+    public_id_prefix = "prt"
+
+    user = models.ForeignKey(
+        PlatformUser,
+        on_delete=models.CASCADE,
+        related_name="password_reset_tokens",
+    )
+    token_hash = models.CharField(max_length=64, unique=True)
+    expires_at = models.DateTimeField(db_index=True)
+    used_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def clean(self):
+        super().clean()
+        if self.used_at is not None and self.revoked_at is not None:
+            raise ValidationError(
+                {"used_at": "A password reset token cannot be both used and revoked."}
+            )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+
+class ContactInquiryStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    REVIEWED = "reviewed", "Reviewed"
+    RESOLVED = "resolved", "Resolved"
+    SPAM = "spam", "Spam"
+
+
+class ContactInquiry(PublicIdModel, BaseModel):
+    public_id_prefix = "inq"
+
+    full_name = models.CharField(max_length=255)
+    business_email = models.EmailField()
+    organization_name = models.CharField(max_length=255, blank=True)
+    interest = models.CharField(max_length=64, blank=True)
+    message = models.TextField()
+    status = models.CharField(
+        max_length=32,
+        choices=ContactInquiryStatus.choices,
+        default=ContactInquiryStatus.PENDING,
+        db_index=True,
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return self.public_id

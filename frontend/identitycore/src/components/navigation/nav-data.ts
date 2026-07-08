@@ -79,7 +79,7 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         href: "/verification",
         label: "Mock verification",
-        description: "Preview document, selfie, liveness, and mock results.",
+        description: "Complete the live document, selfie, liveness, and result flow.",
         icon: FlaskConical,
       },
     ],
@@ -127,6 +127,12 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "Contact",
         description: "Talk to us about identity infrastructure.",
         icon: Contact,
+      },
+      {
+        href: "/forgot-password",
+        label: "Password reset",
+        description: "Request a reset link or recover account access.",
+        icon: LockKeyhole,
       },
     ],
   },

@@ -234,8 +234,10 @@ class VerificationCreateSerializer(serializers.Serializer):
         session.set_session_token(raw_session_token)
         session.save()
         verification._initial_session = session
+        verification._initial_session_token = raw_session_token
         verification._verification_url = (
             f"{settings.VERIFICATION_PORTAL_BASE_URL.rstrip('/')}/{session.public_id}"
+            f"?token={raw_session_token}"
         )
         return verification
 
