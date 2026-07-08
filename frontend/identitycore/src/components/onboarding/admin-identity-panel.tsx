@@ -12,8 +12,8 @@ import {
   CardTitle,
   Checkbox,
   Label,
-  toast,
 } from "@identitycore/ui";
+import { InlineStatus } from "@/components/feedback/inline-status";
 import { getErrorMessage } from "@/lib/api-client";
 import { fetchCurrentOnboarding, type OnboardingState } from "@/lib/onboarding-api";
 import { createAdminOnboardingVerification } from "@/lib/verification-api";
@@ -24,16 +24,13 @@ export function AdminIdentityPanel() {
   const [consent, setConsent] = useState(false);
   const [loading, setLoading] = useState(true);
   const [launching, setLaunching] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCurrentOnboarding()
       .then(setState)
       .catch((error) => {
-        toast({
-          title: "Unable to load administrator status",
-          description: getErrorMessage(error),
-          variant: "destructive",
-        });
+        setErrorMessage(getErrorMessage(error));
       })
       .finally(() => setLoading(false));
   }, []);
@@ -44,6 +41,7 @@ export function AdminIdentityPanel() {
     }
 
     setLaunching(true);
+    setErrorMessage(null);
     try {
       const verification = await createAdminOnboardingVerification({
         fullName: state.administratorFullName,
@@ -53,11 +51,7 @@ export function AdminIdentityPanel() {
         `/verification?sessionId=${encodeURIComponent(verification.session_id)}&token=${encodeURIComponent(verification.session_token)}&verificationId=${encodeURIComponent(verification.id)}`,
       );
     } catch (error) {
-      toast({
-        title: "Unable to launch verification",
-        description: getErrorMessage(error),
-        variant: "destructive",
-      });
+      setErrorMessage(getErrorMessage(error));
     } finally {
       setLaunching(false);
     }
@@ -84,6 +78,16 @@ export function AdminIdentityPanel() {
         </CardHeader>
 
         <CardContent className="space-y-5">
+          {errorMessage ? (
+            <InlineStatus
+              kind="error"
+              title={
+                state ? "Unable to launch verification" : "Unable to load administrator status"
+              }
+              message={errorMessage}
+            />
+          ) : null}
+
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
             <p className="text-sm font-medium">Before you continue</p>
 

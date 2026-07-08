@@ -13,9 +13,10 @@ import {
   CardTitle,
   Input,
   Label,
-  toast,
 } from "@identitycore/ui";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { PasswordInput } from "@/components/auth/password-input";
+import { InlineStatus } from "@/components/feedback/inline-status";
 import { saveAuthSession } from "@/lib/auth";
 import { getErrorMessage } from "@/lib/api-client";
 import { fetchCurrentOnboarding, login } from "@/lib/onboarding-api";
@@ -26,10 +27,12 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
+    setErrorMessage(null);
 
     try {
       const payload = await login(email, password);
@@ -42,11 +45,7 @@ export function LoginForm() {
       router.push(getOnboardingRoute(onboarding));
       router.refresh();
     } catch (error) {
-      toast({
-        title: "Unable to sign in",
-        description: getErrorMessage(error),
-        variant: "destructive",
-      });
+      setErrorMessage(getErrorMessage(error));
     } finally {
       setSubmitting(false);
     }
@@ -71,6 +70,14 @@ export function LoginForm() {
 
         <CardContent>
           <form className="space-y-5" onSubmit={handleSubmit}>
+            {errorMessage ? (
+              <InlineStatus
+                kind="error"
+                title="Unable to sign in"
+                message={errorMessage}
+              />
+            ) : null}
+
             <div className="space-y-2">
               <Label htmlFor="email">Business email</Label>
               <Input
@@ -86,9 +93,8 @@ export function LoginForm() {
 
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 autoComplete="current-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}

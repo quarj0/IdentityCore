@@ -27,12 +27,42 @@ def env_one_of(name: str, fallback_names: list[str], default: str = "") -> str:
     return default
 
 
+LOCAL_FRONTEND_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:3002",
+    "http://localhost:3003",
+    "http://localhost:3004",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+    "http://127.0.0.1:3002",
+    "http://127.0.0.1:3003",
+    "http://127.0.0.1:3004",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+
+
 SECRET_KEY = os.getenv(
     "DJANGO_SECRET_KEY", "unsafe-development-secret-key-for-identitycore"
 )
 DEBUG = env_bool("DJANGO_DEBUG", False)
-ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
-CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,[::1]")
+CSRF_TRUSTED_ORIGINS = env_list(
+    "DJANGO_CSRF_TRUSTED_ORIGINS", ",".join(LOCAL_FRONTEND_ORIGINS)
+)
+CORS_ALLOWED_ORIGINS = env_list(
+    "DJANGO_CORS_ALLOWED_ORIGINS", ",".join(LOCAL_FRONTEND_ORIGINS)
+)
+CORS_ALLOW_HEADERS = env_list(
+    "DJANGO_CORS_ALLOW_HEADERS",
+    "Accept,Authorization,Content-Type,X-Requested-With,X-Session-Id,X-Device-Fingerprint,X-Request-Id",
+)
+CORS_ALLOW_METHODS = env_list(
+    "DJANGO_CORS_ALLOW_METHODS",
+    "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+)
+CORS_PREFLIGHT_MAX_AGE = int(os.getenv("DJANGO_CORS_PREFLIGHT_MAX_AGE", "86400"))
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -66,6 +96,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "common.cors.LocalCorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -122,6 +153,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 8},
+    },
+    {
+        "NAME": "common.validators.StrongPasswordValidator",
     },
     {
         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",

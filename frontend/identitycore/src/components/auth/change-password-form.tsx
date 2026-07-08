@@ -11,9 +11,10 @@ import {
   CardTitle,
   Input,
   Label,
-  toast,
 } from "@identitycore/ui";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { PasswordInput } from "@/components/auth/password-input";
+import { InlineStatus } from "@/components/feedback/inline-status";
 import { changePassword } from "@/lib/account-graphql";
 import { getErrorMessage } from "@/lib/api-client";
 
@@ -22,14 +23,20 @@ export function ChangePasswordForm() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    kind: "error" | "success";
+    title: string;
+    message: string;
+  } | null>(null);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setFeedback(null);
     if (newPassword !== confirmPassword) {
-      toast({
+      setFeedback({
+        kind: "error",
         title: "Passwords do not match",
-        description: "Enter the same new password in both fields.",
-        variant: "destructive",
+        message: "Enter the same new password in both fields.",
       });
       return;
     }
@@ -37,18 +44,19 @@ export function ChangePasswordForm() {
     setSubmitting(true);
     try {
       const payload = await changePassword(currentPassword, newPassword);
-      toast({
+      setFeedback({
+        kind: "success",
         title: "Password changed",
-        description: payload.message,
+        message: payload.message,
       });
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (error) {
-      toast({
+      setFeedback({
+        kind: "error",
         title: "Unable to change password",
-        description: getErrorMessage(error),
-        variant: "destructive",
+        message: getErrorMessage(error),
       });
     } finally {
       setSubmitting(false);
@@ -73,11 +81,18 @@ export function ChangePasswordForm() {
         </CardHeader>
         <CardContent>
           <form className="space-y-5" onSubmit={handleSubmit}>
+            {feedback ? (
+              <InlineStatus
+                kind={feedback.kind}
+                title={feedback.title}
+                message={feedback.message}
+              />
+            ) : null}
+
             <div className="space-y-2">
               <Label htmlFor="currentPassword">Current password</Label>
-              <Input
+              <PasswordInput
                 id="currentPassword"
-                type="password"
                 autoComplete="current-password"
                 value={currentPassword}
                 onChange={(event) => setCurrentPassword(event.target.value)}
@@ -87,9 +102,8 @@ export function ChangePasswordForm() {
 
             <div className="space-y-2">
               <Label htmlFor="newPassword">New password</Label>
-              <Input
+              <PasswordInput
                 id="newPassword"
-                type="password"
                 autoComplete="new-password"
                 value={newPassword}
                 onChange={(event) => setNewPassword(event.target.value)}
@@ -99,9 +113,8 @@ export function ChangePasswordForm() {
 
             <div className="space-y-2">
               <Label htmlFor="confirmNewPassword">Confirm new password</Label>
-              <Input
+              <PasswordInput
                 id="confirmNewPassword"
-                type="password"
                 autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}

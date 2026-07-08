@@ -26,8 +26,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  toast,
 } from "@identitycore/ui";
+import { InlineStatus } from "@/components/feedback/inline-status";
 import { getErrorMessage } from "@/lib/api-client";
 import { submitAdministratorIdentityVerification } from "@/lib/onboarding-api";
 import { fetchPublicCatalog } from "@/lib/public-graphql";
@@ -93,6 +93,11 @@ export function VerificationSessionFlow({
   const [selfieCaptureId, setSelfieCaptureId] = useState("");
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [onboardingSubmitted, setOnboardingSubmitted] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    kind: "error" | "success";
+    title: string;
+    message: string;
+  } | null>(null);
   const loading =
     credentials !== null &&
     !catalogError &&
@@ -127,10 +132,10 @@ export function VerificationSessionFlow({
       .catch((error) => {
         const message = getErrorMessage(error);
         setCatalogError(message);
-        toast({
+        setFeedback({
+          kind: "error",
           title: "Unable to load verification session",
-          description: message,
-          variant: "destructive",
+          message,
         });
       });
   }, [credentials, verificationId]);
@@ -168,19 +173,21 @@ export function VerificationSessionFlow({
     }
 
     setSubmitting(true);
+    setFeedback(null);
     try {
       await acceptVerificationConsent(credentials, consentAccepted);
       const nextStatus = await fetchVerificationStatus(credentials);
       setStatus(nextStatus);
-      toast({
+      setFeedback({
+        kind: "success",
         title: "Consent recorded",
-        description: "You can continue with document capture.",
+        message: "You can continue with document capture.",
       });
     } catch (error) {
-      toast({
+      setFeedback({
+        kind: "error",
         title: "Unable to submit consent",
-        description: getErrorMessage(error),
-        variant: "destructive",
+        message: getErrorMessage(error),
       });
     } finally {
       setSubmitting(false);
@@ -193,6 +200,7 @@ export function VerificationSessionFlow({
     }
 
     setSubmitting(true);
+    setFeedback(null);
     try {
       const frontUpload = await createSessionUpload(
         credentials,
@@ -220,15 +228,16 @@ export function VerificationSessionFlow({
 
       const nextStatus = await fetchVerificationStatus(credentials);
       setStatus(nextStatus);
-      toast({
+      setFeedback({
+        kind: "success",
         title: "Document submitted",
-        description: "Continue with the selfie capture step.",
+        message: "Continue with the selfie capture step.",
       });
     } catch (error) {
-      toast({
+      setFeedback({
+        kind: "error",
         title: "Unable to submit document",
-        description: getErrorMessage(error),
-        variant: "destructive",
+        message: getErrorMessage(error),
       });
     } finally {
       setSubmitting(false);
@@ -241,6 +250,7 @@ export function VerificationSessionFlow({
     }
 
     setSubmitting(true);
+    setFeedback(null);
     try {
       const upload = await createSessionUpload(
         credentials,
@@ -254,15 +264,16 @@ export function VerificationSessionFlow({
       setSelfieCaptureId(payload.selfie_capture_id);
       const nextStatus = await fetchVerificationStatus(credentials);
       setStatus(nextStatus);
-      toast({
+      setFeedback({
+        kind: "success",
         title: "Selfie submitted",
-        description: "Continue with the liveness confirmation.",
+        message: "Continue with the liveness confirmation.",
       });
     } catch (error) {
-      toast({
+      setFeedback({
+        kind: "error",
         title: "Unable to submit selfie",
-        description: getErrorMessage(error),
-        variant: "destructive",
+        message: getErrorMessage(error),
       });
     } finally {
       setSubmitting(false);
@@ -275,6 +286,7 @@ export function VerificationSessionFlow({
     }
 
     setSubmitting(true);
+    setFeedback(null);
     try {
       await submitVerificationLiveness(credentials, {
         livenessType: "passive",
@@ -288,16 +300,17 @@ export function VerificationSessionFlow({
       ]);
       setStatus(nextStatus);
       setDetail(nextDetail);
-      toast({
+      setFeedback({
+        kind: "success",
         title: "Verification submitted",
-        description:
+        message:
           "Identity evidence is now being processed and the onboarding record has been updated.",
       });
     } catch (error) {
-      toast({
+      setFeedback({
+        kind: "error",
         title: "Unable to submit liveness confirmation",
-        description: getErrorMessage(error),
-        variant: "destructive",
+        message: getErrorMessage(error),
       });
     } finally {
       setSubmitting(false);
@@ -344,6 +357,14 @@ export function VerificationSessionFlow({
         </CardHeader>
 
         <CardContent className="space-y-6">
+          {feedback ? (
+            <InlineStatus
+              kind={feedback.kind}
+              title={feedback.title}
+              message={feedback.message}
+            />
+          ) : null}
+
           {currentStepIndex === 0 ? (
             <StepCard
               icon={<ShieldCheck className="h-6 w-6" />}

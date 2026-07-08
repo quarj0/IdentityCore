@@ -2,23 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { Loader2, Rocket, ShieldCheck } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, toast } from "@identitycore/ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@identitycore/ui";
+import { InlineStatus } from "@/components/feedback/inline-status";
 import { getErrorMessage } from "@/lib/api-client";
 import { fetchCurrentOnboarding, type OnboardingState } from "@/lib/onboarding-api";
 
 export function ProductionApprovalPanel() {
   const [state, setState] = useState<OnboardingState | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCurrentOnboarding()
       .then(setState)
       .catch((error) => {
-        toast({
-          title: "Unable to load production approval state",
-          description: getErrorMessage(error),
-          variant: "destructive",
-        });
+        setErrorMessage(getErrorMessage(error));
       })
       .finally(() => setLoading(false));
   }, []);
@@ -32,34 +30,44 @@ export function ProductionApprovalPanel() {
   }
 
   return (
-    <Card className="max-w-2xl rounded-3xl border-slate-200 bg-white p-2 shadow-sm">
-      <CardHeader>
-        <Rocket className="mb-4 h-7 w-7 text-blue-600" />
-        <CardTitle>Production approval status</CardTitle>
-        <CardDescription className="leading-7">
-          The onboarding workflow is currently `{state?.platformReviewStatus ?? "not_started"}`.
-          Tenant users do not submit a separate production request in the current API;
-          the platform review begins after administrator identity submission.
-        </CardDescription>
-      </CardHeader>
+    <div className="max-w-2xl space-y-4">
+      {errorMessage ? (
+        <InlineStatus
+          kind="error"
+          title="Unable to load production approval state"
+          message={errorMessage}
+        />
+      ) : null}
 
-      <CardContent className="space-y-4">
-        <div className="rounded-2xl bg-slate-50 p-4">
-          <div className="flex gap-3">
-            <ShieldCheck className="mt-1 h-5 w-5 text-blue-600" />
-            <p className="text-sm leading-7 text-muted-foreground">
-              Organization status: {state?.organizationStatus ?? "unknown"}.
-              Tenant status: {state?.tenantStatus ?? "unknown"}.
-            </p>
-          </div>
-        </div>
+      <Card className="rounded-3xl border-slate-200 bg-white p-2 shadow-sm">
+        <CardHeader>
+          <Rocket className="mb-4 h-7 w-7 text-blue-600" />
+          <CardTitle>Production approval status</CardTitle>
+          <CardDescription className="leading-7">
+            The onboarding workflow is currently `{state?.platformReviewStatus ?? "not_started"}`.
+            Tenant users do not submit a separate production request in the current API;
+            the platform review begins after administrator identity submission.
+          </CardDescription>
+        </CardHeader>
 
-        {state?.platformReviewNote ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-muted-foreground">
-            Review note: {state.platformReviewNote}
+        <CardContent className="space-y-4">
+          <div className="rounded-2xl bg-slate-50 p-4">
+            <div className="flex gap-3">
+              <ShieldCheck className="mt-1 h-5 w-5 text-blue-600" />
+              <p className="text-sm leading-7 text-muted-foreground">
+                Organization status: {state?.organizationStatus ?? "unknown"}.
+                Tenant status: {state?.tenantStatus ?? "unknown"}.
+              </p>
+            </div>
           </div>
-        ) : null}
-      </CardContent>
-    </Card>
+
+          {state?.platformReviewNote ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-muted-foreground">
+              Review note: {state.platformReviewNote}
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+    </div>
   );
 }

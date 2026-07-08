@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
 from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
@@ -13,7 +12,7 @@ from apps.accounts.verification import issue_and_queue_email_verification
 from apps.audit.services import record_audit_event
 from apps.organizations.models import Organization, OrganizationStatus
 from apps.tenants.models import Tenant, TenantStatus
-
+from common.validators import normalize_email, validate_business_email
 
 ORGANIZATION_TYPE_CHOICES = (
     "government",
@@ -61,12 +60,6 @@ def generate_unique_slug(model, raw_value: str) -> str:
     return candidate
 
 
-def _normalized_email(value: str) -> str:
-    email = value.strip().lower()
-    validate_email(email)
-    return email
-
-
 def _validate_registration_fields(
     *,
     full_name: str,
@@ -82,8 +75,8 @@ def _validate_registration_fields(
         raise ValidationError("Organization name is required.")
     if organization_type not in ORGANIZATION_TYPE_CHOICES:
         raise ValidationError("Unsupported organization type.")
-    business_email = _normalized_email(business_email)
-    support_email = _normalized_email(support_email)
+    business_email = validate_business_email(business_email)
+    support_email = normalize_email(support_email)
     validate_password(password)
     return business_email, support_email
 
@@ -91,7 +84,6 @@ def _validate_registration_fields(
 def _build_onboarding_settings(
     *,
     user: PlatformUser,
-    user_country: str,
     organization_type: str,
     organization_country: str,
     website: str,
@@ -115,7 +107,6 @@ def _build_onboarding_settings(
             "user_id": user.public_id,
             "full_name": f"{user.first_name} {user.last_name}".strip(),
             "business_email": user.email,
-            "country": user_country.strip(),
         },
         "email_verification": {
             "required": True,
@@ -148,7 +139,9 @@ def _get_onboarding_settings(organization: Organization) -> dict:
     return dict(settings_json.get("onboarding") or {})
 
 
-def _save_onboarding_settings(organization: Organization, onboarding: dict) -> Organization:
+def _save_onboarding_settings(
+    organization: Organization, onboarding: dict
+) -> Organization:
     settings_json = dict(organization.settings_json or {})
     settings_json["onboarding"] = onboarding
     organization.settings_json = settings_json
@@ -175,7 +168,6 @@ def register_organization_onboarding(
     full_name: str,
     business_email: str,
     password: str,
-    user_country: str,
     organization_name: str,
     organization_type: str,
     organization_country: str,
@@ -218,7 +210,6 @@ def register_organization_onboarding(
     )
     onboarding = _build_onboarding_settings(
         user=user,
-        user_country=user_country,
         organization_type=organization_type,
         organization_country=organization_country,
         website=website,
@@ -263,7 +254,9 @@ def serialize_onboarding_state(
         "organization_id": organization.public_id,
         "organization_name": organization.name,
         "organization_slug": organization.slug,
-        "organization_type": registration.get("organization_type", organization.industry),
+        "organization_type": registration.get(
+            "organization_type", organization.industry
+        ),
         "organization_country": registration.get("organization_country", ""),
         "organization_status": organization.status,
         "organization_tier": onboarding.get("tier", ORGANIZATION_TIER_TRIAL),
@@ -488,10 +481,8 @@ def review_organization_onboarding(
 
 
 @transaction.atomic
-def resend_onboarding_email_verification(
-    *, business_email: str, request=None
-) -> bool:
-    normalized_email = _normalized_email(business_email)
+def resend_onboarding_email_verification(*, business_email: str, request=None) -> bool:
+    normalized_email = normalize_email(business_email)
     user = (
         PlatformUser.objects.select_related("tenant", "tenant__organization")
         .filter(email=normalized_email, tenant__isnull=False)

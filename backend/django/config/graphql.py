@@ -640,18 +640,19 @@ class Mutation:
     ) -> OrganizationOnboardingPayload:
         request = info.context["request"]
         try:
-            organization, tenant, user, raw_verification_token = register_organization_onboarding(
-                full_name=input.full_name,
-                business_email=input.business_email,
-                password=input.password,
-                user_country=input.country,
-                organization_name=input.organization_name,
-                organization_type=input.organization_type,
-                organization_country=input.organization_country,
-                website=input.website,
-                support_email=input.support_email,
-                phone_number=input.phone_number,
-                request=request,
+            organization, tenant, user, raw_verification_token = (
+                register_organization_onboarding(
+                    full_name=input.full_name,
+                    business_email=input.business_email,
+                    password=input.password,
+                    organization_name=input.organization_name,
+                    organization_type=input.organization_type,
+                    organization_country=input.organization_country,
+                    website=input.website,
+                    support_email=input.support_email,
+                    phone_number=input.phone_number,
+                    request=request,
+                )
             )
         except ValidationError as exc:
             raise_graphql_validation_error(exc)
@@ -822,13 +823,17 @@ class Mutation:
         except ValidationError as exc:
             raise_graphql_validation_error(exc)
         if user is None:
-            raise GraphQLError("Onboarding organization does not have an administrator.")
+            raise GraphQLError(
+                "Onboarding organization does not have an administrator."
+            )
         next_action = (
             "organization_active"
             if decision == "approved"
-            else "provide_additional_information"
-            if decision == "needs_information"
-            else "contact_support"
+            else (
+                "provide_additional_information"
+                if decision == "needs_information"
+                else "contact_support"
+            )
         )
         return OrganizationOnboardingPayload(
             onboarding=to_onboarding_node(

@@ -18,14 +18,19 @@ import {
   SelectTrigger,
   SelectValue,
   Textarea,
-  toast,
 } from "@identitycore/ui";
+import { InlineStatus } from "@/components/feedback/inline-status";
 import { getErrorMessage } from "@/lib/api-client";
 import { submitContactInquiry } from "@/lib/public-graphql";
 
 export function ContactForm() {
   const [submitting, setSubmitting] = useState(false);
   const [interest, setInterest] = useState("");
+  const [feedback, setFeedback] = useState<{
+    kind: "error" | "success";
+    title: string;
+    message: string;
+  } | null>(null);
   const [form, setForm] = useState({
     fullName: "",
     businessEmail: "",
@@ -36,15 +41,17 @@ export function ContactForm() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
+    setFeedback(null);
 
     try {
       const payload = await submitContactInquiry({
         ...form,
         interest,
       });
-      toast({
+      setFeedback({
+        kind: "success",
         title: "Message sent",
-        description: payload.message,
+        message: payload.message,
       });
       setForm({
         fullName: "",
@@ -54,10 +61,10 @@ export function ContactForm() {
       });
       setInterest("");
     } catch (error) {
-      toast({
+      setFeedback({
+        kind: "error",
         title: "Unable to send message",
-        description: getErrorMessage(error),
-        variant: "destructive",
+        message: getErrorMessage(error),
       });
     } finally {
       setSubmitting(false);
@@ -79,6 +86,16 @@ export function ContactForm() {
 
       <CardContent>
         <form className="grid gap-5 sm:grid-cols-2" onSubmit={handleSubmit}>
+          {feedback ? (
+            <div className="sm:col-span-2">
+              <InlineStatus
+                kind={feedback.kind}
+                title={feedback.title}
+                message={feedback.message}
+              />
+            </div>
+          ) : null}
+
           <div className="space-y-2">
             <Label htmlFor="fullName">Full name</Label>
             <Input

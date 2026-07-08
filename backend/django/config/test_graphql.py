@@ -245,6 +245,68 @@ class GraphQLAPITests(APITestCase):
             UserRole.objects.filter(user__email="ama@sunrise.example").exists()
         )
 
+    def test_register_organization_onboarding_rejects_public_email_domains(self):
+        response = self.post_graphql(
+            """
+                mutation RegisterOnboarding($input: RegisterOrganizationOnboardingInput!) {
+                  registerOrganizationOnboarding(input: $input) {
+                    nextAction
+                  }
+                }
+            """,
+            {
+                "input": {
+                    "fullName": "Ama Mensah",
+                    "businessEmail": "ama@gmail.com",
+                    "password": "StrongPassword123!",
+                    "country": "GH",
+                    "organizationName": "Sunrise Health",
+                    "organizationType": "healthcare_provider",
+                    "organizationCountry": "GH",
+                    "website": "https://sunrise.example",
+                    "supportEmail": "support@sunrise.example",
+                    "phoneNumber": "+233201234567",
+                }
+            },
+            token="",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = response.json()
+        self.assertIn("errors", payload)
+        self.assertIn("organization email address", payload["errors"][0]["message"])
+
+    def test_register_organization_onboarding_rejects_weak_passwords(self):
+        response = self.post_graphql(
+            """
+                mutation RegisterOnboarding($input: RegisterOrganizationOnboardingInput!) {
+                  registerOrganizationOnboarding(input: $input) {
+                    nextAction
+                  }
+                }
+            """,
+            {
+                "input": {
+                    "fullName": "Ama Mensah",
+                    "businessEmail": "ama@sunrise.example",
+                    "password": "weakpass",
+                    "country": "GH",
+                    "organizationName": "Sunrise Health",
+                    "organizationType": "healthcare_provider",
+                    "organizationCountry": "GH",
+                    "website": "https://sunrise.example",
+                    "supportEmail": "support@sunrise.example",
+                    "phoneNumber": "+233201234567",
+                }
+            },
+            token="",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = response.json()
+        self.assertIn("errors", payload)
+        self.assertIn("special character", payload["errors"][0]["message"])
+
     @override_settings(DEBUG=True)
     def test_onboarding_mutations_advance_state_after_email_confirmation(self):
         registration_response = self.post_graphql(

@@ -10,9 +10,9 @@ import {
   CardHeader,
   CardTitle,
   Progress,
-  toast,
 } from "@identitycore/ui";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { InlineStatus } from "@/components/feedback/inline-status";
 import { OnboardingChecklist } from "@/components/onboarding/onboarding-checklist";
 import { OnboardingTierCard } from "@/components/onboarding/onboarding-tier-card";
 import { getErrorMessage } from "@/lib/api-client";
@@ -22,16 +22,13 @@ import { buildOnboardingSteps } from "@/lib/onboarding-state";
 export function OnboardingPageClient() {
   const [state, setState] = useState<OnboardingState | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCurrentOnboarding()
       .then(setState)
       .catch((error) => {
-        toast({
-          title: "Unable to load onboarding",
-          description: getErrorMessage(error),
-          variant: "destructive",
-        });
+        setErrorMessage(getErrorMessage(error));
       })
       .finally(() => setLoading(false));
   }, []);
@@ -55,6 +52,14 @@ export function OnboardingPageClient() {
       ) : (
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
           <div className="space-y-6">
+            {errorMessage ? (
+              <InlineStatus
+                kind="error"
+                title="Unable to load onboarding"
+                message={errorMessage}
+              />
+            ) : null}
+
             <div className="grid gap-4 md:grid-cols-3">
               <Card className="rounded-3xl border-slate-200 bg-white shadow-sm">
                 <CardHeader className="pb-3">

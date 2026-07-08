@@ -13,9 +13,10 @@ import {
   CardTitle,
   Input,
   Label,
-  toast,
 } from "@identitycore/ui";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { PasswordInput } from "@/components/auth/password-input";
+import { InlineStatus } from "@/components/feedback/inline-status";
 import { getErrorMessage } from "@/lib/api-client";
 import { resetPassword } from "@/lib/public-graphql";
 
@@ -24,14 +25,20 @@ export function ResetPasswordForm({ token = "" }: { token?: string }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    kind: "error" | "success";
+    title: string;
+    message: string;
+  } | null>(null);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setFeedback(null);
     if (password !== confirmPassword) {
-      toast({
+      setFeedback({
+        kind: "error",
         title: "Passwords do not match",
-        description: "Enter the same new password in both fields.",
-        variant: "destructive",
+        message: "Enter the same new password in both fields.",
       });
       return;
     }
@@ -39,16 +46,17 @@ export function ResetPasswordForm({ token = "" }: { token?: string }) {
     setSubmitting(true);
     try {
       const payload = await resetPassword(token, password);
-      toast({
+      setFeedback({
+        kind: "success",
         title: "Password reset complete",
-        description: payload.message,
+        message: payload.message,
       });
       router.push("/login");
     } catch (error) {
-      toast({
+      setFeedback({
+        kind: "error",
         title: "Unable to reset password",
-        description: getErrorMessage(error),
-        variant: "destructive",
+        message: getErrorMessage(error),
       });
     } finally {
       setSubmitting(false);
@@ -74,11 +82,18 @@ export function ResetPasswordForm({ token = "" }: { token?: string }) {
         <CardContent>
           {token ? (
             <form className="space-y-5" onSubmit={handleSubmit}>
+              {feedback ? (
+                <InlineStatus
+                  kind={feedback.kind}
+                  title={feedback.title}
+                  message={feedback.message}
+                />
+              ) : null}
+
               <div className="space-y-2">
                 <Label htmlFor="password">New password</Label>
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
                   autoComplete="new-password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
@@ -87,9 +102,8 @@ export function ResetPasswordForm({ token = "" }: { token?: string }) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm new password</Label>
-                <Input
+                <PasswordInput
                   id="confirmPassword"
-                  type="password"
                   autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}

@@ -11,9 +11,9 @@ import {
   CardHeader,
   CardTitle,
   Input,
-  toast,
 } from "@identitycore/ui";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { InlineStatus } from "@/components/feedback/inline-status";
 import { getErrorMessage } from "@/lib/api-client";
 import {
   resendOrganizationOnboardingEmailVerification,
@@ -37,6 +37,11 @@ export function VerifyEmailPanel({
       : "Open the verification link from your inbox to continue onboarding.",
   );
   const [resending, setResending] = useState(false);
+  const [resendFeedback, setResendFeedback] = useState<{
+    kind: "error" | "success";
+    title: string;
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!token) {
@@ -58,19 +63,20 @@ export function VerifyEmailPanel({
 
   async function handleResend() {
     setResending(true);
+    setResendFeedback(null);
 
     try {
       const payload = await resendOrganizationOnboardingEmailVerification(email);
-      toast({
+      setResendFeedback({
+        kind: payload.ok ? "success" : "error",
         title: payload.ok ? "Verification email sent" : "Unable to resend",
-        description: payload.message,
-        variant: payload.ok ? "default" : "destructive",
+        message: payload.message,
       });
     } catch (error) {
-      toast({
+      setResendFeedback({
+        kind: "error",
         title: "Unable to resend verification email",
-        description: getErrorMessage(error),
-        variant: "destructive",
+        message: getErrorMessage(error),
       });
     } finally {
       setResending(false);
@@ -128,6 +134,14 @@ export function VerifyEmailPanel({
           </Button>
 
           <div className="space-y-3">
+            {resendFeedback ? (
+              <InlineStatus
+                kind={resendFeedback.kind}
+                title={resendFeedback.title}
+                message={resendFeedback.message}
+              />
+            ) : null}
+
             <Input
               type="email"
               placeholder="Business email"

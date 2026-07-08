@@ -12,8 +12,8 @@ import {
   Input,
   Label,
   Textarea,
-  toast,
 } from "@identitycore/ui";
+import { InlineStatus } from "@/components/feedback/inline-status";
 import { getErrorMessage } from "@/lib/api-client";
 import {
   fetchCurrentOnboarding,
@@ -23,6 +23,11 @@ import {
 export function OrganizationVerificationForm() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    kind: "error" | "success";
+    title: string;
+    message: string;
+  } | null>(null);
   const [form, setForm] = useState({
     businessRegistrationNumber: "",
     registeredAddress: "",
@@ -39,10 +44,10 @@ export function OrganizationVerificationForm() {
         }));
       })
       .catch((error) => {
-        toast({
+        setFeedback({
+          kind: "error",
           title: "Unable to load onboarding state",
-          description: getErrorMessage(error),
-          variant: "destructive",
+          message: getErrorMessage(error),
         });
       })
       .finally(() => setLoading(false));
@@ -51,22 +56,24 @@ export function OrganizationVerificationForm() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
+    setFeedback(null);
 
     try {
       await submitOrganizationVerification({
         ...form,
         supportingDocumentKeys: [],
       });
-      toast({
+      setFeedback({
+        kind: "success",
         title: "Organization details submitted",
-        description:
+        message:
           "Your onboarding record has been updated and the next step is ready.",
       });
     } catch (error) {
-      toast({
+      setFeedback({
+        kind: "error",
         title: "Unable to submit organization details",
-        description: getErrorMessage(error),
-        variant: "destructive",
+        message: getErrorMessage(error),
       });
     } finally {
       setSubmitting(false);
@@ -95,6 +102,16 @@ export function OrganizationVerificationForm() {
 
         <CardContent>
           <form className="grid gap-5 sm:grid-cols-2" onSubmit={handleSubmit}>
+            {feedback ? (
+              <div className="sm:col-span-2">
+                <InlineStatus
+                  kind={feedback.kind}
+                  title={feedback.title}
+                  message={feedback.message}
+                />
+              </div>
+            ) : null}
+
             <div className="space-y-2">
               <Label htmlFor="businessRegistrationNumber">
                 Business registration number

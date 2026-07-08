@@ -12,30 +12,37 @@ import {
   CardTitle,
   Input,
   Label,
-  toast,
 } from "@identitycore/ui";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { InlineStatus } from "@/components/feedback/inline-status";
 import { getErrorMessage } from "@/lib/api-client";
 import { requestPasswordReset } from "@/lib/public-graphql";
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    kind: "error" | "success";
+    title: string;
+    message: string;
+  } | null>(null);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
+    setFeedback(null);
     try {
       const payload = await requestPasswordReset(email);
-      toast({
+      setFeedback({
+        kind: "success",
         title: "Reset requested",
-        description: payload.message,
+        message: payload.message,
       });
     } catch (error) {
-      toast({
+      setFeedback({
+        kind: "error",
         title: "Unable to request reset",
-        description: getErrorMessage(error),
-        variant: "destructive",
+        message: getErrorMessage(error),
       });
     } finally {
       setSubmitting(false);
@@ -60,6 +67,14 @@ export function ForgotPasswordForm() {
         </CardHeader>
         <CardContent>
           <form className="space-y-5" onSubmit={handleSubmit}>
+            {feedback ? (
+              <InlineStatus
+                kind={feedback.kind}
+                title={feedback.title}
+                message={feedback.message}
+              />
+            ) : null}
+
             <div className="space-y-2">
               <Label htmlFor="email">Business email</Label>
               <Input
