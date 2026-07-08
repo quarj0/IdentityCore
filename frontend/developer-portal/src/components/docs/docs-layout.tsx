@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { DocsFooter } from "./docs-footer";
 import { DocsSidebar } from "./docs-sidebar";
 import { MobileDocsNav } from "./mobile-docs-nav";
 import { DocsSearch } from "./docs-search";
@@ -30,7 +31,10 @@ export function DocsLayout({ title, description, children }: DocsLayoutProps) {
               {description}
             </p>
 
-            <div className="mt-10 space-y-10">{children}</div>
+            <div className="mt-10 space-y-10">
+              {children}
+              <DocsFooter />
+            </div>
           </div>
         </div>
       </div>

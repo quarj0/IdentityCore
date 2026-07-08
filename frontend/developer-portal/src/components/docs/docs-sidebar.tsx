@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { docsNav } from "@/data/docs-nav";
+import { isDocsPathActive } from "@/lib/docs-navigation";
 
 export function DocsSidebar() {
   const pathname = usePathname();
@@ -19,7 +20,7 @@ export function DocsSidebar() {
             <div className="mt-3 grid gap-1">
               {group.items.map((item) => {
                 const Icon = item.icon;
-                const active = pathname === item.href;
+                const active = isDocsPathActive(pathname, item.href);
 
                 return (
                   <Link

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { CodeBlock } from "@/components/docs/code-block";
 import { DocsLayout } from "@/components/docs/docs-layout";
+import { LanguageExamples } from "@/components/docs/language-examples";
 import { endpoints } from "@/data/endpoints";
 
 export function generateStaticParams() {
@@ -41,6 +42,12 @@ export default async function ApiDetailPage({
         title="Response example"
         language="json"
         code={endpoint.response}
+      />
+
+      <LanguageExamples
+        title="Examples by language"
+        description="Use the same endpoint from the stack your team is already shipping."
+        examples={endpoint.examples}
       />
     </DocsLayout>
   );

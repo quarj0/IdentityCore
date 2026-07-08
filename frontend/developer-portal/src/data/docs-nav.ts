@@ -8,8 +8,21 @@ import {
   TerminalSquare,
   Webhook,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
-export const docsNav = [
+export interface DocsNavItem {
+  href: string;
+  label: string;
+  description: string;
+  icon: LucideIcon;
+}
+
+export interface DocsNavGroup {
+  title: string;
+  items: DocsNavItem[];
+}
+
+export const docsNav: DocsNavGroup[] = [
   {
     title: "Get started",
     items: [

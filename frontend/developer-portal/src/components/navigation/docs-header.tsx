@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
+import { siteConfig } from "@/lib/site-config";
 
 export function DocsHeader() {
   return (
@@ -30,7 +31,7 @@ export function DocsHeader() {
           <Link href="/webhooks" className="hover:text-slate-950">
             Webhooks
           </Link>
-          <a href="http://localhost:3001" className="hover:text-slate-950">
+          <a href={siteConfig.marketingSiteUrl} className="hover:text-slate-950">
             Main site
           </a>
         </nav>

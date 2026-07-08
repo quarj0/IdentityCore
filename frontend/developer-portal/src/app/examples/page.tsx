@@ -1,5 +1,5 @@
-import { CodeBlock } from "@/components/docs/code-block";
 import { DocsLayout } from "@/components/docs/docs-layout";
+import { LanguageExamples } from "@/components/docs/language-examples";
 import { examples } from "@/data/examples";
 
 export default function ExamplesPage() {
@@ -9,7 +9,12 @@ export default function ExamplesPage() {
       description="Common API and webhook examples for integrating IdentityCore into your product."
     >
       {examples.map((example) => (
-        <CodeBlock key={example.title} {...example} />
+        <LanguageExamples
+          key={example.title}
+          title={example.title}
+          description={example.description}
+          examples={example.samples}
+        />
       ))}
     </DocsLayout>
   );
