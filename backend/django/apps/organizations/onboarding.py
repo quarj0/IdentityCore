@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
+from django_countries import countries
 
 from apps.access_control.models import Role, RoleScope, UserRole
 from apps.accounts.models import PlatformUser, PlatformUserStatus
@@ -60,6 +61,15 @@ def generate_unique_slug(model, raw_value: str) -> str:
     return candidate
 
 
+def _normalize_country_code(country_code: str) -> str:
+    normalized = (country_code or "").strip().upper()
+    if not normalized:
+        raise ValidationError("Organization country is required.")
+    if normalized not in countries:
+        raise ValidationError("Unsupported organization country.")
+    return normalized
+
+
 def _validate_registration_fields(
     *,
     full_name: str,
@@ -68,7 +78,8 @@ def _validate_registration_fields(
     support_email: str,
     organization_name: str,
     organization_type: str,
-) -> tuple[str, str]:
+    organization_country: str,
+) -> tuple[str, str, str]:
     if not full_name.strip():
         raise ValidationError("Full name is required.")
     if not organization_name.strip():
@@ -77,8 +88,9 @@ def _validate_registration_fields(
         raise ValidationError("Unsupported organization type.")
     business_email = validate_business_email(business_email)
     support_email = normalize_email(support_email)
+    organization_country = _normalize_country_code(organization_country)
     validate_password(password)
-    return business_email, support_email
+    return business_email, support_email, organization_country
 
 
 def _build_onboarding_settings(
@@ -176,13 +188,14 @@ def register_organization_onboarding(
     phone_number: str,
     request=None,
 ) -> tuple[Organization, Tenant, PlatformUser, str]:
-    business_email, support_email = _validate_registration_fields(
+    business_email, support_email, organization_country = _validate_registration_fields(
         full_name=full_name,
         business_email=business_email,
         password=password,
         support_email=support_email,
         organization_name=organization_name,
         organization_type=organization_type,
+        organization_country=organization_country,
     )
     first_name, last_name = split_full_name(full_name)
     organization_slug = generate_unique_slug(Organization, organization_name)

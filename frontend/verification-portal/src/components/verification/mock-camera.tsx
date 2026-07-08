@@ -5,13 +5,12 @@ interface MockCameraProps {
   label: string;
   helperText?: string;
   onCapture: () => void;
-  onUpload: () => void;
-  onRetry?: () => void;
+  onUpload?: () => void;
 }
 
 export function MockCamera({
   label,
-  helperText = "Position the item clearly inside the frame.",
+  helperText = "Position clearly inside the frame.",
   onCapture,
   onUpload,
 }: MockCameraProps) {
@@ -34,15 +33,17 @@ export function MockCamera({
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onUpload}
-          className="rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10"
-        >
-          <Upload className="h-4 w-4" aria-hidden="true" />
-          Upload instead
-        </Button>
+        {onUpload ? (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onUpload}
+            className="rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10"
+          >
+            <Upload className="h-4 w-4" aria-hidden="true" />
+            Upload instead
+          </Button>
+        ) : null}
 
         <Button type="button" onClick={onCapture} className="rounded-xl">
           Capture mock image

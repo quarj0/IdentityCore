@@ -19,6 +19,11 @@ import {
   CardTitle,
   Input,
   Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@identitycore/ui";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { PasswordInput } from "@/components/auth/password-input";
@@ -34,6 +39,7 @@ import {
   fetchOrganizationOnboardingTypes,
   registerOrganizationOnboarding,
 } from "@/lib/onboarding-api";
+import { fetchPublicCatalog } from "@/lib/public-graphql";
 
 const STEPS = [
   { id: "account", label: "Account" },
@@ -47,6 +53,9 @@ export function RegisterForm() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [organizationTypes, setOrganizationTypes] = useState<string[]>([]);
+  const [countryProfiles, setCountryProfiles] = useState<
+    Array<{ code: string; name: string }>
+  >([]);
   const [step, setStep] = useState(0);
 
   const [form, setForm] = useState({
@@ -63,9 +72,14 @@ export function RegisterForm() {
   });
 
   useEffect(() => {
-    fetchOrganizationOnboardingTypes()
-      .then(setOrganizationTypes)
-      .catch(() => setOrganizationTypes([]));
+    void Promise.all([
+      fetchOrganizationOnboardingTypes()
+        .then(setOrganizationTypes)
+        .catch(() => setOrganizationTypes([])),
+      fetchPublicCatalog()
+        .then((catalog) => setCountryProfiles(catalog.countryProfiles))
+        .catch(() => setCountryProfiles([])),
+    ]);
   }, []);
 
   const isKnownType = useMemo(
@@ -82,7 +96,6 @@ export function RegisterForm() {
     form.fullName.trim() &&
     form.businessEmail.trim() &&
     form.password.trim() &&
-    form.country.trim() &&
     !businessEmailError &&
     !passwordError,
   );
@@ -359,19 +372,26 @@ export function RegisterForm() {
                   <Label htmlFor="organizationCountry">
                     Organization country
                   </Label>
-                  <Input
-                    id="organizationCountry"
-                    autoComplete="country-name"
-                    placeholder="Ghana"
+                  <Select
                     value={form.organizationCountry}
-                    onChange={(event) =>
+                    onValueChange={(value) =>
                       setForm((current) => ({
                         ...current,
-                        organizationCountry: event.target.value,
+                        organizationCountry: value,
                       }))
                     }
-                    required
-                  />
+                  >
+                    <SelectTrigger id="organizationCountry">
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {countryProfiles.map((profile) => (
+                        <SelectItem key={profile.code} value={profile.code}>
+                          {profile.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </section>
             ) : null}

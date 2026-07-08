@@ -100,8 +100,7 @@ class GraphQLAPITests(APITestCase):
             recommendation="manual_review",
         )
 
-        response = self.post_graphql(
-            """
+        response = self.post_graphql("""
                 query VerificationList {
                   verifications(status: "manual_review_required") {
                     id
@@ -115,8 +114,7 @@ class GraphQLAPITests(APITestCase):
                     }
                   }
                 }
-            """
-        )
+            """)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         payload = response.json()
@@ -276,6 +274,37 @@ class GraphQLAPITests(APITestCase):
         self.assertIn("errors", payload)
         self.assertIn("organization email address", payload["errors"][0]["message"])
 
+    def test_register_organization_onboarding_rejects_invalid_country_code(self):
+        response = self.post_graphql(
+            """
+                mutation RegisterOnboarding($input: RegisterOrganizationOnboardingInput!) {
+                  registerOrganizationOnboarding(input: $input) {
+                    nextAction
+                  }
+                }
+            """,
+            {
+                "input": {
+                    "fullName": "Ama Mensah",
+                    "businessEmail": "ama@sunrise.example",
+                    "password": "StrongPassword123!",
+                    "country": "GH",
+                    "organizationName": "Sunrise Health",
+                    "organizationType": "healthcare_provider",
+                    "organizationCountry": "ZZ",
+                    "website": "https://sunrise.example",
+                    "supportEmail": "support@sunrise.example",
+                    "phoneNumber": "+233201234567",
+                }
+            },
+            token="",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = response.json()
+        self.assertIn("errors", payload)
+        self.assertIn("country", payload["errors"][0]["message"].lower())
+
     def test_register_organization_onboarding_rejects_weak_passwords(self):
         response = self.post_graphql(
             """
@@ -367,10 +396,10 @@ class GraphQLAPITests(APITestCase):
         confirm_payload = confirm_response.json()["data"][
             "verifyOrganizationOnboardingEmail"
         ]
-        self.assertEqual(confirm_payload["nextAction"], "submit_organization_verification")
         self.assertEqual(
-            confirm_payload["onboarding"]["administratorStatus"], "active"
+            confirm_payload["nextAction"], "submit_organization_verification"
         )
+        self.assertEqual(confirm_payload["onboarding"]["administratorStatus"], "active")
         self.assertEqual(
             confirm_payload["onboarding"]["onboardingStatus"],
             "organization_verification_required",
@@ -388,7 +417,9 @@ class GraphQLAPITests(APITestCase):
             "pending_review",
         )
 
-        onboarding_user = PlatformUser.objects.get(public_id=onboarding["administratorUserId"])
+        onboarding_user = PlatformUser.objects.get(
+            public_id=onboarding["administratorUserId"]
+        )
         self.assertTrue(UserRole.objects.filter(user=onboarding_user).exists())
         login_response = self.client.post(
             "/api/v1/auth/login",
@@ -472,9 +503,7 @@ class GraphQLAPITests(APITestCase):
             "submitted",
         )
         self.assertEqual(
-            admin_identity_payload["onboarding"][
-                "administratorIdentityVerificationId"
-            ],
+            admin_identity_payload["onboarding"]["administratorIdentityVerificationId"],
             "ver_admin_identity_001",
         )
         self.assertEqual(
@@ -537,7 +566,10 @@ class GraphQLAPITests(APITestCase):
                     "business_email": self.user.email,
                     "country": "GH",
                 },
-                "email_verification": {"required": True, "verified_at": timezone.now().isoformat()},
+                "email_verification": {
+                    "required": True,
+                    "verified_at": timezone.now().isoformat(),
+                },
                 "organization_verification": {
                     "submitted_at": timezone.now().isoformat(),
                     "business_registration_number": "BRN-1",
@@ -561,8 +593,7 @@ class GraphQLAPITests(APITestCase):
         }
         self.organization.save(update_fields=["settings_json", "updated_at"])
 
-        response = self.post_graphql(
-            """
+        response = self.post_graphql("""
                 query OrganizationOnboarding {
                   organizationOnboarding {
                     organizationId
@@ -573,8 +604,7 @@ class GraphQLAPITests(APITestCase):
                     currentStep
                   }
                 }
-            """
-        )
+            """)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         payload = response.json()

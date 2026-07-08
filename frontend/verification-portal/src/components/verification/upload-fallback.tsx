@@ -29,9 +29,7 @@ export function UploadFallback({
       <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-8">
         <ImagePlus className="mx-auto h-8 w-8 text-slate-500" />
         <p className="mt-3 text-sm font-medium">Drop file here or browse</p>
-        <p className="mt-1 text-xs text-slate-500">
-          UI-only upload fallback for now.
-        </p>
+        <p className="mt-1 text-xs text-slate-500">UI-only upload fallback.</p>
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
