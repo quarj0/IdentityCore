@@ -12,13 +12,11 @@ export function StatusPill({ children, tone = "neutral" }: StatusPillProps) {
     <span
       className={cn(
         "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1",
-        tone === "success" &&
-          "bg-emerald-400/10 text-emerald-300 ring-emerald-300/20",
-        tone === "warning" &&
-          "bg-amber-400/10 text-amber-300 ring-amber-300/20",
-        tone === "danger" && "bg-rose-400/10 text-rose-300 ring-rose-300/20",
-        tone === "info" && "bg-cyan-400/10 text-cyan-300 ring-cyan-300/20",
-        tone === "neutral" && "bg-white/5 text-slate-300 ring-white/10",
+        tone === "success" && "bg-emerald-50 text-emerald-700 ring-emerald-100",
+        tone === "warning" && "bg-amber-50 text-amber-700 ring-amber-100",
+        tone === "danger" && "bg-red-50 text-red-700 ring-red-100",
+        tone === "info" && "bg-blue-50 text-blue-700 ring-blue-100",
+        tone === "neutral" && "bg-slate-100 text-slate-700 ring-slate-200",
       )}
     >
       {children}

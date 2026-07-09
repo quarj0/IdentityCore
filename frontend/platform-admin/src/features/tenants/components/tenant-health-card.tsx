@@ -43,20 +43,20 @@ export function TenantHealthCard({ tenant }: TenantHealthCardProps) {
       }
     >
       <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-white/10 bg-slate-950/40 p-4">
-          <p className="text-sm text-slate-400">Last health check</p>
+        <div className="rounded-xl border border-slate-200 bg-slate-950/40 p-4">
+          <p className="text-sm text-slate-500">Last health check</p>
           <p className="mt-2 font-medium text-white">
             {tenant.lastHealthCheckAt}
           </p>
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-slate-950/40 p-4">
-          <p className="text-sm text-slate-400">Uptime</p>
+        <div className="rounded-xl border border-slate-200 bg-slate-950/40 p-4">
+          <p className="text-sm text-slate-500">Uptime</p>
           <p className="mt-2 font-medium text-white">{tenant.uptime}</p>
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-slate-950/40 p-4">
-          <p className="text-sm text-slate-400">p95 latency</p>
+        <div className="rounded-xl border border-slate-200 bg-slate-950/40 p-4">
+          <p className="text-sm text-slate-500">p95 latency</p>
           <p className="mt-2 font-medium text-white">
             {tenant.apiLatencyMs > 0 ? `${tenant.apiLatencyMs}ms` : "Paused"}
           </p>
@@ -67,12 +67,12 @@ export function TenantHealthCard({ tenant }: TenantHealthCardProps) {
         {tenantHealthEvents.map((event) => (
           <div
             key={event.title}
-            className="rounded-xl border border-white/10 bg-slate-950/40 p-4"
+            className="rounded-xl border border-slate-200 bg-slate-950/40 p-4"
           >
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-sm font-medium text-white">{event.title}</p>
-                <p className="mt-1 text-sm text-slate-400">
+                <p className="mt-1 text-sm text-slate-500">
                   {event.description}
                 </p>
               </div>

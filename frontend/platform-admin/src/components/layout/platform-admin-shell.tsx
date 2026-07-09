@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { PlatformSidebar } from "@/components/layout/platform-sidebar";
-import { PlatformTopbar } from "@/components/layout/platform-topbar";
+import { PlatformSidebar } from "./platform-sidebar"; 
+import { PlatformTopbar } from "./platform-topbar"; 
 
 type PlatformAdminShellProps = {
   children: ReactNode;
@@ -8,7 +8,7 @@ type PlatformAdminShellProps = {
 
 export function PlatformAdminShell({ children }: PlatformAdminShellProps) {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="min-h-screen bg-white text-slate-950">
       <PlatformSidebar />
 
       <div className="min-h-screen lg:pl-72">

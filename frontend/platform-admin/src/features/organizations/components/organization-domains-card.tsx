@@ -12,7 +12,7 @@ export function OrganizationDomainsCard() {
         {organizationDomains.map((domain) => (
           <div
             key={domain.domain}
-            className="rounded-xl border border-white/10 bg-slate-950/40 p-4"
+            className="rounded-xl border border-slate-200 bg-slate-950/40 p-4"
           >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>

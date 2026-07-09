@@ -9,10 +9,10 @@ type TenantsTableProps = {
 
 export function TenantsTable({ tenants }: TenantsTableProps) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/3">
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <div className="overflow-x-auto">
         <table className="w-full min-w-275 text-left text-sm">
-          <thead className="border-b border-white/10 bg-white/2 text-xs uppercase tracking-wide text-slate-500">
+          <thead className="border-b border-slate-200 bg-white/2 text-xs uppercase tracking-wide text-slate-500">
             <tr>
               <th scope="col" className="px-5 py-4 font-medium">
                 Tenant
@@ -102,7 +102,7 @@ export function TenantsTable({ tenants }: TenantsTableProps) {
                     asChild
                     variant="outline"
                     size="sm"
-                    className="border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+                    className="border-slate-200 bg-white/5 text-slate-200 hover:bg-white/10"
                   >
                     <Link href={`/tenants/${tenant.id}`}>View</Link>
                   </Button>

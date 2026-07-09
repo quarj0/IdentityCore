@@ -28,9 +28,9 @@ export function TenantIsolationCard({ tenant }: TenantIsolationCardProps) {
         {tenantIsolationControls.map((control) => (
           <div
             key={control.label}
-            className="rounded-xl border border-white/10 bg-slate-950/40 p-4"
+            className="rounded-xl border border-slate-200 bg-slate-950/40 p-4"
           >
-            <p className="text-sm text-slate-400">{control.label}</p>
+            <p className="text-sm text-slate-500">{control.label}</p>
             <p className="mt-2 text-sm font-medium leading-6 text-white">
               {control.value}
             </p>

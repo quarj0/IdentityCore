@@ -16,7 +16,7 @@ export function ErrorState({
 }: ErrorStateProps) {
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="max-w-md rounded-2xl border border-white/10 bg-white/3 p-8 text-center">
+      <div className="max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center">
         <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-rose-400/10 text-rose-300">
           <AlertCircle className="size-6" aria-hidden="true" />
         </div>

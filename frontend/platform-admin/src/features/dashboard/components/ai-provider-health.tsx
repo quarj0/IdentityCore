@@ -12,14 +12,14 @@ export function AiProviderHealth() {
         {aiProviderHealth.map((provider) => (
           <div
             key={provider.name}
-            className="rounded-2xl border border-white/10 bg-slate-950/40 p-4"
+            className="rounded-2xl border border-slate-200 bg-slate-950/40 p-4"
           >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-white">
+                <h3 className="text-sm font-semibold text-slate-950">
                   {provider.name}
                 </h3>
-                <p className="mt-1 text-sm text-slate-400">{provider.type}</p>
+                <p className="mt-1 text-sm text-slate-500">{provider.type}</p>
               </div>
 
               <StatusPill

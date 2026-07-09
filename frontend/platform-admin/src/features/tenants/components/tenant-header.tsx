@@ -10,7 +10,7 @@ type TenantHeaderProps = {
 
 export function TenantHeader({ tenant }: TenantHeaderProps) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/3 p-5">
+    <section className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-3">
@@ -20,7 +20,7 @@ export function TenantHeader({ tenant }: TenantHeaderProps) {
             <TenantStatusPill status={tenant.status} />
           </div>
 
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="mt-2 text-sm text-slate-500">
             Tenant for{" "}
             <Link
               href={`/organizations/${tenant.organizationId}`}
@@ -64,14 +64,14 @@ export function TenantHeader({ tenant }: TenantHeaderProps) {
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
-            className="border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+            className="border-slate-200 bg-white/5 text-slate-200 hover:bg-white/10"
           >
             View logs
           </Button>
 
           <Button
             variant="outline"
-            className="border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+            className="border-slate-200 bg-white/5 text-slate-200 hover:bg-white/10"
           >
             Run health check
           </Button>

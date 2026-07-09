@@ -5,7 +5,7 @@ import { Button, Input } from "@identitycore/ui";
 
 export function PlatformTopbar() {
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/85 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-slate-200 bg-slate-950/85 backdrop-blur">
       <div className="flex h-16 items-center gap-3 px-4 sm:px-6 lg:px-8">
         <Button
           variant="ghost"
@@ -24,18 +24,18 @@ export function PlatformTopbar() {
 
           <Input
             placeholder="Search organizations, verifications, tickets, audits..."
-            className="h-10 max-w-2xl border-white/10 bg-white/5 pl-10 text-slate-100 placeholder:text-slate-500"
+            className="h-10 max-w-2xl border-slate-200 bg-white/5 pl-10 text-slate-100 placeholder:text-slate-500"
             aria-label="Search platform admin"
           />
         </div>
 
         <Button
           variant="outline"
-          className="ml-auto hidden border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 md:inline-flex"
+          className="ml-auto hidden border-slate-200 bg-white/5 text-slate-200 hover:bg-white/10 md:inline-flex"
         >
           <Command className="mr-2 size-4" aria-hidden="true" />
           Command
-          <kbd className="ml-2 rounded border border-white/10 bg-slate-900 px-1.5 py-0.5 text-[10px] text-slate-400">
+          <kbd className="ml-2 rounded border border-slate-200 bg-slate-900 px-1.5 py-0.5 text-[10px] text-slate-400">
             ⌘K
           </kbd>
         </Button>

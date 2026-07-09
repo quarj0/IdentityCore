@@ -3,7 +3,7 @@ import { Skeleton } from "@identitycore/ui";
 export function DashboardSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="border-b border-white/10 pb-6">
+      <div className="border-b border-slate-200 pb-6">
         <Skeleton className="h-4 w-32 bg-white/10" />
         <Skeleton className="mt-3 h-8 w-80 bg-white/10" />
         <Skeleton className="mt-3 h-4 w-full max-w-2xl bg-white/10" />

@@ -9,7 +9,7 @@ type OrganizationHeaderProps = {
 
 export function OrganizationHeader({ organization }: OrganizationHeaderProps) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/3 p-5">
+    <section className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex gap-4">
           <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-cyan-400/10 text-lg font-semibold text-cyan-300 ring-1 ring-cyan-300/20">
@@ -25,7 +25,7 @@ export function OrganizationHeader({ organization }: OrganizationHeaderProps) {
               <OrganizationStatusPill status={organization.status} />
             </div>
 
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 text-sm text-slate-500">
               {organization.industry} · {organization.country} ·{" "}
               {organization.region}
             </p>
@@ -42,14 +42,14 @@ export function OrganizationHeader({ organization }: OrganizationHeaderProps) {
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
-            className="border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+            className="border-slate-200 bg-white/5 text-slate-200 hover:bg-white/10"
           >
             View audit trail
           </Button>
 
           <Button
             variant="outline"
-            className="border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+            className="border-slate-200 bg-white/5 text-slate-200 hover:bg-white/10"
           >
             Impersonate
           </Button>

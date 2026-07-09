@@ -21,13 +21,13 @@ export function TenantDatabaseCard({ tenant }: TenantDatabaseCardProps) {
       }
     >
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-xl border border-white/10 bg-slate-950/40 p-4">
-          <p className="text-sm text-slate-400">Database</p>
+        <div className="rounded-xl border border-slate-200 bg-slate-950/40 p-4">
+          <p className="text-sm text-slate-500">Database</p>
           <p className="mt-2 font-medium text-white">{tenant.databaseName}</p>
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-slate-950/40 p-4">
-          <p className="text-sm text-slate-400">Isolation model</p>
+        <div className="rounded-xl border border-slate-200 bg-slate-950/40 p-4">
+          <p className="text-sm text-slate-500">Isolation model</p>
           <p className="mt-2 font-medium capitalize text-white">
             {tenant.isolationModel}
           </p>
@@ -38,7 +38,7 @@ export function TenantDatabaseCard({ tenant }: TenantDatabaseCardProps) {
         {tenantDatabaseReplicas.map((replica) => (
           <div
             key={replica.name}
-            className="flex flex-col gap-3 rounded-xl border border-white/10 bg-slate-950/40 p-4 sm:flex-row sm:items-center sm:justify-between"
+            className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-950/40 p-4 sm:flex-row sm:items-center sm:justify-between"
           >
             <div>
               <p className="text-sm font-medium text-white">{replica.name}</p>

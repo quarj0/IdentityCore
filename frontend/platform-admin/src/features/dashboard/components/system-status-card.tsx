@@ -12,7 +12,7 @@ export function SystemStatusCard() {
         {systemStatus.map((service) => (
           <div
             key={service.name}
-            className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-slate-950/40 px-4 py-3"
+            className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-950/40 px-4 py-3"
           >
             <div>
               <p className="text-sm font-medium text-white">{service.name}</p>

@@ -43,7 +43,7 @@ export function OrganizationsListPage() {
           <>
             <Button
               variant="outline"
-              className="border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+              className="border-slate-200 bg-white/5 text-slate-200 hover:bg-white/10"
             >
               Export
             </Button>
@@ -52,7 +52,7 @@ export function OrganizationsListPage() {
         }
       />
 
-      <section className="rounded-2xl border border-white/10 bg-white/3 p-4">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative w-full lg:max-w-md">
             <Search
@@ -64,7 +64,7 @@ export function OrganizationsListPage() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search organizations..."
-              className="border-white/10 bg-white/5 pl-10 text-slate-100 placeholder:text-slate-500"
+              className="border-slate-200 bg-white/5 pl-10 text-slate-100 placeholder:text-slate-500"
               aria-label="Search organizations"
             />
           </div>
@@ -72,28 +72,28 @@ export function OrganizationsListPage() {
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
-              className="border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+              className="border-slate-200 bg-white/5 text-slate-200 hover:bg-white/10"
             >
               Status
             </Button>
 
             <Button
               variant="outline"
-              className="border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+              className="border-slate-200 bg-white/5 text-slate-200 hover:bg-white/10"
             >
               Plan
             </Button>
 
             <Button
               variant="outline"
-              className="border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+              className="border-slate-200 bg-white/5 text-slate-200 hover:bg-white/10"
             >
               Risk
             </Button>
 
             <Button
               variant="outline"
-              className="border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+              className="border-slate-200 bg-white/5 text-slate-200 hover:bg-white/10"
             >
               <SlidersHorizontal className="mr-2 size-4" aria-hidden="true" />
               More filters

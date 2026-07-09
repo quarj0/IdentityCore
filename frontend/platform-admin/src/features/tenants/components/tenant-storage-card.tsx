@@ -34,22 +34,22 @@ export function TenantStorageCard({ tenant }: TenantStorageCardProps) {
       </div>
 
       <div className="mt-5 space-y-3">
-        <div className="rounded-xl border border-white/10 bg-slate-950/40 p-4">
-          <p className="text-sm text-slate-400">Storage bucket</p>
+        <div className="rounded-xl border border-slate-200 bg-slate-950/40 p-4">
+          <p className="text-sm text-slate-500">Storage bucket</p>
           <p className="mt-2 break-all font-medium text-white">
             {tenant.storageBucket}
           </p>
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-slate-950/40 p-4">
-          <p className="text-sm text-slate-400">Retention policy</p>
+        <div className="rounded-xl border border-slate-200 bg-slate-950/40 p-4">
+          <p className="text-sm text-slate-500">Retention policy</p>
           <p className="mt-2 font-medium text-white">
             Organization-configured, platform-enforced
           </p>
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-slate-950/40 p-4">
-          <p className="text-sm text-slate-400">Encryption</p>
+        <div className="rounded-xl border border-slate-200 bg-slate-950/40 p-4">
+          <p className="text-sm text-slate-500">Encryption</p>
           <p className="mt-2 font-medium text-white">
             Server-side encryption with tenant-scoped keys
           </p>

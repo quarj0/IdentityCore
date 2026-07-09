@@ -10,7 +10,7 @@ export function VerificationActivity() {
       action={
         <Button
           variant="outline"
-          className="border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+          className="border-slate-200 bg-white/5 text-slate-200 hover:bg-white/10"
         >
           Export
         </Button>

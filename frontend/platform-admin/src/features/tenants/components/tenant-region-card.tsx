@@ -48,9 +48,9 @@ export function TenantRegionCard({ tenant }: TenantRegionCardProps) {
         {items.map((item) => (
           <div
             key={item.label}
-            className="rounded-xl border border-white/10 bg-slate-950/40 p-4"
+            className="rounded-xl border border-slate-200 bg-slate-950/40 p-4"
           >
-            <dt className="text-sm text-slate-400">{item.label}</dt>
+            <dt className="text-sm text-slate-500">{item.label}</dt>
             <dd className="mt-2 font-medium capitalize text-white">
               {item.value}
             </dd>

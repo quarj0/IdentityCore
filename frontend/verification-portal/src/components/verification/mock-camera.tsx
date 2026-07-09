@@ -17,7 +17,7 @@ export function MockCamera({
   return (
     <div className="rounded-[2rem] bg-slate-950 p-4 text-center text-white sm:p-5">
       <div
-        className="flex min-h-[320px] items-center justify-center rounded-3xl border border-white/10 bg-white/[0.04]"
+        className="flex min-h-[320px] items-center justify-center rounded-3xl border border-slate-200 bg-white/[0.04]"
         role="img"
         aria-label={label}
       >
@@ -38,7 +38,7 @@ export function MockCamera({
             type="button"
             variant="outline"
             onClick={onUpload}
-            className="rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10"
+            className="rounded-xl border-slate-200 bg-white/5 text-white hover:bg-white/10"
           >
             <Upload className="h-4 w-4" aria-hidden="true" />
             Upload instead

@@ -64,15 +64,15 @@ export function OrganizationUsageCard() {
         />
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-xl border border-white/10 bg-slate-950/40 p-4">
-            <p className="text-sm text-slate-400">Reviewers</p>
+          <div className="rounded-xl border border-slate-200 bg-slate-950/40 p-4">
+            <p className="text-sm text-slate-500">Reviewers</p>
             <p className="mt-2 text-xl font-semibold text-white">
               {organizationUsage.reviewers}
             </p>
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-slate-950/40 p-4">
-            <p className="text-sm text-slate-400">Templates</p>
+          <div className="rounded-xl border border-slate-200 bg-slate-950/40 p-4">
+            <p className="text-sm text-slate-500">Templates</p>
             <p className="mt-2 text-xl font-semibold text-white">
               {organizationUsage.templates}
             </p>

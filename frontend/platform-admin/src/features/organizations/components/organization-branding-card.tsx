@@ -29,8 +29,8 @@ export function OrganizationBrandingCard() {
       }
     >
       <div className="space-y-4">
-        <div className="rounded-xl border border-white/10 bg-slate-950/40 p-4">
-          <p className="text-sm text-slate-400">Primary color</p>
+        <div className="rounded-xl border border-slate-200 bg-slate-950/40 p-4">
+          <p className="text-sm text-slate-500">Primary color</p>
 
           <div className="mt-3 flex items-center gap-3">
             <div
@@ -48,9 +48,9 @@ export function OrganizationBrandingCard() {
           {items.map((item) => (
             <div
               key={item.label}
-              className="rounded-xl border border-white/10 bg-slate-950/40 p-4"
+              className="rounded-xl border border-slate-200 bg-slate-950/40 p-4"
             >
-              <dt className="text-sm text-slate-400">{item.label}</dt>
+              <dt className="text-sm text-slate-500">{item.label}</dt>
               <dd className="mt-2 font-medium text-white">{item.value}</dd>
             </div>
           ))}

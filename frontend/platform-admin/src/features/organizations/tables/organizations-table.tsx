@@ -11,10 +11,10 @@ type OrganizationsTableProps = {
 
 export function OrganizationsTable({ organizations }: OrganizationsTableProps) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/3">
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <div className="overflow-x-auto">
         <table className="w-full min-w-275 text-left text-sm">
-          <thead className="border-b border-white/10 bg-white/2 text-xs uppercase tracking-wide text-slate-500">
+          <thead className="border-b border-slate-200 bg-white/2 text-xs uppercase tracking-wide text-slate-500">
             <tr>
               <th scope="col" className="px-5 py-4 font-medium">
                 Organization
@@ -48,10 +48,7 @@ export function OrganizationsTable({ organizations }: OrganizationsTableProps) {
 
           <tbody className="divide-y divide-white/10">
             {organizations.map((organization) => (
-              <tr
-                key={organization.id}
-                className="transition hover:bg-white/2"
-              >
+              <tr key={organization.id} className="transition hover:bg-white/2">
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-3">
                     <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-cyan-400/10 text-sm font-semibold text-cyan-300 ring-1 ring-cyan-300/20">
@@ -109,7 +106,7 @@ export function OrganizationsTable({ organizations }: OrganizationsTableProps) {
                       asChild
                       variant="outline"
                       size="sm"
-                      className="border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+                      className="border-slate-200 bg-white/5 text-slate-200 hover:bg-white/10"
                     >
                       <Link href={`/organizations/${organization.id}`}>
                         View

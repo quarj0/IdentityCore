@@ -27,7 +27,7 @@ export function LivenessStep({ onNext, onBack }: LivenessStepProps) {
           Challenge: {challenges[challenge]}
         </p>
 
-        <p className="mt-2 text-sm text-slate-400">Mock liveness challenge</p>
+        <p className="mt-2 text-sm text-slate-500">Mock liveness challenge</p>
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
           <Button
@@ -49,7 +49,7 @@ export function LivenessStep({ onNext, onBack }: LivenessStepProps) {
             type="button"
             variant="outline"
             onClick={() => setChallenge(0)}
-            className="rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10"
+            className="rounded-xl border-slate-200 bg-white/5 text-white hover:bg-white/10"
           >
             Restart
           </Button>
