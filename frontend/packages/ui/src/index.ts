@@ -15,6 +15,7 @@ export { Avatar, AvatarFallback, AvatarImage } from "./components/avatar";
 export { Progress } from "./components/progress";
 export { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/tabs";
 export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./components/tooltip";
+export { Skeleton } from "./components/skeleton";
 export {
   Select,
   SelectContent,
