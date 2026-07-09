@@ -1,8 +1,9 @@
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@identitycore/ui";
-import { DataTablePlaceholder } from "./data-table-placeholder";
 import { EmptyState } from "./empty-state";
 import { PageHeading } from "./page-heading";
+import { RichDataTable } from "../table/rich-data-table";
+
 
 interface ResourcePageProps {
   title: string;
@@ -38,7 +39,7 @@ export function ResourcePage({
       />
 
       {rows.length > 0 ? (
-        <DataTablePlaceholder columns={columns} rows={rows} />
+        <RichDataTable columns={columns} rows={rows} />
       ) : (
         <EmptyState
           icon={icon}

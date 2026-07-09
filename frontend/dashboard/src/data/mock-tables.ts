@@ -8,6 +8,7 @@ export const tableData = {
     ],
     rows: [
       {
+        id: "project-default-sandbox",
         name: "Default Sandbox",
         environment: "Sandbox",
         status: "Active",
@@ -25,12 +26,14 @@ export const tableData = {
     ],
     rows: [
       {
+        id: "template-customer-onboarding",
         name: "Customer onboarding",
         category: "Financial services",
         status: "Available",
         updated: "Today",
       },
       {
+        id: "template-student-enrollment",
         name: "Student enrollment",
         category: "Education",
         status: "Available",
@@ -78,6 +81,7 @@ export const tableData = {
     ],
     rows: [
       {
+        id: "api-key-sandbox-secret",
         name: "Sandbox secret key",
         environment: "Sandbox",
         status: "Active",
@@ -105,12 +109,14 @@ export const tableData = {
     ],
     rows: [
       {
+        id: "audit-workspace-created",
         event: "Workspace created",
         actor: "Workspace admin",
         status: "Complete",
         time: "Just now",
       },
       {
+        id: "audit-sandbox-enabled",
         event: "Sandbox enabled",
         actor: "System",
         status: "Complete",
@@ -128,6 +134,7 @@ export const tableData = {
     ],
     rows: [
       {
+        id: "team-workspace-admin",
         name: "Workspace Admin",
         email: "admin@example.com",
         role: "Tenant Administrator",

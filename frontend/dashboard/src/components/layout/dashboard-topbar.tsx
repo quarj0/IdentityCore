@@ -1,5 +1,6 @@
 import { Bell, Search } from "lucide-react";
-import { Avatar, AvatarFallback, Badge, Button } from "@identitycore/ui";
+import { Badge, Button } from "@identitycore/ui";
+import { UserMenu } from "@/components/navigation/user-menu";
 
 export function DashboardTopbar() {
   return (
@@ -27,9 +28,7 @@ export function DashboardTopbar() {
             <Bell className="h-4 w-4" aria-hidden="true" />
           </Button>
 
-          <Avatar>
-            <AvatarFallback>KA</AvatarFallback>
-          </Avatar>
+          <UserMenu />
         </div>
       </div>
     </header>

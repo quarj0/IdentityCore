@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
+import { Toaster } from "@identitycore/ui";
 
 export const metadata: Metadata = {
   title: "IdentityCore Dashboard",
@@ -23,6 +24,7 @@ export default function RootLayout({
         </a>
 
         <DashboardShell>{children}</DashboardShell>
+        <Toaster />
       </body>
     </html>
   );

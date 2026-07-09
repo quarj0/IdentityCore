@@ -12,19 +12,17 @@ import {
 } from "@identitycore/ui";
 
 const actions = [
-  ["Overview", "/"],
-  ["Onboarding", "/onboarding"],
+  ["Create project", "/projects/new"],
+  ["Create workflow", "/workflows/new"],
+  ["Invite member", "/team/invite"],
+  ["Add webhook", "/webhooks/new"],
+  ["Create API key", "/api-keys/new"],
   ["Projects", "/projects"],
   ["Workflows", "/workflows"],
   ["Templates", "/templates"],
-  ["Verification requests", "/verification-requests"],
   ["Manual review", "/manual-review"],
-  ["API keys", "/api-keys"],
-  ["Webhooks", "/webhooks"],
-  ["Audit logs", "/audit-logs"],
-  ["Team", "/team"],
-  ["Billing", "/billing"],
   ["Settings", "/settings"],
+  ["Documentation", "http://localhost:3003"],
 ];
 
 export function CommandPalette() {
