@@ -1,0 +1,96 @@
+import type { AdminModuleConfig, AdminRecord } from "@/components/admin-module/admin-module-types";
+
+export const settingsRecords: AdminRecord[] = [
+  {
+    id: "set_branding",
+    title: "Platform Branding",
+    subtitle: "IdentityCore name, logo, default colors and public platform metadata.",
+    status: "Configured",
+    statusTone: "success",
+    primaryMeta: "IdentityCore",
+    secondaryMeta: "Blue theme",
+    tertiaryMeta: "Public metadata",
+    owner: "Product Platform",
+    updatedAt: "2026-07-09",
+    href: "/settings/set_branding",
+  },
+  {
+    id: "set_email",
+    title: "Email Settings",
+    subtitle: "Transactional sender, support sender, templates and notification channels.",
+    status: "Configured",
+    statusTone: "success",
+    primaryMeta: "noreply",
+    secondaryMeta: "support",
+    tertiaryMeta: "Transactional",
+    owner: "Platform Ops",
+    updatedAt: "2026-07-08",
+    href: "/settings/set_email",
+  },
+  {
+    id: "set_storage",
+    title: "Storage Defaults",
+    subtitle: "Default evidence buckets, temporary storage, public assets and lifecycle settings.",
+    status: "Review needed",
+    statusTone: "warning",
+    primaryMeta: "R2",
+    secondaryMeta: "Evidence bucket",
+    tertiaryMeta: "Lifecycle active",
+    owner: "Infrastructure",
+    updatedAt: "2026-07-07",
+    href: "/settings/set_storage",
+  },
+  {
+    id: "set_ai_defaults",
+    title: "AI Defaults",
+    subtitle: "Default OCR, face, liveness, confidence thresholds and failover behavior.",
+    status: "Configured",
+    statusTone: "success",
+    primaryMeta: "PaddleOCR",
+    secondaryMeta: "InsightFace",
+    tertiaryMeta: "Liveness engine",
+    owner: "AI Platform",
+    updatedAt: "2026-07-09",
+    href: "/settings/set_ai_defaults",
+  },
+];
+
+export const settingsConfig: AdminModuleConfig = {
+  moduleLabel: "Platform configuration",
+  listTitle: "Settings",
+  listDescription:
+    "Manage platform branding, email, notifications, storage, AI defaults and provider defaults.",
+  detailBreadcrumbLabel: "Settings",
+  searchPlaceholder: "Search settings...",
+  createLabel: "Add setting",
+  exportLabel: "Export settings",
+  filters: ["Area", "Status", "Owner"],
+  records: settingsRecords,
+  getRecord: (id) => settingsRecords.find((record) => record.id === id),
+  getMetrics: (record) => [
+    { label: "Primary", value: record.primaryMeta, helper: "default" },
+    { label: "Secondary", value: record.secondaryMeta, helper: "configuration" },
+    { label: "Scope", value: record.tertiaryMeta, helper: "platform" },
+    { label: "Owner", value: record.owner, helper: "team" },
+  ],
+  getSections: (record) => [
+    {
+      title: "Configuration",
+      description: "Current platform-level configuration.",
+      items: [
+        { label: "Setting", value: record.title },
+        { label: "Description", value: record.subtitle },
+        { label: "Primary value", value: record.primaryMeta },
+        { label: "Secondary value", value: record.secondaryMeta },
+      ],
+    },
+    {
+      title: "Change control",
+      description: "Operational controls for platform settings.",
+      items: [
+        { label: "Audit", value: "All setting changes must generate immutable audit logs." },
+        { label: "Approval", value: "Sensitive settings require platform owner approval before production changes." },
+      ],
+    },
+  ],
+};

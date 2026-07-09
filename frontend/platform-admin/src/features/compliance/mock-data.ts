@@ -1,0 +1,96 @@
+import type { AdminModuleConfig, AdminRecord } from "@/components/admin-module/admin-module-types";
+
+export const complianceRecords: AdminRecord[] = [
+  {
+    id: "comp_ghana_policy",
+    title: "Ghana Identity Compliance",
+    subtitle: "Supported IDs, retention, consent and NDPR/Ghana Data Protection alignment.",
+    status: "Active",
+    statusTone: "success",
+    primaryMeta: "Ghana",
+    secondaryMeta: "4 supported IDs",
+    tertiaryMeta: "Retention: 180 days",
+    owner: "Compliance Team",
+    updatedAt: "2026-07-08",
+    href: "/compliance/comp_ghana_policy",
+  },
+  {
+    id: "comp_nigeria_policy",
+    title: "Nigeria Identity Compliance",
+    subtitle: "NIN, BVN, consent, NDPR retention and audit export policy.",
+    status: "Review needed",
+    statusTone: "warning",
+    primaryMeta: "Nigeria",
+    secondaryMeta: "3 supported IDs",
+    tertiaryMeta: "Retention: 120 days",
+    owner: "Africa Compliance",
+    updatedAt: "2026-07-06",
+    href: "/compliance/comp_nigeria_policy",
+  },
+  {
+    id: "comp_gdpr",
+    title: "GDPR Data Protection Controls",
+    subtitle: "EU privacy, consent, deletion, processor records and export controls.",
+    status: "Active",
+    statusTone: "success",
+    primaryMeta: "EU/UK",
+    secondaryMeta: "GDPR",
+    tertiaryMeta: "Retention: configurable",
+    owner: "Legal",
+    updatedAt: "2026-07-01",
+    href: "/compliance/comp_gdpr",
+  },
+  {
+    id: "comp_soc2",
+    title: "SOC 2 Readiness",
+    subtitle: "Security, availability, processing integrity, confidentiality and privacy controls.",
+    status: "In progress",
+    statusTone: "info",
+    primaryMeta: "Platform-wide",
+    secondaryMeta: "SOC 2",
+    tertiaryMeta: "Evidence active",
+    owner: "Security",
+    updatedAt: "2026-06-29",
+    href: "/compliance/comp_soc2",
+  },
+];
+
+export const complianceConfig: AdminModuleConfig = {
+  moduleLabel: "Compliance",
+  listTitle: "Compliance",
+  listDescription:
+    "Manage countries, supported IDs, retention policies, consent, GDPR, NDPR, SOC2, ISO and audit exports.",
+  detailBreadcrumbLabel: "Compliance",
+  searchPlaceholder: "Search compliance policies...",
+  createLabel: "Create policy",
+  exportLabel: "Export policies",
+  filters: ["Country", "Framework", "Status"],
+  records: complianceRecords,
+  getRecord: (id) => complianceRecords.find((record) => record.id === id),
+  getMetrics: (record) => [
+    { label: "Coverage", value: record.primaryMeta, helper: "jurisdiction" },
+    { label: "Supported IDs", value: record.secondaryMeta, helper: "identity types" },
+    { label: "Retention", value: record.tertiaryMeta, helper: "policy" },
+    { label: "Owner", value: record.owner, helper: "responsible team" },
+  ],
+  getSections: (record) => [
+    {
+      title: "Policy controls",
+      description: "Core compliance controls applied by this policy.",
+      items: [
+        { label: "Consent", value: "Consent is required before document, biometric and verification processing." },
+        { label: "Retention", value: record.tertiaryMeta },
+        { label: "Audit exports", value: "Exports include decision logs, policy version, actor, timestamp and organization scope." },
+        { label: "Deletion", value: "Deletion requests are processed through organization-approved retention workflows." },
+      ],
+    },
+    {
+      title: "Supported IDs",
+      description: "Identity documents and checks covered.",
+      items: [
+        { label: "Documents", value: record.secondaryMeta },
+        { label: "Verification checks", value: "OCR, document authenticity, face match, liveness and manual review fallback." },
+      ],
+    },
+  ],
+};
