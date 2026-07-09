@@ -1,0 +1,88 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { Search, SlidersHorizontal } from "lucide-react";
+import { Button, Input } from "@identitycore/ui";
+import { EmptyState } from "@/components/feedback/empty-state";
+import { PageHeader } from "@/components/shared/page-header";
+import { CreateTemplateDialog } from "@/features/templates/forms/create-template-dialog";
+import { globalTemplates } from "@/features/templates/mock-data";
+import { TemplatesTable } from "@/features/templates/tables/templates-table";
+
+export function TemplatesListPage() {
+  const [query, setQuery] = useState("");
+
+  const filteredTemplates = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    if (!normalizedQuery) return globalTemplates;
+
+    return globalTemplates.filter((template) =>
+      [
+        template.name,
+        template.description,
+        template.category,
+        template.status,
+        template.version,
+        template.riskLevel,
+        template.countries.join(" "),
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedQuery),
+    );
+  }, [query]);
+
+  return (
+    <div className="space-y-6 bg-white text-slate-950">
+      <PageHeader
+        eyebrow="Official library"
+        title="Global Templates"
+        description="Manage official IdentityCore templates used by organizations for verification, compliance and identity workflows."
+        actions={
+          <>
+            <Button variant="outline">Export</Button>
+            <CreateTemplateDialog />
+          </>
+        }
+      />
+
+      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative w-full lg:max-w-md">
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400"
+              aria-hidden="true"
+            />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search templates..."
+              className="pl-10"
+              aria-label="Search templates"
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline">Status</Button>
+            <Button variant="outline">Category</Button>
+            <Button variant="outline">Country</Button>
+            <Button variant="outline">
+              <SlidersHorizontal className="mr-2 size-4" aria-hidden="true" />
+              More filters
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {filteredTemplates.length > 0 ? (
+        <TemplatesTable templates={filteredTemplates} />
+      ) : (
+        <EmptyState
+          title="No templates found"
+          description="No template matches the current search or filters."
+        />
+      )}
+    </div>
+  );
+}
