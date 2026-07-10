@@ -5,6 +5,7 @@ from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from rest_framework.views import APIView
 
 from apps.audit.services import record_audit_event
+from apps.accounts.models import PlatformUser
 from apps.accounts.serializers import LoginSerializer, RefreshInputSerializer, serialize_user
 from apps.accounts.cookies import (
     clear_refresh_cookie,
@@ -89,3 +90,21 @@ class MeView(APIView):
 
     def get(self, request):
         return success_response({"user": serialize_user(request.user)}, request=request)
+
+
+class TeamListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        tenant = getattr(request.user, "tenant", None)
+        if tenant is None:
+            return success_response({"results": []}, request=request)
+        users = (
+            PlatformUser.objects.filter(tenant=tenant)
+            .prefetch_related("user_roles__role")
+            .order_by("email")
+        )
+        return success_response(
+            {"results": [serialize_user(user) for user in users]},
+            request=request,
+        )

@@ -198,6 +198,27 @@ class AuthEndpointTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["user"]["tenant_public_id"], self.tenant.public_id)
 
+    def test_authenticated_team_returns_tenant_members(self):
+        PlatformUser.objects.create_user(
+            email="reviewer@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            tenant=self.tenant,
+        )
+        login_response = self.client.post(
+            reverse("auth-login"),
+            {"email": "user@example.com", "password": "StrongPassword123!"},
+            format="json",
+        )
+        access = login_response.data["data"]["tokens"]["access"]
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
+
+        response = self.client.get(reverse("auth-team"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        emails = {item["email"] for item in response.data["data"]["results"]}
+        self.assertEqual(emails, {"user@example.com", "reviewer@example.com"})
+
 
 class EmailVerificationTests(APITestCase):
     def setUp(self):

@@ -1,47 +1,46 @@
-import { Button } from "@identitycore/ui";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 
 interface StepActionsProps {
+  onBack?: () => void;
+  onNext?: () => void;
   nextLabel?: string;
   backLabel?: string;
-  onNext?: () => void;
-  onBack?: () => void;
   nextDisabled?: boolean;
 }
 
 export function StepActions({
+  onBack,
+  onNext,
   nextLabel = "Continue",
   backLabel = "Back",
-  onNext,
-  onBack,
-  nextDisabled,
+  nextDisabled = false,
 }: StepActionsProps) {
   return (
-    <div className="sticky bottom-0 -mx-5 mt-8 border-t border-slate-200 bg-white/95 px-5 py-4 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0">
-      <div className="grid gap-3 sm:flex sm:flex-row-reverse sm:justify-end">
-        {onNext ? (
-          <Button
-            type="button"
-            onClick={onNext}
-            disabled={nextDisabled}
-            size="lg"
-            className="rounded-xl"
-          >
-            {nextLabel}
-          </Button>
-        ) : null}
+    <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5">
+      {onBack ? (
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {backLabel}
+        </button>
+      ) : (
+        <span />
+      )}
 
-        {onBack ? (
-          <Button
-            type="button"
-            onClick={onBack}
-            variant="outline"
-            size="lg"
-            className="rounded-xl"
-          >
-            {backLabel}
-          </Button>
-        ) : null}
-      </div>
+      {onNext ? (
+        <button
+          type="button"
+          onClick={onNext}
+          disabled={nextDisabled}
+          className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+        >
+          {nextLabel}
+          <ArrowRight className="h-4 w-4" />
+        </button>
+      ) : null}
     </div>
   );
 }

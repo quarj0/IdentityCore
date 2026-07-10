@@ -1,23 +1,14 @@
 import { Workflow } from "lucide-react";
-import { EmptyState } from "@/components/shared/empty-state";
-import { PageHeading } from "@/components/shared/page-heading";
-import { OrganizationSettingsForm } from "@/components/settings/organization-settings-form";
+import { NoBackendModulePage } from "@/features/operations/no-backend-module-page";
 
 export default function WorkflowsPage() {
   return (
-    <div className="space-y-8">
-      <PageHeading
-        title="Workflows"
-        description="Build, configure, and publish identity workflows for your organization."
-      />
-
-      <EmptyState
-        icon={Workflow}
-        title="No workflows yet"
-        description="Create your first workflow from scratch or clone an official template."
-        actionLabel="Create workflow"
-          />
-          <OrganizationSettingsForm />
-    </div>
+    <NoBackendModulePage
+      title="Workflows"
+      description="Workflow-builder APIs are not available yet. Active verification templates are currently managed as policies."
+      emptyTitle="No workflow API is available yet"
+      emptyDescription="Use Templates to manage verification policy versions for now."
+      icon={Workflow}
+    />
   );
 }

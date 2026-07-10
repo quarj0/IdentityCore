@@ -109,6 +109,58 @@ export type APIClient = {
   updated_at: string;
 };
 
+export type DashboardUser = {
+  public_id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone_number: string;
+  status: string;
+  tenant_public_id: string | null;
+  roles: string[];
+  mfa_enabled: boolean;
+};
+
+export type Notification = {
+  id: string;
+  recipient_type: string;
+  recipient: string;
+  channel: string;
+  template_code: string;
+  status: string;
+  subject: string;
+  body_preview: string;
+  sent_at: string | null;
+  created_at: string;
+};
+
+export type VerificationSubject = {
+  id: string;
+  external_reference: string;
+  full_name: string;
+  email: string;
+  phone_number: string;
+  date_of_birth: string | null;
+  created_at: string;
+};
+
+export type Organization = {
+  id: string;
+  name: string;
+  slug: string;
+  industry: string;
+  status: string;
+  settings: Record<string, unknown>;
+};
+
+export type Tenant = {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  settings: Record<string, unknown>;
+};
+
 export const supportedWebhookEvents = [
   "verification.created",
   "verification.consent_accepted",
@@ -141,4 +193,9 @@ export const dashboardApi = {
   testWebhook: (id: string) => backend.rest<{ queued: boolean }>(`/webhook-endpoints/${id}/test`, { method: "POST", body: JSON.stringify({}) }),
   apiClients: () => backend.rest<{ results: APIClient[] }>("/api-clients/"),
   createApiClient: (input: Record<string, unknown>) => backend.rest<APIClient>("/api-clients/", { method: "POST", body: JSON.stringify(input) }),
+  notifications: () => backend.rest<{ results: Notification[] }>("/notifications/"),
+  team: () => backend.rest<{ results: DashboardUser[] }>("/auth/team"),
+  subjects: () => backend.rest<Page<VerificationSubject>>("/subjects/"),
+  organization: () => backend.rest<Organization>("/organization/me/"),
+  tenant: () => backend.rest<Tenant>("/tenant/me/"),
 };

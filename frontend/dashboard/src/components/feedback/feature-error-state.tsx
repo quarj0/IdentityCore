@@ -4,7 +4,7 @@ import { AlertTriangle, Copy } from "lucide-react";
 import { Button, Card, CardContent } from "@identitycore/ui";
 
 export function FeatureErrorState({ reset }: { reset: () => void }) {
-  const errorId = "err_mock_01";
+  const errorId = "err_dashboard_view";
 
   return (
     <Card className="rounded-3xl border-red-200 bg-white shadow-sm">

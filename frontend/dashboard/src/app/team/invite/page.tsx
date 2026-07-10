@@ -1,14 +1,14 @@
-import { TeamInviteForm } from "@/components/forms/invite-team-form"; 
-import { PageHeading } from "@/components/shared/page-heading";
+import { UserPlus } from "lucide-react";
+import { NoBackendModulePage } from "@/features/operations/no-backend-module-page";
 
 export default function Page() {
   return (
-    <div className="space-y-8">
-      <PageHeading
-        title="Invite team member"
-        description="Invite teammates to collaborate on workflows, reviews, and administration."
-      />
-      <TeamInviteForm />
-    </div>
+    <NoBackendModulePage
+      title="Team invitations"
+      description="Team membership is shown from the live tenant API. Invitation creation still needs a backend invitation endpoint, so this page no longer presents a pretend send flow."
+      emptyTitle="Team invitations are not connected yet"
+      emptyDescription="The dashboard now reads real team members from the backend. Once invitation APIs exist, this page can send actual invitations instead of a fake form."
+      icon={UserPlus}
+    />
   );
 }

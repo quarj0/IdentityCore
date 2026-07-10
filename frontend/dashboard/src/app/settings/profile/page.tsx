@@ -1,19 +1,14 @@
-import { CreditCard } from "lucide-react";
-import { EmptyState } from "@/components/shared/empty-state";
-import { PageHeading } from "@/components/shared/page-heading";
+import { User } from "lucide-react";
+import { NoBackendModulePage } from "@/features/operations/no-backend-module-page";
 
 export default function Page() {
   return (
-    <div className="space-y-8">
-      <PageHeading
-        title="Payment methods"
-        description="Manage cards, bank billing, and payment authorization."
-      />
-      <EmptyState
-        icon={CreditCard}
-        title="No payment methods"
-        description="Payment methods will be available after billing is connected."
-      />
-    </div>
+    <NoBackendModulePage
+      title="Profile"
+      description="Profile editing will be connected when account update APIs are available."
+      emptyTitle="Profile editing is not available yet"
+      emptyDescription="The dashboard currently reads your account through the authenticated /auth/me endpoint."
+      icon={User}
+    />
   );
 }

@@ -1,16 +1,20 @@
-import { WebhookForm } from "@/components/forms/webhook-form";
-import { ResourceDetailLayout } from "@/components/details/resource-detail-layout";
+import Link from "next/link";
+import { Webhook } from "lucide-react";
+import { Button } from "@identitycore/ui";
+import { EmptyState } from "@/components/shared/empty-state";
+import { PageHeading } from "@/components/shared/page-heading";
 
-export default function Page({ params }: { params: { id: string } }) {
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
   return (
-    <ResourceDetailLayout
-      backHref="/webhooks"
-      backLabel="Back to webhooks"
-      title="Webhook endpoint"
-      description={`Webhook ID: ${params.id}`}
-      status="Active"
-    >
-      <WebhookForm />
-    </ResourceDetailLayout>
+    <div className="space-y-8">
+      <PageHeading title="Webhook endpoint" description={`Webhook ID: ${id}`} />
+      <EmptyState icon={Webhook} title="Webhook detail API is not available yet" description="Use the live Webhooks list to create and test endpoints." />
+      <Button asChild className="rounded-xl"><Link href="/webhooks">Back to webhooks</Link></Button>
+    </div>
   );
 }

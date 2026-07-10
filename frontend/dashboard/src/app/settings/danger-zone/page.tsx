@@ -1,18 +1,14 @@
-import { ConfirmationCard } from "@/components/dashboard-ui/confirmation-card";
-import { PageHeading } from "@/components/shared/page-heading";
+import { ShieldAlert } from "lucide-react";
+import { NoBackendModulePage } from "@/features/operations/no-backend-module-page";
 
 export default function Page() {
   return (
-    <div className="space-y-8">
-      <PageHeading
-        title="Danger zone"
-        description="Destructive workspace actions require careful confirmation."
-      />
-      <ConfirmationCard
-        title="Delete workspace"
-        description="Deleting this workspace will remove configuration and access. This cannot be undone."
-        actionLabel="Delete workspace"
-      />
-    </div>
+    <NoBackendModulePage
+      title="Danger zone"
+      description="Destructive workspace operations are hidden until server-side controls exist."
+      emptyTitle="No destructive actions are available"
+      emptyDescription="This avoids showing buttons that cannot safely execute against real tenant APIs."
+      icon={ShieldAlert}
+    />
   );
 }

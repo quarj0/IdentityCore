@@ -1,12 +1,19 @@
-import { GenericDetailPage } from "@/components/details/generic-detail-page";
+import { Users } from "lucide-react";
+import { NoBackendModulePage } from "@/features/operations/no-backend-module-page";
 
-export default function Page({ params }: { params: { id: string } }) {
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
   return (
-    <GenericDetailPage
-      backHref="/subjects"
-      backLabel="Back to subjects"
+    <NoBackendModulePage
       title="Subject profile"
-      description={`Subject ID: ${params.id}`}
+      description={`Subject ID: ${id}`}
+      emptyTitle="Subject detail API is not available yet"
+      emptyDescription="Use the live Subjects list to review tenant-scoped verification subjects."
+      icon={Users}
     />
   );
 }
