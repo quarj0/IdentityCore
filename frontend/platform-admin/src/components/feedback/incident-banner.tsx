@@ -19,22 +19,22 @@ export function IncidentBanner({
   }[severity];
 
   return (
-    <div className="rounded-2xl border border-amber-300/20 bg-amber-400/10 p-4 text-amber-100">
+    <div className="rounded-2xl border border-accent-300 bg-amber-50 p-4 text-slate-950">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex gap-3">
           <AlertTriangle
-            className="mt-0.5 size-5 shrink-0 text-amber-300"
+            className="mt-0.5 size-5 shrink-0 text-amber-500"
             aria-hidden="true"
           />
 
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-amber-300">
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
               {label}
             </p>
-            <h2 className="mt-1 text-sm font-semibold text-amber-50">
+            <h2 className="mt-1 text-sm font-semibold text-slate-950">
               {title}
             </h2>
-            <p className="mt-1 text-sm leading-6 text-amber-100/80">
+            <p className="mt-1 text-sm leading-6 text-slate-700">
               {description}
             </p>
           </div>
@@ -42,7 +42,7 @@ export function IncidentBanner({
 
         <Button
           variant="outline"
-          className="border-amber-300/30 bg-amber-300/10 text-amber-50 hover:bg-amber-300/20"
+          className="border-amber-300 bg-white text-slate-950 hover:bg-amber-100"
         >
           View incident
         </Button>

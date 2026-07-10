@@ -33,13 +33,13 @@ export function ApiTrafficCard() {
         {apiTraffic.map((item) => (
           <div key={item.label}>
             <div className="flex items-center justify-between gap-4 text-sm">
-              <span className="font-medium text-slate-200">{item.label}</span>
-              <span className="text-slate-400">{item.value}</span>
+              <span className="font-medium text-slate-950">{item.label}</span>
+              <span className="text-slate-600">{item.value}</span>
             </div>
 
-            <div className="mt-2 h-2 rounded-full bg-white/10">
+            <div className="mt-2 h-2 rounded-full bg-slate-100">
               <div
-                className="h-2 rounded-full bg-cyan-300"
+                className="h-2 rounded-full bg-cyan-500"
                 style={{ width: item.width }}
               />
             </div>

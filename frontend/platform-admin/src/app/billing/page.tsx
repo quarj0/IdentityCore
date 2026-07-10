@@ -1,4 +1,4 @@
-import { BillingListPage } from "@/features/billing/pages/billing-list-page";
+import { BillingListPage } from "@/features/billing/pages/billing-list-page"; 
 
 export default function Page() {
   return <BillingListPage />;

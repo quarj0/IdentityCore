@@ -6,10 +6,10 @@ import { Button, Input } from "@identitycore/ui";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { AdminRecordTable } from "@/components/admin-module/admin-record-table";
-import type { AdminModuleConfig } from "@/components/admin-module/admin-module-types";
+import type { AdminListConfig } from "@/components/admin-module/admin-module-types";
 
 type AdminListPageProps = {
-  config: AdminModuleConfig;
+  config: AdminListConfig;
 };
 
 export function AdminListPage({ config }: AdminListPageProps) {
@@ -22,19 +22,28 @@ export function AdminListPage({ config }: AdminListPageProps) {
       return config.records;
     }
 
-    return config.records.filter((record) =>
-      [
-        record.title,
-        record.subtitle,
-        record.status,
-        record.primaryMeta,
-        record.secondaryMeta,
-        record.tertiaryMeta,
-        record.owner,
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(normalizedQuery),
+    return config.records.filter(
+      (record: {
+        title: unknown;
+        subtitle: unknown;
+        status: unknown;
+        primaryMeta: unknown;
+        secondaryMeta: unknown;
+        tertiaryMeta: unknown;
+        owner: unknown;
+      }) =>
+        [
+          record.title,
+          record.subtitle,
+          record.status,
+          record.primaryMeta,
+          record.secondaryMeta,
+          record.tertiaryMeta,
+          record.owner,
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedQuery),
     );
   }, [config.records, query]);
 

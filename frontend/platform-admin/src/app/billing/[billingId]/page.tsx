@@ -1,4 +1,4 @@
-import { BillingDetailPage } from "@/features/billing/pages/billing-detail-page";
+import { BillingDetailPage } from "@/features/billing/pages/billing-detail-page"; 
 
 type PageProps = { params: { billingId: string } };
 

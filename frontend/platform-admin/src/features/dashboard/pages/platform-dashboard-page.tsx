@@ -20,11 +20,13 @@ export function PlatformDashboardPage() {
           <>
             <Button
               variant="outline"
-              className="border-slate-200 bg-white/5 text-slate-200 hover:bg-white/10"
+              className="border-slate-200 bg-white text-slate-950 hover:bg-slate-100"
             >
               Export report
             </Button>
-            <Button>Open command palette</Button>
+            <Button className="bg-slate-950 text-white hover:bg-slate-800">
+              Open command palette
+            </Button>
           </>
         }
       />

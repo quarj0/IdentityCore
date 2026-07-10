@@ -1,4 +1,4 @@
-import { FeatureFlagDetailPage } from "@/features/feature-flags/pages/feature-flag-detail-page";
+import { FeatureFlagDetailPage } from "@/features/feature-flags/pages/future-flags-detail-page"; 
 
 type PageProps = { params: { flagId: string } };
 

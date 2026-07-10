@@ -51,3 +51,30 @@ export type AdminModuleConfig = {
   getSections: (record: AdminRecord) => AdminDetailSection[];
   detailActions?: ReactNode;
 };
+
+export type AdminListConfig = Pick<
+  AdminModuleConfig,
+  | "moduleLabel"
+  | "listTitle"
+  | "listDescription"
+  | "searchPlaceholder"
+  | "createLabel"
+  | "exportLabel"
+  | "filters"
+  | "records"
+>;
+
+export function createAdminListConfig(
+  config: AdminModuleConfig,
+): AdminListConfig {
+  return {
+    moduleLabel: config.moduleLabel,
+    listTitle: config.listTitle,
+    listDescription: config.listDescription,
+    searchPlaceholder: config.searchPlaceholder,
+    createLabel: config.createLabel,
+    exportLabel: config.exportLabel,
+    filters: config.filters,
+    records: config.records,
+  };
+}

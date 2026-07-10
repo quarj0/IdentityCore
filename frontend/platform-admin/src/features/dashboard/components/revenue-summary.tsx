@@ -30,10 +30,10 @@ export function RevenueSummary() {
         {items.map((item) => (
           <div
             key={item.label}
-            className="rounded-xl border border-slate-200 bg-slate-950/40 p-4"
+            className="rounded-xl border border-slate-200 bg-slate-50 p-4"
           >
             <dt className="text-sm text-slate-500">{item.label}</dt>
-            <dd className="mt-2 text-xl font-semibold text-white">
+            <dd className="mt-2 text-xl font-semibold text-slate-950">
               {item.value}
             </dd>
           </div>

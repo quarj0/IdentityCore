@@ -10,7 +10,7 @@ export function PlatformTopbar() {
         <Button
           variant="ghost"
           size="icon"
-          className="text-slate-300 lg:hidden"
+          className="text-slate-200 lg:hidden"
           aria-label="Open navigation"
         >
           <Menu className="size-5" aria-hidden="true" />

@@ -12,7 +12,7 @@ export function PlatformSidebar() {
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-slate-200 bg-white/95 px-4 py-5 backdrop-blur lg:block">
       <Link href="/" className="flex items-center gap-3 px-2">
-        <div className="flex size-10 items-center justify-center rounded-2xl bg-cyan-400/10 text-cyan-300 ring-1 ring-cyan-300/30">
+        <div className="flex size-10 items-center justify-center rounded-2xl bg-cyan-400/10 text-orange-500 ring-1 ring-orange-300/30">
           <ShieldCheck className="size-5" aria-hidden="true" />
         </div>
 
@@ -38,7 +38,7 @@ export function PlatformSidebar() {
                 "focus-visible:ring-2 focus-visible:ring-cyan-300",
                 isActive
                   ? "bg-white text-slate-950"
-                  : "text-slate-400 hover:bg-white/5 hover:text-white",
+                  : "text-slate-400 hover:bg-white/5 hover:text-slate-950",
               )}
             >
               <item.icon className="size-4" aria-hidden="true" />

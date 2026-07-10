@@ -12,7 +12,7 @@ export function AiProviderHealth() {
         {aiProviderHealth.map((provider) => (
           <div
             key={provider.name}
-            className="rounded-2xl border border-slate-200 bg-slate-950/40 p-4"
+            className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
           >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
@@ -32,7 +32,7 @@ export function AiProviderHealth() {
             <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
               <div>
                 <dt className="text-slate-500">Latency</dt>
-                <dd className="mt-1 font-medium text-slate-200">
+                <dd className="mt-1 font-medium text-slate-950">
                   {provider.latency}
                 </dd>
               </div>
@@ -46,14 +46,14 @@ export function AiProviderHealth() {
 
               <div>
                 <dt className="text-slate-500">Cost</dt>
-                <dd className="mt-1 font-medium text-slate-200">
+                <dd className="mt-1 font-medium text-slate-950">
                   {provider.cost}
                 </dd>
               </div>
 
               <div>
                 <dt className="text-slate-500">Priority</dt>
-                <dd className="mt-1 font-medium text-slate-200">
+                <dd className="mt-1 font-medium text-slate-950">
                   Failover #{provider.priority}
                 </dd>
               </div>
