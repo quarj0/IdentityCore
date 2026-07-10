@@ -4,6 +4,17 @@ from rest_framework.test import APITestCase
 
 
 class CatalogEndpointTests(APITestCase):
+    def test_countries_returns_full_public_catalog(self):
+        response = self.client.get(reverse("country-list"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["success"])
+        country_map = {item["code"]: item["name"] for item in response.data["data"]}
+        self.assertEqual(country_map["GH"], "Ghana")
+        self.assertIn("NG", country_map)
+        self.assertIn("US", country_map)
+        self.assertTrue(all(len(code) == 2 for code in country_map))
+
     def test_document_types_returns_bootstrap_catalog(self):
         response = self.client.get(reverse("document-type-list"))
 

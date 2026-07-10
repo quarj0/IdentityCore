@@ -86,7 +86,6 @@ export interface RegisterInput {
   fullName: string;
   businessEmail: string;
   password: string;
-  country: string;
   organizationName: string;
   organizationType: string;
   organizationCountry: string;

@@ -78,6 +78,29 @@ class GraphQLAPITests(APITestCase):
             **self.graphql_headers(token),
         )
 
+    def test_countries_query_returns_full_public_catalog(self):
+        response = self.post_graphql(
+            """
+                query Countries {
+                  countries {
+                    code
+                    name
+                  }
+                }
+            """,
+            token="",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = response.json()
+        self.assertNotIn("errors", payload)
+        country_map = {
+            item["code"]: item["name"] for item in payload["data"]["countries"]
+        }
+        self.assertEqual(country_map["GH"], "Ghana")
+        self.assertIn("NG", country_map)
+        self.assertIn("US", country_map)
+
     def test_verifications_query_returns_tenant_scoped_dashboard_data(self):
         subject = VerificationSubject.objects.create(
             tenant=self.tenant,
@@ -186,10 +209,12 @@ class GraphQLAPITests(APITestCase):
                       organizationId
                       organizationName
                       organizationType
+                      organizationCountry
                       organizationTier
                       organizationStatus
                       tenantStatus
                       administratorEmail
+                      administratorCountry
                       administratorStatus
                       requiresEmailVerification
                       onboardingStatus
@@ -203,10 +228,9 @@ class GraphQLAPITests(APITestCase):
                     "fullName": "Ama Mensah",
                     "businessEmail": "ama@sunrise.example",
                     "password": "StrongPassword123!",
-                    "country": "GH",
                     "organizationName": "Sunrise Health",
                     "organizationType": "healthcare_provider",
-                    "organizationCountry": "GH",
+                    "organizationCountry": "ng",
                     "website": "https://sunrise.example",
                     "supportEmail": "support@sunrise.example",
                     "phoneNumber": "+233201234567",
@@ -229,6 +253,8 @@ class GraphQLAPITests(APITestCase):
         self.assertTrue(debug_url)
         self.assertEqual(onboarding["organizationName"], "Sunrise Health")
         self.assertEqual(onboarding["organizationType"], "healthcare_provider")
+        self.assertEqual(onboarding["organizationCountry"], "NG")
+        self.assertEqual(onboarding["administratorCountry"], "NG")
         self.assertEqual(onboarding["organizationTier"], "trial")
         self.assertEqual(onboarding["administratorStatus"], "inactive")
         self.assertTrue(onboarding["requiresEmailVerification"])
@@ -257,7 +283,6 @@ class GraphQLAPITests(APITestCase):
                     "fullName": "Ama Mensah",
                     "businessEmail": "ama@gmail.com",
                     "password": "StrongPassword123!",
-                    "country": "GH",
                     "organizationName": "Sunrise Health",
                     "organizationType": "healthcare_provider",
                     "organizationCountry": "GH",
@@ -288,10 +313,39 @@ class GraphQLAPITests(APITestCase):
                     "fullName": "Ama Mensah",
                     "businessEmail": "ama@sunrise.example",
                     "password": "StrongPassword123!",
-                    "country": "GH",
                     "organizationName": "Sunrise Health",
                     "organizationType": "healthcare_provider",
                     "organizationCountry": "ZZ",
+                    "website": "https://sunrise.example",
+                    "supportEmail": "support@sunrise.example",
+                    "phoneNumber": "+233201234567",
+                }
+            },
+            token="",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = response.json()
+        self.assertIn("errors", payload)
+        self.assertIn("country", payload["errors"][0]["message"].lower())
+
+    def test_register_organization_onboarding_rejects_missing_country(self):
+        response = self.post_graphql(
+            """
+                mutation RegisterOnboarding($input: RegisterOrganizationOnboardingInput!) {
+                  registerOrganizationOnboarding(input: $input) {
+                    nextAction
+                  }
+                }
+            """,
+            {
+                "input": {
+                    "fullName": "Ama Mensah",
+                    "businessEmail": "ama@sunrise.example",
+                    "password": "StrongPassword123!",
+                    "organizationName": "Sunrise Health",
+                    "organizationType": "healthcare_provider",
+                    "organizationCountry": "",
                     "website": "https://sunrise.example",
                     "supportEmail": "support@sunrise.example",
                     "phoneNumber": "+233201234567",
@@ -319,7 +373,6 @@ class GraphQLAPITests(APITestCase):
                     "fullName": "Ama Mensah",
                     "businessEmail": "ama@sunrise.example",
                     "password": "weakpass",
-                    "country": "GH",
                     "organizationName": "Sunrise Health",
                     "organizationType": "healthcare_provider",
                     "organizationCountry": "GH",
@@ -334,7 +387,7 @@ class GraphQLAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         payload = response.json()
         self.assertIn("errors", payload)
-        self.assertIn("special character", payload["errors"][0]["message"])
+        self.assertIn("Password must include", payload["errors"][0]["message"])
 
     @override_settings(DEBUG=True)
     def test_onboarding_mutations_advance_state_after_email_confirmation(self):
@@ -355,7 +408,6 @@ class GraphQLAPITests(APITestCase):
                     "fullName": "Kojo Addae",
                     "businessEmail": "kojo@atlas.example",
                     "password": "StrongPassword123!",
-                    "country": "GH",
                     "organizationName": "Atlas Verify",
                     "organizationType": "startup",
                     "organizationCountry": "GH",

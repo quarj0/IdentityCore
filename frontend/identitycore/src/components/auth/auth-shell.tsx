@@ -25,7 +25,7 @@ export function AuthShell({
       <MarketingHeader />
 
       <main id="main-content" className="relative flex-1 overflow-hidden">
-        <div className="absolute inset-x-0 top-0 -z-10 h-[720px] bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]" />
+        <div className="absolute inset-x-0 top-0 -z-10 h-180 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]" />
 
         <section
           className={cn(

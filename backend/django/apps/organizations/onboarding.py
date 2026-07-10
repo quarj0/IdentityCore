@@ -119,6 +119,7 @@ def _build_onboarding_settings(
             "user_id": user.public_id,
             "full_name": f"{user.first_name} {user.last_name}".strip(),
             "business_email": user.email,
+            "country": organization_country.strip(),
         },
         "email_verification": {
             "required": True,

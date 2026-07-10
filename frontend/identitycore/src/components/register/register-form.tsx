@@ -53,16 +53,17 @@ export function RegisterForm() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [organizationTypes, setOrganizationTypes] = useState<string[]>([]);
-  const [countryProfiles, setCountryProfiles] = useState<
+  const [countries, setCountries] = useState<
     Array<{ code: string; name: string }>
   >([]);
+  const [countriesLoading, setCountriesLoading] = useState(true);
+  const [countriesError, setCountriesError] = useState(false);
   const [step, setStep] = useState(0);
 
   const [form, setForm] = useState({
     fullName: "",
     businessEmail: "",
     password: "",
-    country: "",
     organizationName: "",
     organizationType: "",
     organizationCountry: "",
@@ -77,8 +78,15 @@ export function RegisterForm() {
         .then(setOrganizationTypes)
         .catch(() => setOrganizationTypes([])),
       fetchPublicCatalog()
-        .then((catalog) => setCountryProfiles(catalog.countryProfiles))
-        .catch(() => setCountryProfiles([])),
+        .then((catalog) => {
+          setCountries(catalog.countries);
+          setCountriesError(false);
+        })
+        .catch(() => {
+          setCountries([]);
+          setCountriesError(true);
+        })
+        .finally(() => setCountriesLoading(false)),
     ]);
   }, []);
 
@@ -152,7 +160,6 @@ export function RegisterForm() {
         fullName: form.fullName,
         businessEmail: form.businessEmail,
         password: form.password,
-        country: form.country,
         organizationName: form.organizationName,
         organizationType: form.organizationType,
         organizationCountry: form.organizationCountry,
@@ -374,6 +381,7 @@ export function RegisterForm() {
                   </Label>
                   <Select
                     value={form.organizationCountry}
+                    disabled={countriesLoading || countriesError}
                     onValueChange={(value) =>
                       setForm((current) => ({
                         ...current,
@@ -382,16 +390,28 @@ export function RegisterForm() {
                     }
                   >
                     <SelectTrigger id="organizationCountry">
-                      <SelectValue placeholder="Select country" />
+                      <SelectValue
+                        placeholder={
+                          countriesLoading
+                            ? "Loading countries..."
+                            : "Select country"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      {countryProfiles.map((profile) => (
-                        <SelectItem key={profile.code} value={profile.code}>
-                          {profile.name}
+                      {countries.map((country) => (
+                        <SelectItem key={country.code} value={country.code}>
+                          {country.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {countriesError ? (
+                    <p className="text-xs text-red-600">
+                      Countries could not be loaded. Refresh the page to try
+                      again.
+                    </p>
+                  ) : null}
                 </div>
               </section>
             ) : null}

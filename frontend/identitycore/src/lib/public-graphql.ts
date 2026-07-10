@@ -19,6 +19,10 @@ interface ResendResponse {
 }
 
 interface PublicCatalogResponse {
+  countries: Array<{
+    code: string;
+    name: string;
+  }>;
   documentTypes: Array<{
     code: string;
     name: string;
@@ -104,6 +108,10 @@ export async function fetchPublicCatalog() {
   const data = await graphqlRequest<PublicCatalogResponse>(
     `
       query PublicCatalog {
+        countries {
+          code
+          name
+        }
         documentTypes {
           code
           name

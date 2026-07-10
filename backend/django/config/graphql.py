@@ -1,6 +1,7 @@
 import strawberry
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django_countries import countries
 from django.shortcuts import get_object_or_404
 from graphql import GraphQLError
 from rest_framework.exceptions import (
@@ -220,7 +221,6 @@ class RegisterOrganizationOnboardingInput:
     full_name: str
     business_email: str
     password: str
-    country: str
     organization_name: str
     organization_type: str
     organization_country: str
@@ -295,6 +295,12 @@ class CountryProfileNode:
     code: str
     name: str
     supported_document_types: list[SupportedDocumentTypeNode]
+
+
+@strawberry.type
+class CountryNode:
+    code: str
+    name: str
 
 
 @strawberry.type
@@ -393,6 +399,10 @@ class Query:
             )
             for item in COUNTRY_PROFILES
         ]
+
+    @strawberry.field
+    def countries(self) -> list[CountryNode]:
+        return [CountryNode(code=code, name=str(name)) for code, name in countries]
 
     @strawberry.field
     def organization_onboarding_types(self) -> list[str]:

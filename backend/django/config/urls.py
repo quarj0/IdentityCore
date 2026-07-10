@@ -2,7 +2,11 @@ from django.contrib import admin
 from django.urls import include, path
 from django.views.decorators.csrf import csrf_exempt
 
-from config.api_views import CountryProfileListView, DocumentTypeListView
+from config.api_views import (
+    CountryListView,
+    CountryProfileListView,
+    DocumentTypeListView,
+)
 from config.graphql import schema
 from config.graphql_view import AuthenticatedGraphQLView
 from common.responses import success_json_response
@@ -28,6 +32,7 @@ urlpatterns = [
         CountryProfileListView.as_view(),
         name="country-profile-list",
     ),
+    path("api/v1/countries", CountryListView.as_view(), name="country-list"),
     path("api/v1/audit-events/", include("apps.audit.urls")),
     path("api/v1/auth/", include("apps.accounts.urls")),
     path("api/v1/api-clients/", include("apps.api_clients.urls")),
