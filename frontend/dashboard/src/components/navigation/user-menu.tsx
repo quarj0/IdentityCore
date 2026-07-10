@@ -9,14 +9,23 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@identitycore/ui";
+import { useDashboardSession } from "@/components/auth/dashboard-session";
 
 export function UserMenu() {
+  const { logout, user } = useDashboardSession();
+  const initials = (user?.full_name || user?.email || "User")
+    .split(/\s|@/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "U";
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button aria-label="Open user menu">
           <Avatar>
-            <AvatarFallback>KA</AvatarFallback>
+            <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
         </button>
       </DropdownMenuTrigger>
@@ -34,7 +43,7 @@ export function UserMenu() {
         <DropdownMenuItem asChild>
           <Link href="/billing">Billing</Link>
         </DropdownMenuItem>
-        <DropdownMenuItem>Sign out</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => void logout()}>Sign out</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -1,8 +1,5 @@
-import Link from "next/link";
-import { ArrowRight, Clock, ShieldCheck } from "lucide-react";
-import { Button } from "@identitycore/ui";
+import { Clock, ShieldCheck } from "lucide-react";
 import { VerificationShell } from "@/components/layout/verification-shell";
-import { mockSession } from "@/data/mock-session";
 
 export default function VerificationPortalHome() {
   return (
@@ -14,36 +11,28 @@ export default function VerificationPortalHome() {
           </div>
 
           <h1 className="mt-6 text-4xl font-semibold tracking-tight sm:text-5xl">
-            Complete your identity verification.
+            Open your secure verification link.
           </h1>
 
           <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-            {mockSession.organizationName} is asking you to complete a secure
-            IdentityCore workflow for {mockSession.workflowName.toLowerCase()}.
+            IdentityCore verification sessions are opened from the link sent
+            by the requesting organization. If your link expired, ask them to send
+            a fresh one.
           </p>
-
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild size="lg" className="rounded-xl">
-              <Link href={`/session/${mockSession.id}`}>
-                Start verification
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
         </div>
 
         <aside className="rounded-4xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-3 text-sm text-slate-600">
             <Clock className="h-4 w-4 text-blue-600" />
-            Expires in {mockSession.expiresIn}
+            Verification links are time limited
           </div>
 
           <div className="mt-6">
-            <p className="text-sm font-semibold">Required steps</p>
+            <p className="text-sm font-semibold">Before you start</p>
             <ul className="mt-3 space-y-3 text-sm text-slate-600">
-              {mockSession.requirements.map((item) => (
-                <li key={item}>• {item}</li>
-              ))}
+              <li>Use the newest verification link you received.</li>
+              <li>Have your identity document ready.</li>
+              <li>Use a mobile phone for the best camera and liveness experience.</li>
             </ul>
           </div>
         </aside>

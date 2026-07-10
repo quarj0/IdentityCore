@@ -343,9 +343,9 @@ class ManualReviewListView(APIView):
     permission_classes = [IsAuthenticated, IsTenantUser]
 
     def get(self, request):
-        verifications = request.user.tenant.verifications.filter(
-            status=VerificationStatus.MANUAL_REVIEW_REQUIRED
-        ).order_by("-created_at")
+        verifications = request.user.tenant.verifications.select_related(
+            "verification_subject"
+        ).filter(status=VerificationStatus.MANUAL_REVIEW_REQUIRED).order_by("-created_at")
         page = int(request.query_params.get("page", 1))
         page_size = int(request.query_params.get("page_size", 20))
         page_obj, pagination = paginate_results(verifications, page, page_size)

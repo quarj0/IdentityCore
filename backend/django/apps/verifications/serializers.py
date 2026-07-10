@@ -281,6 +281,12 @@ def serialize_manual_review_summary(verification: Verification) -> dict:
     return {
         "verification_id": verification.public_id,
         "status": verification.status,
+        "purpose": verification.purpose,
+        "subject": {
+            "id": verification.verification_subject.public_id,
+            "full_name": verification.verification_subject.full_name,
+            "email": verification.verification_subject.email,
+        },
         "risk_level": (
             risk_assessment.risk_level if risk_assessment is not None else "medium"
         ),
