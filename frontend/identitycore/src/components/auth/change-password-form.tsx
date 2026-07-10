@@ -9,7 +9,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  Input,
   Label,
 } from "@identitycore/ui";
 import { AuthShell } from "@/components/auth/auth-shell";

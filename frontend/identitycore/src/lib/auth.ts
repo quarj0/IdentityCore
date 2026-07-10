@@ -1,8 +1,8 @@
 "use client";
 
 const ACCESS_TOKEN_KEY = "identitycore.access_token";
-const REFRESH_TOKEN_KEY = "identitycore.refresh_token";
 const USER_KEY = "identitycore.user";
+let accessToken: string | null = null;
 
 export interface AuthUser {
   public_id: string;
@@ -19,7 +19,6 @@ export interface AuthUser {
 
 export interface AuthSession {
   accessToken: string;
-  refreshToken: string;
   user: AuthUser;
 }
 
@@ -32,8 +31,8 @@ export function saveAuthSession(session: AuthSession) {
     return;
   }
 
-  window.localStorage.setItem(ACCESS_TOKEN_KEY, session.accessToken);
-  window.localStorage.setItem(REFRESH_TOKEN_KEY, session.refreshToken);
+  accessToken = session.accessToken;
+  window.sessionStorage.setItem(ACCESS_TOKEN_KEY, session.accessToken);
   window.localStorage.setItem(USER_KEY, JSON.stringify(session.user));
 }
 
@@ -42,8 +41,8 @@ export function clearAuthSession() {
     return;
   }
 
-  window.localStorage.removeItem(ACCESS_TOKEN_KEY);
-  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+  accessToken = null;
+  window.sessionStorage.removeItem(ACCESS_TOKEN_KEY);
   window.localStorage.removeItem(USER_KEY);
 }
 
@@ -52,15 +51,8 @@ export function getAccessToken() {
     return null;
   }
 
-  return window.localStorage.getItem(ACCESS_TOKEN_KEY);
-}
-
-export function getRefreshToken() {
-  if (!canUseStorage()) {
-    return null;
-  }
-
-  return window.localStorage.getItem(REFRESH_TOKEN_KEY);
+  accessToken ??= window.sessionStorage.getItem(ACCESS_TOKEN_KEY);
+  return accessToken;
 }
 
 export function getStoredUser() {

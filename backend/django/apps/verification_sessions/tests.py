@@ -479,7 +479,10 @@ class VerificationSessionPortalTests(APITestCase):
             captured_at=timezone.now(),
         )
         self.verification.status = VerificationStatus.PROCESSING
-        self.verification.save(update_fields=["status", "updated_at"])
+        self.verification.metadata_json = {"workflow": "administrator_onboarding"}
+        self.verification.save(
+            update_fields=["status", "metadata_json", "updated_at"]
+        )
 
         response = self.client.post(
             reverse(
@@ -520,6 +523,32 @@ class VerificationSessionPortalTests(APITestCase):
         mock_delay.assert_called_once_with(liveness_check.public_id)
         self.verification.refresh_from_db()
         self.assertEqual(self.verification.status, VerificationStatus.PROCESSING)
+        self.organization.refresh_from_db()
+        self.tenant.refresh_from_db()
+        self.assertEqual(self.organization.status, "pending_review")
+        self.assertEqual(self.tenant.status, "pending_review")
+        self.assertEqual(
+            self.organization.settings_json[
+                "onboarding"
+            ]["administrator_identity_verification"]["verification_id"],
+            self.verification.public_id,
+        )
+
+        status_response = self.client.get(
+            reverse(
+                "verification-session-status",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            **self.session_headers(),
+        )
+        self.assertEqual(
+            status_response.data["data"]["evidence"]["selfie_capture_id"],
+            selfie_capture.public_id,
+        )
+        self.assertEqual(
+            status_response.data["data"]["evidence"]["liveness_check_id"],
+            liveness_check.public_id,
+        )
 
     def test_get_session_status_for_pending_consent(self):
         response = self.client.get(

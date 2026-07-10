@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Fingerprint, Loader2, ShieldCheck } from "lucide-react";
 import {
   Button,
@@ -15,11 +14,13 @@ import {
 } from "@identitycore/ui";
 import { InlineStatus } from "@/components/feedback/inline-status";
 import { getErrorMessage } from "@/lib/api-client";
-import { fetchCurrentOnboarding, type OnboardingState } from "@/lib/onboarding-api";
-import { createAdminOnboardingVerification } from "@/lib/verification-api";
+import {
+  createAdministratorOnboardingVerification,
+  fetchCurrentOnboarding,
+  type OnboardingState,
+} from "@/lib/onboarding-api";
 
 export function AdminIdentityPanel() {
-  const router = useRouter();
   const [state, setState] = useState<OnboardingState | null>(null);
   const [consent, setConsent] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -43,13 +44,8 @@ export function AdminIdentityPanel() {
     setLaunching(true);
     setErrorMessage(null);
     try {
-      const verification = await createAdminOnboardingVerification({
-        fullName: state.administratorFullName,
-        email: state.administratorEmail,
-      });
-      router.push(
-        `/verification?sessionId=${encodeURIComponent(verification.session_id)}&token=${encodeURIComponent(verification.session_token)}&verificationId=${encodeURIComponent(verification.id)}`,
-      );
+      const verification = await createAdministratorOnboardingVerification();
+      window.location.assign(verification.verificationUrl);
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
     } finally {

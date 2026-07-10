@@ -97,6 +97,7 @@ export async function restRequest<T>(
 
   const response = await fetch(`${getRestApiBaseUrl()}${path}`, {
     ...init,
+    credentials: "include",
     headers: buildHeaders(init.headers, token),
   });
 
@@ -127,6 +128,7 @@ export async function graphqlRequest<T>(
     method: "POST",
     headers: buildHeaders(undefined, token),
     body: JSON.stringify({ query, variables }),
+    credentials: "include",
   });
 
   const payload = (await response.json()) as GraphqlResponse<T>;

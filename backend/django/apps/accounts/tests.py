@@ -101,6 +101,9 @@ class AuthEndpointTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data["success"])
         self.assertIn("access", response.data["data"]["tokens"])
+        self.assertNotIn("refresh", response.data["data"]["tokens"])
+        self.assertIn("identitycore_refresh", response.cookies)
+        self.assertTrue(response.cookies["identitycore_refresh"]["httponly"])
         self.assertEqual(response.data["data"]["user"]["roles"], [self.role.name])
 
     def test_invalid_login_is_rejected(self):
@@ -149,11 +152,38 @@ class AuthEndpointTests(APITestCase):
             {"email": "user@example.com", "password": "StrongPassword123!"},
             format="json",
         )
-        refresh = login_response.data["data"]["tokens"]["refresh"]
-
-        response = self.client.post(reverse("auth-refresh"), {"refresh": refresh}, format="json")
+        first_cookie = login_response.cookies["identitycore_refresh"].value
+        response = self.client.post(reverse("auth-refresh"), {}, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("access", response.data["data"]["tokens"])
+        self.assertNotEqual(
+            response.cookies["identitycore_refresh"].value,
+            first_cookie,
+        )
+
+    def test_refresh_rejects_untrusted_cookie_origin(self):
+        self.client.post(
+            reverse("auth-login"),
+            {"email": "user@example.com", "password": "StrongPassword123!"},
+            format="json",
+        )
+        response = self.client.post(
+            reverse("auth-refresh"),
+            {},
+            format="json",
+            HTTP_ORIGIN="https://attacker.example",
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_logout_revokes_and_clears_refresh_cookie(self):
+        self.client.post(
+            reverse("auth-login"),
+            {"email": "user@example.com", "password": "StrongPassword123!"},
+            format="json",
+        )
+        response = self.client.post(reverse("auth-logout"), {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.cookies["identitycore_refresh"].value, "")
 
     def test_authenticated_me_returns_user_context(self):
         login_response = self.client.post(

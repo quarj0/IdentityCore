@@ -38,7 +38,6 @@ export function LoginForm() {
       const payload = await login(email, password);
       saveAuthSession({
         accessToken: payload.tokens.access,
-        refreshToken: payload.tokens.refresh,
         user: payload.user,
       });
       const onboarding = await fetchCurrentOnboarding();

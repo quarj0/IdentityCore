@@ -4,6 +4,7 @@ from rest_framework.views import APIView
 from apps.audit.services import record_audit_event
 from apps.biometrics.tasks import process_verification_biometrics_task
 from apps.identity_documents.tasks import process_identity_document_task
+from apps.organizations.onboarding import submit_administrator_identity_verification
 from apps.webhooks.services import queue_webhook_events
 from apps.verification_sessions.serializers import (
     VerificationSessionConsentSerializer,
@@ -159,6 +160,17 @@ class VerificationSessionLivenessView(VerificationSessionBaseView):
         serializer = VerificationSessionLivenessSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         liveness_check = serializer.save()
+        verification = request.verification_session.verification
+        if (
+            verification.metadata_json.get("workflow")
+            == "administrator_onboarding"
+            and verification.created_by is not None
+        ):
+            submit_administrator_identity_verification(
+                user=verification.created_by,
+                verification_id=verification.public_id,
+                request=request,
+            )
         process_verification_biometrics_task.delay(liveness_check.public_id)
         return success_response(
             {

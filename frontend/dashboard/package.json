@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@identitycore/api-client": "workspace:*",
     "@apollo/client": "^3",
     "@identitycore/ui": "workspace:*",
     "graphql": "^16",

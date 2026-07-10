@@ -1,13 +1,9 @@
-import Link from "next/link";
 import {
-  ArrowRight,
   Building2,
   MessageSquare,
   ShieldCheck,
 } from "lucide-react";
-import {
-  Badge,
-} from "@identitycore/ui";
+import { Badge } from "@identitycore/ui";
 import { ContactForm } from "@/components/contact/contact-form";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";

@@ -47,11 +47,8 @@ export function InlineStatus({
 }) {
   const styles = STYLES[kind];
   const Icon = kind === "error" ? AlertCircle : kind === "success" ? CheckCircle2 : Info;
-  const [visible, setVisible] = useState(true);
-
-  useEffect(() => {
-    setVisible(true);
-  }, [kind, message, title]);
+  const statusKey = `${kind}:${title ?? ""}:${message}`;
+  const [dismissedKey, setDismissedKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (persist || durationMs <= 0) {
@@ -59,14 +56,14 @@ export function InlineStatus({
     }
 
     const timeout = window.setTimeout(() => {
-      setVisible(false);
+      setDismissedKey(statusKey);
       onTimeout?.();
     }, durationMs);
 
     return () => window.clearTimeout(timeout);
-  }, [durationMs, onTimeout, persist, kind, message, title]);
+  }, [durationMs, onTimeout, persist, statusKey]);
 
-  if (!visible) {
+  if (dismissedKey === statusKey) {
     return null;
   }
 

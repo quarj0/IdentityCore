@@ -74,10 +74,19 @@ interface SubmitAdministratorIdentityResponse {
   };
 }
 
+interface CreateAdministratorVerificationResponse {
+  createAdministratorOnboardingVerification: {
+    verificationId: string;
+    sessionId: string;
+    sessionToken: string;
+    verificationUrl: string;
+    expiresAt: string;
+  };
+}
+
 interface LoginResponse {
   tokens: {
     access: string;
-    refresh: string;
   };
   user: AuthSession["user"];
 }
@@ -262,6 +271,21 @@ export async function fetchCurrentOnboarding() {
   `);
 
   return data.organizationOnboarding;
+}
+
+export async function createAdministratorOnboardingVerification() {
+  const data = await graphqlRequest<CreateAdministratorVerificationResponse>(`
+    mutation CreateAdministratorOnboardingVerification {
+      createAdministratorOnboardingVerification {
+        verificationId
+        sessionId
+        sessionToken
+        verificationUrl
+        expiresAt
+      }
+    }
+  `);
+  return data.createAdministratorOnboardingVerification;
 }
 
 export async function submitOrganizationVerification(

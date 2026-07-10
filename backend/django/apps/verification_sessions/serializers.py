@@ -122,15 +122,33 @@ def serialize_verification_session_status(
     verification_session: VerificationSession,
 ) -> dict:
     verification = verification_session.verification
-    current_step, message = STATUS_PRESENTATION.get(
-        verification.status,
-        ("processing", "Your verification is being processed."),
-    )
+    latest_selfie = verification.selfie_captures.order_by("-created_at").first()
+    latest_document = verification.identity_documents.order_by("-created_at").first()
+    latest_liveness = verification.liveness_checks.order_by("-created_at").first()
+    if latest_selfie is not None and latest_liveness is None:
+        current_step = "liveness_check"
+        message = "Please complete the passive liveness check."
+    else:
+        current_step, message = STATUS_PRESENTATION.get(
+            verification.status,
+            ("processing", "Your verification is being processed."),
+        )
     return {
         "verification_id": verification.public_id,
         "status": verification.status,
         "current_step": current_step,
         "message": message,
+        "evidence": {
+            "identity_document_id": (
+                latest_document.public_id if latest_document is not None else ""
+            ),
+            "selfie_capture_id": (
+                latest_selfie.public_id if latest_selfie is not None else ""
+            ),
+            "liveness_check_id": (
+                latest_liveness.public_id if latest_liveness is not None else ""
+            ),
+        },
     }
 
 

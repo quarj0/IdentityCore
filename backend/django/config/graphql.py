@@ -8,13 +8,11 @@ from rest_framework.exceptions import (
     AuthenticationFailed,
     ValidationError as DRFValidationError,
 )
-from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from strawberry.extensions.query_depth_limiter import QueryDepthLimiter
 from strawberry.types import Info
 
 from apps.accounts.serializers import (
     LoginSerializer,
-    RefreshInputSerializer,
     serialize_user,
 )
 from apps.accounts.contact import submit_contact_inquiry
@@ -24,7 +22,6 @@ from apps.accounts.passwords import (
     change_password as perform_password_change,
 )
 from apps.accounts.verification import build_email_verification_url, verify_email_token
-from apps.accounts.models import PlatformUser
 from apps.audit.serializers import serialize_audit_event
 from apps.audit.services import record_audit_event
 from apps.api_clients.serializers import serialize_api_client
@@ -44,6 +41,7 @@ from apps.verification_policies.serializers import serialize_verification_policy
 from apps.verifications.models import Verification, VerificationStatus
 from apps.verifications.serializers import (
     ManualReviewDecisionSerializer,
+    VerificationCreateSerializer,
     paginate_results,
     serialize_manual_review_summary,
     serialize_verification,
@@ -276,6 +274,15 @@ class OrganizationOnboardingPayload:
     onboarding: OrganizationOnboardingNode
     next_action: str
     debug_email_verification_url: str | None = None
+
+
+@strawberry.type
+class AdministratorVerificationLaunchNode:
+    verification_id: str
+    session_id: str
+    session_token: str
+    verification_url: str
+    expires_at: str
 
 
 @strawberry.type
@@ -544,6 +551,36 @@ class Query:
 @strawberry.type
 class Mutation:
     @strawberry.mutation
+    def create_administrator_onboarding_verification(
+        self, info: Info
+    ) -> AdministratorVerificationLaunchNode:
+        request = info.context["request"]
+        user = require_tenant_user(info)
+        serializer = VerificationCreateSerializer(
+            data={
+                "purpose": "Administrator identity onboarding",
+                "verification_subject": {
+                    "full_name": f"{user.first_name} {user.last_name}".strip(),
+                    "email": user.email,
+                },
+                "metadata": {"workflow": "administrator_onboarding"},
+            },
+            context={"request": request},
+        )
+        try:
+            serializer.is_valid(raise_exception=True)
+        except DRFValidationError as exc:
+            raise GraphQLError(str(exc.detail))
+        verification = serializer.save()
+        return AdministratorVerificationLaunchNode(
+            verification_id=verification.public_id,
+            session_id=verification._initial_session.public_id,
+            session_token=verification._initial_session_token,
+            verification_url=verification._verification_url,
+            expires_at=verification.expires_at.isoformat(),
+        )
+
+    @strawberry.mutation
     def login(self, info: Info, email: str, password: str) -> AuthPayload:
         request = info.context["request"]
         serializer = LoginSerializer(
@@ -567,19 +604,10 @@ class Mutation:
                 sensitive_metadata={"email": user.email},
             )
         return AuthPayload(
-            tokens=AuthTokensNode(**serializer.validated_data["tokens"]),
+            tokens=AuthTokensNode(
+                access=serializer.validated_data["tokens"]["access"]
+            ),
             user=AuthUserNode(**serialize_user(user)),
-        )
-
-    @strawberry.mutation
-    def refresh_access_token(self, refresh_token: str) -> AuthPayload:
-        try:
-            serializer = RefreshInputSerializer(data={"refresh": refresh_token})
-            serializer.is_valid(raise_exception=True)
-        except (DRFValidationError, ValidationError, InvalidToken, TokenError) as exc:
-            raise GraphQLError(str(exc))
-        return AuthPayload(
-            tokens=AuthTokensNode(access=serializer.validated_data["access"])
         )
 
     @strawberry.mutation

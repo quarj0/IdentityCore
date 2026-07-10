@@ -404,6 +404,12 @@ def submit_administrator_identity_verification(
     tenant = user.tenant
     organization = tenant.organization
     onboarding = _get_onboarding_settings(organization)
+    existing = dict(onboarding.get("administrator_identity_verification") or {})
+    if (
+        existing.get("status") == "submitted"
+        and existing.get("verification_id") == verification_id.strip()
+    ):
+        return organization, tenant, user
     onboarding["administrator_identity_verification"] = {
         "status": "submitted",
         "verification_id": verification_id.strip(),

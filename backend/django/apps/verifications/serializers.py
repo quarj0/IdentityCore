@@ -5,8 +5,6 @@ from django.core.paginator import Paginator
 from django.utils import timezone
 from rest_framework import serializers
 
-from apps.biometrics.models import FaceMatch, LivenessCheck
-from apps.verification_policies.models import VerificationPolicy
 from apps.verification_subjects.models import VerificationSubject
 from apps.verifications.evidence import (
     build_verification_evidence_download_url,
@@ -223,6 +221,11 @@ class VerificationCreateSerializer(serializers.Serializer):
             redirect_url=validated_data.get("redirect_url", ""),
             status=VerificationStatus.PENDING_CONSENT,
             expires_at=expires_at,
+            created_by=(
+                request.user
+                if getattr(request.user, "is_authenticated", False)
+                else None
+            ),
         )
 
         raw_session_token = VerificationSession.generate_session_token()
@@ -237,7 +240,7 @@ class VerificationCreateSerializer(serializers.Serializer):
         verification._initial_session_token = raw_session_token
         verification._verification_url = (
             f"{settings.VERIFICATION_PORTAL_BASE_URL.rstrip('/')}/{session.public_id}"
-            f"?token={raw_session_token}"
+            f"#token={raw_session_token}&verification_id={verification.public_id}"
         )
         return verification
 

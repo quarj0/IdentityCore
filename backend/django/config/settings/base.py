@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
     "apps.audit.apps.AuditConfig",
     "apps.biometrics.apps.BiometricsConfig",
     "apps.core.apps.CoreConfig",
@@ -309,8 +310,15 @@ APP_MANAGED_MEDIA_ENCRYPTION_ENABLED = env_bool(
     "APP_MANAGED_MEDIA_ENCRYPTION_ENABLED", True
 )
 VERIFICATION_PORTAL_BASE_URL = os.getenv(
-    "VERIFICATION_PORTAL_BASE_URL", "http://localhost:8000/api/v1/verification-sessions"
+    "VERIFICATION_PORTAL_BASE_URL", "http://localhost:3002/verify"
 )
+AUTH_REFRESH_COOKIE_NAME = os.getenv(
+    "AUTH_REFRESH_COOKIE_NAME", "identitycore_refresh"
+)
+AUTH_REFRESH_COOKIE_DOMAIN = os.getenv("AUTH_REFRESH_COOKIE_DOMAIN") or None
+AUTH_REFRESH_COOKIE_SECURE = env_bool("AUTH_REFRESH_COOKIE_SECURE", not DEBUG)
+AUTH_REFRESH_COOKIE_SAMESITE = os.getenv("AUTH_REFRESH_COOKIE_SAMESITE", "Lax")
+AUTH_REFRESH_COOKIE_PATH = "/api/v1/auth/"
 ACCOUNT_EMAIL_VERIFICATION_BASE_URL = os.getenv(
     "ACCOUNT_EMAIL_VERIFICATION_BASE_URL",
     "http://localhost:3001/verify-email",
@@ -351,4 +359,9 @@ REST_FRAMEWORK = {
         "dashboard_user": "300/min",
     },
     "EXCEPTION_HANDLER": "common.exceptions.api_exception_handler",
+}
+
+SIMPLE_JWT = {
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
 }

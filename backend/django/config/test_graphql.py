@@ -149,6 +149,32 @@ class GraphQLAPITests(APITestCase):
             payload["data"]["verifications"][0]["riskAssessment"]["riskLevel"], "high"
         )
 
+    def test_create_administrator_onboarding_verification_is_server_linked(self):
+        response = self.post_graphql(
+            """
+                mutation CreateAdministratorVerification {
+                  createAdministratorOnboardingVerification {
+                    verificationId
+                    sessionId
+                    sessionToken
+                    verificationUrl
+                  }
+                }
+            """
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = response.json()
+        self.assertNotIn("errors", payload)
+        launch = payload["data"]["createAdministratorOnboardingVerification"]
+        verification = Verification.objects.get(public_id=launch["verificationId"])
+        self.assertEqual(
+            verification.metadata_json["workflow"], "administrator_onboarding"
+        )
+        self.assertEqual(verification.created_by, self.user)
+        self.assertIn("#token=", launch["verificationUrl"])
+        self.assertNotIn("?token=", launch["verificationUrl"])
+
     def test_record_manual_decision_mutation_updates_verification(self):
         subject = VerificationSubject.objects.create(
             tenant=self.tenant,

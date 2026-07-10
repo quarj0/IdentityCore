@@ -7,7 +7,7 @@ import { Button, Input } from "@identitycore/ui";
 type PasswordInputProps = InputHTMLAttributes<HTMLInputElement>;
 
 export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
-  function PasswordInput({ className, type: _type, ...props }, ref) {
+  function PasswordInput({ className, ...props }, ref) {
     const [visible, setVisible] = useState(false);
 
     return (
