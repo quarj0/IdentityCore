@@ -19,7 +19,7 @@ export function IncidentBanner({
   }[severity];
 
   return (
-    <div className="rounded-2xl border border-accent-300 bg-amber-50 p-4 text-slate-950">
+    <div className="rounded-2xl border border-accent bg-amber-50 p-4 text-slate-950">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex gap-3">
           <AlertTriangle

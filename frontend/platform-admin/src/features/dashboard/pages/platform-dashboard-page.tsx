@@ -20,7 +20,7 @@ export function PlatformDashboardPage() {
           <>
             <Button
               variant="outline"
-              className="border-slate-200 bg-white text-slate-950 hover:bg-slate-100"
+              className="border-slate-200 bg-gray-400 text-slate-950 hover:bg-slate-100"
             >
               Export report
             </Button>

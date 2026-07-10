@@ -17,10 +17,10 @@ export function PageHeader({
     <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         {eyebrow ? (
-          <p className="text-sm font-medium text-cyan-300">{eyebrow}</p>
+          <p className="text-sm font-medium text-red-500">{eyebrow}</p>
         ) : null}
 
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
           {title}
         </h1>
 
