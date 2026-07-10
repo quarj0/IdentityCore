@@ -78,6 +78,8 @@ backend/
 
 frontend/
 ├── dashboard/
+├── identitycore/
+├── platform-admin/
 ├── verification-portal/
 └── developer-portal/
 
