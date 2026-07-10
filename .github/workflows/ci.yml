@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
-      - run: uv sync --project backend --with django --frozen
+      - run: uv sync --project backend --frozen
       - run: uv run --project backend --with django python backend/django/manage.py test
 
   frontend:

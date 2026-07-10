@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Copy, Loader2, Monitor, ShieldCheck, Smartphone } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Progress } from "@identitycore/ui";
 import { CameraCapture } from "./camera-capture";
 import {
@@ -17,11 +18,13 @@ import {
   type SessionCredentials,
   type VerificationSession,
   type VerificationStatus,
+  createMobileHandoff,
+  redeemMobileHandoff,
 } from "@/lib/session-api";
 
 const STEPS = ["consent", "document_capture", "document_processing", "selfie_capture", "liveness_check", "processing", "completed", "failed"];
 
-export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
+export function LiveVerificationFlow({ sessionId, handoff }: { sessionId: string; handoff?: string }) {
   const [credentials, setCredentials] = useState<SessionCredentials | null>(null);
   const [session, setSession] = useState<VerificationSession | null>(null);
   const [status, setStatus] = useState<VerificationStatus | null>(null);
@@ -29,6 +32,10 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
   const [consented, setConsented] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deviceReady, setDeviceReady] = useState(false);
+  const [continueOnDesktop, setContinueOnDesktop] = useState(Boolean(handoff));
+  const [handoffUrl, setHandoffUrl] = useState("");
+  const [handoffBusy, setHandoffBusy] = useState(false);
 
   const load = useCallback(async (nextCredentials: SessionCredentials) => {
     const [nextSession, nextStatus] = await Promise.all([
@@ -41,6 +48,19 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
 
   useEffect(() => {
     void Promise.resolve().then(async () => {
+      if (handoff) {
+        try {
+          const mobileCredentials = await redeemMobileHandoff(handoff);
+          setCredentials(mobileCredentials);
+          window.history.replaceState(null, "", `/verify/${mobileCredentials.sessionId}`);
+          await load(mobileCredentials);
+        } catch (caught) {
+          setError(messageOf(caught));
+        } finally {
+          setDeviceReady(true);
+        }
+        return;
+      }
       const nextCredentials = consumeSessionCredentials(sessionId);
       if (!nextCredentials) {
         setError("This secure verification link is missing its session credential.");
@@ -48,8 +68,25 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
       }
       setCredentials(nextCredentials);
       await load(nextCredentials).catch((caught) => setError(messageOf(caught)));
+      const mobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+      setContinueOnDesktop(mobileDevice);
+      setDeviceReady(true);
     });
-  }, [load, sessionId]);
+  }, [handoff, load, sessionId]);
+
+  useEffect(() => {
+    if (!handoffUrl || !credentials) return;
+    const timer = window.setInterval(() => {
+      void fetchVerificationStatus(credentials).then((next) => {
+        setStatus(next);
+        if (["completed", "failed", "expired"].includes(next.current_step)) {
+          setContinueOnDesktop(true);
+          window.clearInterval(timer);
+        }
+      });
+    }, 3000);
+    return () => window.clearInterval(timer);
+  }, [credentials, handoffUrl]);
 
   useEffect(() => {
     if (!credentials || !status || !["document_processing", "processing"].includes(status.current_step)) return;
@@ -75,7 +112,18 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
   }
 
   if (error && !session) return <StateCard title="Verification unavailable" message={error} />;
-  if (!credentials || !session || !status) return <StateCard title="Opening secure session" loading />;
+  if (!deviceReady || !credentials || !session || !status) return <StateCard title="Opening secure session" loading />;
+
+  async function startMobileHandoff() {
+    setHandoffBusy(true); setError(null);
+    try { const result = await createMobileHandoff(credentials); setHandoffUrl(result.handoff_url); }
+    catch (caught) { setError(messageOf(caught)); }
+    finally { setHandoffBusy(false); }
+  }
+
+  if (!continueOnDesktop) {
+    return <main className="flex min-h-screen items-center px-4 py-8"><Card className="mx-auto w-full max-w-xl rounded-3xl"><CardHeader><div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-700"><Smartphone /></div><CardTitle>Complete verification on your phone</CardTitle></CardHeader><CardContent className="space-y-5"><p className="text-sm leading-6 text-slate-600">A phone usually gives better document focus, selfie quality, and liveness results.</p>{error ? <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}{handoffUrl ? <div className="space-y-4 text-center"><div className="mx-auto w-fit rounded-2xl border bg-white p-4"><QRCodeSVG value={handoffUrl} size={220} level="M" /></div><p className="text-sm text-slate-600">Scan once with your phone. This code expires shortly and cannot be reused.</p><Button variant="outline" onClick={() => navigator.clipboard.writeText(handoffUrl)}><Copy className="h-4 w-4" />Copy mobile link</Button><p className="text-xs text-slate-500">This page will update automatically when mobile verification finishes.</p></div> : <Button className="w-full" onClick={startMobileHandoff} disabled={handoffBusy}>{handoffBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Smartphone className="h-4 w-4" />}Show mobile QR code</Button>}<Button variant="outline" className="w-full" onClick={() => setContinueOnDesktop(true)}><Monitor className="h-4 w-4" />Continue on this computer</Button></CardContent></Card></main>;
+  }
 
   const step = status.current_step;
   const index = Math.max(0, STEPS.indexOf(step));

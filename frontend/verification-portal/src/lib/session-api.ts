@@ -100,6 +100,37 @@ export function fetchVerificationStatus(credentials: SessionCredentials) {
   );
 }
 
+export function createMobileHandoff(credentials: SessionCredentials) {
+  return request<{ handoff_url: string; expires_at: string }>(
+    credentials,
+    `/sessions/${credentials.sessionId}/mobile-handoff`,
+    { method: "POST", body: JSON.stringify({}) },
+  );
+}
+
+export async function redeemMobileHandoff(handoff: string) {
+  const response = await fetch(`${API_BASE}/sessions/mobile-handoff/redeem`, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ handoff }),
+  });
+  const body = await response.text();
+  let payload: ApiEnvelope<{
+    session_id: string;
+    session_token: string;
+    verification_id: string;
+  }>;
+  try { payload = JSON.parse(body) as typeof payload; }
+  catch { throw new Error("The mobile handoff could not be opened. Please scan a new code."); }
+  if (!response.ok || !payload.success || !payload.data) {
+    throw new Error(payload.error?.message ?? "This mobile handoff link is no longer valid.");
+  }
+  return {
+    sessionId: payload.data.session_id,
+    sessionToken: payload.data.session_token,
+  };
+}
+
 export function acceptConsent(credentials: SessionCredentials) {
   return request(credentials, `/sessions/${credentials.sessionId}/consent`, {
     method: "POST",

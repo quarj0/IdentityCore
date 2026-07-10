@@ -1,6 +1,6 @@
 import secrets
 
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth.hashers import check_password, make_password
 from django.db import models
 
 from apps.core.models import BaseModel, PublicIdModel
@@ -138,6 +138,36 @@ class VerificationSession(PublicIdModel):
 
     def __str__(self) -> str:
         return self.public_id
+
+
+class VerificationMobileHandoff(PublicIdModel):
+    public_id_prefix = "hnd"
+
+    source_session = models.ForeignKey(
+        VerificationSession, on_delete=models.CASCADE, related_name="mobile_handoffs"
+    )
+    redeemed_session = models.OneToOneField(
+        VerificationSession,
+        on_delete=models.SET_NULL,
+        related_name="redeemed_mobile_handoff",
+        null=True,
+        blank=True,
+    )
+    token_hash = models.CharField(max_length=255)
+    expires_at = models.DateTimeField(db_index=True)
+    redeemed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    @classmethod
+    def generate_token(cls) -> str:
+        return secrets.token_urlsafe(32)
+
+    def set_token(self, raw_token: str) -> None:
+        self.token_hash = make_password(raw_token)
+
+    def matches_token(self, raw_token: str) -> bool:
+        return check_password(raw_token, self.token_hash)
 
 
 class VerificationDecision(PublicIdModel, BaseModel):

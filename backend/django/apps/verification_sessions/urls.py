@@ -7,10 +7,13 @@ from apps.verification_sessions.views import (
     VerificationSessionLivenessView,
     VerificationSessionSelfieView,
     VerificationSessionStatusView,
+    VerificationMobileHandoffCreateView,
+    VerificationMobileHandoffRedeemView,
 )
 
 
 urlpatterns = [
+    path("mobile-handoff/redeem", VerificationMobileHandoffRedeemView.as_view(), name="verification-mobile-handoff-redeem"),
     path("<str:session_id>", VerificationSessionDetailView.as_view(), name="verification-session-detail"),
     path(
         "<str:session_id>/consent",
@@ -36,5 +39,10 @@ urlpatterns = [
         "<str:session_id>/status",
         VerificationSessionStatusView.as_view(),
         name="verification-session-status",
+    ),
+    path(
+        "<str:session_id>/mobile-handoff",
+        VerificationMobileHandoffCreateView.as_view(),
+        name="verification-mobile-handoff-create",
     ),
 ]
