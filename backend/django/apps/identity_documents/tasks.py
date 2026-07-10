@@ -185,6 +185,11 @@ def process_identity_document_task(identity_document_id: str) -> str:
         )
         return identity_document.status
     except Exception as exc:
+        error_code = getattr(exc, "error_code", "provider_unavailable")
+        provider_check_status = getattr(
+            exc, "provider_check_status", ProviderCheckStatus.FAILED
+        )
+        internal_reason = getattr(exc, "reason", str(exc))
         identity_document.status = IdentityDocumentStatus.FAILED
         identity_document.save(update_fields=["status", "updated_at"])
         verification.status = VerificationStatus.AWAITING_DOCUMENT
@@ -196,8 +201,8 @@ def process_identity_document_task(identity_document_id: str) -> str:
         ):
             if provider_check is None:
                 continue
-            provider_check.status = ProviderCheckStatus.FAILED
-            provider_check.error_code = "provider_unavailable"
+            provider_check.status = provider_check_status
+            provider_check.error_code = error_code
             provider_check.error_message = str(exc)
             provider_check.completed_at = now
             provider_check.save(
@@ -210,6 +215,10 @@ def process_identity_document_task(identity_document_id: str) -> str:
             target_type="verification",
             target_id=verification.public_id,
             metadata={"identity_document_id": identity_document.public_id},
-            sensitive_metadata={"error": str(exc)},
+            sensitive_metadata={
+                "error": str(exc),
+                "reason": internal_reason,
+                "error_class": exc.__class__.__name__,
+            },
         )
         return identity_document.status

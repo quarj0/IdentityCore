@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, field_validator
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,21 +15,57 @@ class Settings(BaseSettings):
 
     cache_dir: str = Field(default="/tmp/identitycore-ai", alias="AI_SERVICE_CACHE_DIR")
     ai_model_root: Path = Field(default=Path("/opt/identitycore/models"), alias="AI_MODEL_ROOT")
-    object_storage_bucket: str = Field(default="", alias="OBJECT_STORAGE_BUCKET")
-    object_storage_media_bucket: str = Field(default="", alias="OBJECT_STORAGE_MEDIA_BUCKET")
-    object_storage_temp_bucket: str = Field(default="", alias="OBJECT_STORAGE_TEMP_BUCKET")
-    object_storage_evidence_bucket: str = Field(
-        default="", alias="OBJECT_STORAGE_EVIDENCE_BUCKET"
+    object_storage_bucket: str = Field(
+        default="",
+        validation_alias=AliasChoices("OBJECT_STORAGE_BUCKET"),
     )
-    object_storage_public_bucket: str = Field(default="", alias="OBJECT_STORAGE_PUBLIC_BUCKET")
-    object_storage_endpoint_url: str = Field(default="", alias="OBJECT_STORAGE_ENDPOINT_URL")
+    object_storage_media_bucket: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "OBJECT_STORAGE_MEDIA_BUCKET",
+            "R2_MEDIA_BUCKET",
+        ),
+    )
+    object_storage_temp_bucket: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "OBJECT_STORAGE_TEMP_BUCKET",
+            "R2_TEMP_BUCKET",
+        ),
+    )
+    object_storage_evidence_bucket: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "OBJECT_STORAGE_EVIDENCE_BUCKET",
+            "R2_EVIDENCE_BUCKET",
+        ),
+    )
+    object_storage_public_bucket: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "OBJECT_STORAGE_PUBLIC_BUCKET",
+            "R2_PUBLIC_BUCKET",
+        ),
+    )
+    object_storage_endpoint_url: str = Field(
+        default="",
+        validation_alias=AliasChoices("OBJECT_STORAGE_ENDPOINT_URL", "R2_ENDPOINT_URL"),
+    )
     object_storage_access_key_id: str = Field(
-        default="", alias="OBJECT_STORAGE_ACCESS_KEY_ID"
+        default="",
+        validation_alias=AliasChoices("OBJECT_STORAGE_ACCESS_KEY_ID", "R2_ACCESS_KEY_ID"),
     )
     object_storage_secret_access_key: str = Field(
-        default="", alias="OBJECT_STORAGE_SECRET_ACCESS_KEY"
+        default="",
+        validation_alias=AliasChoices(
+            "OBJECT_STORAGE_SECRET_ACCESS_KEY",
+            "R2_SECRET_ACCESS_KEY",
+        ),
     )
-    object_storage_region: str = Field(default="", alias="OBJECT_STORAGE_REGION")
+    object_storage_region: str = Field(
+        default="",
+        validation_alias=AliasChoices("OBJECT_STORAGE_REGION", "R2_REGION"),
+    )
     object_storage_signature_version: str = Field(
         default="s3v4", alias="OBJECT_STORAGE_SIGNATURE_VERSION"
     )

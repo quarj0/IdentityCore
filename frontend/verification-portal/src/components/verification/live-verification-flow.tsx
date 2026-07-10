@@ -115,6 +115,7 @@ export function LiveVerificationFlow({ sessionId, handoff }: { sessionId: string
   if (!deviceReady || !credentials || !session || !status) return <StateCard title="Opening secure session" loading />;
 
   async function startMobileHandoff() {
+    if (!credentials) return;
     setHandoffBusy(true); setError(null);
     try { const result = await createMobileHandoff(credentials); setHandoffUrl(result.handoff_url); }
     catch (caught) { setError(messageOf(caught)); }

@@ -1,7 +1,40 @@
 import json
-from urllib import request
+import socket
+from urllib import error, request
 
 from django.conf import settings
+
+
+AI_SERVICE_UNAVAILABLE_MESSAGE = (
+    "The verification service is temporarily unavailable. Please try again shortly."
+)
+
+
+class AIServiceUnavailable(RuntimeError):
+    def __init__(
+        self,
+        message: str = AI_SERVICE_UNAVAILABLE_MESSAGE,
+        *,
+        error_code: str = "provider_unavailable",
+        provider_check_status: str = "failed",
+        reason: str = "",
+    ):
+        super().__init__(message)
+        self.error_code = error_code
+        self.provider_check_status = provider_check_status
+        self.reason = reason
+
+
+def _safe_error_reason(response_body: bytes) -> str:
+    try:
+        payload = json.loads(response_body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return ""
+    if isinstance(payload, dict):
+        detail = payload.get("detail") or payload.get("message") or payload.get("error")
+        if isinstance(detail, str):
+            return detail
+    return ""
 
 
 def _post_json(path: str, payload: dict) -> dict:
@@ -16,18 +49,46 @@ def _post_json(path: str, payload: dict) -> dict:
         headers=headers,
         method="POST",
     )
-    with request.urlopen(
-        http_request, timeout=settings.AI_SERVICE_TIMEOUT_SECONDS
-    ) as response:
-        data = json.loads(response.read().decode("utf-8"))
-        if "result" in data:
-            normalized = dict(data["result"])
-            normalized["status"] = data.get("status", normalized.get("status", ""))
-            normalized["model_name"] = data.get("model_name", "")
-            normalized["model_version"] = data.get("model_version", "")
-            normalized["engine"] = data.get("engine", "")
-            return normalized
-        return data
+    try:
+        with request.urlopen(
+            http_request, timeout=settings.AI_SERVICE_TIMEOUT_SECONDS
+        ) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except error.HTTPError as exc:
+        reason = _safe_error_reason(exc.read())
+        raise AIServiceUnavailable(
+            error_code=f"provider_http_{exc.code}",
+            reason=reason or f"AI service returned HTTP {exc.code}.",
+        ) from exc
+    except (TimeoutError, socket.timeout) as exc:
+        raise AIServiceUnavailable(
+            error_code="provider_timeout",
+            provider_check_status="timeout",
+            reason="AI service request timed out.",
+        ) from exc
+    except error.URLError as exc:
+        raise AIServiceUnavailable(
+            reason=f"AI service network error: {exc.reason}",
+        ) from exc
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise AIServiceUnavailable(
+            error_code="provider_invalid_response",
+            reason="AI service returned an invalid response.",
+        ) from exc
+
+    if not isinstance(data, dict):
+        raise AIServiceUnavailable(
+            error_code="provider_invalid_response",
+            reason="AI service returned an unexpected response shape.",
+        )
+    if "result" in data:
+        normalized = dict(data["result"])
+        normalized["status"] = data.get("status", normalized.get("status", ""))
+        normalized["model_name"] = data.get("model_name", "")
+        normalized["model_version"] = data.get("model_version", "")
+        normalized["engine"] = data.get("engine", "")
+        return normalized
+    return data
 
 
 def run_liveness_check(

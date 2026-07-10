@@ -82,6 +82,11 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      AI_SERVICE_MODE: real
+      INSIGHTFACE_ALLOW_DOWNLOAD: 0
+      PADDLE_OCR_ALLOW_DOWNLOAD: 0
+      AI_MODEL_ROOT: /opt/identitycore/models
     ports:
       - "8001:8001"
     volumes:

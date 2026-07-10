@@ -200,6 +200,20 @@ def test_real_mode_requires_storage_and_models():
     assert any(item.startswith("models.paddleocr.det:") for item in missing)
 
 
+def test_real_mode_accepts_r2_storage_aliases():
+    settings = Settings(
+        AI_SERVICE_MODE="real",
+        R2_MEDIA_BUCKET="identitycore-media",
+        R2_ENDPOINT_URL="https://example.r2.cloudflarestorage.com",
+        R2_ACCESS_KEY_ID="key",
+        R2_SECRET_ACCESS_KEY="secret",
+        INSIGHTFACE_ALLOW_DOWNLOAD=True,
+        PADDLE_OCR_ALLOW_DOWNLOAD=True,
+    )
+
+    assert settings.real_inference_missing_requirements() == []
+
+
 def test_hybrid_mode_is_degraded_but_ready_when_real_requirements_are_missing(monkeypatch):
     monkeypatch.setenv("AI_SERVICE_MODE", "hybrid")
     monkeypatch.delenv("OBJECT_STORAGE_MEDIA_BUCKET", raising=False)

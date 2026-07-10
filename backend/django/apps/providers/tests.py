@@ -1,10 +1,18 @@
 import json
+import socket
+from unittest.mock import Mock, patch
+from urllib.error import HTTPError
 
 from django.db import connection
 from django.core.exceptions import ValidationError
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 
+from apps.providers.ai_service import (
+    AI_SERVICE_UNAVAILABLE_MESSAGE,
+    AIServiceUnavailable,
+    run_document_quality,
+)
 from apps.organizations.models import Organization
 from apps.providers.models import (
     Provider,
@@ -138,3 +146,63 @@ class ProviderModelTests(TestCase):
         )
 
         self.assertEqual(check.status, ProviderCheckStatus.FAILED)
+
+
+class AIServiceClientTests(TestCase):
+    @override_settings(
+        AI_SERVICE_BASE_URL="http://ai-service:8001",
+        AI_SERVICE_TIMEOUT_SECONDS=1,
+        AI_SERVICE_SHARED_TOKEN="shared-token",
+    )
+    @patch("apps.providers.ai_service.request.urlopen")
+    def test_http_error_returns_human_ready_unavailable_error(self, mock_urlopen):
+        mock_urlopen.side_effect = HTTPError(
+            url="http://ai-service:8001/v1/document/quality",
+            code=503,
+            msg="Service Unavailable",
+            hdrs=None,
+            fp=Mock(read=Mock(return_value=b'{"detail":"models missing"}')),
+        )
+
+        with self.assertRaises(AIServiceUnavailable) as exc:
+            run_document_quality(
+                verification_id="ver_123",
+                document_storage_key="documents/front.jpg",
+            )
+
+        self.assertEqual(str(exc.exception), AI_SERVICE_UNAVAILABLE_MESSAGE)
+        self.assertEqual(exc.exception.error_code, "provider_http_503")
+        self.assertEqual(exc.exception.reason, "models missing")
+
+    @override_settings(AI_SERVICE_BASE_URL="http://ai-service:8001")
+    @patch("apps.providers.ai_service.request.urlopen")
+    def test_invalid_json_returns_human_ready_unavailable_error(self, mock_urlopen):
+        response = Mock()
+        response.__enter__ = Mock(return_value=response)
+        response.__exit__ = Mock(return_value=False)
+        response.read.return_value = b"InvalidTag"
+        mock_urlopen.return_value = response
+
+        with self.assertRaises(AIServiceUnavailable) as exc:
+            run_document_quality(
+                verification_id="ver_123",
+                document_storage_key="documents/front.jpg",
+            )
+
+        self.assertEqual(str(exc.exception), AI_SERVICE_UNAVAILABLE_MESSAGE)
+        self.assertEqual(exc.exception.error_code, "provider_invalid_response")
+
+    @override_settings(AI_SERVICE_BASE_URL="http://ai-service:8001")
+    @patch("apps.providers.ai_service.request.urlopen")
+    def test_timeout_returns_timeout_provider_status(self, mock_urlopen):
+        mock_urlopen.side_effect = socket.timeout("timed out")
+
+        with self.assertRaises(AIServiceUnavailable) as exc:
+            run_document_quality(
+                verification_id="ver_123",
+                document_storage_key="documents/front.jpg",
+            )
+
+        self.assertEqual(str(exc.exception), AI_SERVICE_UNAVAILABLE_MESSAGE)
+        self.assertEqual(exc.exception.error_code, "provider_timeout")
+        self.assertEqual(exc.exception.provider_check_status, "timeout")

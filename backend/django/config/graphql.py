@@ -60,6 +60,18 @@ from apps.webhooks.services import queue_webhook_events
 from common.catalog import COUNTRY_PROFILES, DOCUMENT_TYPES
 
 
+class HumanReadyGraphQLSchema(strawberry.Schema):
+    def process_errors(self, errors, execution_context=None) -> None:
+        unexpected_errors = [
+            error
+            for error in errors
+            if error.original_error is not None
+            and not isinstance(error.original_error, GraphQLError)
+        ]
+        if unexpected_errors:
+            super().process_errors(unexpected_errors, execution_context)
+
+
 def require_tenant_user(info: Info):
     request = info.context["request"]
     user = request.user
@@ -1049,7 +1061,7 @@ class Mutation:
         )
 
 
-schema = strawberry.Schema(
+schema = HumanReadyGraphQLSchema(
     query=Query,
     mutation=Mutation,
     extensions=[QueryDepthLimiter(max_depth=6)],
