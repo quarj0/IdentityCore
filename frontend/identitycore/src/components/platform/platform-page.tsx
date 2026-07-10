@@ -104,7 +104,7 @@ export function PlatformPageContent() {
 
       <main id="main-content">
         <section className="relative overflow-hidden">
-          <div className="absolute inset-x-0 top-0 -z-10 h-[620px] bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]" />
+          <div className="absolute inset-x-0 top-0 -z-10 h-155 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]" />
 
           <div className="mx-auto grid max-w-7xl gap-16 px-6 py-24 lg:grid-cols-[0.95fr_1.05fr] lg:items-center lg:py-32">
             <div>
@@ -242,7 +242,7 @@ export function PlatformPageContent() {
               {governanceItems.map((item) => (
                 <div
                   key={item}
-                  className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4"
+                  className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/4 p-4"
                 >
                   <LockKeyhole className="h-5 w-5 text-blue-300" />
                   <span className="text-sm font-medium text-slate-100">

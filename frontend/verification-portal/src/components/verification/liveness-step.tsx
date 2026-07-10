@@ -18,7 +18,7 @@ export function LivenessStep({ onNext, onBack }: LivenessStepProps) {
       title="Complete liveness check"
       description="Follow the short challenge to confirm a real person is present."
     >
-      <div className="rounded-[2rem] bg-slate-950 p-8 text-center text-white">
+      <div className="rounded-4xl bg-slate-950 p-8 text-center text-white">
         <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full bg-white/10">
           <Smile className="h-14 w-14 text-blue-300" />
         </div>

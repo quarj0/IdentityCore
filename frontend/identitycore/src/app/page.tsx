@@ -239,7 +239,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-5 shadow-2xl">
+            <div className="rounded-4xl border border-white/10 bg-white/[0.03] p-5 shadow-2xl">
               <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-4">
                 <div className="mb-4 flex items-center justify-between">
                   <p className="text-sm font-medium text-white">
@@ -285,7 +285,7 @@ export default function LandingPage() {
               description="Create workflows for onboarding, verification, access, credential checks, and trust operations. Start with templates or build your own from reusable identity services."
             />
 
-            <Card className="rounded-[2rem] border-slate-200 bg-white p-2 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
+            <Card className="rounded-4xl border-slate-200 bg-white p-2 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
               <CardContent className="p-6">
                 <div className="grid gap-4">
                   {builderSteps.map((step, index) => (
@@ -411,9 +411,9 @@ export default function LandingPage() {
 function IdentityStackPreview() {
   return (
     <div className="relative">
-      <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-blue-600/10 blur-3xl" />
+      <div className="absolute -inset-6 -z-10 rounded-4xl bg-blue-600/10 blur-3xl" />
 
-      <Card className="overflow-hidden rounded-[2rem] border-slate-200/80 bg-white/85 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur">
+      <Card className="overflow-hidden rounded-4xl border-slate-200/80 bg-white/85 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur">
         <CardHeader className="border-b bg-slate-50/70">
           <div className="flex items-center justify-between">
             <div>

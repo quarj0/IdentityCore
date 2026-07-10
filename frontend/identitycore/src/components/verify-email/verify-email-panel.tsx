@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Loader2, MailCheck, RefreshCcw } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Loader2,
+  MailCheck,
+  RefreshCcw,
+} from "lucide-react";
 import {
   Button,
   Card,
@@ -66,7 +72,8 @@ export function VerifyEmailPanel({
     setResendFeedback(null);
 
     try {
-      const payload = await resendOrganizationOnboardingEmailVerification(email);
+      const payload =
+        await resendOrganizationOnboardingEmailVerification(email);
       setResendFeedback({
         kind: payload.ok ? "success" : "error",
         title: payload.ok ? "Verification email sent" : "Unable to resend",
@@ -89,7 +96,7 @@ export function VerifyEmailPanel({
       title="Verify your business email to continue."
       description="IdentityCore requires email verification before a workspace administrator can continue organization onboarding."
     >
-      <Card className="mx-auto w-full max-w-md rounded-[2rem] border-slate-200/80 bg-white/90 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur">
+      <Card className="mx-auto w-full max-w-md rounded-4xl border-slate-200/80 bg-white/90 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur">
         <CardHeader>
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 ring-1 ring-blue-100">
             <MailCheck className="h-5 w-5" aria-hidden="true" />
@@ -119,8 +126,8 @@ export function VerifyEmailPanel({
                 <p className="text-sm font-medium">What happens next?</p>
                 <p className="mt-1 text-sm leading-6 text-muted-foreground">
                   After verification, you can sign in, submit organization
-                  details, complete administrator identity verification, and wait
-                  for platform review.
+                  details, complete administrator identity verification, and
+                  wait for platform review.
                 </p>
               </div>
             </div>

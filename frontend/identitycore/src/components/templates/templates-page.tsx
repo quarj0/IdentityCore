@@ -136,7 +136,7 @@ export function TemplatesPageContent() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-[2rem] border border-slate-200 bg-slate-50 px-6 py-16 text-center">
+              <div className="rounded-4xl border border-slate-200 bg-slate-50 px-6 py-16 text-center">
                 <p className="text-lg font-semibold">No templates found</p>
                 <p className="mt-2 text-sm text-muted-foreground">
                   Try a different search term or choose another category.

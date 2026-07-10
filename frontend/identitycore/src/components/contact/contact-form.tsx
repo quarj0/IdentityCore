@@ -72,7 +72,7 @@ export function ContactForm() {
   }
 
   return (
-    <Card className="rounded-[2rem] border-slate-200/80 bg-white/90 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur">
+    <Card className="rounded-4xl border-slate-200/80 bg-white/90 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur">
       <CardHeader>
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 ring-1 ring-blue-100">
           <Mail className="h-5 w-5" />
@@ -155,7 +155,9 @@ export function ContactForm() {
               <SelectContent>
                 <SelectItem value="hosted">Hosted workflows</SelectItem>
                 <SelectItem value="api">API integration</SelectItem>
-                <SelectItem value="enterprise">Enterprise deployment</SelectItem>
+                <SelectItem value="enterprise">
+                  Enterprise deployment
+                </SelectItem>
                 <SelectItem value="government">Government use case</SelectItem>
                 <SelectItem value="security">Security review</SelectItem>
               </SelectContent>

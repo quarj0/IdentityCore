@@ -15,7 +15,7 @@ export function RetryPanel({
   onContinue,
 }: RetryPanelProps) {
   return (
-    <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-4xl border border-slate-200 bg-white p-6 shadow-sm">
       <h2 className="text-xl font-semibold">{title}</h2>
       <p className="mt-2 text-sm leading-7 text-slate-600">{description}</p>
 

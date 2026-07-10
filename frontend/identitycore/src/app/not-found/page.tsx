@@ -13,7 +13,7 @@ export default function NotFound() {
         <div className="absolute inset-x-0 top-0 -z-10 h-[520px] bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.14),transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]" />
 
         <section className="mx-auto flex min-h-[70vh] max-w-4xl items-center px-4 py-20 sm:px-6">
-          <Card className="w-full rounded-[2rem] border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.10)]">
+          <Card className="w-full rounded-4xl border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.10)]">
             <CardContent className="p-8 text-center sm:p-12">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 ring-1 ring-blue-100">
                 <SearchX className="h-6 w-6" />

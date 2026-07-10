@@ -83,7 +83,7 @@ export function CameraCapture({
         muted
         playsInline
         aria-label={label}
-        className="aspect-[4/3] w-full rounded-2xl bg-slate-900 object-cover"
+        className="aspect-4/3 w-full rounded-2xl bg-slate-900 object-cover"
       />
       {error ? <p role="alert" className="text-sm text-amber-300">{error}</p> : null}
       <div className="grid gap-3 sm:grid-cols-2">

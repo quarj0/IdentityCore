@@ -44,7 +44,7 @@ export function TemplateBrowser() {
 
   return (
     <div>
-      <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="rounded-4xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative lg:w-96">
             <Search

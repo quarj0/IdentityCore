@@ -21,7 +21,7 @@ export function CaptureReviewStep({
 }: CaptureReviewStepProps) {
   return (
     <CapturePanel title={title} description={description}>
-      <div className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5">
+      <div className="rounded-4xl border border-slate-200 bg-slate-50 p-5">
         <div className="space-y-3">
           {items.map((item) => (
             <div key={item} className="flex items-center gap-3">

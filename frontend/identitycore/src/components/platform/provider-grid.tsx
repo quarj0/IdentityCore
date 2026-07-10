@@ -11,7 +11,7 @@ const providerTypes = [
 
 export function ProviderGrid() {
   return (
-    <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-5">
+    <div className="rounded-4xl border border-white/10 bg-white/[0.03] p-5">
       <div className="grid gap-3 sm:grid-cols-2">
         {providerTypes.map((provider) => (
           <div

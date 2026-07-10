@@ -113,7 +113,7 @@ export function SecurityPageContent() {
               </div>
             </div>
 
-            <Card className="rounded-[2rem] border-slate-200/80 bg-white/85 p-2 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur">
+            <Card className="rounded-4xl border-slate-200/80 bg-white/85 p-2 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur">
               <CardHeader>
                 <LockKeyhole className="mb-4 h-8 w-8 text-blue-600" />
                 <CardTitle>Private by default</CardTitle>
@@ -199,7 +199,7 @@ export function SecurityPageContent() {
               </p>
             </div>
 
-            <Card className="rounded-[2rem] p-2 shadow-sm">
+            <Card className="rounded-4xl p-2 shadow-sm">
               <CardHeader>
                 <Fingerprint className="mb-4 h-7 w-7 text-blue-600" />
                 <CardTitle>Decision transparency</CardTitle>

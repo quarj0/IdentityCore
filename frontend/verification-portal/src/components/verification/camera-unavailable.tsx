@@ -11,7 +11,7 @@ export function CameraUnavailable({
   onRetry,
 }: CameraUnavailableProps) {
   return (
-    <div className="rounded-[2rem] border border-amber-200 bg-amber-50 p-6 text-center">
+    <div className="rounded-4xl border border-amber-200 bg-amber-50 p-6 text-center">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-amber-700 ring-1 ring-amber-100">
         <CameraOff className="h-6 w-6" aria-hidden="true" />
       </div>

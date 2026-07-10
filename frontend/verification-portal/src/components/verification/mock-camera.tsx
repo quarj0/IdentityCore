@@ -15,7 +15,7 @@ export function MockCamera({
   onUpload,
 }: MockCameraProps) {
   return (
-    <div className="rounded-[2rem] bg-slate-950 p-4 text-center text-white sm:p-5">
+    <div className="rounded-4xl bg-slate-950 p-4 text-center text-white sm:p-5">
       <div
         className="flex min-h-[320px] items-center justify-center rounded-3xl border border-slate-200 bg-white/[0.04]"
         role="img"

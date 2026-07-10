@@ -42,7 +42,7 @@ const layers = [
 
 export function SecurityArchitecture() {
   return (
-    <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-4xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="grid gap-3 sm:grid-cols-2">
         {layers.map((layer) => {
           const Icon = layer.icon;

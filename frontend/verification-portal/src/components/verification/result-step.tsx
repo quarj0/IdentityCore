@@ -40,7 +40,7 @@ export function ResultStep({ state, onSubmit }: ResultStepProps) {
       title="Verification result"
       description="Review your verification decision and evidence summary."
     >
-      <div className={`rounded-[2rem] border p-6 ${content.className}`}>
+      <div className={`rounded-4xl border p-6 ${content.className}`}>
         <div className="flex items-center gap-3">
           <Icon className="h-8 w-8" aria-hidden="true" />
           <div>

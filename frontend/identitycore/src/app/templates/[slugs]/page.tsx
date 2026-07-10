@@ -108,7 +108,7 @@ export default async function TemplateDetailPage({
               </div>
             </div>
 
-            <Card className="rounded-[2rem] border-slate-200/80 bg-white/85 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur">
+            <Card className="rounded-4xl border-slate-200/80 bg-white/85 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur">
               <CardHeader className="border-b bg-slate-50/70">
                 <CardTitle className="text-base">Workflow preview</CardTitle>
                 <CardDescription>
@@ -164,60 +164,60 @@ export default async function TemplateDetailPage({
 
         <Section variant="muted">
           <div className="grid gap-6 lg:grid-cols-[0.78fr_1.22fr]">
-              <Card className="rounded-3xl border-slate-200 bg-white shadow-sm">
-                <CardHeader>
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
-                    <Users className="h-5 w-5" />
+            <Card className="rounded-3xl border-slate-200 bg-white shadow-sm">
+              <CardHeader>
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
+                  <Users className="h-5 w-5" />
+                </div>
+                <CardTitle>Who this is for</CardTitle>
+                <CardDescription className="leading-7">
+                  {template.audience}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 px-6 pb-6">
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-sm font-medium text-slate-900">
+                    Expected outcome
+                  </p>
+                  <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                    {template.outcome}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <div className="flex items-center gap-2 text-sm font-medium text-slate-900">
+                    <Clock3 className="h-4 w-4 text-blue-600" />
+                    Launch profile
                   </div>
-                  <CardTitle>Who this is for</CardTitle>
-                  <CardDescription className="leading-7">
-                    {template.audience}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4 px-6 pb-6">
-                  <div className="rounded-2xl bg-slate-50 p-4">
-                    <p className="text-sm font-medium text-slate-900">
-                      Expected outcome
-                    </p>
-                    <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                      {template.outcome}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl bg-slate-50 p-4">
-                    <div className="flex items-center gap-2 text-sm font-medium text-slate-900">
-                      <Clock3 className="h-4 w-4 text-blue-600" />
-                      Launch profile
-                    </div>
-                    <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                      {template.turnaround}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+                  <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                    {template.turnaround}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
 
-              <Card className="rounded-3xl border-slate-200 bg-white shadow-sm">
-                <CardHeader>
-                  <CardTitle>Launch checklist</CardTitle>
-                  <CardDescription>
-                    The operational work most teams finish before publishing
-                    this workflow.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-3 px-6 pb-6 sm:grid-cols-2">
-                  {template.launchChecklist.map((item, index) => (
-                    <div key={item}>
-                      <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-blue-600">
-                        Item {index + 1}
-                      </p>
-                      <FeatureCard
-                        title={item}
-                        description="Operational setup to complete before publishing this workflow."
-                        icon={Check}
-                      />
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+            <Card className="rounded-3xl border-slate-200 bg-white shadow-sm">
+              <CardHeader>
+                <CardTitle>Launch checklist</CardTitle>
+                <CardDescription>
+                  The operational work most teams finish before publishing this
+                  workflow.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3 px-6 pb-6 sm:grid-cols-2">
+                {template.launchChecklist.map((item, index) => (
+                  <div key={item}>
+                    <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-blue-600">
+                      Item {index + 1}
+                    </p>
+                    <FeatureCard
+                      title={item}
+                      description="Operational setup to complete before publishing this workflow."
+                      icon={Check}
+                    />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
           </div>
         </Section>
 
@@ -246,7 +246,10 @@ export default async function TemplateDetailPage({
           </div>
         </Section>
 
-        <RelatedTemplates currentSlug={template.slug} category={template.category} />
+        <RelatedTemplates
+          currentSlug={template.slug}
+          category={template.category}
+        />
 
         <MarketingCTA
           title="Start from a template, then make it yours."

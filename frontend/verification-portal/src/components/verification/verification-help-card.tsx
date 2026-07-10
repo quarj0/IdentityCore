@@ -2,7 +2,7 @@ import { HelpCircle } from "lucide-react";
 
 export function VerificationHelpCard() {
   return (
-    <aside className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+    <aside className="rounded-4xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex gap-3">
         <HelpCircle className="mt-1 h-5 w-5 text-blue-600" aria-hidden="true" />
         <div>

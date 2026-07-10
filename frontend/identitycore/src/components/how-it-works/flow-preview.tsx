@@ -24,7 +24,7 @@ const previewSteps = [
 
 export function FlowPreview() {
   return (
-    <Card className="overflow-hidden rounded-[2rem] border-slate-200/80 bg-white/85 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur">
+    <Card className="overflow-hidden rounded-4xl border-slate-200/80 bg-white/85 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur">
       <CardHeader className="border-b bg-slate-50/70">
         <CardTitle className="text-base">Workflow execution</CardTitle>
         <CardDescription>

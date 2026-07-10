@@ -6,7 +6,7 @@ import { VerificationShell } from "@/components/layout/verification-shell";
 export default function CompletedPage() {
   return (
     <VerificationShell>
-      <div className="mx-auto max-w-xl rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-sm">
+      <div className="mx-auto max-w-xl rounded-4xl border border-slate-200 bg-white p-8 text-center shadow-sm">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
           <CheckCircle2 className="h-6 w-6" />
         </div>

@@ -92,7 +92,7 @@ export default async function SolutionDetailPage({
               </div>
             </div>
 
-            <Card className="rounded-[2rem] border-slate-200/80 bg-white/85 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur">
+            <Card className="rounded-4xl border-slate-200/80 bg-white/85 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur">
               <CardHeader className="border-b bg-slate-50/70">
                 <CardTitle className="text-base">Common workflows</CardTitle>
               </CardHeader>

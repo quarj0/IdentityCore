@@ -26,7 +26,7 @@ export function ResultSummary({ state = "approved" }: ResultSummaryProps) {
 
   return (
     <div className="space-y-6">
-      <div className={`rounded-[2rem] border p-6 ${tone}`}>
+      <div className={`rounded-4xl border p-6 ${tone}`}>
         <div className="flex items-center gap-3">
           <Icon className="h-8 w-8" aria-hidden="true" />
           <div>

@@ -102,7 +102,7 @@ export default function DevelopersPage() {
               </div>
             </div>
 
-            <Card className="overflow-hidden rounded-[2rem] border-slate-200/80 bg-slate-950 text-white shadow-[0_24px_80px_rgba(15,23,42,0.16)]">
+            <Card className="overflow-hidden rounded-4xl border-slate-200/80 bg-slate-950 text-white shadow-[0_24px_80px_rgba(15,23,42,0.16)]">
               <CardHeader className="border-b border-white/10">
                 <CardTitle className="text-base">
                   Create workflow session
@@ -160,7 +160,7 @@ export default function DevelopersPage() {
               </p>
             </div>
 
-            <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6">
+            <div className="rounded-4xl border border-white/10 bg-white/[0.04] p-6">
               <div className="grid gap-3">
                 {[
                   "Quickstart guides",

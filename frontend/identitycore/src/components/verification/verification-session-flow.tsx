@@ -337,7 +337,7 @@ export function VerificationSessionFlow({
 
   return (
     <div className="grid gap-6 lg:grid-cols-[0.72fr_0.28fr]">
-      <Card className="rounded-[2rem] border-slate-200 bg-white p-2 shadow-sm">
+      <Card className="rounded-4xl border-slate-200 bg-white p-2 shadow-sm">
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>

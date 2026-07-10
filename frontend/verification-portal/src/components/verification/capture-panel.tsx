@@ -12,7 +12,7 @@ export function CapturePanel({
   children,
 }: CapturePanelProps) {
   return (
-    <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+    <section className="rounded-4xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
         {title}
       </h1>

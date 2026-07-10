@@ -55,7 +55,7 @@ export function ForgotPasswordForm() {
       title="Reset your IdentityCore password."
       description="Enter your business email and we will send a password reset link if the account exists."
     >
-      <Card className="mx-auto w-full max-w-md rounded-[2rem] border-slate-200/80 bg-white/90 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur">
+      <Card className="mx-auto w-full max-w-md rounded-4xl border-slate-200/80 bg-white/90 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur">
         <CardHeader>
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 ring-1 ring-blue-100">
             <Mail className="h-5 w-5" />

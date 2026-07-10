@@ -3,7 +3,7 @@ import { mockSession } from "@/data/verification";
 
 export function VerificationSessionCard() {
   return (
-    <aside className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+    <aside className="rounded-4xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex gap-3">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 ring-1 ring-blue-100">
           <ShieldCheck className="h-5 w-5" aria-hidden="true" />

@@ -9,7 +9,7 @@ export function SubmittedStep() {
       title="Verification submitted"
       description="Your verification result has been submitted to the requesting organization."
     >
-      <div className="rounded-[2rem] border border-blue-100 bg-blue-50 p-6 text-center">
+      <div className="rounded-4xl border border-blue-100 bg-blue-50 p-6 text-center">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-blue-700 ring-1 ring-blue-100">
           <Send className="h-6 w-6" aria-hidden="true" />
         </div>

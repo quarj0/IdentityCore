@@ -195,7 +195,7 @@ export function RegisterForm() {
       description="Create an administrator account and organization workspace. Production access is unlocked after verification and approval."
       sectionClassName="items-start lg:items-center"
     >
-      <Card className="w-full max-w-xl rounded-[2rem] border-slate-200/80 bg-white/95 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur">
+      <Card className="w-full max-w-xl rounded-4xl border-slate-200/80 bg-white/95 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur">
         <CardHeader>
           <div className="mb-6 flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 ring-1 ring-blue-100">
