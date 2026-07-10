@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./tokens.css";
+@source "../components";
 
 * {
   box-sizing: border-box;

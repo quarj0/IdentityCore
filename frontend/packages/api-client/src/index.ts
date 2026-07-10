@@ -31,11 +31,24 @@ export function createIdentityCoreClient({
   const origin = apiOrigin.replace(/\/$/, "");
 
   async function parse<T>(response: Response): Promise<T> {
-    const payload = (await response.json()) as ApiSuccess<T> | ApiFailure;
+    const body = await response.text();
+    let payload: ApiSuccess<T> | ApiFailure;
+    try {
+      payload = JSON.parse(body) as ApiSuccess<T> | ApiFailure;
+    } catch {
+      throw new IdentityCoreApiError(
+        "The service is temporarily unavailable. Please try again shortly.",
+        "invalid_response",
+        response.status,
+      );
+    }
     if (!response.ok || !payload.success) {
       const failure = payload as ApiFailure;
+      const rawMessage = failure.error?.message ?? "Request failed. Please try again.";
       throw new IdentityCoreApiError(
-        failure.error?.message ?? "Request failed.",
+        /unexpected token|invalidtag|not valid json|json\.parse|syntaxerror/i.test(rawMessage)
+          ? "The service is temporarily unavailable. Please try again shortly."
+          : rawMessage,
         failure.error?.code,
         response.status,
         failure.request_id,

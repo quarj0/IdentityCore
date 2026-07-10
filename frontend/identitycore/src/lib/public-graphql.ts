@@ -7,6 +7,8 @@ interface VerifyEmailResponse {
   verifyOrganizationOnboardingEmail: {
     onboarding: OnboardingState;
     nextAction: string;
+    message: string;
+    emailAlreadyVerified: boolean;
   };
 }
 
@@ -67,6 +69,8 @@ export async function verifyOrganizationOnboardingEmail(token: string) {
       mutation VerifyOrganizationOnboardingEmail($token: String!) {
         verifyOrganizationOnboardingEmail(token: $token) {
           nextAction
+          message
+          emailAlreadyVerified
           onboarding {
             organizationId
           }

@@ -61,15 +61,15 @@ function buildHeaders(init?: HeadersInit, token?: string | null) {
 }
 
 async function parseJson<T>(response: Response) {
-  const payload = (await response.json()) as ApiEnvelope<T>;
+  const payload = await readJsonResponse<ApiEnvelope<T>>(response);
 
-  if (!response.ok || !payload.success) {
+  if (!response.ok || !payload || payload.success !== true) {
     const message =
-      "error" in payload
+      payload && "error" in payload
         ? payload.error.message
         : "The request could not be processed.";
-    const code = "error" in payload ? payload.error.code : "request_failed";
-    const details = "error" in payload ? payload.error.details : {};
+    const code = payload && "error" in payload ? payload.error.code : "request_failed";
+    const details = payload && "error" in payload ? payload.error.details : {};
     throw new ApiError(message, {
       code,
       details,
@@ -109,6 +109,20 @@ interface GraphqlResponse<T> {
   errors?: Array<{ message: string }>;
 }
 
+async function readJsonResponse<T>(response: Response): Promise<T> {
+  const body = await response.text();
+  try {
+    return JSON.parse(body) as T;
+  } catch {
+    throw new ApiError(
+      response.status >= 500
+        ? "The service is temporarily unavailable. Please try again shortly."
+        : "We could not complete your request. Please try again.",
+      { code: "invalid_response", status: response.status },
+    );
+  }
+}
+
 export async function graphqlRequest<T>(
   query: string,
   variables?: Record<string, unknown>,
@@ -131,7 +145,14 @@ export async function graphqlRequest<T>(
     credentials: "include",
   });
 
-  const payload = (await response.json()) as GraphqlResponse<T>;
+  const payload = await readJsonResponse<GraphqlResponse<T>>(response);
+
+  if (!payload || typeof payload !== "object") {
+    throw new ApiError("The service returned an unexpected response. Please try again.", {
+      code: "invalid_response",
+      status: response.status,
+    });
+  }
 
   if (!response.ok) {
     throw new ApiError("Request failed.", {
@@ -159,12 +180,20 @@ export async function graphqlRequest<T>(
 
 export function getErrorMessage(error: unknown) {
   if (error instanceof ApiError) {
-    return error.message;
+    return humanizeErrorMessage(error.message);
   }
 
   if (error instanceof Error) {
-    return error.message;
+    return humanizeErrorMessage(error.message);
   }
 
   return "Something went wrong. Please try again.";
+}
+
+function humanizeErrorMessage(message: string) {
+  const technicalError =
+    /unexpected token|invalidtag|not valid json|json\.parse|syntaxerror|failed to fetch|networkerror/i;
+  return technicalError.test(message)
+    ? "The service is temporarily unavailable. Please try again shortly."
+    : message || "Something went wrong. Please try again.";
 }

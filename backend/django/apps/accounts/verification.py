@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import secrets
 from datetime import timedelta
+from typing import NamedTuple
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -19,6 +20,11 @@ from apps.notifications.services import create_notification
 
 
 EMAIL_VERIFICATION_EXPIRY_HOURS = 24
+
+
+class EmailVerificationResult(NamedTuple):
+    user: PlatformUser
+    already_verified: bool
 
 
 def hash_email_verification_token(raw_token: str) -> str:
@@ -88,9 +94,15 @@ def issue_and_queue_email_verification(*, user: PlatformUser) -> tuple[EmailVeri
 
 @transaction.atomic
 def verify_email_token(raw_token: str) -> PlatformUser:
+    return verify_email_token_with_status(raw_token).user
+
+
+@transaction.atomic
+def verify_email_token_with_status(raw_token: str) -> EmailVerificationResult:
     token_hash = hash_email_verification_token(raw_token)
     token = (
-        EmailVerificationToken.objects.select_related("user", "user__tenant")
+        EmailVerificationToken.objects.select_for_update()
+        .select_related("user", "user__tenant")
         .filter(token_hash=token_hash)
         .first()
     )
@@ -99,7 +111,7 @@ def verify_email_token(raw_token: str) -> PlatformUser:
     if token.revoked_at is not None:
         raise ValueError("This email verification token has been revoked.")
     if token.used_at is not None:
-        raise ValueError("This email verification token has already been used.")
+        return EmailVerificationResult(user=token.user, already_verified=True)
     if token.expires_at <= timezone.now():
         raise ValueError("This email verification token has expired.")
 
@@ -109,4 +121,4 @@ def verify_email_token(raw_token: str) -> PlatformUser:
     if user.status == PlatformUserStatus.INACTIVE:
         user.status = PlatformUserStatus.ACTIVE
         user.save(update_fields=["status", "updated_at"])
-    return user
+    return EmailVerificationResult(user=user, already_verified=False)

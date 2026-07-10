@@ -241,6 +241,14 @@ class EmailVerificationTests(APITestCase):
         self.assertIsNotNone(token.used_at)
         self.assertEqual(self.user.status, PlatformUserStatus.ACTIVE)
 
+    def test_verify_email_token_is_idempotent_after_success(self):
+        _, raw_token = issue_and_queue_email_verification(user=self.user)
+
+        first_user = verify_email_token(raw_token)
+        second_user = verify_email_token(raw_token)
+
+        self.assertEqual(second_user.public_id, first_user.public_id)
+
     def test_verify_email_token_rejects_expired_token(self):
         token, raw_token = issue_and_queue_email_verification(user=self.user)
         token.expires_at = timezone.now() - timedelta(minutes=1)

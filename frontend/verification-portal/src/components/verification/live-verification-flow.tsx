@@ -146,5 +146,10 @@ function StateCard({ title, message, loading = false }: { title: string; message
   return <Card className="mx-auto max-w-lg rounded-3xl"><CardContent className="flex min-h-48 flex-col items-center justify-center gap-3 p-8 text-center">{loading ? <Loader2 className="h-6 w-6 animate-spin" /> : null}<h1 className="text-xl font-semibold">{title}</h1>{message ? <p className="text-sm text-slate-600">{message}</p> : null}</CardContent></Card>;
 }
 
-function messageOf(error: unknown) { return error instanceof Error ? error.message : "Something went wrong. Please try again."; }
+function messageOf(error: unknown) {
+  const message = error instanceof Error ? error.message : "";
+  return /unexpected token|invalidtag|not valid json|json\.parse|syntaxerror|failed to fetch|networkerror/i.test(message)
+    ? "The verification service is temporarily unavailable. Please try again shortly."
+    : message || "Something went wrong. Please try again.";
+}
 function titleFor(step: string) { return ({ consent: "Review and consent", document_capture: "Capture your Ghana Card", selfie_capture: "Capture a live selfie", liveness_check: "Confirm liveness", processing: "Processing verification", completed: "Verification complete", expired: "Session expired" } as Record<string, string>)[step] ?? "Identity verification"; }

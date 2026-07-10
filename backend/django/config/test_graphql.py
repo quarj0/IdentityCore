@@ -495,6 +495,31 @@ class GraphQLAPITests(APITestCase):
             "pending_review",
         )
 
+        repeated_response = self.post_graphql(
+            """
+                mutation VerifyOnboardingEmailAgain($token: String!) {
+                  verifyOrganizationOnboardingEmail(token: $token) {
+                    message
+                    emailAlreadyVerified
+                    nextAction
+                  }
+                }
+            """,
+            {"token": token},
+            token="",
+        )
+        repeated_payload = repeated_response.json()["data"][
+            "verifyOrganizationOnboardingEmail"
+        ]
+        self.assertTrue(repeated_payload["emailAlreadyVerified"])
+        self.assertEqual(
+            repeated_payload["message"],
+            "Email already verified. You can continue onboarding.",
+        )
+        self.assertEqual(
+            repeated_payload["nextAction"], "submit_organization_verification"
+        )
+
         onboarding_user = PlatformUser.objects.get(
             public_id=onboarding["administratorUserId"]
         )

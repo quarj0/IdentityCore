@@ -2,7 +2,8 @@ from .base import *  # noqa: F401,F403
 
 
 DEBUG = False
-SECRET_KEY = "test-secret-key"
+SECRET_KEY = "test-secret-key-with-at-least-thirty-two-bytes"
+SIMPLE_JWT["SIGNING_KEY"] = SECRET_KEY
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",

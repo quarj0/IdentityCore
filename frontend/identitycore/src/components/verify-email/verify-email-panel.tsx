@@ -55,11 +55,9 @@ export function VerifyEmailPanel({
     }
 
     verifyOrganizationOnboardingEmail(token)
-      .then(() => {
+      .then((payload) => {
         setState("verified");
-        setMessage(
-          "Your email has been verified. You can now sign in and continue onboarding.",
-        );
+        setMessage(payload.message);
       })
       .catch((error) => {
         setState("error");

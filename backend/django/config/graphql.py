@@ -21,7 +21,10 @@ from apps.accounts.passwords import (
     reset_password_with_token,
     change_password as perform_password_change,
 )
-from apps.accounts.verification import build_email_verification_url, verify_email_token
+from apps.accounts.verification import (
+    build_email_verification_url,
+    verify_email_token_with_status,
+)
 from apps.audit.serializers import serialize_audit_event
 from apps.audit.services import record_audit_event
 from apps.api_clients.serializers import serialize_api_client
@@ -273,6 +276,8 @@ class OrganizationOnboardingNode:
 class OrganizationOnboardingPayload:
     onboarding: OrganizationOnboardingNode
     next_action: str
+    message: str | None = None
+    email_already_verified: bool = False
     debug_email_verification_url: str | None = None
 
 
@@ -762,12 +767,18 @@ class Mutation:
     ) -> OrganizationOnboardingPayload:
         request = info.context["request"]
         try:
-            user = verify_email_token(token)
-            organization, tenant, verified_user = confirm_onboarding_email_verification(
-                user=user,
-                actor=user,
-                request=request,
-            )
+            verification = verify_email_token_with_status(token)
+            user = verification.user
+            if verification.already_verified:
+                tenant = user.tenant
+                organization = tenant.organization
+                verified_user = user
+            else:
+                organization, tenant, verified_user = confirm_onboarding_email_verification(
+                    user=user,
+                    actor=user,
+                    request=request,
+                )
         except (ValidationError, ValueError) as exc:
             raise GraphQLError(str(exc))
         return OrganizationOnboardingPayload(
@@ -779,6 +790,12 @@ class Mutation:
                 )
             ),
             next_action="submit_organization_verification",
+            message=(
+                "Email already verified. You can continue onboarding."
+                if verification.already_verified
+                else "Email verified. You can continue onboarding."
+            ),
+            email_already_verified=verification.already_verified,
         )
 
     @strawberry.mutation

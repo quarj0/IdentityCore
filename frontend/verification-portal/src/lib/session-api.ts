@@ -50,9 +50,20 @@ async function request<T>(
     headers.set("Content-Type", "application/json");
   }
   const response = await fetch(`${API_BASE}${path}`, { ...init, headers });
-  const payload = (await response.json()) as ApiEnvelope<T>;
+  const body = await response.text();
+  let payload: ApiEnvelope<T>;
+  try {
+    payload = JSON.parse(body) as ApiEnvelope<T>;
+  } catch {
+    throw new Error("The verification service is temporarily unavailable. Please try again shortly.");
+  }
   if (!response.ok || !payload.success || !payload.data) {
-    throw new Error(payload.error?.message ?? "Verification request failed.");
+    const message = payload.error?.message ?? "Verification request failed. Please try again.";
+    throw new Error(
+      /unexpected token|invalidtag|not valid json|json\.parse|syntaxerror/i.test(message)
+        ? "The verification service is temporarily unavailable. Please try again shortly."
+        : message,
+    );
   }
   return payload.data;
 }
