@@ -568,7 +568,15 @@ class Mutation:
                     "full_name": f"{user.first_name} {user.last_name}".strip(),
                     "email": user.email,
                 },
-                "metadata": {"workflow": "administrator_onboarding"},
+                "metadata": {
+                    "workflow": "administrator_onboarding",
+                    "country_code": serialize_onboarding_state(
+                        organization=user.tenant.organization,
+                        tenant=user.tenant,
+                        user=user,
+                    )["administrator_country"],
+                    "document_type": "national_id",
+                },
             },
             context={"request": request},
         )

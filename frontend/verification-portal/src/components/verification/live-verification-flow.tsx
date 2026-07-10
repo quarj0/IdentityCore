@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Progress } from "@identitycore/ui";
 import { CameraCapture } from "./camera-capture";
@@ -82,6 +82,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
   const returnUrl = process.env.NEXT_PUBLIC_ONBOARDING_RETURN_URL ?? "http://localhost:3001/onboarding";
 
   return (
+    <main id="main-content" className="flex min-h-screen items-center px-4 py-8 sm:px-6">
     <div className="mx-auto w-full max-w-2xl space-y-5">
       <div className="flex items-center justify-between gap-4">
         <div><p className="text-sm text-slate-500">Requested by</p><h1 className="text-xl font-semibold">{session.organization.name}</h1></div>
@@ -89,7 +90,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
       </div>
       <Progress value={((index + 1) / STEPS.length) * 100} />
       <Card className="rounded-3xl border-slate-200 shadow-sm">
-        <CardHeader><CardTitle>{titleFor(step)}</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{titleFor(step, session.document.label)}</CardTitle></CardHeader>
         <CardContent className="space-y-5">
           <p className="text-sm leading-6 text-slate-600">{status.message}</p>
           {error ? <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
@@ -107,7 +108,11 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
             <Button disabled={!file || busy} onClick={() => run(async () => {
               if (!file) return;
               const uploadId = await createUpload(credentials, "document_capture", file);
-              await submitDocument(credentials, { documentType: "national_id", countryCode: "GH", uploadId });
+              await submitDocument(credentials, {
+                documentType: session.document.document_type,
+                countryCode: session.document.country_code,
+                uploadId,
+              });
             })}>Submit document</Button>
           </> : null}
 
@@ -129,15 +134,23 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
         </CardContent>
       </Card>
     </div>
+    </main>
   );
 }
 
 function EvidenceReview({ file, onRetake }: { file: File; onRetake: () => void }) {
-  const [url] = useState(() => URL.createObjectURL(file));
+  const url = useMemo(() => URL.createObjectURL(file), [file]);
+  const [previewFailed, setPreviewFailed] = useState(false);
   useEffect(() => () => URL.revokeObjectURL(url), [url]);
   return <div className="space-y-3">
-    {/* eslint-disable-next-line @next/next/no-img-element */}
-    <img src={url} alt="Captured evidence preview" className="max-h-96 w-full rounded-2xl bg-slate-950 object-contain" />
+    {previewFailed ? (
+      <p className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-800">
+        This image cannot be previewed. Retake it or choose a JPEG, PNG, or WebP file.
+      </p>
+    ) : (
+      /* eslint-disable-next-line @next/next/no-img-element */
+      <img src={url} onError={() => setPreviewFailed(true)} alt="Captured evidence preview" className="max-h-96 w-full rounded-2xl bg-slate-950 object-contain" />
+    )}
     <Button variant="outline" onClick={onRetake}>Retake</Button>
   </div>;
 }
@@ -152,4 +165,4 @@ function messageOf(error: unknown) {
     ? "The verification service is temporarily unavailable. Please try again shortly."
     : message || "Something went wrong. Please try again.";
 }
-function titleFor(step: string) { return ({ consent: "Review and consent", document_capture: "Capture your Ghana Card", selfie_capture: "Capture a live selfie", liveness_check: "Confirm liveness", processing: "Processing verification", completed: "Verification complete", expired: "Session expired" } as Record<string, string>)[step] ?? "Identity verification"; }
+function titleFor(step: string, documentLabel: string) { return ({ consent: "Review and consent", document_capture: `Capture your ${documentLabel}`, selfie_capture: "Capture a live selfie", liveness_check: "Confirm liveness", processing: "Processing verification", completed: "Verification complete", expired: "Session expired" } as Record<string, string>)[step] ?? "Identity verification"; }

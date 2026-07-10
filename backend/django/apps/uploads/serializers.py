@@ -74,8 +74,17 @@ class UploadCreateSerializer(serializers.Serializer):
             file_size_bytes=validated_data["file_size_bytes"],
             expires_at=expires_at,
         )
+        upload_headers = {"Content-Type": upload.mime_type}
+        if getattr(settings, "OBJECT_STORAGE_ENFORCE_SERVER_SIDE_ENCRYPTION", True):
+            encryption = getattr(
+                settings, "OBJECT_STORAGE_SERVER_SIDE_ENCRYPTION", ""
+            ).strip()
+            if encryption:
+                upload_headers["x-amz-server-side-encryption"] = encryption
         return {
             "upload_id": upload.public_id,
             "upload_url": build_signed_upload_url(upload=upload),
+            "upload_headers": upload_headers,
+            "upload_transfer_path": f"/uploads/{upload.public_id}/transfer",
             "expires_at": expires_at.isoformat(),
         }

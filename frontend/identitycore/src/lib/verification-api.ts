@@ -66,6 +66,8 @@ export interface VerificationDetailResponse {
 interface UploadCreateResponse {
   upload_id: string;
   upload_url: string;
+  upload_headers: Record<string, string>;
+  upload_transfer_path: string;
   expires_at: string;
 }
 
@@ -144,17 +146,13 @@ export async function createSessionUpload(
     { token: null, useAuth: false },
   );
 
-  const uploadResponse = await fetch(upload.upload_url, {
-    method: "PUT",
-    headers: {
-      "Content-Type": file.type,
-    },
-    body: file,
-  });
-
-  if (!uploadResponse.ok) {
-    throw new Error("Upload transfer failed.");
-  }
+  const form = new FormData();
+  form.set("file", file);
+  await restRequest(upload.upload_transfer_path, {
+    method: "POST",
+    headers: buildSessionHeaders(credentials),
+    body: form,
+  }, { token: null, useAuth: false });
 
   return upload;
 }

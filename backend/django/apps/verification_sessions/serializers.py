@@ -23,6 +23,7 @@ from apps.verifications.models import (
     VerificationSessionStatus,
     VerificationStatus,
 )
+from common.catalog import COUNTRY_PROFILES, DOCUMENT_TYPES
 
 
 REQUIRED_STEPS = [
@@ -104,6 +105,27 @@ def serialize_verification_session(verification_session: VerificationSession) ->
     verification = verification_session.verification
     organization = verification.organization
     organization_logo_url = organization.settings_json.get("logo_url", "")
+    metadata = verification.metadata_json or {}
+    onboarding = (organization.settings_json or {}).get("onboarding") or {}
+    registration = onboarding.get("registration") or {}
+    country_code = str(
+        metadata.get("country_code")
+        or registration.get("organization_country", "")
+    ).upper()
+    document_type = str(metadata.get("document_type", "national_id"))
+    document_label = next(
+        (
+            supported["local_name"]
+            for profile in COUNTRY_PROFILES
+            if profile["code"] == country_code
+            for supported in profile["supported_document_types"]
+            if supported["document_type"] == document_type
+        ),
+        next(
+            (item["name"] for item in DOCUMENT_TYPES if item["code"] == document_type),
+            "identity document",
+        ),
+    )
     return {
         "session_id": verification_session.public_id,
         "verification_id": verification.public_id,
@@ -114,6 +136,11 @@ def serialize_verification_session(verification_session: VerificationSession) ->
         },
         "purpose": verification.purpose,
         "required_steps": REQUIRED_STEPS,
+        "document": {
+            "country_code": country_code,
+            "document_type": document_type,
+            "label": document_label,
+        },
         "expires_at": verification_session.expires_at.isoformat(),
     }
 

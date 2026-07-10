@@ -58,6 +58,7 @@ class VerificationSessionPortalTests(APITestCase):
             status=VerificationStatus.PENDING_CONSENT,
             expires_at=timezone.now() + timedelta(hours=24),
             created_by=self.user,
+            metadata_json={"country_code": "GH", "document_type": "national_id"},
         )
         self.session = VerificationSession(
             verification=self.verification,
@@ -121,6 +122,14 @@ class VerificationSessionPortalTests(APITestCase):
         self.assertEqual(
             response.data["data"]["required_steps"],
             ["consent", "document_capture", "selfie_capture", "liveness_check"],
+        )
+        self.assertEqual(
+            response.data["data"]["document"],
+            {
+                "country_code": "GH",
+                "document_type": "national_id",
+                "label": "Ghana Card",
+            },
         )
 
     def test_get_session_rejects_invalid_token(self):

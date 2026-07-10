@@ -1,5 +1,7 @@
 from datetime import timedelta
+from unittest.mock import patch
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -82,6 +84,17 @@ class UploadCreateTests(APITestCase):
         self.assertIn(
             response.data["data"]["upload_id"], response.data["data"]["upload_url"]
         )
+        self.assertEqual(
+            response.data["data"]["upload_headers"],
+            {
+                "Content-Type": "image/jpeg",
+                "x-amz-server-side-encryption": "AES256",
+            },
+        )
+        self.assertEqual(
+            response.data["data"]["upload_transfer_path"],
+            f"/uploads/{response.data['data']['upload_id']}/transfer",
+        )
         upload = Upload.objects.get(public_id=response.data["data"]["upload_id"])
         self.assertEqual(upload.tenant, self.tenant)
         self.assertEqual(upload.verification, self.verification)
@@ -96,6 +109,35 @@ class UploadCreateTests(APITestCase):
                 f"/documents/{upload.public_id}"
             ),
         )
+
+    @patch("apps.uploads.views.put_object_bytes")
+    def test_transfer_upload_proxies_file_to_private_storage(self, put_object_bytes):
+        create_response = self.client.post(
+            reverse("upload-create"),
+            {
+                "purpose": "document_capture",
+                "mime_type": "image/jpeg",
+                "file_size_bytes": 4,
+            },
+            format="json",
+            **self.auth_headers(),
+        )
+        upload_id = create_response.data["data"]["upload_id"]
+
+        response = self.client.post(
+            reverse("upload-transfer", kwargs={"upload_id": upload_id}),
+            {
+                "file": SimpleUploadedFile(
+                    "document.jpg", b"test", content_type="image/jpeg"
+                )
+            },
+            format="multipart",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["data"]["upload_id"], upload_id)
+        put_object_bytes.assert_called_once()
 
     def test_create_upload_requires_session_authentication(self):
         response = self.client.post(

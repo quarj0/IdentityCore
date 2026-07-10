@@ -45,11 +45,11 @@ export class ApiError extends Error {
   }
 }
 
-function buildHeaders(init?: HeadersInit, token?: string | null) {
+function buildHeaders(init?: HeadersInit, token?: string | null, body?: BodyInit | null) {
   const headers = new Headers(init);
   headers.set("Accept", "application/json");
 
-  if (!headers.has("Content-Type")) {
+  if (!(body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -98,7 +98,7 @@ export async function restRequest<T>(
   const response = await fetch(`${getRestApiBaseUrl()}${path}`, {
     ...init,
     credentials: "include",
-    headers: buildHeaders(init.headers, token),
+    headers: buildHeaders(init.headers, token, init.body),
   });
 
   return parseJson<T>(response);

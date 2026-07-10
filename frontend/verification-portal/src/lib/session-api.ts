@@ -16,6 +16,11 @@ export interface VerificationSession {
   organization: { name: string; logo_url: string };
   purpose: string;
   required_steps: string[];
+  document: {
+    country_code: string;
+    document_type: string;
+    label: string;
+  };
   expires_at: string;
 }
 
@@ -46,7 +51,7 @@ async function request<T>(
   headers.set("Accept", "application/json");
   headers.set("Authorization", `Bearer ${credentials.sessionToken}`);
   headers.set("X-Session-Id", credentials.sessionId);
-  if (init.body && !headers.has("Content-Type")) {
+  if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
   const response = await fetch(`${API_BASE}${path}`, { ...init, headers });
@@ -107,7 +112,12 @@ export async function createUpload(
   purpose: "document_capture" | "selfie_capture",
   file: File,
 ) {
-  const upload = await request<{ upload_id: string; upload_url: string }>(
+  const upload = await request<{
+    upload_id: string;
+    upload_url: string;
+    upload_headers: Record<string, string>;
+    upload_transfer_path: string;
+  }>(
     credentials,
     "/uploads/",
     {
@@ -119,12 +129,12 @@ export async function createUpload(
       }),
     },
   );
-  const transfer = await fetch(upload.upload_url, {
-    method: "PUT",
-    headers: { "Content-Type": file.type },
-    body: file,
+  const form = new FormData();
+  form.set("file", file);
+  await request(credentials, upload.upload_transfer_path, {
+    method: "POST",
+    body: form,
   });
-  if (!transfer.ok) throw new Error("Evidence upload transfer failed.");
   return upload.upload_id;
 }
 
