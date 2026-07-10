@@ -113,7 +113,7 @@ class VerificationSessionDocumentView(VerificationSessionBaseView):
             {
                 "identity_document_id": identity_document.public_id,
                 "status": identity_document.status,
-                "next_step": "selfie_capture",
+                "next_step": "document_processing",
             },
             request=request,
         )

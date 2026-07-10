@@ -68,3 +68,49 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
             metadata_retention_days=validated_data["metadata_retention_days"],
             created_by=request.user,
         )
+
+
+class VerificationPolicyUpdateSerializer(VerificationPolicyCreateSerializer):
+    name = serializers.CharField(max_length=255, required=False)
+    required_document_types = serializers.ListField(
+        child=serializers.CharField(max_length=64), required=False, allow_empty=False
+    )
+    required_liveness_level = serializers.ChoiceField(
+        choices=[("passive", "Passive"), ("active", "Active")], required=False
+    )
+    face_match_threshold = serializers.DecimalField(
+        max_digits=5, decimal_places=4, required=False
+    )
+    manual_review_threshold = serializers.DecimalField(
+        max_digits=5, decimal_places=4, required=False
+    )
+    verification_expiry_minutes = serializers.IntegerField(min_value=1, required=False)
+    media_retention_days = serializers.IntegerField(min_value=1, required=False)
+    metadata_retention_days = serializers.IntegerField(min_value=1, required=False)
+
+    def validate(self, attrs):
+        policy = self.instance
+        manual_threshold = attrs.get(
+            "manual_review_threshold", policy.manual_review_threshold
+        )
+        face_threshold = attrs.get("face_match_threshold", policy.face_match_threshold)
+        if manual_threshold > face_threshold:
+            raise serializers.ValidationError(
+                {"manual_review_threshold": "Manual review threshold must not exceed the face match threshold."}
+            )
+        return attrs
+
+    def update(self, instance, validated_data):
+        if instance.status != "draft":
+            raise serializers.ValidationError(
+                {"status": "Only draft templates can be edited."}
+            )
+        for field, value in validated_data.items():
+            model_field = (
+                "required_document_types_json"
+                if field == "required_document_types"
+                else field
+            )
+            setattr(instance, model_field, value)
+        instance.save()
+        return instance

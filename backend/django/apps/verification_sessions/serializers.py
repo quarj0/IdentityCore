@@ -86,7 +86,7 @@ STATUS_PRESENTATION = {
         "Your verification has been completed successfully.",
     ),
     VerificationStatus.REJECTED: (
-        "completed",
+        "failed",
         "Your verification could not be completed.",
     ),
     VerificationStatus.EXPIRED: ("expired", "Your verification session has expired."),
@@ -95,7 +95,7 @@ STATUS_PRESENTATION = {
         "This verification has been cancelled.",
     ),
     VerificationStatus.FAILED: (
-        "processing",
+        "failed",
         "We could not complete your verification at this time.",
     ),
 }
@@ -152,7 +152,19 @@ def serialize_verification_session_status(
     latest_selfie = verification.selfie_captures.order_by("-created_at").first()
     latest_document = verification.identity_documents.order_by("-created_at").first()
     latest_liveness = verification.liveness_checks.order_by("-created_at").first()
-    if latest_selfie is not None and latest_liveness is None:
+    if latest_document is not None and latest_document.status == IdentityDocumentStatus.PROCESSING:
+        current_step = "document_processing"
+        message = "Your identity document is being checked before selfie capture."
+    elif latest_document is not None and latest_document.status in {
+        IdentityDocumentStatus.REJECTED,
+        IdentityDocumentStatus.FAILED,
+    }:
+        current_step = "document_capture"
+        message = (
+            "We could not verify that image as the requested identity document. "
+            "Please capture the physical document and try again."
+        )
+    elif latest_selfie is not None and latest_liveness is None:
         current_step = "liveness_check"
         message = "Please complete the passive liveness check."
     else:
@@ -358,7 +370,7 @@ class VerificationSessionDocumentSerializer(serializers.Serializer):
             },
         )
 
-        verification.status = VerificationStatus.AWAITING_SELFIE
+        verification.status = VerificationStatus.AWAITING_DOCUMENT
         verification.save(update_fields=["status", "updated_at"])
         verification_session.last_seen_at = now
         verification_session.save(update_fields=["last_seen_at", "updated_at"])
@@ -382,6 +394,16 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {
                     "detail": "An identity document must be submitted before selfie capture."
+                }
+            )
+        latest_document = verification.identity_documents.order_by("-created_at").first()
+        if latest_document.status != IdentityDocumentStatus.PROCESSED:
+            raise serializers.ValidationError(
+                {
+                    "detail": (
+                        "Your identity document must pass validation before selfie capture. "
+                        "Wait for processing or capture the physical document again."
+                    )
                 }
             )
         expected_purpose = (
@@ -435,6 +457,16 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
         request = self.context["request"]
         verification = request.verification_session.verification
 
+        latest_document = verification.identity_documents.order_by("-created_at").first()
+        if latest_document is None or latest_document.status != IdentityDocumentStatus.PROCESSED:
+            raise serializers.ValidationError(
+                {
+                    "detail": (
+                        "A validated identity document is required before liveness checking."
+                    )
+                }
+            )
+
         try:
             selfie_capture = verification.selfie_captures.get(
                 public_id=attrs["selfie_capture_id"]
@@ -478,7 +510,7 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
         liveness_provider_check = create_provider_check(
             verification=verification,
             check_type=ProviderCheckType.LIVENESS,
-            status=ProviderCheckStatus.COMPLETED,
+            status=ProviderCheckStatus.PROCESSING,
             normalized_result={
                 "status": LivenessCheckStatus.INCONCLUSIVE,
                 "source": "bootstrap-placeholder",
@@ -503,7 +535,7 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
             face_match_provider_check = create_provider_check(
                 verification=verification,
                 check_type=ProviderCheckType.FACE_MATCH,
-                status=ProviderCheckStatus.COMPLETED,
+                status=ProviderCheckStatus.PROCESSING,
                 normalized_result={
                     "status": FaceMatchStatus.INCONCLUSIVE,
                     "source": "bootstrap-placeholder",

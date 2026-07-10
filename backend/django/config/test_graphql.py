@@ -158,6 +158,7 @@ class GraphQLAPITests(APITestCase):
                     sessionId
                     sessionToken
                     verificationUrl
+                    action
                   }
                 }
             """
@@ -174,6 +175,50 @@ class GraphQLAPITests(APITestCase):
         self.assertEqual(verification.created_by, self.user)
         self.assertIn("#token=", launch["verificationUrl"])
         self.assertNotIn("?token=", launch["verificationUrl"])
+        self.assertEqual(launch["action"], "initial")
+
+        resumed_response = self.post_graphql(
+            """
+                mutation ResumeAdministratorVerification {
+                  createAdministratorOnboardingVerification {
+                    verificationId
+                    sessionId
+                    action
+                  }
+                }
+            """
+        )
+        resumed = resumed_response.json()["data"][
+            "createAdministratorOnboardingVerification"
+        ]
+        self.assertEqual(resumed["verificationId"], verification.public_id)
+        self.assertEqual(resumed["action"], "resume")
+        self.assertNotEqual(resumed["sessionId"], launch["sessionId"])
+
+        verification.status = "verified"
+        verification.save(update_fields=["status", "updated_at"])
+        blocked = self.post_graphql(
+            """
+                mutation BlockCasualReverification {
+                  createAdministratorOnboardingVerification { action }
+                }
+            """
+        ).json()
+        self.assertIn("already verified", blocked["errors"][0]["message"])
+
+        reverification = self.post_graphql(
+            """
+                mutation ControlledReverification($reason: String!) {
+                  createAdministratorOnboardingVerification(reason: $reason) {
+                    verificationId
+                    action
+                  }
+                }
+            """,
+            {"reason": "periodic_compliance_renewal"},
+        ).json()["data"]["createAdministratorOnboardingVerification"]
+        self.assertEqual(reverification["action"], "reverify")
+        self.assertNotEqual(reverification["verificationId"], verification.public_id)
 
     def test_record_manual_decision_mutation_updates_verification(self):
         subject = VerificationSubject.objects.create(

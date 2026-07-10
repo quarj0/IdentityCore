@@ -63,7 +63,37 @@ export function createIdentityCoreClient({
     if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
     const token = getAccessToken();
     if (token) headers.set("Authorization", `Bearer ${token}`);
-    return parse<T>(await fetch(`${origin}/api/v1${path}`, { ...init, headers, credentials: "include" }));
+    const send = () => fetch(`${origin}/api/v1${path}`, { ...init, headers, credentials: "include" });
+    let response = await send();
+    if (response.status === 401 && path !== "/auth/refresh" && path !== "/auth/login") {
+      try {
+        const refreshResponse = await fetch(`${origin}/api/v1/auth/refresh`, {
+          method: "POST",
+          credentials: "include",
+          headers: { Accept: "application/json", "Content-Type": "application/json" },
+        });
+        const refreshed = await parse<{ tokens: { access: string } }>(refreshResponse);
+        setAccessToken(refreshed.tokens.access);
+        headers.set("Authorization", `Bearer ${refreshed.tokens.access}`);
+        response = await send();
+      } catch {
+        setAccessToken(null);
+      }
+    }
+    return parse<T>(response);
+  }
+
+  async function login(email: string, password: string) {
+    const data = await rest<{ tokens: { access: string }; user: unknown }>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    setAccessToken(data.tokens.access);
+    return data;
+  }
+
+  async function me<T = unknown>() {
+    return rest<{ user: T }>("/auth/me");
   }
 
   async function restoreSession() {
@@ -77,5 +107,5 @@ export function createIdentityCoreClient({
     setAccessToken(null);
   }
 
-  return { rest, restoreSession, logout };
+  return { rest, restoreSession, login, me, logout };
 }

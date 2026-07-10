@@ -86,7 +86,6 @@ class VerificationWorkflowTests(APITestCase):
                     "email": "kwame@example.com",
                     "phone_number": "+233500000000",
                 },
-                "policy_id": "pol_01JABC",
                 "redirect_url": "https://example.com/verification-complete",
                 "metadata": {"source": "mobile_app"},
             },

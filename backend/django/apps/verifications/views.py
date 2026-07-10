@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -222,24 +224,19 @@ class VerificationResendLinkView(VerificationAccessMixin, APIView):
         serializer = VerificationResendLinkSerializer(data=request.data or {})
         serializer.is_valid(raise_exception=True)
 
-        session = (
-            verification.sessions.filter(expires_at__gt=timezone.now())
-            .order_by("-created_at")
-            .first()
+        verification.sessions.exclude(status="revoked").update(status="revoked")
+        raw_session_token = VerificationSession.generate_session_token()
+        session = VerificationSession(
+            verification=verification,
+            tenant=verification.tenant,
+            expires_at=max(verification.expires_at, timezone.now() + timedelta(minutes=10)),
         )
-        if session is None:
-            raw_session_token = VerificationSession.generate_session_token()
-            session = VerificationSession(
-                verification=verification,
-                tenant=verification.tenant,
-                expires_at=verification.expires_at,
-            )
-            session.set_session_token(raw_session_token)
-            session.save()
+        session.set_session_token(raw_session_token)
+        session.save()
 
         verification_url = (
             f"{settings.VERIFICATION_PORTAL_BASE_URL.rstrip('/')}/{session.public_id}"
-            f"?token={raw_session_token}"
+            f"#token={raw_session_token}&verification_id={verification.public_id}"
         )
         notifications = queue_verification_created_notifications(
             verification=verification,
@@ -263,6 +260,7 @@ class VerificationResendLinkView(VerificationAccessMixin, APIView):
                 "verification_url": verification_url,
                 "session_id": session.public_id,
                 "session_token": raw_session_token,
+                "expires_at": session.expires_at.isoformat(),
                 "channel": serializer.validated_data["channel"],
             },
             request=request,

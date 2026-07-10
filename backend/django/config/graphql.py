@@ -3,6 +3,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django_countries import countries
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from graphql import GraphQLError
 from rest_framework.exceptions import (
     AuthenticationFailed,
@@ -41,7 +42,12 @@ from apps.organizations.onboarding import (
     submit_organization_verification,
 )
 from apps.verification_policies.serializers import serialize_verification_policy
-from apps.verifications.models import Verification, VerificationStatus
+from apps.verifications.models import (
+    Verification,
+    VerificationSession,
+    VerificationSessionStatus,
+    VerificationStatus,
+)
 from apps.verifications.serializers import (
     ManualReviewDecisionSerializer,
     VerificationCreateSerializer,
@@ -288,6 +294,7 @@ class AdministratorVerificationLaunchNode:
     session_token: str
     verification_url: str
     expires_at: str
+    action: str
 
 
 @strawberry.type
@@ -557,10 +564,66 @@ class Query:
 class Mutation:
     @strawberry.mutation
     def create_administrator_onboarding_verification(
-        self, info: Info
+        self, info: Info, reason: str = ""
     ) -> AdministratorVerificationLaunchNode:
         request = info.context["request"]
         user = require_tenant_user(info)
+        allowed_reasons = {
+            "previous_attempt_failed_or_expired",
+            "periodic_compliance_renewal",
+            "identity_document_changed",
+            "suspected_evidence_compromise",
+        }
+        normalized_reason = reason.strip()
+        if normalized_reason and normalized_reason not in allowed_reasons:
+            raise GraphQLError("Choose a valid reason for reverification.")
+
+        latest = user.created_verifications.filter(
+            purpose="Administrator identity onboarding"
+        ).order_by("-created_at").first()
+        terminal_statuses = {
+            VerificationStatus.VERIFIED,
+            VerificationStatus.REJECTED,
+            VerificationStatus.EXPIRED,
+            VerificationStatus.CANCELLED,
+            VerificationStatus.FAILED,
+        }
+        if latest is not None and latest.expires_at <= timezone.now() and latest.status not in terminal_statuses:
+            latest.status = VerificationStatus.EXPIRED
+            latest.save(update_fields=["status", "updated_at"])
+        if latest is not None and latest.status not in terminal_statuses:
+            latest.sessions.exclude(status=VerificationSessionStatus.REVOKED).update(
+                status=VerificationSessionStatus.REVOKED
+            )
+            raw_token = VerificationSession.generate_session_token()
+            session = VerificationSession(
+                verification=latest,
+                tenant=latest.tenant,
+                expires_at=latest.expires_at,
+            )
+            session.set_session_token(raw_token)
+            session.save()
+            url = (
+                f"{settings.VERIFICATION_PORTAL_BASE_URL.rstrip('/')}/{session.public_id}"
+                f"#token={raw_token}&verification_id={latest.public_id}"
+            )
+            record_audit_event(
+                tenant=latest.tenant, actor=user, request=request,
+                action="onboarding.administrator_verification_resumed",
+                target_type="verification", target_id=latest.public_id,
+                metadata={"session_id": session.public_id},
+            )
+            return AdministratorVerificationLaunchNode(
+                verification_id=latest.public_id, session_id=session.public_id,
+                session_token=raw_token, verification_url=url,
+                expires_at=session.expires_at.isoformat(), action="resume",
+            )
+        if latest is not None and latest.status == VerificationStatus.VERIFIED and not normalized_reason:
+            raise GraphQLError(
+                "Administrator identity is already verified. Choose a reason to start reverification."
+            )
+        if latest is not None and not normalized_reason:
+            normalized_reason = "previous_attempt_failed_or_expired"
         serializer = VerificationCreateSerializer(
             data={
                 "purpose": "Administrator identity onboarding",
@@ -576,6 +639,7 @@ class Mutation:
                         user=user,
                     )["administrator_country"],
                     "document_type": "national_id",
+                    "reverification_reason": normalized_reason,
                 },
             },
             context={"request": request},
@@ -585,12 +649,20 @@ class Mutation:
         except DRFValidationError as exc:
             raise GraphQLError(str(exc.detail))
         verification = serializer.save()
+        action = "reverify" if latest is not None else "initial"
+        record_audit_event(
+            tenant=verification.tenant, actor=user, request=request,
+            action=f"onboarding.administrator_verification_{action}",
+            target_type="verification", target_id=verification.public_id,
+            metadata={"reason": normalized_reason},
+        )
         return AdministratorVerificationLaunchNode(
             verification_id=verification.public_id,
             session_id=verification._initial_session.public_id,
             session_token=verification._initial_session_token,
             verification_url=verification._verification_url,
             expires_at=verification.expires_at.isoformat(),
+            action=action,
         )
 
     @strawberry.mutation

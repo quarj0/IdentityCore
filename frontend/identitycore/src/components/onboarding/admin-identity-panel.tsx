@@ -25,6 +25,7 @@ export function AdminIdentityPanel() {
   const [consent, setConsent] = useState(false);
   const [loading, setLoading] = useState(true);
   const [launching, setLaunching] = useState(false);
+  const [reason, setReason] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -44,7 +45,7 @@ export function AdminIdentityPanel() {
     setLaunching(true);
     setErrorMessage(null);
     try {
-      const verification = await createAdministratorOnboardingVerification();
+      const verification = await createAdministratorOnboardingVerification(reason);
       window.location.assign(verification.verificationUrl);
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
@@ -60,6 +61,10 @@ export function AdminIdentityPanel() {
       </div>
     );
   }
+
+  const verificationStatus = state?.administratorIdentityVerificationStatus || "pending";
+  const needsReason = ["verified", "rejected", "failed", "expired"].includes(verificationStatus);
+  const completed = verificationStatus === "verified";
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_0.42fr]">
@@ -125,15 +130,27 @@ export function AdminIdentityPanel() {
             size="lg"
             className="rounded-xl"
             onClick={handleLaunch}
-            disabled={!consent || launching}
+            disabled={!consent || launching || (needsReason && !reason)}
           >
             {launching ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <ArrowRight className="h-4 w-4" />
             )}
-            Launch verification
+            {completed ? "Start reverification" : verificationStatus === "submitted" ? "Resume verification" : "Launch verification"}
           </Button>
+          {needsReason ? (
+            <div className="space-y-2">
+              <Label htmlFor="reverificationReason">Reason for reverification</Label>
+              <select id="reverificationReason" value={reason} onChange={(event) => setReason(event.target.value)} className="h-10 w-full rounded-md border bg-white px-3 text-sm">
+                <option value="">Choose reason</option>
+                <option value="previous_attempt_failed_or_expired">Previous attempt failed or expired</option>
+                <option value="periodic_compliance_renewal">Periodic compliance renewal</option>
+                <option value="identity_document_changed">Identity document changed</option>
+                <option value="suspected_evidence_compromise">Suspected evidence compromise</option>
+              </select>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

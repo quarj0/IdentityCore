@@ -209,6 +209,22 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
         risk_assessment, decision_record = run_verification_risk_and_decision(
             verification
         )
+        if verification.metadata_json.get("workflow") == "administrator_onboarding":
+            organization = verification.organization
+            settings_json = dict(organization.settings_json or {})
+            onboarding = dict(settings_json.get("onboarding") or {})
+            admin_identity = dict(
+                onboarding.get("administrator_identity_verification") or {}
+            )
+            admin_identity.update({
+                "verification_id": verification.public_id,
+                "status": decision_record.decision,
+                "completed_at": timezone.now().isoformat(),
+            })
+            onboarding["administrator_identity_verification"] = admin_identity
+            settings_json["onboarding"] = onboarding
+            organization.settings_json = settings_json
+            organization.save(update_fields=["settings_json", "updated_at"])
         record_audit_event(
             tenant=verification.tenant,
             actor=verification.verification_subject,

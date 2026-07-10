@@ -1,5 +1,7 @@
-import { VerificationDetailPage } from "@/features/verifications/pages/verification-detail-page";
+"use client";
+import { useParams } from "next/navigation";
+import { LiveVerificationDetail } from "@/features/verifications/components/live-verification-detail";
 
-export default function Page({ params }: { params: { id: string } }) {
-  return <VerificationDetailPage id={params.id} />;
+export default function Page() {
+  return <LiveVerificationDetail id={String(useParams().id)} />;
 }

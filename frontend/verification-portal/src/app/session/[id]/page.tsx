@@ -4,11 +4,13 @@ import { VerificationHelpCard } from "@/components/verification/verification-hel
 import { VerificationSessionCard } from "@/components/verification/verification-session-card";
 import { mockSession } from "@/data/verification";
 
-export default function VerificationSessionPage({
+export default async function VerificationSessionPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
+
   return (
     <VerificationShell>
       <div className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -18,7 +20,7 @@ export default function VerificationSessionPage({
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">
           {mockSession.workflowName}
         </h1>
-        <p className="mt-2 text-sm text-slate-600">Session: {params.id}</p>
+        <p className="mt-2 text-sm text-slate-600">Session: {id}</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">

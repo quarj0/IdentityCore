@@ -1,16 +1,7 @@
-import { ReviewWorkbench } from "@/features/review/components/review-workbench";
-import { ResourceDetailLayout } from "@/components/details/resource-detail-layout";
+"use client";
+import { useParams } from "next/navigation";
+import { LiveVerificationDetail } from "@/features/verifications/components/live-verification-detail";
 
-export default function Page({ params }: { params: { id: string } }) {
-  return (
-    <ResourceDetailLayout
-      backHref="/manual-review"
-      backLabel="Back to manual review"
-      title="Manual review case"
-      description={`Case ID: ${params.id}`}
-      status="Review required"
-    >
-      <ReviewWorkbench />
-    </ResourceDetailLayout>
-  );
+export default function Page() {
+  return <LiveVerificationDetail id={String(useParams().id)} review />;
 }

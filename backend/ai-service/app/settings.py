@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     service_name: str = Field(default="ai-service", alias="AI_SERVICE_NAME")
     service_version: str = Field(default="1.0.0", alias="AI_SERVICE_VERSION")
-    service_mode: str = Field(default="mock", alias="AI_SERVICE_MODE")
+    service_mode: str = Field(default="real", alias="AI_SERVICE_MODE")
     shared_token: str = Field(default="", alias="AI_SERVICE_SHARED_TOKEN")
 
     cache_dir: str = Field(default="/tmp/identitycore-ai", alias="AI_SERVICE_CACHE_DIR")
@@ -86,7 +86,7 @@ class Settings(BaseSettings):
     @field_validator("service_mode", mode="before")
     @classmethod
     def normalize_service_mode(cls, value: str) -> str:
-        normalized = str(value or "mock").strip().lower()
+        normalized = str(value or "real").strip().lower()
         if normalized == "local":
             return "mock"
         if normalized not in {"mock", "hybrid", "real"}:

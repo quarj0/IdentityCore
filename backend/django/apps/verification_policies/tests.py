@@ -131,3 +131,34 @@ class VerificationPolicyAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data["data"]), 1)
         self.assertEqual(response.data["data"][0]["name"], "Default Verification")
+
+    def test_policy_lifecycle_is_versioned_and_active_is_immutable(self):
+        create = self.client.post(
+            reverse("verification-policy-list-create"),
+            {
+                "name": "Identity Check",
+                "required_document_types": ["national_id"],
+                "required_liveness_level": "passive",
+                "face_match_threshold": "0.8500",
+                "manual_review_threshold": "0.6500",
+                "verification_expiry_minutes": 60,
+                "media_retention_days": 30,
+                "metadata_retention_days": 365,
+            }, format="json",
+        )
+        policy_id = create.data["data"]["id"]
+        activate = self.client.post(
+            reverse("verification-policy-activate", kwargs={"policy_id": policy_id})
+        )
+        self.assertEqual(activate.data["data"]["status"], "active")
+        update = self.client.patch(
+            reverse("verification-policy-detail", kwargs={"policy_id": policy_id}),
+            {"description": "Changed"}, format="json",
+        )
+        self.assertEqual(update.status_code, status.HTTP_400_BAD_REQUEST)
+        clone = self.client.post(
+            reverse("verification-policy-clone", kwargs={"policy_id": policy_id})
+        )
+        self.assertEqual(clone.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(clone.data["data"]["version"], 2)
+        self.assertEqual(clone.data["data"]["status"], "draft")

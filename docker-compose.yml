@@ -86,12 +86,33 @@ services:
       - "8001:8001"
     volumes:
       - .:/app
+      - ai-models:/opt/identitycore/models
     healthcheck:
-      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8001/v1/health')"]
+      test: ["CMD", "python", "-c", "import os; from urllib.request import Request,urlopen; urlopen(Request('http://127.0.0.1:8001/v1/ready',headers={'X-Internal-Token':os.getenv('AI_SERVICE_SHARED_TOKEN','')}))"]
       interval: 15s
       timeout: 5s
       retries: 5
       start_period: 15s
+    networks:
+      - identitycore
+
+  ai-model-bootstrap:
+    build:
+      context: .
+      dockerfile: backend/ai-service/Dockerfile
+    working_dir: /app/backend/ai-service
+    profiles: ["model-bootstrap"]
+    env_file:
+      - .env
+    environment:
+      AI_SERVICE_MODE: real
+      INSIGHTFACE_ALLOW_DOWNLOAD: 1
+      PADDLE_OCR_ALLOW_DOWNLOAD: 1
+      AI_MODEL_ROOT: /opt/identitycore/models
+    command: python -m app.bootstrap_models
+    volumes:
+      - .:/app
+      - ai-models:/opt/identitycore/models
     networks:
       - identitycore
 
@@ -310,6 +331,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  ai-models:
 
 networks:
   identitycore:

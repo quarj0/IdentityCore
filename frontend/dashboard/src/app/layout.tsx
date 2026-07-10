@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
+import { DashboardFrame } from "@/components/layout/dashboard-frame";
+import { DashboardSession } from "@/components/auth/dashboard-session";
 import { Toaster } from "@identitycore/ui";
 
 export const metadata: Metadata = {
@@ -23,7 +24,7 @@ export default function RootLayout({
           Skip to content
         </a>
 
-        <DashboardShell>{children}</DashboardShell>
+        <DashboardSession><DashboardFrame>{children}</DashboardFrame></DashboardSession>
         <Toaster />
       </body>
     </html>

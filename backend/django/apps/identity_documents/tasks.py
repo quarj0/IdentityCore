@@ -13,6 +13,7 @@ from apps.providers.ai_service import (
 )
 from apps.providers.models import ProviderCheckStatus, ProviderCheckType
 from apps.uploads.services import promote_upload_to_media_by_storage_key
+from apps.verifications.models import VerificationStatus
 from common.storage import get_object_storage_temp_bucket_name
 
 
@@ -123,12 +124,23 @@ def process_identity_document_task(identity_document_id: str) -> str:
             **ocr_result.get("extracted_fields", {}),
             "document_classification": classification_result,
         }
+        classification_valid = bool(
+            classification_result.get("matched_expected_document_type")
+        ) and not classification_result.get("issues")
         identity_document.status = (
             IdentityDocumentStatus.PROCESSED
             if latest_quality_status == DocumentCaptureStatus.VALIDATED
+            and classification_valid
             else IdentityDocumentStatus.REJECTED
         )
         identity_document.save(update_fields=["extracted_data_json", "status", "updated_at"])
+
+        verification.status = (
+            VerificationStatus.AWAITING_SELFIE
+            if identity_document.status == IdentityDocumentStatus.PROCESSED
+            else VerificationStatus.AWAITING_DOCUMENT
+        )
+        verification.save(update_fields=["status", "updated_at"])
 
         if classification_provider_check is not None:
             classification_provider_check.status = ProviderCheckStatus.COMPLETED
@@ -175,6 +187,8 @@ def process_identity_document_task(identity_document_id: str) -> str:
     except Exception as exc:
         identity_document.status = IdentityDocumentStatus.FAILED
         identity_document.save(update_fields=["status", "updated_at"])
+        verification.status = VerificationStatus.AWAITING_DOCUMENT
+        verification.save(update_fields=["status", "updated_at"])
         for provider_check in (
             quality_provider_check,
             classification_provider_check,

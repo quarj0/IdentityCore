@@ -13,7 +13,7 @@ from apps.document_captures.models import DocumentCapture
 from apps.identity_documents.models import IdentityDocument
 from apps.notifications.models import Notification
 from apps.organizations.models import Organization
-from apps.providers.models import ProviderCheck
+from apps.providers.models import ProviderCheck, ProviderCheckStatus
 from apps.risk.models import RiskAssessment
 from apps.tenants.models import Tenant
 from apps.uploads.models import Upload, UploadPurpose, UploadStatus
@@ -263,7 +263,7 @@ class VerificationSessionPortalTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["status"], "processing")
-        self.assertEqual(response.data["data"]["next_step"], "selfie_capture")
+        self.assertEqual(response.data["data"]["next_step"], "document_processing")
         identity_document = IdentityDocument.objects.get(
             public_id=response.data["data"]["identity_document_id"]
         )
@@ -303,7 +303,7 @@ class VerificationSessionPortalTests(APITestCase):
         self.assertEqual(back_upload.status, UploadStatus.CONSUMED)
         mock_delay.assert_called_once_with(identity_document.public_id)
         self.verification.refresh_from_db()
-        self.assertEqual(self.verification.status, VerificationStatus.AWAITING_SELFIE)
+        self.assertEqual(self.verification.status, VerificationStatus.AWAITING_DOCUMENT)
 
     def test_submit_documents_rejects_duplicate_sides(self):
         ConsentRecord.objects.create(
@@ -402,7 +402,7 @@ class VerificationSessionPortalTests(APITestCase):
             verification_subject=self.subject,
             document_type_id="national_id",
             country_profile_id="GH",
-            status="processing",
+            status="processed",
         )
         self.verification.status = VerificationStatus.AWAITING_SELFIE
         self.verification.save(update_fields=["status", "updated_at"])
@@ -459,7 +459,7 @@ class VerificationSessionPortalTests(APITestCase):
             verification_subject=self.subject,
             document_type_id="national_id",
             country_profile_id="GH",
-            status="processing",
+            status="processed",
         )
         document_capture = DocumentCapture.objects.create(
             tenant=self.tenant,
@@ -521,6 +521,19 @@ class VerificationSessionPortalTests(APITestCase):
         self.assertTrue(face_match.provider_check_id.startswith("pck_"))
         self.assertEqual(
             ProviderCheck.objects.filter(verification=self.verification).count(), 2
+        )
+        self.assertFalse(
+            ProviderCheck.objects.filter(
+                verification=self.verification,
+                status=ProviderCheckStatus.COMPLETED,
+            ).exists()
+        )
+        self.assertEqual(
+            ProviderCheck.objects.filter(
+                verification=self.verification,
+                status=ProviderCheckStatus.PROCESSING,
+            ).count(),
+            2,
         )
         self.assertFalse(
             RiskAssessment.objects.filter(verification=self.verification).exists()
@@ -611,3 +624,18 @@ class VerificationSessionPortalTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["status"], VerificationStatus.VERIFIED)
         self.assertEqual(response.data["data"]["current_step"], "completed")
+
+    def test_get_session_status_for_failed(self):
+        self.verification.status = VerificationStatus.FAILED
+        self.verification.save(update_fields=["status", "updated_at"])
+
+        response = self.client.get(
+            reverse(
+                "verification-session-status",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            **self.session_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["data"]["current_step"], "failed")

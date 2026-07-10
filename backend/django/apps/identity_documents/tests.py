@@ -116,6 +116,8 @@ class IdentityDocumentTaskTests(TestCase):
         self.capture.refresh_from_db()
         self.upload.refresh_from_db()
         self.assertEqual(self.identity_document.status, IdentityDocumentStatus.PROCESSED)
+        self.verification.refresh_from_db()
+        self.assertEqual(self.verification.status, VerificationStatus.AWAITING_SELFIE)
         self.assertEqual(self.capture.status, "validated")
         self.assertEqual(self.upload.status, UploadStatus.PROMOTED)
         self.assertEqual(self.identity_document.extracted_data_json["full_name"], "Kwame Mensah")
@@ -161,3 +163,38 @@ class IdentityDocumentTaskTests(TestCase):
         self.upload.refresh_from_db()
         self.assertEqual(self.capture.status, "rejected")
         self.assertEqual(self.upload.status, UploadStatus.PROMOTED)
+        self.verification.refresh_from_db()
+        self.assertEqual(self.verification.status, VerificationStatus.AWAITING_DOCUMENT)
+
+    @patch("apps.identity_documents.tasks.run_document_classification")
+    @patch("apps.identity_documents.tasks.run_document_ocr")
+    @patch("apps.identity_documents.tasks.run_document_quality")
+    def test_process_identity_document_rejects_non_document_image(
+        self, mock_quality, mock_ocr, mock_classification
+    ):
+        mock_quality.return_value = {
+            "status": "completed",
+            "quality_score": 0.91,
+            "issues": [],
+        }
+        mock_classification.return_value = {
+            "status": "completed",
+            "predicted_document_type": "unknown",
+            "expected_document_type": "national_id",
+            "matched_expected_document_type": False,
+            "confidence_score": 0.0,
+            "issues": ["document_type_not_confident"],
+        }
+        mock_ocr.return_value = {
+            "status": "completed",
+            "confidence_score": 0.0,
+            "extracted_fields": {},
+        }
+
+        result = process_identity_document_task(self.identity_document.public_id)
+
+        self.assertEqual(result, IdentityDocumentStatus.REJECTED)
+        self.identity_document.refresh_from_db()
+        self.verification.refresh_from_db()
+        self.assertEqual(self.identity_document.status, IdentityDocumentStatus.REJECTED)
+        self.assertEqual(self.verification.status, VerificationStatus.AWAITING_DOCUMENT)

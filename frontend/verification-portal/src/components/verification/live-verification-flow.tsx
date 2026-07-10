@@ -19,7 +19,7 @@ import {
   type VerificationStatus,
 } from "@/lib/session-api";
 
-const STEPS = ["consent", "document_capture", "selfie_capture", "liveness_check", "processing", "completed"];
+const STEPS = ["consent", "document_capture", "document_processing", "selfie_capture", "liveness_check", "processing", "completed", "failed"];
 
 export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
   const [credentials, setCredentials] = useState<SessionCredentials | null>(null);
@@ -52,7 +52,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
   }, [load, sessionId]);
 
   useEffect(() => {
-    if (!credentials || !status || !["processing"].includes(status.current_step)) return;
+    if (!credentials || !status || !["document_processing", "processing"].includes(status.current_step)) return;
     const timer = window.setInterval(() => {
       void fetchVerificationStatus(credentials).then(setStatus).catch(() => window.clearInterval(timer));
     }, 4000);
@@ -116,20 +116,24 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
             })}>Submit document</Button>
           </> : null}
 
+          {step === "document_processing" ? <div className="flex items-center gap-3 rounded-2xl bg-blue-50 p-4 text-sm text-blue-800"><Loader2 className="h-5 w-5 animate-spin" />Checking document type, readability, and image quality before selfie capture.</div> : null}
+
           {step === "selfie_capture" ? <>
             {!file ? <CameraCapture facingMode="user" label="Selfie camera" onCapture={setFile} /> : <EvidenceReview file={file} onRetake={() => setFile(null)} />}
             <Button disabled={!file || busy} onClick={() => run(async () => {
               if (!file) return;
               const uploadId = await createUpload(credentials, "selfie_capture", file);
-              await submitSelfie(credentials, uploadId);
-            })}>Submit selfie</Button>
+              const selfie = await submitSelfie(credentials, uploadId);
+              await submitLiveness(credentials, selfie.selfie_capture_id);
+            })}>Submit selfie and check liveness</Button>
           </> : null}
 
-          {step === "liveness_check" ? <Button disabled={!status.evidence.selfie_capture_id || busy} onClick={() => run(() => submitLiveness(credentials, status.evidence.selfie_capture_id))}>Submit passive liveness</Button> : null}
+          {step === "liveness_check" ? <div className="space-y-4"><p className="text-sm leading-6 text-slate-600">Passive liveness uses your submitted selfie. No additional photo or gesture is required.</p><Button disabled={!status.evidence.selfie_capture_id || busy} onClick={() => run(() => submitLiveness(credentials, status.evidence.selfie_capture_id))}>Start liveness check</Button></div> : null}
 
           {step === "processing" ? <div className="flex items-center gap-3 rounded-2xl bg-blue-50 p-4 text-sm text-blue-800"><Loader2 className="h-5 w-5 animate-spin" />Document and biometric evidence are being processed.</div> : null}
 
-          {step === "completed" ? <div className="space-y-4"><div className="flex items-center gap-3 text-emerald-700"><CheckCircle2 className="h-6 w-6" />Verification completed.</div><Button onClick={() => { clearSessionCredentials(sessionId); window.location.assign(returnUrl); }}>Return to onboarding</Button></div> : null}
+          {step === "completed" ? <div className="space-y-4"><div className="flex items-center gap-3 text-emerald-700"><CheckCircle2 className="h-6 w-6" />{status.status === "verified" ? "Verification completed successfully." : "Verification completed and requires review."}</div><Button onClick={() => { clearSessionCredentials(sessionId); window.location.assign(returnUrl); }}>Return to onboarding</Button></div> : null}
+          {step === "failed" ? <div className="space-y-4"><p role="alert" className="rounded-2xl bg-red-50 p-4 text-sm text-red-700">We could not complete the automated verification. Please return to onboarding for the next available step.</p><Button onClick={() => { clearSessionCredentials(sessionId); window.location.assign(returnUrl); }}>Return to onboarding</Button></div> : null}
           {busy ? <div aria-live="polite" className="flex items-center gap-2 text-sm text-slate-500"><Loader2 className="h-4 w-4 animate-spin" />Submitting securely…</div> : null}
         </CardContent>
       </Card>
@@ -165,4 +169,4 @@ function messageOf(error: unknown) {
     ? "The verification service is temporarily unavailable. Please try again shortly."
     : message || "Something went wrong. Please try again.";
 }
-function titleFor(step: string, documentLabel: string) { return ({ consent: "Review and consent", document_capture: `Capture your ${documentLabel}`, selfie_capture: "Capture a live selfie", liveness_check: "Confirm liveness", processing: "Processing verification", completed: "Verification complete", expired: "Session expired" } as Record<string, string>)[step] ?? "Identity verification"; }
+function titleFor(step: string, documentLabel: string) { return ({ consent: "Review and consent", document_capture: `Capture your ${documentLabel}`, document_processing: "Checking your document", selfie_capture: "Capture a live selfie", liveness_check: "Check liveness", processing: "Processing verification", completed: "Verification complete", failed: "Verification needs attention", expired: "Session expired" } as Record<string, string>)[step] ?? "Identity verification"; }

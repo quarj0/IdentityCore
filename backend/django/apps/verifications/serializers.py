@@ -5,6 +5,7 @@ from django.core.paginator import Paginator
 from django.utils import timezone
 from rest_framework import serializers
 
+from apps.accounts.models import PlatformUser
 from apps.verification_subjects.models import VerificationSubject
 from apps.verifications.evidence import (
     build_verification_evidence_download_url,
@@ -65,6 +66,11 @@ def serialize_verification(verification: Verification, request=None) -> dict:
         "id": verification.public_id,
         "status": verification.status,
         "purpose": verification.purpose,
+        "policy": {
+            "id": verification.policy_public_id,
+            "name": verification.policy_snapshot_json.get("name", ""),
+            "version": verification.policy_snapshot_json.get("version"),
+        },
         "external_reference": verification.external_reference,
         "verification_subject": {
             "id": verification.verification_subject.public_id,
@@ -133,7 +139,18 @@ def serialize_verification_summary(verification: Verification) -> dict:
     return {
         "id": verification.public_id,
         "status": verification.status,
+        "purpose": verification.purpose,
         "external_reference": verification.external_reference,
+        "subject": {
+            "id": verification.verification_subject.public_id,
+            "full_name": verification.verification_subject.full_name,
+            "email": verification.verification_subject.email,
+        },
+        "policy": {
+            "id": verification.policy_public_id,
+            "name": verification.policy_snapshot_json.get("name", ""),
+            "version": verification.policy_snapshot_json.get("version"),
+        },
         "created_at": verification.created_at.isoformat(),
         "completed_at": (
             verification.completed_at.isoformat() if verification.completed_at else None
@@ -166,9 +183,14 @@ class VerificationCreateSerializer(serializers.Serializer):
         tenant = get_request_tenant(request)
         policy_id = attrs.get("policy_id", "").strip()
         if policy_id:
-            policy = tenant.verification_policies.filter(public_id=policy_id).first()
-            if policy is not None:
-                attrs["policy"] = policy
+            policy = tenant.verification_policies.filter(
+                public_id=policy_id, status="active"
+            ).first()
+            if policy is None:
+                raise serializers.ValidationError(
+                    {"policy_id": "Choose an active verification template."}
+                )
+            attrs["policy"] = policy
         return attrs
 
     def create(self, validated_data):
@@ -224,6 +246,7 @@ class VerificationCreateSerializer(serializers.Serializer):
             created_by=(
                 request.user
                 if getattr(request.user, "is_authenticated", False)
+                and isinstance(request.user, PlatformUser)
                 else None
             ),
         )

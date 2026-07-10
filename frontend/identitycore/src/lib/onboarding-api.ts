@@ -81,6 +81,7 @@ interface CreateAdministratorVerificationResponse {
     sessionToken: string;
     verificationUrl: string;
     expiresAt: string;
+    action: string;
   };
 }
 
@@ -273,18 +274,19 @@ export async function fetchCurrentOnboarding() {
   return data.organizationOnboarding;
 }
 
-export async function createAdministratorOnboardingVerification() {
+export async function createAdministratorOnboardingVerification(reason = "") {
   const data = await graphqlRequest<CreateAdministratorVerificationResponse>(`
-    mutation CreateAdministratorOnboardingVerification {
-      createAdministratorOnboardingVerification {
+    mutation CreateAdministratorOnboardingVerification($reason: String!) {
+      createAdministratorOnboardingVerification(reason: $reason) {
         verificationId
         sessionId
         sessionToken
         verificationUrl
         expiresAt
+        action
       }
     }
-  `);
+  `, { reason });
   return data.createAdministratorOnboardingVerification;
 }
 
