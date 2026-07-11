@@ -12,7 +12,11 @@ from apps.biometrics.models import (
     SelfieCaptureType,
 )
 from apps.consent.models import ConsentRecord, ConsentTemplate, ConsentTemplateStatus
-from apps.document_captures.models import DocumentCapture, DocumentCaptureSide
+from apps.document_captures.models import (
+    DocumentCapture,
+    DocumentCaptureSide,
+    DocumentCaptureStatus,
+)
 from apps.identity_documents.models import IdentityDocument, IdentityDocumentStatus
 from apps.providers.models import ProviderCheckStatus, ProviderCheckType
 from apps.providers.services import create_provider_check
@@ -168,10 +172,42 @@ def serialize_verification_session_status(
             ),
             latest_document.document_type_id.replace("_", " ").title(),
         )
-        message = (
-            f"Your previous {document_label} image could not be verified. "
-            f"Please capture the physical {document_label} and try again."
+        classification = (latest_document.extracted_data_json or {}).get(
+            "document_classification", {}
         )
+        classification_issues = set(classification.get("issues") or [])
+        if latest_document.status == IdentityDocumentStatus.FAILED:
+            message = (
+                f"Your previous {document_label} could not be processed. "
+                "Please try capturing it again."
+            )
+        elif latest_document.captures.filter(
+            status=DocumentCaptureStatus.REJECTED
+        ).exists():
+            message = (
+                f"Your previous {document_label} image did not meet the capture quality "
+                "requirements. Use good lighting, avoid glare and blur, and try again."
+            )
+        elif "document_type_mismatch" in classification_issues:
+            predicted_code = str(classification.get("predicted_document_type", ""))
+            predicted_label = next(
+                (item["name"] for item in DOCUMENT_TYPES if item["code"] == predicted_code),
+                predicted_code.replace("_", " ").title() or "another document type",
+            )
+            message = (
+                f"That image appears to be {predicted_label}, not {document_label}. "
+                f"Please capture the physical {document_label} and try again."
+            )
+        elif "document_type_not_confident" in classification_issues:
+            message = (
+                f"We could not read enough information to confirm this as {document_label}. "
+                "Capture the full physical document in clear, even lighting and try again."
+            )
+        else:
+            message = (
+                f"Your previous {document_label} image could not be verified. "
+                f"Please capture the physical {document_label} and try again."
+            )
     elif latest_selfie is not None and latest_liveness is None:
         current_step = "liveness_check"
         message = "Please complete the passive liveness check."
@@ -320,15 +356,28 @@ class VerificationSessionDocumentSerializer(serializers.Serializer):
         verification_session = request.verification_session
         verification = verification_session.verification
 
+        document_type = self.validated_data["document_type"]
+        country_code = self.validated_data.get("country_code", "")
+        local_document_name = next(
+            (
+                supported["local_name"]
+                for profile in COUNTRY_PROFILES
+                if profile["code"] == country_code
+                for supported in profile["supported_document_types"]
+                if supported["document_type"] == document_type
+            ),
+            next(
+                (item["name"] for item in DOCUMENT_TYPES if item["code"] == document_type),
+                document_type.replace("_", " ").title(),
+            ),
+        )
         identity_document = IdentityDocument.objects.create(
             tenant=verification.tenant,
             verification=verification,
             verification_subject=verification.verification_subject,
-            document_type_id=self.validated_data["document_type"],
-            country_profile_id=self.validated_data.get("country_code", ""),
-            local_document_name=self.validated_data["document_type"]
-            .replace("_", " ")
-            .title(),
+            document_type_id=document_type,
+            country_profile_id=country_code,
+            local_document_name=local_document_name,
             status=IdentityDocumentStatus.PROCESSING,
         )
 

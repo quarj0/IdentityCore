@@ -269,6 +269,7 @@ class VerificationSessionPortalTests(APITestCase):
         )
         self.assertEqual(identity_document.document_type_id, "national_id")
         self.assertEqual(identity_document.country_profile_id, "GH")
+        self.assertEqual(identity_document.local_document_name, "Ghana Card")
         self.assertEqual(identity_document.status, "processing")
         self.assertEqual(identity_document.captures.count(), 2)
         self.assertSetEqual(

@@ -483,19 +483,28 @@ def _normalize_ocr_fields(texts: list[str], document_type: str, country_code: st
     }
 
 
-def _infer_document_type_from_texts(texts: list[str], storage_key: str) -> tuple[str, float]:
+def _infer_document_type_from_texts(
+    texts: list[str], storage_key: str, country_code: str = ""
+) -> tuple[str, float]:
     joined = " ".join(texts).upper()
     if "PASSPORT" in joined:
         return "passport", 0.94
     if "DRIVER" in joined and ("LICENCE" in joined or "LICENSE" in joined):
-        return "drivers_license", 0.9
-    if "NATIONAL" in joined and "ID" in joined:
+        return "driver_license", 0.9
+    if "NHIS" in joined or "NATIONAL HEALTH INSURANCE" in joined:
+        return "health_id", 0.92
+    if (
+        ("NATIONAL" in joined and (" ID" in f" {joined}" or "IDENTITY" in joined))
+        or "IDENTITY CARD" in joined
+        or "IDENTIFICATION CARD" in joined
+        or (country_code.upper() == "GH" and "GHANA CARD" in joined)
+    ):
         return "national_id", 0.92
     key_name = Path(storage_key).stem.lower()
     if "passport" in key_name:
         return "passport", 0.74
     if "license" in key_name or "licence" in key_name:
-        return "drivers_license", 0.72
+        return "driver_license", 0.72
     if "national" in key_name or "nid" in key_name:
         return "national_id", 0.7
     return "unknown", 0.35
@@ -542,6 +551,7 @@ def run_document_classification_pipeline(
     predicted_document_type, confidence_score = _infer_document_type_from_texts(
         texts,
         storage_key,
+        country_code,
     )
     matched_expected_document_type = (
         predicted_document_type == expected_document_type

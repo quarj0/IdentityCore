@@ -253,4 +253,4 @@ function messageOf(error: unknown) {
     ? "The verification service is temporarily unavailable. Please try again shortly."
     : message || "Something went wrong. Please try again.";
 }
-function titleFor(step: string, documentLabel: string) { return ({ consent: "Review and consent", document_capture: `Capture your ${documentLabel}`, document_processing: "Checking your document", selfie_capture: "Capture a live selfie", liveness_check: "Check liveness", processing: "Processing verification", completed: "Verification complete", failed: "Verification needs attention", expired: "Session expired" } as Record<string, string>)[step] ?? "Identity verification"; }
+function titleFor(step: string, documentLabel: string) { return ({ consent: "Review and consent", document_capture: "Let’s verify your identity", document_processing: `Checking your ${documentLabel}`, selfie_capture: "Take a live selfie", liveness_check: "Confirm you’re present", processing: "Completing your verification", completed: "Verification complete", failed: "Verification needs attention", expired: "Session expired" } as Record<string, string>)[step] ?? "Identity verification"; }
