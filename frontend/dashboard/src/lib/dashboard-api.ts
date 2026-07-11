@@ -199,6 +199,7 @@ export const dashboardApi = {
   testWebhook: (id: string) => backend.rest<{ queued: boolean }>(`/webhook-endpoints/${id}/test`, { method: "POST", body: JSON.stringify({}) }),
   apiClients: () => backend.rest<{ results: APIClient[] }>("/api-clients/"),
   createApiClient: (input: Record<string, unknown>) => backend.rest<APIClient>("/api-clients/", { method: "POST", body: JSON.stringify(input) }),
+  apiClientAction: (id: string, action: "rotate" | "revoke") => backend.rest<APIClient>(`/api-clients/${id}/${action}`, { method: "POST", body: "{}" }),
   notifications: () => backend.rest<{ results: Notification[] }>("/notifications/"),
   team: () => backend.rest<{ results: DashboardUser[] }>("/auth/team"),
   subjects: () => backend.rest<Page<VerificationSubject>>("/subjects/"),

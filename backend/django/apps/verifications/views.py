@@ -108,6 +108,12 @@ class VerificationListCreateView(VerificationAccessMixin, APIView):
 
     def post(self, request):
         self._set_request_tenant(request)
+        tenant = self._get_tenant(request)
+        if tenant.organization.status != "active":
+            month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            if tenant.verifications.filter(created_at__gte=month_start).count() >= 25:
+                from rest_framework.exceptions import Throttled
+                raise Throttled(detail="The pending-workspace sandbox limit is 25 verification requests per month.")
         serializer = VerificationCreateSerializer(
             data=request.data, context={"request": request}
         )

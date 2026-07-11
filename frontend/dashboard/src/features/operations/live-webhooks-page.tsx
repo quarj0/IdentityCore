@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { SubmitEvent, useEffect, useState } from "react";
 import { Loader2, Send, Webhook } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label } from "@identitycore/ui";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -19,6 +19,7 @@ export function LiveWebhooksPage() {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [pendingApproval, setPendingApproval] = useState(false);
 
   async function load() {
     setError("");
@@ -38,8 +39,9 @@ export function LiveWebhooksPage() {
       .catch((caught) => setError(messageOf(caught)))
       .finally(() => setLoading(false));
   }, []);
+  useEffect(() => { dashboardApi.organization().then((organization) => setPendingApproval(organization.status !== "active")).catch(() => undefined); }, []);
 
-  async function create(event: FormEvent<HTMLFormElement>) {
+  async function create(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);
@@ -85,7 +87,7 @@ export function LiveWebhooksPage() {
       {error ? <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
       {secret ? <Input readOnly value={secret} aria-label="New webhook signing secret" className="font-mono" /> : null}
 
-      <Card className="rounded-2xl border-slate-200 shadow-sm">
+      {pendingApproval && items.length >= 1 ? <Card className="border-amber-200 bg-amber-50"><CardContent className="p-5 text-sm text-amber-900"><p className="font-semibold">Test-webhook limit reached</p><p className="mt-1">Pending workspaces can configure one disabled sandbox webhook and send test events only. Live delivery unlocks after approval.</p></CardContent></Card> : <Card className="rounded-2xl border-slate-200 shadow-sm">
         <CardHeader><CardTitle>Add endpoint</CardTitle></CardHeader>
         <CardContent>
           <form onSubmit={create} className="grid gap-4 md:grid-cols-2">
@@ -116,7 +118,7 @@ export function LiveWebhooksPage() {
             </div>
           </form>
         </CardContent>
-      </Card>
+      </Card>}
 
       {loading ? (
         <p className="text-sm text-slate-500">Loading webhooks...</p>

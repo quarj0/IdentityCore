@@ -34,6 +34,8 @@ export function LiveApiKeysPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [pendingApproval, setPendingApproval] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [acting, setActing] = useState("");
+  const hasUsableKey = items.some((item) => item.status !== "revoked");
 
   async function load() {
     setError("");
@@ -94,6 +96,22 @@ export function LiveApiKeysPage() {
     }
   }
 
+  async function keyAction(item: APIClient, action: "rotate" | "revoke") {
+    const warning = action === "rotate" ? "Rotate this key? The current secret will stop working immediately." : "Revoke this key? Applications using it will immediately lose access.";
+    if (!window.confirm(warning)) return;
+    setActing(item.public_id); setError(""); setMessage("");
+    try {
+      const result = await dashboardApi.apiClientAction(item.public_id, action);
+      if (action === "rotate") {
+        setSecret(`${result.client_id}:${result.client_secret ?? ""}`);
+        setMessage("API key rotated. Copy the new secret now; it will not be shown again.");
+      } else {
+        setSecret(""); setMessage("API key revoked. You can create a replacement sandbox key.");
+      }
+      await load();
+    } catch (caught) { setError(messageOf(caught)); } finally { setActing(""); }
+  }
+
   return (
     <div className="space-y-8">
       <PageHeading
@@ -114,7 +132,7 @@ export function LiveApiKeysPage() {
         <div className="flex gap-2"><Input readOnly value={secret} aria-label="New API client credentials" className="font-mono" /><Button type="button" variant="outline" onClick={async () => { await navigator.clipboard.writeText(secret); setCopied(true); window.setTimeout(() => setCopied(false), 2000); }}>{copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}{copied ? "Copied" : "Copy"}</Button></div>
       ) : null}
 
-      {pendingApproval && items.length >= 1 ? <Card className="rounded-2xl border-amber-200 bg-amber-50"><CardContent className="p-5 text-sm text-amber-900"><p className="font-semibold">Sandbox test-key limit reached</p><p className="mt-1">Pending workspaces can keep one test key with verification read/create scopes and a 30 requests-per-minute limit. Additional credentials unlock after platform approval.</p></CardContent></Card> : <Card className="rounded-2xl border-slate-200 shadow-sm">
+      {pendingApproval && hasUsableKey ? <Card className="rounded-2xl border-amber-200 bg-amber-50"><CardContent className="p-5 text-sm text-amber-900"><p className="font-semibold">Sandbox test-key limit reached</p><p className="mt-1">Pending workspaces can keep one test key with verification read/create scopes and a 30 requests-per-minute limit. Rotate it if the secret was missed, or revoke it to create a replacement.</p></CardContent></Card> : <Card className="rounded-2xl border-slate-200 shadow-sm">
         <CardHeader>
           <CardTitle>Create API key</CardTitle>
         </CardHeader>
@@ -225,6 +243,7 @@ export function LiveApiKeysPage() {
                   <span className="text-sm text-slate-500">
                     {item.scopes.join(", ")}
                   </span>
+                  {item.status !== "revoked" ? <><Button size="sm" variant="outline" disabled={acting === item.public_id} onClick={() => keyAction(item, "rotate")}>Rotate secret</Button><Button size="sm" variant="destructive" disabled={acting === item.public_id} onClick={() => keyAction(item, "revoke")}>Revoke</Button></> : null}
                 </div>
               </CardContent>
             </Card>
