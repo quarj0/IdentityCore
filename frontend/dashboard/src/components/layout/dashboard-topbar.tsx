@@ -1,6 +1,8 @@
 import { Bell, Search } from "lucide-react";
-import { Badge, Button } from "@identitycore/ui";
+import Link from "next/link";
+import { Button } from "@identitycore/ui";
 import { UserMenu } from "@/components/navigation/user-menu";
+import { ProjectSwitcher } from "@/components/projects/project-switcher";
 
 export function DashboardTopbar() {
   return (
@@ -20,12 +22,10 @@ export function DashboardTopbar() {
         </div>
 
         <div className="ml-auto flex items-center gap-3">
-          <Badge variant="secondary" className="rounded-full">
-            Sandbox
-          </Badge>
+          <ProjectSwitcher />
 
-          <Button variant="ghost" size="icon" aria-label="Notifications">
-            <Bell className="h-4 w-4" aria-hidden="true" />
+          <Button variant="ghost" size="icon" aria-label="Notifications" asChild>
+            <Link href="/notifications"><Bell className="h-4 w-4" aria-hidden="true" /></Link>
           </Button>
 
           <UserMenu />

@@ -1,1 +1,9 @@
-"use client"; import {use} from "react"; import {LiveResourceDetail} from "@/features/operations/live-resource-detail"; import {dashboardApi} from "@/lib/dashboard-api"; export default function Page({params}:{params:Promise<{id:string}>}){const {id}=use(params);return <LiveResourceDetail title="Project settings" description="Environment and allowed origins" load={()=>dashboardApi.project(id) as Promise<unknown> as Promise<Record<string,unknown>>}/>}
+import { LiveProjectDetailPage } from "@/features/projects/pages/live-project-detail-page";
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  return <LiveProjectDetailPage id={id} settings />;
+}

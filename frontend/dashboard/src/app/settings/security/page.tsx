@@ -1,19 +1,4 @@
-import { ShieldCheck } from "lucide-react";
-import { EmptyState } from "@/components/shared/empty-state";
+import Link from "next/link";
+import { Button, Card, CardContent } from "@identitycore/ui";
 import { PageHeading } from "@/components/shared/page-heading";
-
-export default function Page() {
-  return (
-    <div className="space-y-8">
-      <PageHeading
-        title="Security settings"
-        description="Configure MFA, sessions, and security controls."
-      />
-      <EmptyState
-        icon={ShieldCheck}
-        title="Security settings ready"
-        description="Security settings will connect to authentication and organization APIs."
-      />
-    </div>
-  );
-}
+export default function Page() { const home = process.env.NEXT_PUBLIC_IDENTITYCORE_ORIGIN ?? "http://localhost:3001"; return <div className="space-y-8"><PageHeading title="Security settings" description="Manage account credentials and review workspace security controls."/><Card><CardContent className="space-y-4 p-6"><h2 className="font-semibold">Password</h2><p className="text-sm text-slate-600">Change your password through the shared IdentityCore account flow. Existing refresh sessions are protected by rotation and token blacklisting.</p><Button asChild><Link href={`${home}/change-password`}>Change password</Link></Button></CardContent></Card><Card><CardContent className="space-y-2 p-6"><h2 className="font-semibold">Workspace security</h2><p className="text-sm text-slate-600">API credential rotation is available under API keys. Webhook signing and endpoint controls are available under Webhooks. Workspace suspension is available in Danger zone.</p></CardContent></Card></div>; }

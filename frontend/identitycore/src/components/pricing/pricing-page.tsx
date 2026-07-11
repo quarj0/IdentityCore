@@ -84,7 +84,7 @@ export function PricingPageContent() {
 
       <main id="main-content">
         <section className="relative overflow-hidden">
-          <div className="absolute inset-x-0 top-0 -z-10 h-[560px] bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]" />
+          <div className="absolute inset-x-0 top-0 -z-10 h-140 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]" />
 
           <div className="mx-auto max-w-7xl px-6 py-24 lg:py-32">
             <Badge variant="secondary" className="rounded-full px-3 py-1">
@@ -167,7 +167,7 @@ export function PricingPageContent() {
               {enterpriseItems.map((item) => (
                 <div
                   key={item}
-                  className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-sm font-medium text-slate-100"
+                  className="rounded-2xl border border-white/10 bg-white/4 p-5 text-sm font-medium text-slate-100"
                 >
                   {item}
                 </div>
