@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.utils import timezone
 
 from apps.organizations.models import Organization, OrganizationSupportingDocument
 from common.storage import build_signed_download_url, build_signed_upload_url, get_object_storage_media_bucket_name
@@ -22,6 +23,9 @@ def serialize_organization(organization: Organization) -> dict:
             build_public_asset_url(storage_key)
             for storage_key in branding_image_storage_keys
         ]
+    tenant = organization.tenant
+    month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    pending = organization.status != "active"
     return {
         "id": organization.public_id,
         "name": organization.name,
@@ -31,6 +35,15 @@ def serialize_organization(organization: Organization) -> dict:
         "default_country_profile_id": organization.default_country_profile_id,
         "default_jurisdiction_id": organization.default_jurisdiction_id,
         "settings": settings_json,
+        "sandbox_usage": {
+            "pending_approval": pending,
+            "projects": tenant.projects.count(), "project_limit": 1 if pending else None,
+            "api_keys": tenant.api_clients.exclude(status="revoked").count(), "api_key_limit": 1 if pending else None,
+            "workflows": tenant.workflows.count(), "workflow_limit": 1 if pending else None,
+            "webhooks": tenant.webhook_endpoints.count(), "webhook_limit": 1 if pending else None,
+            "monthly_verifications": tenant.verifications.filter(created_at__gte=month_start).count(),
+            "monthly_verification_limit": 25 if pending else None,
+        },
         "created_at": organization.created_at.isoformat(),
         "updated_at": organization.updated_at.isoformat(),
     }
@@ -78,6 +91,14 @@ class OrganizationBrandingUpdateSerializer(serializers.Serializer):
             raise serializers.ValidationError("Logo must be stored in the organization public branding path.")
         return value
 
+    def validate_branding_image_storage_keys(self, value):
+        organization = self.context["request"].user.tenant.organization
+        expected_prefix = f"organizations/{organization.public_id}/branding/branding-images/"
+        for storage_key in value:
+            if not storage_key.startswith(expected_prefix):
+                raise serializers.ValidationError("Branding images must be stored in the organization public branding path.")
+        return value
+
 
 class OrganizationDocumentUploadSerializer(serializers.Serializer):
     filename = serializers.CharField(max_length=255)
@@ -106,13 +127,3 @@ class OrganizationDocumentUploadSerializer(serializers.Serializer):
                     storage_key=key, filename=document.filename, bucket_name=get_object_storage_media_bucket_name()),
                 "upload_url": build_signed_upload_url(
                     storage_key=key, mime_type="application/pdf", bucket_name=get_object_storage_media_bucket_name())}
-
-    def validate_branding_image_storage_keys(self, value):
-        organization = self.context["request"].user.tenant.organization
-        expected_prefix = f"organizations/{organization.public_id}/branding/branding-images/"
-        for storage_key in value:
-            if not storage_key.startswith(expected_prefix):
-                raise serializers.ValidationError(
-                    "Branding images must be stored in the organization public branding path."
-                )
-        return value

@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { SubmitEvent, useEffect, useMemo, useState } from "react";
 import { Copy, FileCheck2, Loader2, RefreshCw } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label } from "@identitycore/ui";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeading } from "@/components/shared/page-heading";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { dashboardApi, Policy, VerificationSummary } from "@/lib/dashboard-api";
+import { dashboardApi, Organization, Policy, VerificationSummary } from "@/lib/dashboard-api";
 
 function messageOf(error: unknown) {
   return error instanceof Error ? error.message : "Something went wrong. Please try again.";
@@ -21,6 +21,7 @@ export function LiveVerificationsPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
+  const [organization, setOrganization] = useState<Organization | null>(null);
 
   const activePolicies = useMemo(
     () => policies.filter((item) => item.status === "active"),
@@ -30,12 +31,14 @@ export function LiveVerificationsPage() {
   async function load() {
     setError("");
     try {
-      const [page, templates] = await Promise.all([
+      const [page, templates, org] = await Promise.all([
         dashboardApi.verifications(),
         dashboardApi.policies(),
+        dashboardApi.organization(),
       ]);
       setItems(page.results);
       setPolicies(templates);
+      setOrganization(org);
     } catch (caught) {
       setError(messageOf(caught));
     } finally {
@@ -44,16 +47,17 @@ export function LiveVerificationsPage() {
   }
 
   useEffect(() => {
-    Promise.all([dashboardApi.verifications(), dashboardApi.policies()])
-      .then(([page, templates]) => {
+    Promise.all([dashboardApi.verifications(), dashboardApi.policies(), dashboardApi.organization()])
+      .then(([page, templates, org]) => {
         setItems(page.results);
         setPolicies(templates);
+        setOrganization(org);
       })
       .catch((caught) => setError(messageOf(caught)))
       .finally(() => setLoading(false));
   }, []);
 
-  async function create(event: FormEvent<HTMLFormElement>) {
+  async function create(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);
@@ -97,6 +101,7 @@ export function LiveVerificationsPage() {
           </Button>
         }
       />
+      {organization?.sandbox_usage.pending_approval ? <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900"><strong>Sandbox usage:</strong> {organization.sandbox_usage.monthly_verifications} of {organization.sandbox_usage.monthly_verification_limit} verification requests used this month.</div> : null}
 
       {error ? (
         <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -160,7 +165,7 @@ export function LiveVerificationsPage() {
               ) : null}
             </div>
             <div className="md:col-span-2">
-              <Button disabled={creating || activePolicies.length === 0} className="rounded-xl">
+              <Button disabled={creating || activePolicies.length === 0 || Boolean(organization?.sandbox_usage.monthly_verification_limit && organization.sandbox_usage.monthly_verifications >= organization.sandbox_usage.monthly_verification_limit)} className="rounded-xl">
                 {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 Create and email link
               </Button>

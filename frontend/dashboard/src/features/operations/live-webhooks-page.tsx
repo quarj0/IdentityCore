@@ -1,7 +1,7 @@
 "use client";
 
 import { SubmitEvent, useEffect, useState } from "react";
-import { Loader2, Send, Webhook } from "lucide-react";
+import { Copy, Loader2, Send, Webhook } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label } from "@identitycore/ui";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeading } from "@/components/shared/page-heading";
@@ -85,7 +85,7 @@ export function LiveWebhooksPage() {
       <PageHeading title="Webhooks" description="Send verification lifecycle events to your application." />
       {message ? <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">{message}</div> : null}
       {error ? <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
-      {secret ? <Input readOnly value={secret} aria-label="New webhook signing secret" className="font-mono" /> : null}
+      {secret ? <div className="flex gap-2"><Input readOnly value={secret} aria-label="New webhook signing secret" className="font-mono" /><Button type="button" variant="outline" onClick={async () => { await navigator.clipboard.writeText(secret); setMessage("Webhook signing secret copied."); }}><Copy className="h-4 w-4" />Copy</Button></div> : null}
 
       {pendingApproval && items.length >= 1 ? <Card className="border-amber-200 bg-amber-50"><CardContent className="p-5 text-sm text-amber-900"><p className="font-semibold">Test-webhook limit reached</p><p className="mt-1">Pending workspaces can configure one disabled sandbox webhook and send test events only. Live delivery unlocks after approval.</p></CardContent></Card> : <Card className="rounded-2xl border-slate-200 shadow-sm">
         <CardHeader><CardTitle>Add endpoint</CardTitle></CardHeader>
@@ -135,6 +135,7 @@ export function LiveWebhooksPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusBadge status={item.status} />
+                  {pendingApproval ? <span className="rounded-full bg-amber-100 px-2 py-1 text-xs text-amber-800">Test only</span> : null}
                   <Button variant="outline" className="rounded-xl" onClick={() => testEndpoint(item.id)} disabled={Boolean(busy)}>
                     {busy === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                     Test

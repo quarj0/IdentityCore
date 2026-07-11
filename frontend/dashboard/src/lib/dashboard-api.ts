@@ -154,6 +154,7 @@ export type Organization = {
   industry: string;
   status: string;
   settings: Record<string, unknown>;
+  sandbox_usage: { pending_approval: boolean; projects: number; project_limit: number | null; api_keys: number; api_key_limit: number | null; workflows: number; workflow_limit: number | null; webhooks: number; webhook_limit: number | null; monthly_verifications: number; monthly_verification_limit: number | null };
 };
 
 export type Tenant = {
