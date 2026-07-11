@@ -38,6 +38,10 @@ class ProjectSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"environment": "Production projects require an approved organization."}
             )
+        if self.instance is None and tenant.organization.status != OrganizationStatus.ACTIVE and tenant.projects.exists():
+            raise serializers.ValidationError(
+                {"environment": "Pending workspaces are limited to one sandbox project."}
+            )
         slug = attrs.get("slug") or slugify(attrs["name"])
         if (
             Project.objects.filter(tenant=tenant, slug=slug)

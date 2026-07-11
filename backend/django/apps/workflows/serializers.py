@@ -5,6 +5,7 @@ from apps.verification_policies.models import (
     VerificationPolicyStatus,
 )
 from apps.workflows.models import Workflow, WorkflowStatus, WorkflowVersion
+from apps.organizations.models import OrganizationStatus
 
 SUPPORTED_STEPS = {
     "consent",
@@ -63,6 +64,20 @@ class WorkflowSerializer(serializers.Serializer):
             )
         return steps
 
+    def validate(self, attrs):
+        request = self.context["request"]
+        if self.instance is None and request.user.tenant.organization.status != OrganizationStatus.ACTIVE:
+            if request.user.tenant.workflows.exists():
+                raise serializers.ValidationError(
+                    {"detail": "Pending workspaces are limited to one draft sandbox workflow."}
+                )
+            project = request.user.tenant.projects.filter(public_id=attrs.get("project_id")).first()
+            if project is None or project.environment != "sandbox":
+                raise serializers.ValidationError(
+                    {"project_id": "Pending workspaces can create workflows only in the sandbox project."}
+                )
+        return attrs
+
     def create(self, data):
         request = self.context["request"]
         project = request.user.tenant.projects.get(public_id=data.pop("project_id"))
@@ -102,6 +117,10 @@ class WorkflowSerializer(serializers.Serializer):
 
 @transaction.atomic
 def publish_workflow(workflow, user):
+    if workflow.tenant.organization.status != OrganizationStatus.ACTIVE:
+        raise serializers.ValidationError(
+            "Workflow publishing is available after platform approval. You can continue editing the sandbox draft."
+        )
     version = workflow.current_version + 1
     s = {**DEFAULT_SETTINGS, **workflow.settings_json}
     policy = VerificationPolicy.objects.create(

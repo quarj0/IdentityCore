@@ -57,6 +57,13 @@ class APIClientCreateSerializer(serializers.Serializer):
                     )
                 }
             )
+        if organization.status != OrganizationStatus.ACTIVE and tenant.api_clients.exclude(status="revoked").exists():
+            raise serializers.ValidationError(
+                {"detail": "Pending workspaces can have one sandbox test key. Revoke the existing key before creating another."}
+            )
+        if organization.status != OrganizationStatus.ACTIVE:
+            attrs["rate_limit_per_minute"] = min(attrs.get("rate_limit_per_minute", 30), 30)
+            attrs["scopes"] = [scope for scope in attrs["scopes"] if scope in {"verifications:read", "verifications:create"}]
         attrs["resolved_project"] = project
         return attrs
 

@@ -16,9 +16,12 @@ class APIClientAuthentication(BaseAuthentication):
         client_id = request.headers.get("X-Client-Id")
         authorization = request.headers.get("Authorization", "")
 
-        if not client_id and not authorization:
+        # A normal dashboard JWT also uses the Bearer scheme. X-Client-Id is
+        # the discriminator for API-client authentication; without it, defer
+        # to the configured JWT authenticator instead of rejecting the user.
+        if not client_id:
             return None
-        if not client_id or not authorization.startswith(f"{self.keyword} "):
+        if not authorization.startswith(f"{self.keyword} "):
             raise AuthenticationFailed("Missing API client credentials.")
 
         raw_secret = authorization[len(self.keyword) + 1 :].strip()

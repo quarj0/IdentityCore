@@ -66,6 +66,9 @@ class WorkflowActionView(WorkflowDetailView):
             x.status = WorkflowStatus.ARCHIVED
             x.save(update_fields=["status", "updated_at"])
         elif action == "clone":
+            if r.user.tenant.organization.status != "active":
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError("Pending workspaces are limited to one draft sandbox workflow.")
             x.pk = None
             x.public_id = None
             x.name = f"{x.name} Copy"

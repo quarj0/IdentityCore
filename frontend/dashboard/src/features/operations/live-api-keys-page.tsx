@@ -1,7 +1,7 @@
 "use client";
 
 import { SubmitEvent, useEffect, useState } from "react";
-import { KeyRound, Loader2 } from "lucide-react";
+import { Check, Copy, KeyRound, Loader2 } from "lucide-react";
 import {
   Button,
   Card,
@@ -32,6 +32,8 @@ export function LiveApiKeysPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [projects, setProjects] = useState<Project[]>([]);
+  const [pendingApproval, setPendingApproval] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   async function load() {
     setError("");
@@ -52,6 +54,7 @@ export function LiveApiKeysPage() {
       .catch((caught) => setError(messageOf(caught)))
       .finally(() => setLoading(false));
   }, []);
+  useEffect(() => { dashboardApi.organization().then((organization) => setPendingApproval(organization.status !== "active")).catch(() => undefined); }, []);
   useEffect(() => {
     dashboardApi
       .projects()
@@ -108,15 +111,10 @@ export function LiveApiKeysPage() {
         </div>
       ) : null}
       {secret ? (
-        <Input
-          readOnly
-          value={secret}
-          aria-label="New API client credentials"
-          className="font-mono"
-        />
+        <div className="flex gap-2"><Input readOnly value={secret} aria-label="New API client credentials" className="font-mono" /><Button type="button" variant="outline" onClick={async () => { await navigator.clipboard.writeText(secret); setCopied(true); window.setTimeout(() => setCopied(false), 2000); }}>{copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}{copied ? "Copied" : "Copy"}</Button></div>
       ) : null}
 
-      <Card className="rounded-2xl border-slate-200 shadow-sm">
+      {pendingApproval && items.length >= 1 ? <Card className="rounded-2xl border-amber-200 bg-amber-50"><CardContent className="p-5 text-sm text-amber-900"><p className="font-semibold">Sandbox test-key limit reached</p><p className="mt-1">Pending workspaces can keep one test key with verification read/create scopes and a 30 requests-per-minute limit. Additional credentials unlock after platform approval.</p></CardContent></Card> : <Card className="rounded-2xl border-slate-200 shadow-sm">
         <CardHeader>
           <CardTitle>Create API key</CardTitle>
         </CardHeader>
@@ -159,7 +157,8 @@ export function LiveApiKeysPage() {
                 id="rate_limit_per_minute"
                 name="rate_limit_per_minute"
                 type="number"
-                defaultValue="60"
+                defaultValue={pendingApproval ? "30" : "60"}
+                max={pendingApproval ? 30 : undefined}
               />
             </div>
             <div className="md:col-span-2">
@@ -197,7 +196,7 @@ export function LiveApiKeysPage() {
             </div>
           </form>
         </CardContent>
-      </Card>
+      </Card>}
 
       {loading ? (
         <p className="text-sm text-slate-500">Loading API keys...</p>

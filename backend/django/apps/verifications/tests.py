@@ -89,6 +89,17 @@ class VerificationWorkflowTests(APITestCase):
     def authenticate_dashboard_user(self):
         self.client.force_authenticate(self.user)
 
+    def test_dashboard_jwt_is_not_mistaken_for_api_client_secret(self):
+        login = self.client.post(
+            reverse("auth-login"),
+            {"email": "owner@example.com", "password": "StrongPassword123!"},
+            format="json",
+        )
+        access = login.data["data"]["tokens"]["access"]
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
+        response = self.client.get(reverse("verification-list-create"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
     def test_create_verification_creates_subject_and_session(self):
         response = self.client.post(
             reverse("verification-list-create"),
