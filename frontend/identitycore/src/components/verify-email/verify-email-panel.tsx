@@ -101,7 +101,11 @@ export function VerifyEmailPanel({
           </div>
 
           <CardTitle>
-            {state === "verified" ? "Email verified" : "Check your inbox"}
+            {state === "verified"
+              ? "Email verified"
+              : state === "error"
+                ? "We couldn't verify this link"
+                : "Check your inbox"}
           </CardTitle>
           <CardDescription className="leading-7">{message}</CardDescription>
         </CardHeader>
@@ -114,9 +118,14 @@ export function VerifyEmailPanel({
                   className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-blue-600"
                   aria-hidden="true"
                 />
-              ) : (
+              ) : state === "verified" ? (
                 <CheckCircle2
                   className="mt-0.5 h-5 w-5 shrink-0 text-blue-600"
+                  aria-hidden="true"
+                />
+              ) : (
+                <RefreshCcw
+                  className="mt-0.5 h-5 w-5 shrink-0 text-amber-600"
                   aria-hidden="true"
                 />
               )}

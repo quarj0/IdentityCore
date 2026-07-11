@@ -213,7 +213,7 @@ export function getErrorMessage(error: unknown) {
 
 function humanizeErrorMessage(message: string) {
   const technicalError =
-    /unexpected token|invalidtag|not valid json|json\.parse|syntaxerror|failed to fetch|networkerror/i;
+    /unexpected token|invalidtag|not valid json|json\.parse|syntaxerror|failed to fetch|networkerror|for update|outer join|traceback|databaseerror|operationalerror|integrityerror|psycopg/i;
   return technicalError.test(message)
     ? "The service is temporarily unavailable. Please try again shortly."
     : message || "Something went wrong. Please try again.";

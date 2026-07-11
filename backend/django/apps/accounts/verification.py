@@ -101,7 +101,7 @@ def verify_email_token(raw_token: str) -> PlatformUser:
 def verify_email_token_with_status(raw_token: str) -> EmailVerificationResult:
     token_hash = hash_email_verification_token(raw_token)
     token = (
-        EmailVerificationToken.objects.select_for_update()
+        EmailVerificationToken.objects.select_for_update(of=("self",))
         .select_related("user", "user__tenant")
         .filter(token_hash=token_hash)
         .first()

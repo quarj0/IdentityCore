@@ -1,3 +1,5 @@
+import logging
+
 import strawberry
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -58,6 +60,9 @@ from apps.verifications.serializers import (
 from apps.webhooks.serializers import serialize_webhook_endpoint
 from apps.webhooks.services import queue_webhook_events
 from common.catalog import COUNTRY_PROFILES, DOCUMENT_TYPES
+
+
+logger = logging.getLogger(__name__)
 
 
 class HumanReadyGraphQLSchema(strawberry.Schema):
@@ -880,6 +885,14 @@ class Mutation:
                 )
         except (ValidationError, ValueError) as exc:
             raise GraphQLError(str(exc))
+        except Exception as exc:
+            logger.exception(
+                "Unexpected failure while verifying an organization onboarding email",
+                exc_info=exc,
+            )
+            raise GraphQLError(
+                "We could not verify this email link right now. Please try again shortly."
+            ) from exc
         return OrganizationOnboardingPayload(
             onboarding=to_onboarding_node(
                 serialize_onboarding_state(
