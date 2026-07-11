@@ -1,2 +1,5 @@
-import Link from "next/link"; import {Button,Card,CardContent} from "@identitycore/ui"; import {PageHeading} from "@/components/shared/page-heading";
-export default function Page(){const home=process.env.NEXT_PUBLIC_IDENTITYCORE_ORIGIN??"http://localhost:3001";return <div className="space-y-8"><PageHeading title="Workspace onboarding" description="Organization verification and production approval are managed by the IdentityCore onboarding flow."/><Card><CardContent className="space-y-4 p-6"><p className="text-sm text-slate-600">Continue the authenticated organization onboarding process in the IdentityCore home application.</p><Button asChild><Link href={`${home}/onboarding`}>Continue onboarding</Link></Button></CardContent></Card></div>}
+import { ApprovalStatusPage } from "@/features/operations/approval-status-page";
+
+export default function Page() {
+  return <ApprovalStatusPage />;
+}

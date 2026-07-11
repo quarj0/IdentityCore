@@ -25,7 +25,7 @@ export const dashboardNav = [
       },
       {
         href: "/onboarding",
-        label: "Onboarding",
+        label: "Approval status",
         icon: ListChecks,
       },
       {
