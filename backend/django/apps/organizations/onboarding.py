@@ -14,6 +14,7 @@ from apps.audit.services import record_audit_event
 from apps.organizations.models import Organization, OrganizationStatus
 from apps.tenants.models import Tenant, TenantStatus
 from common.validators import normalize_email, validate_business_email
+from common.storage import build_signed_download_url, get_object_storage_media_bucket_name
 
 ORGANIZATION_TYPE_CHOICES = (
     "government",
@@ -307,7 +308,10 @@ def serialize_onboarding_state(
         "official_website": organization_verification.get("official_website", ""),
         "supporting_documents": [{"id": doc.public_id, "filename": doc.filename,
                                   "file_size_bytes": doc.file_size_bytes, "status": doc.status,
-                                  "storage_key": doc.storage_key} for doc in documents],
+                                  "storage_key": doc.storage_key,
+                                  "download_url": build_signed_download_url(
+                                      storage_key=doc.storage_key, filename=doc.filename,
+                                      bucket_name=get_object_storage_media_bucket_name())} for doc in documents],
         "administrator_identity_verification_status": admin_identity.get(
             "status", "pending"
         ),
@@ -378,16 +382,16 @@ def submit_organization_verification(
     tenant = user.tenant
     organization = tenant.organization
     documents = organization.supporting_documents.filter(
-        tenant=tenant, storage_key__in=supporting_document_keys, status="uploaded", deleted_at__isnull=True
+        tenant=tenant, storage_key__in=supporting_document_keys,
+        status__in=["uploaded", "submitted"], deleted_at__isnull=True
     )
     if documents.count() != len(set(supporting_document_keys)):
         raise ValidationError("One or more supporting documents are invalid.")
-    if _get_onboarding_settings(organization).get("organization_verification", {}).get("submitted_at"):
-        raise ValidationError("Organization verification has already been submitted for review.")
-    documents.update(status="submitted")
+    documents.filter(status="uploaded").update(status="submitted")
     onboarding = _get_onboarding_settings(organization)
+    existing_verification = dict(onboarding.get("organization_verification") or {})
     onboarding["organization_verification"] = {
-        "submitted_at": timezone.now().isoformat(),
+        "submitted_at": existing_verification.get("submitted_at") or timezone.now().isoformat(),
         "business_registration_number": business_registration_number.strip(),
         "tax_identification_number": tax_identification_number.strip(),
         "registered_address": registered_address.strip(),

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from apps.organizations.models import Organization, OrganizationSupportingDocument
-from common.storage import build_signed_upload_url, get_object_storage_media_bucket_name
+from common.storage import build_signed_download_url, build_signed_upload_url, get_object_storage_media_bucket_name
 from pathlib import Path
 import secrets
 from apps.organizations.services import (
@@ -102,7 +102,9 @@ class OrganizationDocumentUploadSerializer(serializers.Serializer):
         )
         return {"document_id": document.public_id, "filename": document.filename,
                 "file_size_bytes": document.file_size_bytes, "status": document.status,
-                "storage_key": key, "upload_url": build_signed_upload_url(
+                "storage_key": key, "download_url": build_signed_download_url(
+                    storage_key=key, filename=document.filename, bucket_name=get_object_storage_media_bucket_name()),
+                "upload_url": build_signed_upload_url(
                     storage_key=key, mime_type="application/pdf", bucket_name=get_object_storage_media_bucket_name())}
 
     def validate_branding_image_storage_keys(self, value):

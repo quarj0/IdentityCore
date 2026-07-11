@@ -55,6 +55,13 @@ export function getAccessToken() {
   return accessToken;
 }
 
+export function setAccessToken(token: string | null) {
+  if (!canUseStorage()) return;
+  accessToken = token;
+  if (token) window.sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
+  else window.sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+}
+
 export function getStoredUser() {
   if (!canUseStorage()) {
     return null;

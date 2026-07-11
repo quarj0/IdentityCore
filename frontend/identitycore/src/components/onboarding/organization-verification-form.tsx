@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { SubmitEvent, useEffect, useState } from "react";
+import { ExternalLink, FileText, Loader2 } from "lucide-react";
 import {
   Button,
   Card,
@@ -36,8 +36,9 @@ export function OrganizationVerificationForm() {
     taxIdentificationNumber: "",
   });
   const [documents, setDocuments] = useState<
-    Array<{ filename: string; storage_key: string; file_size_bytes: number }>
+    Array<{ filename: string; storage_key: string; file_size_bytes: number; download_url?: string }>
   >([]);
+  const [savedDocumentCount, setSavedDocumentCount] = useState(0);
   const [readOnly, setReadOnly] = useState(false);
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export function OrganizationVerificationForm() {
           officialWebsite: state.officialWebsite || state.website || "",
         }));
         setDocuments(state.supportingDocuments || []);
+        setSavedDocumentCount(state.supportingDocuments?.length || 0);
         setReadOnly(!state.organizationVerificationEditable);
       })
       .catch((error) => {
@@ -63,7 +65,7 @@ export function OrganizationVerificationForm() {
       .finally(() => setLoading(false));
   }, []);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
     setFeedback(null);
@@ -82,6 +84,7 @@ export function OrganizationVerificationForm() {
           "Your onboarding record has been updated and the next step is ready.",
       });
       setReadOnly(true);
+      setSavedDocumentCount(documents.length);
     } catch (error) {
       setFeedback({
         kind: "error",
@@ -108,7 +111,7 @@ export function OrganizationVerificationForm() {
           <CardTitle>Submit organization verification</CardTitle>
           <CardDescription className="leading-7">
             {readOnly
-              ? "Submitted for review. Your organization details are now read-only."
+              ? "Submitted for review. Your organization details are read-only, but you can still add any missing supporting PDFs below."
               : "Provide your registration details and supporting PDF documents for review."}
           </CardDescription>
         </CardHeader>
@@ -196,7 +199,7 @@ export function OrganizationVerificationForm() {
               <Label htmlFor="supportingDocuments">
                 Supporting documents (PDF, 1&ndash;5 files, 10 MB each)
               </Label>
-              {!readOnly ? (
+              {documents.length < 5 ? (
                 <Input
                   id="supportingDocuments"
                   type="file"
@@ -230,18 +233,21 @@ export function OrganizationVerificationForm() {
                   }}
                 />
               ) : null}
+              {documents.length === 0 ? <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-muted-foreground">No supporting documents have been uploaded yet. Choose at least one PDF above.</div> : null}
+              <div className="grid gap-3 sm:grid-cols-2">
               {documents.map((document) => (
-                <p
+                <div
                   key={document.storage_key}
-                  className="text-sm text-muted-foreground"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4"
                 >
-                  {document.filename} (
-                  {Math.ceil(document.file_size_bytes / 1024)} KB)
-                </p>
+                  <div className="flex min-w-0 items-center gap-3"><FileText className="h-5 w-5 shrink-0 text-red-600" /><div className="min-w-0"><p className="truncate text-sm font-medium text-slate-900">{document.filename}</p><p className="text-xs text-muted-foreground">{Math.ceil(document.file_size_bytes / 1024)} KB · PDF</p></div></div>
+                  {document.download_url ? <Button asChild type="button" size="sm" variant="outline"><a href={document.download_url} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" />Preview</a></Button> : null}
+                </div>
               ))}
+              </div>
             </div>
 
-            {!readOnly ? (
+            {(!readOnly || documents.length > savedDocumentCount) ? (
               <div className="sm:col-span-2">
                 <Button
                   type="submit"
@@ -252,7 +258,7 @@ export function OrganizationVerificationForm() {
                   {submitting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : null}
-                  Save and continue
+                {readOnly ? "Submit supporting documents" : "Save and continue"}
                 </Button>
               </div>
             ) : null}

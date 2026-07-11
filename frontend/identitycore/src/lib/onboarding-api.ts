@@ -33,7 +33,7 @@ export interface OnboardingState {
   taxIdentificationNumber: string;
   registeredAddress: string;
   officialWebsite: string;
-  supportingDocuments: Array<{ id: string; filename: string; file_size_bytes: number; status: string; storage_key: string }>;
+  supportingDocuments: Array<{ id: string; filename: string; file_size_bytes: number; status: string; storage_key: string; download_url: string }>;
   administratorIdentityVerificationStatus: string;
   administratorIdentityVerificationId: string;
   administratorIdentitySubmittedAt: string | null;
@@ -120,7 +120,7 @@ export interface OrganizationVerificationInput {
 }
 
 export async function createOrganizationDocumentUpload(file: File) {
-  const upload = await restRequest<{ document_id: string; filename: string; file_size_bytes: number; status: string; storage_key: string; upload_url: string }>(
+  const upload = await restRequest<{ document_id: string; filename: string; file_size_bytes: number; status: string; storage_key: string; upload_url: string; download_url: string }>(
     "/organization/me/verification-documents/upload/",
     { method: "POST", body: JSON.stringify({ filename: file.name, mime_type: file.type, file_size_bytes: file.size }) },
   );

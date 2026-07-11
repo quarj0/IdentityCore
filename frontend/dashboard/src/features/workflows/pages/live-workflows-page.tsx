@@ -8,11 +8,11 @@ import { dashboardApi, type Project, type WorkflowDefinition } from "@/lib/dashb
 
 const defaultSteps = ["consent", "document", "selfie", "liveness", "face_match", "decision", "manual_review", "webhook"];
 
-export function LiveWorkflowsPage() {
+export function LiveWorkflowsPage({ templateSlug = "" }: { templateSlug?: string }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [items, setItems] = useState<WorkflowDefinition[]>([]);
   const [project, setProject] = useState("");
-  const [name, setName] = useState("");
+  const [name, setName] = useState(() => templateSlug.split("-").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" "));
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export function LiveWorkflowsPage() {
 
   async function create() {
     try {
-      const created = await dashboardApi.createWorkflow({ project_id: project, name, description: "", steps: defaultSteps, settings: {} });
+      const created = await dashboardApi.createWorkflow({ project_id: project, name, description: templateSlug ? `Created from the ${templateSlug} template.` : "", steps: defaultSteps, settings: templateSlug ? { template_slug: templateSlug } : {} });
       window.location.assign(`/workflows/${created.id}/builder`);
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Unable to create workflow."); }
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { getAccessToken } from "@/lib/auth";
+import { clearAuthSession, getAccessToken, setAccessToken } from "@/lib/auth";
 import { getGraphqlApiUrl, getRestApiBaseUrl } from "@/lib/config";
 
 interface ApiSuccess<T> {
@@ -20,6 +20,7 @@ interface ApiErrorPayload {
 }
 
 type ApiEnvelope<T> = ApiSuccess<T> | ApiErrorPayload;
+let refreshInFlight: Promise<string> | null = null;
 
 export class ApiError extends Error {
   code: string;
@@ -80,6 +81,19 @@ async function parseJson<T>(response: Response) {
   return payload.data;
 }
 
+async function refreshAccessToken() {
+  if (!refreshInFlight) {
+    refreshInFlight = fetch(`${getRestApiBaseUrl()}/auth/refresh`, {
+      method: "POST", credentials: "include",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+    }).then((response) => parseJson<{ tokens: { access: string } }>(response))
+      .then((data) => { setAccessToken(data.tokens.access); return data.tokens.access; })
+      .catch((error) => { clearAuthSession(); throw error; })
+      .finally(() => { refreshInFlight = null; });
+  }
+  return refreshInFlight;
+}
+
 export async function restRequest<T>(
   path: string,
   init: RequestInit = {},
@@ -95,12 +109,15 @@ export async function restRequest<T>(
         ? null
         : getAccessToken();
 
-  const response = await fetch(`${getRestApiBaseUrl()}${path}`, {
+  const send = (access: string | null) => fetch(`${getRestApiBaseUrl()}${path}`, {
     ...init,
     credentials: "include",
-    headers: buildHeaders(init.headers, token, init.body),
+    headers: buildHeaders(init.headers, access, init.body),
   });
-
+  let response = await send(token);
+  if (response.status === 401 && options.useAuth !== false && path !== "/auth/refresh") {
+    response = await send(await refreshAccessToken());
+  }
   return parseJson<T>(response);
 }
 
@@ -138,12 +155,16 @@ export async function graphqlRequest<T>(
         ? null
         : getAccessToken();
 
-  const response = await fetch(getGraphqlApiUrl(), {
+  const send = (access: string | null) => fetch(getGraphqlApiUrl(), {
     method: "POST",
-    headers: buildHeaders(undefined, token),
+    headers: buildHeaders(undefined, access),
     body: JSON.stringify({ query, variables }),
     credentials: "include",
   });
+  let response = await send(token);
+  if (response.status === 401 && options.useAuth !== false) {
+    response = await send(await refreshAccessToken());
+  }
 
   const payload = await readJsonResponse<GraphqlResponse<T>>(response);
 
