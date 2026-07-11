@@ -1,6 +1,9 @@
 from rest_framework import serializers
 
 from apps.verification_policies.models import VerificationPolicy
+from common.catalog import DOCUMENT_TYPES
+
+VALID_DOCUMENT_TYPES = {item["code"] for item in DOCUMENT_TYPES}
 
 
 def serialize_verification_policy(policy: VerificationPolicy) -> dict:
@@ -41,6 +44,11 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
     metadata_retention_days = serializers.IntegerField(min_value=1)
 
     def validate(self, attrs):
+        unknown = set(attrs["required_document_types"]) - VALID_DOCUMENT_TYPES
+        if unknown:
+            raise serializers.ValidationError(
+                {"required_document_types": "Choose only supported document types."}
+            )
         if attrs["manual_review_threshold"] > attrs["face_match_threshold"]:
             raise serializers.ValidationError(
                 {
@@ -98,6 +106,11 @@ class VerificationPolicyUpdateSerializer(VerificationPolicyCreateSerializer):
 
     def validate(self, attrs):
         policy = self.instance
+        unknown = set(attrs.get("required_document_types", [])) - VALID_DOCUMENT_TYPES
+        if unknown:
+            raise serializers.ValidationError(
+                {"required_document_types": "Choose only supported document types."}
+            )
         manual_threshold = attrs.get(
             "manual_review_threshold", policy.manual_review_threshold
         )

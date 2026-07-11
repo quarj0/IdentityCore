@@ -3,6 +3,7 @@ import { DashboardSidebar } from "./dashboard-sidebar";
 import { DashboardTopbar } from "./dashboard-topbar";
 import { MobileSidebar } from "./mobile-sidebar";
 import { CommandPalette } from "../search/command-palette";
+import { ApprovalBanner } from "./approval-banner";
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   return (
@@ -19,6 +20,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           </div>
 
           <DashboardTopbar />
+          <ApprovalBanner />
           <CommandPalette />
 
           <main id="main-content" className="px-4 py-8 sm:px-6 lg:px-8">

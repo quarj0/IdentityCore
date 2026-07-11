@@ -76,9 +76,12 @@ export type AuditEvent = {
   id: string;
   actor_type: string;
   actor_id: string;
+  actor_display_name: string;
   action: string;
+  action_label: string;
   target_type: string;
   target_id: string;
+  target_label: string;
   ip_address: string;
   user_agent: string;
   metadata: Record<string, unknown>;
@@ -177,6 +180,7 @@ export const supportedWebhookEvents = [
 ];
 
 export const dashboardApi = {
+  documentTypes: () => backend.rest<Array<{ code: string; name: string }>>("/document-types"),
   policies: () => backend.rest<Policy[]>("/policies/"),
   policy: (id: string) => backend.rest<Policy>(`/policies/${id}`),
   createPolicy: (input: Record<string, unknown>) => backend.rest<Policy>("/policies/", { method: "POST", body: JSON.stringify(input) }),

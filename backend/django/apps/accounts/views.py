@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from rest_framework.views import APIView
 
@@ -69,7 +70,14 @@ class RefreshView(APIView):
         require_trusted_cookie_origin(request)
         refresh_token = request.COOKIES.get(settings.AUTH_REFRESH_COOKIE_NAME, "")
         serializer = RefreshInputSerializer(data={"refresh": refresh_token})
-        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception as exc:
+            # SimpleJWT raises TokenError directly for blacklisted tokens instead of
+            # consistently converting it to a DRF authentication response.
+            auth_error = AuthenticationFailed("Your session has expired. Please sign in again.")
+            auth_error.clear_refresh_cookie = True
+            raise auth_error from exc
         response = success_response(
             {"tokens": {"access": serializer.validated_data["access"]}},
             request=request,

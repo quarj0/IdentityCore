@@ -4,6 +4,7 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.access_control.models import Role, RoleScope, UserRole
 from apps.accounts.models import EmailVerificationToken
@@ -174,6 +175,19 @@ class AuthEndpointTests(APITestCase):
             HTTP_ORIGIN="https://attacker.example",
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_blacklisted_refresh_returns_401_and_clears_cookie(self):
+        login_response = self.client.post(
+            reverse("auth-login"),
+            {"email": "user@example.com", "password": "StrongPassword123!"},
+            format="json",
+        )
+        raw_token = login_response.cookies["identitycore_refresh"].value
+        RefreshToken(raw_token).blacklist()
+        response = self.client.post(reverse("auth-refresh"), {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.data["error"]["code"], "authentication_failed")
+        self.assertEqual(response.cookies["identitycore_refresh"].value, "")
 
     def test_logout_revokes_and_clears_refresh_cookie(self):
         self.client.post(

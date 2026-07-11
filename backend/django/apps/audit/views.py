@@ -11,7 +11,7 @@ class AuditEventListView(APIView):
     permission_classes = [IsAuthenticated, IsTenantUser]
 
     def get(self, request):
-        queryset = request.user.tenant.audit_events.order_by("-created_at")
+        queryset = request.user.tenant.audit_events.exclude(action="graphql.query").order_by("-created_at")
 
         actor_type = request.query_params.get("actor_type")
         action = request.query_params.get("action")

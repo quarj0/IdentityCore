@@ -29,6 +29,19 @@ export function createIdentityCoreClient({
   setAccessToken?: (token: string | null) => void;
 }) {
   const origin = apiOrigin.replace(/\/$/, "");
+  let refreshInFlight: Promise<{ tokens: { access: string } }> | null = null;
+
+  function refreshAccessToken() {
+    if (!refreshInFlight) {
+      refreshInFlight = fetch(`${origin}/api/v1/auth/refresh`, {
+        method: "POST", credentials: "include",
+        headers: { Accept: "application/json", "Content-Type": "application/json" },
+      }).then((response) => parse<{ tokens: { access: string } }>(response))
+        .then((data) => { setAccessToken(data.tokens.access); return data; })
+        .finally(() => { refreshInFlight = null; });
+    }
+    return refreshInFlight;
+  }
 
   async function parse<T>(response: Response): Promise<T> {
     const body = await response.text();
@@ -67,13 +80,7 @@ export function createIdentityCoreClient({
     let response = await send();
     if (response.status === 401 && path !== "/auth/refresh" && path !== "/auth/login") {
       try {
-        const refreshResponse = await fetch(`${origin}/api/v1/auth/refresh`, {
-          method: "POST",
-          credentials: "include",
-          headers: { Accept: "application/json", "Content-Type": "application/json" },
-        });
-        const refreshed = await parse<{ tokens: { access: string } }>(refreshResponse);
-        setAccessToken(refreshed.tokens.access);
+        const refreshed = await refreshAccessToken();
         headers.set("Authorization", `Bearer ${refreshed.tokens.access}`);
         response = await send();
       } catch {
@@ -97,8 +104,7 @@ export function createIdentityCoreClient({
   }
 
   async function restoreSession() {
-    const data = await rest<{ tokens: { access: string } }>("/auth/refresh", { method: "POST" });
-    setAccessToken(data.tokens.access);
+    const data = await refreshAccessToken();
     return data.tokens.access;
   }
 

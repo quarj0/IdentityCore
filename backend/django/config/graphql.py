@@ -264,6 +264,7 @@ class OrganizationOnboardingNode:
     organization_slug: str
     organization_type: str
     organization_country: str
+    organization_country_name: str
     organization_status: str
     organization_tier: str
     tenant_id: str
@@ -282,6 +283,12 @@ class OrganizationOnboardingNode:
     onboarding_status: str
     current_step: str
     organization_verification_submitted_at: str | None
+    organization_verification_editable: bool
+    business_registration_number: str
+    tax_identification_number: str
+    registered_address: str
+    official_website: str
+    supporting_documents: list[strawberry.scalars.JSON]
     administrator_identity_verification_status: str
     administrator_identity_verification_id: str
     administrator_identity_submitted_at: str | None

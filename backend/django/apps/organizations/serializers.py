@@ -1,6 +1,9 @@
 from rest_framework import serializers
 
-from apps.organizations.models import Organization
+from apps.organizations.models import Organization, OrganizationSupportingDocument
+from common.storage import build_signed_upload_url, get_object_storage_media_bucket_name
+from pathlib import Path
+import secrets
 from apps.organizations.services import (
     ORGANIZATION_BRANDING_SEGMENTS,
     build_organization_branding_upload,
@@ -74,6 +77,33 @@ class OrganizationBrandingUpdateSerializer(serializers.Serializer):
         if not value.startswith(expected_prefix):
             raise serializers.ValidationError("Logo must be stored in the organization public branding path.")
         return value
+
+
+class OrganizationDocumentUploadSerializer(serializers.Serializer):
+    filename = serializers.CharField(max_length=255)
+    mime_type = serializers.CharField(max_length=100)
+    file_size_bytes = serializers.IntegerField(min_value=1, max_value=10 * 1024 * 1024)
+
+    def validate(self, attrs):
+        if attrs["mime_type"].lower() != "application/pdf" or Path(attrs["filename"]).suffix.lower() != ".pdf":
+            raise serializers.ValidationError({"filename": "Choose a PDF document."})
+        tenant = self.context["request"].user.tenant
+        if tenant.organization.supporting_documents.filter(deleted_at__isnull=True).count() >= 5:
+            raise serializers.ValidationError({"filename": "A maximum of five supporting documents is allowed."})
+        return attrs
+
+    def create(self, validated_data):
+        user = self.context["request"].user
+        organization = user.tenant.organization
+        key = f"organizations/{organization.public_id}/verification/{secrets.token_urlsafe(16)}.pdf"
+        document = OrganizationSupportingDocument.objects.create(
+            organization=organization, tenant=user.tenant, uploaded_by=user,
+            storage_key=key, status="initiated", **validated_data,
+        )
+        return {"document_id": document.public_id, "filename": document.filename,
+                "file_size_bytes": document.file_size_bytes, "status": document.status,
+                "storage_key": key, "upload_url": build_signed_upload_url(
+                    storage_key=key, mime_type="application/pdf", bucket_name=get_object_storage_media_bucket_name())}
 
     def validate_branding_image_storage_keys(self, value):
         organization = self.context["request"].user.tenant.organization

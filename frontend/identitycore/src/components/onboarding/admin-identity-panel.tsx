@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowRight, Check, Fingerprint, Loader2, ShieldCheck } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  Fingerprint,
+  Loader2,
+  ShieldCheck,
+} from "lucide-react";
 import {
   Button,
   Card,
@@ -26,6 +32,7 @@ export function AdminIdentityPanel() {
   const [loading, setLoading] = useState(true);
   const [launching, setLaunching] = useState(false);
   const [reason, setReason] = useState("");
+  const [showReverification, setShowReverification] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -45,7 +52,8 @@ export function AdminIdentityPanel() {
     setLaunching(true);
     setErrorMessage(null);
     try {
-      const verification = await createAdministratorOnboardingVerification(reason);
+      const verification =
+        await createAdministratorOnboardingVerification(reason);
       window.location.assign(verification.verificationUrl);
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
@@ -62,9 +70,12 @@ export function AdminIdentityPanel() {
     );
   }
 
-  const verificationStatus = state?.administratorIdentityVerificationStatus || "pending";
-  const needsReason = ["verified", "rejected", "failed", "expired"].includes(verificationStatus);
+  const verificationStatus =
+    state?.administratorIdentityVerificationStatus || "pending";
   const completed = verificationStatus === "verified";
+  const needsReason =
+    ["rejected", "failed", "expired"].includes(verificationStatus) ||
+    (completed && showReverification);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_0.42fr]">
@@ -83,7 +94,9 @@ export function AdminIdentityPanel() {
             <InlineStatus
               kind="error"
               title={
-                state ? "Unable to launch verification" : "Unable to load administrator status"
+                state
+                  ? "Unable to launch verification"
+                  : "Unable to load administrator status"
               }
               message={errorMessage}
             />
@@ -116,38 +129,74 @@ export function AdminIdentityPanel() {
               className="mt-1"
               checked={consent}
               onCheckedChange={(checked) => setConsent(Boolean(checked))}
+              disabled={completed && !showReverification}
             />
             <Label
               htmlFor="consent"
               className="text-sm leading-6 text-muted-foreground"
             >
-              I consent to IdentityCore processing administrator identity evidence
-              for workspace onboarding and production approval.
+              I consent to IdentityCore processing administrator identity
+              evidence for workspace onboarding and production approval.
             </Label>
           </div>
 
-          <Button
-            size="lg"
-            className="rounded-xl"
-            onClick={handleLaunch}
-            disabled={!consent || launching || (needsReason && !reason)}
-          >
-            {launching ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <ArrowRight className="h-4 w-4" />
-            )}
-            {completed ? "Start reverification" : verificationStatus === "submitted" ? "Resume verification" : "Launch verification"}
-          </Button>
+          {completed && !showReverification ? (
+            <div className="flex items-center gap-3">
+              <Button size="lg" className="rounded-xl" disabled>
+                <Check className="h-4 w-4" />
+                Verified
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowReverification(true)}
+              >
+                Start reverification
+              </Button>
+            </div>
+          ) : (
+            <Button
+              size="lg"
+              className="rounded-xl"
+              onClick={handleLaunch}
+              disabled={!consent || launching || (needsReason && !reason)}
+            >
+              {launching ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ArrowRight className="h-4 w-4" />
+              )}
+              {verificationStatus === "submitted"
+                ? "Resume verification"
+                : showReverification
+                  ? "Start reverification"
+                  : "Launch verification"}
+            </Button>
+          )}
           {needsReason ? (
             <div className="space-y-2">
-              <Label htmlFor="reverificationReason">Reason for reverification</Label>
-              <select id="reverificationReason" value={reason} onChange={(event) => setReason(event.target.value)} className="h-10 w-full rounded-md border bg-white px-3 text-sm">
+              <Label htmlFor="reverificationReason">
+                Reason for reverification
+              </Label>
+              <select
+                id="reverificationReason"
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+                className="h-10 w-full rounded-md border bg-white px-3 text-sm"
+              >
                 <option value="">Choose reason</option>
-                <option value="previous_attempt_failed_or_expired">Previous attempt failed or expired</option>
-                <option value="periodic_compliance_renewal">Periodic compliance renewal</option>
-                <option value="identity_document_changed">Identity document changed</option>
-                <option value="suspected_evidence_compromise">Suspected evidence compromise</option>
+                <option value="previous_attempt_failed_or_expired">
+                  Previous attempt failed or expired
+                </option>
+                <option value="periodic_compliance_renewal">
+                  Periodic compliance renewal
+                </option>
+                <option value="identity_document_changed">
+                  Identity document changed
+                </option>
+                <option value="suspected_evidence_compromise">
+                  Suspected evidence compromise
+                </option>
               </select>
             </div>
           ) : null}

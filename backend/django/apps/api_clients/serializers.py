@@ -46,15 +46,18 @@ class APIClientCreateSerializer(serializers.Serializer):
     def validate(self, attrs):
         tenant = self.context["request"].user.tenant
         organization = tenant.organization
-        if organization.status != OrganizationStatus.ACTIVE:
+        project = tenant.projects.filter(public_id=attrs.get("project_id")).first() or tenant.projects.filter(is_default=True).first()
+        if attrs.get("project_id") and project is None:
+            raise serializers.ValidationError({"project_id": "Choose a valid project."})
+        if (project is None or project.environment == "production") and organization.status != OrganizationStatus.ACTIVE:
             raise serializers.ValidationError(
                 {
                     "detail": (
-                        "Production API keys are unavailable until the organization "
-                        "has completed platform approval."
+                        "Production API keys are unavailable until the organization has completed platform approval."
                     )
                 }
             )
+        attrs["resolved_project"] = project
         return attrs
 
     def create(self, validated_data):
@@ -64,10 +67,7 @@ class APIClientCreateSerializer(serializers.Serializer):
         raw_secret = APIClient.generate_client_secret()
         api_client = APIClient(
             tenant=tenant,
-            project=tenant.projects.filter(
-                public_id=validated_data.get("project_id")
-            ).first()
-            or tenant.projects.filter(is_default=True).first(),
+            project=validated_data.pop("resolved_project"),
             created_by=user,
             name=validated_data["name"],
             scopes_json=validated_data["scopes"],

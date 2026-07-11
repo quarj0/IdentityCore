@@ -17,6 +17,7 @@ import { InlineStatus } from "@/components/feedback/inline-status";
 import { getErrorMessage } from "@/lib/api-client";
 import {
   fetchCurrentOnboarding,
+  createOrganizationDocumentUpload,
   submitOrganizationVerification,
 } from "@/lib/onboarding-api";
 
@@ -34,14 +35,23 @@ export function OrganizationVerificationForm() {
     officialWebsite: "",
     taxIdentificationNumber: "",
   });
+  const [documents, setDocuments] = useState<
+    Array<{ filename: string; storage_key: string; file_size_bytes: number }>
+  >([]);
+  const [readOnly, setReadOnly] = useState(false);
 
   useEffect(() => {
     fetchCurrentOnboarding()
       .then((state) => {
         setForm((current) => ({
           ...current,
-          officialWebsite: state.website || "",
+          businessRegistrationNumber: state.businessRegistrationNumber || "",
+          taxIdentificationNumber: state.taxIdentificationNumber || "",
+          registeredAddress: state.registeredAddress || "",
+          officialWebsite: state.officialWebsite || state.website || "",
         }));
+        setDocuments(state.supportingDocuments || []);
+        setReadOnly(!state.organizationVerificationEditable);
       })
       .catch((error) => {
         setFeedback({
@@ -61,7 +71,9 @@ export function OrganizationVerificationForm() {
     try {
       await submitOrganizationVerification({
         ...form,
-        supportingDocumentKeys: [],
+        supportingDocumentKeys: documents.map(
+          (document) => document.storage_key,
+        ),
       });
       setFeedback({
         kind: "success",
@@ -69,6 +81,7 @@ export function OrganizationVerificationForm() {
         message:
           "Your onboarding record has been updated and the next step is ready.",
       });
+      setReadOnly(true);
     } catch (error) {
       setFeedback({
         kind: "error",
@@ -94,9 +107,9 @@ export function OrganizationVerificationForm() {
         <CardHeader>
           <CardTitle>Submit organization verification</CardTitle>
           <CardDescription className="leading-7">
-            These details are stored in the onboarding record immediately. Public
-            document upload endpoints are not available yet, so supporting files
-            can be shared during review after this step is submitted.
+            {readOnly
+              ? "Submitted for review. Your organization details are now read-only."
+              : "Provide your registration details and supporting PDF documents for review."}
           </CardDescription>
         </CardHeader>
 
@@ -126,6 +139,7 @@ export function OrganizationVerificationForm() {
                   }))
                 }
                 required
+                disabled={readOnly}
               />
             </div>
 
@@ -136,6 +150,7 @@ export function OrganizationVerificationForm() {
               <Input
                 id="taxIdentificationNumber"
                 value={form.taxIdentificationNumber}
+                disabled={readOnly}
                 onChange={(event) =>
                   setForm((current) => ({
                     ...current,
@@ -150,6 +165,7 @@ export function OrganizationVerificationForm() {
               <Input
                 id="officialWebsite"
                 type="url"
+                disabled={readOnly}
                 value={form.officialWebsite}
                 onChange={(event) =>
                   setForm((current) => ({
@@ -172,22 +188,74 @@ export function OrganizationVerificationForm() {
                   }))
                 }
                 required
+                disabled={readOnly}
               />
             </div>
 
-            <div className="sm:col-span-2">
-              <Button
-                type="submit"
-                size="lg"
-                className="w-full rounded-xl sm:w-auto"
-                disabled={submitting}
-              >
-                {submitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : null}
-                Save and continue
-              </Button>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="supportingDocuments">
+                Supporting documents (PDF, 1&hyphen;5 files, 10 MB each)
+              </Label>
+              {!readOnly ? (
+                <Input
+                  id="supportingDocuments"
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  multiple
+                  onChange={async (event) => {
+                    const files = Array.from(event.target.files || []);
+                    if (documents.length + files.length > 5) {
+                      setFeedback({
+                        kind: "error",
+                        title: "Too many documents",
+                        message: "Upload no more than five PDF documents.",
+                      });
+                      return;
+                    }
+                    try {
+                      setSubmitting(true);
+                      const uploaded = await Promise.all(
+                        files.map(createOrganizationDocumentUpload),
+                      );
+                      setDocuments((current) => [...current, ...uploaded]);
+                    } catch (error) {
+                      setFeedback({
+                        kind: "error",
+                        title: "Unable to upload document",
+                        message: getErrorMessage(error),
+                      });
+                    } finally {
+                      setSubmitting(false);
+                    }
+                  }}
+                />
+              ) : null}
+              {documents.map((document) => (
+                <p
+                  key={document.storage_key}
+                  className="text-sm text-muted-foreground"
+                >
+                  {document.filename} (
+                  {Math.ceil(document.file_size_bytes / 1024)} KB)
+                </p>
+              ))}
             </div>
+
+            {!readOnly ? (
+              <div className="sm:col-span-2">
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full rounded-xl sm:w-auto"
+                  disabled={submitting || documents.length === 0}
+                >
+                  {submitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : null}
+                  Save and continue
+                </Button>
+              </div>
+            ) : null}
           </form>
         </CardContent>
       </Card>

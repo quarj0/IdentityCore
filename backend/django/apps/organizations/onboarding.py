@@ -264,6 +264,9 @@ def serialize_onboarding_state(
     admin_identity = dict(onboarding.get("administrator_identity_verification") or {})
     platform_review = dict(onboarding.get("platform_review") or {})
     primary_admin = dict(onboarding.get("primary_administrator") or {})
+    documents = organization.supporting_documents.filter(deleted_at__isnull=True)
+    country_code = registration.get("organization_country", "")
+    country_names = dict(countries)
     return {
         "organization_id": organization.public_id,
         "organization_name": organization.name,
@@ -271,7 +274,8 @@ def serialize_onboarding_state(
         "organization_type": registration.get(
             "organization_type", organization.industry
         ),
-        "organization_country": registration.get("organization_country", ""),
+        "organization_country": country_code,
+        "organization_country_name": country_names.get(country_code, country_code),
         "organization_status": organization.status,
         "organization_tier": onboarding.get("tier", ORGANIZATION_TIER_TRIAL),
         "tenant_id": tenant.public_id,
@@ -296,6 +300,14 @@ def serialize_onboarding_state(
         "organization_verification_submitted_at": organization_verification.get(
             "submitted_at"
         ),
+        "organization_verification_editable": not bool(organization_verification.get("submitted_at")),
+        "business_registration_number": organization_verification.get("business_registration_number", ""),
+        "tax_identification_number": organization_verification.get("tax_identification_number", ""),
+        "registered_address": organization_verification.get("registered_address", ""),
+        "official_website": organization_verification.get("official_website", ""),
+        "supporting_documents": [{"id": doc.public_id, "filename": doc.filename,
+                                  "file_size_bytes": doc.file_size_bytes, "status": doc.status,
+                                  "storage_key": doc.storage_key} for doc in documents],
         "administrator_identity_verification_status": admin_identity.get(
             "status", "pending"
         ),
@@ -361,8 +373,18 @@ def submit_organization_verification(
     if not registered_address.strip():
         raise ValidationError("Registered address is required.")
 
+    if not supporting_document_keys or not 1 <= len(supporting_document_keys) <= 5:
+        raise ValidationError("Upload between one and five supporting PDF documents.")
     tenant = user.tenant
     organization = tenant.organization
+    documents = organization.supporting_documents.filter(
+        tenant=tenant, storage_key__in=supporting_document_keys, status="uploaded", deleted_at__isnull=True
+    )
+    if documents.count() != len(set(supporting_document_keys)):
+        raise ValidationError("One or more supporting documents are invalid.")
+    if _get_onboarding_settings(organization).get("organization_verification", {}).get("submitted_at"):
+        raise ValidationError("Organization verification has already been submitted for review.")
+    documents.update(status="submitted")
     onboarding = _get_onboarding_settings(organization)
     onboarding["organization_verification"] = {
         "submitted_at": timezone.now().isoformat(),

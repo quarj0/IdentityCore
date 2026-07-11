@@ -1,17 +1,19 @@
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
+from django.shortcuts import get_object_or_404
 
 from apps.organizations.serializers import (
     OrganizationBrandingAssetUploadSerializer,
     OrganizationBrandingUpdateSerializer,
+    OrganizationDocumentUploadSerializer,
     serialize_organization,
 )
 from apps.organizations.services import update_organization_branding_settings
 from common.permissions import IsTenantUser
 from common.responses import success_response
 from apps.audit.services import record_audit_event
-from apps.organizations.models import OrganizationStatus
+from apps.organizations.models import OrganizationStatus, OrganizationSupportingDocument
 from apps.tenants.models import TenantStatus
 from apps.verifications.models import VerificationSessionStatus
 from rest_framework_simplejwt.token_blacklist.models import (
@@ -59,10 +61,28 @@ class OrganizationBrandingAssetUploadView(APIView):
         )
         serializer.is_valid(raise_exception=True)
         return success_response(
-            serializer.save(),
-            request=request,
-            status=status.HTTP_201_CREATED,
+            serializer.save(), request=request, status=status.HTTP_201_CREATED
         )
+
+
+class OrganizationDocumentUploadView(APIView):
+    permission_classes = [IsAuthenticated, IsTenantUser]
+    def post(self, request):
+        serializer = OrganizationDocumentUploadSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        return success_response(serializer.save(), request=request, status=status.HTTP_201_CREATED)
+
+
+class OrganizationDocumentUploadCompleteView(APIView):
+    permission_classes = [IsAuthenticated, IsTenantUser]
+    def post(self, request, document_id):
+        document = get_object_or_404(OrganizationSupportingDocument.objects,
+            public_id=document_id, tenant=request.user.tenant, organization=request.user.tenant.organization,
+            status="initiated", deleted_at__isnull=True,
+        )
+        document.status = "uploaded"
+        document.save(update_fields=["status", "updated_at"])
+        return success_response({"document_id": document.public_id, "status": document.status}, request=request)
 
 
 class WorkspaceSuspendView(APIView):

@@ -10,7 +10,9 @@ class NotificationListView(APIView):
     permission_classes = [IsAuthenticated, IsTenantUser]
 
     def get(self, request):
-        notifications = request.user.tenant.notifications.order_by("-created_at")
+        notifications = request.user.tenant.notifications.filter(
+            channel="in_app", recipient_type="platform_user"
+        ).order_by("-created_at")
         return success_response(
             {
                 "results": [

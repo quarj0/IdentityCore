@@ -9,6 +9,7 @@ export interface OnboardingState {
   organizationSlug: string;
   organizationType: string;
   organizationCountry: string;
+  organizationCountryName: string;
   organizationStatus: string;
   organizationTier: string;
   tenantId: string;
@@ -27,6 +28,12 @@ export interface OnboardingState {
   onboardingStatus: string;
   currentStep: string;
   organizationVerificationSubmittedAt: string | null;
+  organizationVerificationEditable: boolean;
+  businessRegistrationNumber: string;
+  taxIdentificationNumber: string;
+  registeredAddress: string;
+  officialWebsite: string;
+  supportingDocuments: Array<{ id: string; filename: string; file_size_bytes: number; status: string; storage_key: string }>;
   administratorIdentityVerificationStatus: string;
   administratorIdentityVerificationId: string;
   administratorIdentitySubmittedAt: string | null;
@@ -110,6 +117,17 @@ export interface OrganizationVerificationInput {
   officialWebsite: string;
   taxIdentificationNumber: string;
   supportingDocumentKeys: string[];
+}
+
+export async function createOrganizationDocumentUpload(file: File) {
+  const upload = await restRequest<{ document_id: string; filename: string; file_size_bytes: number; status: string; storage_key: string; upload_url: string }>(
+    "/organization/me/verification-documents/upload/",
+    { method: "POST", body: JSON.stringify({ filename: file.name, mime_type: file.type, file_size_bytes: file.size }) },
+  );
+  const response = await fetch(upload.upload_url, { method: "PUT", headers: { "Content-Type": "application/pdf" }, body: file });
+  if (!response.ok) throw new Error("The document could not be uploaded. Please try again.");
+  await restRequest(`/organization/me/verification-documents/${upload.document_id}/complete/`, { method: "POST", body: "{}" });
+  return { ...upload, status: "uploaded" };
 }
 
 export async function fetchOrganizationOnboardingTypes() {
@@ -243,6 +261,7 @@ export async function fetchCurrentOnboarding() {
         organizationSlug
         organizationType
         organizationCountry
+        organizationCountryName
         organizationStatus
         organizationTier
         tenantId
@@ -261,6 +280,12 @@ export async function fetchCurrentOnboarding() {
         onboardingStatus
         currentStep
         organizationVerificationSubmittedAt
+        organizationVerificationEditable
+        businessRegistrationNumber
+        taxIdentificationNumber
+        registeredAddress
+        officialWebsite
+        supportingDocuments
         administratorIdentityVerificationStatus
         administratorIdentityVerificationId
         administratorIdentitySubmittedAt

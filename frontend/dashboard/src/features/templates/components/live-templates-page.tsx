@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { SubmitEvent, useEffect, useState } from "react";
 import { FileText, Loader2, RefreshCw } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label } from "@identitycore/ui";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -18,6 +18,8 @@ export function LiveTemplatesPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [documentTypes, setDocumentTypes] = useState<Array<{ code: string; name: string }>>([]);
+  const [selectedDocumentTypes, setSelectedDocumentTypes] = useState<string[]>(["national_id"]);
 
   async function load() {
     setError("");
@@ -36,8 +38,9 @@ export function LiveTemplatesPage() {
       .catch((caught) => setError(messageOf(caught)))
       .finally(() => setLoading(false));
   }, []);
+  useEffect(() => { dashboardApi.documentTypes().then(setDocumentTypes).catch(() => undefined); }, []);
 
-  async function create(event: FormEvent<HTMLFormElement>) {
+  async function create(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);
@@ -47,10 +50,7 @@ export function LiveTemplatesPage() {
       await dashboardApi.createPolicy({
         name: String(data.get("name") || "").trim(),
         description: String(data.get("description") || "").trim(),
-        required_document_types: String(data.get("required_document_types") || "national_id")
-          .split(",")
-          .map((value) => value.trim())
-          .filter(Boolean),
+        required_document_types: selectedDocumentTypes,
         required_liveness_level: String(data.get("required_liveness_level") || "passive"),
         face_match_threshold: String(data.get("face_match_threshold") || "0.8500"),
         manual_review_threshold: String(data.get("manual_review_threshold") || "0.6500"),
@@ -100,9 +100,12 @@ export function LiveTemplatesPage() {
               <Label htmlFor="description">Description</Label>
               <Input id="description" name="description" placeholder="Document, selfie, liveness" />
             </div>
-            <div>
-              <Label htmlFor="required_document_types">Document types</Label>
-              <Input id="required_document_types" name="required_document_types" defaultValue="national_id" />
+            <div className="space-y-2">
+              <Label>Accepted document types</Label>
+              {documentTypes.map((item) => <label key={item.code} className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={selectedDocumentTypes.includes(item.code)} onChange={(event) => setSelectedDocumentTypes((current) => event.target.checked ? [...current, item.code] : current.filter((code) => code !== item.code))} />
+                {item.name}
+              </label>)}
             </div>
             <div>
               <Label htmlFor="required_liveness_level">Liveness</Label>
@@ -132,7 +135,7 @@ export function LiveTemplatesPage() {
               <Input id="metadata_retention_days" name="metadata_retention_days" type="number" defaultValue="365" />
             </div>
             <div className="md:col-span-3">
-              <Button disabled={creating} className="rounded-xl">
+              <Button disabled={creating || selectedDocumentTypes.length === 0} className="rounded-xl">
                 {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 Create draft
               </Button>

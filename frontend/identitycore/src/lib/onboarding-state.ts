@@ -28,8 +28,9 @@ export function buildOnboardingSteps(state: OnboardingState | null) {
   const organizationVerificationDone = Boolean(
     state?.organizationVerificationSubmittedAt,
   );
-  const adminIdentityDone =
-    state?.administratorIdentityVerificationStatus === "submitted";
+  const adminIdentityDone = ["submitted", "verified"].includes(
+    state?.administratorIdentityVerificationStatus || "",
+  );
   const productionPending =
     state?.platformReviewStatus === "pending_review" ||
     state?.onboardingStatus === "platform_review_pending";
