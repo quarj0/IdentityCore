@@ -18,6 +18,13 @@ class VerificationPolicy(PublicIdModel, BaseModel):
         on_delete=models.PROTECT,
         related_name="verification_policies",
     )
+    project = models.ForeignKey(
+        "projects.Project",
+        on_delete=models.PROTECT,
+        related_name="verification_policies",
+        null=True,
+        blank=True,
+    )
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     version = models.PositiveIntegerField(default=1)
@@ -29,8 +36,12 @@ class VerificationPolicy(PublicIdModel, BaseModel):
     )
     required_document_types_json = models.JSONField(default=list, blank=True)
     required_liveness_level = models.CharField(max_length=32, default="passive")
-    face_match_threshold = models.DecimalField(max_digits=5, decimal_places=4, default=0.8500)
-    manual_review_threshold = models.DecimalField(max_digits=5, decimal_places=4, default=0.6500)
+    face_match_threshold = models.DecimalField(
+        max_digits=5, decimal_places=4, default=0.8500
+    )
+    manual_review_threshold = models.DecimalField(
+        max_digits=5, decimal_places=4, default=0.6500
+    )
     verification_expiry_minutes = models.PositiveIntegerField(default=1440)
     media_retention_days = models.PositiveIntegerField(default=30)
     metadata_retention_days = models.PositiveIntegerField(default=365)
@@ -52,7 +63,11 @@ class VerificationPolicy(PublicIdModel, BaseModel):
     def clean(self):
         super().clean()
         if self.created_by_id and self.created_by.tenant_id != self.tenant_id:
-            raise ValidationError({"created_by": "Verification policies must be created by a user in the same tenant."})
+            raise ValidationError(
+                {
+                    "created_by": "Verification policies must be created by a user in the same tenant."
+                }
+            )
 
     @property
     def required_document_types(self) -> list[str]:

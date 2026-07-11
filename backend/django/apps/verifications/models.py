@@ -44,6 +44,13 @@ class Verification(PublicIdModel, BaseModel):
         on_delete=models.PROTECT,
         related_name="verifications",
     )
+    project = models.ForeignKey(
+        "projects.Project",
+        on_delete=models.PROTECT,
+        related_name="verifications",
+        null=True,
+        blank=True,
+    )
     organization = models.ForeignKey(
         "organizations.Organization",
         on_delete=models.PROTECT,

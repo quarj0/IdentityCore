@@ -160,6 +160,8 @@ export type Tenant = {
   status: string;
   settings: Record<string, unknown>;
 };
+export type Project = { id: string; name: string; slug: string; environment: "sandbox" | "production"; status: string; allowed_origins: string[]; is_default: boolean; created_at: string; updated_at: string };
+export type WorkflowDefinition = { id: string; project_id: string; name: string; description: string; status: string; steps: string[]; settings: Record<string, unknown>; current_version: number; created_at: string; updated_at: string };
 
 export const supportedWebhookEvents = [
   "verification.created",
@@ -198,4 +200,26 @@ export const dashboardApi = {
   subjects: () => backend.rest<Page<VerificationSubject>>("/subjects/"),
   organization: () => backend.rest<Organization>("/organization/me/"),
   tenant: () => backend.rest<Tenant>("/tenant/me/"),
+  projects: () => backend.rest<{ results: Project[] }>("/projects/"),
+  project: (id: string) => backend.rest<Project>(`/projects/${id}`),
+  createProject: (input: Record<string, unknown>) => backend.rest<Project>("/projects/", { method: "POST", body: JSON.stringify(input) }),
+  patchProject: (id: string, input: Record<string, unknown>) => backend.rest<Project>(`/projects/${id}`, { method: "PATCH", body: JSON.stringify(input) }),
+  projectAction: (id: string, action: "suspend" | "reactivate") => backend.rest<Project>(`/projects/${id}/${action}`, { method: "POST", body: "{}" }),
+  workflows: (projectId = "") => backend.rest<{ results: WorkflowDefinition[] }>(`/workflows/${projectId ? `?project_id=${encodeURIComponent(projectId)}` : ""}`),
+  workflow: (id: string) => backend.rest<WorkflowDefinition>(`/workflows/${id}`),
+  createWorkflow: (input: Record<string, unknown>) => backend.rest<WorkflowDefinition>("/workflows/", { method: "POST", body: JSON.stringify(input) }),
+  patchWorkflow: (id: string, input: Record<string, unknown>) => backend.rest<WorkflowDefinition>(`/workflows/${id}`, { method: "PATCH", body: JSON.stringify(input) }),
+  workflowAction: (id: string, action: "clone" | "publish" | "archive") => backend.rest<WorkflowDefinition>(`/workflows/${id}/${action}`, { method: "POST", body: "{}" }),
+  workflowVersions: (id: string) => backend.rest<{ results: Array<Record<string, unknown>> }>(`/workflows/${id}/versions`),
+  subject: (id: string) => backend.rest<Record<string, unknown>>(`/subjects/${id}`),
+  auditEvent: (id: string) => backend.rest<Record<string, unknown>>(`/audit-events/${id}`),
+  webhook: (id: string) => backend.rest<Record<string, unknown>>(`/webhook-endpoints/${id}`),
+  profile: () => backend.me<DashboardUser>(),
+  updateProfile: (input: Record<string, unknown>) => backend.rest<{ user: DashboardUser }>("/auth/me", { method: "PATCH", body: JSON.stringify(input) }),
+  notificationPreferences: () => backend.rest<{ preferences: Record<string, boolean> }>("/auth/notification-preferences"),
+  updateNotificationPreferences: (input: Record<string, boolean>) => backend.rest<{ preferences: Record<string, boolean> }>("/auth/notification-preferences", { method: "PATCH", body: JSON.stringify(input) }),
+  invitations: () => backend.rest<{ results: Array<Record<string, unknown>> }>("/auth/team/invitations"),
+  createInvitation: (input: Record<string, unknown>) => backend.rest<Record<string, unknown>>("/auth/team/invitations", { method: "POST", body: JSON.stringify(input) }),
+  roles: () => backend.rest<{ results: Array<{ id: string; name: string }> }>("/access-control/roles/"),
+  suspendWorkspace: (confirmation: string) => backend.rest<{ suspended: boolean }>("/organization/me/suspend", { method: "POST", body: JSON.stringify({ confirmation }) }),
 };

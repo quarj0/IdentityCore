@@ -1,7 +1,6 @@
 import {
   Bell,
   Building2,
-  CreditCard,
   FileCheck2,
   FileText,
   KeyRound,
@@ -98,11 +97,6 @@ export const dashboardNav = [
         href: "/team",
         label: "Team",
         icon: Users,
-      },
-      {
-        href: "/billing",
-        label: "Billing",
-        icon: CreditCard,
       },
       {
         href: "/settings",

@@ -125,6 +125,9 @@ components:
           type: string
         policy_id:
           type: string
+        project_id:
+          type: string
+          description: Project environment identifier. Defaults to the tenant's sandbox project for backward compatibility.
           description: Active verification policy/template ID. Required for API-client requests.
         verification_subject:
           $ref: "#/components/schemas/VerificationSubjectInput"

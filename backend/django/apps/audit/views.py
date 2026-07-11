@@ -38,8 +38,22 @@ class AuditEventListView(APIView):
         page_obj, pagination = paginate_results(queryset, page, page_size)
         return success_response(
             {
-                "results": [serialize_audit_event(event) for event in page_obj.object_list],
+                "results": [
+                    serialize_audit_event(event) for event in page_obj.object_list
+                ],
                 "pagination": pagination,
             },
+            request=request,
+        )
+
+
+class AuditEventDetailView(APIView):
+    permission_classes = [IsAuthenticated, IsTenantUser]
+
+    def get(self, request, event_id):
+        return success_response(
+            serialize_audit_event(
+                request.user.tenant.audit_events.get(public_id=event_id)
+            ),
             request=request,
         )

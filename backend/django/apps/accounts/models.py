@@ -37,6 +37,7 @@ class PlatformUser(PublicIdModel, BaseModel, AbstractBaseUser, PermissionsMixin)
     )
     is_platform_admin = models.BooleanField(default=False)
     mfa_enabled = models.BooleanField(default=False)
+    notification_preferences_json = models.JSONField(default=dict, blank=True)
     last_login_at = models.DateTimeField(null=True, blank=True)
     is_staff = models.BooleanField(default=False)
 
@@ -58,7 +59,9 @@ class PlatformUser(PublicIdModel, BaseModel, AbstractBaseUser, PermissionsMixin)
         super().clean()
         self.email = type(self).objects.normalize_email(self.email)
         if not self.is_platform_admin and self.tenant is None:
-            raise ValidationError({"tenant": "Non-platform admin users must belong to a tenant."})
+            raise ValidationError(
+                {"tenant": "Non-platform admin users must belong to a tenant."}
+            )
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -155,3 +158,43 @@ class ContactInquiry(PublicIdModel, BaseModel):
 
     def __str__(self) -> str:
         return self.public_id
+
+
+class TeamInvitationStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    ACCEPTED = "accepted", "Accepted"
+    REVOKED = "revoked", "Revoked"
+    EXPIRED = "expired", "Expired"
+
+
+class TeamInvitation(PublicIdModel, BaseModel):
+    public_id_prefix = "inv"
+    tenant = models.ForeignKey(
+        "tenants.Tenant", on_delete=models.PROTECT, related_name="team_invitations"
+    )
+    email = models.EmailField()
+    role = models.ForeignKey(
+        "access_control.Role", on_delete=models.PROTECT, related_name="team_invitations"
+    )
+    status = models.CharField(
+        max_length=16,
+        choices=TeamInvitationStatus.choices,
+        default=TeamInvitationStatus.PENDING,
+        db_index=True,
+    )
+    token_hash = models.CharField(max_length=64, unique=True)
+    expires_at = models.DateTimeField(db_index=True)
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    invited_by = models.ForeignKey(
+        PlatformUser, on_delete=models.PROTECT, related_name="sent_team_invitations"
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tenant", "email"],
+                condition=Q(status="pending"),
+                name="pending_invitation_tenant_email_uniq",
+            )
+        ]

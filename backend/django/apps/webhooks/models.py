@@ -43,6 +43,13 @@ class WebhookEndpoint(PublicIdModel, BaseModel):
         on_delete=models.PROTECT,
         related_name="webhook_endpoints",
     )
+    project = models.ForeignKey(
+        "projects.Project",
+        on_delete=models.PROTECT,
+        related_name="webhook_endpoints",
+        null=True,
+        blank=True,
+    )
     url = models.URLField()
     description = models.CharField(max_length=255, blank=True)
     secret_hash = models.CharField(max_length=255)
@@ -71,9 +78,17 @@ class WebhookEndpoint(PublicIdModel, BaseModel):
         super().clean()
         invalid_events = sorted(set(self.events) - SUPPORTED_WEBHOOK_EVENTS)
         if invalid_events:
-            raise ValidationError({"events_json": f"Unsupported webhook events: {', '.join(invalid_events)}"})
+            raise ValidationError(
+                {
+                    "events_json": f"Unsupported webhook events: {', '.join(invalid_events)}"
+                }
+            )
         if self.created_by_id and self.created_by.tenant_id != self.tenant_id:
-            raise ValidationError({"created_by": "Webhook endpoints must be created by a user in the same tenant."})
+            raise ValidationError(
+                {
+                    "created_by": "Webhook endpoints must be created by a user in the same tenant."
+                }
+            )
 
     def set_secret(self, raw_secret: str) -> None:
         self.secret_hash = make_password(raw_secret)

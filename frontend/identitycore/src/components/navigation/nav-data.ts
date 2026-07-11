@@ -78,7 +78,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         href: "/verification",
-        label: "Mock verification",
+        label: "Sandbox verification",
         description: "Complete the live document, selfie, liveness, and result flow.",
         icon: FlaskConical,
       },

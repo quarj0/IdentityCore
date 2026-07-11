@@ -20,3 +20,15 @@ class NotificationListView(APIView):
             },
             request=request,
         )
+
+
+class NotificationDetailView(APIView):
+    permission_classes = [IsAuthenticated, IsTenantUser]
+
+    def get(self, request, notification_id):
+        return success_response(
+            serialize_notification(
+                request.user.tenant.notifications.get(public_id=notification_id)
+            ),
+            request=request,
+        )

@@ -7,6 +7,7 @@ from apps.webhooks.models import SUPPORTED_WEBHOOK_EVENTS, WebhookEndpoint, Webh
 def serialize_webhook_endpoint(endpoint: WebhookEndpoint) -> dict:
     return {
         "id": endpoint.public_id,
+        "project_id": endpoint.project.public_id if endpoint.project else None,
         "url": endpoint.url,
         "description": endpoint.description,
         "events": endpoint.events,
@@ -17,6 +18,7 @@ def serialize_webhook_endpoint(endpoint: WebhookEndpoint) -> dict:
 
 
 class WebhookEndpointCreateSerializer(serializers.Serializer):
+    project_id = serializers.CharField(required=False, allow_blank=True)
     url = serializers.URLField()
     description = serializers.CharField(required=False, allow_blank=True)
     events = serializers.ListField(
@@ -27,7 +29,9 @@ class WebhookEndpointCreateSerializer(serializers.Serializer):
     def validate_events(self, value):
         invalid = sorted(set(value) - SUPPORTED_WEBHOOK_EVENTS)
         if invalid:
-            raise serializers.ValidationError(f"Unsupported webhook events: {', '.join(invalid)}")
+            raise serializers.ValidationError(
+                f"Unsupported webhook events: {', '.join(invalid)}"
+            )
         return value
 
     def create(self, validated_data):
@@ -35,6 +39,10 @@ class WebhookEndpointCreateSerializer(serializers.Serializer):
         raw_secret = WebhookEndpoint.generate_secret()
         endpoint = WebhookEndpoint(
             tenant=request.user.tenant,
+            project=request.user.tenant.projects.filter(
+                public_id=validated_data.get("project_id")
+            ).first()
+            or request.user.tenant.projects.filter(is_default=True).first(),
             url=validated_data["url"],
             description=validated_data.get("description", ""),
             events_json=validated_data["events"],

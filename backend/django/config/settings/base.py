@@ -85,6 +85,7 @@ INSTALLED_APPS = [
     "apps.notifications.apps.NotificationsConfig",
     "apps.organizations.apps.OrganizationsConfig",
     "apps.providers.apps.ProvidersConfig",
+    "apps.projects.apps.ProjectsConfig",
     "apps.risk.apps.RiskConfig",
     "apps.tenants.apps.TenantsConfig",
     "apps.uploads.apps.UploadsConfig",
@@ -93,6 +94,7 @@ INSTALLED_APPS = [
     "apps.verification_subjects.apps.VerificationSubjectsConfig",
     "apps.verifications.apps.VerificationsConfig",
     "apps.webhooks.apps.WebhooksConfig",
+    "apps.workflows.apps.WorkflowsConfig",
 ]
 
 MIDDLEWARE = [
@@ -312,9 +314,7 @@ APP_MANAGED_MEDIA_ENCRYPTION_ENABLED = env_bool(
 VERIFICATION_PORTAL_BASE_URL = os.getenv(
     "VERIFICATION_PORTAL_BASE_URL", "http://localhost:3002/verify"
 )
-AUTH_REFRESH_COOKIE_NAME = os.getenv(
-    "AUTH_REFRESH_COOKIE_NAME", "identitycore_refresh"
-)
+AUTH_REFRESH_COOKIE_NAME = os.getenv("AUTH_REFRESH_COOKIE_NAME", "identitycore_refresh")
 AUTH_REFRESH_COOKIE_DOMAIN = os.getenv("AUTH_REFRESH_COOKIE_DOMAIN") or None
 AUTH_REFRESH_COOKIE_SECURE = env_bool("AUTH_REFRESH_COOKIE_SECURE", not DEBUG)
 AUTH_REFRESH_COOKIE_SAMESITE = os.getenv("AUTH_REFRESH_COOKIE_SAMESITE", "Lax")

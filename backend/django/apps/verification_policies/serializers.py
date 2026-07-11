@@ -6,6 +6,7 @@ from apps.verification_policies.models import VerificationPolicy
 def serialize_verification_policy(policy: VerificationPolicy) -> dict:
     return {
         "id": policy.public_id,
+        "project_id": policy.project.public_id if policy.project else None,
         "name": policy.name,
         "description": policy.description,
         "version": policy.version,
@@ -23,13 +24,16 @@ def serialize_verification_policy(policy: VerificationPolicy) -> dict:
 
 
 class VerificationPolicyCreateSerializer(serializers.Serializer):
+    project_id = serializers.CharField(required=False, allow_blank=True)
     name = serializers.CharField(max_length=255)
     description = serializers.CharField(required=False, allow_blank=True)
     required_document_types = serializers.ListField(
         child=serializers.CharField(max_length=64),
         allow_empty=False,
     )
-    required_liveness_level = serializers.ChoiceField(choices=[("passive", "Passive"), ("active", "Active")])
+    required_liveness_level = serializers.ChoiceField(
+        choices=[("passive", "Passive"), ("active", "Active")]
+    )
     face_match_threshold = serializers.DecimalField(max_digits=5, decimal_places=4)
     manual_review_threshold = serializers.DecimalField(max_digits=5, decimal_places=4)
     verification_expiry_minutes = serializers.IntegerField(min_value=1)
@@ -39,7 +43,9 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
     def validate(self, attrs):
         if attrs["manual_review_threshold"] > attrs["face_match_threshold"]:
             raise serializers.ValidationError(
-                {"manual_review_threshold": "Manual review threshold must not exceed the face match threshold."}
+                {
+                    "manual_review_threshold": "Manual review threshold must not exceed the face match threshold."
+                }
             )
         return attrs
 
@@ -48,13 +54,15 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
         tenant = request.user.tenant
         name = validated_data["name"]
         latest_policy = (
-            tenant.verification_policies.filter(name=name)
-            .order_by("-version")
-            .first()
+            tenant.verification_policies.filter(name=name).order_by("-version").first()
         )
         next_version = 1 if latest_policy is None else latest_policy.version + 1
         return VerificationPolicy.objects.create(
             tenant=tenant,
+            project=tenant.projects.filter(
+                public_id=validated_data.get("project_id")
+            ).first()
+            or tenant.projects.filter(is_default=True).first(),
             name=name,
             description=validated_data.get("description", ""),
             version=next_version,
@@ -96,7 +104,9 @@ class VerificationPolicyUpdateSerializer(VerificationPolicyCreateSerializer):
         face_threshold = attrs.get("face_match_threshold", policy.face_match_threshold)
         if manual_threshold > face_threshold:
             raise serializers.ValidationError(
-                {"manual_review_threshold": "Manual review threshold must not exceed the face match threshold."}
+                {
+                    "manual_review_threshold": "Manual review threshold must not exceed the face match threshold."
+                }
             )
         return attrs
 

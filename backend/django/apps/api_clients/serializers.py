@@ -5,17 +5,22 @@ from apps.api_clients.models import APIClient
 from apps.organizations.models import OrganizationStatus
 
 
-def serialize_api_client(api_client: APIClient, include_secret: str | None = None) -> dict:
+def serialize_api_client(
+    api_client: APIClient, include_secret: str | None = None
+) -> dict:
     payload = {
         "public_id": api_client.public_id,
         "tenant_public_id": api_client.tenant.public_id,
+        "project_id": api_client.project.public_id if api_client.project else None,
         "name": api_client.name,
         "client_id": api_client.client_id,
         "status": api_client.status,
         "scopes": api_client.scopes,
         "allowed_networks": api_client.allowed_ips,
         "rate_limit_per_minute": api_client.rate_limit_per_minute,
-        "last_used_at": api_client.last_used_at.isoformat() if api_client.last_used_at else None,
+        "last_used_at": (
+            api_client.last_used_at.isoformat() if api_client.last_used_at else None
+        ),
         "created_at": api_client.created_at.isoformat(),
         "updated_at": api_client.updated_at.isoformat(),
     }
@@ -25,8 +30,11 @@ def serialize_api_client(api_client: APIClient, include_secret: str | None = Non
 
 
 class APIClientCreateSerializer(serializers.Serializer):
+    project_id = serializers.CharField(required=False, allow_blank=True)
     name = serializers.CharField(max_length=255)
-    scopes = serializers.ListField(child=serializers.CharField(max_length=120), allow_empty=False)
+    scopes = serializers.ListField(
+        child=serializers.CharField(max_length=120), allow_empty=False
+    )
     allowed_networks = serializers.ListField(
         child=serializers.CharField(max_length=64),
         allow_empty=True,
@@ -56,6 +64,10 @@ class APIClientCreateSerializer(serializers.Serializer):
         raw_secret = APIClient.generate_client_secret()
         api_client = APIClient(
             tenant=tenant,
+            project=tenant.projects.filter(
+                public_id=validated_data.get("project_id")
+            ).first()
+            or tenant.projects.filter(is_default=True).first(),
             created_by=user,
             name=validated_data["name"],
             scopes_json=validated_data["scopes"],
@@ -74,14 +86,20 @@ class APIClientAuthenticationResultSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         try:
-            api_client = APIClient.objects.select_related("tenant").get(client_id=attrs["client_id"])
+            api_client = APIClient.objects.select_related("tenant").get(
+                client_id=attrs["client_id"]
+            )
         except APIClient.DoesNotExist as exc:
-            raise serializers.ValidationError({"detail": "Invalid API client credentials."}) from exc
+            raise serializers.ValidationError(
+                {"detail": "Invalid API client credentials."}
+            ) from exc
 
         if api_client.status != api_client.APIClientStatus.ACTIVE:
             raise serializers.ValidationError({"detail": "API client is not active."})
         if not api_client.verify_client_secret(attrs["client_secret"]):
-            raise serializers.ValidationError({"detail": "Invalid API client credentials."})
+            raise serializers.ValidationError(
+                {"detail": "Invalid API client credentials."}
+            )
 
         api_client.last_used_at = timezone.now()
         api_client.save(update_fields=["last_used_at", "updated_at"])

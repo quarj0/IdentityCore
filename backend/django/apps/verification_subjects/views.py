@@ -28,3 +28,21 @@ class VerificationSubjectListView(APIView):
             },
             request=request,
         )
+
+
+class VerificationSubjectDetailView(APIView):
+    permission_classes = [IsAuthenticated, IsTenantUser]
+
+    def get(self, request, subject_id):
+        subject = request.user.tenant.verification_subjects.get(public_id=subject_id)
+        payload = serialize_verification_subject(subject)
+        payload["verifications"] = [
+            {
+                "id": x.public_id,
+                "status": x.status,
+                "purpose": x.purpose,
+                "created_at": x.created_at.isoformat(),
+            }
+            for x in subject.verifications.all()[:20]
+        ]
+        return success_response(payload, request=request)

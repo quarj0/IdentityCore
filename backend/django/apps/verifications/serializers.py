@@ -169,6 +169,7 @@ class VerificationSubjectInputSerializer(serializers.Serializer):
 
 
 class VerificationCreateSerializer(serializers.Serializer):
+    project_id = serializers.CharField(max_length=64, required=False, allow_blank=True)
     external_reference = serializers.CharField(
         max_length=255, required=False, allow_blank=True
     )
@@ -238,6 +239,14 @@ class VerificationCreateSerializer(serializers.Serializer):
             policy_snapshot_json = {}
         verification = Verification.objects.create(
             tenant=tenant,
+            project=(
+                policy.project
+                if policy is not None
+                else tenant.projects.filter(
+                    public_id=validated_data.get("project_id")
+                ).first()
+                or tenant.projects.filter(is_default=True).first()
+            ),
             organization=tenant.organization,
             verification_subject=verification_subject,
             policy_public_id=policy_public_id,

@@ -1,14 +1,1 @@
-import { Settings } from "lucide-react";
-import { NoBackendModulePage } from "@/features/operations/no-backend-module-page";
-
-export default function ProjectSettingsPage() {
-  return (
-    <NoBackendModulePage
-      title="Project settings"
-      description="Project settings will be connected when project APIs are available."
-      emptyTitle="No project settings API is available yet"
-      emptyDescription="This page intentionally shows no sample configuration."
-      icon={Settings}
-    />
-  );
-}
+"use client"; import {use} from "react"; import {LiveResourceDetail} from "@/features/operations/live-resource-detail"; import {dashboardApi} from "@/lib/dashboard-api"; export default function Page({params}:{params:Promise<{id:string}>}){const {id}=use(params);return <LiveResourceDetail title="Project settings" description="Environment and allowed origins" load={()=>dashboardApi.project(id) as Promise<unknown> as Promise<Record<string,unknown>>}/>}

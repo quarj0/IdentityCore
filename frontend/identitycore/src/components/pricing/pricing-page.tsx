@@ -19,7 +19,7 @@ const plans = [
     description: "Explore IdentityCore with sandbox workflows.",
     features: [
       "Sandbox workspace",
-      "Mock verification responses",
+      "Sandbox verification responses",
       "Workflow templates",
       "Developer documentation",
     ],

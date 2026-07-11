@@ -23,6 +23,13 @@ class APIClient(PublicIdModel, BaseModel):
         on_delete=models.PROTECT,
         related_name="api_clients",
     )
+    project = models.ForeignKey(
+        "projects.Project",
+        on_delete=models.PROTECT,
+        related_name="api_clients",
+        null=True,
+        blank=True,
+    )
     name = models.CharField(max_length=255)
     client_id = models.CharField(max_length=64, unique=True, editable=False)
     client_secret_hash = models.CharField(max_length=255)
@@ -60,9 +67,17 @@ class APIClient(PublicIdModel, BaseModel):
     def clean(self):
         super().clean()
         if self.created_by_id and self.created_by.tenant_id != self.tenant_id:
-            raise ValidationError({"created_by": "API clients must be created by a user in the same tenant."})
+            raise ValidationError(
+                {
+                    "created_by": "API clients must be created by a user in the same tenant."
+                }
+            )
         if self.created_by_id and self.created_by.is_platform_admin:
-            raise ValidationError({"created_by": "Platform admins must act through a tenant user context to create API clients."})
+            raise ValidationError(
+                {
+                    "created_by": "Platform admins must act through a tenant user context to create API clients."
+                }
+            )
 
     def save(self, *args, **kwargs):
         if not self.client_id:

@@ -22,6 +22,7 @@ def serialize_user(user: PlatformUser) -> dict:
         "is_platform_admin": user.is_platform_admin,
         "mfa_enabled": user.mfa_enabled,
         "roles": [assignment.role.name for assignment in user_roles],
+        "notification_preferences": user.notification_preferences_json,
     }
 
 
