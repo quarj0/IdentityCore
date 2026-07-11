@@ -1,0 +1,194 @@
+{
+  "info": {
+    "_postman_id": "identitycore-public-api",
+    "name": "IdentityCore Public API",
+    "description": "Focused public REST API collection for API-client integrations and SDK smoke testing.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "variable": [
+    { "key": "api_base", "value": "{{base_url}}/api/v1" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{api_base}}/health"
+      }
+    },
+    {
+      "name": "Policies",
+      "item": [
+        {
+          "name": "List Active Policies",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const payload = pm.response.json();",
+                  "pm.test('returns policies', () => pm.expect(payload.success).to.eql(true));",
+                  "if (payload.data && payload.data.length > 0) {",
+                  "  pm.environment.set('policy_id', payload.data[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
+              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+            ],
+            "url": "{{api_base}}/policies/"
+          }
+        },
+        {
+          "name": "Retrieve Active Policy",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
+              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+            ],
+            "url": "{{api_base}}/policies/{{policy_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Verifications",
+      "item": [
+        {
+          "name": "Create Verification",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const payload = pm.response.json();",
+                  "pm.test('created verification', () => pm.expect(payload.success).to.eql(true));",
+                  "pm.environment.set('verification_id', payload.data.id);",
+                  "pm.environment.set('session_id', payload.data.session_id);",
+                  "pm.environment.set('session_token', payload.data.session_token || '');",
+                  "pm.environment.set('verification_url', payload.data.verification_url || '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
+              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"external_reference\": \"{{external_reference}}\",\n  \"purpose\": \"Customer onboarding verification\",\n  \"policy_id\": \"{{policy_id}}\",\n  \"verification_subject\": {\n    \"full_name\": \"Kwame Mensah\",\n    \"email\": \"kwame@example.com\",\n    \"phone_number\": \"+233500000000\"\n  },\n  \"metadata\": {\n    \"source\": \"postman\"\n  }\n}"
+            },
+            "url": "{{api_base}}/verifications/"
+          }
+        },
+        {
+          "name": "List Verifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
+              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+            ],
+            "url": "{{api_base}}/verifications/?external_reference={{external_reference}}"
+          }
+        },
+        {
+          "name": "Retrieve Verification",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
+              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+            ],
+            "url": "{{api_base}}/verifications/{{verification_id}}"
+          }
+        },
+        {
+          "name": "Evidence Report URL",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
+              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+            ],
+            "url": "{{api_base}}/verifications/{{verification_id}}/evidence-report"
+          }
+        },
+        {
+          "name": "Resend Verification Link",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const payload = pm.response.json();",
+                  "if (payload.success) {",
+                  "  pm.environment.set('session_id', payload.data.session_id);",
+                  "  pm.environment.set('session_token', payload.data.session_token || '');",
+                  "  pm.environment.set('verification_url', payload.data.verification_url || '');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
+              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channel\": \"email\"\n}"
+            },
+            "url": "{{api_base}}/verifications/{{verification_id}}/resend-link"
+          }
+        },
+        {
+          "name": "Cancel Verification",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
+              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Testing cancel flow from Postman\"\n}"
+            },
+            "url": "{{api_base}}/verifications/{{verification_id}}/cancel"
+          }
+        }
+      ]
+    }
+  ]
+}

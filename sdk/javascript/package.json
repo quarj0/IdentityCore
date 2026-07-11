@@ -1,0 +1,17 @@
+{
+  "name": "@identitycore/sdk",
+  "version": "0.1.0",
+  "description": "JavaScript SDK for the IdentityCore public REST API.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED"
+}

@@ -181,7 +181,12 @@ class VerificationCreateSerializer(serializers.Serializer):
     def validate(self, attrs):
         request = self.context["request"]
         tenant = get_request_tenant(request)
+        is_api_client_request = getattr(request, "api_client", None) is not None
         policy_id = attrs.get("policy_id", "").strip()
+        if is_api_client_request and not policy_id:
+            raise serializers.ValidationError(
+                {"policy_id": "Choose an active verification template."}
+            )
         if policy_id:
             policy = tenant.verification_policies.filter(
                 public_id=policy_id, status="active"

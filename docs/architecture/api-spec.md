@@ -53,6 +53,20 @@ http://fastapi-ai:8001/v1
 
 The AI service must not be exposed publicly in Version 1.0.
 
+OpenAPI contract:
+
+```text
+docs/openapi/identitycore-public-api.yaml
+```
+
+SDK and Postman artifacts:
+
+```text
+sdk/python
+sdk/javascript
+sdk/postman
+```
+
 ---
 
 ## Authentication
@@ -403,7 +417,7 @@ Business rules:
 - Creates or links a Verification Subject.
 - Creates a Verification Session.
 - Requires an API client with the `verifications:create` scope.
-- The current bootstrap implementation stores the requested `policy_id` as a public identifier reference and keeps `policy_snapshot_json` as a placeholder until verification policies are wired in.
+- API-client requests must provide an active `policy_id`; the selected policy version is snapshotted permanently on the verification.
 - Expiry is enforced asynchronously by background jobs; once `expires_at` passes, the Verification and any active session may transition to `expired` without another API call.
 - Sends webhook event `verification.created`.
 
@@ -870,7 +884,8 @@ Lists verification policies.
 
 Authentication:
 
-- Platform user JWT required.
+- Platform user JWT returns all tenant policies.
+- API-client authentication with `policies:read` returns active policies only.
 
 Response:
 
@@ -898,6 +913,7 @@ Creates a verification policy.
 Authentication:
 
 - Platform user JWT required.
+- API clients cannot create, edit, activate, clone, or archive policies.
 
 Request:
 
@@ -934,6 +950,7 @@ Business rules:
 - Policies are tenant-scoped.
 - Creating a policy with an existing name creates a new version for that tenant instead of overwriting the previous record.
 - New policies are created in `draft` status by default.
+- SDK integrations should list active policies and pass an active `policy_id` when creating verifications.
 
 ---
 

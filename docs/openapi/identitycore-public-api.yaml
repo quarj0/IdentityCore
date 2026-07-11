@@ -1,0 +1,571 @@
+openapi: 3.1.0
+info:
+  title: IdentityCore Public API
+  version: 0.1.0
+  description: Public REST API surface used by IdentityCore SDKs.
+servers:
+  - url: https://api.identitycore.com/api/v1
+    description: Production
+  - url: http://localhost:8000/api/v1
+    description: Local development
+security:
+  - apiClient: []
+components:
+  securitySchemes:
+    apiClient:
+      type: http
+      scheme: bearer
+      bearerFormat: API client secret
+      description: Send the API client secret as a bearer token and the client ID in `X-Client-Id`.
+  parameters:
+    ClientIdHeader:
+      name: X-Client-Id
+      in: header
+      required: true
+      schema:
+        type: string
+      description: API client ID.
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    ErrorEnvelope:
+      type: object
+      required: [success, error, request_id]
+      properties:
+        success:
+          const: false
+        error:
+          $ref: "#/components/schemas/Error"
+        request_id:
+          type: string
+    Policy:
+      type: object
+      required:
+        - id
+        - name
+        - version
+        - status
+        - required_document_types
+        - required_liveness_level
+        - face_match_threshold
+        - manual_review_threshold
+        - verification_expiry_minutes
+        - media_retention_days
+        - metadata_retention_days
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          example: pol_01JABC
+        name:
+          type: string
+        description:
+          type: string
+        version:
+          type: integer
+        status:
+          type: string
+          enum: [draft, active, archived]
+        required_document_types:
+          type: array
+          items:
+            type: string
+        required_liveness_level:
+          type: string
+          enum: [passive, active]
+        face_match_threshold:
+          type: number
+        manual_review_threshold:
+          type: number
+        verification_expiry_minutes:
+          type: integer
+        media_retention_days:
+          type: integer
+        metadata_retention_days:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    VerificationSubjectInput:
+      type: object
+      properties:
+        full_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone_number:
+          type: string
+        date_of_birth:
+          type: string
+          format: date
+        metadata:
+          type: object
+          additionalProperties: true
+    VerificationCreateRequest:
+      type: object
+      required: [purpose, policy_id, verification_subject]
+      properties:
+        external_reference:
+          type: string
+        purpose:
+          type: string
+        policy_id:
+          type: string
+          description: Active verification policy/template ID. Required for API-client requests.
+        verification_subject:
+          $ref: "#/components/schemas/VerificationSubjectInput"
+        redirect_url:
+          type: string
+          format: uri
+        metadata:
+          type: object
+          additionalProperties: true
+    VerificationCreateResponse:
+      type: object
+      required: [id, status, verification_url, session_id, expires_at]
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        verification_url:
+          type: string
+          format: uri
+        session_id:
+          type: string
+        session_token:
+          type: string
+          description: Raw session token returned only when issuing a fresh hosted link.
+        expires_at:
+          type: string
+          format: date-time
+    VerificationSummary:
+      type: object
+      required: [id, status, purpose, external_reference, subject, policy, created_at]
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        purpose:
+          type: string
+        external_reference:
+          type: string
+        subject:
+          type: object
+          properties:
+            id:
+              type: string
+            full_name:
+              type: string
+            email:
+              type: string
+        policy:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            version:
+              type: integer
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: [string, "null"]
+          format: date-time
+    VerificationDetail:
+      allOf:
+        - $ref: "#/components/schemas/VerificationSummary"
+        - type: object
+          properties:
+            verification_subject:
+              type: object
+              properties:
+                id:
+                  type: string
+                full_name:
+                  type: string
+            checks:
+              type: object
+              additionalProperties: true
+            risk_assessment:
+              type: [object, "null"]
+              additionalProperties: true
+            evidence_report:
+              type: [object, "null"]
+              additionalProperties: true
+            decision:
+              type: [object, "null"]
+              additionalProperties: true
+            expires_at:
+              type: string
+              format: date-time
+    Pagination:
+      type: object
+      required: [page, page_size, total, total_pages]
+      properties:
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+    EvidenceReport:
+      type: object
+      required: [verification_id, storage_key, download_url, pdf_storage_key, pdf_download_url]
+      properties:
+        verification_id:
+          type: string
+        storage_key:
+          type: string
+        download_url:
+          type: string
+          format: uri
+        pdf_storage_key:
+          type: string
+        pdf_download_url:
+          type: string
+          format: uri
+  responses:
+    ValidationError:
+      description: Validation error.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    PermissionDenied:
+      description: Authentication failed or scope is missing.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    NotFound:
+      description: Resource was not found in the authenticated tenant.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+paths:
+  /health:
+    get:
+      security: []
+      summary: Check API availability.
+      responses:
+        "200":
+          description: Service status.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        example: ok
+                      service:
+                        type: string
+                        example: django
+                      version:
+                        type: string
+                  request_id:
+                    type: string
+  /policies/:
+    get:
+      summary: List active verification policies/templates.
+      description: API clients need `policies:read` and receive active policies only.
+      parameters:
+        - $ref: "#/components/parameters/ClientIdHeader"
+      responses:
+        "200":
+          description: Active policies.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Policy"
+                  request_id:
+                    type: string
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+  /policies/{policy_id}:
+    get:
+      summary: Retrieve an active verification policy/template.
+      parameters:
+        - $ref: "#/components/parameters/ClientIdHeader"
+        - name: policy_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Active policy.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/Policy"
+                  request_id:
+                    type: string
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /verifications/:
+    get:
+      summary: List verifications.
+      parameters:
+        - $ref: "#/components/parameters/ClientIdHeader"
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: external_reference
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Verification page.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: object
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/VerificationSummary"
+                      pagination:
+                        $ref: "#/components/schemas/Pagination"
+                  request_id:
+                    type: string
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+    post:
+      summary: Create a hosted verification request.
+      description: Requires `verifications:create`; API-client requests must include an active `policy_id`.
+      parameters:
+        - $ref: "#/components/parameters/ClientIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerificationCreateRequest"
+      responses:
+        "201":
+          description: Created verification.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationCreateResponse"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+  /verifications/{verification_id}:
+    get:
+      summary: Retrieve a verification.
+      parameters:
+        - $ref: "#/components/parameters/ClientIdHeader"
+        - name: verification_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Verification detail.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationDetail"
+                  request_id:
+                    type: string
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /verifications/{verification_id}/cancel:
+    post:
+      summary: Cancel a verification.
+      parameters:
+        - $ref: "#/components/parameters/ClientIdHeader"
+        - name: verification_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        "200":
+          description: Cancelled verification.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      status:
+                        type: string
+                        example: cancelled
+                  request_id:
+                    type: string
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /verifications/{verification_id}/resend-link:
+    post:
+      summary: Reissue and resend a verification link.
+      parameters:
+        - $ref: "#/components/parameters/ClientIdHeader"
+        - name: verification_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                channel:
+                  type: string
+                  enum: [email]
+                  default: email
+      responses:
+        "200":
+          description: Fresh verification link.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: object
+                    properties:
+                      sent:
+                        type: boolean
+                      verification_url:
+                        type: string
+                        format: uri
+                      session_id:
+                        type: string
+                      session_token:
+                        type: string
+                      expires_at:
+                        type: string
+                        format: date-time
+                      channel:
+                        type: string
+                  request_id:
+                    type: string
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /verifications/{verification_id}/evidence-report:
+    get:
+      summary: Get evidence-report download URLs.
+      parameters:
+        - $ref: "#/components/parameters/ClientIdHeader"
+        - name: verification_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Evidence report URLs.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/EvidenceReport"
+                  request_id:
+                    type: string
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"

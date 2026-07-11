@@ -1,8 +1,10 @@
-from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.views import APIView
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from rest_framework import status
+from rest_framework.permissions import BasePermission
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.settings import api_settings
+from rest_framework.views import APIView
 
 from apps.audit.services import record_audit_event
 from apps.verification_policies.models import VerificationPolicy
@@ -11,22 +13,58 @@ from apps.verification_policies.serializers import (
     VerificationPolicyUpdateSerializer,
     serialize_verification_policy,
 )
-from common.permissions import IsTenantUser
+from common.authentication import APIClientAuthentication
+from common.permissions import HasAPIClientScopes, IsTenantUser
 from common.responses import success_response
 
 
-class VerificationPolicyListCreateView(APIView):
-    permission_classes = [IsAuthenticated, IsTenantUser]
+class APIClientPolicyWriteDenied(BasePermission):
+    message = "API clients may only read active verification templates."
+
+    def has_permission(self, request, view):
+        return False
+
+
+class VerificationPolicyAccessMixin:
+    authentication_classes = [
+        APIClientAuthentication,
+        *api_settings.DEFAULT_AUTHENTICATION_CLASSES,
+    ]
+
+    def _is_api_client_request(self, request) -> bool:
+        return getattr(request, "api_client", None) is not None
+
+    def _get_tenant(self, request):
+        if self._is_api_client_request(request):
+            return request.tenant
+        return request.user.tenant
+
+    def get_permissions(self):
+        if self._is_api_client_request(self.request):
+            if self.request.method != "GET":
+                return [APIClientPolicyWriteDenied()]
+            self.required_scopes = ("policies:read",)
+            return [HasAPIClientScopes()]
+        return [IsAuthenticated(), IsTenantUser()]
+
+
+class VerificationPolicyListCreateView(VerificationPolicyAccessMixin, APIView):
 
     def get(self, request):
-        policies = request.user.tenant.verification_policies.order_by("name", "-version")
+        policies = self._get_tenant(request).verification_policies.order_by(
+            "name", "-version"
+        )
+        if self._is_api_client_request(request):
+            policies = policies.filter(status="active")
         return success_response(
             [serialize_verification_policy(policy) for policy in policies],
             request=request,
         )
 
     def post(self, request):
-        serializer = VerificationPolicyCreateSerializer(data=request.data, context={"request": request})
+        serializer = VerificationPolicyCreateSerializer(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
         policy = serializer.save()
         record_audit_event(
@@ -46,12 +84,14 @@ class VerificationPolicyListCreateView(APIView):
         )
 
 
-class VerificationPolicyDetailView(APIView):
-    permission_classes = [IsAuthenticated, IsTenantUser]
+class VerificationPolicyDetailView(VerificationPolicyAccessMixin, APIView):
 
     def get_object(self, request, policy_id):
+        queryset = self._get_tenant(request).verification_policies
+        if self._is_api_client_request(request):
+            queryset = queryset.filter(status="active")
         return get_object_or_404(
-            request.user.tenant.verification_policies, public_id=policy_id
+            queryset, public_id=policy_id
         )
 
     def get(self, request, policy_id):

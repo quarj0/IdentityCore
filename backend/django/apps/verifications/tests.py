@@ -65,6 +65,20 @@ class VerificationWorkflowTests(APITestCase):
         self.raw_secret = "client-secret"
         self.api_client.set_client_secret(self.raw_secret)
         self.api_client.save()
+        self.policy = VerificationPolicy.objects.create(
+            tenant=self.tenant,
+            name="Default Verification",
+            version=1,
+            status="active",
+            required_document_types_json=["national_id"],
+            required_liveness_level="passive",
+            face_match_threshold="0.8500",
+            manual_review_threshold="0.6500",
+            verification_expiry_minutes=1440,
+            media_retention_days=30,
+            metadata_retention_days=365,
+            created_by=self.user,
+        )
 
     def auth_headers(self):
         return {
@@ -81,6 +95,7 @@ class VerificationWorkflowTests(APITestCase):
             {
                 "external_reference": "customer_12345",
                 "purpose": "Customer onboarding verification",
+                "policy_id": self.policy.public_id,
                 "verification_subject": {
                     "full_name": "Kwame Mensah",
                     "email": "kwame@example.com",
@@ -136,6 +151,7 @@ class VerificationWorkflowTests(APITestCase):
             {
                 "external_reference": "customer_12345",
                 "purpose": "Customer onboarding verification",
+                "policy_id": self.policy.public_id,
                 "verification_subject": {"full_name": "Kwame Mensah"},
             },
             format="json",
@@ -164,11 +180,26 @@ class VerificationWorkflowTests(APITestCase):
         )
         other_client.set_client_secret("other-secret")
         other_client.save()
+        other_policy = VerificationPolicy.objects.create(
+            tenant=other_tenant,
+            name="Other Default",
+            version=1,
+            status="active",
+            required_document_types_json=["national_id"],
+            required_liveness_level="passive",
+            face_match_threshold="0.8500",
+            manual_review_threshold="0.6500",
+            verification_expiry_minutes=1440,
+            media_retention_days=30,
+            metadata_retention_days=365,
+            created_by=other_user,
+        )
         self.client.post(
             reverse("verification-list-create"),
             {
                 "external_reference": "beta_123",
                 "purpose": "Another verification",
+                "policy_id": other_policy.public_id,
                 "verification_subject": {"full_name": "Ama Asare"},
             },
             format="json",
@@ -234,6 +265,7 @@ class VerificationWorkflowTests(APITestCase):
             {
                 "external_reference": "customer_12345",
                 "purpose": "Customer onboarding verification",
+                "policy_id": self.policy.public_id,
                 "verification_subject": {
                     "full_name": "Kwame Mensah",
                     "email": "kwame@example.com",
@@ -266,6 +298,7 @@ class VerificationWorkflowTests(APITestCase):
             {
                 "external_reference": "customer_12345",
                 "purpose": "Customer onboarding verification",
+                "policy_id": self.policy.public_id,
                 "verification_subject": {
                     "full_name": "Kwame Mensah",
                     "email": "kwame@example.com",
@@ -401,20 +434,7 @@ class VerificationWorkflowTests(APITestCase):
         self.assertIsNone(response.data["data"]["risk_assessment"])
 
     def test_create_verification_copies_policy_snapshot(self):
-        policy = VerificationPolicy.objects.create(
-            tenant=self.tenant,
-            name="Default Verification",
-            version=1,
-            status="active",
-            required_document_types_json=["national_id", "passport"],
-            required_liveness_level="passive",
-            face_match_threshold="0.8500",
-            manual_review_threshold="0.6500",
-            verification_expiry_minutes=60,
-            media_retention_days=30,
-            metadata_retention_days=365,
-            created_by=self.user,
-        )
+        policy = self.policy
 
         response = self.client.post(
             reverse("verification-list-create"),
@@ -437,6 +457,21 @@ class VerificationWorkflowTests(APITestCase):
         self.assertEqual(
             verification.policy_snapshot_json["required_liveness_level"], "passive"
         )
+
+    def test_api_client_create_requires_active_policy(self):
+        response = self.client.post(
+            reverse("verification-list-create"),
+            {
+                "external_reference": "customer_missing_policy",
+                "purpose": "Customer onboarding verification",
+                "verification_subject": {"full_name": "Kwame Mensah"},
+            },
+            format="json",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("policy_id", response.data["error"]["details"])
 
     def test_manual_review_list_is_tenant_scoped(self):
         verification = Verification.objects.create(
@@ -463,12 +498,6 @@ class VerificationWorkflowTests(APITestCase):
             name="Gamma Tenant",
             slug="gamma-tenant",
             status="active",
-        )
-        other_user = PlatformUser.objects.create_user(
-            email="gamma@example.com",
-            password="StrongPassword123!",
-            status=PlatformUserStatus.ACTIVE,
-            tenant=other_tenant,
         )
         Verification.objects.create(
             tenant=other_tenant,
