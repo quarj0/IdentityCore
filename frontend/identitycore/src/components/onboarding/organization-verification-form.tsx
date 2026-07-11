@@ -194,7 +194,7 @@ export function OrganizationVerificationForm() {
 
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="supportingDocuments">
-                Supporting documents (PDF, 1&hyphen;5 files, 10 MB each)
+                Supporting documents (PDF, 1&ndash;5 files, 10 MB each)
               </Label>
               {!readOnly ? (
                 <Input
