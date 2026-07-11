@@ -160,9 +160,17 @@ def serialize_verification_session_status(
         IdentityDocumentStatus.FAILED,
     }:
         current_step = "document_capture"
+        document_label = latest_document.local_document_name or next(
+            (
+                item["name"]
+                for item in DOCUMENT_TYPES
+                if item["code"] == latest_document.document_type_id
+            ),
+            latest_document.document_type_id.replace("_", " ").title(),
+        )
         message = (
-            "We could not verify that image as the requested identity document. "
-            "Please capture the physical document and try again."
+            f"Your previous {document_label} image could not be verified. "
+            f"Please capture the physical {document_label} and try again."
         )
     elif latest_selfie is not None and latest_liveness is None:
         current_step = "liveness_check"

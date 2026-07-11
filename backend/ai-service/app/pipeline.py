@@ -402,25 +402,52 @@ def run_face_compare_pipeline(
 @lru_cache
 def get_paddle_ocr_engine():
     settings = get_settings()
-    if (
-        not settings.paddle_allow_download
-        and not settings.paddle_text_detection_model_dir.exists()
-        and not settings.paddle_text_recognition_model_dir.exists()
+    model_dirs = (
+        settings.paddle_text_detection_model_dir,
+        settings.paddle_text_recognition_model_dir,
+        settings.paddle_textline_orientation_model_dir,
+    )
+    if not settings.paddle_allow_download and not all(
+        settings.paddle_model_is_complete(path) for path in model_dirs
     ):
         raise ProcessingConfigurationError(
             "PaddleOCR models are not configured under AI_MODEL_ROOT/paddleocr. Provide local models or enable PADDLE_OCR_ALLOW_DOWNLOAD."
         )
 
     from paddleocr import PaddleOCR
+    import yaml
+
+    def local_model_name(path: Path) -> str | None:
+        try:
+            payload = yaml.safe_load((path / "inference.yml").read_text(encoding="utf-8")) or {}
+        except (OSError, yaml.YAMLError):
+            return None
+        global_config = payload.get("Global") or {}
+        return str(global_config.get("model_name") or "").strip() or None
 
     kwargs = {
-        "lang": settings.paddle_lang,
-        "ocr_version": settings.paddle_ocr_version,
-        "text_detection_model_dir": str(settings.paddle_text_detection_model_dir),
-        "text_recognition_model_dir": str(settings.paddle_text_recognition_model_dir),
-        "textline_orientation_model_dir": str(settings.paddle_textline_orientation_model_dir),
+        # IdentityCore performs capture orientation/quality handling separately.
+        # Disabling these optional modules keeps real-mode OCR fully local and
+        # avoids downloading document-orientation and unwarping models at runtime.
+        "use_doc_orientation_classify": False,
+        "use_doc_unwarping": False,
         "use_textline_orientation": True,
+        # PaddlePaddle 3.3.x currently fails on this OCR detection graph in
+        # the CPU OneDNN/PIR executor. Use the stable plain CPU executor until
+        # the upstream conversion bug is fixed and covered by our inference test.
+        "enable_mkldnn": False,
     }
+    local_model_arguments = (
+        ("text_detection_model_dir", "text_detection_model_name", settings.paddle_text_detection_model_dir),
+        ("text_recognition_model_dir", "text_recognition_model_name", settings.paddle_text_recognition_model_dir),
+        ("textline_orientation_model_dir", "textline_orientation_model_name", settings.paddle_textline_orientation_model_dir),
+    )
+    for directory_argument, name_argument, path in local_model_arguments:
+        if settings.paddle_model_is_complete(path):
+            kwargs[directory_argument] = str(path)
+            model_name = local_model_name(path)
+            if model_name:
+                kwargs[name_argument] = model_name
     return PaddleOCR(**kwargs)
 
 
@@ -495,7 +522,7 @@ def run_document_ocr_pipeline(
         "extracted_fields": extracted_fields,
         "raw_text_lines": texts,
         "model_name": "paddleocr",
-        "model_version": get_settings().paddle_ocr_version,
+        "model_version": "PP-OCRv5",
     }
 
 
@@ -536,7 +563,7 @@ def run_document_classification_pipeline(
         "issues": issues,
         "raw_text_lines": texts,
         "model_name": "paddleocr-classifier",
-        "model_version": get_settings().paddle_ocr_version,
+        "model_version": "PP-OCRv5",
     }
 
 

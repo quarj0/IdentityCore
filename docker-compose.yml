@@ -66,7 +66,13 @@ services:
     volumes:
       - .:/app
     healthcheck:
-      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/api/v1/health')"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/api/v1/health')",
+        ]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -93,8 +99,14 @@ services:
       - .:/app
       - ai-models:/opt/identitycore/models
     healthcheck:
-      test: ["CMD", "python", "-c", "import os; from urllib.request import Request,urlopen; urlopen(Request('http://127.0.0.1:8001/v1/ready',headers={'X-Internal-Token':os.getenv('AI_SERVICE_SHARED_TOKEN','')}))"]
-      interval: 15s
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import os; from urllib.request import Request,urlopen; urlopen(Request('http://127.0.0.1:8001/v1/ready',headers={'X-Internal-Token':os.getenv('AI_SERVICE_SHARED_TOKEN','')}))",
+        ]
+      interval: 60s
       timeout: 5s
       retries: 5
       start_period: 15s
@@ -148,7 +160,11 @@ services:
     volumes:
       - .:/app
     healthcheck:
-      test: ["CMD-SHELL", "celery -A config inspect ping -d default@$$HOSTNAME | grep -q pong"]
+      test:
+        [
+          "CMD-SHELL",
+          "celery -A config inspect ping -d default@$$HOSTNAME | grep -q pong",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -181,7 +197,11 @@ services:
     volumes:
       - .:/app
     healthcheck:
-      test: ["CMD-SHELL", "celery -A config inspect ping -d webhooks@$$HOSTNAME | grep -q pong"]
+      test:
+        [
+          "CMD-SHELL",
+          "celery -A config inspect ping -d webhooks@$$HOSTNAME | grep -q pong",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -214,7 +234,11 @@ services:
     volumes:
       - .:/app
     healthcheck:
-      test: ["CMD-SHELL", "celery -A config inspect ping -d notifications@$$HOSTNAME | grep -q pong"]
+      test:
+        [
+          "CMD-SHELL",
+          "celery -A config inspect ping -d notifications@$$HOSTNAME | grep -q pong",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -249,7 +273,11 @@ services:
     volumes:
       - .:/app
     healthcheck:
-      test: ["CMD-SHELL", "celery -A config inspect ping -d ai@$$HOSTNAME | grep -q pong"]
+      test:
+        [
+          "CMD-SHELL",
+          "celery -A config inspect ping -d ai@$$HOSTNAME | grep -q pong",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -282,7 +310,11 @@ services:
     volumes:
       - .:/app
     healthcheck:
-      test: ["CMD-SHELL", "celery -A config inspect ping -d retention@$$HOSTNAME | grep -q pong"]
+      test:
+        [
+          "CMD-SHELL",
+          "celery -A config inspect ping -d retention@$$HOSTNAME | grep -q pong",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3

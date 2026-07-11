@@ -609,6 +609,35 @@ class VerificationSessionPortalTests(APITestCase):
             response.data["data"]["message"], "Your verification is being processed."
         )
 
+    def test_get_session_status_names_the_previously_rejected_document(self):
+        IdentityDocument.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_subject=self.subject,
+            document_type_id="national_id",
+            country_profile_id="GH",
+            local_document_name="Ghana Card",
+            status="rejected",
+        )
+
+        response = self.client.get(
+            reverse(
+                "verification-session-status",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            **self.session_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["data"]["current_step"], "document_capture")
+        self.assertEqual(
+            response.data["data"]["message"],
+            (
+                "Your previous Ghana Card image could not be verified. "
+                "Please capture the physical Ghana Card and try again."
+            ),
+        )
+
     def test_get_session_status_for_verified(self):
         self.verification.status = VerificationStatus.VERIFIED
         self.verification.save(update_fields=["status", "updated_at"])

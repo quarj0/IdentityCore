@@ -111,6 +111,7 @@ Core features:
 * Country Profile support
 * Document quality checks
 * OCR processing
+* Document fraud and tampering risk analysis
 * Selfie capture
 * Face detection
 * Face matching
@@ -128,6 +129,45 @@ Success criteria:
 * Verification Policy determines the outcome.
 * Manual Review handles uncertain cases.
 * Organization receives webhook result.
+
+### Deferred Phase 2 Workstream: Document Fraud Analysis
+
+Document fraud analysis is part of IdentityCore's identity-verification service, but advanced detection will be implemented after the core end-to-end workflow is stable. It must produce explainable risk signals and manual-review evidence rather than act as an infallible automatic authenticity decision.
+
+Planned capabilities:
+
+* Deterministic MRZ and check-digit validation where supported.
+* Barcode, QR, printed-field, front/back, date, identifier, and issuer consistency checks.
+* Country- and document-specific structure validation, beginning with supported Ghana documents.
+* Image-forensics signals for text replacement, portrait replacement, splicing, copy-move, resampling, inconsistent compression, noise, illumination, and generated imagery.
+* Duplicate and velocity checks across document numbers, document images, portraits, devices, networks, and tenants.
+* Capture-integrity, replay, virtual-camera, emulator, and media-injection signals.
+* Suspicious-region localization and human-readable reasons for Manual Review.
+* Structured outcomes: `no_fraud_indicators`, `fraud_indicators_detected`, `manual_review_required`, and `analysis_unavailable`.
+* Versioned model, threshold, dataset, and evaluation metadata in evidence reports and audit records.
+
+Delivery sequence:
+
+1. Deterministic document validation, metadata checks, duplicate detection, and capture provenance.
+2. Ghana Card layout, security-region, and portrait-replacement checks.
+3. Calibrated tampering-localization models trained and evaluated with licensed, synthetic, and representative document data.
+4. Stronger verification-portal defenses against replay, deepfake, and media-injection attacks.
+5. NFC, digital-signature, issuer-certificate, or authoritative-source validation where documents and authorized integrations support it.
+
+Product and accuracy constraints:
+
+* Fraud analysis is a risk signal, not a guarantee that a document is genuine or fraudulent.
+* IdentityCore must not advertise a general accuracy percentage such as “98% accurate” until it is supported by a locked, representative, independently reviewable evaluation for the exact production configuration.
+* Published performance claims must identify the supported country/document types, attack categories, model version, dataset size and date, fraud recall, precision, false-accept rate, false-reject rate, and manual-review rate.
+* A permitted claim must be narrowly qualified, for example: “Detected 98% of tested portrait-replacement attacks on supported Ghana Card captures at a stated false-positive rate using model version X and evaluation set Y.”
+* Uncertain, unsupported, low-quality, or out-of-distribution evidence must be routed to Manual Review rather than automatically approved.
+
+Additional success criteria:
+
+* Fraud signals are persisted as evidence and consumed by the Verification Decision Engine.
+* Reviewers can see why evidence was flagged and inspect suspicious regions.
+* Thresholds are calibrated per supported document family and monitored for drift.
+* Evaluation reports are reproducible and prevent unsupported marketing claims.
 
 ---
 

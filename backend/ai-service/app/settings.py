@@ -113,8 +113,6 @@ class Settings(BaseSettings):
     paddle_disable_model_source_check: bool = Field(
         default=True, alias="PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"
     )
-    paddle_lang: str = Field(default="en", alias="PADDLE_OCR_LANG")
-    paddle_ocr_version: str = Field(default="PP-OCRv5", alias="PADDLE_OCR_VERSION")
     paddle_allow_download: bool = Field(
         default=False, alias="PADDLE_OCR_ALLOW_DOWNLOAD"
     )
@@ -161,6 +159,13 @@ class Settings(BaseSettings):
     def paddle_textline_orientation_model_dir(self) -> Path:
         return self.paddle_root_dir / "cls"
 
+    @staticmethod
+    def paddle_model_is_complete(path: Path) -> bool:
+        return (path / "inference.yml").is_file() and any(
+            (path / filename).is_file()
+            for filename in ("inference.json", "inference.pdmodel", "model.pdmodel")
+        )
+
     @property
     def insightface_model_dir(self) -> Path:
         return self.insightface_root_dir / "models" / self.insightface_model_name
@@ -186,7 +191,7 @@ class Settings(BaseSettings):
                 ("models.paddleocr.rec", self.paddle_text_recognition_model_dir),
                 ("models.paddleocr.cls", self.paddle_textline_orientation_model_dir),
             ):
-                if not path.exists():
+                if not self.paddle_model_is_complete(path):
                     missing.append(f"{label}:{path}")
 
         return missing

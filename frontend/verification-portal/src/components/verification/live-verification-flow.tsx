@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, Copy, Loader2, Monitor, ShieldCheck, Smartphone } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Progress } from "@identitycore/ui";
@@ -111,6 +111,17 @@ export function LiveVerificationFlow({ sessionId, handoff }: { sessionId: string
     }
   }
 
+  function selectEvidence(nextFile: File) {
+    const supportedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+    if (!supportedTypes.has(nextFile.type.toLowerCase())) {
+      setFile(null);
+      setError("Choose a JPEG, PNG, or WebP image. PDF and other document files are not accepted for identity capture.");
+      return;
+    }
+    setError(null);
+    setFile(nextFile);
+  }
+
   if (error && !session) return <StateCard title="Verification unavailable" message={error} />;
   if (!deviceReady || !credentials || !session || !status) return <StateCard title="Opening secure session" loading />;
 
@@ -141,7 +152,13 @@ export function LiveVerificationFlow({ sessionId, handoff }: { sessionId: string
       <Card className="rounded-3xl border-slate-200 shadow-sm">
         <CardHeader><CardTitle>{titleFor(step, session.document.label)}</CardTitle></CardHeader>
         <CardContent className="space-y-5">
-          <p className="text-sm leading-6 text-slate-600">{status.message}</p>
+          <p className="text-sm leading-6 text-slate-600">
+            {step === "document_capture" && file
+              ? busy
+                ? `Submitting your ${session.document.label} securely…`
+                : `Review your new ${session.document.label} image, then submit it for verification.`
+              : status.message}
+          </p>
           {error ? <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
 
           {step === "consent" ? <>
@@ -153,7 +170,7 @@ export function LiveVerificationFlow({ sessionId, handoff }: { sessionId: string
           </> : null}
 
           {step === "document_capture" ? <>
-            {!file ? <CameraCapture facingMode="environment" label="Identity document camera" onCapture={setFile} /> : <EvidenceReview file={file} onRetake={() => setFile(null)} />}
+            {!file ? <CameraCapture facingMode="environment" label="Identity document camera" onCapture={selectEvidence} /> : <EvidenceReview file={file} onRetake={() => setFile(null)} />}
             <Button disabled={!file || busy} onClick={() => run(async () => {
               if (!file) return;
               const uploadId = await createUpload(credentials, "document_capture", file);
@@ -168,7 +185,7 @@ export function LiveVerificationFlow({ sessionId, handoff }: { sessionId: string
           {step === "document_processing" ? <div className="flex items-center gap-3 rounded-2xl bg-blue-50 p-4 text-sm text-blue-800"><Loader2 className="h-5 w-5 animate-spin" />Checking document type, readability, and image quality before selfie capture.</div> : null}
 
           {step === "selfie_capture" ? <>
-            {!file ? <CameraCapture facingMode="user" label="Selfie camera" onCapture={setFile} /> : <EvidenceReview file={file} onRetake={() => setFile(null)} />}
+            {!file ? <CameraCapture facingMode="user" label="Selfie camera" onCapture={selectEvidence} /> : <EvidenceReview file={file} onRetake={() => setFile(null)} />}
             <Button disabled={!file || busy} onClick={() => run(async () => {
               if (!file) return;
               const uploadId = await createUpload(credentials, "selfie_capture", file);
@@ -192,18 +209,36 @@ export function LiveVerificationFlow({ sessionId, handoff }: { sessionId: string
 }
 
 function EvidenceReview({ file, onRetake }: { file: File; onRetake: () => void }) {
-  const url = useMemo(() => URL.createObjectURL(file), [file]);
+  const [url, setUrl] = useState("");
   const [previewFailed, setPreviewFailed] = useState(false);
-  useEffect(() => () => URL.revokeObjectURL(url), [url]);
+  useEffect(() => {
+    let cancelled = false;
+    const reader = new FileReader();
+    setUrl("");
+    setPreviewFailed(false);
+    reader.onload = () => {
+      if (!cancelled && typeof reader.result === "string") {
+        setUrl(reader.result);
+      }
+    };
+    reader.onerror = () => {
+      if (!cancelled) setPreviewFailed(true);
+    };
+    reader.readAsDataURL(file);
+    return () => {
+      cancelled = true;
+      reader.abort();
+    };
+  }, [file]);
   return <div className="space-y-3">
     {previewFailed ? (
       <p className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-800">
         This image cannot be previewed. Retake it or choose a JPEG, PNG, or WebP file.
       </p>
-    ) : (
+    ) : url ? (
       /* eslint-disable-next-line @next/next/no-img-element */
       <img src={url} onError={() => setPreviewFailed(true)} alt="Captured evidence preview" className="max-h-96 w-full rounded-2xl bg-slate-950 object-contain" />
-    )}
+    ) : <div className="flex min-h-48 items-center justify-center rounded-2xl bg-slate-950 text-sm text-slate-300"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Preparing preview…</div>}
     <Button variant="outline" onClick={onRetake}>Retake</Button>
   </div>;
 }

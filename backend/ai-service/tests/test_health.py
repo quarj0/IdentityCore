@@ -183,7 +183,7 @@ def test_local_service_mode_alias_normalizes_to_mock():
     assert settings.service_mode == "mock"
 
 
-def test_real_mode_requires_storage_and_models():
+def test_real_mode_requires_storage_and_models(tmp_path):
     settings = Settings(
         AI_SERVICE_MODE="real",
         OBJECT_STORAGE_MEDIA_BUCKET="identitycore-media",
@@ -192,6 +192,7 @@ def test_real_mode_requires_storage_and_models():
         OBJECT_STORAGE_SECRET_ACCESS_KEY="secret",
         INSIGHTFACE_ALLOW_DOWNLOAD=False,
         PADDLE_OCR_ALLOW_DOWNLOAD=False,
+        AI_MODEL_ROOT=tmp_path,
     )
 
     missing = settings.real_inference_missing_requirements()
@@ -216,11 +217,11 @@ def test_real_mode_accepts_r2_storage_aliases():
 
 def test_hybrid_mode_is_degraded_but_ready_when_real_requirements_are_missing(monkeypatch):
     monkeypatch.setenv("AI_SERVICE_MODE", "hybrid")
-    monkeypatch.delenv("OBJECT_STORAGE_MEDIA_BUCKET", raising=False)
-    monkeypatch.delenv("OBJECT_STORAGE_BUCKET", raising=False)
-    monkeypatch.delenv("OBJECT_STORAGE_ENDPOINT_URL", raising=False)
-    monkeypatch.delenv("OBJECT_STORAGE_ACCESS_KEY_ID", raising=False)
-    monkeypatch.delenv("OBJECT_STORAGE_SECRET_ACCESS_KEY", raising=False)
+    monkeypatch.setenv("OBJECT_STORAGE_MEDIA_BUCKET", "")
+    monkeypatch.setenv("OBJECT_STORAGE_BUCKET", "")
+    monkeypatch.setenv("OBJECT_STORAGE_ENDPOINT_URL", "")
+    monkeypatch.setenv("OBJECT_STORAGE_ACCESS_KEY_ID", "")
+    monkeypatch.setenv("OBJECT_STORAGE_SECRET_ACCESS_KEY", "")
     monkeypatch.setenv("INSIGHTFACE_ALLOW_DOWNLOAD", "0")
     monkeypatch.setenv("PADDLE_OCR_ALLOW_DOWNLOAD", "0")
     get_settings.cache_clear()
