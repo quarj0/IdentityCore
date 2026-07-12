@@ -44,7 +44,7 @@ export function LiveVerificationDetail({ id, review = false }: { id: string; rev
     try {
       const result = await dashboardApi.resendVerification(id);
       await navigator.clipboard.writeText(result.verification_url);
-      setMessage("A fresh verification link was emailed and copied. Previous active links were revoked.");
+      setMessage("A fresh verification link was created, queued for delivery, and copied. Previous active links were revoked.");
       await load();
     } catch (caught) {
       setError(messageOf(caught));
@@ -59,7 +59,7 @@ export function LiveVerificationDetail({ id, review = false }: { id: string; rev
     setError("");
     try {
       await dashboardApi.cancelVerification(id, "Cancelled from dashboard");
-      setMessage("Verification request cancelled.");
+      setMessage("Verification cancelled.");
       await load();
     } catch (caught) {
       setError(messageOf(caught));

@@ -712,9 +712,9 @@ class Mutation:
         return PublicActionPayload(
             ok=sent,
             message=(
-                "If the workspace is still awaiting email verification, a new link has been sent."
+                "A new onboarding verification link has been sent."
                 if sent
-                else "No pending onboarding email verification was found for that address."
+                else "Unable to resend the onboarding verification link for that address."
             ),
             next_action="verify_email",
         )

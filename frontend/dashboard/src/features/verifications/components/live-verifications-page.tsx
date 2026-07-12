@@ -92,8 +92,8 @@ export function LiveVerificationsPage() {
   return (
     <div className="space-y-8">
       <PageHeading
-        title="Verification requests"
-        description="Create hosted verification links, track progress, and resend fresh sessions when needed."
+        title="Verifications"
+        description="Create hosted verification links, track progress, and resend fresh links when needed."
         action={
           <Button variant="outline" className="rounded-xl" onClick={() => void load()}>
             <RefreshCw className="h-4 w-4" />
@@ -101,7 +101,7 @@ export function LiveVerificationsPage() {
           </Button>
         }
       />
-      {organization?.sandbox_usage.pending_approval ? <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900"><strong>Sandbox usage:</strong> {organization.sandbox_usage.monthly_verifications} of {organization.sandbox_usage.monthly_verification_limit} verification requests used this month.</div> : null}
+      {organization?.sandbox_usage.pending_approval ? <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900"><strong>Sandbox usage:</strong> {organization.sandbox_usage.monthly_verifications} of {organization.sandbox_usage.monthly_verification_limit} verifications used this month.</div> : null}
 
       {error ? (
         <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -160,7 +160,7 @@ export function LiveVerificationsPage() {
               </select>
               {activePolicies.length === 0 ? (
                 <p className="mt-2 text-sm text-amber-700">
-                  Activate a template before creating dashboard verification requests.
+                  Activate a template before creating dashboard verifications.
                 </p>
               ) : null}
             </div>
@@ -175,11 +175,11 @@ export function LiveVerificationsPage() {
       </Card>
 
       {loading ? (
-        <p className="text-sm text-slate-500">Loading verification requests...</p>
+        <p className="text-sm text-slate-500">Loading verifications...</p>
       ) : items.length === 0 ? (
         <EmptyState
           icon={FileCheck2}
-          title="No verification requests"
+          title="No verifications"
           description="Create a request to send a hosted verification link to a subject."
         />
       ) : (

@@ -6,6 +6,8 @@ from rest_framework.test import APITestCase
 from apps.organizations.models import Organization, OrganizationStatus
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.tenants.models import Tenant
+from apps.organizations.onboarding import resend_onboarding_email_verification
+from apps.notifications.models import Notification
 
 
 class OrganizationModelTests(TestCase):
@@ -68,3 +70,37 @@ class OrganizationBrandingTests(APITestCase):
         self.organization.refresh_from_db()
         self.assertEqual(self.organization.settings_json["logo_storage_key"], logo_storage_key)
         self.assertTrue(response.data["data"]["settings"]["logo_url"])
+
+
+class OrganizationOnboardingEmailTests(APITestCase):
+    def setUp(self):
+        self.organization = Organization.objects.create(
+            name="Acme University",
+            slug="acme-university-onboarding",
+        )
+        self.tenant = Tenant.objects.create(
+            organization=self.organization,
+            name="Acme Tenant",
+            slug="acme-onboarding",
+            status="pending_review",
+        )
+        self.user = PlatformUser.objects.create_user(
+            email="pending@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.INACTIVE,
+            tenant=self.tenant,
+        )
+
+    def test_resend_onboarding_email_verification_creates_fresh_verification_link(self):
+        sent = resend_onboarding_email_verification(
+            business_email=self.user.email,
+        )
+
+        self.assertTrue(sent)
+        self.assertTrue(
+            Notification.objects.filter(
+                tenant=self.tenant,
+                recipient=self.user.email,
+                template_code="account.email_verification",
+            ).exists()
+        )

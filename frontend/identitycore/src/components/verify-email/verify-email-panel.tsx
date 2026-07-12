@@ -74,7 +74,7 @@ export function VerifyEmailPanel({
         await resendOrganizationOnboardingEmailVerification(email);
       setResendFeedback({
         kind: payload.ok ? "success" : "error",
-        title: payload.ok ? "Verification email sent" : "Unable to resend",
+        title: payload.ok ? "Verification email queued" : "Unable to resend",
         message: payload.message,
       });
     } catch (error) {
@@ -175,7 +175,7 @@ export function VerifyEmailPanel({
               ) : (
                 <RefreshCcw className="h-4 w-4" aria-hidden="true" />
               )}
-              Resend verification email
+              Send a new verification email
             </Button>
           </div>
 
