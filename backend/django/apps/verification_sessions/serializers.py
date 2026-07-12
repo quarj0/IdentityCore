@@ -38,6 +38,22 @@ REQUIRED_STEPS = [
 ]
 
 
+def _resolve_document_label(document_type: str, country_code: str) -> str:
+    country_code = str(country_code or "").upper()
+    document_type = str(document_type or "identity_document")
+    if country_code:
+        for profile in COUNTRY_PROFILES:
+            if profile["code"] != country_code:
+                continue
+            for supported in profile["supported_document_types"]:
+                if supported["document_type"] == document_type:
+                    return supported["local_name"]
+    return next(
+        (item["name"] for item in DOCUMENT_TYPES if item["code"] == document_type),
+        document_type.replace("_", " ").title(),
+    )
+
+
 def resolve_session_upload(
     *, verification_session: VerificationSession, upload_id: str, purpose: str
 ) -> Upload:
@@ -117,19 +133,7 @@ def serialize_verification_session(verification_session: VerificationSession) ->
         or registration.get("organization_country", "")
     ).upper()
     document_type = str(metadata.get("document_type", "national_id"))
-    document_label = next(
-        (
-            supported["local_name"]
-            for profile in COUNTRY_PROFILES
-            if profile["code"] == country_code
-            for supported in profile["supported_document_types"]
-            if supported["document_type"] == document_type
-        ),
-        next(
-            (item["name"] for item in DOCUMENT_TYPES if item["code"] == document_type),
-            "identity document",
-        ),
-    )
+    document_label = _resolve_document_label(document_type, country_code)
     return {
         "session_id": verification_session.public_id,
         "verification_id": verification.public_id,
@@ -164,13 +168,9 @@ def serialize_verification_session_status(
         IdentityDocumentStatus.FAILED,
     }:
         current_step = "document_capture"
-        document_label = latest_document.local_document_name or next(
-            (
-                item["name"]
-                for item in DOCUMENT_TYPES
-                if item["code"] == latest_document.document_type_id
-            ),
-            latest_document.document_type_id.replace("_", " ").title(),
+        document_label = latest_document.local_document_name or _resolve_document_label(
+            latest_document.document_type_id,
+            latest_document.country_profile_id,
         )
         classification = (latest_document.extracted_data_json or {}).get(
             "document_classification", {}
@@ -178,8 +178,8 @@ def serialize_verification_session_status(
         classification_issues = set(classification.get("issues") or [])
         if latest_document.status == IdentityDocumentStatus.FAILED:
             message = (
-                f"Your previous {document_label} could not be processed. "
-                "Please try capturing it again."
+                f"We couldn't process your previous {document_label} just now. "
+                "Please capture it again to continue."
             )
         elif latest_document.captures.filter(
             status=DocumentCaptureStatus.REJECTED
@@ -358,19 +358,7 @@ class VerificationSessionDocumentSerializer(serializers.Serializer):
 
         document_type = self.validated_data["document_type"]
         country_code = self.validated_data.get("country_code", "")
-        local_document_name = next(
-            (
-                supported["local_name"]
-                for profile in COUNTRY_PROFILES
-                if profile["code"] == country_code
-                for supported in profile["supported_document_types"]
-                if supported["document_type"] == document_type
-            ),
-            next(
-                (item["name"] for item in DOCUMENT_TYPES if item["code"] == document_type),
-                document_type.replace("_", " ").title(),
-            ),
-        )
+        local_document_name = _resolve_document_label(document_type, country_code)
         identity_document = IdentityDocument.objects.create(
             tenant=verification.tenant,
             verification=verification,
