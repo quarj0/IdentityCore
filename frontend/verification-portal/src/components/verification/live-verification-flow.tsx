@@ -216,8 +216,12 @@ function EvidenceReview({ file, onRetake }: { file: File; onRetake: () => void }
   useEffect(() => {
     let cancelled = false;
     const reader = new FileReader();
-    setUrl("");
-    setPreviewFailed(false);
+    reader.onloadstart = () => {
+      if (!cancelled) {
+        setUrl("");
+        setPreviewFailed(false);
+      }
+    };
     reader.onload = () => {
       if (!cancelled && typeof reader.result === "string") {
         setUrl(reader.result);

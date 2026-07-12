@@ -1,7 +1,7 @@
 "use client";
 
 import { SubmitEvent, useEffect, useState } from "react";
-import { ExternalLink, FileText, Loader2 } from "lucide-react";
+import { ExternalLink, FileText, Loader2, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   Button,
@@ -20,6 +20,7 @@ import { getOnboardingRoute } from "@/lib/onboarding-state";
 import {
   fetchCurrentOnboarding,
   createOrganizationDocumentUpload,
+  deleteOrganizationDocument,
   submitOrganizationVerification,
 } from "@/lib/onboarding-api";
 
@@ -39,7 +40,7 @@ export function OrganizationVerificationForm() {
     taxIdentificationNumber: "",
   });
   const [documents, setDocuments] = useState<
-    Array<{ filename: string; storage_key: string; file_size_bytes: number; download_url?: string }>
+    Array<{ id: string; filename: string; storage_key: string; file_size_bytes: number; download_url?: string }>
   >([]);
   const [savedDocumentCount, setSavedDocumentCount] = useState(0);
   const [readOnly, setReadOnly] = useState(false);
@@ -106,6 +107,25 @@ export function OrganizationVerificationForm() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function removeDocument(storageKey: string) {
+    const document = documents.find((item) => item.storage_key === storageKey);
+    if (!document) return;
+    void (async () => {
+      try {
+        await deleteOrganizationDocument(document.id);
+        setDocuments((current) =>
+          current.filter((item) => item.storage_key !== storageKey),
+        );
+      } catch (error) {
+        setFeedback({
+          kind: "error",
+          title: "Unable to delete document",
+          message: getErrorMessage(error),
+        });
+      }
+    })();
   }
 
   if (loading) {
@@ -254,7 +274,19 @@ export function OrganizationVerificationForm() {
                   className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4"
                 >
                   <div className="flex min-w-0 items-center gap-3"><FileText className="h-5 w-5 shrink-0 text-red-600" /><div className="min-w-0"><p className="truncate text-sm font-medium text-slate-900">{document.filename}</p><p className="text-xs text-muted-foreground">{Math.ceil(document.file_size_bytes / 1024)} KB · PDF</p></div></div>
-                  {document.download_url ? <Button asChild type="button" size="sm" variant="outline"><a href={document.download_url} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" />Preview</a></Button> : null}
+                  <div className="flex items-center gap-2">
+                    {document.download_url ? <Button asChild type="button" size="sm" variant="outline"><a href={document.download_url} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" />Preview</a></Button> : null}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="text-slate-600 hover:text-red-600"
+                      onClick={() => removeDocument(document.storage_key)}
+                      aria-label={`Remove ${document.filename}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
               </div>

@@ -130,7 +130,14 @@ export async function createOrganizationDocumentUpload(file: File) {
   const response = await fetch(upload.upload_url, { method: "PUT", headers: { "Content-Type": "application/pdf" }, body: file });
   if (!response.ok) throw new Error("The document could not be uploaded. Please try again.");
   await restRequest(`/organization/me/verification-documents/${upload.document_id}/complete/`, { method: "POST", body: "{}" });
-  return { ...upload, status: "uploaded" };
+  return { id: upload.document_id, ...upload, status: "uploaded" };
+}
+
+export async function deleteOrganizationDocument(documentId: string) {
+  await restRequest(`/organization/me/verification-documents/${documentId}/`, {
+    method: "DELETE",
+    body: "{}",
+  });
 }
 
 export async function fetchOrganizationOnboardingTypes() {

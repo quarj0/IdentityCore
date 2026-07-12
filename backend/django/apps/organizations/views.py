@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
 from apps.organizations.serializers import (
     OrganizationBrandingAssetUploadSerializer,
@@ -16,6 +17,7 @@ from apps.audit.services import record_audit_event
 from apps.organizations.models import OrganizationStatus, OrganizationSupportingDocument
 from apps.tenants.models import TenantStatus
 from apps.verifications.models import VerificationSessionStatus
+from common.storage import delete_object, get_object_storage_media_bucket_name
 from rest_framework_simplejwt.token_blacklist.models import (
     OutstandingToken,
     BlacklistedToken,
@@ -67,22 +69,69 @@ class OrganizationBrandingAssetUploadView(APIView):
 
 class OrganizationDocumentUploadView(APIView):
     permission_classes = [IsAuthenticated, IsTenantUser]
+
     def post(self, request):
-        serializer = OrganizationDocumentUploadSerializer(data=request.data, context={"request": request})
+        serializer = OrganizationDocumentUploadSerializer(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
-        return success_response(serializer.save(), request=request, status=status.HTTP_201_CREATED)
+        return success_response(
+            serializer.save(), request=request, status=status.HTTP_201_CREATED
+        )
 
 
 class OrganizationDocumentUploadCompleteView(APIView):
     permission_classes = [IsAuthenticated, IsTenantUser]
+
     def post(self, request, document_id):
-        document = get_object_or_404(OrganizationSupportingDocument.objects,
-            public_id=document_id, tenant=request.user.tenant, organization=request.user.tenant.organization,
-            status="initiated", deleted_at__isnull=True,
+        document = get_object_or_404(
+            OrganizationSupportingDocument.objects,
+            public_id=document_id,
+            tenant=request.user.tenant,
+            organization=request.user.tenant.organization,
+            status="initiated",
+            deleted_at__isnull=True,
         )
         document.status = "uploaded"
         document.save(update_fields=["status", "updated_at"])
-        return success_response({"document_id": document.public_id, "status": document.status}, request=request)
+        return success_response(
+            {"document_id": document.public_id, "status": document.status},
+            request=request,
+        )
+
+
+class OrganizationDocumentDeleteView(APIView):
+    permission_classes = [IsAuthenticated, IsTenantUser]
+
+    def delete(self, request, document_id):
+        document = get_object_or_404(
+            OrganizationSupportingDocument.objects,
+            public_id=document_id,
+            tenant=request.user.tenant,
+            organization=request.user.tenant.organization,
+            deleted_at__isnull=True,
+        )
+        try:
+            delete_object(
+                bucket_name=get_object_storage_media_bucket_name(),
+                key=document.storage_key,
+            )
+        except Exception:
+            pass
+        document.deleted_at = timezone.now()
+        document.save(update_fields=["deleted_at", "updated_at"])
+        record_audit_event(
+            tenant=request.user.tenant,
+            actor=request.user,
+            request=request,
+            action="organization.supporting_document.deleted",
+            target_type="organization_supporting_document",
+            target_id=document.public_id,
+        )
+        return success_response(
+            {"document_id": document.public_id, "deleted": True},
+            request=request,
+        )
 
 
 class WorkspaceSuspendView(APIView):
