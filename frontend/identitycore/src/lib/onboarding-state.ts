@@ -15,9 +15,9 @@ export function getOnboardingRoute(state: OnboardingState | null) {
     case "administrator_identity_verification":
       return "/onboarding/admin-identity";
     case "platform_review":
-      return "/onboarding/production-approval";
+      return "/platform";
     case "active":
-      return "/onboarding";
+      return "/platform";
     default:
       return "/onboarding";
   }

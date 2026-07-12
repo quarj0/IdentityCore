@@ -123,12 +123,13 @@ export interface OrganizationVerificationInput {
 }
 
 export async function createOrganizationDocumentUpload(file: File) {
-  const upload = await restRequest<{ document_id: string; filename: string; file_size_bytes: number; status: string; storage_key: string; upload_url: string; download_url: string }>(
+  const upload = await restRequest<{ document_id: string; filename: string; file_size_bytes: number; status: string; storage_key: string; upload_url: string; upload_transfer_path: string; download_url: string }>(
     "/organization/me/verification-documents/upload/",
     { method: "POST", body: JSON.stringify({ filename: file.name, mime_type: file.type, file_size_bytes: file.size }) },
   );
-  const response = await fetch(upload.upload_url, { method: "PUT", headers: { "Content-Type": "application/pdf" }, body: file });
-  if (!response.ok) throw new Error("The document could not be uploaded. Please try again.");
+  const form = new FormData();
+  form.set("file", file);
+  await restRequest(upload.upload_transfer_path, { method: "POST", body: form });
   await restRequest(`/organization/me/verification-documents/${upload.document_id}/complete/`, { method: "POST", body: "{}" });
   return { id: upload.document_id, ...upload, status: "uploaded" };
 }

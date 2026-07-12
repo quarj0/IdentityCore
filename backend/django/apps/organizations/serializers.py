@@ -128,4 +128,5 @@ class OrganizationDocumentUploadSerializer(serializers.Serializer):
                 "file_size_bytes": document.file_size_bytes, "status": document.status,
                 "storage_key": key, "download_url": build_public_asset_url(key),
                 "upload_url": build_signed_upload_url(
-                    storage_key=key, mime_type="application/pdf", bucket_name=get_object_storage_public_bucket_name())}
+                    storage_key=key, mime_type="application/pdf", bucket_name=get_object_storage_public_bucket_name()),
+                "upload_transfer_path": f"/organization/me/verification-documents/{document.public_id}/transfer/"}

@@ -19,8 +19,7 @@ import { PasswordInput } from "@/components/auth/password-input";
 import { InlineStatus } from "@/components/feedback/inline-status";
 import { saveAuthSession } from "@/lib/auth";
 import { getErrorMessage } from "@/lib/api-client";
-import { fetchCurrentOnboarding, login } from "@/lib/onboarding-api";
-import { getOnboardingRoute } from "@/lib/onboarding-state";
+import { login } from "@/lib/onboarding-api";
 
 export function LoginForm() {
   const router = useRouter();
@@ -40,8 +39,7 @@ export function LoginForm() {
         accessToken: payload.tokens.access,
         user: payload.user,
       });
-      const onboarding = await fetchCurrentOnboarding();
-      router.push(getOnboardingRoute(onboarding));
+      router.push("/platform");
       router.refresh();
     } catch (error) {
       setErrorMessage(getErrorMessage(error));

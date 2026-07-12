@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   AlertCircle,
   CheckCircle2,
@@ -56,7 +57,8 @@ export function VerificationSessionFlow({
   sessionId?: string;
   sessionToken?: string;
   verificationId?: string;
-}) {
+  }) {
+  const router = useRouter();
   const credentials = useMemo<SessionCredentials | null>(() => {
     if (!sessionId || !sessionToken) {
       return null;
@@ -294,18 +296,7 @@ export function VerificationSessionFlow({
       });
       await submitAdministratorIdentityVerification(verificationId);
       setOnboardingSubmitted(true);
-      const [nextStatus, nextDetail] = await Promise.all([
-        fetchVerificationStatus(credentials),
-        fetchVerificationDetail(verificationId),
-      ]);
-      setStatus(nextStatus);
-      setDetail(nextDetail);
-      setFeedback({
-        kind: "success",
-        title: "Verification submitted",
-        message:
-          "Identity evidence is now being processed and the onboarding record has been updated.",
-      });
+      router.replace("/platform");
     } catch (error) {
       setFeedback({
         kind: "error",
