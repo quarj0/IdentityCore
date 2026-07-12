@@ -87,6 +87,7 @@ INSTALLED_APPS = [
     "apps.providers.apps.ProvidersConfig",
     "apps.projects.apps.ProjectsConfig",
     "apps.risk.apps.RiskConfig",
+    "apps.reviewers.apps.ReviewersConfig",
     "apps.tenants.apps.TenantsConfig",
     "apps.uploads.apps.UploadsConfig",
     "apps.verification_policies.apps.VerificationPoliciesConfig",

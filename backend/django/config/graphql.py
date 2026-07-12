@@ -39,6 +39,7 @@ from apps.organizations.onboarding import (
     register_organization_onboarding,
     resend_onboarding_email_verification,
     review_organization_onboarding,
+    serialize_organization_review_state,
     serialize_onboarding_state,
     submit_administrator_identity_verification,
     submit_organization_verification,
@@ -290,8 +291,11 @@ class OrganizationOnboardingNode:
     organization_verification_submitted_at: str | None
     organization_verification_editable: bool
     organization_verification_review_status: str
+    organization_verification_changed_after_approval: bool
     organization_verification_reviewed_at: str | None
     organization_verification_review_note: str
+    review_priority: str | None = None
+    review_summary: str | None = None
     business_registration_number: str
     tax_identification_number: str
     registered_address: str
@@ -464,6 +468,36 @@ class Query:
                 user=user,
             )
         )
+
+    @strawberry.field
+    def organization_review_queue(
+        self, info: Info, page: int = 1, page_size: int = 20
+    ) -> list[OrganizationOnboardingNode]:
+        require_platform_admin(info)
+        queryset = (
+            Organization.objects.filter(status="pending_review")
+            .select_related("tenant")
+            .order_by("-updated_at")
+        )
+        page_obj, _ = paginate_results(queryset, page, page_size)
+        return [
+            to_onboarding_node(serialize_organization_review_state(item))
+            for item in page_obj.object_list
+        ]
+
+    @strawberry.field
+    def organization_review(
+        self, info: Info, organization_id: str
+    ) -> OrganizationOnboardingNode | None:
+        require_platform_admin(info)
+        organization = (
+            Organization.objects.select_related("tenant")
+            .filter(public_id=organization_id, status="pending_review")
+            .first()
+        )
+        if organization is None:
+            return None
+        return to_onboarding_node(serialize_organization_review_state(organization))
 
     @strawberry.field
     def verifications(

@@ -1166,3 +1166,30 @@ class GraphQLAPITests(APITestCase):
             edit_payload["onboarding"]["organizationVerificationReviewStatus"],
             "changed_after_approval",
         )
+
+        queue_response = self.post_graphql(
+            """
+                query OrganizationReviewQueue {
+                  organizationReviewQueue(page: 1, pageSize: 20) {
+                    organizationId
+                    organizationName
+                    organizationVerificationReviewStatus
+                    organizationVerificationChangedAfterApproval
+                    organizationVerificationSubmittedAt
+                    organizationVerificationReviewNote
+                    organizationStatus
+                    tenantStatus
+                  }
+                }
+            """,
+            token=self.platform_access_token,
+        )
+        self.assertEqual(queue_response.status_code, status.HTTP_200_OK)
+        queue_payload = queue_response.json()["data"]["organizationReviewQueue"]
+        self.assertTrue(queue_payload)
+        self.assertEqual(queue_payload[0]["organizationId"], organization_id)
+        self.assertEqual(
+            queue_payload[0]["organizationVerificationReviewStatus"],
+            "changed_after_approval",
+        )
+        self.assertTrue(queue_payload[0]["organizationVerificationChangedAfterApproval"])

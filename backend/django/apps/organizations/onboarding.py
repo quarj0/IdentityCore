@@ -336,6 +336,10 @@ def serialize_onboarding_state(
     organization_verification_review_status = _organization_verification_review_status(
         onboarding
     )
+    organization_verification_changed_after_approval = (
+        organization_verification_review_status
+        == ORGANIZATION_VERIFICATION_REVIEW_CHANGED_AFTER_APPROVAL
+    )
     return {
         "organization_id": organization.public_id,
         "organization_name": organization.name,
@@ -373,6 +377,7 @@ def serialize_onboarding_state(
             onboarding
         ),
         "organization_verification_review_status": organization_verification_review_status,
+        "organization_verification_changed_after_approval": organization_verification_changed_after_approval,
         "organization_verification_reviewed_at": organization_verification.get(
             "reviewed_at"
         ),
@@ -413,6 +418,35 @@ def serialize_onboarding_state(
         "platform_review_note": platform_review.get("note", ""),
         "platform_reviewed_at": platform_review.get("reviewed_at"),
     }
+
+
+def serialize_organization_review_state(organization: Organization) -> dict:
+    tenant = organization.tenant
+    user = tenant.platform_users.order_by("created_at").first()
+    if user is None:
+        raise ValidationError("Onboarding organization does not have an administrator.")
+    onboarding = serialize_onboarding_state(organization=organization, tenant=tenant, user=user)
+    review_status = onboarding["organization_verification_review_status"]
+    review_notes = {
+        ORGANIZATION_VERIFICATION_REVIEW_SUBMITTED: "Waiting for review.",
+        ORGANIZATION_VERIFICATION_REVIEW_NEEDS_INFORMATION: "More information was requested.",
+        ORGANIZATION_VERIFICATION_REVIEW_REJECTED: "Submission was rejected.",
+        ORGANIZATION_VERIFICATION_REVIEW_CHANGED_AFTER_APPROVAL: "Approved record changed and needs another review.",
+    }
+    onboarding["review_priority"] = (
+        "critical"
+        if onboarding["organization_verification_changed_after_approval"]
+        else "high"
+        if review_status in {
+            ORGANIZATION_VERIFICATION_REVIEW_NEEDS_INFORMATION,
+            ORGANIZATION_VERIFICATION_REVIEW_REJECTED,
+        }
+        else "medium"
+    )
+    onboarding["review_summary"] = review_notes.get(
+        review_status, "Pending organization review."
+    )
+    return onboarding
 
 
 @transaction.atomic

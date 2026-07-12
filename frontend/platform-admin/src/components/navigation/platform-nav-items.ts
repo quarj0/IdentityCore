@@ -61,7 +61,7 @@ export const platformNavItems = [
     icon: Network,
   },
   {
-    label: "Manual Review",
+    label: "Organization Review",
     href: "/review",
     icon: FileCheck2,
   },
