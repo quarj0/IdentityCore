@@ -233,6 +233,11 @@ def _organization_verification_has_changed(
     )
 
 
+def _organization_verification_is_submitted(onboarding: dict) -> bool:
+    organization_verification = dict(onboarding.get("organization_verification") or {})
+    return bool(organization_verification.get("submitted_at"))
+
+
 def _platform_review_state(onboarding: dict) -> dict:
     return dict(onboarding.get("platform_review") or {})
 
@@ -718,6 +723,10 @@ def submit_administrator_identity_verification(
     tenant = user.tenant
     organization = tenant.organization
     onboarding = _get_onboarding_settings(organization)
+    if not _organization_verification_is_submitted(onboarding):
+        raise ValidationError(
+            "Complete organization verification before administrator identity verification."
+        )
     existing = dict(onboarding.get("administrator_identity_verification") or {})
     if (
         existing.get("status") == "submitted"

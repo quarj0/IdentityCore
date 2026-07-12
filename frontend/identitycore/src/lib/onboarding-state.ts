@@ -7,6 +7,13 @@ export function getOnboardingRoute(state: OnboardingState | null) {
     return "/onboarding";
   }
 
+  if (!state.organizationVerificationSubmittedAt) {
+    if (state.currentStep === "email_verification") {
+      return "/verify-email";
+    }
+    return "/onboarding/organization-verification";
+  }
+
   switch (state.currentStep) {
     case "email_verification":
       return "/verify-email";

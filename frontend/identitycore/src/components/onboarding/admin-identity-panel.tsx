@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   ArrowRight,
   Check,
@@ -73,6 +74,8 @@ export function AdminIdentityPanel() {
   const verificationStatus =
     state?.administratorIdentityVerificationStatus || "pending";
   const completed = verificationStatus === "verified";
+  const organizationVerificationMissing =
+    !state?.organizationVerificationSubmittedAt;
   const needsReason =
     ["rejected", "failed", "expired"].includes(verificationStatus) ||
     (completed && showReverification);
@@ -100,6 +103,21 @@ export function AdminIdentityPanel() {
               }
               message={errorMessage}
             />
+          ) : null}
+
+          {organizationVerificationMissing ? (
+            <div className="space-y-3">
+              <InlineStatus
+                kind="info"
+                title="Finish organization verification first"
+                message="Business registration details must be submitted before administrator identity can be launched."
+              />
+              <Button asChild variant="outline" size="sm">
+                <Link href="/onboarding/organization-verification">
+                  Go to organization verification
+                </Link>
+              </Button>
+            </div>
           ) : null}
 
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
@@ -159,7 +177,12 @@ export function AdminIdentityPanel() {
               size="lg"
               className="rounded-xl"
               onClick={handleLaunch}
-              disabled={!consent || launching || (needsReason && !reason)}
+              disabled={
+                !consent ||
+                launching ||
+                (needsReason && !reason) ||
+                organizationVerificationMissing
+              }
             >
               {launching ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

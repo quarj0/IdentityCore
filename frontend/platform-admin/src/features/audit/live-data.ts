@@ -60,6 +60,10 @@ export function auditEventToRecord(event: AuditEvent): AdminRecord {
     owner: actor,
     updatedAt: formatDateTime(event.createdAt),
     href: `/audit/${event.id}`,
+    ipAddress: event.ipAddress,
+    userAgent: event.userAgent,
+    operationName: operationName || undefined,
+    metadata: event.metadata,
   };
 }
 
@@ -143,6 +147,16 @@ export function buildAuditConfig(records: AdminRecord[]): AdminModuleConfig {
           { label: "Description", value: record.subtitle },
           { label: "Actor", value: record.owner },
           { label: "Timestamp", value: record.updatedAt },
+        ],
+      },
+      {
+        title: "Request context",
+        description: "Request metadata captured when the event was recorded.",
+        items: [
+          { label: "Operation", value: record.operationName || "Not recorded" },
+          { label: "Request IP", value: record.ipAddress || "Not recorded" },
+          { label: "User agent", value: record.userAgent || "Not recorded" },
+          { label: "Target", value: `${record.primaryMeta}${record.operationName ? ` · ${record.operationName}` : ""}` },
         ],
       },
     ],
