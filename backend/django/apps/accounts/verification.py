@@ -16,7 +16,7 @@ from apps.notifications.models import (
     NotificationChannel,
     NotificationRecipientType,
 )
-from apps.notifications.services import create_notification
+from apps.notifications.services import create_notification, schedule_notification_delivery
 
 
 EMAIL_VERIFICATION_EXPIRY_HOURS = 24
@@ -85,10 +85,11 @@ def queue_email_verification_notification(
 
 def issue_and_queue_email_verification(*, user: PlatformUser) -> tuple[EmailVerificationToken, str]:
     token, raw_token = issue_email_verification_token(user=user)
-    queue_email_verification_notification(
+    notification = queue_email_verification_notification(
         user=user,
         verification_url=build_email_verification_url(raw_token),
     )
+    schedule_notification_delivery(notification)
     return token, raw_token
 
 

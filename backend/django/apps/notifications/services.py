@@ -40,6 +40,14 @@ def create_notification(
     )
 
 
+def schedule_notification_delivery(notification: Notification) -> None:
+    from apps.notifications.tasks import deliver_notification_task
+
+    transaction.on_commit(
+        lambda: deliver_notification_task.delay(notification.public_id)
+    )
+
+
 def queue_verification_created_notifications(
     *, verification, verification_url: str
 ) -> list[Notification]:
@@ -57,6 +65,7 @@ def queue_verification_created_notifications(
                 body_preview=f"Use this link to continue your verification: {verification_url}",
             )
         )
+        schedule_notification_delivery(notifications[-1])
     return notifications
 
 
@@ -94,6 +103,7 @@ def queue_verification_status_notifications(
                 body_preview=status_body_map[decision],
             )
         )
+        schedule_notification_delivery(notifications[-1])
 
     if decision == "manual_review_required":
         platform_users = PlatformUser.objects.filter(
@@ -115,6 +125,7 @@ def queue_verification_status_notifications(
                     ),
                 )
             )
+            schedule_notification_delivery(notifications[-1])
     return notifications
 
 

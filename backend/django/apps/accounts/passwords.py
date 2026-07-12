@@ -14,7 +14,7 @@ from django.utils import timezone
 from apps.accounts.models import PasswordResetToken, PlatformUser
 from apps.audit.services import record_audit_event
 from apps.notifications.models import NotificationChannel, NotificationRecipientType
-from apps.notifications.services import create_notification
+from apps.notifications.services import create_notification, schedule_notification_delivery
 
 
 PASSWORD_RESET_EXPIRY_HOURS = 2
@@ -55,7 +55,7 @@ def issue_password_reset_token(
 def queue_password_reset_notification(*, user: PlatformUser, reset_url: str) -> None:
     if user.tenant_id is None:
         return
-    create_notification(
+    notification = create_notification(
         tenant_id=user.tenant_id,
         recipient_type=NotificationRecipientType.PLATFORM_USER,
         recipient=user.email,
@@ -64,6 +64,7 @@ def queue_password_reset_notification(*, user: PlatformUser, reset_url: str) -> 
         subject="Reset your IdentityCore password",
         body_preview=f"Use this link to reset your IdentityCore password: {reset_url}",
     )
+    schedule_notification_delivery(notification)
 
 
 @transaction.atomic
