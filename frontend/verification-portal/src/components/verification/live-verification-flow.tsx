@@ -153,10 +153,12 @@ export function LiveVerificationFlow({ sessionId, handoff }: { sessionId: string
         <CardHeader><CardTitle>{titleFor(step, session.document.label)}</CardTitle></CardHeader>
         <CardContent className="space-y-5">
           <p className="text-sm leading-6 text-slate-600">
-            {step === "document_capture" && file
+            {step === "document_capture"
               ? busy
                 ? `Submitting your ${session.document.label} securely…`
-                : `Review your new ${session.document.label} image, then submit it for verification.`
+                : file
+                  ? `Review your new ${session.document.label} image, then submit it for verification.`
+                  : status.message
               : status.message}
           </p>
           {error ? <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
