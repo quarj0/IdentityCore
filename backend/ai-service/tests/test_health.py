@@ -1,8 +1,9 @@
 import asyncio
 
-import cv2
-import numpy as np
 import pytest
+
+pytest.importorskip("fastapi")
+
 from fastapi import HTTPException
 
 from app.main import (
@@ -129,6 +130,9 @@ def test_document_classification_returns_predicted_type():
 
     assert response["status"] == "completed"
     assert response["result"]["predicted_document_type"] == "national_id"
+    assert response["result"]["classification_status"] == "recognized"
+    assert response["result"]["workflow_action"] == "continue"
+    assert response["result"]["manual_review"]["required"] is False
 
 
 def test_internal_token_is_enforced_when_configured(monkeypatch):
@@ -151,6 +155,8 @@ def test_internal_token_is_enforced_when_configured(monkeypatch):
 
 
 def test_real_document_quality_pipeline_detects_blur(monkeypatch):
+    np = pytest.importorskip("numpy")
+    cv2 = pytest.importorskip("cv2")
     image = np.full((320, 480, 3), 255, dtype=np.uint8)
     cv2.putText(
         image,

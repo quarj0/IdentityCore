@@ -25,10 +25,17 @@ def _get_policy_thresholds(verification) -> tuple[Decimal, Decimal]:
 def evaluate_risk_assessment(verification) -> RiskAssessment:
     latest_liveness_check = verification.liveness_checks.order_by("-checked_at").first()
     latest_face_match = verification.face_matches.order_by("-matched_at").first()
+    latest_identity_document = verification.identity_documents.order_by("-created_at").first()
+    document_classification = (
+        (latest_identity_document.extracted_data_json or {}).get("document_classification")
+        if latest_identity_document is not None
+        else None
+    )
     face_match_threshold, manual_review_threshold = _get_policy_thresholds(verification)
 
     signals = {
         "document_submitted": verification.identity_documents.exists(),
+        "document_classification": document_classification,
         "selfie_submitted": verification.selfie_captures.exists(),
         "liveness_status": (
             latest_liveness_check.status if latest_liveness_check else "missing"

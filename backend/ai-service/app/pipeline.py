@@ -11,6 +11,7 @@ from typing import Any
 import cv2
 import numpy as np
 
+from app.document_classification import build_ocr_lines, classify_document
 from app.settings import get_settings
 from app.storage import fetch_object_bytes
 
@@ -483,33 +484,6 @@ def _normalize_ocr_fields(texts: list[str], document_type: str, country_code: st
     }
 
 
-def _infer_document_type_from_texts(
-    texts: list[str], storage_key: str, country_code: str = ""
-) -> tuple[str, float]:
-    joined = " ".join(texts).upper()
-    if "PASSPORT" in joined:
-        return "passport", 0.94
-    if "DRIVER" in joined and ("LICENCE" in joined or "LICENSE" in joined):
-        return "driver_license", 0.9
-    if "NHIS" in joined or "NATIONAL HEALTH INSURANCE" in joined:
-        return "health_id", 0.92
-    if (
-        ("NATIONAL" in joined and (" ID" in f" {joined}" or "IDENTITY" in joined))
-        or "IDENTITY CARD" in joined
-        or "IDENTIFICATION CARD" in joined
-        or (country_code.upper() == "GH" and "GHANA CARD" in joined)
-    ):
-        return "national_id", 0.92
-    key_name = Path(storage_key).stem.lower()
-    if "passport" in key_name:
-        return "passport", 0.74
-    if "license" in key_name or "licence" in key_name:
-        return "driver_license", 0.72
-    if "national" in key_name or "nid" in key_name:
-        return "national_id", 0.7
-    return "unknown", 0.35
-
-
 def run_document_ocr_pipeline(
     storage_key: str,
     document_type: str,
@@ -548,32 +522,17 @@ def run_document_classification_pipeline(
     predictions = ocr_engine.predict(rgb_image)
     prediction = predictions[0] if predictions else {}
     texts, _scores = _extract_text_lines(prediction)
-    predicted_document_type, confidence_score = _infer_document_type_from_texts(
-        texts,
-        storage_key,
-        country_code,
+    ocr_lines = build_ocr_lines(texts, _scores)
+    result = classify_document(
+        ocr_lines,
+        expected_document_type=expected_document_type,
+        country_code=country_code,
     )
-    matched_expected_document_type = (
-        predicted_document_type == expected_document_type
-        if predicted_document_type != "unknown"
-        else False
-    )
-    issues: list[str] = []
-    if predicted_document_type == "unknown":
-        issues.append("document_type_not_confident")
-    elif not matched_expected_document_type:
-        issues.append("document_type_mismatch")
-
     return {
-        "predicted_document_type": predicted_document_type,
-        "expected_document_type": expected_document_type,
-        "matched_expected_document_type": matched_expected_document_type,
+        **result,
         "country_code": country_code,
-        "confidence_score": round(confidence_score, 4),
-        "issues": issues,
-        "raw_text_lines": texts,
-        "model_name": "paddleocr-classifier",
-        "model_version": "PP-OCRv5",
+        "model_name": result["classifier"]["name"],
+        "model_version": result["classifier"]["version"],
     }
 
 
@@ -640,14 +599,91 @@ def build_mock_document_quality(document_storage_key: str) -> dict[str, Any]:
 def build_mock_document_classification(
     document_storage_key: str, document_type: str, country_code: str
 ) -> dict[str, Any]:
-    predicted_document_type = document_type if "mismatch" not in document_storage_key else "passport"
-    return {
-        "predicted_document_type": predicted_document_type,
+    visible_text = document_type.replace("_", " ").upper()
+    result = {
+        "classification_status": "recognized",
+        "predicted_document_type": document_type,
+        "predicted_country_code": country_code or None,
         "expected_document_type": document_type,
-        "matched_expected_document_type": predicted_document_type == document_type,
+        "matched_expected_document_type": True,
+        "confidence_score": 0.95,
+        "evidence_score": 0.95,
+        "classification_margin": 1.0,
+        "workflow_action": "continue",
+        "requires_manual_review": False,
+        "manual_review": {
+            "required": False,
+            "priority": "low",
+            "reason_codes": [],
+            "review_category": "document_classification",
+        },
+        "issues": [],
+        "ocr": {
+            "average_confidence": 0.95,
+            "line_count": 1,
+            "lines": [
+                {
+                    "text": visible_text,
+                    "normalized_text": visible_text,
+                    "confidence": 0.95,
+                }
+            ],
+        },
+        "score_components": {
+            "required_group_coverage": 1.0,
+            "required_evidence_score": 0.95,
+            "optional_evidence_score": 0.0,
+            "structural_evidence_score": 0.0,
+            "average_ocr_confidence": 0.95,
+            "negative_evidence_penalty": 0.0,
+        },
+        "evidence": [
+            {
+                "type": "ocr",
+                "items": [
+                    {
+                        "expected_phrase": visible_text,
+                        "matched_text": visible_text,
+                        "similarity_score": 1.0,
+                        "ocr_confidence": 0.95,
+                        "combined_evidence_score": 0.95,
+                        "match_type": "exact",
+                        "matched_line_indexes": [0],
+                    }
+                ],
+            }
+        ],
+        "candidates": [
+            {
+                "definition_id": f"mock.{document_type}.v1",
+                "document_type": document_type,
+                "country_code": country_code or None,
+                "score": 0.95,
+                "required_group_coverage": 1.0,
+                "required_evidence_score": 0.95,
+                "optional_evidence_score": 0.0,
+                "structural_evidence_score": 0.0,
+                "average_ocr_confidence": 0.95,
+                "negative_evidence_penalty": 0.0,
+                "evidence": [],
+                "structural_evidence": [],
+            }
+        ],
+        "raw_text_lines": [visible_text],
+        "classifier": {
+            "name": "mock-document-classifier",
+            "version": "v1",
+            "score_type": "uncalibrated_evidence_score",
+        },
+        "ocr_model": {
+            "name": "mock-ocr",
+            "version": "v1",
+        },
+        "recommendation": "continue",
+    }
+    return {
+        **result,
         "country_code": country_code,
-        "confidence_score": 0.89,
-        "issues": [] if predicted_document_type == document_type else ["document_type_mismatch"],
         "model_name": "mock-document-classifier",
         "model_version": "v1",
     }

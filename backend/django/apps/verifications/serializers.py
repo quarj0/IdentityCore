@@ -40,6 +40,16 @@ def serialize_risk_assessment(verification: Verification) -> dict | None:
     }
 
 
+def serialize_document_classification(verification: Verification) -> dict | None:
+    latest_identity_document = verification.identity_documents.order_by("-created_at").first()
+    if latest_identity_document is None:
+        return None
+    classification = (latest_identity_document.extracted_data_json or {}).get(
+        "document_classification"
+    )
+    return classification if isinstance(classification, dict) else None
+
+
 def serialize_verification_subject(subject: VerificationSubject) -> dict:
     return {
         "id": subject.public_id,
@@ -98,6 +108,7 @@ def serialize_verification(verification: Verification, request=None) -> dict:
             },
         },
         "risk_assessment": serialize_risk_assessment(verification),
+        "document_classification": serialize_document_classification(verification),
         "evidence_report": (
             {
                 "storage_key": verification.metadata_json.get(
@@ -292,6 +303,7 @@ class VerificationResendLinkSerializer(serializers.Serializer):
 
 def serialize_manual_review_summary(verification: Verification) -> dict:
     risk_assessment = getattr(verification, "risk_assessment", None)
+    document_classification = serialize_document_classification(verification) or {}
     return {
         "verification_id": verification.public_id,
         "status": verification.status,
@@ -304,6 +316,15 @@ def serialize_manual_review_summary(verification: Verification) -> dict:
         "risk_level": (
             risk_assessment.risk_level if risk_assessment is not None else "medium"
         ),
+        "document_classification": {
+            "classification_status": document_classification.get("classification_status"),
+            "workflow_action": document_classification.get("workflow_action"),
+            "requires_manual_review": document_classification.get("requires_manual_review"),
+            "manual_review": document_classification.get("manual_review"),
+            "issues": document_classification.get("issues", []),
+        }
+        if document_classification
+        else None,
         "created_at": verification.created_at.isoformat(),
     }
 

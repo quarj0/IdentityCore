@@ -173,6 +173,12 @@ def serialize_verification_evidence_report(verification: Verification) -> dict:
     latest_face_match = verification.face_matches.order_by("-matched_at").first()
     risk_assessment = getattr(verification, "risk_assessment", None)
     decision_record = getattr(verification, "decision_record", None)
+    latest_identity_document = verification.identity_documents.order_by("-created_at").first()
+    document_classification = (
+        (latest_identity_document.extracted_data_json or {}).get("document_classification")
+        if latest_identity_document is not None
+        else None
+    )
 
     return {
         "verification_id": verification.public_id,
@@ -255,6 +261,7 @@ def serialize_verification_evidence_report(verification: Verification) -> dict:
             if risk_assessment is not None
             else None
         ),
+        "document_classification": document_classification,
         "decision": (
             {
                 "id": decision_record.public_id,
@@ -277,6 +284,7 @@ def build_verification_evidence_pdf_bytes(payload: dict) -> bytes:
     subject = payload["verification_subject"]
     decision = payload.get("decision") or {}
     risk_assessment = payload.get("risk_assessment") or {}
+    document_classification = payload.get("document_classification") or {}
     liveness = (payload.get("checks") or {}).get("liveness") or {}
     face_match = (payload.get("checks") or {}).get("face_match") or {}
     sections = [
@@ -336,6 +344,24 @@ def build_verification_evidence_pdf_bytes(payload: dict) -> bytes:
                 for item in payload.get("identity_documents", [])
             ]
             or ["No identity documents recorded."],
+        ),
+        (
+            "Document Classification",
+            [
+                f"Classification Status: {document_classification.get('classification_status', '') or 'N/A'}",
+                f"Predicted Type: {document_classification.get('predicted_document_type', '') or 'N/A'}",
+                f"Expected Type: {document_classification.get('expected_document_type', '') or 'N/A'}",
+                f"Matched Expected Type: {document_classification.get('matched_expected_document_type', '')}",
+                f"Workflow Action: {document_classification.get('workflow_action', '') or 'N/A'}",
+                f"Requires Manual Review: {document_classification.get('requires_manual_review', '')}",
+                f"Manual Review Priority: {(document_classification.get('manual_review') or {}).get('priority', '') or 'N/A'}",
+                (
+                    "Manual Review Reasons: "
+                    + ", ".join((document_classification.get("manual_review") or {}).get("reason_codes") or [])
+                    if (document_classification.get("manual_review") or {}).get("reason_codes")
+                    else "Manual Review Reasons: N/A"
+                ),
+            ],
         ),
     ]
     return render_report_pdf(

@@ -124,13 +124,9 @@ def process_identity_document_task(identity_document_id: str) -> str:
             **ocr_result.get("extracted_fields", {}),
             "document_classification": classification_result,
         }
-        classification_valid = bool(
-            classification_result.get("matched_expected_document_type")
-        ) and not classification_result.get("issues")
         identity_document.status = (
             IdentityDocumentStatus.PROCESSED
             if latest_quality_status == DocumentCaptureStatus.VALIDATED
-            and classification_valid
             else IdentityDocumentStatus.REJECTED
         )
         identity_document.save(update_fields=["extracted_data_json", "status", "updated_at"])

@@ -18,7 +18,7 @@ from apps.biometrics.models import (
     SelfieCaptureStatus,
 )
 from apps.document_captures.models import DocumentCapture, DocumentCaptureStatus
-from apps.identity_documents.models import IdentityDocument
+from apps.identity_documents.models import IdentityDocument, IdentityDocumentStatus
 from apps.notifications.models import Notification
 from apps.organizations.models import Organization
 from apps.risk.models import RiskAssessment
@@ -610,6 +610,68 @@ class VerificationWorkflowTests(APITestCase):
         self.assertEqual(response.data["data"]["decision"]["decision"], "verified")
         self.assertEqual(response.data["data"]["decision"]["decision_type"], "manual")
         self.assertEqual(response.data["data"]["risk_assessment"]["risk_level"], "low")
+
+    def test_detail_includes_document_classification_when_present(self):
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.tenant.verification_subjects.create(
+                full_name="Classification Case"
+            ),
+            purpose="Document classification case",
+            expires_at=self.tenant.created_at,
+            status=VerificationStatus.AWAITING_SELFIE,
+        )
+        identity_document = IdentityDocument.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            verification_subject=verification.verification_subject,
+            document_type_id="national_id",
+            country_profile_id="GH",
+            status=IdentityDocumentStatus.PROCESSED,
+            extracted_data_json={
+                "document_classification": {
+                    "classification_status": "recognized",
+                    "predicted_document_type": "passport",
+                    "expected_document_type": "national_id",
+                    "matched_expected_document_type": False,
+                    "workflow_action": "continue_with_review",
+                    "requires_manual_review": True,
+                    "manual_review": {
+                        "required": True,
+                        "priority": "high",
+                        "reason_codes": ["document_type_mismatch"],
+                        "review_category": "document_classification",
+                    },
+                    "issues": ["document_type_mismatch"],
+                }
+            },
+        )
+
+        response = self.client.get(
+            reverse(
+                "verification-detail",
+                kwargs={"verification_id": verification.public_id},
+            ),
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data["data"]["document_classification"]["classification_status"],
+            "recognized",
+        )
+        self.assertEqual(
+            response.data["data"]["document_classification"]["manual_review"][
+                "priority"
+            ],
+            "high",
+        )
+        self.assertEqual(
+            response.data["data"]["document_classification"]["issues"],
+            ["document_type_mismatch"],
+        )
+        self.assertEqual(identity_document.extracted_data_json["document_classification"]["workflow_action"], "continue_with_review")
 
     @override_settings(
         OBJECT_STORAGE_EVIDENCE_BUCKET="identitycore-evidence",

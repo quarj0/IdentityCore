@@ -94,6 +94,47 @@ class Settings(BaseSettings):
     )
     video_frame_sample_limit: int = Field(default=12, alias="VIDEO_FRAME_SAMPLE_LIMIT")
 
+    document_classification_minimum_candidate_evidence: float = Field(
+        default=0.55,
+        alias="DOCUMENT_CLASSIFICATION_MINIMUM_CANDIDATE_EVIDENCE",
+    )
+    document_classification_minimum_required_group_coverage: float = Field(
+        default=0.5,
+        alias="DOCUMENT_CLASSIFICATION_MINIMUM_REQUIRED_GROUP_COVERAGE",
+    )
+    document_classification_minimum_classification_margin: float = Field(
+        default=0.08,
+        alias="DOCUMENT_CLASSIFICATION_MINIMUM_CLASSIFICATION_MARGIN",
+    )
+    document_classification_minimum_average_ocr_confidence: float = Field(
+        default=0.35,
+        alias="DOCUMENT_CLASSIFICATION_MINIMUM_AVERAGE_OCR_CONFIDENCE",
+    )
+    document_classification_required_evidence_weight: float = Field(
+        default=0.55,
+        alias="DOCUMENT_CLASSIFICATION_REQUIRED_EVIDENCE_WEIGHT",
+    )
+    document_classification_optional_evidence_weight: float = Field(
+        default=0.10,
+        alias="DOCUMENT_CLASSIFICATION_OPTIONAL_EVIDENCE_WEIGHT",
+    )
+    document_classification_structural_evidence_weight: float = Field(
+        default=0.20,
+        alias="DOCUMENT_CLASSIFICATION_STRUCTURAL_EVIDENCE_WEIGHT",
+    )
+    document_classification_ocr_quality_weight: float = Field(
+        default=0.10,
+        alias="DOCUMENT_CLASSIFICATION_OCR_QUALITY_WEIGHT",
+    )
+    document_classification_negative_evidence_weight: float = Field(
+        default=0.20,
+        alias="DOCUMENT_CLASSIFICATION_NEGATIVE_EVIDENCE_WEIGHT",
+    )
+    document_classification_enabled_country_codes_raw: str = Field(
+        default="",
+        alias="DOCUMENT_CLASSIFICATION_ENABLED_COUNTRY_CODES",
+    )
+
     insightface_model_name: str = Field(
         default="buffalo_l", alias="INSIGHTFACE_MODEL_NAME"
     )
@@ -169,6 +210,40 @@ class Settings(BaseSettings):
     @property
     def insightface_model_dir(self) -> Path:
         return self.insightface_root_dir / "models" / self.insightface_model_name
+
+    @property
+    def document_classification_policy(self):
+        from app.document_classification.models import DocumentClassificationPolicy
+
+        return DocumentClassificationPolicy(
+            minimum_candidate_evidence=self.document_classification_minimum_candidate_evidence,
+            minimum_required_group_coverage=self.document_classification_minimum_required_group_coverage,
+            minimum_classification_margin=self.document_classification_minimum_classification_margin,
+            minimum_average_ocr_confidence=self.document_classification_minimum_average_ocr_confidence,
+        )
+
+    @property
+    def document_classification_scoring_config(self):
+        from app.document_classification.models import ClassificationScoringConfig
+
+        return ClassificationScoringConfig(
+            required_evidence_weight=self.document_classification_required_evidence_weight,
+            optional_evidence_weight=self.document_classification_optional_evidence_weight,
+            structural_evidence_weight=self.document_classification_structural_evidence_weight,
+            ocr_quality_weight=self.document_classification_ocr_quality_weight,
+            negative_evidence_weight=self.document_classification_negative_evidence_weight,
+        )
+
+    @property
+    def document_classification_enabled_country_codes(self) -> tuple[str, ...]:
+        raw = self.document_classification_enabled_country_codes_raw.strip()
+        if not raw:
+            return ()
+        return tuple(
+            country_code.strip().upper()
+            for country_code in raw.split(",")
+            if country_code.strip()
+        )
 
     def real_inference_missing_requirements(self) -> list[str]:
         missing: list[str] = []

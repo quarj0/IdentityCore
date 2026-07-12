@@ -26,6 +26,7 @@ django = [
     "pytest>=9.0.3",
     "python-decouple>=3.8",
     "python-ulid>=3.1.0",
+    "rapidfuzz>=3.14.5",
     "redis>=8.0.1",
     "strawberry-graphql>=0.320.1",
     "strawberry-graphql-django>=0.86.4",

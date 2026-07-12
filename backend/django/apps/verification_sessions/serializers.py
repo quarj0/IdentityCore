@@ -198,7 +198,7 @@ def serialize_verification_session_status(
                 f"That image appears to be {predicted_label}, not {document_label}. "
                 f"Please capture the physical {document_label} and try again."
             )
-        elif "document_type_not_confident" in classification_issues:
+        elif "document_type_not_determined" in classification_issues or "ocr_confidence_too_low" in classification_issues:
             message = (
                 f"We could not read enough information to confirm this as {document_label}. "
                 "Capture the full physical document in clear, even lighting and try again."

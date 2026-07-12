@@ -8,7 +8,13 @@ from apps.document_captures.models import DocumentCapture
 from apps.identity_documents.models import IdentityDocument, IdentityDocumentStatus
 from apps.identity_documents.tasks import process_identity_document_task
 from apps.organizations.models import Organization
-from apps.providers.models import Provider, ProviderCheck, ProviderCheckStatus, ProviderType
+from apps.providers.models import (
+    Provider,
+    ProviderCheck,
+    ProviderCheckStatus,
+    ProviderCheckType,
+    ProviderType,
+)
 from apps.tenants.models import Tenant
 from apps.uploads.models import Upload, UploadPurpose, UploadStatus
 from apps.verification_subjects.models import VerificationSubject
@@ -83,6 +89,15 @@ class IdentityDocumentTaskTests(TestCase):
             request_metadata_json={"identity_document_id": self.identity_document.public_id},
             started_at=timezone.now(),
         )
+        ProviderCheck.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            provider=self.provider,
+            check_type=ProviderCheckType.DOCUMENT_CLASSIFICATION,
+            status=ProviderCheckStatus.PENDING,
+            request_metadata_json={"identity_document_id": self.identity_document.public_id},
+            started_at=timezone.now(),
+        )
 
     @patch("apps.identity_documents.tasks.run_document_classification")
     @patch("apps.identity_documents.tasks.run_document_ocr")
@@ -93,11 +108,27 @@ class IdentityDocumentTaskTests(TestCase):
         mock_quality.return_value = {"status": "completed", "quality_score": 0.88, "issues": []}
         mock_classification.return_value = {
             "status": "completed",
+            "classification_status": "recognized",
             "predicted_document_type": "national_id",
             "expected_document_type": "national_id",
             "matched_expected_document_type": True,
+            "predicted_country_code": "GH",
             "confidence_score": 0.95,
+            "evidence_score": 0.95,
+            "classification_margin": 0.95,
+            "workflow_action": "continue",
+            "requires_manual_review": False,
+            "manual_review": {
+                "required": False,
+                "priority": "low",
+                "reason_codes": [],
+                "review_category": "document_classification",
+            },
             "issues": [],
+            "ocr": {"average_confidence": 0.95, "line_count": 2},
+            "evidence": [],
+            "candidates": [],
+            "raw_text_lines": [],
             "model_name": "mock-document-classifier",
             "model_version": "v1",
         }
@@ -123,6 +154,19 @@ class IdentityDocumentTaskTests(TestCase):
         self.assertEqual(self.identity_document.extracted_data_json["full_name"], "Kwame Mensah")
         self.assertIn(
             "document_classification", self.identity_document.extracted_data_json
+        )
+        self.assertEqual(
+            self.identity_document.extracted_data_json["document_classification"][
+                "classification_status"
+            ],
+            "recognized",
+        )
+        classification_provider_check = self.verification.provider_checks.get(
+            check_type=ProviderCheckType.DOCUMENT_CLASSIFICATION
+        )
+        self.assertEqual(
+            classification_provider_check.normalized_result_json["classification_status"],
+            "recognized",
         )
         self.assertEqual(mock_quality.call_args.kwargs["document_storage_bucket"], "")
         self.assertEqual(
@@ -169,7 +213,7 @@ class IdentityDocumentTaskTests(TestCase):
     @patch("apps.identity_documents.tasks.run_document_classification")
     @patch("apps.identity_documents.tasks.run_document_ocr")
     @patch("apps.identity_documents.tasks.run_document_quality")
-    def test_process_identity_document_rejects_non_document_image(
+    def test_process_identity_document_continues_for_unknown_classification(
         self, mock_quality, mock_ocr, mock_classification
     ):
         mock_quality.return_value = {
@@ -179,22 +223,95 @@ class IdentityDocumentTaskTests(TestCase):
         }
         mock_classification.return_value = {
             "status": "completed",
+            "classification_status": "unknown",
             "predicted_document_type": "unknown",
             "expected_document_type": "national_id",
-            "matched_expected_document_type": False,
+            "matched_expected_document_type": None,
+            "predicted_country_code": None,
             "confidence_score": 0.0,
-            "issues": ["document_type_not_confident"],
+            "evidence_score": 0.0,
+            "classification_margin": 0.0,
+            "workflow_action": "continue_with_review",
+            "requires_manual_review": True,
+            "manual_review": {
+                "required": True,
+                "priority": "normal",
+                "reason_codes": ["document_type_not_determined"],
+                "review_category": "document_classification",
+            },
+            "issues": ["document_type_not_determined"],
+            "ocr": {"average_confidence": 0.0, "line_count": 0},
+            "evidence": [],
+            "candidates": [],
+            "raw_text_lines": [],
+            "model_name": "mock-document-classifier",
+            "model_version": "v1",
         }
         mock_ocr.return_value = {
             "status": "completed",
             "confidence_score": 0.0,
             "extracted_fields": {},
+            "model_name": "mock-ocr",
+            "model_version": "v1",
         }
 
         result = process_identity_document_task(self.identity_document.public_id)
 
-        self.assertEqual(result, IdentityDocumentStatus.REJECTED)
+        self.assertEqual(result, IdentityDocumentStatus.PROCESSED)
         self.identity_document.refresh_from_db()
         self.verification.refresh_from_db()
-        self.assertEqual(self.identity_document.status, IdentityDocumentStatus.REJECTED)
-        self.assertEqual(self.verification.status, VerificationStatus.AWAITING_DOCUMENT)
+        self.assertEqual(self.identity_document.status, IdentityDocumentStatus.PROCESSED)
+        self.assertEqual(self.verification.status, VerificationStatus.AWAITING_SELFIE)
+
+    @patch("apps.identity_documents.tasks.run_document_classification")
+    @patch("apps.identity_documents.tasks.run_document_ocr")
+    @patch("apps.identity_documents.tasks.run_document_quality")
+    def test_process_identity_document_continues_for_mismatch_classification(
+        self, mock_quality, mock_ocr, mock_classification
+    ):
+        mock_quality.return_value = {
+            "status": "completed",
+            "quality_score": 0.91,
+            "issues": [],
+        }
+        mock_classification.return_value = {
+            "status": "completed",
+            "classification_status": "recognized",
+            "predicted_document_type": "passport",
+            "expected_document_type": "national_id",
+            "matched_expected_document_type": False,
+            "predicted_country_code": "GH",
+            "confidence_score": 0.95,
+            "evidence_score": 0.95,
+            "classification_margin": 0.55,
+            "workflow_action": "continue_with_review",
+            "requires_manual_review": True,
+            "manual_review": {
+                "required": True,
+                "priority": "high",
+                "reason_codes": ["document_type_mismatch"],
+                "review_category": "document_classification",
+            },
+            "issues": ["document_type_mismatch"],
+            "ocr": {"average_confidence": 0.95, "line_count": 2},
+            "evidence": [],
+            "candidates": [],
+            "raw_text_lines": [],
+            "model_name": "mock-document-classifier",
+            "model_version": "v1",
+        }
+        mock_ocr.return_value = {
+            "status": "completed",
+            "confidence_score": 0.91,
+            "extracted_fields": {"full_name": "Kwame Mensah"},
+            "model_name": "mock-ocr",
+            "model_version": "v1",
+        }
+
+        result = process_identity_document_task(self.identity_document.public_id)
+
+        self.assertEqual(result, IdentityDocumentStatus.PROCESSED)
+        self.identity_document.refresh_from_db()
+        self.verification.refresh_from_db()
+        self.assertEqual(self.identity_document.status, IdentityDocumentStatus.PROCESSED)
+        self.assertEqual(self.verification.status, VerificationStatus.AWAITING_SELFIE)
