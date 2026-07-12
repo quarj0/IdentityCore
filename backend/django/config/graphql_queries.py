@@ -31,6 +31,7 @@ from apps.tenants.models import Tenant
 from apps.tenants.serializers import serialize_tenant
 from apps.projects.models import Project
 from apps.organizations.models import OrganizationSupportingDocument
+from apps.workflows.models import Workflow, WorkflowVersion
 
 from config.graphql_auth import require_platform_admin, require_tenant_user, serialize_platform_admin_invitation
 from config.graphql_types import (
@@ -61,6 +62,8 @@ from config.graphql_types import (
     to_verification_node,
     TenantNode,
     ProjectNode,
+    WorkflowNode,
+    WorkflowVersionNode,
 )
 from common.catalog import COUNTRY_PROFILES, DOCUMENT_TYPES
 
@@ -358,6 +361,8 @@ class Query:
             webhook_endpoints_total=WebhookEndpoint.objects.count(),
             providers_total=Provider.objects.count(),
             audit_events_total=AuditEvent.objects.count(),
+            workflows_total=Workflow.objects.count(),
+            workflow_versions_total=WorkflowVersion.objects.count(),
         )
 
     @strawberry.field
@@ -522,6 +527,107 @@ class Query:
                 updated_at=project.updated_at.isoformat(),
             )
             for project in page_obj.object_list
+        ]
+
+    @strawberry.field
+    def platform_workflows(
+        self,
+        info: Info,
+        status: str | None = None,
+        search: str | None = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> list[WorkflowNode]:
+        require_platform_admin(info)
+        queryset = Workflow.objects.select_related("tenant", "project", "created_by").order_by("name")
+        if status:
+            queryset = queryset.filter(status=status)
+        if search:
+            queryset = queryset.filter(
+                models.Q(name__icontains=search)
+                | models.Q(description__icontains=search)
+                | models.Q(project__name__icontains=search)
+            )
+        page_obj, _ = paginate_results(queryset, page, page_size)
+        return [
+            WorkflowNode(
+                id=workflow.public_id,
+                tenant_id=workflow.tenant.public_id,
+                project_id=workflow.project.public_id,
+                project_name=workflow.project.name,
+                name=workflow.name,
+                description=workflow.description,
+                status=workflow.status,
+                steps=workflow.steps_json,
+                settings=workflow.settings_json,
+                current_version=workflow.current_version,
+                created_by_id=workflow.created_by.public_id,
+                created_by_email=workflow.created_by.email,
+                created_at=workflow.created_at.isoformat(),
+                updated_at=workflow.updated_at.isoformat(),
+            )
+            for workflow in page_obj.object_list
+        ]
+
+    @strawberry.field
+    def platform_workflow(
+        self, info: Info, workflow_id: str
+    ) -> WorkflowNode | None:
+        require_platform_admin(info)
+        workflow = (
+            Workflow.objects.select_related("tenant", "project", "created_by")
+            .filter(public_id=workflow_id)
+            .first()
+        )
+        if workflow is None:
+            return None
+        return WorkflowNode(
+            id=workflow.public_id,
+            tenant_id=workflow.tenant.public_id,
+            project_id=workflow.project.public_id,
+            project_name=workflow.project.name,
+            name=workflow.name,
+            description=workflow.description,
+            status=workflow.status,
+            steps=workflow.steps_json,
+            settings=workflow.settings_json,
+            current_version=workflow.current_version,
+            created_by_id=workflow.created_by.public_id,
+            created_by_email=workflow.created_by.email,
+            created_at=workflow.created_at.isoformat(),
+            updated_at=workflow.updated_at.isoformat(),
+        )
+
+    @strawberry.field
+    def platform_workflow_versions(
+        self,
+        info: Info,
+        workflow_id: str | None = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> list[WorkflowVersionNode]:
+        require_platform_admin(info)
+        queryset = WorkflowVersion.objects.select_related(
+            "workflow", "policy", "published_by"
+        ).order_by("-version")
+        if workflow_id:
+            queryset = queryset.filter(workflow__public_id=workflow_id)
+        page_obj, _ = paginate_results(queryset, page, page_size)
+        return [
+            WorkflowVersionNode(
+                id=item.public_id,
+                workflow_id=item.workflow.public_id,
+                workflow_name=item.workflow.name,
+                version=item.version,
+                steps=item.steps_json,
+                settings=item.settings_json,
+                policy_id=item.policy.public_id,
+                policy_name=item.policy.name,
+                published_by_id=item.published_by.public_id,
+                published_by_email=item.published_by.email,
+                published_at=item.published_at.isoformat(),
+            )
+            for item in page_obj.object_list
         ]
 
     @strawberry.field

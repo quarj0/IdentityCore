@@ -272,6 +272,8 @@ class PlatformDashboardSummaryNode:
     webhook_endpoints_total: int
     providers_total: int
     audit_events_total: int
+    workflows_total: int
+    workflow_versions_total: int
 
 
 @strawberry.type
@@ -335,6 +337,39 @@ class ProjectNode:
     is_default: bool
     created_at: str
     updated_at: str
+
+
+@strawberry.type
+class WorkflowNode:
+    id: str
+    tenant_id: str
+    project_id: str
+    project_name: str
+    name: str
+    description: str
+    status: str
+    steps: list[strawberry.scalars.JSON]
+    settings: strawberry.scalars.JSON
+    current_version: int
+    created_by_id: str
+    created_by_email: str
+    created_at: str
+    updated_at: str
+
+
+@strawberry.type
+class WorkflowVersionNode:
+    id: str
+    workflow_id: str
+    workflow_name: str
+    version: int
+    steps: list[strawberry.scalars.JSON]
+    settings: strawberry.scalars.JSON
+    policy_id: str
+    policy_name: str
+    published_by_id: str
+    published_by_email: str
+    published_at: str
 
 
 @strawberry.type
