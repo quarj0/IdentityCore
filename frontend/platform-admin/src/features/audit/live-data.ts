@@ -1,4 +1,7 @@
-import { restRequest } from "@/lib/admin-api";
+"use client";
+
+import { graphqlRequest } from "@/lib/admin-api";
+import { formatDateTime } from "@/lib/admin-format";
 import type {
   AdminDetailMetric,
   AdminDetailSection,
@@ -8,28 +11,21 @@ import type {
 
 type AuditEvent = {
   id: string;
-  actor_type: string;
-  actor_id: string | null;
+  actorType: string;
+  actorId: string | null;
   action: string;
-  action_label: string;
-  actor_display_name: string;
-  target_type: string;
-  target_id: string | null;
-  target_label: string;
-  ip_address: string | null;
-  user_agent: string | null;
+  targetType: string;
+  targetId: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
   metadata: Record<string, unknown>;
-  created_at: string;
+  createdAt: string;
 };
 
-function formatDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
+type AuditResponse = {
+  platformAuditEvents: AuditEvent[];
+  platformAuditEvent: AuditEvent | null;
+};
 
 function tone(action: string): AdminRecord["statusTone"] {
   if (action.includes("suspend") || action.includes("reject") || action.includes("delete")) {
@@ -44,27 +40,63 @@ function tone(action: string): AdminRecord["statusTone"] {
 export function auditEventToRecord(event: AuditEvent): AdminRecord {
   return {
     id: event.id,
-    title: event.action_label,
-    subtitle: `${event.actor_display_name} · ${event.target_label}${event.target_id ? ` ${event.target_id}` : ""}`,
-    status: event.action_label,
-    statusTone: tone(event.action),
-    primaryMeta: event.target_label,
+    title: event.action,
+    subtitle: `${event.actorType} · ${event.targetType}${event.targetId ? ` ${event.targetId}` : ""}`,
+    status: event.action,
+    statusTone: tone(event.action.toLowerCase()),
+    primaryMeta: event.targetType,
     secondaryMeta: event.action,
-    tertiaryMeta: event.actor_type,
-    owner: event.actor_display_name,
-    updatedAt: formatDate(event.created_at),
+    tertiaryMeta: event.actorType,
+    owner: event.actorId ?? "system",
+    updatedAt: formatDateTime(event.createdAt),
     href: `/audit/${event.id}`,
   };
 }
 
 export async function fetchAuditRecords() {
-  const data = await restRequest<{ results: AuditEvent[] }>("/platform-admin/audit-events/");
-  return data.results.map(auditEventToRecord);
+  const data = await graphqlRequest<AuditResponse>(
+    `
+      query PlatformAuditEvents($page: Int!, $pageSize: Int!) {
+        platformAuditEvents(page: $page, pageSize: $pageSize) {
+          id
+          actorType
+          actorId
+          action
+          targetType
+          targetId
+          ipAddress
+          userAgent
+          metadata
+          createdAt
+        }
+      }
+    `,
+    { page: 1, pageSize: 100 },
+  );
+  return data.platformAuditEvents.map(auditEventToRecord);
 }
 
 export async function fetchAuditRecord(eventId: string) {
-  const event = await restRequest<AuditEvent>(`/platform-admin/audit-events/${eventId}`);
-  return event;
+  const data = await graphqlRequest<AuditResponse>(
+    `
+      query PlatformAuditEvent($eventId: String!) {
+        platformAuditEvent(auditId: $eventId) {
+          id
+          actorType
+          actorId
+          action
+          targetType
+          targetId
+          ipAddress
+          userAgent
+          metadata
+          createdAt
+        }
+      }
+    `,
+    { eventId },
+  );
+  return data.platformAuditEvent;
 }
 
 export function buildAuditConfig(records: AdminRecord[]): AdminModuleConfig {

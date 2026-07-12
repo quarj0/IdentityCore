@@ -5,9 +5,9 @@ import { EmptyState } from "@/components/feedback/empty-state";
 import { AdminDetailPage } from "@/components/admin-module/admin-detail-page";
 import { PageHeader } from "@/components/shared/page-header";
 import {
-  apiClientToRecord,
   buildApiClientConfig,
   fetchApiClientRecord,
+  apiClientRecordToAdminRecord,
 } from "@/features/api-clients/live-data";
 
 type ApiClientDetailPageProps = {
@@ -27,7 +27,11 @@ export function ApiClientDetailPage({ clientId }: ApiClientDetailPageProps) {
       try {
         const client = await fetchApiClientRecord(clientId);
         if (!active) return;
-        setConfig(buildApiClientConfig([apiClientToRecord(client)]));
+        if (!client) {
+          setError("Unable to load API client.");
+          return;
+        }
+        setConfig(buildApiClientConfig([apiClientRecordToAdminRecord(client)]));
       } catch (loadError) {
         if (active) {
           setError(

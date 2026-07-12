@@ -27,6 +27,10 @@ export function AuditDetailPage({ auditId }: AuditDetailPageProps) {
       try {
         const record = await fetchAuditRecord(auditId);
         if (!active) return;
+        if (!record) {
+          setError("Unable to load audit event.");
+          return;
+        }
         setConfig(buildAuditConfig([auditEventToRecord(record)]));
       } catch (loadError) {
         if (active) {

@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { MetricCard } from "@/components/shared/metric-card";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { fetchOrganizationReviewQueue } from "@/features/review/review-api";
+import { fetchPlatformDashboardSummary } from "@/features/dashboard/live-data";
 import { AlertTriangle, RefreshCcw, ShieldCheck, FileCheck2 } from "lucide-react";
 
 function statusLabel(status: string) {
@@ -14,6 +15,28 @@ function statusLabel(status: string) {
 }
 
 export function PlatformDashboardPage() {
+  const [summary, setSummary] = useState<{
+    organizationsTotal: number;
+    organizationsPendingReview: number;
+    organizationsActive: number;
+    tenantsTotal: number;
+    tenantsPendingReview: number;
+    usersTotal: number;
+    platformAdminsTotal: number;
+    apiClientsTotal: number;
+    webhookEndpointsTotal: number;
+    providersTotal: number;
+    auditEventsTotal: number;
+    workflowsTotal: number;
+    workflowVersionsTotal: number;
+    billingRecordsTotal: number;
+    analyticsDashboardsTotal: number;
+    incidentsTotal: number;
+    securityCasesTotal: number;
+    supportTicketsTotal: number;
+    templatesTotal: number;
+    featureFlagsTotal: number;
+  } | null>(null);
   const [queued, setQueued] = useState(0);
   const [needsInformation, setNeedsInformation] = useState(0);
   const [changedAfterApproval, setChangedAfterApproval] = useState(0);
@@ -31,9 +54,11 @@ export function PlatformDashboardPage() {
     async function load() {
       setError(null);
       try {
+        const dashboardSummary = await fetchPlatformDashboardSummary();
         const queue = await fetchOrganizationReviewQueue(20);
         if (!active) return;
 
+        setSummary(dashboardSummary);
         setQueued(queue.length);
         setNeedsInformation(
           queue.filter(
@@ -98,6 +123,60 @@ export function PlatformDashboardPage() {
           }
         />
       ) : null}
+
+      <section className="grid gap-4 sm:grid-cols-3">
+        <MetricCard
+          label="Organizations"
+          value={summary?.organizationsTotal?.toString() ?? "0"}
+          change="Live platform data"
+          trend="neutral"
+          helperText="organizations"
+          icon={FileCheck2}
+        />
+        <MetricCard
+          label="Pending review"
+          value={summary?.organizationsPendingReview?.toString() ?? "0"}
+          change="Needs admin attention"
+          trend="neutral"
+          helperText="organization review"
+          icon={AlertTriangle}
+        />
+        <MetricCard
+          label="Platform admins"
+          value={summary?.platformAdminsTotal?.toString() ?? "0"}
+          change="Staff access"
+          trend="neutral"
+          helperText="admin accounts"
+          icon={ShieldCheck}
+        />
+      </section>
+
+      <section className="grid gap-4 sm:grid-cols-3">
+        <MetricCard
+          label="Tenants"
+          value={summary?.tenantsTotal?.toString() ?? "0"}
+          change="Infrastructure"
+          trend="neutral"
+          helperText="tenant environments"
+          icon={FileCheck2}
+        />
+        <MetricCard
+          label="API clients"
+          value={summary?.apiClientsTotal?.toString() ?? "0"}
+          change="Integrations"
+          trend="neutral"
+          helperText="client records"
+          icon={AlertTriangle}
+        />
+        <MetricCard
+          label="Webhooks"
+          value={summary?.webhookEndpointsTotal?.toString() ?? "0"}
+          change="Event delivery"
+          trend="neutral"
+          helperText="endpoint records"
+          icon={ShieldCheck}
+        />
+      </section>
 
       <section className="grid gap-4 sm:grid-cols-3">
         <MetricCard

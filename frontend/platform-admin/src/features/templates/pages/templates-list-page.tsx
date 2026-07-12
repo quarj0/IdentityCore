@@ -1,23 +1,71 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { Button, Input } from "@identitycore/ui";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { CreateTemplateDialog } from "@/features/templates/forms/create-template-dialog";
-import { globalTemplates } from "@/features/templates/mock-data";
 import { TemplatesTable } from "@/features/templates/tables/templates-table";
+import { fetchTemplateRecords } from "@/features/templates/live-data";
+import type { GlobalTemplate } from "@/features/templates/mock-data";
 
 export function TemplatesListPage() {
   const [query, setQuery] = useState("");
+  const [templates, setTemplates] = useState<GlobalTemplate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchTemplateRecords();
+        if (active) {
+          setTemplates(
+            data.map((record) => ({
+              id: record.id,
+              name: record.title,
+              description: record.subtitle,
+              category: record.primaryMeta as GlobalTemplate["category"],
+              status: record.status as GlobalTemplate["status"],
+              version: record.secondaryMeta,
+              countries: [],
+              requiredChecks: [],
+              usageCount: 0,
+              clonedByOrganizations: 0,
+              lastUpdatedAt: record.updatedAt,
+              createdBy: "Backend",
+              riskLevel: "Low" as GlobalTemplate["riskLevel"],
+            })),
+          );
+        }
+      } catch (loadError) {
+        if (active) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Unable to load templates.",
+          );
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const filteredTemplates = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    if (!normalizedQuery) return globalTemplates;
+    if (!normalizedQuery) return templates;
 
-    return globalTemplates.filter((template) =>
+    return templates.filter((template) =>
       [
         template.name,
         template.description,
@@ -31,7 +79,7 @@ export function TemplatesListPage() {
         .toLowerCase()
         .includes(normalizedQuery),
     );
-  }, [query]);
+  }, [query, templates]);
 
   return (
     <div className="space-y-6 bg-white text-slate-950">
@@ -75,7 +123,15 @@ export function TemplatesListPage() {
         </div>
       </section>
 
-      {filteredTemplates.length > 0 ? (
+      {error ? (
+        <EmptyState title="Unable to load templates" description={error} />
+      ) : loading && templates.length === 0 ? (
+        <PageHeader
+          eyebrow="Official library"
+          title="Loading templates"
+          description="Fetching live templates from the backend."
+        />
+      ) : filteredTemplates.length > 0 ? (
         <TemplatesTable templates={filteredTemplates} />
       ) : (
         <EmptyState

@@ -6,6 +6,7 @@ import { AdminDetailPage } from "@/components/admin-module/admin-detail-page";
 import {
   buildProvidersConfig,
   fetchVerificationProviderRecord,
+  providerRecordToAdminRecord,
 } from "@/features/providers/live-data";
 
 type VerificationProviderDetailPageProps = {
@@ -28,28 +29,11 @@ export function VerificationProviderDetailPage({
       try {
         const provider = await fetchVerificationProviderRecord(providerId);
         if (!active) return;
-        const record = {
-          id: provider.id,
-          title: provider.name,
-          subtitle: `${provider.provider_type.replace(/_/g, " ")} · ${provider.code}`,
-          status: provider.status,
-          statusTone:
-            provider.status === "active"
-              ? "success"
-              : provider.status === "testing"
-                ? "warning"
-                : provider.status === "disabled"
-                  ? "danger"
-                  : provider.status === "deprecated"
-                    ? "neutral"
-                    : "info",
-          primaryMeta: provider.provider_type,
-          secondaryMeta: provider.code,
-          tertiaryMeta: `Config keys: ${Object.keys(provider.configuration || {}).length}`,
-          owner: "Platform admin",
-          updatedAt: provider.updated_at,
-          href: `/providers/${provider.id}`,
-        } as const;
+        if (!provider) {
+          setError("Unable to load this verification provider.");
+          return;
+        }
+        const record = providerRecordToAdminRecord(provider);
         setRecordId(record.id);
         setConfig(buildProvidersConfig([record]));
       } catch (loadError) {

@@ -27,6 +27,10 @@ export function WebhookDetailPage({ webhookId }: WebhookDetailPageProps) {
       try {
         const endpoint = await fetchWebhookRecord(webhookId);
         if (!active) return;
+        if (!endpoint) {
+          setError("Unable to load webhook endpoint.");
+          return;
+        }
         setConfig(buildWebhookConfig([webhookEndpointToRecord(endpoint)]));
       } catch (loadError) {
         if (active) {

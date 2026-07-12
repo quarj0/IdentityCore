@@ -1,19 +1,87 @@
+"use client";
+
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { TemplateCategoriesCard } from "@/features/templates/components/template-categories-card";
 import { TemplateHeader } from "@/features/templates/components/template-header";
 import { TemplatePreviewCard } from "@/features/templates/components/template-preview-card";
 import { TemplateUsageCard } from "@/features/templates/components/template-usage-card";
 import { TemplateVersionCard } from "@/features/templates/components/template-version-card";
-import { getTemplateById } from "@/features/templates/mock-data";
+import type { GlobalTemplate } from "@/features/templates/mock-data";
+import { PageHeader } from "@/components/shared/page-header";
+import { fetchTemplateRecord } from "@/features/templates/live-data";
 
 type TemplateDetailPageProps = {
   templateId: string;
 };
 
 export function TemplateDetailPage({ templateId }: TemplateDetailPageProps) {
-  const template = getTemplateById(templateId);
+  const [template, setTemplate] = useState<GlobalTemplate | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchTemplateRecord(templateId);
+        if (active && data) {
+          setTemplate({
+            id: data.id,
+            name: data.name,
+            description: data.description,
+            category: data.category as GlobalTemplate["category"],
+            status: data.status as GlobalTemplate["status"],
+            version: data.version,
+            countries: data.countries,
+            requiredChecks: data.requiredChecks,
+            usageCount: data.usageCount,
+            clonedByOrganizations: data.clonedByOrganizations,
+            lastUpdatedAt: data.updatedAt,
+            createdBy: data.createdByEmail,
+            riskLevel: data.riskLevel as GlobalTemplate["riskLevel"],
+          });
+        }
+      } catch (loadError) {
+        if (active) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Unable to load template.",
+          );
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      active = false;
+    };
+  }, [templateId]);
+
+  if (error) {
+    return (
+      <EmptyState
+        title="Unable to load template"
+        description={error}
+      />
+    );
+  }
+
+  if (loading && !template) {
+    return (
+      <PageHeader
+        eyebrow="Templates"
+        title="Loading template"
+        description="Fetching live template data from the backend."
+      />
+    );
+  }
 
   if (!template) {
     return (

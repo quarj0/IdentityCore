@@ -1,4 +1,7 @@
-import { restRequest } from "@/lib/admin-api";
+"use client";
+
+import { graphqlRequest } from "@/lib/admin-api";
+import { formatDateTime } from "@/lib/admin-format";
 import type {
   AdminDetailMetric,
   AdminDetailSection,
@@ -12,25 +15,21 @@ type VerificationPolicy = {
   description: string;
   version: number;
   status: string;
-  required_document_types: string[];
-  required_liveness_level: string;
-  face_match_threshold: number;
-  manual_review_threshold: number;
-  verification_expiry_minutes: number;
-  media_retention_days: number;
-  metadata_retention_days: number;
-  created_at: string;
-  updated_at: string;
+  requiredDocumentTypes: string[];
+  requiredLivenessLevel: string;
+  faceMatchThreshold: number;
+  manualReviewThreshold: number;
+  verificationExpiryMinutes: number;
+  mediaRetentionDays: number;
+  metadataRetentionDays: number;
+  createdAt: string;
+  updatedAt: string;
 };
 
-function formatDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
+type ComplianceResponse = {
+  platformVerificationPolicies: VerificationPolicy[];
+  platformVerificationPolicy: VerificationPolicy | null;
+};
 
 function tone(status: string): AdminRecord["statusTone"] {
   if (status === "active") return "success";
@@ -45,24 +44,68 @@ export function compliancePolicyToRecord(policy: VerificationPolicy): AdminRecor
     title: policy.name,
     subtitle: policy.description || `${policy.name} policy version ${policy.version}`,
     status: policy.status,
-    statusTone: tone(policy.status),
-    primaryMeta: `${policy.required_document_types.length} document types`,
-    secondaryMeta: policy.required_liveness_level,
-    tertiaryMeta: `Retention ${policy.media_retention_days} days`,
+    statusTone: tone(policy.status.toLowerCase()),
+    primaryMeta: `${policy.requiredDocumentTypes.length} document types`,
+    secondaryMeta: policy.requiredLivenessLevel,
+    tertiaryMeta: `Retention ${policy.mediaRetentionDays} days`,
     owner: `v${policy.version}`,
-    updatedAt: formatDate(policy.updated_at),
+    updatedAt: formatDateTime(policy.updatedAt),
     href: `/compliance/${policy.id}`,
   };
 }
 
 export async function fetchComplianceRecords() {
-  const data = await restRequest<{ results: VerificationPolicy[] }>("/platform-admin/policies/");
-  return data.results.map(compliancePolicyToRecord);
+  const data = await graphqlRequest<ComplianceResponse>(
+    `
+      query PlatformVerificationPolicies($page: Int!, $pageSize: Int!) {
+        platformVerificationPolicies(page: $page, pageSize: $pageSize) {
+          id
+          name
+          description
+          version
+          status
+          requiredDocumentTypes
+          requiredLivenessLevel
+          faceMatchThreshold
+          manualReviewThreshold
+          verificationExpiryMinutes
+          mediaRetentionDays
+          metadataRetentionDays
+          createdAt
+          updatedAt
+        }
+      }
+    `,
+    { page: 1, pageSize: 100 },
+  );
+  return data.platformVerificationPolicies.map(compliancePolicyToRecord);
 }
 
 export async function fetchComplianceRecord(policyId: string) {
-  const policy = await restRequest<VerificationPolicy>(`/platform-admin/policies/${policyId}`);
-  return policy;
+  const data = await graphqlRequest<ComplianceResponse>(
+    `
+      query PlatformVerificationPolicy($policyId: String!) {
+        platformVerificationPolicy(policyId: $policyId) {
+          id
+          name
+          description
+          version
+          status
+          requiredDocumentTypes
+          requiredLivenessLevel
+          faceMatchThreshold
+          manualReviewThreshold
+          verificationExpiryMinutes
+          mediaRetentionDays
+          metadataRetentionDays
+          createdAt
+          updatedAt
+        }
+      }
+    `,
+    { policyId },
+  );
+  return data.platformVerificationPolicy;
 }
 
 export function buildComplianceConfig(records: AdminRecord[]): AdminModuleConfig {

@@ -27,6 +27,10 @@ export function ComplianceDetailPage({ policyId }: ComplianceDetailPageProps) {
       try {
         const policy = await fetchComplianceRecord(policyId);
         if (!active) return;
+        if (!policy) {
+          setError("Unable to load compliance policy.");
+          return;
+        }
         setConfig(buildComplianceConfig([compliancePolicyToRecord(policy)]));
       } catch (loadError) {
         if (active) {

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { AdminListPage } from "@/components/admin-module/admin-list-page";
-import { createAdminListConfig } from "@/components/admin-module/admin-module-types";
 import { PageHeader } from "@/components/shared/page-header";
 import {
   buildWebhookConfig,
@@ -64,5 +63,5 @@ export function WebhooksListPage() {
     return <EmptyState title="Unable to load webhooks" description={error} />;
   }
 
-  return <AdminListPage config={createAdminListConfig(buildWebhookConfig(records))} />;
+  return <AdminListPage config={buildWebhookConfig(records)} />;
 }

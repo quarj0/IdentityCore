@@ -1,4 +1,7 @@
-import { restRequest } from "@/lib/admin-api";
+"use client";
+
+import { graphqlRequest } from "@/lib/admin-api";
+import { formatDateTime } from "@/lib/admin-format";
 import type {
   AdminDetailMetric,
   AdminDetailSection,
@@ -7,29 +10,24 @@ import type {
 } from "@/components/admin-module/admin-module-types";
 
 type ApiClient = {
-  public_id: string;
-  tenant_public_id: string;
-  project_id: string | null;
+  publicId: string;
+  tenantPublicId: string;
+  projectId: string | null;
   name: string;
-  client_id: string;
+  clientId: string;
   status: string;
   scopes: string[];
-  allowed_networks: string[];
-  rate_limit_per_minute: number;
-  last_used_at: string | null;
-  created_at: string;
-  updated_at: string;
+  allowedNetworks: string[];
+  rateLimitPerMinute: number;
+  lastUsedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
-function formatDate(value: string | null) {
-  if (!value) return "Never";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
+type ApiClientResponse = {
+  platformApiClients: ApiClient[];
+  platformApiClient: ApiClient | null;
+};
 
 function tone(status: string): AdminRecord["statusTone"] {
   if (status === "active") return "success";
@@ -39,29 +37,70 @@ function tone(status: string): AdminRecord["statusTone"] {
   return "neutral";
 }
 
-export function apiClientToRecord(client: ApiClient): AdminRecord {
+export function apiClientRecordToAdminRecord(client: ApiClient): AdminRecord {
   return {
-    id: client.public_id,
+    id: client.publicId,
     title: client.name,
-    subtitle: client.client_id,
+    subtitle: client.clientId,
     status: client.status,
-    statusTone: tone(client.status),
+    statusTone: tone(client.status.toLowerCase()),
     primaryMeta: `${client.scopes.length} scopes`,
-    secondaryMeta: `${client.allowed_networks.length} networks`,
-    tertiaryMeta: `Rate ${client.rate_limit_per_minute}/min`,
-    owner: client.tenant_public_id,
-    updatedAt: formatDate(client.updated_at),
-    href: `/api-clients/${client.public_id}`,
+    secondaryMeta: `${client.allowedNetworks.length} networks`,
+    tertiaryMeta: `Rate ${client.rateLimitPerMinute}/min`,
+    owner: client.tenantPublicId,
+    updatedAt: formatDateTime(client.updatedAt),
+    href: `/api-clients/${client.publicId}`,
   };
 }
 
 export async function fetchApiClientRecords() {
-  const data = await restRequest<{ results: ApiClient[] }>("/platform-admin/api-clients/");
-  return data.results.map(apiClientToRecord);
+  const data = await graphqlRequest<ApiClientResponse>(
+    `
+      query PlatformApiClients($page: Int!, $pageSize: Int!) {
+        platformApiClients(page: $page, pageSize: $pageSize) {
+          publicId
+          tenantPublicId
+          projectId
+          name
+          clientId
+          status
+          scopes
+          allowedNetworks
+          rateLimitPerMinute
+          lastUsedAt
+          createdAt
+          updatedAt
+        }
+      }
+    `,
+    { page: 1, pageSize: 100 },
+  );
+  return data.platformApiClients.map(apiClientRecordToAdminRecord);
 }
 
 export async function fetchApiClientRecord(clientId: string) {
-  return restRequest<ApiClient>(`/platform-admin/api-clients/${clientId}`);
+  const data = await graphqlRequest<ApiClientResponse>(
+    `
+      query PlatformApiClient($clientId: String!) {
+        platformApiClient(clientId: $clientId) {
+          publicId
+          tenantPublicId
+          projectId
+          name
+          clientId
+          status
+          scopes
+          allowedNetworks
+          rateLimitPerMinute
+          lastUsedAt
+          createdAt
+          updatedAt
+        }
+      }
+    `,
+    { clientId },
+  );
+  return data.platformApiClient;
 }
 
 export function buildApiClientConfig(records: AdminRecord[]): AdminModuleConfig {

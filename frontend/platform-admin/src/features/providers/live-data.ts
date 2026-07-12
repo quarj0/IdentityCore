@@ -1,4 +1,7 @@
-import { restRequest } from "@/lib/admin-api";
+"use client";
+
+import { graphqlRequest } from "@/lib/admin-api";
+import { formatDateTime } from "@/lib/admin-format";
 import type {
   AdminDetailMetric,
   AdminDetailSection,
@@ -10,54 +13,80 @@ type Provider = {
   id: string;
   name: string;
   code: string;
-  provider_type: string;
+  providerType: string;
   status: string;
   configuration: Record<string, unknown>;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
-function formatDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
+type ProviderResponse = {
+  platformProviders: Provider[];
+  platformProvider: Provider | null;
+};
 
 function tone(status: string): AdminRecord["statusTone"] {
-  if (status === "active") return "success";
-  if (status === "testing") return "warning";
-  if (status === "disabled") return "danger";
-  if (status === "deprecated") return "neutral";
+  if (status === "active" || status === "operational") return "success";
+  if (status === "testing" || status === "degraded") return "warning";
+  if (status === "disabled" || status === "failed") return "danger";
   return "info";
 }
 
-function toRecord(provider: Provider): AdminRecord {
+export function providerRecordToAdminRecord(provider: Provider): AdminRecord {
   return {
     id: provider.id,
     title: provider.name,
-    subtitle: `${provider.provider_type.replace(/_/g, " ")} · ${provider.code}`,
+    subtitle: `${provider.providerType.replace(/_/g, " ")} · ${provider.code}`,
     status: provider.status,
-    statusTone: tone(provider.status),
-    primaryMeta: provider.provider_type,
+    statusTone: tone(provider.status.toLowerCase()),
+    primaryMeta: provider.providerType,
     secondaryMeta: provider.code,
     tertiaryMeta: `Config keys: ${Object.keys(provider.configuration || {}).length}`,
     owner: "Platform admin",
-    updatedAt: formatDate(provider.updated_at),
+    updatedAt: formatDateTime(provider.updatedAt),
     href: `/providers/${provider.id}`,
   };
 }
 
 export async function fetchVerificationProviderRecords() {
-  const data = await restRequest<{ results: Provider[] }>("/platform-admin/providers/");
-  return data.results.map(toRecord);
+  const data = await graphqlRequest<ProviderResponse>(
+    `
+      query PlatformProviders {
+        platformProviders {
+          id
+          name
+          code
+          providerType
+          status
+          configuration
+          createdAt
+          updatedAt
+        }
+      }
+    `,
+  );
+  return data.platformProviders.map(providerRecordToAdminRecord);
 }
 
 export async function fetchVerificationProviderRecord(providerId: string) {
-  const provider = await restRequest<Provider>(`/platform-admin/providers/${providerId}`);
-  return provider;
+  const data = await graphqlRequest<ProviderResponse>(
+    `
+      query PlatformProvider($providerId: String!) {
+        platformProvider(providerId: $providerId) {
+          id
+          name
+          code
+          providerType
+          status
+          configuration
+          createdAt
+          updatedAt
+        }
+      }
+    `,
+    { providerId },
+  );
+  return data.platformProvider;
 }
 
 export function buildProvidersConfig(records: AdminRecord[]): AdminModuleConfig {
@@ -92,4 +121,3 @@ export function buildProvidersConfig(records: AdminRecord[]): AdminModuleConfig 
     ],
   };
 }
-

@@ -1,4 +1,7 @@
-import { restRequest } from "@/lib/admin-api";
+"use client";
+
+import { graphqlRequest } from "@/lib/admin-api";
+import { formatDateTime } from "@/lib/admin-format";
 import type {
   AdminDetailMetric,
   AdminDetailSection,
@@ -8,23 +11,19 @@ import type {
 
 type WebhookEndpoint = {
   id: string;
-  project_id: string | null;
+  projectId: string | null;
   url: string;
   description: string;
   events: string[];
   status: string;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
-function formatDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
+type WebhookResponse = {
+  platformWebhookEndpoints: WebhookEndpoint[];
+  platformWebhookEndpoint: WebhookEndpoint | null;
+};
 
 function tone(status: string): AdminRecord["statusTone"] {
   if (status === "active") return "success";
@@ -39,23 +38,56 @@ export function webhookEndpointToRecord(endpoint: WebhookEndpoint): AdminRecord 
     title: endpoint.url,
     subtitle: endpoint.description || "Webhook endpoint",
     status: endpoint.status,
-    statusTone: tone(endpoint.status),
+    statusTone: tone(endpoint.status.toLowerCase()),
     primaryMeta: `${endpoint.events.length} events`,
-    secondaryMeta: endpoint.project_id ?? "workspace-level",
-    tertiaryMeta: `Created ${formatDate(endpoint.created_at)}`,
-    owner: endpoint.project_id ?? "Platform admin",
-    updatedAt: formatDate(endpoint.updated_at),
+    secondaryMeta: endpoint.projectId ?? "workspace-level",
+    tertiaryMeta: `Created ${formatDateTime(endpoint.createdAt)}`,
+    owner: endpoint.projectId ?? "Platform admin",
+    updatedAt: formatDateTime(endpoint.updatedAt),
     href: `/webhooks/${endpoint.id}`,
   };
 }
 
 export async function fetchWebhookRecords() {
-  const data = await restRequest<{ results: WebhookEndpoint[] }>("/platform-admin/webhooks/");
-  return data.results.map(webhookEndpointToRecord);
+  const data = await graphqlRequest<WebhookResponse>(
+    `
+      query PlatformWebhookEndpoints($page: Int!, $pageSize: Int!) {
+        platformWebhookEndpoints(page: $page, pageSize: $pageSize) {
+          id
+          projectId
+          url
+          description
+          events
+          status
+          createdAt
+          updatedAt
+        }
+      }
+    `,
+    { page: 1, pageSize: 100 },
+  );
+  return data.platformWebhookEndpoints.map(webhookEndpointToRecord);
 }
 
 export async function fetchWebhookRecord(webhookId: string) {
-  return restRequest<WebhookEndpoint>(`/platform-admin/webhooks/${webhookId}`);
+  const data = await graphqlRequest<WebhookResponse>(
+    `
+      query PlatformWebhookEndpoint($webhookId: String!) {
+        platformWebhookEndpoint(webhookId: $webhookId) {
+          id
+          projectId
+          url
+          description
+          events
+          status
+          createdAt
+          updatedAt
+        }
+      }
+    `,
+    { webhookId },
+  );
+  return data.platformWebhookEndpoint;
 }
 
 export function buildWebhookConfig(records: AdminRecord[]): AdminModuleConfig {
