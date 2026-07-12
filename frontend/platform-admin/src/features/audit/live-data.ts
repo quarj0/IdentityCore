@@ -14,8 +14,11 @@ type AuditEvent = {
   actorType: string;
   actorId: string | null;
   action: string;
+  actionLabel: string;
+  actorDisplayName: string;
   targetType: string;
   targetId: string | null;
+  targetLabel: string;
   ipAddress: string | null;
   userAgent: string | null;
   metadata: Record<string, unknown>;
@@ -38,16 +41,23 @@ function tone(action: string): AdminRecord["statusTone"] {
 }
 
 export function auditEventToRecord(event: AuditEvent): AdminRecord {
+  const operationName =
+    typeof event.metadata["operation_name"] === "string"
+      ? event.metadata["operation_name"]
+      : "";
+  const label = event.actionLabel || event.action;
+  const actor = event.actorDisplayName || event.actorType;
+  const moduleLabel = event.targetLabel || event.targetType;
   return {
     id: event.id,
-    title: event.action,
-    subtitle: `${event.actorType} · ${event.targetType}${event.targetId ? ` ${event.targetId}` : ""}`,
-    status: event.action,
-    statusTone: tone(event.action.toLowerCase()),
-    primaryMeta: event.targetType,
-    secondaryMeta: event.action,
+    title: operationName ? `${label} · ${operationName}` : label,
+    subtitle: `${actor} · ${moduleLabel}${event.targetId ? ` ${event.targetId}` : ""}`,
+    status: label,
+    statusTone: tone(`${event.action} ${label}`.toLowerCase()),
+    primaryMeta: moduleLabel,
+    secondaryMeta: label,
     tertiaryMeta: event.actorType,
-    owner: event.actorId ?? "system",
+    owner: actor,
     updatedAt: formatDateTime(event.createdAt),
     href: `/audit/${event.id}`,
   };
@@ -62,8 +72,11 @@ export async function fetchAuditRecords() {
           actorType
           actorId
           action
+          actionLabel
+          actorDisplayName
           targetType
           targetId
+          targetLabel
           ipAddress
           userAgent
           metadata
@@ -85,8 +98,11 @@ export async function fetchAuditRecord(eventId: string) {
           actorType
           actorId
           action
+          actionLabel
+          actorDisplayName
           targetType
           targetId
+          targetLabel
           ipAddress
           userAgent
           metadata
@@ -114,7 +130,7 @@ export function buildAuditConfig(records: AdminRecord[]): AdminModuleConfig {
     getRecord: (id) => records.find((record) => record.id === id),
     getMetrics: (record): AdminDetailMetric[] => [
       { label: "Module", value: record.primaryMeta, helper: "audited surface" },
-      { label: "Action", value: record.secondaryMeta, helper: "event name" },
+      { label: "Action", value: record.secondaryMeta, helper: "human-readable event" },
       { label: "Actor", value: record.owner, helper: "who triggered it" },
       { label: "Updated", value: record.updatedAt, helper: "event time" },
     ],

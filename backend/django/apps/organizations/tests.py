@@ -137,8 +137,11 @@ class OrganizationSupportingDocumentTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         mock_put_object_bytes.assert_called_once()
 
-    @override_settings(PUBLIC_ASSET_URL_BASE="https://assets.example.com/public")
-    def test_onboarding_state_uses_public_asset_urls_for_supporting_documents(self):
+    @override_settings(MEDIA_DOWNLOAD_URL_BASE="https://assets.example.com/public")
+    @patch("common.storage.get_object_storage_client", return_value=None)
+    def test_onboarding_state_uses_signed_download_urls_for_supporting_documents(
+        self, _mock_storage_client
+    ):
         OrganizationSupportingDocument.objects.create(
             organization=self.organization,
             tenant=self.tenant,
@@ -158,7 +161,7 @@ class OrganizationSupportingDocumentTests(APITestCase):
 
         self.assertEqual(
             onboarding["supporting_documents"][0]["download_url"],
-            "https://assets.example.com/public/organizations/org_01TEST/verification/certificate.pdf",
+            "https://assets.example.com/public/organizations/org_01TEST/verification/certificate.pdf?expires_in=300&filename=certificate.pdf",
         )
 
 

@@ -117,8 +117,11 @@ class AuditEventNode:
     actor_type: str
     actor_id: str
     action: str
+    action_label: str
+    actor_display_name: str
     target_type: str
     target_id: str
+    target_label: str
     ip_address: str | None
     user_agent: str
     metadata: strawberry.scalars.JSON
