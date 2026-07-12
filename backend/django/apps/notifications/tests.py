@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.test.utils import override_settings
 from django.utils import timezone
+from unittest.mock import patch
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.notifications.models import (
@@ -14,7 +15,9 @@ from apps.notifications.models import (
 from apps.providers.models import Provider, ProviderStatus, ProviderType
 from apps.notifications.services import (
     deliver_notification,
+    dispatch_notification_delivery,
     process_pending_notifications,
+    queue_notification_for_batch_delivery,
     queue_verification_created_notifications,
     queue_verification_status_notifications,
 )
@@ -92,6 +95,39 @@ class NotificationModelTests(TestCase):
             )
 
         self.assertIn("sent_at", exc.exception.message_dict)
+
+    @patch("apps.notifications.tasks.deliver_notification_task.delay")
+    def test_dispatch_notification_delivery_enqueues_immediately_on_commit(self, mock_delay):
+        notification = Notification.objects.create(
+            tenant=self.tenant,
+            recipient_type=NotificationRecipientType.VERIFICATION_SUBJECT,
+            recipient="owner@example.com",
+            channel=NotificationChannel.EMAIL,
+            template_code="verification.created",
+            subject="Your verification is ready",
+            body_preview="Open the verification link to continue.",
+        )
+
+        with self.captureOnCommitCallbacks(execute=True):
+            dispatch_notification_delivery(notification)
+
+        mock_delay.assert_called_once_with(notification.public_id)
+
+    @patch("apps.notifications.tasks.deliver_notification_task.delay")
+    def test_queue_notification_for_batch_delivery_does_not_enqueue(self, mock_delay):
+        notification = Notification.objects.create(
+            tenant=self.tenant,
+            recipient_type=NotificationRecipientType.VERIFICATION_SUBJECT,
+            recipient="owner@example.com",
+            channel=NotificationChannel.EMAIL,
+            template_code="verification.created",
+            subject="Your verification is ready",
+            body_preview="Open the verification link to continue.",
+        )
+
+        queue_notification_for_batch_delivery(notification)
+
+        mock_delay.assert_not_called()
 
     def test_queue_verification_created_notification_for_subject_email(self):
         notifications = queue_verification_created_notifications(
