@@ -15,6 +15,7 @@ import {
   submitDocument,
   submitLiveness,
   submitSelfie,
+  cancelVerificationSession,
   type SessionCredentials,
   type VerificationSession,
   type VerificationStatus,
@@ -22,7 +23,7 @@ import {
   redeemMobileHandoff,
 } from "@/lib/session-api";
 
-const STEPS = ["consent", "document_capture", "document_processing", "selfie_capture", "liveness_check", "processing", "completed", "failed"];
+const STEPS = ["consent", "document_capture", "document_processing", "selfie_capture", "liveness_check", "processing", "completed", "failed", "cancelled"];
 
 export function LiveVerificationFlow({ sessionId, handoff }: { sessionId: string; handoff?: string }) {
   const [credentials, setCredentials] = useState<SessionCredentials | null>(null);
@@ -79,7 +80,7 @@ export function LiveVerificationFlow({ sessionId, handoff }: { sessionId: string
     const timer = window.setInterval(() => {
       void fetchVerificationStatus(credentials).then((next) => {
         setStatus(next);
-        if (["completed", "failed", "expired"].includes(next.current_step)) {
+        if (["completed", "failed", "expired", "cancelled"].includes(next.current_step)) {
           setContinueOnDesktop(true);
           window.clearInterval(timer);
         }
@@ -104,6 +105,21 @@ export function LiveVerificationFlow({ sessionId, handoff }: { sessionId: string
       await action();
       setFile(null);
       await load(credentials);
+    } catch (caught) {
+      setError(messageOf(caught));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function startOver() {
+    if (!credentials) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await cancelVerificationSession(credentials);
+      clearSessionCredentials(sessionId);
+      window.location.assign(returnUrl);
     } catch (caught) {
       setError(messageOf(caught));
     } finally {
@@ -184,7 +200,7 @@ export function LiveVerificationFlow({ sessionId, handoff }: { sessionId: string
             })}>Submit document</Button>
           </> : null}
 
-          {step === "document_processing" ? <div className="flex items-center gap-3 rounded-2xl bg-blue-50 p-4 text-sm text-blue-800"><Loader2 className="h-5 w-5 animate-spin" />Checking document type, readability, and image quality before selfie capture.</div> : null}
+          {step === "document_processing" ? <div className="space-y-4 rounded-2xl bg-blue-50 p-4 text-sm text-blue-800"><div className="flex items-center gap-3"><Loader2 className="h-5 w-5 animate-spin" />Checking document type, readability, and image quality before selfie capture.</div><Button variant="outline" onClick={startOver} disabled={busy}>Start over</Button></div> : null}
 
           {step === "selfie_capture" ? <>
             {!file ? <CameraCapture facingMode="user" label="Selfie camera" onCapture={selectEvidence} /> : <EvidenceReview file={file} onRetake={() => setFile(null)} />}
@@ -198,10 +214,11 @@ export function LiveVerificationFlow({ sessionId, handoff }: { sessionId: string
 
           {step === "liveness_check" ? <div className="space-y-4"><p className="text-sm leading-6 text-slate-600">Passive liveness uses your submitted selfie. No additional photo or gesture is required.</p><Button disabled={!status.evidence.selfie_capture_id || busy} onClick={() => run(() => submitLiveness(credentials, status.evidence.selfie_capture_id))}>Start liveness check</Button></div> : null}
 
-          {step === "processing" ? <div className="flex items-center gap-3 rounded-2xl bg-blue-50 p-4 text-sm text-blue-800"><Loader2 className="h-5 w-5 animate-spin" />Document and biometric evidence are being processed.</div> : null}
+          {step === "processing" ? <div className="space-y-4 rounded-2xl bg-blue-50 p-4 text-sm text-blue-800"><div className="flex items-center gap-3"><Loader2 className="h-5 w-5 animate-spin" />Document and biometric evidence are being processed.</div><Button variant="outline" onClick={startOver} disabled={busy}>Start over</Button></div> : null}
 
           {step === "completed" ? <div className="space-y-4"><div className="flex items-center gap-3 text-emerald-700"><CheckCircle2 className="h-6 w-6" />{status.status === "verified" ? "Verification completed successfully." : "Verification completed and requires review."}</div><Button onClick={() => { clearSessionCredentials(sessionId); window.location.assign(returnUrl); }}>Return to onboarding</Button></div> : null}
           {step === "failed" ? <div className="space-y-4"><p role="alert" className="rounded-2xl bg-red-50 p-4 text-sm text-red-700">We could not complete the automated verification. Please return to onboarding for the next available step.</p><Button onClick={() => { clearSessionCredentials(sessionId); window.location.assign(returnUrl); }}>Return to onboarding</Button></div> : null}
+          {step === "cancelled" ? <div className="space-y-4"><p role="alert" className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-800">This verification was stopped so you can begin a fresh attempt.</p><Button onClick={() => { clearSessionCredentials(sessionId); window.location.assign(returnUrl); }}>Start a new verification</Button></div> : null}
           {busy ? <div aria-live="polite" className="flex items-center gap-2 text-sm text-slate-500"><Loader2 className="h-4 w-4 animate-spin" />Submitting securely…</div> : null}
         </CardContent>
       </Card>
@@ -259,4 +276,4 @@ function messageOf(error: unknown) {
     ? "The verification service is temporarily unavailable. Please try again shortly."
     : message || "Something went wrong. Please try again.";
 }
-function titleFor(step: string, documentLabel: string) { return ({ consent: "Review and consent", document_capture: "Let’s verify your identity", document_processing: `Checking your ${documentLabel}`, selfie_capture: "Take a live selfie", liveness_check: "Confirm you’re present", processing: "Completing your verification", completed: "Verification complete", failed: "Verification needs attention", expired: "Session expired" } as Record<string, string>)[step] ?? "Identity verification"; }
+function titleFor(step: string, documentLabel: string) { return ({ consent: "Review and consent", document_capture: "Let’s verify your identity", document_processing: `Checking your ${documentLabel}`, selfie_capture: "Take a live selfie", liveness_check: "Confirm you’re present", processing: "Completing your verification", completed: "Verification complete", failed: "Verification needs attention", cancelled: "Verification stopped", expired: "Session expired" } as Record<string, string>)[step] ?? "Identity verification"; }

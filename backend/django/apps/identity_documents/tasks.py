@@ -117,6 +117,14 @@ def process_identity_document_task(identity_document_id: str) -> str:
         .get(public_id=identity_document_id)
     )
     verification = identity_document.verification
+    if verification.status in {
+        VerificationStatus.CANCELLED,
+        VerificationStatus.EXPIRED,
+        VerificationStatus.FAILED,
+        VerificationStatus.REJECTED,
+        VerificationStatus.VERIFIED,
+    }:
+        return verification.status
     captures = list(identity_document.captures.order_by("created_at"))
     if not captures:
         identity_document.status = IdentityDocumentStatus.FAILED
@@ -279,6 +287,16 @@ def process_identity_document_task(identity_document_id: str) -> str:
             or "document_media_missing" in set(ocr_result.get("issues") or [])
         ):
             manual_review_required = True
+
+        verification.refresh_from_db(fields=["status"])
+        if verification.status in {
+            VerificationStatus.CANCELLED,
+            VerificationStatus.EXPIRED,
+            VerificationStatus.FAILED,
+            VerificationStatus.REJECTED,
+            VerificationStatus.VERIFIED,
+        }:
+            return verification.status
 
         identity_document.extracted_data_json = {
             **ocr_result.get("extracted_fields", {}),

@@ -34,6 +34,14 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
         "verification", "selfie_capture", "tenant"
     ).get(public_id=liveness_check_id)
     verification = liveness_check.verification
+    if verification.status in {
+        VerificationStatus.CANCELLED,
+        VerificationStatus.EXPIRED,
+        VerificationStatus.FAILED,
+        VerificationStatus.REJECTED,
+        VerificationStatus.VERIFIED,
+    }:
+        return verification.status
     selfie_capture = liveness_check.selfie_capture
     face_match = (
         verification.face_matches.filter(selfie_capture=selfie_capture)
@@ -179,6 +187,16 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                         "updated_at",
                     ]
                 )
+
+        verification.refresh_from_db(fields=["status"])
+        if verification.status in {
+            VerificationStatus.CANCELLED,
+            VerificationStatus.EXPIRED,
+            VerificationStatus.FAILED,
+            VerificationStatus.REJECTED,
+            VerificationStatus.VERIFIED,
+        }:
+            return verification.status
 
         selfie_capture.status = (
             SelfieCaptureStatus.VALIDATED

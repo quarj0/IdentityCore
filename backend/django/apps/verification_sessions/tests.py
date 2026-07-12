@@ -713,3 +713,23 @@ class VerificationSessionPortalTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["current_step"], "failed")
+
+    def test_cancel_session_marks_verification_cancelled_and_revokes_session(self):
+        self.verification.status = VerificationStatus.PROCESSING
+        self.verification.save(update_fields=["status", "updated_at"])
+
+        response = self.client.post(
+            reverse(
+                "verification-session-cancel",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            {},
+            format="json",
+            **self.session_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.verification.refresh_from_db()
+        self.session.refresh_from_db()
+        self.assertEqual(self.verification.status, VerificationStatus.CANCELLED)
+        self.assertEqual(self.session.status, "revoked")
