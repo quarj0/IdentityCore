@@ -24,6 +24,9 @@ import {
   submitOrganizationVerification,
 } from "@/lib/onboarding-api";
 
+const WORKSPACE_DASHBOARD_ORIGIN =
+  process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3000";
+
 export function OrganizationVerificationForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -93,11 +96,15 @@ export function OrganizationVerificationForm() {
       });
       setReadOnly(true);
       setSavedDocumentCount(documents.length);
-      router.replace(
+      const nextRoute =
         result.nextAction === "submit_administrator_identity_verification"
           ? "/onboarding/admin-identity"
-          : getOnboardingRoute(result.onboarding),
-      );
+          : getOnboardingRoute(result.onboarding);
+      if (nextRoute === "/platform") {
+        window.location.assign(WORKSPACE_DASHBOARD_ORIGIN.replace(/\/$/, ""));
+        return;
+      }
+      router.replace(nextRoute);
     } catch (error) {
       setFeedback({
         kind: "error",

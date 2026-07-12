@@ -21,6 +21,11 @@ import { saveAuthSession } from "@/lib/auth";
 import { getErrorMessage } from "@/lib/api-client";
 import { login } from "@/lib/onboarding-api";
 
+const PLATFORM_ADMIN_ORIGIN =
+  process.env.NEXT_PUBLIC_PLATFORM_ADMIN_URL ?? "http://localhost:3004";
+const WORKSPACE_DASHBOARD_ORIGIN =
+  process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3000";
+
 export function LoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -35,12 +40,17 @@ export function LoginForm() {
 
     try {
       const payload = await login(email, password);
+      if (payload.user.is_platform_admin) {
+        window.location.assign(
+          `${PLATFORM_ADMIN_ORIGIN.replace(/\/$/, "")}/login?token=${encodeURIComponent(payload.tokens.access)}`,
+        );
+        return;
+      }
       saveAuthSession({
         accessToken: payload.tokens.access,
         user: payload.user,
       });
-      router.push("/platform");
-      router.refresh();
+      window.location.assign(WORKSPACE_DASHBOARD_ORIGIN.replace(/\/$/, ""));
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
     } finally {

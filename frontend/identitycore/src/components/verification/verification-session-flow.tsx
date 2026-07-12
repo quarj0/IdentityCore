@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   AlertCircle,
   CheckCircle2,
@@ -48,6 +47,8 @@ import {
 } from "@/lib/verification-api";
 
 const STEPS = ["Consent", "Document", "Selfie", "Liveness", "Result"];
+const WORKSPACE_DASHBOARD_ORIGIN =
+  process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3000";
 
 export function VerificationSessionFlow({
   sessionId = "",
@@ -57,8 +58,7 @@ export function VerificationSessionFlow({
   sessionId?: string;
   sessionToken?: string;
   verificationId?: string;
-  }) {
-  const router = useRouter();
+}) {
   const credentials = useMemo<SessionCredentials | null>(() => {
     if (!sessionId || !sessionToken) {
       return null;
@@ -296,7 +296,7 @@ export function VerificationSessionFlow({
       });
       await submitAdministratorIdentityVerification(verificationId);
       setOnboardingSubmitted(true);
-      router.replace("/platform");
+      window.location.assign(WORKSPACE_DASHBOARD_ORIGIN.replace(/\/$/, ""));
     } catch (error) {
       setFeedback({
         kind: "error",

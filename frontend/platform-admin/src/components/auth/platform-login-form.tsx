@@ -1,8 +1,8 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Loader2, ShieldCheck } from "lucide-react";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from "@identitycore/ui";
 import { setAccessToken } from "@/lib/auth";
@@ -11,10 +11,22 @@ import { login } from "@/lib/auth-api";
 
 export function PlatformLoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const token = searchParams.get("token");
+    if (!token) {
+      return;
+    }
+
+    setAccessToken(token);
+    router.replace("/");
+    router.refresh();
+  }, [router, searchParams]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
