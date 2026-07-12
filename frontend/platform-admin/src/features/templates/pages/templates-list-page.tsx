@@ -6,13 +6,12 @@ import { Button, Input } from "@identitycore/ui";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { CreateTemplateDialog } from "@/features/templates/forms/create-template-dialog";
+import { fetchTemplateRecords, type TemplateRecord } from "@/features/templates/live-data";
 import { TemplatesTable } from "@/features/templates/tables/templates-table";
-import { fetchTemplateRecords } from "@/features/templates/live-data";
-import type { GlobalTemplate } from "@/features/templates/mock-data";
 
 export function TemplatesListPage() {
   const [query, setQuery] = useState("");
-  const [templates, setTemplates] = useState<GlobalTemplate[]>([]);
+  const [templates, setTemplates] = useState<TemplateRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,23 +23,7 @@ export function TemplatesListPage() {
       try {
         const data = await fetchTemplateRecords();
         if (active) {
-          setTemplates(
-            data.map((record) => ({
-              id: record.id,
-              name: record.title,
-              description: record.subtitle,
-              category: record.primaryMeta as GlobalTemplate["category"],
-              status: record.status as GlobalTemplate["status"],
-              version: record.secondaryMeta,
-              countries: [],
-              requiredChecks: [],
-              usageCount: 0,
-              clonedByOrganizations: 0,
-              lastUpdatedAt: record.updatedAt,
-              createdBy: "Backend",
-              riskLevel: "Low" as GlobalTemplate["riskLevel"],
-            })),
-          );
+          setTemplates(data);
         }
       } catch (loadError) {
         if (active) {
@@ -66,15 +49,15 @@ export function TemplatesListPage() {
     if (!normalizedQuery) return templates;
 
     return templates.filter((template) =>
-      [
-        template.name,
-        template.description,
-        template.category,
-        template.status,
-        template.version,
-        template.riskLevel,
-        template.countries.join(" "),
-      ]
+        [
+          template.name,
+          template.description,
+          template.category,
+          template.status,
+          template.version,
+          template.riskLevel,
+          template.countries.join(" "),
+        ]
         .join(" ")
         .toLowerCase()
         .includes(normalizedQuery),

@@ -1,8 +1,8 @@
-import type { GlobalWorkflow } from "@/features/workflows/mock-data";
 import { SectionCard } from "@/components/shared/section-card";
+import type { WorkflowRecord } from "@/features/workflows/live-data";
 
 type WorkflowStepsCardProps = {
-  workflow: GlobalWorkflow;
+  workflow: WorkflowRecord;
 };
 
 export function WorkflowStepsCard({ workflow }: WorkflowStepsCardProps) {
@@ -14,11 +14,11 @@ export function WorkflowStepsCard({ workflow }: WorkflowStepsCardProps) {
       <ol className="space-y-3">
         {workflow.steps.map((step, index) => (
           <li
-            key={step}
+            key={`${index}-${JSON.stringify(step)}`}
             className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
           >
             <p className="text-sm font-semibold text-slate-950">
-              {index + 1}. {step}
+              {index + 1}. {typeof step === "string" ? step : JSON.stringify(step)}
             </p>
           </li>
         ))}

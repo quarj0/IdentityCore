@@ -1,8 +1,8 @@
-import type { GlobalTemplate } from "@/features/templates/mock-data";
 import { SectionCard } from "@/components/shared/section-card";
+import type { TemplateRecord } from "@/features/templates/live-data";
 
 type TemplateCategoriesCardProps = {
-  template: GlobalTemplate;
+  template: TemplateRecord;
 };
 
 export function TemplateCategoriesCard({ template }: TemplateCategoriesCardProps) {

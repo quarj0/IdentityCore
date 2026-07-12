@@ -1,12 +1,12 @@
 import { Button } from "@identitycore/ui";
-import type { GlobalWorkflow } from "@/features/workflows/mock-data";
 import { CloneWorkflowDialog } from "@/features/workflows/forms/clone-workflow-dialog";
 import { WorkflowArchiveDialog } from "@/features/workflows/components/workflow-archive-dialog";
 import { WorkflowPublishDialog } from "@/features/workflows/components/workflow-publish-dialog";
 import { WorkflowStatusPill } from "@/features/workflows/components/workflow-status-pill";
+import type { WorkflowRecord } from "@/features/workflows/live-data";
 
 type WorkflowHeaderProps = {
-  workflow: GlobalWorkflow;
+  workflow: WorkflowRecord;
 };
 
 export function WorkflowHeader({ workflow }: WorkflowHeaderProps) {
@@ -27,20 +27,22 @@ export function WorkflowHeader({ workflow }: WorkflowHeaderProps) {
 
           <dl className="mt-5 grid gap-3 sm:grid-cols-4">
             <div>
-              <dt className="text-xs uppercase tracking-wide text-slate-500">Category</dt>
-              <dd className="mt-1 text-sm font-medium text-slate-950">{workflow.category}</dd>
+              <dt className="text-xs uppercase tracking-wide text-slate-500">Project</dt>
+              <dd className="mt-1 text-sm font-medium text-slate-950">{workflow.projectName}</dd>
             </div>
             <div>
               <dt className="text-xs uppercase tracking-wide text-slate-500">Version</dt>
-              <dd className="mt-1 text-sm font-medium text-slate-950">{workflow.version}</dd>
+              <dd className="mt-1 text-sm font-medium text-slate-950">
+                {workflow.version.toString()}
+              </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wide text-slate-500">Owner</dt>
-              <dd className="mt-1 text-sm font-medium text-slate-950">{workflow.ownerTeam}</dd>
+              <dt className="text-xs uppercase tracking-wide text-slate-500">Created by</dt>
+              <dd className="mt-1 text-sm font-medium text-slate-950">{workflow.createdByEmail}</dd>
             </div>
             <div>
               <dt className="text-xs uppercase tracking-wide text-slate-500">Updated</dt>
-              <dd className="mt-1 text-sm font-medium text-slate-950">{workflow.lastUpdatedAt}</dd>
+              <dd className="mt-1 text-sm font-medium text-slate-950">{workflow.updatedAt}</dd>
             </div>
           </dl>
         </div>

@@ -9,16 +9,18 @@ import { TemplateHeader } from "@/features/templates/components/template-header"
 import { TemplatePreviewCard } from "@/features/templates/components/template-preview-card";
 import { TemplateUsageCard } from "@/features/templates/components/template-usage-card";
 import { TemplateVersionCard } from "@/features/templates/components/template-version-card";
-import type { GlobalTemplate } from "@/features/templates/mock-data";
 import { PageHeader } from "@/components/shared/page-header";
-import { fetchTemplateRecord } from "@/features/templates/live-data";
+import {
+  fetchTemplateRecord,
+  type TemplateRecord,
+} from "@/features/templates/live-data";
 
 type TemplateDetailPageProps = {
   templateId: string;
 };
 
 export function TemplateDetailPage({ templateId }: TemplateDetailPageProps) {
-  const [template, setTemplate] = useState<GlobalTemplate | null>(null);
+  const [template, setTemplate] = useState<TemplateRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,21 +32,7 @@ export function TemplateDetailPage({ templateId }: TemplateDetailPageProps) {
       try {
         const data = await fetchTemplateRecord(templateId);
         if (active && data) {
-          setTemplate({
-            id: data.id,
-            name: data.name,
-            description: data.description,
-            category: data.category as GlobalTemplate["category"],
-            status: data.status as GlobalTemplate["status"],
-            version: data.version,
-            countries: data.countries,
-            requiredChecks: data.requiredChecks,
-            usageCount: data.usageCount,
-            clonedByOrganizations: data.clonedByOrganizations,
-            lastUpdatedAt: data.updatedAt,
-            createdBy: data.createdByEmail,
-            riskLevel: data.riskLevel as GlobalTemplate["riskLevel"],
-          });
+          setTemplate(data);
         }
       } catch (loadError) {
         if (active) {
@@ -110,8 +98,8 @@ export function TemplateDetailPage({ templateId }: TemplateDetailPageProps) {
       <div className="grid gap-4 xl:grid-cols-3">
         <div className="space-y-4 xl:col-span-2">
           <TemplatePreviewCard template={template} />
-          <TemplateVersionCard />
-          <TemplateUsageCard />
+          <TemplateVersionCard template={template} />
+          <TemplateUsageCard template={template} />
         </div>
 
         <div className="space-y-4">

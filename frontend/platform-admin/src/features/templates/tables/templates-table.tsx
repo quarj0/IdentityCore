@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { Button } from "@identitycore/ui";
-import type { GlobalTemplate } from "@/features/templates/mock-data";
 import { TemplateStatusPill } from "@/features/templates/components/template-status-pill";
+import type { TemplateRecord } from "@/features/templates/live-data";
 
 type TemplatesTableProps = {
-  templates: GlobalTemplate[];
+  templates: TemplateRecord[];
 };
 
 export function TemplatesTable({ templates }: TemplatesTableProps) {

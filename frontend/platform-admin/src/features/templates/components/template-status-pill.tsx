@@ -1,11 +1,11 @@
 import { StatusPill } from "@/components/shared/status-pill";
-import type { TemplateStatus } from "@/features/templates/mock-data";
+import type { TemplateRecord } from "@/features/templates/live-data";
 
 type TemplateStatusPillProps = {
-  status: TemplateStatus;
+  status: TemplateRecord["status"];
 };
 
-const labels: Record<TemplateStatus, string> = {
+const labels: Record<string, string> = {
   draft: "Draft",
   published: "Published",
   archived: "Archived",

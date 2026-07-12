@@ -6,11 +6,22 @@ from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.accounts.models import PlatformUser
+from apps.tenants.models import Tenant
 
 
 def serialize_user(user: PlatformUser) -> dict:
-    user_roles = user.user_roles.select_related("role", "tenant").all()
-    tenant_public_id = user.tenant.public_id if user.tenant else None
+    user_roles = user.user_roles.select_related("role").all()
+    tenant_public_id = user.tenant_id
+    tenant_name = None
+    tenant_status = None
+    if tenant_public_id is not None:
+        tenant_payload = Tenant.objects.filter(pk=tenant_public_id).values(
+            "public_id", "name", "status"
+        ).first()
+        if tenant_payload is not None:
+            tenant_public_id = tenant_payload["public_id"]
+            tenant_name = tenant_payload["name"]
+            tenant_status = tenant_payload["status"]
     return {
         "public_id": user.public_id,
         "email": user.email,
@@ -19,8 +30,8 @@ def serialize_user(user: PlatformUser) -> dict:
         "phone_number": user.phone_number,
         "status": user.status,
         "tenant_public_id": tenant_public_id,
-        "tenant_name": user.tenant.name if user.tenant else None,
-        "tenant_status": user.tenant.status if user.tenant else None,
+        "tenant_name": tenant_name,
+        "tenant_status": tenant_status,
         "is_platform_admin": user.is_platform_admin,
         "mfa_enabled": user.mfa_enabled,
         "roles": [assignment.role.name for assignment in user_roles],

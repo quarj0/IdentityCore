@@ -1,11 +1,11 @@
 import { StatusPill } from "@/components/shared/status-pill";
-import type { WorkflowStatus } from "@/features/workflows/mock-data";
+import type { WorkflowRecord } from "@/features/workflows/live-data";
 
 type WorkflowStatusPillProps = {
-  status: WorkflowStatus;
+  status: WorkflowRecord["status"];
 };
 
-const labels: Record<WorkflowStatus, string> = {
+const labels: Record<string, string> = {
   draft: "Draft",
   published: "Published",
   archived: "Archived",

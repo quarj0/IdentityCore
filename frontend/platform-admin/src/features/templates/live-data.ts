@@ -9,7 +9,7 @@ import type {
   AdminRecord,
 } from "@/components/admin-module/admin-module-types";
 
-type Template = {
+export type TemplateRecord = {
   id: string;
   name: string;
   description: string;
@@ -29,8 +29,8 @@ type Template = {
 };
 
 type TemplateResponse = {
-  platformTemplates: Template[];
-  platformTemplate: Template | null;
+  platformTemplates: TemplateRecord[];
+  platformTemplate: TemplateRecord | null;
 };
 
 function tone(status: string): AdminRecord["statusTone"] {
@@ -40,7 +40,7 @@ function tone(status: string): AdminRecord["statusTone"] {
   return "info";
 }
 
-export function templateRecordToAdminRecord(template: Template): AdminRecord {
+export function templateRecordToAdminRecord(template: TemplateRecord): AdminRecord {
   return {
     id: template.id,
     title: template.name,
@@ -82,7 +82,7 @@ export async function fetchTemplateRecords() {
     `,
     { page: 1, pageSize: 100 },
   );
-  return data.platformTemplates.map(templateRecordToAdminRecord);
+  return data.platformTemplates;
 }
 
 export async function fetchTemplateRecord(templateId: string) {
@@ -112,6 +112,10 @@ export async function fetchTemplateRecord(templateId: string) {
     { templateId },
   );
   return data.platformTemplate;
+}
+
+export function toTemplateRecord(template: TemplateRecord) {
+  return template;
 }
 
 export function buildTemplateConfig(records: AdminRecord[]): AdminModuleConfig {

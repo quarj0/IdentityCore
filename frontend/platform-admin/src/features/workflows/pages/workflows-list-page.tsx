@@ -1,38 +1,78 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { Button, Input } from "@identitycore/ui";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { CreateWorkflowDialog } from "@/features/workflows/forms/create-workflow-dialog";
-import { globalWorkflows } from "@/features/workflows/mock-data";
+import {
+  fetchWorkflowRecords,
+  type WorkflowRecord,
+} from "@/features/workflows/live-data";
 import { WorkflowsTable } from "@/features/workflows/tables/workflows-table";
 
 export function WorkflowsListPage() {
   const [query, setQuery] = useState("");
+  const [workflows, setWorkflows] = useState<WorkflowRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchWorkflowRecords();
+        if (active) {
+          setWorkflows(data);
+        }
+      } catch (loadError) {
+        if (active) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Unable to load workflows.",
+          );
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void load();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const filteredWorkflows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    if (!normalizedQuery) return globalWorkflows;
+    if (!normalizedQuery) return workflows;
 
-    return globalWorkflows.filter((workflow) =>
+    return workflows.filter((workflow) =>
       [
         workflow.name,
         workflow.description,
         workflow.status,
-        workflow.category,
-        workflow.version,
-        workflow.ownerTeam,
-        workflow.countries.join(" "),
-        workflow.linkedTemplates.join(" "),
+        workflow.projectName,
+        workflow.version.toString(),
+        workflow.createdByEmail,
+        workflow.updatedAt,
+        workflow.steps
+          .map((step) => (typeof step === "string" ? step : JSON.stringify(step)))
+          .join(" "),
       ]
         .join(" ")
         .toLowerCase()
         .includes(normalizedQuery),
     );
-  }, [query]);
+  }, [query, workflows]);
 
   return (
     <div className="space-y-6 bg-white text-slate-950">
@@ -76,7 +116,15 @@ export function WorkflowsListPage() {
         </div>
       </section>
 
-      {filteredWorkflows.length > 0 ? (
+      {error ? (
+        <EmptyState title="Unable to load workflows" description={error} />
+      ) : loading && workflows.length === 0 ? (
+        <PageHeader
+          eyebrow="Official workflow library"
+          title="Loading workflows"
+          description="Fetching live workflow data from the backend."
+        />
+      ) : filteredWorkflows.length > 0 ? (
         <WorkflowsTable workflows={filteredWorkflows} />
       ) : (
         <EmptyState

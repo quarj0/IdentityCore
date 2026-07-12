@@ -1,12 +1,12 @@
 import { Button } from "@identitycore/ui";
-import type { GlobalTemplate } from "@/features/templates/mock-data";
 import { CloneTemplateDialog } from "@/features/templates/forms/clone-template-dialog";
 import { TemplateArchiveDialog } from "@/features/templates/components/template-archive-dialog";
 import { TemplatePublishDialog } from "@/features/templates/components/template-publish-dialog";
 import { TemplateStatusPill } from "@/features/templates/components/template-status-pill";
+import type { TemplateRecord } from "@/features/templates/live-data";
 
 type TemplateHeaderProps = {
-  template: GlobalTemplate;
+  template: TemplateRecord;
 };
 
 export function TemplateHeader({ template }: TemplateHeaderProps) {
@@ -40,7 +40,7 @@ export function TemplateHeader({ template }: TemplateHeaderProps) {
             </div>
             <div>
               <dt className="text-xs uppercase tracking-wide text-slate-500">Updated</dt>
-              <dd className="mt-1 text-sm font-medium text-slate-950">{template.lastUpdatedAt}</dd>
+              <dd className="mt-1 text-sm font-medium text-slate-950">{template.updatedAt}</dd>
             </div>
           </dl>
         </div>

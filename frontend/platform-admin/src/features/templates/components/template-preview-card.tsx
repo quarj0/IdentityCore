@@ -1,9 +1,9 @@
 import { FileCheck2 } from "lucide-react";
-import type { GlobalTemplate } from "@/features/templates/mock-data";
 import { SectionCard } from "@/components/shared/section-card";
+import type { TemplateRecord } from "@/features/templates/live-data";
 
 type TemplatePreviewCardProps = {
-  template: GlobalTemplate;
+  template: TemplateRecord;
 };
 
 export function TemplatePreviewCard({ template }: TemplatePreviewCardProps) {
