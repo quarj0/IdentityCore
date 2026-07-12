@@ -1,5 +1,4 @@
 import strawberry
-from django.conf import settings
 from django_countries import countries
 from django.db import models
 from strawberry.types import Info

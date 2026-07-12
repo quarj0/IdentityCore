@@ -71,6 +71,7 @@ Responsibilities:
 - Manage organizations
 - View platform-wide audit logs
 - Manage provider configurations
+- Manage system settings and tenant provider assignments
 - Monitor system activity
 - Manage platform users
 - Review system health
@@ -193,6 +194,7 @@ backend/django/
             decisions/
             risk/
             providers/
+            platform_settings/
             audit/
             webhooks/
             notifications/
@@ -205,6 +207,22 @@ backend/django/
 ---
 
 ## Core Backend Modules
+
+## Platform Settings Module
+
+Responsible for system-level, auditable platform configuration.
+
+Responsibilities:
+
+- Security defaults
+- MFA and session policy
+- Storage and upload defaults
+- Internal service endpoints
+- Notification defaults
+- Feature flags and operational toggles
+- Revision history and reset-to-default behavior
+
+Organization branding, tenant verification defaults, and document-type choices remain in the organization and tenant domains.
 
 ## Accounts Module
 

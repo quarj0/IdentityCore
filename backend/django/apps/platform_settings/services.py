@@ -204,11 +204,18 @@ def get_platform_setting_value(key: str, default: Any = None) -> Any:
     return definition["default_value"] if value == {} else value
 
 
+def _display_platform_setting_value(is_secret: bool, value: Any) -> Any:
+    if is_secret and value not in (None, "", [], {}, False):
+        return "[secret]"
+    return value
+
+
 def list_platform_settings() -> list[dict[str, Any]]:
     rows = []
     for key, definition in PLATFORM_SETTING_DEFINITIONS.items():
         setting = get_platform_setting_record(key)
         value = definition["default_value"] if setting is None else setting.effective_value
+        is_secret = definition["is_secret"] if setting is None else setting.is_secret
         rows.append(
             {
                 "id": setting.public_id if setting else key,
@@ -218,10 +225,12 @@ def list_platform_settings() -> list[dict[str, Any]]:
                 "description": definition["description"],
                 "value_type": definition["value_type"],
                 "status": setting.status if setting else "active",
-                "value": value,
-                "default_value": definition["default_value"],
+                "value": _display_platform_setting_value(is_secret, value),
+                "default_value": _display_platform_setting_value(
+                    is_secret, definition["default_value"]
+                ),
                 "is_editable": definition["is_editable"],
-                "is_secret": definition["is_secret"],
+                "is_secret": is_secret,
                 "requires_restart": definition["requires_restart"],
                 "created_at": setting.created_at.isoformat() if setting else None,
                 "updated_at": setting.updated_at.isoformat() if setting else None,

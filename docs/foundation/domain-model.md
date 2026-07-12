@@ -82,6 +82,7 @@ Organizations create and manage verification workflows for Verification Subjects
 - Organization data must be isolated from other organizations.
 - Organization users may only access data permitted by their role.
 - Organization settings may define branding, allowed Document Types, retention rules, and verification policies.
+- Platform settings remain separate and govern system defaults such as security policy, service endpoints, storage, and feature flags.
 
 ---
 

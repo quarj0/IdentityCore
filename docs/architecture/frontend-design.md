@@ -130,8 +130,10 @@ Main features:
 - Monitor verification activity
 - Review abuse signals
 - Manage providers
+- Manage tenant-scoped provider assignments and BYO connectors
 - View platform audit logs
 - Manage system settings
+- Review no-code verification policy changes
 
 This portal is separate from customer dashboards.
 
@@ -367,6 +369,8 @@ Users should be able to configure:
 - Webhook events
 
 The policy builder should write to the same backend Verification Policy system used by APIs.
+
+The full drag-and-drop workflow builder is out of scope for Version 1.0.
 
 ---
 

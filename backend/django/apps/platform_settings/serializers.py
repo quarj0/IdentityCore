@@ -2,6 +2,12 @@ from apps.platform_settings.models import PlatformSetting, PlatformSettingRevisi
 
 
 def serialize_platform_setting(setting: PlatformSetting) -> dict:
+    value = setting.effective_value
+    default_value = setting.default_value_json
+    if setting.is_secret and value not in (None, "", [], {}, False):
+        value = "[secret]"
+    if setting.is_secret and default_value not in (None, "", [], {}, False):
+        default_value = "[secret]"
     return {
         "id": setting.public_id,
         "key": setting.key,
@@ -10,8 +16,8 @@ def serialize_platform_setting(setting: PlatformSetting) -> dict:
         "description": setting.description,
         "value_type": setting.value_type,
         "status": setting.status,
-        "value": setting.effective_value,
-        "default_value": setting.default_value_json,
+        "value": value,
+        "default_value": default_value,
         "is_editable": setting.is_editable,
         "is_secret": setting.is_secret,
         "requires_restart": setting.requires_restart,
