@@ -167,6 +167,7 @@ ai-service = [
     { name = "pydantic-settings" },
     { name = "python-multipart" },
     { name = "python-ulid" },
+    { name = "rapidfuzz" },
     { name = "uvicorn" },
 ]
 dev = [
@@ -226,6 +227,7 @@ ai-service = [
     { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "python-multipart", specifier = ">=0.0.32" },
     { name = "python-ulid", specifier = ">=3.1.0" },
+    { name = "rapidfuzz", specifier = ">=3.14.5" },
     { name = "uvicorn", specifier = ">=0.50.0" },
 ]
 dev = [

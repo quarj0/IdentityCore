@@ -420,6 +420,7 @@ Business rules:
 - API-client requests must provide an active `policy_id`; the selected policy version is snapshotted permanently on the verification.
 - Expiry is enforced asynchronously by background jobs; once `expires_at` passes, the Verification and any active session may transition to `expired` without another API call.
 - Sends webhook event `verification.created`.
+- The subject-facing verification-link flow remains unchanged; webhooks are the integration path for backend systems that want to listen for lifecycle transitions.
 
 ---
 
@@ -1203,6 +1204,8 @@ verification.expired
 verification.cancelled
 ```
 
+Document-classification uncertainty does not short-circuit the workflow; it is represented as evidence that may later contribute to `verification.manual_review_required` or a final outcome event.
+
 ---
 
 ## Audit API
@@ -1357,6 +1360,47 @@ Response:
   "model_version": "v1"
 }
 ```
+
+---
+
+## POST /v1/document/classify
+
+Runs evidence-based document classification on OCR output.
+
+Request:
+
+```json
+{
+  "verification_id": "ver_01JABC...",
+  "document_storage_key": "media/documents/...",
+  "document_type": "national_id",
+  "country_code": "GH"
+}
+```
+
+Response:
+
+```json
+{
+  "status": "completed",
+  "classification_status": "recognized",
+  "predicted_document_type": "national_id",
+  "matched_expected_document_type": true,
+  "workflow_action": "continue",
+  "requires_manual_review": false,
+  "confidence_score": 0.93,
+  "evidence_score": 0.93,
+  "model_name": "ocr-evidence-document-classifier",
+  "model_version": "v2"
+}
+```
+
+Business rules:
+
+- The AI service returns document evidence, not approval decisions.
+- OCR line confidences and RapidFuzz similarity contribute to the evidence score.
+- Passport evidence may include MRZ validation.
+- The caller decides whether to continue, continue with review, or apply policy at the platform layer.
 
 ---
 

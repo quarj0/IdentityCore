@@ -391,17 +391,50 @@ Output:
 
 ```json
 {
-  "document_type": "national_id",
+  "classification_status": "recognized",
+  "predicted_document_type": "national_id",
+  "matched_expected_document_type": true,
+  "workflow_action": "continue",
+  "requires_manual_review": false,
   "confidence_score": 0.93,
+  "evidence_score": 0.93,
   "country_code": "GH"
 }
 ```
 
 Business rules:
 
-- The AI service returns generic Document Types.
-- Country-specific document names come from Country Profiles.
-- Low classification confidence should trigger manual review.
+- The AI service returns evidence-based classification outcomes, not final approval decisions.
+- `classification_status` distinguishes `recognized`, `unknown`, `unsupported`, `ambiguous`, and `insufficient_evidence`.
+- `matched_expected_document_type` is `true`, `false`, or `null` depending on whether the type was reliably established.
+- `workflow_action` tells orchestration whether verification may continue or should continue with review.
+- The classifier uses OCR line normalization, RapidFuzz-based phrase matching, OCR confidence, and structural evidence.
+- Passport classification uses visible wording plus MRZ evidence, not a filename hint.
+- Active country support is controlled by `DOCUMENT_CLASSIFICATION_ENABLED_COUNTRY_CODES`; global passport evidence remains available by default.
+- Low classification confidence should add manual-review evidence, not automatically reject the verification.
+
+### Document Classification Configuration
+
+The current implementation keeps the tunable knobs in the AI service settings layer:
+
+- `backend/ai-service/app/settings.py` exposes the document-classification thresholds and weights as environment-backed settings.
+- `backend/ai-service/app/document_classification/mrz.py` contains the MRZ checksum and structural validation logic.
+- `backend/ai-service/app/document_classification/definitions/` contains the verified document definitions and country-specific registry entries.
+
+Operational settings:
+
+- `DOCUMENT_CLASSIFICATION_ENABLED_COUNTRY_CODES`
+- `DOCUMENT_CLASSIFICATION_MINIMUM_CANDIDATE_EVIDENCE`
+- `DOCUMENT_CLASSIFICATION_MINIMUM_REQUIRED_GROUP_COVERAGE`
+- `DOCUMENT_CLASSIFICATION_MINIMUM_CLASSIFICATION_MARGIN`
+- `DOCUMENT_CLASSIFICATION_MINIMUM_AVERAGE_OCR_CONFIDENCE`
+- `DOCUMENT_CLASSIFICATION_REQUIRED_EVIDENCE_WEIGHT`
+- `DOCUMENT_CLASSIFICATION_OPTIONAL_EVIDENCE_WEIGHT`
+- `DOCUMENT_CLASSIFICATION_STRUCTURAL_EVIDENCE_WEIGHT`
+- `DOCUMENT_CLASSIFICATION_OCR_QUALITY_WEIGHT`
+- `DOCUMENT_CLASSIFICATION_NEGATIVE_EVIDENCE_WEIGHT`
+
+Country support is additive: if a country code is not enabled, the registry excludes that country-specific definition while leaving global passport evidence available.
 
 ---
 
@@ -438,6 +471,7 @@ Business rules:
 - OCR output should be normalized by the Django backend.
 - Sensitive fields should be masked or hashed where possible.
 - OCR confidence should affect risk scoring.
+- PaddleOCR recognition confidence is preserved per OCR line for downstream classification evidence.
 
 ---
 
@@ -461,6 +495,7 @@ Business rules:
 - MRZ checksum validation increases confidence.
 - Failed MRZ extraction does not automatically mean fraud.
 - Manual review may be required.
+- MRZ evidence is one input to passport classification, but a valid MRZ does not override other workflow policy checks.
 
 ---
 

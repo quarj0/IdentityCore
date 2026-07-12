@@ -60,6 +60,12 @@ The AI service is responsible for:
 - Returning confidence scores
 - Reporting model metadata
 
+Document classification is evidence-producing only:
+
+- It may report `classification_status`, `workflow_action`, and manual-review evidence.
+- It must not approve or reject a verification.
+- Unknown, unsupported, ambiguous, or low-evidence document classifications should preserve evidence and allow the workflow engine to apply policy.
+
 The AI service is not responsible for business decisions.
 
 ---
@@ -181,6 +187,8 @@ Examples:
 - Provider disagreement
 
 Manual Review remains an important safety mechanism.
+
+Document-related manual review should be triggered from the workflow engine when classification evidence is uncertain or mismatched, not from a hard AI rejection.
 
 ---
 
