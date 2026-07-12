@@ -111,3 +111,9 @@ class CeleryConfigurationTests(SimpleTestCase):
             settings.CELERY_TASK_ROUTES[deliver_notification_task.name]["queue"],
             "notifications",
         )
+
+
+class JwtConfigurationTests(SimpleTestCase):
+    def test_jwt_signing_key_is_never_blank(self):
+        self.assertTrue(settings.SIMPLE_JWT["SIGNING_KEY"])
+        self.assertNotEqual(settings.SIMPLE_JWT["SIGNING_KEY"].strip(), "")
