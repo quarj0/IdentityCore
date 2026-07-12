@@ -6,7 +6,9 @@ from django.utils import timezone
 from django.utils.module_loading import import_string
 
 from apps.notifications.models import Notification, NotificationChannel
+from apps.platform_settings.services import get_platform_setting_value
 from apps.providers.models import Provider, ProviderStatus, ProviderType
+from apps.providers.services import get_notification_provider_assignment
 
 
 class NotificationDeliveryError(Exception):
@@ -80,8 +82,11 @@ class DjangoEmailNotificationProvider(BaseNotificationProvider):
 
     def deliver(self, notification: Notification) -> NotificationDeliveryResult:
         connection = self._build_connection()
-        from_email = self.configuration.get("from_email") or getattr(
-            settings, "DEFAULT_FROM_EMAIL", "no-reply@identitycore.local"
+        from_email = self.configuration.get("from_email") or str(
+            get_platform_setting_value(
+                "notifications.default_from_email",
+                getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@identitycore.local"),
+            )
         )
         message = EmailMultiAlternatives(
             subject=notification.subject or "IdentityCore notification",
@@ -141,14 +146,22 @@ def _get_active_provider_configuration(channel: str) -> tuple[str, dict]:
 
 
 def get_notification_provider(notification: Notification) -> BaseNotificationProvider:
-    provider_code, configuration = _get_active_provider_configuration(
-        notification.channel
-    )
+    assignment = get_notification_provider_assignment(notification.tenant, notification.channel)
+    if assignment is not None:
+        provider_code = assignment.provider.code
+        configuration = assignment.provider.configuration_json or {}
+    else:
+        provider_code, configuration = _get_active_provider_configuration(
+            notification.channel
+        )
 
     if notification.channel == NotificationChannel.EMAIL:
         if not provider_code:
-            provider_code = getattr(
-                settings, "NOTIFICATION_EMAIL_PROVIDER_CODE", "default-email"
+            provider_code = str(
+                get_platform_setting_value(
+                    "notifications.email_provider_code",
+                    getattr(settings, "NOTIFICATION_EMAIL_PROVIDER_CODE", "default-email"),
+                )
             )
             configuration = {
                 "backend": getattr(settings, "NOTIFICATION_EMAIL_PROVIDER", "django")
@@ -160,8 +173,11 @@ def get_notification_provider(notification: Notification) -> BaseNotificationPro
 
     if notification.channel == NotificationChannel.SMS:
         if not provider_code:
-            provider_code = getattr(
-                settings, "NOTIFICATION_SMS_PROVIDER_CODE", "default-sms"
+            provider_code = str(
+                get_platform_setting_value(
+                    "notifications.sms_provider_code",
+                    getattr(settings, "NOTIFICATION_SMS_PROVIDER_CODE", "default-sms"),
+                )
             )
             configuration = {
                 "backend": getattr(settings, "NOTIFICATION_SMS_PROVIDER", "stub")

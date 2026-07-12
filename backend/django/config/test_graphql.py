@@ -1405,6 +1405,10 @@ class PlatformAdminGraphQLTests(APITestCase):
                     code
                     status
                   }
+                  platformSettings {
+                    key
+                    primaryValue
+                  }
                   platformVerificationPolicies {
                     id
                     name
@@ -1426,6 +1430,12 @@ class PlatformAdminGraphQLTests(APITestCase):
         payload = response.json()["data"]
         self.assertTrue(payload["platformAdmins"])
         self.assertEqual(payload["platformProviders"][0]["code"], "internal-ocr")
+        self.assertTrue(
+            any(
+                setting["key"] == "security.admin_mfa_required"
+                for setting in payload["platformSettings"]
+            )
+        )
         self.assertEqual(payload["platformVerificationPolicies"][0]["id"], self.policy.public_id)
         self.assertEqual(payload["platformApiClients"][0]["publicId"], self.api_client.public_id)
         self.assertEqual(

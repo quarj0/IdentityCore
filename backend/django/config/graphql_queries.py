@@ -18,9 +18,17 @@ from apps.organizations.onboarding import (
     serialize_onboarding_state,
 )
 from apps.organizations.serializers import serialize_organization
+from apps.platform_settings.models import PlatformSetting
+from apps.platform_settings.services import get_platform_setting_record, list_platform_settings
+from apps.platform_settings.serializers import (
+    serialize_platform_setting,
+    serialize_platform_setting_revision,
+)
 from apps.providers.models import Provider
+from apps.providers.models import ProviderAssignment
 from apps.providers.models import ProviderCheck
 from apps.providers.serializers import serialize_provider
+from apps.providers.serializers import serialize_provider_assignment
 from apps.providers.serializers import serialize_provider_check
 from apps.reviewers.models import PlatformAdminInvitation
 from apps.accounts.serializers import serialize_user
@@ -61,7 +69,9 @@ from config.graphql_types import (
     PlatformAdminInvitationNode,
     PlatformRoleNode,
     PlatformSettingNode,
+    PlatformSettingRevisionNode,
     ProviderNode,
+    ProviderAssignmentNode,
     ProviderCheckNode,
     SupportedDocumentTypeNode,
     VerificationNode,
@@ -414,56 +424,116 @@ class Query:
         require_platform_admin(info)
         return [
             PlatformSettingNode(
-                id="platform-email",
-                title="Email configuration",
-                category="Notifications",
-                status="configured" if settings.DEFAULT_FROM_EMAIL else "unconfigured",
-                primary_value=settings.DEFAULT_FROM_EMAIL,
-                secondary_value=settings.EMAIL_HOST or "console backend",
+                id=item["id"],
+                key=item["key"],
+                title=item["title"],
+                category=item["group"],
+                status=item["status"],
+                primary_value=str(item["value"]),
+                secondary_value=str(item["default_value"]),
                 owner_team="Platform Ops",
-                description="Default sender and email transport configuration used across notifications.",
-                updated_at="Backend settings",
-            ),
-            PlatformSettingNode(
-                id="platform-storage",
-                title="Object storage",
-                category="Storage",
-                status="configured" if settings.OBJECT_STORAGE_BUCKET else "unconfigured",
-                primary_value=settings.OBJECT_STORAGE_BUCKET or "not set",
-                secondary_value=settings.OBJECT_STORAGE_PROVIDER or "not set",
-                owner_team="Infrastructure",
-                description="Default object storage bucket and provider used for uploads, evidence and public assets.",
-                updated_at="Backend settings",
-            ),
-            PlatformSettingNode(
-                id="platform-verification-portal",
-                title="Verification portal",
-                category="Identity verification",
-                status="configured" if settings.VERIFICATION_PORTAL_BASE_URL else "unconfigured",
-                primary_value=settings.VERIFICATION_PORTAL_BASE_URL,
-                secondary_value=settings.AI_SERVICE_BASE_URL or "not set",
-                owner_team="Identity Platform",
-                description="Base URLs used for subject-facing verification journeys and AI service calls.",
-                updated_at="Backend settings",
-            ),
-            PlatformSettingNode(
-                id="platform-ai-service",
-                title="AI service",
-                category="AI",
-                status="configured" if settings.AI_SERVICE_BASE_URL else "unconfigured",
-                primary_value=settings.AI_SERVICE_BASE_URL or "not set",
-                secondary_value=f"{settings.AI_SERVICE_TIMEOUT_SECONDS}s timeout",
-                owner_team="AI Platform",
-                description="Internal AI service endpoint and request timeout used by backend provider orchestration.",
-                updated_at="Backend settings",
-            ),
+                description=item["description"],
+                updated_at=item["updated_at"] or "",
+                is_editable=item["is_editable"],
+                is_secret=item["is_secret"],
+                requires_restart=item["requires_restart"],
+                default_value=item["default_value"],
+            )
+            for item in list_platform_settings()
         ]
 
     @strawberry.field
     def platform_setting(self, info: Info, setting_id: str) -> PlatformSettingNode | None:
         require_platform_admin(info)
-        setting_map = {item.id: item for item in self.platform_settings(info)}
-        return setting_map.get(setting_id)
+        setting = (
+            PlatformSetting.objects.filter(public_id=setting_id).first()
+            or get_platform_setting_record(setting_id)
+            or get_platform_setting_record(setting_id.strip().lower())
+        )
+        if setting is None:
+            return None
+        payload = serialize_platform_setting(setting)
+        return PlatformSettingNode(
+            id=payload["id"],
+            key=payload["key"],
+            title=payload["title"],
+            category=payload["group"],
+            status=payload["status"],
+            primary_value=str(payload["value"]),
+            secondary_value=str(payload["default_value"]),
+            owner_team="Platform Ops",
+            description=payload["description"],
+            updated_at=payload["updated_at"],
+            is_editable=payload["is_editable"],
+            is_secret=payload["is_secret"],
+            requires_restart=payload["requires_restart"],
+            default_value=payload["default_value"],
+        )
+
+    @strawberry.field
+    def platform_setting_revisions(
+        self, info: Info, setting_id: str
+    ) -> list[PlatformSettingRevisionNode]:
+        require_platform_admin(info)
+        setting = (
+            PlatformSetting.objects.filter(public_id=setting_id).first()
+            or get_platform_setting_record(setting_id)
+            or get_platform_setting_record(setting_id.strip().lower())
+        )
+        if setting is None:
+            return []
+        return [
+            PlatformSettingRevisionNode(
+                id=item["id"],
+                setting_id=item["setting_id"],
+                old_value=item["old_value"],
+                new_value=item["new_value"],
+                change_reason=item["change_reason"],
+                changed_by_email=item["changed_by_email"],
+                created_at=item["created_at"],
+                updated_at=item["updated_at"],
+            )
+            for item in (
+                serialize_platform_setting_revision(revision)
+                for revision in setting.revisions.select_related("changed_by")
+            )
+        ]
+
+    @strawberry.field
+    def platform_provider_assignments(
+        self,
+        info: Info,
+        tenant_id: str | None = None,
+        assignment_key: str | None = None,
+    ) -> list[ProviderAssignmentNode]:
+        require_platform_admin(info)
+        queryset = ProviderAssignment.objects.select_related("tenant", "provider").order_by(
+            "tenant_id", "assignment_key"
+        )
+        if tenant_id:
+            queryset = queryset.filter(tenant__public_id=tenant_id)
+        if assignment_key:
+            queryset = queryset.filter(assignment_key=assignment_key)
+        return [
+            ProviderAssignmentNode(**serialize_provider_assignment(item))
+            for item in queryset
+        ]
+
+    @strawberry.field
+    def platform_provider_assignment(
+        self, info: Info, assignment_id: str
+    ) -> ProviderAssignmentNode | None:
+        require_platform_admin(info)
+        assignment = (
+            ProviderAssignment.objects.select_related("tenant", "provider")
+            .filter(public_id=assignment_id)
+            .first()
+        )
+        return (
+            ProviderAssignmentNode(**serialize_provider_assignment(assignment))
+            if assignment
+            else None
+        )
 
     @strawberry.field
     def platform_audit_event(self, info: Info, audit_id: str) -> AuditEventNode | None:

@@ -10,6 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from apps.audit.services import record_audit_event
+from apps.platform_settings.services import get_platform_setting_value
 from apps.notifications.services import (
     queue_verification_created_notifications,
     queue_verification_status_notifications,
@@ -241,7 +242,7 @@ class VerificationResendLinkView(VerificationAccessMixin, APIView):
         session.save()
 
         verification_url = (
-            f"{settings.VERIFICATION_PORTAL_BASE_URL.rstrip('/')}/{session.public_id}"
+            f"{str(get_platform_setting_value('integrations.verification_portal_base_url', settings.VERIFICATION_PORTAL_BASE_URL)).rstrip('/')}/{session.public_id}"
             f"#token={raw_session_token}&verification_id={verification.public_id}"
         )
         notifications = queue_verification_created_notifications(

@@ -135,6 +135,8 @@ class ProviderNode:
     configuration: strawberry.scalars.JSON
     created_at: str
     updated_at: str
+    tenant_id: str | None = None
+    tenant_name: str | None = None
 
 
 @strawberry.type
@@ -182,6 +184,7 @@ class PlatformAdminInvitationNode:
 @strawberry.type
 class PlatformSettingNode:
     id: str
+    key: str
     title: str
     category: str
     status: str
@@ -189,6 +192,38 @@ class PlatformSettingNode:
     secondary_value: str
     owner_team: str
     description: str
+    updated_at: str
+    is_editable: bool = True
+    is_secret: bool = False
+    requires_restart: bool = False
+    default_value: strawberry.scalars.JSON | None = None
+
+
+@strawberry.type
+class PlatformSettingRevisionNode:
+    id: str
+    setting_id: str
+    old_value: strawberry.scalars.JSON
+    new_value: strawberry.scalars.JSON
+    change_reason: str
+    changed_by_email: str | None
+    created_at: str
+    updated_at: str
+
+
+@strawberry.type
+class ProviderAssignmentNode:
+    id: str
+    tenant_id: str
+    tenant_name: str
+    assignment_key: str
+    provider_id: str
+    provider_name: str
+    provider_code: str
+    provider_type: str
+    status: str
+    notes: str
+    created_at: str
     updated_at: str
 
 
@@ -606,6 +641,32 @@ class PublicActionPayload:
     ok: bool
     message: str
     next_action: str | None = None
+
+
+@strawberry.input
+class PlatformSettingChangeInput:
+    key: str
+    value: strawberry.scalars.JSON
+    change_reason: str = ""
+
+
+@strawberry.input
+class ProviderRegistrationInput:
+    name: str
+    code: str
+    provider_type: str
+    tenant_id: str | None = None
+    status: str = "active"
+    configuration: strawberry.scalars.JSON = strawberry.field(default_factory=dict)
+
+
+@strawberry.input
+class ProviderAssignmentInput:
+    tenant_id: str
+    assignment_key: str
+    provider_id: str
+    status: str = "active"
+    notes: str = ""
 
 
 @strawberry.type

@@ -4,6 +4,8 @@ from urllib import error, request
 
 from django.conf import settings
 
+from apps.platform_settings.services import get_platform_setting_value
+
 
 AI_SERVICE_UNAVAILABLE_MESSAGE = (
     "The verification service is temporarily unavailable. Please try again shortly."
@@ -38,11 +40,23 @@ def _safe_error_reason(response_body: bytes) -> str:
 
 
 def _post_json(path: str, payload: dict) -> dict:
-    url = f"{settings.AI_SERVICE_BASE_URL.rstrip('/')}{path}"
+    base_url = str(
+        get_platform_setting_value(
+            "integrations.ai_service_base_url",
+            settings.AI_SERVICE_BASE_URL,
+        )
+    )
+    url = f"{base_url.rstrip('/')}{path}"
     data = json.dumps(payload).encode("utf-8")
     headers = {"Content-Type": "application/json"}
-    if settings.AI_SERVICE_SHARED_TOKEN:
-        headers["X-Internal-Token"] = settings.AI_SERVICE_SHARED_TOKEN
+    shared_token = str(
+        get_platform_setting_value(
+            "integrations.ai_service_shared_token",
+            getattr(settings, "AI_SERVICE_SHARED_TOKEN", ""),
+        )
+    )
+    if shared_token:
+        headers["X-Internal-Token"] = shared_token
     http_request = request.Request(
         url,
         data=data,
@@ -51,7 +65,13 @@ def _post_json(path: str, payload: dict) -> dict:
     )
     try:
         with request.urlopen(
-            http_request, timeout=settings.AI_SERVICE_TIMEOUT_SECONDS
+            http_request,
+            timeout=int(
+                get_platform_setting_value(
+                    "integrations.ai_service_timeout_seconds",
+                    settings.AI_SERVICE_TIMEOUT_SECONDS,
+                )
+            ),
         ) as response:
             data = json.loads(response.read().decode("utf-8"))
     except error.HTTPError as exc:

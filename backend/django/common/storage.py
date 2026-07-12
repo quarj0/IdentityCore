@@ -5,14 +5,25 @@ from botocore.config import Config
 from django.conf import settings
 
 from common.crypto import decrypt_object_bytes, encrypt_object_bytes, is_encrypted_object_payload
+from apps.platform_settings.services import get_platform_setting_value
 
 
 def determine_storage_provider() -> str:
-    configured_provider = getattr(settings, "OBJECT_STORAGE_PROVIDER", "").strip()
+    configured_provider = str(
+        get_platform_setting_value(
+            "storage.object_storage_provider",
+            getattr(settings, "OBJECT_STORAGE_PROVIDER", ""),
+        )
+    ).strip()
     if configured_provider:
         return configured_provider
 
-    endpoint_url = getattr(settings, "OBJECT_STORAGE_ENDPOINT_URL", "")
+    endpoint_url = str(
+        get_platform_setting_value(
+            "storage.object_storage_endpoint_url",
+            getattr(settings, "OBJECT_STORAGE_ENDPOINT_URL", ""),
+        )
+    )
     if "cloudflarestorage.com" in endpoint_url:
         return "cloudflare_r2"
     if endpoint_url:
@@ -23,29 +34,52 @@ def determine_storage_provider() -> str:
 def _get_object_storage_bucket(bucket_name: str | None = None) -> str:
     if bucket_name:
         return bucket_name
-    return getattr(settings, "OBJECT_STORAGE_MEDIA_BUCKET", "") or getattr(
-        settings, "OBJECT_STORAGE_BUCKET", ""
+    return str(
+        get_platform_setting_value(
+            "storage.object_storage_bucket",
+            getattr(settings, "OBJECT_STORAGE_MEDIA_BUCKET", "")
+            or getattr(settings, "OBJECT_STORAGE_BUCKET", ""),
+        )
     )
 
 
 def get_object_storage_media_bucket_name() -> str:
     return _get_object_storage_bucket(
-        getattr(settings, "OBJECT_STORAGE_MEDIA_BUCKET", "")
+        str(
+            get_platform_setting_value(
+                "storage.object_storage_media_bucket",
+                getattr(settings, "OBJECT_STORAGE_MEDIA_BUCKET", ""),
+            )
+        )
     )
 
 
 def get_object_storage_temp_bucket_name() -> str:
-    return getattr(settings, "OBJECT_STORAGE_TEMP_BUCKET", "") or getattr(
-        settings, "OBJECT_STORAGE_BUCKET", ""
+    return str(
+        get_platform_setting_value(
+            "storage.object_storage_temp_bucket",
+            getattr(settings, "OBJECT_STORAGE_TEMP_BUCKET", "")
+            or getattr(settings, "OBJECT_STORAGE_BUCKET", ""),
+        )
     )
 
 
 def get_object_storage_evidence_bucket_name() -> str:
-    return getattr(settings, "OBJECT_STORAGE_EVIDENCE_BUCKET", "")
+    return str(
+        get_platform_setting_value(
+            "storage.object_storage_evidence_bucket",
+            getattr(settings, "OBJECT_STORAGE_EVIDENCE_BUCKET", ""),
+        )
+    )
 
 
 def get_object_storage_public_bucket_name() -> str:
-    return getattr(settings, "OBJECT_STORAGE_PUBLIC_BUCKET", "")
+    return str(
+        get_platform_setting_value(
+            "storage.object_storage_public_bucket",
+            getattr(settings, "OBJECT_STORAGE_PUBLIC_BUCKET", ""),
+        )
+    )
 
 
 def _get_upload_bucket() -> str:
@@ -53,7 +87,12 @@ def _get_upload_bucket() -> str:
 
 
 def get_object_storage_client():
-    endpoint_url = getattr(settings, "OBJECT_STORAGE_ENDPOINT_URL", "")
+    endpoint_url = str(
+        get_platform_setting_value(
+            "storage.object_storage_endpoint_url",
+            getattr(settings, "OBJECT_STORAGE_ENDPOINT_URL", ""),
+        )
+    )
     access_key = getattr(settings, "OBJECT_STORAGE_ACCESS_KEY_ID", "")
     secret_key = getattr(settings, "OBJECT_STORAGE_SECRET_ACCESS_KEY", "")
     region_name = getattr(settings, "OBJECT_STORAGE_REGION", "")

@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 from apps.audit.services import record_audit_event
 from apps.biometrics.tasks import process_verification_biometrics_task
 from apps.identity_documents.tasks import process_identity_document_task
+from apps.platform_settings.services import get_platform_setting_value
 from apps.organizations.onboarding import submit_administrator_identity_verification
 from apps.webhooks.services import queue_webhook_events
 from apps.verification_sessions.serializers import (
@@ -81,7 +82,7 @@ class VerificationMobileHandoffCreateView(VerificationSessionBaseView):
         handoff.set_token(raw_token)
         handoff.save()
         handoff_url = (
-            f"{settings.VERIFICATION_PORTAL_BASE_URL.rstrip('/')}/{source_session.public_id}"
+            f"{str(get_platform_setting_value('integrations.verification_portal_base_url', settings.VERIFICATION_PORTAL_BASE_URL)).rstrip('/')}/{source_session.public_id}"
             f"?handoff={handoff.public_id}.{raw_token}"
         )
         record_audit_event(

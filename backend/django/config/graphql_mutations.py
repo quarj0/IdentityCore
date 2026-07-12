@@ -29,6 +29,12 @@ from apps.accounts.verification import (
     verify_email_token_with_status,
 )
 from apps.audit.services import record_audit_event
+from apps.platform_settings.services import (
+    get_platform_setting_value,
+    reset_platform_setting,
+    upsert_platform_setting,
+)
+from apps.platform_settings.serializers import serialize_platform_setting
 from apps.notifications.services import queue_verification_status_notifications
 from apps.organizations.models import Organization
 from apps.organizations.onboarding import (
@@ -44,12 +50,15 @@ from apps.organizations.onboarding import (
     escalate_platform_review,
 )
 from apps.reviewers.models import PlatformAdminInvitation, PlatformAdminInvitationStatus
+from apps.providers.models import Provider, ProviderAssignment
+from apps.providers.serializers import serialize_provider, serialize_provider_assignment
 from apps.verifications.models import (
     Verification,
     VerificationSession,
     VerificationSessionStatus,
     VerificationStatus,
 )
+from apps.tenants.models import Tenant
 from apps.verifications.serializers import (
     ManualReviewDecisionSerializer,
     VerificationCreateSerializer,
@@ -75,12 +84,18 @@ from config.graphql_types import (
     ContactInquiryInput,
     ContactInquiryPayload,
     ManualDecisionPayload,
+    PlatformSettingChangeInput,
+    PlatformSettingNode,
     OrganizationOnboardingPayload,
     OrganizationVerificationInput,
     PlatformAdminInvitationNode,
     PlatformAdminInvitationPayload,
     PublicActionPayload,
     RegisterOrganizationOnboardingInput,
+    ProviderAssignmentInput,
+    ProviderAssignmentNode,
+    ProviderRegistrationInput,
+    ProviderNode,
     to_onboarding_node,
 )
 
@@ -139,8 +154,14 @@ class Mutation:
             )
             session.set_session_token(raw_token)
             session.save()
+            verification_portal_base_url = str(
+                get_platform_setting_value(
+                    "integrations.verification_portal_base_url",
+                    settings.VERIFICATION_PORTAL_BASE_URL,
+                )
+            )
             url = (
-                f"{settings.VERIFICATION_PORTAL_BASE_URL.rstrip('/')}/{session.public_id}"
+                f"{verification_portal_base_url.rstrip('/')}/{session.public_id}"
                 f"#token={raw_token}&verification_id={latest.public_id}"
             )
             record_audit_event(
@@ -360,6 +381,145 @@ class Mutation:
                 metadata={"role": role.name},
             )
         return AuthUserNode(**serialize_user(user))
+
+    @strawberry.mutation
+    def upsert_platform_setting(
+        self, info: Info, input: PlatformSettingChangeInput
+    ) -> PlatformSettingNode:
+        actor = require_platform_admin(info)
+        request = info.context["request"]
+        setting = upsert_platform_setting(
+            key=input.key.strip().lower(),
+            value=input.value,
+            changed_by=actor,
+            change_reason=input.change_reason.strip(),
+        )
+        record_audit_event(
+            tenant=actor.tenant,
+            actor=actor,
+            request=request,
+            action="platform_setting.updated",
+            target_type="platform_setting",
+            target_id=setting.public_id,
+            metadata={"key": setting.key},
+        )
+        payload = serialize_platform_setting(setting)
+        return PlatformSettingNode(
+            id=payload["id"],
+            key=payload["key"],
+            title=payload["title"],
+            category=payload["group"],
+            status=payload["status"],
+            primary_value=str(payload["value"]),
+            secondary_value=str(payload["default_value"]),
+            owner_team="Platform Ops",
+            description=payload["description"],
+            updated_at=payload["updated_at"],
+            is_editable=payload["is_editable"],
+            is_secret=payload["is_secret"],
+            requires_restart=payload["requires_restart"],
+            default_value=payload["default_value"],
+        )
+
+    @strawberry.mutation
+    def reset_platform_setting(self, info: Info, setting_key: str) -> PlatformSettingNode:
+        actor = require_platform_admin(info)
+        request = info.context["request"]
+        setting = reset_platform_setting(
+            key=setting_key.strip().lower(),
+            changed_by=actor,
+            change_reason="reset to default",
+        )
+        record_audit_event(
+            tenant=actor.tenant,
+            actor=actor,
+            request=request,
+            action="platform_setting.reset",
+            target_type="platform_setting",
+            target_id=setting.public_id,
+            metadata={"key": setting.key},
+        )
+        payload = serialize_platform_setting(setting)
+        return PlatformSettingNode(
+            id=payload["id"],
+            key=payload["key"],
+            title=payload["title"],
+            category=payload["group"],
+            status=payload["status"],
+            primary_value=str(payload["value"]),
+            secondary_value=str(payload["default_value"]),
+            owner_team="Platform Ops",
+            description=payload["description"],
+            updated_at=payload["updated_at"],
+            is_editable=payload["is_editable"],
+            is_secret=payload["is_secret"],
+            requires_restart=payload["requires_restart"],
+            default_value=payload["default_value"],
+        )
+
+    @strawberry.mutation
+    def register_platform_provider(
+        self, info: Info, input: ProviderRegistrationInput
+    ) -> ProviderNode:
+        actor = require_platform_admin(info)
+        request = info.context["request"]
+        tenant = (
+            get_object_or_404(Tenant, public_id=input.tenant_id)
+            if input.tenant_id
+            else None
+        )
+        provider, _ = Provider.objects.update_or_create(
+            code=input.code.strip(),
+            defaults={
+                "tenant": tenant,
+                "name": input.name.strip(),
+                "provider_type": input.provider_type,
+                "status": input.status,
+                "configuration_json": input.configuration,
+            },
+        )
+        record_audit_event(
+            tenant=actor.tenant,
+            actor=actor,
+            request=request,
+            action="provider.registered",
+            target_type="provider",
+            target_id=provider.public_id,
+            metadata={"code": provider.code, "tenant_id": tenant.public_id if tenant else None},
+        )
+        return ProviderNode(**serialize_provider(provider))
+
+    @strawberry.mutation
+    def assign_tenant_provider(
+        self, info: Info, input: ProviderAssignmentInput
+    ) -> ProviderAssignmentNode:
+        actor = require_platform_admin(info)
+        request = info.context["request"]
+        tenant = get_object_or_404(Tenant, public_id=input.tenant_id)
+        provider = get_object_or_404(Provider, public_id=input.provider_id)
+        assignment, _ = ProviderAssignment.objects.update_or_create(
+            tenant=tenant,
+            assignment_key=input.assignment_key,
+            defaults={
+                "provider": provider,
+                "status": input.status,
+                "notes": input.notes.strip(),
+            },
+        )
+        record_audit_event(
+            tenant=actor.tenant,
+            actor=actor,
+            request=request,
+            action="provider.assignment_updated",
+            target_type="provider_assignment",
+            target_id=assignment.public_id,
+            metadata={
+                "tenant_id": tenant.public_id,
+                "provider_id": provider.public_id,
+                "assignment_key": assignment.assignment_key,
+            },
+        )
+        return ProviderAssignmentNode(**serialize_provider_assignment(assignment))
 
     @strawberry.mutation
     def assign_organization_review_reviewer(

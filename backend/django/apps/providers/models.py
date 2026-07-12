@@ -61,6 +61,13 @@ TERMINAL_PROVIDER_CHECK_STATUSES = {
 class Provider(PublicIdModel, BaseModel):
     public_id_prefix = "prv"
 
+    tenant = models.ForeignKey(
+        "tenants.Tenant",
+        on_delete=models.PROTECT,
+        related_name="providers",
+        null=True,
+        blank=True,
+    )
     name = models.CharField(max_length=255)
     code = models.CharField(max_length=120, unique=True)
     provider_type = models.CharField(
@@ -85,6 +92,104 @@ class Provider(PublicIdModel, BaseModel):
 
     def __str__(self) -> str:
         return self.name
+
+
+class ProviderAssignmentStatus(models.TextChoices):
+    ACTIVE = "active", "Active"
+    DISABLED = "disabled", "Disabled"
+
+
+class ProviderAssignmentKey(models.TextChoices):
+    DOCUMENT_OCR = ProviderCheckType.DOCUMENT_OCR, "Document OCR"
+    DOCUMENT_CLASSIFICATION = ProviderCheckType.DOCUMENT_CLASSIFICATION, "Document Classification"
+    DOCUMENT_QUALITY = ProviderCheckType.DOCUMENT_QUALITY, "Document Quality"
+    FACE_MATCH = ProviderCheckType.FACE_MATCH, "Face Match"
+    LIVENESS = ProviderCheckType.LIVENESS, "Liveness"
+    IDENTITY_LOOKUP = ProviderCheckType.IDENTITY_LOOKUP, "Identity Lookup"
+    RISK_CHECK = ProviderCheckType.RISK_CHECK, "Risk Check"
+    NOTIFICATION_EMAIL = "notification_email", "Notification Email"
+    NOTIFICATION_SMS = "notification_sms", "Notification SMS"
+    NOTIFICATION_IN_APP = "notification_in_app", "Notification In-App"
+
+
+class ProviderAssignment(PublicIdModel, BaseModel):
+    public_id_prefix = "pva"
+
+    tenant = models.ForeignKey(
+        "tenants.Tenant",
+        on_delete=models.PROTECT,
+        related_name="provider_assignments",
+    )
+    assignment_key = models.CharField(
+        max_length=64,
+        choices=ProviderAssignmentKey.choices,
+        db_index=True,
+    )
+    provider = models.ForeignKey(
+        Provider,
+        on_delete=models.PROTECT,
+        related_name="assignments",
+    )
+    status = models.CharField(
+        max_length=32,
+        choices=ProviderAssignmentStatus.choices,
+        default=ProviderAssignmentStatus.ACTIVE,
+        db_index=True,
+    )
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["tenant_id", "assignment_key", "created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tenant", "assignment_key"],
+                name="provider_assignment_tenant_key_uniq",
+            )
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.provider.tenant_id not in {None, self.tenant_id}:
+            raise ValidationError(
+                {
+                    "provider": "Assigned providers must belong to the tenant or be platform defaults."
+                }
+            )
+
+        allowed_types = {
+            ProviderAssignmentKey.DOCUMENT_OCR: {ProviderType.DOCUMENT},
+            ProviderAssignmentKey.DOCUMENT_CLASSIFICATION: {ProviderType.DOCUMENT},
+            ProviderAssignmentKey.DOCUMENT_QUALITY: {ProviderType.DOCUMENT},
+            ProviderAssignmentKey.FACE_MATCH: {ProviderType.BIOMETRIC},
+            ProviderAssignmentKey.LIVENESS: {
+                ProviderType.LIVENESS,
+                ProviderType.BIOMETRIC,
+            },
+            ProviderAssignmentKey.IDENTITY_LOOKUP: {ProviderType.IDENTITY_DATABASE},
+            ProviderAssignmentKey.RISK_CHECK: {ProviderType.RISK},
+            ProviderAssignmentKey.NOTIFICATION_EMAIL: {ProviderType.NOTIFICATION},
+            ProviderAssignmentKey.NOTIFICATION_SMS: {ProviderType.NOTIFICATION},
+            ProviderAssignmentKey.NOTIFICATION_IN_APP: {ProviderType.NOTIFICATION},
+        }.get(self.assignment_key, set())
+        if allowed_types and self.provider.provider_type not in allowed_types:
+            raise ValidationError(
+                {
+                    "provider": f"{self.assignment_key} requires provider types: {', '.join(sorted(allowed_types))}."
+                }
+            )
+        if self.status == ProviderAssignmentStatus.ACTIVE and self.provider.status != ProviderStatus.ACTIVE:
+            raise ValidationError(
+                {
+                    "provider": "Active assignments require an active provider."
+                }
+            )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f"{self.tenant_id}:{self.assignment_key}"
 
 
 class ProviderCheck(PublicIdModel, BaseModel):

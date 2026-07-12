@@ -89,6 +89,7 @@ INSTALLED_APPS = [
     "apps.notifications.apps.NotificationsConfig",
     "apps.organizations.apps.OrganizationsConfig",
     "apps.providers.apps.ProvidersConfig",
+    "apps.platform_settings.apps.PlatformSettingsConfig",
     "apps.projects.apps.ProjectsConfig",
     "apps.risk.apps.RiskConfig",
     "apps.reviewers.apps.ReviewersConfig",

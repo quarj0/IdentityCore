@@ -5,6 +5,9 @@ from apps.providers.models import (
     ProviderCheck,
     ProviderCheckStatus,
     ProviderCheckType,
+    ProviderAssignment,
+    ProviderAssignmentKey,
+    ProviderAssignmentStatus,
     ProviderStatus,
     ProviderType,
 )
@@ -57,6 +60,36 @@ def get_or_create_system_provider(check_type: str) -> Provider:
     return provider
 
 
+def get_tenant_provider_assignment(tenant, assignment_key: str) -> ProviderAssignment | None:
+    return (
+        ProviderAssignment.objects.select_related("provider")
+        .filter(
+            tenant=tenant,
+            assignment_key=assignment_key,
+            status=ProviderAssignmentStatus.ACTIVE,
+        )
+        .first()
+    )
+
+
+def resolve_provider_for_check(*, tenant, check_type: str) -> Provider:
+    assignment = get_tenant_provider_assignment(tenant, check_type)
+    if assignment is not None:
+        return assignment.provider
+    return get_or_create_system_provider(check_type)
+
+
+def get_notification_provider_assignment(tenant, channel: str) -> ProviderAssignment | None:
+    assignment_key = {
+        "email": ProviderAssignmentKey.NOTIFICATION_EMAIL,
+        "sms": ProviderAssignmentKey.NOTIFICATION_SMS,
+        "in_app": ProviderAssignmentKey.NOTIFICATION_IN_APP,
+    }.get(channel)
+    if assignment_key is None:
+        return None
+    return get_tenant_provider_assignment(tenant, assignment_key)
+
+
 def create_provider_check(
     *,
     verification,
@@ -68,7 +101,10 @@ def create_provider_check(
     provider_reference: str = "",
 ) -> ProviderCheck:
     now = timezone.now()
-    provider = get_or_create_system_provider(check_type)
+    provider = resolve_provider_for_check(
+        tenant=verification.tenant,
+        check_type=check_type,
+    )
     completed_at = now if status == ProviderCheckStatus.COMPLETED else None
     return ProviderCheck.objects.create(
         tenant=verification.tenant,

@@ -6,6 +6,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from apps.accounts.models import PlatformUser
+from apps.platform_settings.services import get_platform_setting_value
 from apps.verification_subjects.models import VerificationSubject
 from apps.verifications.evidence import (
     build_verification_evidence_download_url,
@@ -287,7 +288,7 @@ class VerificationCreateSerializer(serializers.Serializer):
         verification._initial_session = session
         verification._initial_session_token = raw_session_token
         verification._verification_url = (
-            f"{settings.VERIFICATION_PORTAL_BASE_URL.rstrip('/')}/{session.public_id}"
+            f"{str(get_platform_setting_value('integrations.verification_portal_base_url', settings.VERIFICATION_PORTAL_BASE_URL)).rstrip('/')}/{session.public_id}"
             f"#token={raw_session_token}&verification_id={verification.public_id}"
         )
         return verification

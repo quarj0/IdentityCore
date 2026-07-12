@@ -16,11 +16,13 @@ from apps.providers.ai_service import (
 from apps.organizations.models import Organization
 from apps.providers.models import (
     Provider,
+    ProviderAssignment,
     ProviderCheck,
     ProviderCheckStatus,
     ProviderCheckType,
     ProviderType,
 )
+from apps.providers.services import create_provider_check
 from apps.tenants.models import Tenant
 from apps.verification_subjects.models import VerificationSubject
 from apps.verifications.models import Verification, VerificationStatus
@@ -146,6 +148,28 @@ class ProviderModelTests(TestCase):
         )
 
         self.assertEqual(check.status, ProviderCheckStatus.FAILED)
+
+    def test_tenant_assignment_routes_provider_checks_to_byo_provider(self):
+        tenant_provider = Provider.objects.create(
+            tenant=self.tenant,
+            name="Tenant OCR Engine",
+            code="tenant-ocr-engine",
+            provider_type=ProviderType.DOCUMENT,
+        )
+        ProviderAssignment.objects.create(
+            tenant=self.tenant,
+            assignment_key=ProviderCheckType.DOCUMENT_OCR,
+            provider=tenant_provider,
+        )
+
+        check = create_provider_check(
+            verification=self.verification,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+            status=ProviderCheckStatus.COMPLETED,
+            normalized_result={"status": "completed"},
+        )
+
+        self.assertEqual(check.provider_id, tenant_provider.id)
 
 
 class AIServiceClientTests(TestCase):
