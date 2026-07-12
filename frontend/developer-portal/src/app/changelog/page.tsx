@@ -9,9 +9,9 @@ const changes = [
   },
   {
     date: "July 2026",
-    title: "Workflow sessions planned",
+    title: "Public verification API",
     description:
-      "Defined the first public API shape for creating workflow sessions and receiving webhook results.",
+      "Defined the public API shape for policies, verifications, evidence reports, and webhook results.",
   },
 ];
 
@@ -19,7 +19,7 @@ export default function ChangelogPage() {
   return (
     <DocsLayout
       title="Changelog"
-      description="Track developer-facing changes to IdentityCore APIs, workflow behavior, and documentation."
+      description="Track developer-facing changes to IdentityCore APIs, verification behavior, and documentation."
     >
       <div className="space-y-4">
         {changes.map((change) => (

@@ -16,61 +16,301 @@ export interface EndpointDefinition {
   examples: EndpointExample[];
 }
 
+const apiClientHeaders = `  -H "Authorization: Bearer $IDENTITYCORE_API_KEY" \\
+  -H "X-Client-Id: api_client_id"`;
+
 export const endpoints: EndpointDefinition[] = [
   {
-    slug: "create-workflow-session",
-    method: "POST",
-    path: "/api/v1/workflow-sessions",
-    title: "Create workflow session",
-    description:
-      "Creates a hosted workflow session for verification, onboarding, or trust workflows.",
-    category: "Workflow sessions",
-    request: `{
-  "workflow": "customer-onboarding",
-  "subject": {
-    "email": "person@example.com"
-  },
-  "return_url": "https://app.example.com/complete"
-}`,
+    slug: "health",
+    method: "GET",
+    path: "/api/v1/health",
+    title: "Health check",
+    description: "Checks that the API is up and reports the active service version.",
+    category: "Core",
+    request: `GET /api/v1/health`,
     response: `{
-  "id": "wfs_01HZY...",
-  "status": "created",
-  "verification_url": "https://verify.identitycore.dev/session/wfs_01HZY..."
+  "success": true,
+  "data": {
+    "status": "ok",
+    "service": "django",
+    "version": "0.1.0"
+  },
+  "request_id": "req_01JABC..."
 }`,
     examples: [
       {
         label: "cURL",
         language: "bash",
-        code: `curl -X POST https://api.identitycore.dev/api/v1/workflow-sessions \\
-  -H "Authorization: Bearer $IDENTITYCORE_API_KEY" \\
+        code: `curl https://api.identitycore.dev/api/v1/health`,
+      },
+      {
+        label: "TypeScript",
+        language: "ts",
+        code: `const response = await fetch("https://api.identitycore.dev/api/v1/health");
+const health = await response.json();`,
+      },
+      {
+        label: "Python",
+        language: "python",
+        code: `import requests
+
+response = requests.get("https://api.identitycore.dev/api/v1/health")
+health = response.json()`,
+      },
+    ],
+  },
+  {
+    slug: "list-policies",
+    method: "GET",
+    path: "/api/v1/policies/",
+    title: "List verification policies",
+    description: "Returns the active verification policies available to the current tenant.",
+    category: "Policies",
+    request: `GET /api/v1/policies/`,
+    response: `{
+  "success": true,
+  "data": [
+    {
+      "id": "pol_01JABC...",
+      "name": "Default verification",
+      "version": 1,
+      "status": "active",
+      "required_document_types": ["passport", "national_id"]
+    }
+  ],
+  "request_id": "req_01JABC..."
+}`,
+    examples: [
+      {
+        label: "cURL",
+        language: "bash",
+        code: `curl https://api.identitycore.dev/api/v1/policies/ \\
+${apiClientHeaders}`,
+      },
+      {
+        label: "TypeScript",
+        language: "ts",
+        code: `const response = await fetch("https://api.identitycore.dev/api/v1/policies/", {
+  headers: {
+    Authorization: \`Bearer \${process.env.IDENTITYCORE_API_KEY}\`,
+    "X-Client-Id": process.env.IDENTITYCORE_CLIENT_ID ?? "",
+  },
+});
+
+const policies = await response.json();`,
+      },
+      {
+        label: "Python",
+        language: "python",
+        code: `import requests
+
+response = requests.get(
+    "https://api.identitycore.dev/api/v1/policies/",
+    headers={
+        "Authorization": f"Bearer {IDENTITYCORE_API_KEY}",
+        "X-Client-Id": IDENTITYCORE_CLIENT_ID,
+    },
+)
+
+policies = response.json()`,
+      },
+    ],
+  },
+  {
+    slug: "get-policy",
+    method: "GET",
+    path: "/api/v1/policies/{policy_id}",
+    title: "Retrieve verification policy",
+    description: "Returns a single active policy template by public identifier.",
+    category: "Policies",
+    request: `GET /api/v1/policies/pol_01JABC...`,
+    response: `{
+  "success": true,
+  "data": {
+    "id": "pol_01JABC...",
+    "name": "Default verification",
+    "version": 1,
+    "status": "active",
+    "required_document_types": ["passport", "national_id"]
+  },
+  "request_id": "req_01JABC..."
+}`,
+    examples: [
+      {
+        label: "cURL",
+        language: "bash",
+        code: `curl https://api.identitycore.dev/api/v1/policies/pol_01JABC... \\
+${apiClientHeaders}`,
+      },
+      {
+        label: "TypeScript",
+        language: "ts",
+        code: `const response = await fetch("https://api.identitycore.dev/api/v1/policies/pol_01JABC...", {
+  headers: {
+    Authorization: \`Bearer \${process.env.IDENTITYCORE_API_KEY}\`,
+    "X-Client-Id": process.env.IDENTITYCORE_CLIENT_ID ?? "",
+  },
+});
+
+const policy = await response.json();`,
+      },
+      {
+        label: "Python",
+        language: "python",
+        code: `import requests
+
+response = requests.get(
+    "https://api.identitycore.dev/api/v1/policies/pol_01JABC...",
+    headers={
+        "Authorization": f"Bearer {IDENTITYCORE_API_KEY}",
+        "X-Client-Id": IDENTITYCORE_CLIENT_ID,
+    },
+)
+
+policy = response.json()`,
+      },
+    ],
+  },
+  {
+    slug: "list-verifications",
+    method: "GET",
+    path: "/api/v1/verifications/",
+    title: "List verifications",
+    description: "Lists verifications for the current tenant, including status and policy links.",
+    category: "Verifications",
+    request: `GET /api/v1/verifications/`,
+    response: `{
+  "success": true,
+  "data": {
+    "results": [
+      {
+        "id": "ver_01JABC...",
+        "status": "verified",
+        "purpose": "Customer onboarding",
+        "external_reference": "customer_12345"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "page_size": 20,
+      "total": 1,
+      "total_pages": 1
+    }
+  },
+  "request_id": "req_01JABC..."
+}`,
+    examples: [
+      {
+        label: "cURL",
+        language: "bash",
+        code: `curl https://api.identitycore.dev/api/v1/verifications/ \\
+${apiClientHeaders}`,
+      },
+      {
+        label: "TypeScript",
+        language: "ts",
+        code: `const response = await fetch("https://api.identitycore.dev/api/v1/verifications/", {
+  headers: {
+    Authorization: \`Bearer \${process.env.IDENTITYCORE_API_KEY}\`,
+    "X-Client-Id": process.env.IDENTITYCORE_CLIENT_ID ?? "",
+  },
+});
+
+const verifications = await response.json();`,
+      },
+      {
+        label: "Python",
+        language: "python",
+        code: `import requests
+
+response = requests.get(
+    "https://api.identitycore.dev/api/v1/verifications/",
+    headers={
+        "Authorization": f"Bearer {IDENTITYCORE_API_KEY}",
+        "X-Client-Id": IDENTITYCORE_CLIENT_ID,
+    },
+)
+
+verifications = response.json()`,
+      },
+    ],
+  },
+  {
+    slug: "create-verification",
+    method: "POST",
+    path: "/api/v1/verifications/",
+    title: "Create verification",
+    description: "Creates a hosted verification from a policy and subject payload.",
+    category: "Verifications",
+    request: `{
+  "purpose": "Customer onboarding",
+  "policy_id": "pol_01JABC...",
+  "verification_subject": {
+    "full_name": "Amina Mensah",
+    "email": "amina@example.com"
+  },
+  "redirect_url": "https://app.example.com/verification-complete",
+  "metadata": {
+    "customer_id": "customer_12345"
+  }
+}`,
+    response: `{
+  "success": true,
+  "data": {
+    "id": "ver_01JABC...",
+    "status": "pending_consent",
+    "verification_url": "https://verify.identitycore.dev/.../ver_01JABC...",
+    "session_id": "ses_01JABC...",
+    "session_token": "sess_token_01JABC...",
+    "expires_at": "2026-07-12T16:00:00Z"
+  },
+  "request_id": "req_01JABC..."
+}`,
+    examples: [
+      {
+        label: "cURL",
+        language: "bash",
+        code: `curl -X POST https://api.identitycore.dev/api/v1/verifications/ \\
+${apiClientHeaders} \\
   -H "Content-Type: application/json" \\
   -d '{
-    "workflow": "customer-onboarding",
-    "subject": {
-      "email": "person@example.com"
+    "purpose": "Customer onboarding",
+    "policy_id": "pol_01JABC...",
+    "verification_subject": {
+      "full_name": "Amina Mensah",
+      "email": "amina@example.com"
     },
-    "return_url": "https://app.example.com/complete"
+    "redirect_url": "https://app.example.com/verification-complete",
+    "metadata": {
+      "customer_id": "customer_12345"
+    }
   }'`,
       },
       {
         label: "TypeScript",
         language: "ts",
-        code: `const response = await fetch("https://api.identitycore.dev/api/v1/workflow-sessions", {
+        code: `const response = await fetch("https://api.identitycore.dev/api/v1/verifications/", {
   method: "POST",
   headers: {
     Authorization: \`Bearer \${process.env.IDENTITYCORE_API_KEY}\`,
+    "X-Client-Id": process.env.IDENTITYCORE_CLIENT_ID ?? "",
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    workflow: "customer-onboarding",
-    subject: {
-      email: "person@example.com",
+    purpose: "Customer onboarding",
+    policy_id: "pol_01JABC...",
+    verification_subject: {
+      full_name: "Amina Mensah",
+      email: "amina@example.com",
     },
-    return_url: "https://app.example.com/complete",
+    redirect_url: "https://app.example.com/verification-complete",
+    metadata: {
+      customer_id: "customer_12345",
+    },
   }),
 });
 
-const session = await response.json();`,
+const verification = await response.json();`,
       },
       {
         label: "Python",
@@ -78,57 +318,67 @@ const session = await response.json();`,
         code: `import requests
 
 response = requests.post(
-    "https://api.identitycore.dev/api/v1/workflow-sessions",
+    "https://api.identitycore.dev/api/v1/verifications/",
     headers={
         "Authorization": f"Bearer {IDENTITYCORE_API_KEY}",
+        "X-Client-Id": IDENTITYCORE_CLIENT_ID,
         "Content-Type": "application/json",
     },
     json={
-        "workflow": "customer-onboarding",
-        "subject": {"email": "person@example.com"},
-        "return_url": "https://app.example.com/complete",
+        "purpose": "Customer onboarding",
+        "policy_id": "pol_01JABC...",
+        "verification_subject": {
+            "full_name": "Amina Mensah",
+            "email": "amina@example.com",
+        },
+        "redirect_url": "https://app.example.com/verification-complete",
+        "metadata": {"customer_id": "customer_12345"},
     },
 )
 
-session = response.json()`,
+verification = response.json()`,
       },
     ],
   },
   {
-    slug: "retrieve-workflow-session",
+    slug: "get-verification",
     method: "GET",
-    path: "/api/v1/workflow-sessions/{id}",
-    title: "Retrieve workflow session",
-    description:
-      "Returns the current status, subject, workflow, and latest decision for a session.",
-    category: "Workflow sessions",
-    request: `GET /api/v1/workflow-sessions/wfs_01HZY...`,
+    path: "/api/v1/verifications/{verification_id}",
+    title: "Retrieve verification",
+    description: "Returns the verification summary and the linked policy and subject details.",
+    category: "Verifications",
+    request: `GET /api/v1/verifications/ver_01JABC...`,
     response: `{
-  "id": "wfs_01HZY...",
-  "status": "completed",
-  "decision": "approved",
-  "workflow": "customer-onboarding"
+  "success": true,
+  "data": {
+    "id": "ver_01JABC...",
+    "status": "verified",
+    "purpose": "Customer onboarding",
+    "external_reference": "customer_12345"
+  },
+  "request_id": "req_01JABC..."
 }`,
     examples: [
       {
         label: "cURL",
         language: "bash",
-        code: `curl https://api.identitycore.dev/api/v1/workflow-sessions/wfs_01HZY... \\
-  -H "Authorization: Bearer $IDENTITYCORE_API_KEY"`,
+        code: `curl https://api.identitycore.dev/api/v1/verifications/ver_01JABC... \\
+${apiClientHeaders}`,
       },
       {
         label: "TypeScript",
         language: "ts",
         code: `const response = await fetch(
-  "https://api.identitycore.dev/api/v1/workflow-sessions/wfs_01HZY...",
+  "https://api.identitycore.dev/api/v1/verifications/ver_01JABC...",
   {
     headers: {
       Authorization: \`Bearer \${process.env.IDENTITYCORE_API_KEY}\`,
+      "X-Client-Id": process.env.IDENTITYCORE_CLIENT_ID ?? "",
     },
   },
 );
 
-const session = await response.json();`,
+const verification = await response.json();`,
       },
       {
         label: "Python",
@@ -136,65 +386,61 @@ const session = await response.json();`,
         code: `import requests
 
 response = requests.get(
-    "https://api.identitycore.dev/api/v1/workflow-sessions/wfs_01HZY...",
-    headers={"Authorization": f"Bearer {IDENTITYCORE_API_KEY}"},
+    "https://api.identitycore.dev/api/v1/verifications/ver_01JABC...",
+    headers={
+        "Authorization": f"Bearer {IDENTITYCORE_API_KEY}",
+        "X-Client-Id": IDENTITYCORE_CLIENT_ID,
+    },
 )
 
-session = response.json()`,
+verification = response.json()`,
       },
     ],
   },
   {
-    slug: "create-verification-request",
+    slug: "cancel-verification",
     method: "POST",
-    path: "/api/v1/verification-requests",
-    title: "Create verification request",
-    description:
-      "Creates a no-code verification request that can be shared as a hosted link.",
-    category: "Verification requests",
+    path: "/api/v1/verifications/{verification_id}/cancel",
+    title: "Cancel verification",
+    description: "Cancels an active verification and marks linked sessions revoked.",
+    category: "Verifications",
     request: `{
-  "workflow": "student-enrollment",
-  "subject": {
-    "email": "student@example.edu"
-  }
+  "reason": "Customer asked to stop the process"
 }`,
     response: `{
-  "id": "vrq_01HZY...",
-  "status": "created",
-  "url": "https://verify.identitycore.dev/request/vrq_01HZY..."
+  "success": true,
+  "data": {
+    "id": "ver_01JABC...",
+    "status": "cancelled"
+  },
+  "request_id": "req_01JABC..."
 }`,
     examples: [
       {
         label: "cURL",
         language: "bash",
-        code: `curl -X POST https://api.identitycore.dev/api/v1/verification-requests \\
-  -H "Authorization: Bearer $IDENTITYCORE_API_KEY" \\
+        code: `curl -X POST https://api.identitycore.dev/api/v1/verifications/ver_01JABC.../cancel \\
+${apiClientHeaders} \\
   -H "Content-Type: application/json" \\
-  -d '{
-    "workflow": "student-enrollment",
-    "subject": {
-      "email": "student@example.edu"
-    }
-  }'`,
+  -d '{"reason":"Customer asked to stop the process"}'`,
       },
       {
         label: "TypeScript",
         language: "ts",
-        code: `const response = await fetch("https://api.identitycore.dev/api/v1/verification-requests", {
-  method: "POST",
-  headers: {
-    Authorization: \`Bearer \${process.env.IDENTITYCORE_API_KEY}\`,
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    workflow: "student-enrollment",
-    subject: {
-      email: "student@example.edu",
+        code: `const response = await fetch(
+  "https://api.identitycore.dev/api/v1/verifications/ver_01JABC.../cancel",
+  {
+    method: "POST",
+    headers: {
+      Authorization: \`Bearer \${process.env.IDENTITYCORE_API_KEY}\`,
+      "X-Client-Id": process.env.IDENTITYCORE_CLIENT_ID ?? "",
+      "Content-Type": "application/json",
     },
-  }),
-});
+    body: JSON.stringify({ reason: "Customer asked to stop the process" }),
+  },
+);
 
-const verificationRequest = await response.json();`,
+const cancelledVerification = await response.json();`,
       },
       {
         label: "Python",
@@ -202,55 +448,127 @@ const verificationRequest = await response.json();`,
         code: `import requests
 
 response = requests.post(
-    "https://api.identitycore.dev/api/v1/verification-requests",
+    "https://api.identitycore.dev/api/v1/verifications/ver_01JABC.../cancel",
     headers={
         "Authorization": f"Bearer {IDENTITYCORE_API_KEY}",
+        "X-Client-Id": IDENTITYCORE_CLIENT_ID,
         "Content-Type": "application/json",
     },
-    json={
-        "workflow": "student-enrollment",
-        "subject": {"email": "student@example.edu"},
-    },
+    json={"reason": "Customer asked to stop the process"},
 )
 
-verification_request = response.json()`,
+cancelled_verification = response.json()`,
       },
     ],
   },
   {
-    slug: "list-events",
-    method: "GET",
-    path: "/api/v1/events",
-    title: "List events",
-    description:
-      "Lists workflow and verification events for debugging and operational review.",
-    category: "Events",
-    request: `GET /api/v1/events`,
+    slug: "resend-verification-link",
+    method: "POST",
+    path: "/api/v1/verifications/{verification_id}/resend-link",
+    title: "Resend verification link",
+    description: "Issues a fresh hosted link when a customer needs a new access window.",
+    category: "Verifications",
+    request: `{
+  "channel": "email"
+}`,
     response: `{
-  "data": [
-    {
-      "id": "evt_01HZY...",
-      "type": "workflow.session.completed"
-    }
-  ]
+  "success": true,
+  "data": {
+    "sent": true,
+    "verification_url": "https://verify.identitycore.dev/.../ver_01JABC...",
+    "session_id": "ses_01JABC...",
+    "session_token": "sess_token_01JABC...",
+    "expires_at": "2026-07-12T16:30:00Z",
+    "channel": "email"
+  },
+  "request_id": "req_01JABC..."
 }`,
     examples: [
       {
         label: "cURL",
         language: "bash",
-        code: `curl "https://api.identitycore.dev/api/v1/events?limit=20" \\
-  -H "Authorization: Bearer $IDENTITYCORE_API_KEY"`,
+        code: `curl -X POST https://api.identitycore.dev/api/v1/verifications/ver_01JABC.../resend-link \\
+${apiClientHeaders} \\
+  -H "Content-Type: application/json" \\
+  -d '{"channel":"email"}'`,
       },
       {
         label: "TypeScript",
         language: "ts",
-        code: `const response = await fetch("https://api.identitycore.dev/api/v1/events?limit=20", {
-  headers: {
-    Authorization: \`Bearer \${process.env.IDENTITYCORE_API_KEY}\`,
+        code: `const response = await fetch(
+  "https://api.identitycore.dev/api/v1/verifications/ver_01JABC.../resend-link",
+  {
+    method: "POST",
+    headers: {
+      Authorization: \`Bearer \${process.env.IDENTITYCORE_API_KEY}\`,
+      "X-Client-Id": process.env.IDENTITYCORE_CLIENT_ID ?? "",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ channel: "email" }),
   },
-});
+);
 
-const events = await response.json();`,
+const refreshedLink = await response.json();`,
+      },
+      {
+        label: "Python",
+        language: "python",
+        code: `import requests
+
+response = requests.post(
+    "https://api.identitycore.dev/api/v1/verifications/ver_01JABC.../resend-link",
+    headers={
+        "Authorization": f"Bearer {IDENTITYCORE_API_KEY}",
+        "X-Client-Id": IDENTITYCORE_CLIENT_ID,
+        "Content-Type": "application/json",
+    },
+    json={"channel": "email"},
+)
+
+refreshed_link = response.json()`,
+      },
+    ],
+  },
+  {
+    slug: "evidence-report",
+    method: "GET",
+    path: "/api/v1/verifications/{verification_id}/evidence-report",
+    title: "Get evidence report",
+    description: "Returns the report and download URLs for a completed verification.",
+    category: "Verifications",
+    request: `GET /api/v1/verifications/ver_01JABC.../evidence-report`,
+    response: `{
+  "success": true,
+  "data": {
+    "verification_id": "ver_01JABC...",
+    "storage_key": "tenants/ten_01JABC/verifications/ver_01JABC/report.json",
+    "download_url": "https://files.identitycore.dev/...",
+    "pdf_storage_key": "tenants/ten_01JABC/verifications/ver_01JABC/report.pdf",
+    "pdf_download_url": "https://files.identitycore.dev/..."
+  },
+  "request_id": "req_01JABC..."
+}`,
+    examples: [
+      {
+        label: "cURL",
+        language: "bash",
+        code: `curl https://api.identitycore.dev/api/v1/verifications/ver_01JABC.../evidence-report \\
+${apiClientHeaders}`,
+      },
+      {
+        label: "TypeScript",
+        language: "ts",
+        code: `const response = await fetch(
+  "https://api.identitycore.dev/api/v1/verifications/ver_01JABC.../evidence-report",
+  {
+    headers: {
+      Authorization: \`Bearer \${process.env.IDENTITYCORE_API_KEY}\`,
+      "X-Client-Id": process.env.IDENTITYCORE_CLIENT_ID ?? "",
+    },
+  },
+);
+
+const evidenceReport = await response.json();`,
       },
       {
         label: "Python",
@@ -258,11 +576,14 @@ const events = await response.json();`,
         code: `import requests
 
 response = requests.get(
-    "https://api.identitycore.dev/api/v1/events?limit=20",
-    headers={"Authorization": f"Bearer {IDENTITYCORE_API_KEY}"},
+    "https://api.identitycore.dev/api/v1/verifications/ver_01JABC.../evidence-report",
+    headers={
+        "Authorization": f"Bearer {IDENTITYCORE_API_KEY}",
+        "X-Client-Id": IDENTITYCORE_CLIENT_ID,
+    },
 )
 
-events = response.json()`,
+evidence_report = response.json()`,
       },
     ],
   },

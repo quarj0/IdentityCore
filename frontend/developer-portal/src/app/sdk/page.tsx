@@ -5,7 +5,7 @@ export default function SdkPage() {
   return (
     <DocsLayout
       title="SDKs"
-      description="Use IdentityCore SDKs to create and monitor hosted verification requests from your backend."
+      description="Use IdentityCore SDKs to create and monitor hosted verifications from your backend."
     >
       <section className="rounded-3xl border border-slate-200 bg-white p-6">
         <h2 className="text-xl font-semibold">Python SDK</h2>
@@ -18,7 +18,7 @@ export default function SdkPage() {
             Send <code>X-Client-Id</code> and <code>Authorization: Bearer</code>{" "}
             headers automatically.
           </li>
-          <li>List active verification templates before creating a request.</li>
+          <li>List active verification templates before creating a verification.</li>
           <li>Create, retrieve, cancel, resend, and inspect verification evidence URLs.</li>
         </ul>
       </section>

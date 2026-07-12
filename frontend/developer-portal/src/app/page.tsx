@@ -9,7 +9,7 @@ export default function DeveloperPortalHome() {
   return (
     <DocsLayout
       title="Build with IdentityCore"
-      description="Use IdentityCore APIs, webhooks, sandbox tools, and workflow sessions to integrate digital identity infrastructure into your product."
+      description="Use IdentityCore APIs, webhooks, sandbox tools, and verifications to integrate digital identity infrastructure into your product."
     >
       <div className="grid gap-6 md:grid-cols-2">
         {cards.map((item) => (

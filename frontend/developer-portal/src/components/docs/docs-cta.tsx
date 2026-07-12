@@ -10,8 +10,8 @@ export function DocsCTA() {
       </h2>
 
       <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
-        Start in sandbox, test workflow sessions, receive mock webhook events,
-        and move toward production when your organization is approved.
+        Start in sandbox, test verifications and webhook events, and move
+        toward production when your organization is approved.
       </p>
 
       <div className="mt-8 flex flex-wrap gap-3">

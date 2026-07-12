@@ -32,3 +32,18 @@ class CatalogEndpointTests(APITestCase):
             response.data["data"][0]["supported_document_types"][0]["document_type"],
             "national_id",
         )
+
+    def test_docs_overview_returns_public_api_metadata(self):
+        response = self.client.get(reverse("docs-overview"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["success"])
+        data = response.data["data"]
+        self.assertEqual(data["api_version"], "1.0")
+        self.assertEqual(data["base_urls"]["development"], "http://localhost:8000/api/v1")
+        self.assertIn("/verifications/", [item["path"] for item in data["resources"]])
+        sdk_status = {item["language"]: item["status"] for item in data["sdk_status"]}
+        self.assertEqual(sdk_status["python"], "ready")
+        self.assertEqual(sdk_status["javascript"], "ready")
+        self.assertEqual(sdk_status["java"], "not_started")
+        self.assertEqual(sdk_status["csharp"], "not_started")

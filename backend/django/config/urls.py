@@ -6,6 +6,7 @@ from config.api_views import (
     CountryListView,
     CountryProfileListView,
     DocumentTypeListView,
+    PublicDocsOverviewView,
 )
 from config.graphql import schema
 from config.graphql_view import AuthenticatedGraphQLView
@@ -32,6 +33,7 @@ urlpatterns = [
         CountryProfileListView.as_view(),
         name="country-profile-list",
     ),
+    path("api/v1/docs/overview", PublicDocsOverviewView.as_view(), name="docs-overview"),
     path("api/v1/countries", CountryListView.as_view(), name="country-list"),
     path("api/v1/audit-events/", include("apps.audit.urls")),
     path("api/v1/auth/", include("apps.accounts.urls")),

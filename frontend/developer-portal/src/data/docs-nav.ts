@@ -35,7 +35,7 @@ export const docsNav: DocsNavGroup[] = [
       {
         href: "/quickstart",
         label: "Quickstart",
-        description: "Create your first workflow session",
+        description: "Create your first verification",
         icon: TerminalSquare,
       },
       {
@@ -69,8 +69,8 @@ export const docsNav: DocsNavGroup[] = [
       },
       {
         href: "/sandbox",
-        label: "Sandbox & mocks",
-        description: "Test workflows safely",
+        label: "Sandbox",
+        description: "Test the live API safely",
         icon: FlaskConical,
       },
       {

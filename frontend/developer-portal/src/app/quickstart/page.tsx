@@ -6,27 +6,30 @@ export default function QuickstartPage() {
   return (
     <DocsLayout
       title="Quickstart"
-      description="Create your first workflow session and receive a hosted verification URL."
+      description="Create your first verification and receive a hosted verification URL."
     >
       <CodeBlock
-        title="Create a workflow session"
+        title="Create a verification"
         language="bash"
-        code={`curl -X POST https://api.identitycore.dev/api/v1/workflow-sessions \\
+        code={`curl -X POST https://api.identitycore.dev/api/v1/verifications/ \\
   -H "Authorization: Bearer sk_test_xxx" \\
+  -H "X-Client-Id: api_client_id" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "workflow": "customer-onboarding",
-    "subject": {
-      "email": "person@example.com"
+    "purpose": "Customer onboarding",
+    "policy_id": "pol_01JABC...",
+    "verification_subject": {
+      "full_name": "Amina Mensah",
+      "email": "amina@example.com"
     },
-    "return_url": "https://app.example.com/complete"
+    "redirect_url": "https://app.example.com/verification-complete"
   }'`}
       />
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6">
         <h2 className="text-xl font-semibold">What happens next?</h2>
         <ol className="mt-4 list-decimal space-y-3 pl-5 text-sm leading-7 text-slate-600">
-          <li>IdentityCore creates a workflow session.</li>
+          <li>IdentityCore creates a verification.</li>
           <li>
             Your application redirects the user to the hosted verification URL.
           </li>
