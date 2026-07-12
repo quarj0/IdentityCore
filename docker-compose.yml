@@ -357,7 +357,7 @@ services:
     volumes:
       - .:/app
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'celery.*beat' > /dev/null"]
+      test: ["CMD-SHELL", "python -c \"import pathlib,sys; cmd=pathlib.Path('/proc/1/cmdline').read_bytes().replace(b'\\0', b' ').decode(); sys.exit(0 if 'celery' in cmd and 'beat' in cmd else 1)\""]
       interval: 30s
       timeout: 10s
       retries: 3
