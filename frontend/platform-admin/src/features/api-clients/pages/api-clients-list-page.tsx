@@ -6,12 +6,12 @@ import { AdminListPage } from "@/components/admin-module/admin-list-page";
 import { createAdminListConfig } from "@/components/admin-module/admin-module-types";
 import { PageHeader } from "@/components/shared/page-header";
 import {
-  buildComplianceConfig,
-  fetchComplianceRecords,
-} from "@/features/compliance/live-data";
+  buildApiClientConfig,
+  fetchApiClientRecords,
+} from "@/features/api-clients/live-data";
 
-export function ComplianceListPage() {
-  const [records, setRecords] = useState<ReturnType<typeof buildComplianceConfig>["records"]>([]);
+export function ApiClientsListPage() {
+  const [records, setRecords] = useState<ReturnType<typeof buildApiClientConfig>["records"]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,7 +23,7 @@ export function ComplianceListPage() {
       setError(null);
 
       try {
-        const data = await fetchComplianceRecords();
+        const data = await fetchApiClientRecords();
         if (active) {
           setRecords(data);
         }
@@ -32,7 +32,7 @@ export function ComplianceListPage() {
           setError(
             loadError instanceof Error
               ? loadError.message
-              : "Unable to load compliance policies.",
+              : "Unable to load API clients.",
           );
         }
       } finally {
@@ -52,19 +52,17 @@ export function ComplianceListPage() {
     return (
       <div className="space-y-6 bg-white text-slate-950">
         <PageHeader
-          eyebrow="Compliance"
-          title="Loading compliance"
-          description="Fetching live compliance policies from the backend."
+          eyebrow="API clients"
+          title="Loading API clients"
+          description="Fetching live API client records from the backend."
         />
       </div>
     );
   }
 
   if (error && records.length === 0) {
-    return <EmptyState title="Unable to load compliance policies" description={error} />;
+    return <EmptyState title="Unable to load API clients" description={error} />;
   }
 
-  const config = createAdminListConfig(buildComplianceConfig(records));
-
-  return <AdminListPage config={config} />;
+  return <AdminListPage config={createAdminListConfig(buildApiClientConfig(records))} />;
 }

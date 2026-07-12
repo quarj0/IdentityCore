@@ -1,5 +1,12 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/feedback/empty-state";
-import { PageHeader } from "@/components/shared/page-header";
+import { AdminDetailPage } from "@/components/admin-module/admin-detail-page";
+import {
+  buildProvidersConfig,
+  fetchVerificationProviderRecord,
+} from "@/features/providers/live-data";
 
 type VerificationProviderDetailPageProps = {
   providerId: string;
@@ -8,17 +15,72 @@ type VerificationProviderDetailPageProps = {
 export function VerificationProviderDetailPage({
   providerId,
 }: VerificationProviderDetailPageProps) {
-  return (
-    <div className="space-y-6 bg-white text-slate-950">
-      <PageHeader
-        eyebrow="Verification providers"
-        title={`Verification Provider ${providerId}`}
-        description="Provider detail is not connected to the platform-admin console yet."
-      />
+  const [recordId, setRecordId] = useState<string | null>(null);
+  const [config, setConfig] =
+    useState<ReturnType<typeof buildProvidersConfig> | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      setError(null);
+      try {
+        const provider = await fetchVerificationProviderRecord(providerId);
+        if (!active) return;
+        const record = {
+          id: provider.id,
+          title: provider.name,
+          subtitle: `${provider.provider_type.replace(/_/g, " ")} · ${provider.code}`,
+          status: provider.status,
+          statusTone:
+            provider.status === "active"
+              ? "success"
+              : provider.status === "testing"
+                ? "warning"
+                : provider.status === "disabled"
+                  ? "danger"
+                  : provider.status === "deprecated"
+                    ? "neutral"
+                    : "info",
+          primaryMeta: provider.provider_type,
+          secondaryMeta: provider.code,
+          tertiaryMeta: `Config keys: ${Object.keys(provider.configuration || {}).length}`,
+          owner: "Platform admin",
+          updatedAt: provider.updated_at,
+          href: `/providers/${provider.id}`,
+        } as const;
+        setRecordId(record.id);
+        setConfig(buildProvidersConfig([record]));
+      } catch (loadError) {
+        if (active) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Unable to load this verification provider.",
+          );
+        }
+      }
+    }
+
+    load();
+    return () => {
+      active = false;
+    };
+  }, [providerId]);
+
+  if (error) {
+    return <EmptyState title="Verification provider unavailable" description={error} />;
+  }
+
+  if (!config || !recordId) {
+    return (
       <EmptyState
-        title="Verification provider detail is hidden"
-        description="This route is intentionally postponed until a platform-admin provider API exists."
+        title="Loading verification provider"
+        description="Fetching live provider details from the backend."
       />
-    </div>
-  );
+    );
+  }
+
+  return <AdminDetailPage id={recordId} config={config} />;
 }

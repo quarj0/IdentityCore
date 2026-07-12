@@ -4,18 +4,18 @@ import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { AdminDetailPage } from "@/components/admin-module/admin-detail-page";
 import { PageHeader } from "@/components/shared/page-header";
-import { auditEventToRecord } from "@/features/audit/live-data";
 import {
-  buildAuditConfig,
-  fetchAuditRecord,
-} from "@/features/audit/live-data";
+  buildWebhookConfig,
+  fetchWebhookRecord,
+  webhookEndpointToRecord,
+} from "@/features/webhooks/live-data";
 
-type AuditDetailPageProps = {
-  auditId: string;
+type WebhookDetailPageProps = {
+  webhookId: string;
 };
 
-export function AuditDetailPage({ auditId }: AuditDetailPageProps) {
-  const [config, setConfig] = useState<ReturnType<typeof buildAuditConfig> | null>(null);
+export function WebhookDetailPage({ webhookId }: WebhookDetailPageProps) {
+  const [config, setConfig] = useState<ReturnType<typeof buildWebhookConfig> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -25,15 +25,15 @@ export function AuditDetailPage({ auditId }: AuditDetailPageProps) {
       setError(null);
 
       try {
-        const record = await fetchAuditRecord(auditId);
+        const endpoint = await fetchWebhookRecord(webhookId);
         if (!active) return;
-        setConfig(buildAuditConfig([auditEventToRecord(record)]));
+        setConfig(buildWebhookConfig([webhookEndpointToRecord(endpoint)]));
       } catch (loadError) {
         if (active) {
           setError(
             loadError instanceof Error
               ? loadError.message
-              : "Unable to load audit event.",
+              : "Unable to load webhook endpoint.",
           );
         }
       }
@@ -43,28 +43,23 @@ export function AuditDetailPage({ auditId }: AuditDetailPageProps) {
     return () => {
       active = false;
     };
-  }, [auditId]);
+  }, [webhookId]);
 
   if (error) {
-    return (
-      <EmptyState
-        title="Unable to load audit event"
-        description={error}
-      />
-    );
+    return <EmptyState title="Unable to load webhook" description={error} />;
   }
 
   if (!config) {
     return (
       <div className="space-y-6 bg-white text-slate-950">
         <PageHeader
-          eyebrow="Platform audit"
-          title="Loading audit event"
-          description="Fetching the live audit event from the backend."
+          eyebrow="Webhooks"
+          title="Loading webhook"
+          description="Fetching the live webhook endpoint from the backend."
         />
       </div>
     );
   }
 
-  return <AdminDetailPage id={auditId} config={config} />;
+  return <AdminDetailPage id={webhookId} config={config} />;
 }

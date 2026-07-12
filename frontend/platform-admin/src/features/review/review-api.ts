@@ -3,12 +3,12 @@
 import { graphqlRequest } from "@/lib/admin-api";
 
 export interface OrganizationReviewDocument {
-  id: string;
-  filename: string;
-  file_size_bytes: number;
-  status: string;
-  storage_key: string;
-  download_url: string;
+  id?: string;
+  filename?: string;
+  file_size_bytes?: number;
+  status?: string;
+  storage_key?: string;
+  download_url?: string;
 }
 
 export interface OrganizationReviewItem {
@@ -41,7 +41,7 @@ export interface OrganizationReviewItem {
   officialWebsite: string;
   reviewPriority?: string | null;
   reviewSummary?: string | null;
-  supportingDocuments: OrganizationReviewDocument[];
+  supportingDocuments: Array<OrganizationReviewDocument | string>;
 }
 
 interface ReviewQueueResponse {
@@ -89,14 +89,7 @@ const REVIEW_FIELDS = `
   officialWebsite
   reviewPriority
   reviewSummary
-  supportingDocuments {
-    id
-    filename
-    file_size_bytes
-    status
-    storage_key
-    download_url
-  }
+  supportingDocuments
 `;
 
 export async function fetchOrganizationReviewQueue(pageSize = 50) {

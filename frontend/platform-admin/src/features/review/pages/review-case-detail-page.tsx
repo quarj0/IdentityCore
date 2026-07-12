@@ -48,6 +48,41 @@ function statusLabel(status: string) {
   return status.replace(/_/g, " ");
 }
 
+function asString(value: unknown) {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return "";
+}
+
+function normalizeSupportingDocuments(
+  documents: OrganizationReviewItem["supportingDocuments"],
+) {
+  return (documents ?? []).map((document, index) => {
+    if (typeof document === "string") {
+      return {
+        id: document || `document-${index}`,
+        filename: document || `Document ${index + 1}`,
+        status: "uploaded",
+        file_size_bytes: undefined,
+        download_url: "",
+      };
+    }
+
+    return {
+      id: asString(document.id) || `document-${index}`,
+      filename: asString(document.filename) || `Document ${index + 1}`,
+      status: asString(document.status) || "uploaded",
+      file_size_bytes:
+        typeof document.file_size_bytes === "number"
+          ? document.file_size_bytes
+          : undefined,
+      download_url: asString(document.download_url),
+    };
+  });
+}
+
 export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
   const [item, setItem] = useState<OrganizationReviewItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -153,7 +188,7 @@ export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
     );
   }
 
-  const supportingDocuments = item.supportingDocuments ?? [];
+  const supportingDocuments = normalizeSupportingDocuments(item.supportingDocuments);
 
   return (
     <div className="space-y-6 bg-white text-slate-950">
@@ -284,16 +319,19 @@ export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
                       <div>
                         <p className="text-sm font-medium text-slate-950">{document.filename}</p>
                         <p className="mt-1 text-xs text-slate-500">
-                          {document.status} · {document.file_size_bytes} bytes
+                          {document.status}
+                          {document.file_size_bytes ? ` · ${document.file_size_bytes} bytes` : ""}
                         </p>
                       </div>
                     </div>
 
-                    <Button asChild variant="outline" size="sm">
-                      <a href={document.download_url} target="_blank" rel="noreferrer">
-                        Open file
-                      </a>
-                    </Button>
+                    {document.download_url ? (
+                      <Button asChild variant="outline" size="sm">
+                        <a href={document.download_url} target="_blank" rel="noreferrer">
+                          Open file
+                        </a>
+                      </Button>
+                    ) : null}
                   </div>
                 ))
               ) : (

@@ -1,18 +1,72 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/feedback/empty-state";
+import { AdminListPage } from "@/components/admin-module/admin-list-page";
+import { createAdminListConfig } from "@/components/admin-module/admin-module-types";
 import { PageHeader } from "@/components/shared/page-header";
+import { buildAuditConfig, fetchAuditRecords } from "@/features/audit/live-data";
 
 export function AuditListPage() {
-  return (
-    <div className="space-y-6 bg-white text-slate-950">
-      <PageHeader
-        eyebrow="Platform audit"
-        title="Audit"
-        description="Tenant-scoped audit data is not exposed in the platform-admin console yet."
-      />
+  const [records, setRecords] = useState<ReturnType<typeof buildAuditConfig>["records"]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const data = await fetchAuditRecords();
+        if (active) {
+          setRecords(data);
+        }
+      } catch (loadError) {
+        if (active) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Unable to load audit events.",
+          );
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (loading && records.length === 0) {
+    return (
+      <div className="space-y-6 bg-white text-slate-950">
+        <PageHeader
+          eyebrow="Platform audit"
+          title="Loading audit"
+          description="Fetching the live audit trail from the backend."
+        />
+      </div>
+    );
+  }
+
+  if (error && records.length === 0) {
+    return (
       <EmptyState
-        title="Audit is not connected here"
-        description="This surface will stay hidden from the internal console until a platform-admin API is available."
+        title="Unable to load audit events"
+        description={error}
       />
-    </div>
-  );
+    );
+  }
+
+  const config = createAdminListConfig(buildAuditConfig(records));
+
+  return <AdminListPage config={config} />;
 }

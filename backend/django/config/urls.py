@@ -42,6 +42,7 @@ urlpatterns = [
     path("api/v1/biometrics/", include("apps.biometrics.urls")),
     path("api/v1/notifications/", include("apps.notifications.urls")),
     path("api/v1/organization/", include("apps.organizations.urls")),
+    path("api/v1/platform-admin/", include("apps.reviewers.urls")),
     path("api/v1/policies/", include("apps.verification_policies.urls")),
     path("api/v1/providers/", include("apps.providers.urls")),
     path("api/v1/projects/", include("apps.projects.urls")),
