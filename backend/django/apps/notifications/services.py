@@ -1,7 +1,7 @@
 from django.db import transaction
 from django.utils import timezone
 
-from apps.accounts.models import PlatformUserStatus
+from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.notifications.models import (
     Notification,
     NotificationChannel,
@@ -17,7 +17,8 @@ from apps.notifications.providers import (
 
 def create_notification(
     *,
-    tenant,
+    tenant=None,
+    tenant_id: str | None = None,
     recipient_type: str,
     recipient: str,
     channel: str,
@@ -25,8 +26,10 @@ def create_notification(
     subject: str = "",
     body_preview: str = "",
 ) -> Notification:
+    if tenant_id is None:
+        tenant_id = getattr(tenant, "pk", None)
     return Notification.objects.create(
-        tenant=tenant,
+        tenant_id=tenant_id,
         recipient_type=recipient_type,
         recipient=recipient,
         channel=channel,
@@ -45,7 +48,7 @@ def queue_verification_created_notifications(
     if subject.email:
         notifications.append(
             create_notification(
-                tenant=verification.tenant,
+                tenant_id=verification.tenant_id,
                 recipient_type=NotificationRecipientType.VERIFICATION_SUBJECT,
                 recipient=subject.email,
                 channel=NotificationChannel.EMAIL,
@@ -82,7 +85,7 @@ def queue_verification_status_notifications(
     if subject.email and decision in status_subject_map:
         notifications.append(
             create_notification(
-                tenant=verification.tenant,
+                tenant_id=verification.tenant_id,
                 recipient_type=NotificationRecipientType.VERIFICATION_SUBJECT,
                 recipient=subject.email,
                 channel=NotificationChannel.EMAIL,
@@ -93,13 +96,14 @@ def queue_verification_status_notifications(
         )
 
     if decision == "manual_review_required":
-        platform_users = verification.tenant.platform_users.filter(
-            status=PlatformUserStatus.ACTIVE
+        platform_users = PlatformUser.objects.filter(
+            tenant_id=verification.tenant_id,
+            status=PlatformUserStatus.ACTIVE,
         )
         for user in platform_users:
             notifications.append(
                 create_notification(
-                    tenant=verification.tenant,
+                    tenant_id=verification.tenant_id,
                     recipient_type=NotificationRecipientType.PLATFORM_USER,
                     recipient=user.email,
                     channel=NotificationChannel.EMAIL,

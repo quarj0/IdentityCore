@@ -53,10 +53,10 @@ def issue_password_reset_token(
 
 
 def queue_password_reset_notification(*, user: PlatformUser, reset_url: str) -> None:
-    if user.tenant is None:
+    if user.tenant_id is None:
         return
     create_notification(
-        tenant=user.tenant,
+        tenant_id=user.tenant_id,
         recipient_type=NotificationRecipientType.PLATFORM_USER,
         recipient=user.email,
         channel=NotificationChannel.EMAIL,
@@ -78,9 +78,9 @@ def request_password_reset(*, email: str, request=None) -> bool:
         user=user,
         reset_url=build_password_reset_url(raw_token),
     )
-    if user.tenant is not None:
+    if user.tenant_id is not None:
         record_audit_event(
-            tenant=user.tenant,
+            tenant_id=user.tenant_id,
             actor=user,
             request=request,
             action="user.password_reset_requested",
@@ -96,7 +96,7 @@ def request_password_reset(*, email: str, request=None) -> bool:
 def reset_password_with_token(*, token: str, new_password: str, request=None) -> PlatformUser:
     token_hash = hash_password_reset_token(token)
     reset_token = (
-        PasswordResetToken.objects.select_related("user", "user__tenant")
+        PasswordResetToken.objects.select_related("user")
         .filter(token_hash=token_hash)
         .first()
     )
@@ -125,9 +125,9 @@ def reset_password_with_token(*, token: str, new_password: str, request=None) ->
         updated_at=timezone.now(),
     )
 
-    if user.tenant is not None:
+    if user.tenant_id is not None:
         record_audit_event(
-            tenant=user.tenant,
+            tenant_id=user.tenant_id,
             actor=user,
             request=request,
             action="user.password_reset_completed",
@@ -156,9 +156,9 @@ def change_password(
         used_at__isnull=True,
         revoked_at__isnull=True,
     ).update(revoked_at=timezone.now(), updated_at=timezone.now())
-    if user.tenant is not None:
+    if user.tenant_id is not None:
         record_audit_event(
-            tenant=user.tenant,
+            tenant_id=user.tenant_id,
             actor=user,
             request=request,
             action="user.password_changed",

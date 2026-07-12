@@ -70,7 +70,7 @@ def queue_email_verification_notification(
     if user.tenant_id is None:
         raise ValueError("Email verification notifications require a tenant user.")
     return create_notification(
-        tenant=user.tenant,
+        tenant_id=user.tenant_id,
         recipient_type=NotificationRecipientType.PLATFORM_USER,
         recipient=user.email,
         channel=NotificationChannel.EMAIL,
@@ -102,7 +102,7 @@ def verify_email_token_with_status(raw_token: str) -> EmailVerificationResult:
     token_hash = hash_email_verification_token(raw_token)
     token = (
         EmailVerificationToken.objects.select_for_update(of=("self",))
-        .select_related("user", "user__tenant")
+        .select_related("user")
         .filter(token_hash=token_hash)
         .first()
     )
