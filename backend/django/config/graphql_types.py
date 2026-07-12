@@ -274,6 +274,13 @@ class PlatformDashboardSummaryNode:
     audit_events_total: int
     workflows_total: int
     workflow_versions_total: int
+    billing_records_total: int
+    analytics_dashboards_total: int
+    incidents_total: int
+    security_cases_total: int
+    support_tickets_total: int
+    templates_total: int
+    feature_flags_total: int
 
 
 @strawberry.type
@@ -370,6 +377,130 @@ class WorkflowVersionNode:
     published_by_id: str
     published_by_email: str
     published_at: str
+
+
+@strawberry.type
+class BillingRecordNode:
+    id: str
+    organization_id: str
+    tenant_id: str
+    title: str
+    subtitle: str
+    status: str
+    monthly_recurring_revenue: str
+    monthly_check_count: int
+    current_invoice: str
+    plan: str
+    billing_cycle: str
+    owner_team: str
+    notes: str
+    created_at: str
+    updated_at: str
+
+
+@strawberry.type
+class AnalyticsDashboardNode:
+    id: str
+    code: str
+    title: str
+    description: str
+    status: str
+    primary_metric: str
+    secondary_metric: str
+    tertiary_metric: str
+    time_window: str
+    owner_team: str
+    config: strawberry.scalars.JSON
+    created_at: str
+    updated_at: str
+
+
+@strawberry.type
+class IncidentNode:
+    id: str
+    title: str
+    summary: str
+    status: str
+    severity: str
+    owner_team: str
+    affected_surface: str
+    detected_at: str
+    resolved_at: str | None
+    metadata: strawberry.scalars.JSON
+    created_at: str
+    updated_at: str
+
+
+@strawberry.type
+class SecurityCaseNode:
+    id: str
+    title: str
+    summary: str
+    status: str
+    severity: str
+    owner_team: str
+    signal: str
+    affected_surface: str
+    detected_at: str
+    resolved_at: str | None
+    metadata: strawberry.scalars.JSON
+    created_at: str
+    updated_at: str
+
+
+@strawberry.type
+class SupportTicketNode:
+    id: str
+    organization_id: str | None
+    organization_name: str
+    title: str
+    summary: str
+    status: str
+    priority: str
+    owner_team: str
+    issue_type: str
+    requester_email: str
+    metadata: strawberry.scalars.JSON
+    created_at: str
+    updated_at: str
+
+
+@strawberry.type
+class TemplateNode:
+    id: str
+    name: str
+    description: str
+    category: str
+    status: str
+    version: str
+    countries: list[str]
+    required_checks: list[str]
+    usage_count: int
+    cloned_by_organizations: int
+    owner_team: str
+    risk_level: str
+    created_by_id: str
+    created_by_email: str
+    created_at: str
+    updated_at: str
+
+
+@strawberry.type
+class FeatureFlagNode:
+    id: str
+    key: str
+    title: str
+    description: str
+    status: str
+    rollout_percent: int
+    audience: str
+    owner_team: str
+    channel: str
+    metadata: strawberry.scalars.JSON
+    created_by_id: str
+    created_by_email: str
+    created_at: str
+    updated_at: str
 
 
 @strawberry.type

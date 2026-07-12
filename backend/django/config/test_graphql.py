@@ -11,10 +11,17 @@ from apps.access_control.models import UserRole
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.api_clients.models import APIClient
 from apps.access_control.models import Role, RoleScope
+from apps.analytics.models import AnalyticsDashboard
+from apps.billing.models import BillingRecord
+from apps.feature_flags.models import FeatureFlag
+from apps.incidents.models import Incident
 from apps.providers.models import Provider, ProviderStatus, ProviderType
 from apps.organizations.models import Organization, OrganizationSupportingDocument
 from apps.risk.models import RiskAssessment
+from apps.security.models import SecurityCase
+from apps.support.models import SupportTicket
 from apps.tenants.models import Tenant
+from apps.templates.models import Template
 from apps.webhooks.models import WebhookEndpoint
 from apps.verification_policies.models import VerificationPolicy
 from apps.verifications.models import (
@@ -1275,6 +1282,90 @@ class PlatformAdminGraphQLTests(APITestCase):
         )
         self.webhook_endpoint.set_secret("webhook-secret")
         self.webhook_endpoint.save()
+        self.billing_record = BillingRecord.objects.create(
+            organization=self.organization,
+            tenant=self.tenant,
+            title="Ghana FinTrust Bank",
+            subtitle="Enterprise subscription with usage-based verification billing.",
+            status="paid",
+            monthly_recurring_revenue="$12,840 MRR",
+            monthly_check_count=482100,
+            current_invoice="Invoice INV-1048",
+            plan="Enterprise",
+            billing_cycle="Monthly",
+            owner_team="Billing Team",
+            notes="Verified by finance ops.",
+        )
+        self.analytics_dashboard = AnalyticsDashboard.objects.create(
+            code="verification_volume",
+            title="Verification Volume",
+            description="Global verification activity across organizations, countries and workflows.",
+            status="live",
+            primary_metric="482,910 verifications",
+            secondary_metric="+18.7%",
+            tertiary_metric="30 days",
+            time_window="30 days",
+            owner_team="Data Platform",
+            config_json={"chart": "timeseries"},
+        )
+        self.incident = Incident.objects.create(
+            title="Webhook delivery latency elevated",
+            summary="Retries increased for organization webhooks in Africa West.",
+            status="open",
+            severity="warning",
+            owner_team="Support",
+            affected_surface="webhooks",
+            detected_at=timezone.now() - timedelta(minutes=12),
+            metadata_json={"region": "Africa West"},
+        )
+        self.security_case = SecurityCase.objects.create(
+            title="Suspicious admin login",
+            summary="Unusual location and impossible travel signal for platform admin account.",
+            status="investigating",
+            severity="high",
+            owner_team="Security Team",
+            signal="impossible travel",
+            affected_surface="admin access",
+            detected_at=timezone.now() - timedelta(minutes=15),
+            metadata_json={"ip": "197.251.xxx.xxx"},
+        )
+        self.support_ticket = SupportTicket.objects.create(
+            organization=self.organization,
+            title="Webhook verification result missing",
+            summary="Ghana FinTrust Bank reports delayed webhook response for completed verification.",
+            status="open",
+            priority="high",
+            owner_team="Support Lead",
+            issue_type="webhook",
+            requester_email="support@fintrust.example",
+            metadata_json={"channel": "platform-admin"},
+        )
+        self.template = Template.objects.create(
+            name="Ghana Card Standard KYC",
+            description="Official Ghana Card verification template with document OCR, face match, liveness and manual review fallback.",
+            category="government_id",
+            status="published",
+            version="v1.4.2",
+            countries_json=["Ghana"],
+            required_checks_json=["Document OCR", "Face match", "Liveness"],
+            usage_count=48210,
+            cloned_by_organizations=84,
+            owner_team="Compliance Team",
+            risk_level="Low",
+            created_by=self.tenant_user,
+        )
+        self.feature_flag = FeatureFlag.objects.create(
+            key="passive_liveness_beta",
+            title="Passive Liveness Beta",
+            description="Gradual rollout for passive liveness checks in verification workflows.",
+            status="enabled",
+            rollout_percent=35,
+            audience="Beta",
+            owner_team="AI Platform",
+            channel="Internal",
+            metadata_json={"organizations": 12},
+            created_by=self.tenant_user,
+        )
 
     def post_graphql(
         self, query: str, variables: dict | None = None, token="__default__"
@@ -1339,6 +1430,85 @@ class PlatformAdminGraphQLTests(APITestCase):
         self.assertEqual(payload["platformApiClients"][0]["publicId"], self.api_client.public_id)
         self.assertEqual(
             payload["platformWebhookEndpoints"][0]["id"], self.webhook_endpoint.public_id
+        )
+
+    def test_platform_admin_graphql_queries_return_remaining_live_console_data(self):
+        response = self.post_graphql(
+            """
+                query PlatformAdminExpandedData {
+                  platformDashboardSummary {
+                    billingRecordsTotal
+                    analyticsDashboardsTotal
+                    incidentsTotal
+                    securityCasesTotal
+                    supportTicketsTotal
+                    templatesTotal
+                    featureFlagsTotal
+                  }
+                  platformBillingRecords {
+                    id
+                    title
+                    status
+                  }
+                  platformAnalyticsDashboards {
+                    id
+                    title
+                    status
+                  }
+                  platformIncidents {
+                    id
+                    title
+                    status
+                  }
+                  platformSecurityCases {
+                    id
+                    title
+                    status
+                  }
+                  platformSupportTickets {
+                    id
+                    title
+                    status
+                  }
+                  platformTemplates {
+                    id
+                    name
+                    status
+                  }
+                  platformFeatureFlags {
+                    id
+                    key
+                    status
+                  }
+                }
+            """,
+            token=self.platform_access_token,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = response.json()["data"]
+        self.assertEqual(payload["platformDashboardSummary"]["billingRecordsTotal"], 1)
+        self.assertEqual(payload["platformDashboardSummary"]["analyticsDashboardsTotal"], 1)
+        self.assertEqual(payload["platformDashboardSummary"]["incidentsTotal"], 1)
+        self.assertEqual(payload["platformDashboardSummary"]["securityCasesTotal"], 1)
+        self.assertEqual(payload["platformDashboardSummary"]["supportTicketsTotal"], 1)
+        self.assertEqual(payload["platformDashboardSummary"]["templatesTotal"], 1)
+        self.assertEqual(payload["platformDashboardSummary"]["featureFlagsTotal"], 1)
+        self.assertEqual(payload["platformBillingRecords"][0]["id"], self.billing_record.public_id)
+        self.assertEqual(
+            payload["platformAnalyticsDashboards"][0]["id"],
+            self.analytics_dashboard.public_id,
+        )
+        self.assertEqual(payload["platformIncidents"][0]["id"], self.incident.public_id)
+        self.assertEqual(
+            payload["platformSecurityCases"][0]["id"], self.security_case.public_id
+        )
+        self.assertEqual(
+            payload["platformSupportTickets"][0]["id"], self.support_ticket.public_id
+        )
+        self.assertEqual(payload["platformTemplates"][0]["id"], self.template.public_id)
+        self.assertEqual(
+            payload["platformFeatureFlags"][0]["id"], self.feature_flag.public_id
         )
 
     def test_platform_admin_invite_accept_deactivate_and_role_assignment(self):

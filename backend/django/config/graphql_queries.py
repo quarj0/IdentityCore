@@ -21,16 +21,29 @@ from apps.providers.models import Provider
 from apps.providers.serializers import serialize_provider
 from apps.reviewers.models import PlatformAdminInvitation
 from apps.accounts.serializers import serialize_user
+from apps.analytics.models import AnalyticsDashboard
+from apps.analytics.serializers import serialize_analytics_dashboard
+from apps.billing.models import BillingRecord
+from apps.billing.serializers import serialize_billing_record
+from apps.feature_flags.models import FeatureFlag
+from apps.feature_flags.serializers import serialize_feature_flag
+from apps.incidents.models import Incident
+from apps.incidents.serializers import serialize_incident
 from apps.verification_policies.models import VerificationPolicy
 from apps.verification_policies.serializers import serialize_verification_policy
 from apps.verifications.models import Verification, VerificationStatus
 from apps.verifications.serializers import paginate_results, serialize_manual_review_summary, serialize_verification
+from apps.security.models import SecurityCase
+from apps.security.serializers import serialize_security_case
+from apps.support.models import SupportTicket
+from apps.support.serializers import serialize_support_ticket
+from apps.templates.models import Template
+from apps.templates.serializers import serialize_template
 from apps.webhooks.models import WebhookEndpoint
 from apps.webhooks.serializers import serialize_webhook_endpoint
 from apps.tenants.models import Tenant
 from apps.tenants.serializers import serialize_tenant
 from apps.projects.models import Project
-from apps.organizations.models import OrganizationSupportingDocument
 from apps.workflows.models import Workflow, WorkflowVersion
 
 from config.graphql_auth import require_platform_admin, require_tenant_user, serialize_platform_admin_invitation
@@ -62,6 +75,13 @@ from config.graphql_types import (
     to_verification_node,
     TenantNode,
     ProjectNode,
+    BillingRecordNode,
+    AnalyticsDashboardNode,
+    IncidentNode,
+    SecurityCaseNode,
+    SupportTicketNode,
+    TemplateNode,
+    FeatureFlagNode,
     WorkflowNode,
     WorkflowVersionNode,
 )
@@ -363,7 +383,258 @@ class Query:
             audit_events_total=AuditEvent.objects.count(),
             workflows_total=Workflow.objects.count(),
             workflow_versions_total=WorkflowVersion.objects.count(),
+            billing_records_total=BillingRecord.objects.count(),
+            analytics_dashboards_total=AnalyticsDashboard.objects.count(),
+            incidents_total=Incident.objects.count(),
+            security_cases_total=SecurityCase.objects.count(),
+            support_tickets_total=SupportTicket.objects.count(),
+            templates_total=Template.objects.count(),
+            feature_flags_total=FeatureFlag.objects.count(),
         )
+
+    @strawberry.field
+    def platform_billing_records(
+        self,
+        info: Info,
+        status: str | None = None,
+        search: str | None = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> list[BillingRecordNode]:
+        require_platform_admin(info)
+        queryset = BillingRecord.objects.select_related("organization", "tenant").order_by("-updated_at")
+        if status:
+            queryset = queryset.filter(status=status)
+        if search:
+            queryset = queryset.filter(
+                models.Q(title__icontains=search)
+                | models.Q(subtitle__icontains=search)
+                | models.Q(organization__name__icontains=search)
+            )
+        page_obj, _ = paginate_results(queryset, page, page_size)
+        return [
+            BillingRecordNode(**serialize_billing_record(item))
+            for item in page_obj.object_list
+        ]
+
+    @strawberry.field
+    def platform_billing_record(
+        self, info: Info, billing_id: str
+    ) -> BillingRecordNode | None:
+        require_platform_admin(info)
+        record = (
+            BillingRecord.objects.select_related("organization", "tenant")
+            .filter(public_id=billing_id)
+            .first()
+        )
+        return BillingRecordNode(**serialize_billing_record(record)) if record else None
+
+    @strawberry.field
+    def platform_analytics_dashboards(
+        self,
+        info: Info,
+        status: str | None = None,
+        search: str | None = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> list[AnalyticsDashboardNode]:
+        require_platform_admin(info)
+        queryset = AnalyticsDashboard.objects.order_by("title")
+        if status:
+            queryset = queryset.filter(status=status)
+        if search:
+            queryset = queryset.filter(
+                models.Q(title__icontains=search)
+                | models.Q(description__icontains=search)
+                | models.Q(code__icontains=search)
+            )
+        page_obj, _ = paginate_results(queryset, page, page_size)
+        return [
+            AnalyticsDashboardNode(**serialize_analytics_dashboard(item))
+            for item in page_obj.object_list
+        ]
+
+    @strawberry.field
+    def platform_analytics_dashboard(
+        self, info: Info, dashboard_id: str
+    ) -> AnalyticsDashboardNode | None:
+        require_platform_admin(info)
+        dashboard = AnalyticsDashboard.objects.filter(public_id=dashboard_id).first()
+        return (
+            AnalyticsDashboardNode(**serialize_analytics_dashboard(dashboard))
+            if dashboard
+            else None
+        )
+
+    @strawberry.field
+    def platform_incidents(
+        self,
+        info: Info,
+        status: str | None = None,
+        search: str | None = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> list[IncidentNode]:
+        require_platform_admin(info)
+        queryset = Incident.objects.order_by("-detected_at")
+        if status:
+            queryset = queryset.filter(status=status)
+        if search:
+            queryset = queryset.filter(
+                models.Q(title__icontains=search)
+                | models.Q(summary__icontains=search)
+                | models.Q(owner_team__icontains=search)
+            )
+        page_obj, _ = paginate_results(queryset, page, page_size)
+        return [IncidentNode(**serialize_incident(item)) for item in page_obj.object_list]
+
+    @strawberry.field
+    def platform_incident(self, info: Info, incident_id: str) -> IncidentNode | None:
+        require_platform_admin(info)
+        incident = Incident.objects.filter(public_id=incident_id).first()
+        return IncidentNode(**serialize_incident(incident)) if incident else None
+
+    @strawberry.field
+    def platform_security_cases(
+        self,
+        info: Info,
+        status: str | None = None,
+        search: str | None = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> list[SecurityCaseNode]:
+        require_platform_admin(info)
+        queryset = SecurityCase.objects.order_by("-detected_at")
+        if status:
+            queryset = queryset.filter(status=status)
+        if search:
+            queryset = queryset.filter(
+                models.Q(title__icontains=search)
+                | models.Q(summary__icontains=search)
+                | models.Q(owner_team__icontains=search)
+            )
+        page_obj, _ = paginate_results(queryset, page, page_size)
+        return [
+            SecurityCaseNode(**serialize_security_case(item))
+            for item in page_obj.object_list
+        ]
+
+    @strawberry.field
+    def platform_security_case(
+        self, info: Info, security_id: str
+    ) -> SecurityCaseNode | None:
+        require_platform_admin(info)
+        case = SecurityCase.objects.filter(public_id=security_id).first()
+        return SecurityCaseNode(**serialize_security_case(case)) if case else None
+
+    @strawberry.field
+    def platform_support_tickets(
+        self,
+        info: Info,
+        status: str | None = None,
+        search: str | None = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> list[SupportTicketNode]:
+        require_platform_admin(info)
+        queryset = SupportTicket.objects.select_related("organization").order_by("-updated_at")
+        if status:
+            queryset = queryset.filter(status=status)
+        if search:
+            queryset = queryset.filter(
+                models.Q(title__icontains=search)
+                | models.Q(summary__icontains=search)
+                | models.Q(owner_team__icontains=search)
+                | models.Q(issue_type__icontains=search)
+            )
+        page_obj, _ = paginate_results(queryset, page, page_size)
+        return [
+            SupportTicketNode(**serialize_support_ticket(item))
+            for item in page_obj.object_list
+        ]
+
+    @strawberry.field
+    def platform_support_ticket(
+        self, info: Info, ticket_id: str
+    ) -> SupportTicketNode | None:
+        require_platform_admin(info)
+        ticket = (
+            SupportTicket.objects.select_related("organization")
+            .filter(public_id=ticket_id)
+            .first()
+        )
+        return SupportTicketNode(**serialize_support_ticket(ticket)) if ticket else None
+
+    @strawberry.field
+    def platform_templates(
+        self,
+        info: Info,
+        status: str | None = None,
+        search: str | None = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> list[TemplateNode]:
+        require_platform_admin(info)
+        queryset = Template.objects.select_related("created_by").order_by("name")
+        if status:
+            queryset = queryset.filter(status=status)
+        if search:
+            queryset = queryset.filter(
+                models.Q(name__icontains=search)
+                | models.Q(description__icontains=search)
+                | models.Q(category__icontains=search)
+            )
+        page_obj, _ = paginate_results(queryset, page, page_size)
+        return [TemplateNode(**serialize_template(item)) for item in page_obj.object_list]
+
+    @strawberry.field
+    def platform_template(
+        self, info: Info, template_id: str
+    ) -> TemplateNode | None:
+        require_platform_admin(info)
+        template = (
+            Template.objects.select_related("created_by")
+            .filter(public_id=template_id)
+            .first()
+        )
+        return TemplateNode(**serialize_template(template)) if template else None
+
+    @strawberry.field
+    def platform_feature_flags(
+        self,
+        info: Info,
+        status: str | None = None,
+        search: str | None = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> list[FeatureFlagNode]:
+        require_platform_admin(info)
+        queryset = FeatureFlag.objects.select_related("created_by").order_by("key")
+        if status:
+            queryset = queryset.filter(status=status)
+        if search:
+            queryset = queryset.filter(
+                models.Q(key__icontains=search)
+                | models.Q(title__icontains=search)
+                | models.Q(owner_team__icontains=search)
+            )
+        page_obj, _ = paginate_results(queryset, page, page_size)
+        return [
+            FeatureFlagNode(**serialize_feature_flag(item))
+            for item in page_obj.object_list
+        ]
+
+    @strawberry.field
+    def platform_feature_flag(
+        self, info: Info, flag_id: str
+    ) -> FeatureFlagNode | None:
+        require_platform_admin(info)
+        flag = (
+            FeatureFlag.objects.select_related("created_by")
+            .filter(public_id=flag_id)
+            .first()
+        )
+        return FeatureFlagNode(**serialize_feature_flag(flag)) if flag else None
 
     @strawberry.field
     def platform_organizations(
