@@ -23,6 +23,26 @@ from common.storage import get_object_storage_temp_bucket_name
 logger = logging.getLogger(__name__)
 
 
+def _classification_requests_manual_review(result: dict) -> bool:
+    manual_review = result.get("manual_review") or {}
+    return bool(
+        result.get("provider_error")
+        or result.get("requires_manual_review")
+        or result.get("workflow_action") == "continue_with_review"
+        or manual_review.get("required")
+    )
+
+
+def _quality_result_requires_review(result: dict) -> bool:
+    issues = set(result.get("issues") or [])
+    return "document_media_missing" in issues
+
+
+def _quality_result_requires_rejection(result: dict) -> bool:
+    issues = set(result.get("issues") or [])
+    return bool(issues) and not _quality_result_requires_review(result)
+
+
 def _manual_review_classification_result(*, expected_document_type: str) -> dict:
     return {
         "status": "completed",
@@ -103,15 +123,16 @@ def process_identity_document_task(identity_document_id: str) -> str:
             )
             capture.quality_score = Decimal(str(quality_result.get("quality_score", "0")))
             capture.status = (
-                DocumentCaptureStatus.VALIDATED
-                if not quality_result.get("issues")
-                else DocumentCaptureStatus.REJECTED
+                DocumentCaptureStatus.REJECTED
+                if _quality_result_requires_rejection(quality_result)
+                else DocumentCaptureStatus.VALIDATED
             )
             capture.save(update_fields=["quality_score", "status", "updated_at"])
             if lowest_quality_score is None or capture.quality_score < lowest_quality_score:
                 lowest_quality_score = capture.quality_score
             if quality_result.get("issues"):
-                latest_quality_status = DocumentCaptureStatus.REJECTED
+                if _quality_result_requires_rejection(quality_result):
+                    latest_quality_status = DocumentCaptureStatus.REJECTED
                 issues_found.extend(quality_result["issues"])
 
         if quality_provider_check is not None:
@@ -178,6 +199,10 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 verification.public_id,
                 exc,
             )
+        if classification_result is not None and _classification_requests_manual_review(
+            classification_result
+        ):
+            manual_review_required = True
 
         try:
             ocr_result = run_document_ocr(
@@ -220,6 +245,12 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 verification.public_id,
                 exc,
             )
+        if ocr_result is not None and (
+            ocr_result.get("requires_manual_review")
+            or ocr_result.get("provider_error")
+            or "document_media_missing" in set(ocr_result.get("issues") or [])
+        ):
+            manual_review_required = True
 
         identity_document.extracted_data_json = {
             **ocr_result.get("extracted_fields", {}),

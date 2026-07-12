@@ -10,10 +10,15 @@ from typing import Any
 
 import cv2
 import numpy as np
+from botocore.exceptions import ClientError
 
 from app.document_classification import build_ocr_lines, classify_document
 from app.settings import get_settings
-from app.storage import fetch_object_bytes
+from app.storage import (
+    fetch_object_bytes,
+    get_object_storage_media_bucket_name,
+    get_object_storage_temp_bucket_name,
+)
 
 
 class ProcessingConfigurationError(RuntimeError):
@@ -22,6 +27,14 @@ class ProcessingConfigurationError(RuntimeError):
 
 class ProcessingError(RuntimeError):
     pass
+
+
+class MediaAssetNotFoundError(RuntimeError):
+    def __init__(self, storage_key: str, bucket_name: str):
+        message = f"Media asset '{storage_key}' was not found in bucket '{bucket_name}'."
+        super().__init__(message)
+        self.storage_key = storage_key
+        self.bucket_name = bucket_name
 
 
 @dataclass
@@ -84,10 +97,45 @@ def _sample_video_frames(content: bytes, storage_key: str, limit: int) -> list[n
 
 def load_media_asset(storage_key: str, bucket_name: str | None = None) -> MediaAsset:
     settings = get_settings()
-    if bucket_name is None:
-        content = fetch_object_bytes(storage_key)
+    media_bucket_name = get_object_storage_media_bucket_name()
+    temp_bucket_name = get_object_storage_temp_bucket_name()
+    candidate_buckets: list[str] = []
+    if bucket_name:
+        candidate_buckets.append(bucket_name)
+        candidate_buckets.extend(
+            [
+                media_bucket_name if bucket_name != media_bucket_name else "",
+                temp_bucket_name if bucket_name != temp_bucket_name else "",
+            ]
+        )
     else:
-        content = fetch_object_bytes(storage_key, bucket_name=bucket_name)
+        candidate_buckets.extend([media_bucket_name, temp_bucket_name])
+    candidate_buckets = list(dict.fromkeys(bucket for bucket in candidate_buckets if bucket))
+    last_error: ClientError | None = None
+    content: bytes | None = None
+    resolved_bucket_name = candidate_buckets[0] if candidate_buckets else "<unconfigured>"
+    for candidate_bucket in candidate_buckets or [""]:
+        try:
+            if candidate_bucket:
+                content = fetch_object_bytes(storage_key, bucket_name=candidate_bucket)
+            else:
+                content = fetch_object_bytes(storage_key)
+            resolved_bucket_name = candidate_bucket or resolved_bucket_name
+            break
+        except ClientError as exc:
+            error_code = (exc.response.get("Error") or {}).get("Code", "")
+            if error_code in {"NoSuchKey", "404", "NotFound", "NoSuchBucket"}:
+                last_error = exc
+                continue
+            raise
+    if content is None:
+        bucket_label = resolved_bucket_name or "<unconfigured>"
+        if candidate_buckets:
+            bucket_label = ", ".join(candidate_buckets)
+        raise MediaAssetNotFoundError(
+            storage_key=storage_key,
+            bucket_name=bucket_label,
+        ) from last_error
     image = _decode_image_bytes(content)
     if image is not None:
         return MediaAsset(
@@ -202,7 +250,22 @@ def run_document_quality_pipeline(
     storage_key: str, *, bucket_name: str | None = None
 ) -> dict[str, Any]:
     settings = get_settings()
-    asset = load_media_asset(storage_key, bucket_name=bucket_name)
+    try:
+        asset = load_media_asset(storage_key, bucket_name=bucket_name)
+    except MediaAssetNotFoundError:
+        return {
+            "quality_score": 0.0,
+            "issues": ["document_media_missing"],
+            "metrics": {
+                "blur_variance": 0.0,
+                "brightness": 0.0,
+                "contrast": 0.0,
+                "glare_ratio": 0.0,
+                "quality_score": 0.0,
+            },
+            "model_name": "opencv-quality",
+            "model_version": "v1",
+        }
     metrics = _compute_image_quality_metrics(asset.primary_frame)
     issues: list[str] = []
 
@@ -491,7 +554,24 @@ def run_document_ocr_pipeline(
     *,
     bucket_name: str | None = None,
 ) -> dict[str, Any]:
-    asset = load_media_asset(storage_key, bucket_name=bucket_name)
+    try:
+        asset = load_media_asset(storage_key, bucket_name=bucket_name)
+    except MediaAssetNotFoundError:
+        return {
+            "confidence_score": 0.0,
+            "extracted_fields": {},
+            "raw_text_lines": [],
+            "issues": ["document_media_missing"],
+            "requires_manual_review": True,
+            "manual_review": {
+                "required": True,
+                "priority": "high",
+                "reason_codes": ["document_media_missing"],
+                "review_category": "document_ocr",
+            },
+            "model_name": "paddleocr",
+            "model_version": "PP-OCRv5",
+        }
     ocr_engine = get_paddle_ocr_engine()
     rgb_image = cv2.cvtColor(asset.primary_frame, cv2.COLOR_BGR2RGB)
     predictions = ocr_engine.predict(rgb_image)
@@ -516,7 +596,43 @@ def run_document_classification_pipeline(
     *,
     bucket_name: str | None = None,
 ) -> dict[str, Any]:
-    asset = load_media_asset(storage_key, bucket_name=bucket_name)
+    try:
+        asset = load_media_asset(storage_key, bucket_name=bucket_name)
+    except MediaAssetNotFoundError:
+        return {
+            "classification_status": "unknown",
+            "predicted_document_type": "unknown",
+            "predicted_country_code": None,
+            "expected_document_type": expected_document_type,
+            "matched_expected_document_type": None,
+            "confidence_score": 0.0,
+            "evidence_score": 0.0,
+            "classification_margin": 0.0,
+            "workflow_action": "continue_with_review",
+            "requires_manual_review": True,
+            "manual_review": {
+                "required": True,
+                "priority": "high",
+                "reason_codes": ["document_media_missing"],
+                "review_category": "document_classification",
+            },
+            "issues": ["document_media_missing"],
+            "ocr": {"average_confidence": 0.0, "line_count": 0, "lines": []},
+            "evidence": [],
+            "candidates": [],
+            "raw_text_lines": [],
+            "score_components": {},
+            "classifier": {
+                "name": "ocr-evidence-document-classifier",
+                "version": "v2",
+                "score_type": "uncalibrated_evidence_score",
+            },
+            "ocr_model": {
+                "name": "paddleocr",
+                "version": "PP-OCRv5",
+            },
+            "recommendation": "continue_with_review",
+        }
     ocr_engine = get_paddle_ocr_engine()
     rgb_image = cv2.cvtColor(asset.primary_frame, cv2.COLOR_BGR2RGB)
     predictions = ocr_engine.predict(rgb_image)

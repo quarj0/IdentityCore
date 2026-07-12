@@ -1,6 +1,7 @@
 import asyncio
 
 import pytest
+from botocore.exceptions import ClientError
 
 pytest.importorskip("fastapi")
 
@@ -102,6 +103,35 @@ def test_document_ocr_returns_extracted_fields():
     assert "full_name" in response["result"]["extracted_fields"]
 
 
+def test_document_ocr_returns_manual_review_when_media_is_missing(monkeypatch):
+    missing_object_error = ClientError(
+        {"Error": {"Code": "NoSuchKey", "Message": "The specified key does not exist."}},
+        "GetObject",
+    )
+
+    def raise_missing_object(*args, **kwargs):
+        raise missing_object_error
+
+    monkeypatch.setattr("app.pipeline.fetch_object_bytes", raise_missing_object)
+
+    response = asyncio.run(
+        document_ocr(
+            DocumentOCRRequest(
+                verification_id="ver_01TEST",
+                document_storage_key="uploads/documents/missing.jpg",
+                document_type="national_id",
+                country_code="GH",
+            )
+        )
+    )
+
+    assert response["status"] == "completed"
+    assert response["result"]["confidence_score"] == 0.0
+    assert response["result"]["requires_manual_review"] is True
+    assert response["result"]["manual_review"]["required"] is True
+    assert "document_media_missing" in response["result"]["issues"]
+
+
 def test_document_quality_flags_blurry_capture():
     response = asyncio.run(
         document_quality(
@@ -114,6 +144,83 @@ def test_document_quality_flags_blurry_capture():
 
     assert response["status"] == "completed"
     assert response["result"]["issues"] == ["blur_detected"]
+
+
+def test_document_quality_returns_review_signal_when_media_is_missing(monkeypatch):
+    missing_object_error = ClientError(
+        {"Error": {"Code": "NoSuchKey", "Message": "The specified key does not exist."}},
+        "GetObject",
+    )
+
+    def raise_missing_object(*args, **kwargs):
+        raise missing_object_error
+
+    monkeypatch.setattr("app.pipeline.fetch_object_bytes", raise_missing_object)
+
+    response = asyncio.run(
+        document_quality(
+            DocumentQualityRequest(
+                verification_id="ver_01TEST",
+                document_storage_key="uploads/documents/missing.jpg",
+            )
+        )
+    )
+
+    assert response["status"] == "completed"
+    assert response["result"]["issues"] == ["document_media_missing"]
+    assert response["result"]["quality_score"] == 0.0
+
+
+def test_document_quality_falls_back_to_alternate_bucket(monkeypatch):
+    np = pytest.importorskip("numpy")
+    cv2 = pytest.importorskip("cv2")
+    image = np.full((120, 120, 3), 180, dtype=np.uint8)
+    cv2.putText(
+        image,
+        "ID",
+        (20, 80),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        1.5,
+        (0, 0, 0),
+        3,
+        cv2.LINE_AA,
+    )
+    success, encoded = cv2.imencode(".jpg", image)
+    assert success is True
+
+    seen_buckets: list[str | None] = []
+
+    def fetch_from_media(storage_key, *, bucket_name=None):
+        seen_buckets.append(bucket_name)
+        if bucket_name == "identitycore-media":
+            return encoded.tobytes()
+        raise ClientError(
+            {"Error": {"Code": "NoSuchKey", "Message": "The specified key does not exist."}},
+            "GetObject",
+        )
+
+    monkeypatch.setattr("app.pipeline.fetch_object_bytes", fetch_from_media)
+    monkeypatch.setenv("OBJECT_STORAGE_MEDIA_BUCKET", "identitycore-media")
+    monkeypatch.setenv("OBJECT_STORAGE_TEMP_BUCKET", "identitycore-temp")
+    get_settings.cache_clear()
+
+    try:
+        response = asyncio.run(
+            document_quality(
+                DocumentQualityRequest(
+                    verification_id="ver_01TEST",
+                    document_storage_key="uploads/documents/fallback.jpg",
+                )
+            )
+        )
+    finally:
+        monkeypatch.delenv("OBJECT_STORAGE_MEDIA_BUCKET", raising=False)
+        monkeypatch.delenv("OBJECT_STORAGE_TEMP_BUCKET", raising=False)
+        get_settings.cache_clear()
+
+    assert response["status"] == "completed"
+    assert "identitycore-media" in seen_buckets
+    assert response["result"]["model_name"] == "opencv-quality"
 
 
 def test_document_classification_returns_predicted_type():
@@ -133,6 +240,38 @@ def test_document_classification_returns_predicted_type():
     assert response["result"]["classification_status"] == "recognized"
     assert response["result"]["workflow_action"] == "continue"
     assert response["result"]["manual_review"]["required"] is False
+
+
+def test_document_classification_returns_manual_review_when_media_is_missing(
+    monkeypatch,
+):
+    missing_object_error = ClientError(
+        {"Error": {"Code": "NoSuchKey", "Message": "The specified key does not exist."}},
+        "GetObject",
+    )
+
+    def raise_missing_object(*args, **kwargs):
+        raise missing_object_error
+
+    monkeypatch.setattr("app.pipeline.fetch_object_bytes", raise_missing_object)
+
+    response = asyncio.run(
+        document_classify(
+            DocumentClassificationRequest(
+                verification_id="ver_01TEST",
+                document_storage_key="uploads/documents/missing.jpg",
+                document_type="national_id",
+                country_code="GH",
+            )
+        )
+    )
+
+    assert response["status"] == "completed"
+    assert response["result"]["classification_status"] == "unknown"
+    assert response["result"]["workflow_action"] == "continue_with_review"
+    assert response["result"]["requires_manual_review"] is True
+    assert response["result"]["manual_review"]["required"] is True
+    assert "document_media_missing" in response["result"]["issues"]
 
 
 def test_internal_token_is_enforced_when_configured(monkeypatch):

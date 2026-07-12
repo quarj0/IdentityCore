@@ -175,6 +175,62 @@ class IdentityDocumentTaskTests(TestCase):
         )
         self.assertEqual(mock_ocr.call_args.kwargs["document_storage_bucket"], "")
 
+    @patch("apps.identity_documents.tasks.run_document_classification")
+    @patch("apps.identity_documents.tasks.run_document_ocr")
+    @patch("apps.identity_documents.tasks.run_document_quality")
+    def test_process_identity_document_task_routes_manual_review_signals(
+        self, mock_quality, mock_ocr, mock_classification
+    ):
+        mock_quality.return_value = {"status": "completed", "quality_score": 0.88, "issues": []}
+        mock_classification.return_value = {
+            "status": "completed",
+            "classification_status": "unknown",
+            "predicted_document_type": "unknown",
+            "predicted_country_code": None,
+            "expected_document_type": "national_id",
+            "matched_expected_document_type": None,
+            "confidence_score": 0.0,
+            "evidence_score": 0.0,
+            "classification_margin": 0.0,
+            "workflow_action": "continue_with_review",
+            "requires_manual_review": True,
+            "manual_review": {
+                "required": True,
+                "priority": "high",
+                "reason_codes": ["document_media_missing"],
+                "review_category": "document_classification",
+            },
+            "issues": ["document_media_missing"],
+            "ocr": {"average_confidence": 0.0, "line_count": 0},
+            "evidence": [],
+            "candidates": [],
+            "raw_text_lines": [],
+            "model_name": "mock-document-classifier",
+            "model_version": "v1",
+        }
+        mock_ocr.return_value = {
+            "status": "completed",
+            "confidence_score": 0.0,
+            "extracted_fields": {},
+            "raw_text_lines": [],
+            "model_name": "mock-ocr",
+            "model_version": "v1",
+        }
+
+        result = process_identity_document_task(self.identity_document.public_id)
+
+        self.assertEqual(result, IdentityDocumentStatus.PROCESSED)
+        self.identity_document.refresh_from_db()
+        self.verification.refresh_from_db()
+        self.assertEqual(self.identity_document.status, IdentityDocumentStatus.PROCESSED)
+        self.assertEqual(self.verification.status, VerificationStatus.MANUAL_REVIEW_REQUIRED)
+        self.assertEqual(
+            self.identity_document.extracted_data_json["document_classification"][
+                "workflow_action"
+            ],
+            "continue_with_review",
+        )
+
     @patch("apps.identity_documents.tasks.promote_upload_to_media_by_storage_key")
     @patch("apps.identity_documents.tasks.run_document_classification")
     @patch("apps.identity_documents.tasks.run_document_ocr")
