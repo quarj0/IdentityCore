@@ -6,7 +6,7 @@
 
 ---
 
-## Purpose
+### IdentityCore Purpose
 
 This document defines the core business concepts used across IdentityCore.
 
@@ -32,15 +32,15 @@ The following terms must be used consistently across the platform.
 
 ## Platform
 
-## Definition
+### Platform Definition
 
 The Platform refers to the complete IdentityCore system, including APIs, dashboards, verification flows, AI services, audit logs, infrastructure, and integrations.
 
-## Purpose
+### Platform Purpose
 
 The Platform provides secure identity verification capabilities to organizations.
 
-## Business Rules
+### Platform Business Rules
 
 - The Platform may serve multiple organizations.
 - The Platform must enforce tenant isolation.
@@ -50,7 +50,7 @@ The Platform provides secure identity verification capabilities to organizations
 
 ## Organization
 
-## Definition
+### Organization Definition
 
 An Organization is a customer, institution, agency, or business that uses IdentityCore to verify identities.
 
@@ -65,11 +65,11 @@ Examples include:
 - Financial institution
 - Government agency
 
-## Purpose
+### Organization Purpose
 
 Organizations create and manage verification workflows for Verification Subjects.
 
-## Relationships
+#### Relationships
 
 - An Organization has Users.
 - An Organization has API Clients.
@@ -77,7 +77,7 @@ Organizations create and manage verification workflows for Verification Subjects
 - An Organization owns its verification data.
 - An Organization may have one or more Workspaces in future versions.
 
-## Business Rules
+#### Business Rules
 
 - Organization data must be isolated from other organizations.
 - Organization users may only access data permitted by their role.
@@ -88,15 +88,15 @@ Organizations create and manage verification workflows for Verification Subjects
 
 ## Tenant
 
-## Definition
+### Tenant Definition
 
 A Tenant is the isolated technical boundary representing an Organization inside the Platform.
 
-## Purpose
+### Tenant Purpose
 
 The Tenant ensures that each Organization's data, configuration, users, API keys, and verification records remain separated.
 
-## Relationship to Organization
+### Relationship to Organization
 
 In Version 1.0, one Organization maps to one Tenant.
 
@@ -107,7 +107,7 @@ Future versions may support:
 - Regional branches
 - Government agency hierarchies
 
-## Business Rules
+### Tenant Business Rules
 
 - Every Verification belongs to a Tenant.
 - Every Organization User belongs to a Tenant.
@@ -118,7 +118,7 @@ Future versions may support:
 
 ## Platform User
 
-## Definition
+### Platform User Definition
 
 A Platform User is a person who logs into IdentityCore to manage or operate the platform.
 
@@ -130,11 +130,11 @@ Platform Users include:
 - Support User
 - Compliance Reviewer
 
-## Purpose
+### Platform User Purpose
 
 Platform Users manage organizations, configure verification workflows, review verification results, and monitor audit records.
 
-## Business Rules
+### Platform User Business Rules
 
 - A Platform User must authenticate before accessing protected resources.
 - A Platform User must be assigned roles and permissions.
@@ -144,7 +144,7 @@ Platform Users manage organizations, configure verification workflows, review ve
 
 ## Verification Subject
 
-## Definition
+### Verification Subject Definition
 
 A Verification Subject is the individual whose identity is being verified.
 
@@ -158,11 +158,11 @@ Examples include:
 - Event participant
 - Citizen
 
-## Purpose
+### Verification Subject Purpose
 
 The Verification Subject provides identity evidence such as documents, selfies, biometric captures, and consent.
 
-## Business Rules
+### Verification Subject Business Rules
 
 - A Verification Subject must give consent before verification begins.
 - A Verification Subject may be associated with multiple Verifications over time.
@@ -173,17 +173,17 @@ The Verification Subject provides identity evidence such as documents, selfies, 
 
 ## Verification
 
-## Definition
+### Verification Definition
 
 A Verification is the complete process of confirming a Verification Subject's identity.
 
 It includes consent, document capture, selfie capture, liveness detection, face matching, risk assessment, and final decision.
 
-## Purpose
+### Verification Purpose
 
 The Verification is the central workflow object in IdentityCore.
 
-## Lifecycle Statuses
+### Lifecycle Statuses
 
 - Created
 - Pending Consent
@@ -198,7 +198,7 @@ The Verification is the central workflow object in IdentityCore.
 - Cancelled
 - Failed
 
-## Relationships
+### Verification Relationships
 
 - A Verification belongs to one Tenant.
 - A Verification belongs to one Organization.
@@ -210,7 +210,7 @@ The Verification is the central workflow object in IdentityCore.
 - A Verification produces one Verification Decision.
 - A Verification generates Audit Events.
 
-## Business Rules
+### Verification Business Rules
 
 - A Verification must not proceed without valid consent.
 - A Verification must have an expiration time.
@@ -222,15 +222,15 @@ The Verification is the central workflow object in IdentityCore.
 
 ## Verification Session
 
-## Definition
+### Verification Session Definition
 
 A Verification Session is a time-bound interaction where a Verification Subject completes the required steps for a Verification.
 
-## Purpose
+### Verification Session Purpose
 
 The Verification Session manages the subject-facing journey.
 
-## Examples
+### Verification Session Examples
 
 - Opening a verification link
 - Accepting consent
@@ -238,7 +238,7 @@ The Verification Session manages the subject-facing journey.
 - Capturing a selfie
 - Completing a liveness challenge
 
-## Business Rules
+### Verification Session Business Rules
 
 - A Verification Session must expire.
 - A Verification Session must be tied to one Verification.
@@ -249,7 +249,7 @@ The Verification Session manages the subject-facing journey.
 
 ## Identity Document
 
-## Definition
+### Identity Document Definition
 
 An Identity Document is a document submitted as evidence of identity.
 
@@ -264,11 +264,11 @@ Examples include:
 - Student ID
 - Employee ID
 
-## Purpose
+### Identity Document Purpose
 
 Identity Documents provide biographical and visual evidence used during verification.
 
-## Business Rules
+### Identity Document Business Rules
 
 - Every Identity Document must have a Document Type.
 - Every Identity Document should be associated with a country or jurisdiction when applicable.
@@ -279,7 +279,7 @@ Identity Documents provide biographical and visual evidence used during verifica
 
 ## Document Type
 
-## Definition
+### Document Type Definition
 
 A Document Type is a generic classification of an Identity Document.
 
@@ -295,11 +295,11 @@ Supported Document Types for Version 1.0:
 - Employee ID
 - Other
 
-## Purpose
+### Document Type Purpose
 
 Document Types prevent the platform from hardcoding country-specific document names.
 
-## Business Rules
+### Document Type Business Rules
 
 - The platform must use generic Document Types internally.
 - Country-specific document names must be configured through Country Profiles or Provider Adapters.
@@ -310,15 +310,15 @@ Document Types prevent the platform from hardcoding country-specific document na
 
 ## Country Profile
 
-## Definition
+### Country Profile Definition
 
 A Country Profile defines country-specific identity rules, document names, issuing authorities, document formats, and supported providers.
 
-## Purpose
+### Country Profile Purpose
 
 Country Profiles allow IdentityCore to expand across countries without changing core platform logic.
 
-## Examples
+### Country Profile Examples
 
 Ghana Country Profile:
 
@@ -327,7 +327,7 @@ Ghana Country Profile:
 - Driver License → DVLA Driver License
 - Voter ID → Electoral Commission Voter ID
 
-## Business Rules
+### Country Profile Business Rules
 
 - Country-specific behavior must live in Country Profiles or Provider Adapters.
 - The core platform must not hardcode country-specific document names.
@@ -337,7 +337,7 @@ Ghana Country Profile:
 
 ## Jurisdiction
 
-## Definition
+### Jurisdiction Definition
 
 A Jurisdiction is the legal or administrative region under which a verification operates.
 
@@ -350,11 +350,11 @@ Examples include:
 - European Union
 - Specific government agency jurisdiction
 
-## Purpose
+### Jurisdiction Purpose
 
 Jurisdiction determines applicable compliance rules, data retention requirements, identity providers, and allowed document types.
 
-## Business Rules
+### Jurisdiction Business Rules
 
 - Every Organization should be associated with a Jurisdiction.
 - Every Verification should inherit a Jurisdiction from the Organization unless overridden.
@@ -364,15 +364,15 @@ Jurisdiction determines applicable compliance rules, data retention requirements
 
 ## Document Capture
 
-## Definition
+### Document Capture Definition
 
 A Document Capture is the submitted image, scan, or digital representation of an Identity Document.
 
-## Purpose
+### Document Capture Purpose
 
 Document Captures provide raw evidence for document processing, OCR, classification, and face extraction.
 
-## Business Rules
+### Document Capture Business Rules
 
 - A Document Capture must belong to an Identity Document.
 - A Document Capture may include front image, back image, or both.
@@ -384,15 +384,15 @@ Document Captures provide raw evidence for document processing, OCR, classificat
 
 ## Selfie Capture
 
-## Definition
+### Selfie Capture Definition
 
 A Selfie Capture is an image or video of the Verification Subject captured during the verification process.
 
-## Purpose
+### Selfie Capture Purpose
 
 Selfie Captures provide biometric evidence for liveness detection and face matching.
 
-## Business Rules
+### Selfie Capture Business Rules
 
 - A Selfie Capture must belong to a Verification.
 - A Selfie Capture should be captured during a valid Verification Session.
@@ -403,15 +403,15 @@ Selfie Captures provide biometric evidence for liveness detection and face match
 
 ## Biometric Template
 
-## Definition
+### Biometric Template Definition
 
 A Biometric Template is a mathematical representation of biometric data, such as a face embedding.
 
-## Purpose
+### Biometric Template Purpose
 
 Biometric Templates enable comparison without repeatedly processing raw biometric images.
 
-## Business Rules
+### Biometric Template Business Rules
 
 - Biometric Templates are sensitive data.
 - Biometric Templates must be encrypted at rest.
@@ -422,11 +422,11 @@ Biometric Templates enable comparison without repeatedly processing raw biometri
 
 ## Liveness Check
 
-## Definition
+### Liveness Check Definition
 
 A Liveness Check determines whether the Verification Subject is physically present and not using a spoofing method such as a printed photo, screen replay, mask, or deepfake.
 
-## Purpose
+### Liveness Check Purpose
 
 Liveness Checks reduce impersonation and presentation attacks.
 
@@ -435,7 +435,7 @@ Liveness Checks reduce impersonation and presentation attacks.
 - Passive Liveness
 - Active Liveness
 
-## Business Rules
+### Types Business Rules
 
 - A Liveness Check must produce a confidence score.
 - Failed liveness may cause rejection or manual review.
@@ -445,11 +445,11 @@ Liveness Checks reduce impersonation and presentation attacks.
 
 ## Face Match
 
-## Definition
+### Face Match Definition
 
 A Face Match compares facial evidence from two sources, usually a Selfie Capture and a document portrait.
 
-## Purpose
+### Face Match Purpose
 
 Face Matching helps determine whether the Verification Subject matches the submitted Identity Document.
 
@@ -461,7 +461,7 @@ Face Matching helps determine whether the Verification Subject matches the submi
 - Model version
 - Processing timestamp
 
-## Business Rules
+### Outputs Business Rules
 
 - A Face Match must not be the only basis for high-impact decisions.
 - Face Match thresholds should be configurable by Organization policy.
@@ -472,11 +472,11 @@ Face Matching helps determine whether the Verification Subject matches the submi
 
 ## Consent
 
-## Definition
+### Consent Definition
 
 Consent is the Verification Subject's explicit agreement to participate in a verification process.
 
-## Purpose
+### Consent Purpose
 
 Consent establishes lawful and transparent participation in identity verification.
 
@@ -490,7 +490,7 @@ Consent establishes lawful and transparent participation in identity verificatio
 - Policy version
 - Subject agreement record
 
-## Business Rules
+### Required Consent Metadata Business Rules
 
 - Consent must be captured before verification begins.
 - Consent must be auditable.
@@ -502,11 +502,11 @@ Consent establishes lawful and transparent participation in identity verificatio
 
 ## Verification Policy
 
-## Definition
+### Verification Policy Definition
 
 A Verification Policy defines the rules used to determine how a Verification should be performed.
 
-## Examples
+### Verification Policy Examples
 
 - Required document types
 - Required liveness level
@@ -517,11 +517,11 @@ A Verification Policy defines the rules used to determine how a Verification sho
 - Allowed countries
 - Webhook events
 
-## Purpose
+### Verification Policy Purpose
 
 Verification Policies allow Organizations to configure verification workflows without changing platform code.
 
-## Business Rules
+### Verification Policy Business Rules
 
 - Every Verification must use a Verification Policy.
 - Verification Policies may vary by Organization.
@@ -531,7 +531,7 @@ Verification Policies allow Organizations to configure verification workflows wi
 
 ## Verification Decision
 
-## Definition
+### Verification Decision Definition
 
 A Verification Decision is the final outcome of a Verification.
 
@@ -544,11 +544,11 @@ A Verification Decision is the final outcome of a Verification.
 - Cancelled
 - Failed
 
-## Purpose
+### Possible Outcomes Purpose
 
 The Verification Decision summarizes the outcome of all verification checks.
 
-## Business Rules
+### Possible Outcomes Business Rules
 
 - A completed Verification must have one final Verification Decision.
 - A Verification Decision must include reasons or supporting evidence.
@@ -559,15 +559,15 @@ The Verification Decision summarizes the outcome of all verification checks.
 
 ## Manual Review
 
-## Definition
+### Manual Review Definition
 
 Manual Review is a process where a Verification Officer reviews a Verification that cannot be automatically approved or rejected.
 
-## Purpose
+### Manual Review Purpose
 
 Manual Review provides human oversight for uncertain, sensitive, or high-risk cases.
 
-## Business Rules
+### Manual Review Business Rules
 
 - Manual Review must be assigned to authorized Verification Officers.
 - Manual Review actions must be logged.
@@ -578,7 +578,7 @@ Manual Review provides human oversight for uncertain, sensitive, or high-risk ca
 
 ## Risk Assessment
 
-## Definition
+### Risk Assessment Definition
 
 A Risk Assessment evaluates fraud, inconsistency, or trust signals associated with a Verification.
 
@@ -592,11 +592,11 @@ A Risk Assessment evaluates fraud, inconsistency, or trust signals associated wi
 - Unusual location
 - Repeated failed attempts
 
-## Purpose
+### Examples of Risk Signals Purpose
 
 Risk Assessment helps determine whether a Verification should be approved, rejected, or sent to manual review.
 
-## Business Rules
+### Examples of Risk Signals Business Rules
 
 - Risk scores must be explainable.
 - Risk thresholds must be configurable.
@@ -606,11 +606,11 @@ Risk Assessment helps determine whether a Verification should be approved, rejec
 
 ## Audit Event
 
-## Definition
+### Audit Event Definition
 
 An Audit Event is an immutable record of an important action or system event.
 
-## Examples
+### Audit Event Examples
 
 - User login
 - Verification created
@@ -623,11 +623,11 @@ An Audit Event is an immutable record of an important action or system event.
 - Webhook delivered
 - Admin setting changed
 
-## Purpose
+### Audit Event Purpose
 
 Audit Events provide transparency, accountability, forensic traceability, and compliance evidence.
 
-## Business Rules
+### Audit Event Business Rules
 
 - Audit Events must be immutable.
 - Audit Events must include actor, action, timestamp, tenant, IP/device context where available, and target resource.
@@ -638,15 +638,15 @@ Audit Events provide transparency, accountability, forensic traceability, and co
 
 ## API Client
 
-## Definition
+### API Client Definition
 
 An API Client is an application or system authorized to access IdentityCore APIs on behalf of an Organization.
 
-## Purpose
+### API Client Purpose
 
 API Clients allow external systems to create verifications, retrieve results, and receive webhook events.
 
-## Business Rules
+### API Client Business Rules
 
 - API Clients belong to a Tenant.
 - API Clients must use secure credentials.
@@ -657,11 +657,11 @@ API Clients allow external systems to create verifications, retrieve results, an
 
 ## Webhook Event
 
-## Definition
+### Webhook Event Definition
 
 A Webhook Event is a notification sent to an Organization's system when an important verification event occurs.
 
-## Examples
+### Webhook Event Examples
 
 - verification.created
 - verification.consent_accepted
@@ -671,11 +671,11 @@ A Webhook Event is a notification sent to an Organization's system when an impor
 - verification.rejected
 - verification.expired
 
-## Purpose
+### Webhook Event Purpose
 
 Webhook Events allow external systems to react to verification progress and outcomes.
 
-## Business Rules
+### Webhook Event Business Rules
 
 - Webhook Events must be signed.
 - Webhook delivery attempts must be logged.
@@ -686,22 +686,22 @@ Webhook Events allow external systems to react to verification progress and outc
 
 ## Notification
 
-## Definition
+### Notification Definition
 
 A Notification is a message sent to a Platform User or Verification Subject.
 
-## Examples
+### Notification Examples
 
 - Verification link email
 - Verification completed email
 - Manual review assigned notification
 - Security alert
 
-## Purpose
+### Notification Purpose
 
 Notifications keep relevant parties informed about verification activity.
 
-## Business Rules
+### Notification Business Rules
 
 - Notifications must respect tenant configuration.
 - Notifications must avoid exposing unnecessary sensitive information.
@@ -711,7 +711,7 @@ Notifications keep relevant parties informed about verification activity.
 
 ## Provider
 
-## Definition
+### Provider Definition
 
 A Provider is an external or internal service used to perform part of a verification.
 
@@ -724,11 +724,11 @@ Examples include:
 - Government identity authority
 - Sanctions or watchlist provider
 
-## Purpose
+### Provider Purpose
 
 Providers allow IdentityCore to connect to different verification technologies and data sources.
 
-## Business Rules
+### Provider Business Rules
 
 - Provider integrations must be abstracted through adapters.
 - Provider responses must be normalized.
@@ -739,15 +739,15 @@ Providers allow IdentityCore to connect to different verification technologies a
 
 ## Provider Adapter
 
-## Definition
+### Provider Adapter Definition
 
 A Provider Adapter is a software component that translates IdentityCore requests into provider-specific API calls and normalizes provider responses.
 
-## Purpose
+### Provider Adapter Purpose
 
 Provider Adapters prevent external provider differences from leaking into the core platform.
 
-## Business Rules
+### Provider Adapter Business Rules
 
 - The core platform must depend on normalized provider interfaces, not provider-specific logic.
 - Provider Adapters should be replaceable.
@@ -758,11 +758,11 @@ Provider Adapters prevent external provider differences from leaking into the co
 
 ## Role
 
-## Definition
+### Role Definition
 
 A Role is a named set of permissions assigned to a Platform User.
 
-## Examples
+### Role Examples
 
 - Platform Administrator
 - Organization Administrator
@@ -771,11 +771,11 @@ A Role is a named set of permissions assigned to a Platform User.
 - Support User
 - Developer
 
-## Purpose
+### Role Purpose
 
 Roles simplify access control.
 
-## Business Rules
+### Role Business Rules
 
 - Roles must be scoped to a Tenant unless they are platform-level roles.
 - Roles should follow least privilege.
@@ -785,11 +785,11 @@ Roles simplify access control.
 
 ## Permission
 
-## Definition
+### Permission Definition
 
 A Permission is a specific ability granted to a Role or User.
 
-## Examples
+### Permission Examples
 
 - create_verification
 - view_verification
@@ -799,11 +799,11 @@ A Permission is a specific ability granted to a Role or User.
 - manage_users
 - configure_policies
 
-## Purpose
+### Permission Purpose
 
 Permissions enforce granular access control.
 
-## Business Rules
+### Permission Business Rules
 
 - Permissions must be checked server-side.
 - Sensitive permissions may require additional approval or MFA.
@@ -813,22 +813,22 @@ Permissions enforce granular access control.
 
 ## Data Retention Policy
 
-## Definition
+### Data Retention Policy Definition
 
 A Data Retention Policy defines how long different categories of data are stored.
 
-## Purpose
+### Data Retention Policy Purpose
 
 Retention policies reduce privacy risk and support compliance.
 
-## Examples
+### Data Retention Policy Examples
 
 - Delete raw document captures after 30 days.
 - Delete selfie captures after 30 days.
 - Retain audit metadata for 7 years.
 - Retain verification result metadata for business reporting.
 
-## Business Rules
+### Data Retention Policy Business Rules
 
 - Every Organization must have a retention policy.
 - Retention policies must comply with jurisdiction requirements.
@@ -838,7 +838,7 @@ Retention policies reduce privacy risk and support compliance.
 
 ## Evidence
 
-## Definition
+### Evidence Definition
 
 Evidence refers to any data used to support a Verification Decision.
 
@@ -852,11 +852,11 @@ Examples include:
 - Provider Check
 - Risk Assessment
 
-## Purpose
+### Evidence Purpose
 
 Evidence provides traceability for why a Verification Decision was made.
 
-## Business Rules
+### Evidence Business Rules
 
 - Evidence must be linked to a Verification.
 - Evidence must be protected based on sensitivity.
@@ -866,11 +866,11 @@ Evidence provides traceability for why a Verification Decision was made.
 
 ## Provider Check
 
-## Definition
+### Provider Check Definition
 
 A Provider Check is the result of calling a Provider during a Verification.
 
-## Examples
+### Provider Check Examples
 
 - Document OCR check
 - Face match provider check
@@ -878,11 +878,11 @@ A Provider Check is the result of calling a Provider during a Verification.
 - Government identity lookup
 - Watchlist check
 
-## Purpose
+### Provider Check Purpose
 
 Provider Checks record external or internal processing outcomes.
 
-## Business Rules
+### Provider Check Business Rules
 
 - Provider Checks must record provider name, provider reference, status, timestamp, and normalized result.
 - Raw provider payloads should be stored only when necessary and safely redacted.
