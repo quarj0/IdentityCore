@@ -10,7 +10,7 @@ import {
 export const platformNavItems = [
   {
     label: "Dashboard",
-    href: "/",
+    href: "/dashboard",
     icon: LayoutDashboard,
   },
   {

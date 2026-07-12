@@ -21,7 +21,7 @@ export function PlatformAdminShell({ children }: PlatformAdminShellProps) {
     if (isLoginPage) {
       setReady(true);
       if (getAccessToken()) {
-        router.replace("/");
+        router.replace("/dashboard");
       }
       return;
     }

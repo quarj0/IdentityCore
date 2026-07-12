@@ -1,5 +1,5 @@
-import { PlatformDashboardPage } from "@/features/dashboard/pages/platform-dashboard-page";
+import { redirect } from "next/navigation";
 
 export default function Page() {
-  return <PlatformDashboardPage />;
+  redirect("/dashboard");
 }

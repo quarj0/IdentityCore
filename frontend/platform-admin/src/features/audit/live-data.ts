@@ -90,7 +90,9 @@ export async function fetchAuditRecords() {
     `,
     { page: 1, pageSize: 100 },
   );
-  return data.platformAuditEvents.map(auditEventToRecord);
+  return data.platformAuditEvents
+    .filter((event) => event.action !== "graphql.query")
+    .map(auditEventToRecord);
 }
 
 export async function fetchAuditRecord(eventId: string) {

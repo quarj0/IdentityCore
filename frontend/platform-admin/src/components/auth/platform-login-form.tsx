@@ -24,7 +24,7 @@ export function PlatformLoginForm() {
     }
 
     setAccessToken(token);
-    router.replace("/");
+    router.replace("/dashboard");
     router.refresh();
   }, [router, searchParams]);
 
@@ -36,7 +36,7 @@ export function PlatformLoginForm() {
     try {
       const payload = await login(email, password);
       setAccessToken(payload.tokens.access);
-      router.replace("/");
+      router.replace("/dashboard");
       router.refresh();
     } catch (error) {
       setErrorMessage(getErrorMessage(error));

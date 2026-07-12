@@ -210,6 +210,7 @@ export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
         description={`${item.organizationCountryName} · ${item.organizationType} · ${item.organizationSlug}`}
         actions={
           <Button
+            type="button"
             variant="outline"
             onClick={() => setRefreshTick((value) => value + 1)}
             disabled={loading}
@@ -355,6 +356,7 @@ export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
 
             <div className="mt-4 flex flex-wrap gap-2">
               <Button
+                type="button"
                 onClick={() => submitDecision("approved")}
                 disabled={savingDecision !== null}
               >
@@ -362,6 +364,7 @@ export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
                 {savingDecision === "approved" ? "Approving..." : "Approve"}
               </Button>
               <Button
+                type="button"
                 variant="outline"
                 onClick={() => submitDecision("needs_information")}
                 disabled={savingDecision !== null}
@@ -371,6 +374,7 @@ export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
                   : "Request more information"}
               </Button>
               <Button
+                type="button"
                 variant="destructive"
                 onClick={() => submitDecision("rejected")}
                 disabled={savingDecision !== null}
