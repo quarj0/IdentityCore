@@ -133,6 +133,59 @@ class RiskDecisionTests(TestCase):
         self.assertEqual(self.verification.status, VerificationStatus.VERIFIED)
         self.assertIsNotNone(self.verification.completed_at)
 
+    def test_document_provider_outage_keeps_verification_in_manual_review(self):
+        self.identity_document.status = IdentityDocumentStatus.PROCESSED
+        self.identity_document.extracted_data_json = {
+            "document_classification": {
+                "status": "completed",
+                "requires_manual_review": True,
+                "manual_review": {
+                    "required": True,
+                    "priority": "high",
+                    "reason_codes": ["document_classification_unavailable"],
+                    "review_category": "document_classification",
+                },
+                "issues": ["document_classification_unavailable"],
+            }
+        }
+        self.identity_document.save(
+            update_fields=["status", "extracted_data_json", "updated_at"]
+        )
+        LivenessCheck.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            selfie_capture=self.selfie_capture,
+            liveness_type="passive",
+            status=LivenessCheckStatus.PASSED,
+            score=Decimal("0.9700"),
+            checked_at=timezone.now(),
+        )
+        FaceMatch.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            selfie_capture=self.selfie_capture,
+            identity_document=self.identity_document,
+            document_capture=self.document_capture,
+            status=FaceMatchStatus.MATCHED,
+            match_score=Decimal("0.9600"),
+            matched_at=timezone.now(),
+        )
+
+        risk_assessment, decision_record = run_verification_risk_and_decision(
+            self.verification
+        )
+
+        self.assertEqual(
+            risk_assessment.recommendation, RiskRecommendation.MANUAL_REVIEW
+        )
+        self.assertEqual(
+            decision_record.decision, VerificationStatus.MANUAL_REVIEW_REQUIRED
+        )
+        self.verification.refresh_from_db()
+        self.assertEqual(
+            self.verification.status, VerificationStatus.MANUAL_REVIEW_REQUIRED
+        )
+
     def test_failed_liveness_is_automatically_rejected(self):
         LivenessCheck.objects.create(
             tenant=self.tenant,

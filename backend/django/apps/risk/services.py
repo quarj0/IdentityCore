@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.utils import timezone
 
 from apps.biometrics.models import FaceMatchStatus, LivenessCheckStatus
+from apps.identity_documents.models import IdentityDocumentStatus
 from apps.providers.models import ProviderCheckStatus, ProviderCheckType
 from apps.providers.services import create_provider_check
 from apps.risk.models import RiskAssessment, RiskLevel, RiskRecommendation
@@ -22,6 +23,25 @@ def _get_policy_thresholds(verification) -> tuple[Decimal, Decimal]:
     return face_match_threshold, manual_review_threshold
 
 
+def _document_requires_manual_review(latest_identity_document, document_classification) -> bool:
+    if latest_identity_document is None:
+        return False
+
+    if document_classification is None:
+        return latest_identity_document.status == IdentityDocumentStatus.PROCESSED
+
+    manual_review = document_classification.get("manual_review") or {}
+    issues = set(document_classification.get("issues") or [])
+    return bool(
+        document_classification.get("provider_error")
+        or document_classification.get("requires_manual_review")
+        or manual_review.get("required")
+        or "document_classification_unavailable" in issues
+        or "document_ocr_unavailable" in issues
+        or "document_media_missing" in issues
+    )
+
+
 def evaluate_risk_assessment(verification) -> RiskAssessment:
     latest_liveness_check = verification.liveness_checks.order_by("-checked_at").first()
     latest_face_match = verification.face_matches.order_by("-matched_at").first()
@@ -32,10 +52,15 @@ def evaluate_risk_assessment(verification) -> RiskAssessment:
         else None
     )
     face_match_threshold, manual_review_threshold = _get_policy_thresholds(verification)
+    document_requires_manual_review = _document_requires_manual_review(
+        latest_identity_document,
+        document_classification,
+    )
 
     signals = {
         "document_submitted": verification.identity_documents.exists(),
         "document_classification": document_classification,
+        "document_requires_manual_review": document_requires_manual_review,
         "selfie_submitted": verification.selfie_captures.exists(),
         "liveness_status": (
             latest_liveness_check.status if latest_liveness_check else "missing"
@@ -59,7 +84,11 @@ def evaluate_risk_assessment(verification) -> RiskAssessment:
         },
     }
 
-    if latest_liveness_check is None or latest_face_match is None:
+    if document_requires_manual_review:
+        risk_score = Decimal("62.00")
+        risk_level = RiskLevel.MEDIUM
+        recommendation = RiskRecommendation.MANUAL_REVIEW
+    elif latest_liveness_check is None or latest_face_match is None:
         risk_score = Decimal("95.00")
         risk_level = RiskLevel.CRITICAL
         recommendation = RiskRecommendation.MANUAL_REVIEW
