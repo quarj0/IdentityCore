@@ -50,6 +50,11 @@ ORGANIZATION_VERIFICATION_REVIEW_NEEDS_INFORMATION = "needs_information"
 ORGANIZATION_VERIFICATION_REVIEW_REJECTED = "rejected"
 ORGANIZATION_VERIFICATION_REVIEW_APPROVED = "approved"
 ORGANIZATION_VERIFICATION_REVIEW_CHANGED_AFTER_APPROVAL = "changed_after_approval"
+PLATFORM_REVIEW_STATUS_NOT_STARTED = "not_started"
+PLATFORM_REVIEW_STATUS_QUEUED = "queued"
+PLATFORM_REVIEW_STATUS_ASSIGNED = "assigned"
+PLATFORM_REVIEW_STATUS_ESCALATED = "escalated"
+PLATFORM_REVIEW_STATUS_REVIEWED = "reviewed"
 
 
 def split_full_name(full_name: str) -> tuple[str, str]:
@@ -151,10 +156,17 @@ def _build_onboarding_settings(
             "submitted_at": None,
         },
         "platform_review": {
-            "status": "not_started",
+            "status": PLATFORM_REVIEW_STATUS_NOT_STARTED,
             "reviewed_at": None,
             "reviewed_by": "",
             "note": "",
+            "assigned_reviewer_id": "",
+            "assigned_reviewer_name": "",
+            "assigned_at": None,
+            "escalated": False,
+            "escalation_reason": "",
+            "escalated_at": None,
+            "required_approver_role": "",
         },
     }
 
@@ -216,6 +228,92 @@ def _organization_verification_has_changed(
             != _normalize_supporting_document_keys(supporting_document_keys),
         )
     )
+
+
+def _platform_review_state(onboarding: dict) -> dict:
+    return dict(onboarding.get("platform_review") or {})
+
+
+def _platform_role_names_for_user(user: PlatformUser) -> set[str]:
+    return set(
+        user.user_roles.filter(role__scope=RoleScope.PLATFORM)
+        .select_related("role")
+        .values_list("role__name", flat=True)
+    )
+
+
+def _user_can_act_as_senior_reviewer(user: PlatformUser) -> bool:
+    role_names = _platform_role_names_for_user(user)
+    return bool(role_names & {"Senior Reviewer", "Platform Admin"})
+
+
+def assign_platform_review_reviewer(
+    *,
+    organization: Organization,
+    reviewer: PlatformUser,
+    actor: PlatformUser,
+    request=None,
+) -> Organization:
+    onboarding = _get_onboarding_settings(organization)
+    if reviewer.is_platform_admin is not True:
+        raise ValidationError("Choose a platform administrator reviewer.")
+    platform_review = _platform_review_state(onboarding)
+    platform_review.update(
+        {
+            "status": PLATFORM_REVIEW_STATUS_ASSIGNED,
+            "assigned_reviewer_id": reviewer.public_id,
+            "assigned_reviewer_name": f"{reviewer.first_name} {reviewer.last_name}".strip()
+            or reviewer.email,
+            "assigned_at": timezone.now().isoformat(),
+            "required_approver_role": platform_review.get(
+                "required_approver_role", ""
+            ),
+        }
+    )
+    onboarding["platform_review"] = platform_review
+    _save_onboarding_settings(organization, onboarding)
+    record_audit_event(
+        tenant=organization.tenant,
+        actor=actor,
+        request=request,
+        action="onboarding.platform_review_assigned",
+        target_type="organization",
+        target_id=organization.public_id,
+        metadata={"reviewer_id": reviewer.public_id},
+    )
+    return organization
+
+
+def escalate_platform_review(
+    *,
+    organization: Organization,
+    actor: PlatformUser,
+    reason: str,
+    request=None,
+) -> Organization:
+    onboarding = _get_onboarding_settings(organization)
+    platform_review = _platform_review_state(onboarding)
+    platform_review.update(
+        {
+            "status": PLATFORM_REVIEW_STATUS_ESCALATED,
+            "escalated": True,
+            "escalation_reason": reason.strip(),
+            "escalated_at": timezone.now().isoformat(),
+            "required_approver_role": "Senior Reviewer",
+        }
+    )
+    onboarding["platform_review"] = platform_review
+    _save_onboarding_settings(organization, onboarding)
+    record_audit_event(
+        tenant=organization.tenant,
+        actor=actor,
+        request=request,
+        action="onboarding.platform_review_escalated",
+        target_type="organization",
+        target_id=organization.public_id,
+        metadata={"reason": reason.strip()},
+    )
+    return organization
 
 
 def _save_onboarding_settings(
@@ -417,6 +515,21 @@ def serialize_onboarding_state(
         "platform_review_status": platform_review.get("status", "not_started"),
         "platform_review_note": platform_review.get("note", ""),
         "platform_reviewed_at": platform_review.get("reviewed_at"),
+        "platform_review_assigned_reviewer_id": platform_review.get(
+            "assigned_reviewer_id", ""
+        ),
+        "platform_review_assigned_reviewer_name": platform_review.get(
+            "assigned_reviewer_name", ""
+        ),
+        "platform_review_assigned_at": platform_review.get("assigned_at"),
+        "platform_review_escalated": bool(platform_review.get("escalated", False)),
+        "platform_review_escalation_reason": platform_review.get(
+            "escalation_reason", ""
+        ),
+        "platform_review_escalated_at": platform_review.get("escalated_at"),
+        "platform_review_required_approver_role": platform_review.get(
+            "required_approver_role", ""
+        ),
     }
 
 
@@ -436,6 +549,7 @@ def serialize_organization_review_state(organization: Organization) -> dict:
     onboarding["review_priority"] = (
         "critical"
         if onboarding["organization_verification_changed_after_approval"]
+        or onboarding["platform_review_escalated"]
         else "high"
         if review_status in {
             ORGANIZATION_VERIFICATION_REVIEW_NEEDS_INFORMATION,
@@ -550,10 +664,17 @@ def submit_organization_verification(
         onboarding["status"] = ONBOARDING_STATUS_PLATFORM_REVIEW_PENDING
         onboarding["current_step"] = "platform_review"
         onboarding["platform_review"] = {
-            "status": "pending_review",
+            "status": PLATFORM_REVIEW_STATUS_QUEUED,
             "reviewed_at": None,
             "reviewed_by": "",
             "note": "Organization verification changed after approval.",
+            "assigned_reviewer_id": "",
+            "assigned_reviewer_name": "",
+            "assigned_at": None,
+            "escalated": True,
+            "escalation_reason": "Organization verification changed after approval.",
+            "escalated_at": timezone.now().isoformat(),
+            "required_approver_role": "Senior Reviewer",
         }
         organization.status = OrganizationStatus.PENDING_REVIEW
         tenant.status = TenantStatus.PENDING_REVIEW
@@ -608,10 +729,17 @@ def submit_administrator_identity_verification(
     onboarding["status"] = ONBOARDING_STATUS_PLATFORM_REVIEW_PENDING
     onboarding["current_step"] = "platform_review"
     onboarding["platform_review"] = {
-        "status": "pending_review",
+        "status": PLATFORM_REVIEW_STATUS_QUEUED,
         "reviewed_at": None,
         "reviewed_by": "",
         "note": "",
+        "assigned_reviewer_id": "",
+        "assigned_reviewer_name": "",
+        "assigned_at": None,
+        "escalated": False,
+        "escalation_reason": "",
+        "escalated_at": None,
+        "required_approver_role": "",
     }
     organization.status = OrganizationStatus.PENDING_REVIEW
     tenant.status = TenantStatus.PENDING_REVIEW
@@ -645,17 +773,34 @@ def review_organization_onboarding(
     tenant = organization.tenant
     user = tenant.platform_users.order_by("created_at").first()
     onboarding = _get_onboarding_settings(organization)
+    platform_review = dict(onboarding.get("platform_review") or {})
     onboarding["platform_review"] = {
-        "status": decision,
+        "status": platform_review.get("status", PLATFORM_REVIEW_STATUS_QUEUED),
         "reviewed_at": timezone.now().isoformat(),
         "reviewed_by": actor.public_id,
         "note": note.strip(),
+        "assigned_reviewer_id": platform_review.get("assigned_reviewer_id", ""),
+        "assigned_reviewer_name": platform_review.get(
+            "assigned_reviewer_name", ""
+        ),
+        "assigned_at": platform_review.get("assigned_at"),
+        "escalated": bool(platform_review.get("escalated", False)),
+        "escalation_reason": platform_review.get("escalation_reason", ""),
+        "escalated_at": platform_review.get("escalated_at"),
+        "required_approver_role": platform_review.get("required_approver_role", ""),
     }
     organization_verification = dict(
         onboarding.get("organization_verification") or {}
     )
 
     if decision == "approved":
+        if (
+            onboarding.get("organization_verification_changed_after_approval", False)
+            or bool(platform_review.get("escalated", False))
+        ) and not _user_can_act_as_senior_reviewer(actor):
+            raise ValidationError(
+                "A senior reviewer must approve escalated or changed-after-approval cases."
+            )
         organization.status = OrganizationStatus.ACTIVE
         tenant.status = TenantStatus.ACTIVE
         onboarding["tier"] = ORGANIZATION_TIER_VERIFIED
@@ -668,6 +813,7 @@ def review_organization_onboarding(
             "reviewed_by": actor.public_id,
             "review_note": note.strip(),
         }
+        onboarding["platform_review"]["status"] = decision
         if user is not None and user.status == PlatformUserStatus.INACTIVE:
             user.status = PlatformUserStatus.ACTIVE
             user.save(update_fields=["status", "updated_at"])
@@ -683,6 +829,7 @@ def review_organization_onboarding(
             "reviewed_by": actor.public_id,
             "review_note": note.strip(),
         }
+        onboarding["platform_review"]["status"] = decision
     else:
         organization.status = OrganizationStatus.PENDING_REVIEW
         tenant.status = TenantStatus.PENDING_REVIEW
@@ -695,6 +842,7 @@ def review_organization_onboarding(
             "reviewed_by": actor.public_id,
             "review_note": note.strip(),
         }
+        onboarding["platform_review"]["status"] = decision
 
     organization.save(update_fields=["status", "updated_at"])
     tenant.save(update_fields=["status", "updated_at"])

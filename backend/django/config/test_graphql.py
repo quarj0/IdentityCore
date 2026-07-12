@@ -9,9 +9,14 @@ from rest_framework.test import APITestCase
 
 from apps.access_control.models import UserRole
 from apps.accounts.models import PlatformUser, PlatformUserStatus
+from apps.api_clients.models import APIClient
+from apps.access_control.models import Role, RoleScope
+from apps.providers.models import Provider, ProviderStatus, ProviderType
 from apps.organizations.models import Organization, OrganizationSupportingDocument
 from apps.risk.models import RiskAssessment
 from apps.tenants.models import Tenant
+from apps.webhooks.models import WebhookEndpoint
+from apps.verification_policies.models import VerificationPolicy
 from apps.verifications.models import (
     Verification,
     VerificationDecision,
@@ -1193,3 +1198,427 @@ class GraphQLAPITests(APITestCase):
             "changed_after_approval",
         )
         self.assertTrue(queue_payload[0]["organizationVerificationChangedAfterApproval"])
+
+
+class PlatformAdminGraphQLTests(APITestCase):
+    graphql_url = "/api/graphql"
+
+    def setUp(self):
+        self.organization = Organization.objects.create(
+            name="Acme", slug="acme-platform-graphql"
+        )
+        self.tenant = Tenant.objects.create(
+            organization=self.organization,
+            name="Acme Platform Tenant",
+            slug="acme-platform-tenant",
+            status="active",
+        )
+        self.tenant_user = PlatformUser.objects.create_user(
+            email="tenant-admin@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            tenant=self.tenant,
+        )
+        login_response = self.client.post(
+            "/api/v1/auth/login",
+            {"email": self.tenant_user.email, "password": "StrongPassword123!"},
+            format="json",
+        )
+        self.access_token = login_response.data["data"]["tokens"]["access"]
+        self.platform_admin = PlatformUser.objects.create_superuser(
+            email="platform-admin@example.com",
+            password="StrongPassword123!",
+        )
+        platform_login_response = self.client.post(
+            "/api/v1/auth/login",
+            {"email": self.platform_admin.email, "password": "StrongPassword123!"},
+            format="json",
+        )
+        self.platform_access_token = platform_login_response.data["data"]["tokens"][
+            "access"
+        ]
+        self.provider = Provider.objects.create(
+            name="Internal OCR",
+            code="internal-ocr",
+            provider_type=ProviderType.DOCUMENT,
+            status=ProviderStatus.ACTIVE,
+        )
+        self.policy = VerificationPolicy.objects.create(
+            tenant=self.tenant,
+            name="Default Verification",
+            description="Primary policy",
+            version=1,
+            status="active",
+            required_document_types_json=["national_id"],
+            required_liveness_level="passive",
+            face_match_threshold="0.8500",
+            manual_review_threshold="0.6500",
+            verification_expiry_minutes=1440,
+            media_retention_days=30,
+            metadata_retention_days=365,
+            created_by=self.tenant_user,
+        )
+        self.api_client = APIClient(
+            tenant=self.tenant,
+            created_by=self.tenant_user,
+            name="Platform Admin Client",
+            scopes_json=["verifications:create"],
+        )
+        self.api_client.set_client_secret("client-secret")
+        self.api_client.save()
+        self.webhook_endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/identitycore",
+            description="Platform admin webhook",
+            events_json=["verification.created"],
+            created_by=self.tenant_user,
+        )
+        self.webhook_endpoint.set_secret("webhook-secret")
+        self.webhook_endpoint.save()
+
+    def post_graphql(
+        self, query: str, variables: dict | None = None, token="__default__"
+    ):
+        payload = {"query": query}
+        if variables is not None:
+            payload["variables"] = variables
+        headers = {"content_type": "application/json"}
+        if token == "__default__":
+            headers["HTTP_AUTHORIZATION"] = f"Bearer {self.access_token}"
+        elif token:
+            headers["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+        return self.client.post(self.graphql_url, data=json.dumps(payload), **headers)
+
+    def create_supporting_document(self, organization, tenant, user):
+        return OrganizationSupportingDocument.objects.create(
+            organization=organization,
+            tenant=tenant,
+            uploaded_by=user,
+            filename="certificate.pdf",
+            mime_type="application/pdf",
+            file_size_bytes=1024,
+            storage_key="organizations/documents/certificate.pdf",
+            status="uploaded",
+        )
+
+    def test_platform_admin_graphql_queries_return_live_admin_data(self):
+        response = self.post_graphql(
+            """
+                query PlatformAdminData {
+                  platformAdmins {
+                    email
+                    isPlatformAdmin
+                    roles
+                  }
+                  platformProviders {
+                    code
+                    status
+                  }
+                  platformVerificationPolicies {
+                    id
+                    name
+                  }
+                  platformApiClients {
+                    publicId
+                    clientId
+                  }
+                  platformWebhookEndpoints {
+                    id
+                    url
+                  }
+                }
+            """,
+            token=self.platform_access_token,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = response.json()["data"]
+        self.assertTrue(payload["platformAdmins"])
+        self.assertEqual(payload["platformProviders"][0]["code"], "internal-ocr")
+        self.assertEqual(payload["platformVerificationPolicies"][0]["id"], self.policy.public_id)
+        self.assertEqual(payload["platformApiClients"][0]["publicId"], self.api_client.public_id)
+        self.assertEqual(
+            payload["platformWebhookEndpoints"][0]["id"], self.webhook_endpoint.public_id
+        )
+
+    def test_platform_admin_invite_accept_deactivate_and_role_assignment(self):
+        with override_settings(DEBUG=True):
+            invite_response = self.post_graphql(
+                """
+                    mutation InvitePlatformAdmin($email: String!, $roleName: String!) {
+                      invitePlatformAdmin(email: $email, roleName: $roleName) {
+                        invitation {
+                          id
+                          email
+                          roleName
+                          status
+                        }
+                        debugAcceptToken
+                      }
+                    }
+                """,
+                {"email": "new-admin@example.com", "roleName": "Platform Admin"},
+                token=self.platform_access_token,
+            )
+        self.assertEqual(invite_response.status_code, status.HTTP_200_OK)
+        invite_payload = invite_response.json()["data"]["invitePlatformAdmin"]
+        self.assertEqual(invite_payload["invitation"]["status"], "pending")
+        self.assertTrue(invite_payload["debugAcceptToken"])
+
+        accept_response = self.post_graphql(
+            """
+                mutation AcceptPlatformAdminInvitation($token: String!, $password: String!) {
+                  acceptPlatformAdminInvitation(token: $token, password: $password) {
+                    tokens {
+                      access
+                    }
+                    user {
+                      email
+                      isPlatformAdmin
+                      roles
+                    }
+                  }
+                }
+            """,
+            {
+                "token": invite_payload["debugAcceptToken"],
+                "password": "StrongPassword123!",
+            },
+            token="",
+        )
+        self.assertEqual(accept_response.status_code, status.HTTP_200_OK)
+        accepted_user = accept_response.json()["data"]["acceptPlatformAdminInvitation"]["user"]
+        self.assertTrue(accepted_user["isPlatformAdmin"])
+        self.assertEqual(accepted_user["email"], "new-admin@example.com")
+
+        platform_role = Role.objects.create(
+            name="Operations Reviewer",
+            description="Can review platform cases.",
+            scope=RoleScope.PLATFORM,
+            status="active",
+        )
+        assign_response = self.post_graphql(
+            """
+                mutation AssignPlatformRole($userId: String!, $roleId: String!) {
+                  assignPlatformRole(userId: $userId, roleId: $roleId) {
+                    email
+                    roles
+                  }
+                }
+            """,
+            {
+                "userId": PlatformUser.objects.get(email="new-admin@example.com").public_id,
+                "roleId": platform_role.public_id,
+            },
+            token=self.platform_access_token,
+        )
+        self.assertEqual(assign_response.status_code, status.HTTP_200_OK)
+        self.assertIn(
+            "Operations Reviewer",
+            assign_response.json()["data"]["assignPlatformRole"]["roles"],
+        )
+
+        deactivate_response = self.post_graphql(
+            """
+                mutation DeactivatePlatformAdmin($userId: String!) {
+                  deactivatePlatformAdmin(userId: $userId) {
+                    email
+                    status
+                  }
+                }
+            """,
+            {"userId": PlatformUser.objects.get(email="new-admin@example.com").public_id},
+            token=self.platform_access_token,
+        )
+        self.assertEqual(deactivate_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            deactivate_response.json()["data"]["deactivatePlatformAdmin"]["status"],
+            "inactive",
+        )
+
+    def test_senior_reviewer_is_required_for_changed_after_approval_cases(self):
+        subject = VerificationSubject.objects.create(
+            tenant=self.tenant,
+            full_name="Pending Reviewer",
+            email="reviewer@example.com",
+        )
+        self.create_supporting_document(self.organization, self.tenant, self.tenant_user)
+        self.post_graphql(
+            """
+                mutation SubmitOrganizationVerification($input: OrganizationVerificationInput!) {
+                  submitOrganizationOnboardingVerification(input: $input) {
+                    nextAction
+                  }
+                }
+            """,
+            {
+                "input": {
+                    "businessRegistrationNumber": "BRN-1000",
+                    "registeredAddress": "1 Admin Street",
+                    "officialWebsite": "https://example.com",
+                    "taxIdentificationNumber": "TIN-1000",
+                    "supportingDocumentKeys": [
+                        "organizations/documents/certificate.pdf"
+                    ],
+                }
+            },
+            token=self.access_token,
+        )
+        self.post_graphql(
+            """
+                mutation ReviewOrganization($organizationId: String!, $decision: String!, $note: String!) {
+                  reviewOrganizationOnboarding(
+                    organizationId: $organizationId
+                    decision: $decision
+                    note: $note
+                  ) {
+                    onboarding { organizationStatus }
+                  }
+                }
+            """,
+            {
+                "organizationId": self.organization.public_id,
+                "decision": "approved",
+                "note": "Approved for production.",
+            },
+            token=self.platform_access_token,
+        )
+        self.post_graphql(
+            """
+                mutation ResubmitOrganizationVerification($input: OrganizationVerificationInput!) {
+                  submitOrganizationOnboardingVerification(input: $input) {
+                    onboarding {
+                      organizationVerificationReviewStatus
+                    }
+                  }
+                }
+            """,
+            {
+                "input": {
+                    "businessRegistrationNumber": "BRN-1001",
+                    "registeredAddress": "1 Admin Street",
+                    "officialWebsite": "https://example.com",
+                    "taxIdentificationNumber": "TIN-1001",
+                    "supportingDocumentKeys": [
+                        "organizations/documents/certificate.pdf"
+                    ],
+                }
+            },
+            token=self.access_token,
+        )
+
+        assign_case = self.post_graphql(
+            """
+                mutation AssignReviewer($organizationId: String!, $reviewerId: String!) {
+                  assignOrganizationReviewReviewer(
+                    organizationId: $organizationId
+                    reviewerId: $reviewerId
+                  ) {
+                    onboarding {
+                      platformReviewAssignedReviewerId
+                      platformReviewAssignedReviewerName
+                      platformReviewStatus
+                    }
+                  }
+                }
+            """,
+            {
+                "organizationId": self.organization.public_id,
+                "reviewerId": self.platform_admin.public_id,
+            },
+            token=self.platform_access_token,
+        )
+        self.assertEqual(assign_case.status_code, status.HTTP_200_OK)
+
+        escalate_case = self.post_graphql(
+            """
+                mutation EscalateReview($organizationId: String!, $reason: String!) {
+                  escalateOrganizationReview(
+                    organizationId: $organizationId
+                    reason: $reason
+                  ) {
+                    onboarding {
+                      platformReviewEscalated
+                      platformReviewEscalationReason
+                    }
+                  }
+                }
+            """,
+            {
+                "organizationId": self.organization.public_id,
+                "reason": "Needs senior approval.",
+            },
+            token=self.platform_access_token,
+        )
+        self.assertEqual(escalate_case.status_code, status.HTTP_200_OK)
+
+        blocked = self.post_graphql(
+            """
+                mutation ReviewOrganization($organizationId: String!, $decision: String!, $note: String!) {
+                  reviewOrganizationOnboarding(
+                    organizationId: $organizationId
+                    decision: $decision
+                    note: $note
+                  ) {
+                    nextAction
+                  }
+                }
+            """,
+            {
+                "organizationId": self.organization.public_id,
+                "decision": "approved",
+                "note": "Final approval.",
+            },
+            token=self.platform_access_token,
+        )
+        self.assertIn("senior reviewer", blocked.json()["errors"][0]["message"].lower())
+
+        senior_role = Role.objects.create(
+            name="Senior Reviewer",
+            description="Senior reviewer approval role.",
+            scope=RoleScope.PLATFORM,
+            status="active",
+        )
+        assign_senior = self.post_graphql(
+            """
+                mutation AssignPlatformRole($userId: String!, $roleId: String!) {
+                  assignPlatformRole(userId: $userId, roleId: $roleId) {
+                    roles
+                  }
+                }
+            """,
+            {
+                "userId": self.platform_admin.public_id,
+                "roleId": senior_role.public_id,
+            },
+            token=self.platform_access_token,
+        )
+        self.assertEqual(assign_senior.status_code, status.HTTP_200_OK)
+        success = self.post_graphql(
+            """
+                mutation ReviewOrganization($organizationId: String!, $decision: String!, $note: String!) {
+                  reviewOrganizationOnboarding(
+                    organizationId: $organizationId
+                    decision: $decision
+                    note: $note
+                  ) {
+                    nextAction
+                    onboarding {
+                      organizationStatus
+                      platformReviewStatus
+                    }
+                  }
+                }
+            """,
+            {
+                "organizationId": self.organization.public_id,
+                "decision": "approved",
+                "note": "Final approval.",
+            },
+            token=self.platform_access_token,
+        )
+        self.assertEqual(success.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            success.json()["data"]["reviewOrganizationOnboarding"]["onboarding"]["organizationStatus"],
+            "active",
+        )

@@ -5,6 +5,8 @@ def serialize_tenant(tenant: Tenant) -> dict:
     return {
         "id": tenant.public_id,
         "organization_id": tenant.organization.public_id,
+        "organization_name": tenant.organization.name,
+        "organization_status": tenant.organization.status,
         "name": tenant.name,
         "slug": tenant.slug,
         "status": tenant.status,

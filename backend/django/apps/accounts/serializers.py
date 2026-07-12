@@ -19,10 +19,15 @@ def serialize_user(user: PlatformUser) -> dict:
         "phone_number": user.phone_number,
         "status": user.status,
         "tenant_public_id": tenant_public_id,
+        "tenant_name": user.tenant.name if user.tenant else None,
+        "tenant_status": user.tenant.status if user.tenant else None,
         "is_platform_admin": user.is_platform_admin,
         "mfa_enabled": user.mfa_enabled,
         "roles": [assignment.role.name for assignment in user_roles],
         "notification_preferences": user.notification_preferences_json,
+        "last_login_at": user.last_login_at.isoformat() if user.last_login_at else None,
+        "created_at": user.created_at.isoformat(),
+        "updated_at": user.updated_at.isoformat(),
     }
 
 
