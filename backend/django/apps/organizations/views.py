@@ -17,7 +17,7 @@ from apps.audit.services import record_audit_event
 from apps.organizations.models import OrganizationStatus, OrganizationSupportingDocument
 from apps.tenants.models import TenantStatus
 from apps.verifications.models import VerificationSessionStatus
-from common.storage import delete_object, get_object_storage_media_bucket_name
+from common.storage import delete_object, get_object_storage_public_bucket_name
 from rest_framework_simplejwt.token_blacklist.models import (
     OutstandingToken,
     BlacklistedToken,
@@ -113,7 +113,7 @@ class OrganizationDocumentDeleteView(APIView):
         )
         try:
             delete_object(
-                bucket_name=get_object_storage_media_bucket_name(),
+                bucket_name=get_object_storage_public_bucket_name(),
                 key=document.storage_key,
             )
         except Exception:

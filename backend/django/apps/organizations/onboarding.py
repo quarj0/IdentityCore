@@ -14,7 +14,7 @@ from apps.audit.services import record_audit_event
 from apps.organizations.models import Organization, OrganizationStatus
 from apps.tenants.models import Tenant, TenantStatus
 from common.validators import normalize_email, validate_business_email
-from common.storage import build_signed_download_url, get_object_storage_media_bucket_name
+from common.storage import build_public_asset_url
 
 ORGANIZATION_TYPE_CHOICES = (
     "government",
@@ -497,11 +497,7 @@ def serialize_onboarding_state(
                 "file_size_bytes": doc.file_size_bytes,
                 "status": doc.status,
                 "storage_key": doc.storage_key,
-                "download_url": build_signed_download_url(
-                    storage_key=doc.storage_key,
-                    filename=doc.filename,
-                    bucket_name=get_object_storage_media_bucket_name(),
-                ),
+                "download_url": build_public_asset_url(doc.storage_key),
             }
             for doc in documents
         ],

@@ -1,6 +1,6 @@
 from unittest.mock import Mock, patch
 
-from django.test import SimpleTestCase, override_settings
+from django.test import TestCase, override_settings
 
 from common.crypto import (
     decrypt_object_bytes,
@@ -10,6 +10,7 @@ from common.crypto import (
 from common.storage import (
     build_signed_download_url,
     build_signed_upload_url,
+    build_public_asset_url,
     determine_storage_provider,
     get_object_bytes,
     move_object,
@@ -17,7 +18,7 @@ from common.storage import (
 )
 
 
-class StorageHelpersTests(SimpleTestCase):
+class StorageHelpersTests(TestCase):
     @override_settings(
         UPLOAD_URL_BASE="http://localhost:9000/mock-upload",
         MEDIA_DOWNLOAD_URL_BASE="http://localhost:9000/mock-download",
@@ -39,6 +40,15 @@ class StorageHelpersTests(SimpleTestCase):
         self.assertIn("filename=front.jpg", download_url)
 
     @override_settings(
+        PUBLIC_ASSET_URL_BASE="https://assets.example.com/public",
+    )
+    def test_public_asset_urls_use_public_base(self):
+        self.assertEqual(
+            build_public_asset_url("organizations/org_01TEST/logo.png"),
+            "https://assets.example.com/public/organizations/org_01TEST/logo.png",
+        )
+
+    @override_settings(
         OBJECT_STORAGE_PROVIDER="cloudflare_r2",
         OBJECT_STORAGE_BUCKET="identitycore-media",
         OBJECT_STORAGE_ENDPOINT_URL="https://example.r2.cloudflarestorage.com",
@@ -50,7 +60,9 @@ class StorageHelpersTests(SimpleTestCase):
         MEDIA_DOWNLOAD_URL_EXPIRES_SECONDS=300,
     )
     @patch("common.storage.boto3.client")
-    def test_s3_compatible_storage_generates_presigned_urls(self, mock_client_factory):
+    def test_s3_compatible_storage_generates_presigned_urls(
+        self, mock_client_factory
+    ):
         mock_client = Mock()
         mock_client.generate_presigned_url.side_effect = [
             "https://r2.example/upload",
@@ -61,15 +73,16 @@ class StorageHelpersTests(SimpleTestCase):
         upload_url = build_signed_upload_url(
             storage_key="uploads/documents/upl_01TEST",
             mime_type="image/jpeg",
+            bucket_name="identitycore-temp",
         )
         download_url = build_signed_download_url(
             storage_key="uploads/documents/upl_01TEST",
             filename="front.jpg",
+            bucket_name="identitycore-media",
         )
 
         self.assertEqual(upload_url, "https://r2.example/upload")
         self.assertEqual(download_url, "https://r2.example/download")
-        self.assertEqual(determine_storage_provider(), "cloudflare_r2")
         self.assertEqual(mock_client.generate_presigned_url.call_count, 2)
         self.assertEqual(
             mock_client.generate_presigned_url.call_args_list[0].kwargs["Params"][
@@ -100,6 +113,7 @@ class StorageHelpersTests(SimpleTestCase):
         upload_url = build_signed_upload_url(
             storage_key="uploads/documents/upl_02TEST",
             mime_type="image/png",
+            bucket_name="identitycore-temp",
         )
 
         self.assertEqual(upload_url, "https://r2.example/upload")

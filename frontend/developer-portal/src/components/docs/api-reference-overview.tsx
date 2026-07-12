@@ -105,7 +105,7 @@ export function ApiReferenceOverview({
 
           <div className="grid gap-4">
             {categoryEndpoints.map((endpoint) => (
-              <EndpointCard key={endpoint.path} {...endpoint} />
+              <EndpointCard key={endpoint.slug} {...endpoint} />
             ))}
           </div>
         </section>

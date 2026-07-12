@@ -289,6 +289,17 @@ def build_public_asset_url(storage_key: str) -> str:
     base = getattr(settings, "PUBLIC_ASSET_URL_BASE", "").rstrip("/")
     if base:
         return f"{base}/{storage_key}"
+
+    endpoint_url = str(
+        get_platform_setting_value(
+            "storage.object_storage_endpoint_url",
+            getattr(settings, "OBJECT_STORAGE_ENDPOINT_URL", ""),
+        )
+    ).rstrip("/")
+    public_bucket = get_object_storage_public_bucket_name()
+    if endpoint_url and public_bucket:
+        return f"{endpoint_url}/{public_bucket}/{storage_key}"
+
     return build_signed_download_url(
         storage_key=storage_key,
         bucket_name=get_object_storage_public_bucket_name(),

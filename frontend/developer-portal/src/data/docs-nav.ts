@@ -34,7 +34,7 @@ export const docsNav: DocsNavGroup[] = [
       },
       {
         href: "/quickstart",
-        label: "Quickstart",
+        label: "Getting started",
         description: "Create your first verification",
         icon: TerminalSquare,
       },

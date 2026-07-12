@@ -1,12 +1,14 @@
 from django.test import TestCase
 from django.urls import reverse
+from django.test import override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.organizations.models import Organization, OrganizationStatus
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.tenants.models import Tenant
-from apps.organizations.onboarding import resend_onboarding_email_verification
+from apps.organizations.models import OrganizationSupportingDocument
+from apps.organizations.onboarding import resend_onboarding_email_verification, serialize_onboarding_state
 from apps.notifications.models import Notification
 
 
@@ -70,6 +72,50 @@ class OrganizationBrandingTests(APITestCase):
         self.organization.refresh_from_db()
         self.assertEqual(self.organization.settings_json["logo_storage_key"], logo_storage_key)
         self.assertTrue(response.data["data"]["settings"]["logo_url"])
+
+
+class OrganizationSupportingDocumentTests(APITestCase):
+    def setUp(self):
+        self.organization = Organization.objects.create(
+            name="Acme University",
+            slug="acme-university-docs",
+        )
+        self.tenant = Tenant.objects.create(
+            organization=self.organization,
+            name="Acme Tenant",
+            slug="acme-docs",
+            status="active",
+        )
+        self.user = PlatformUser.objects.create_user(
+            email="docs@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            tenant=self.tenant,
+        )
+
+    @override_settings(PUBLIC_ASSET_URL_BASE="https://assets.example.com/public")
+    def test_onboarding_state_uses_public_asset_urls_for_supporting_documents(self):
+        OrganizationSupportingDocument.objects.create(
+            organization=self.organization,
+            tenant=self.tenant,
+            uploaded_by=self.user,
+            filename="certificate.pdf",
+            mime_type="application/pdf",
+            file_size_bytes=12345,
+            storage_key="organizations/org_01TEST/verification/certificate.pdf",
+            status="uploaded",
+        )
+
+        onboarding = serialize_onboarding_state(
+            organization=self.organization,
+            tenant=self.tenant,
+            user=self.user,
+        )
+
+        self.assertEqual(
+            onboarding["supporting_documents"][0]["download_url"],
+            "https://assets.example.com/public/organizations/org_01TEST/verification/certificate.pdf",
+        )
 
 
 class OrganizationOnboardingEmailTests(APITestCase):

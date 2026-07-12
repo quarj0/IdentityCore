@@ -23,7 +23,7 @@ export function DocsHeader() {
 
         <nav className="ml-auto hidden items-center gap-6 text-sm text-slate-600 sm:flex">
           <Link href="/quickstart" className="hover:text-slate-950">
-            Quickstart
+            Getting started
           </Link>
           <Link href="/api-reference" className="hover:text-slate-950">
             API

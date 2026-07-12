@@ -65,12 +65,12 @@ export function DocsFooter() {
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
           <p className="text-sm font-semibold text-slate-950">Need more context?</p>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Start in the quickstart, test in sandbox, and create a workspace
-            when you are ready to move from docs to implementation.
+            Start in the getting started guide, test in sandbox, and create a
+            workspace when you are ready to move from docs to implementation.
           </p>
           <div className="mt-4 flex flex-wrap gap-3 text-sm font-medium">
             <Link href="/quickstart" className="text-blue-600 hover:text-blue-700">
-              Open quickstart
+              Open getting started guide
             </Link>
             <a
               href={siteConfig.createWorkspaceUrl}
