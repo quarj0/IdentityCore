@@ -53,8 +53,10 @@ class LoginSerializer(serializers.Serializer):
             raise AuthenticationFailed(self.error_messages["account_inactive"])
 
         refresh = RefreshToken.for_user(user)
-        user.last_login_at = timezone.now()
-        user.save(update_fields=["last_login_at", "updated_at"])
+        now = timezone.now()
+        PlatformUser.objects.filter(pk=user.pk).update(last_login_at=now, updated_at=now)
+        user.last_login_at = now
+        user.updated_at = now
         attrs["user"] = user
         attrs["tokens"] = {
             "access": str(refresh.access_token),

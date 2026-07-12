@@ -20,7 +20,8 @@ def infer_actor(actor) -> tuple[str, str]:
 
 def record_audit_event(
     *,
-    tenant,
+    tenant=None,
+    tenant_id: str | None = None,
     action: str,
     target_type: str,
     target_id: str,
@@ -35,8 +36,11 @@ def record_audit_event(
         encoded = json.dumps(sensitive_metadata, sort_keys=True, default=str).encode("utf-8")
         sensitive_hash = hashlib.sha256(encoded).hexdigest()
 
+    if tenant_id is None:
+        tenant_id = getattr(tenant, "pk", None)
+
     return AuditEvent.objects.create(
-        tenant=tenant,
+        tenant_id=tenant_id,
         actor_type=actor_type,
         actor_id=actor_id,
         action=action,

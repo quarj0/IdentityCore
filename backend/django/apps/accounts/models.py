@@ -58,7 +58,7 @@ class PlatformUser(PublicIdModel, BaseModel, AbstractBaseUser, PermissionsMixin)
     def clean(self):
         super().clean()
         self.email = type(self).objects.normalize_email(self.email)
-        if not self.is_platform_admin and self.tenant is None:
+        if not self.is_platform_admin and self.tenant_id is None:
             raise ValidationError(
                 {"tenant": "Non-platform admin users must belong to a tenant."}
             )

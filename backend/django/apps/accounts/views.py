@@ -39,9 +39,9 @@ class LoginView(APIView):
         serializer = LoginSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
-        if user.tenant is not None:
+        if user.tenant_id is not None:
             record_audit_event(
-                tenant=user.tenant,
+                tenant_id=user.tenant_id,
                 actor=user,
                 request=request,
                 action="user.login",
@@ -122,7 +122,7 @@ class MeView(APIView):
         user.save()
         if user.tenant_id:
             record_audit_event(
-                tenant=user.tenant,
+                tenant_id=user.tenant_id,
                 actor=user,
                 request=request,
                 action="user.profile_updated",
@@ -163,11 +163,11 @@ class TeamListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        tenant = getattr(request.user, "tenant", None)
-        if tenant is None:
+        tenant_id = request.user.tenant_id
+        if tenant_id is None:
             return success_response({"results": []}, request=request)
         users = (
-            PlatformUser.objects.filter(tenant=tenant)
+            PlatformUser.objects.filter(tenant_id=tenant_id)
             .prefetch_related("user_roles__role")
             .order_by("email")
         )
@@ -192,33 +192,43 @@ class TeamInvitationListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        tenant_id = request.user.tenant_id
+        if tenant_id is None:
+            return success_response({"results": []}, request=request)
         return success_response(
             {
                 "results": [
                     serialize_invitation(x)
-                    for x in request.user.tenant.team_invitations.select_related("role")
+                    for x in TeamInvitation.objects.filter(
+                        tenant_id=tenant_id
+                    ).select_related("role")
                 ]
             },
             request=request,
         )
 
     def post(self, request):
+        tenant_id = request.user.tenant_id
+        if tenant_id is None:
+            return success_response(
+                {"detail": "Tenant context is required."},
+                request=request,
+                status=400,
+            )
         email = str(request.data.get("email", "")).strip().lower()
         role_id = request.data.get("role_id")
-        if PlatformUser.objects.filter(
-            tenant=request.user.tenant, email=email
-        ).exists():
+        if PlatformUser.objects.filter(tenant_id=tenant_id, email=email).exists():
             return success_response(
                 {"detail": "This user is already a team member."},
                 request=request,
                 status=400,
             )
         role = Role.objects.get(
-            tenant=request.user.tenant, public_id=role_id, status="active"
+            tenant_id=tenant_id, public_id=role_id, status="active"
         )
         raw = secrets.token_urlsafe(32)
         invitation = TeamInvitation.objects.create(
-            tenant=request.user.tenant,
+            tenant_id=tenant_id,
             email=email,
             role=role,
             token_hash=hashlib.sha256(raw.encode()).hexdigest(),
@@ -226,7 +236,7 @@ class TeamInvitationListCreateView(APIView):
             invited_by=request.user,
         )
         record_audit_event(
-            tenant=request.user.tenant,
+            tenant_id=tenant_id,
             actor=request.user,
             request=request,
             action="team.invitation_created",
@@ -243,7 +253,16 @@ class TeamInvitationActionView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, invitation_id, action):
-        invitation = request.user.tenant.team_invitations.get(public_id=invitation_id)
+        tenant_id = request.user.tenant_id
+        if tenant_id is None:
+            return success_response(
+                {"detail": "Tenant context is required."},
+                request=request,
+                status=400,
+            )
+        invitation = TeamInvitation.objects.get(
+            tenant_id=tenant_id, public_id=invitation_id
+        )
         if action == "revoke":
             invitation.status = TeamInvitationStatus.REVOKED
         elif action == "resend":
