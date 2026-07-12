@@ -15,6 +15,7 @@ from apps.providers.models import (
     ProviderCheckType,
     ProviderType,
 )
+from apps.providers.ai_service import AIServiceUnavailable
 from apps.tenants.models import Tenant
 from apps.uploads.models import Upload, UploadPurpose, UploadStatus
 from apps.verification_subjects.models import VerificationSubject
@@ -173,6 +174,91 @@ class IdentityDocumentTaskTests(TestCase):
             mock_classification.call_args.kwargs["document_storage_bucket"], ""
         )
         self.assertEqual(mock_ocr.call_args.kwargs["document_storage_bucket"], "")
+
+    @patch("apps.identity_documents.tasks.promote_upload_to_media_by_storage_key")
+    @patch("apps.identity_documents.tasks.run_document_classification")
+    @patch("apps.identity_documents.tasks.run_document_ocr")
+    @patch("apps.identity_documents.tasks.run_document_quality")
+    def test_process_identity_document_task_keeps_processing_when_promotion_fails(
+        self, mock_quality, mock_ocr, mock_classification, mock_promote
+    ):
+        mock_quality.return_value = {"status": "completed", "quality_score": 0.88, "issues": []}
+        mock_classification.return_value = {
+            "status": "completed",
+            "classification_status": "recognized",
+            "predicted_document_type": "national_id",
+            "expected_document_type": "national_id",
+            "matched_expected_document_type": True,
+            "predicted_country_code": "GH",
+            "confidence_score": 0.95,
+            "evidence_score": 0.95,
+            "classification_margin": 0.95,
+            "workflow_action": "continue",
+            "requires_manual_review": False,
+            "manual_review": {
+                "required": False,
+                "priority": "low",
+                "reason_codes": [],
+                "review_category": "document_classification",
+            },
+            "issues": [],
+            "ocr": {"average_confidence": 0.95, "line_count": 2},
+            "evidence": [],
+            "candidates": [],
+            "raw_text_lines": [],
+            "model_name": "mock-document-classifier",
+            "model_version": "v1",
+        }
+        mock_ocr.return_value = {
+            "status": "completed",
+            "confidence_score": 0.91,
+            "extracted_fields": {"full_name": "Kwame Mensah"},
+            "model_name": "mock-ocr",
+            "model_version": "v1",
+        }
+        mock_promote.side_effect = RuntimeError("storage unavailable")
+
+        result = process_identity_document_task(self.identity_document.public_id)
+
+        self.assertEqual(result, IdentityDocumentStatus.PROCESSED)
+        self.identity_document.refresh_from_db()
+        self.verification.refresh_from_db()
+        self.upload.refresh_from_db()
+        self.assertEqual(self.identity_document.status, IdentityDocumentStatus.PROCESSED)
+        self.assertEqual(self.verification.status, VerificationStatus.AWAITING_SELFIE)
+        self.assertEqual(self.upload.status, UploadStatus.CONSUMED)
+
+    @patch("apps.identity_documents.tasks.run_document_ocr")
+    @patch("apps.identity_documents.tasks.run_document_classification")
+    @patch("apps.identity_documents.tasks.run_document_quality")
+    def test_process_identity_document_task_routes_provider_outage_to_manual_review(
+        self, mock_quality, mock_classification, mock_ocr
+    ):
+        mock_quality.return_value = {"status": "completed", "quality_score": 0.88, "issues": []}
+        mock_classification.side_effect = AIServiceUnavailable("classification unavailable")
+        mock_ocr.return_value = {
+            "status": "completed",
+            "confidence_score": 0.91,
+            "extracted_fields": {"full_name": "Kwame Mensah"},
+            "model_name": "mock-ocr",
+            "model_version": "v1",
+        }
+
+        result = process_identity_document_task(self.identity_document.public_id)
+
+        self.assertEqual(result, IdentityDocumentStatus.PROCESSED)
+        self.identity_document.refresh_from_db()
+        self.verification.refresh_from_db()
+        self.assertEqual(self.identity_document.status, IdentityDocumentStatus.PROCESSED)
+        self.assertEqual(self.verification.status, VerificationStatus.MANUAL_REVIEW_REQUIRED)
+        classification_provider_check = self.verification.provider_checks.get(
+            check_type=ProviderCheckType.DOCUMENT_CLASSIFICATION
+        )
+        self.assertEqual(classification_provider_check.status, ProviderCheckStatus.FAILED)
+        self.assertIn(
+            "document_classification_unavailable",
+            classification_provider_check.response_metadata_json["issues"],
+        )
 
     @patch("apps.identity_documents.tasks.run_document_classification")
     @patch("apps.identity_documents.tasks.run_document_ocr")
