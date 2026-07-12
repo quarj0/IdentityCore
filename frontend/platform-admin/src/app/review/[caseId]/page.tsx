@@ -6,6 +6,7 @@ type PageProps = {
   };
 };
 
-export default function Page({ params }: PageProps) {
-  return <ReviewCaseDetailPage caseId={params.caseId} />;
+export default async function Page({ params }: PageProps) {
+  const { caseId } = await params;
+  return <ReviewCaseDetailPage caseId={caseId} />;
 }

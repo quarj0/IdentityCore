@@ -2,6 +2,7 @@ import { SecurityDetailPage } from "@/features/security/pages/security-detail-pa
 
 type PageProps = { params: { securityId: string } };
 
-export default function Page({ params }: PageProps) {
-  return <SecurityDetailPage securityId={params.securityId} />;
+export default async function Page({ params }: PageProps) {
+  const { securityId } = await params;
+  return <SecurityDetailPage securityId={securityId} />;
 }

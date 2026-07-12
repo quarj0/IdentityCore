@@ -2,6 +2,7 @@ import { ComplianceDetailPage } from "@/features/compliance/pages/compliance-det
 
 type PageProps = { params: { policyId: string } };
 
-export default function Page({ params }: PageProps) {
-  return <ComplianceDetailPage policyId={params.policyId} />;
+export default async function Page({ params }: PageProps) {
+  const { policyId } = await params;
+  return <ComplianceDetailPage policyId={policyId} />;
 }

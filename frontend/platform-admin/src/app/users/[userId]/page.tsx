@@ -6,6 +6,7 @@ type PageProps = {
   };
 };
 
-export default function Page({ params }: PageProps) {
-  return <AdminDetailPage userId={params.userId} />;
+export default async function Page({ params }: PageProps) {
+  const { userId } = await params;
+  return <AdminDetailPage userId={userId} />;
 }

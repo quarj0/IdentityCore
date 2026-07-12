@@ -2,6 +2,7 @@ import { AnalyticsDetailPage } from "@/features/analytics/pages/analytics-detail
 
 type PageProps = { params: { analyticsId: string } };
 
-export default function Page({ params }: PageProps) {
-  return <AnalyticsDetailPage analyticsId={params.analyticsId} />;
+export default async function Page({ params }: PageProps) {
+  const { analyticsId } = await params;
+  return <AnalyticsDetailPage analyticsId={analyticsId} />;
 }

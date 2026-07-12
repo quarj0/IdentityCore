@@ -1,7 +1,18 @@
-import { AdminListPage } from "@/components/admin-module/admin-list-page";
-import { createAdminListConfig } from "@/components/admin-module/admin-module-types";
-import { auditConfig } from "@/features/audit/mock-data";
+import { EmptyState } from "@/components/feedback/empty-state";
+import { PageHeader } from "@/components/shared/page-header";
 
 export function AuditListPage() {
-  return <AdminListPage config={createAdminListConfig(auditConfig)} />;
+  return (
+    <div className="space-y-6 bg-white text-slate-950">
+      <PageHeader
+        eyebrow="Platform audit"
+        title="Audit"
+        description="Tenant-scoped audit data is not exposed in the platform-admin console yet."
+      />
+      <EmptyState
+        title="Audit is not connected here"
+        description="This surface will stay hidden from the internal console until a platform-admin API is available."
+      />
+    </div>
+  );
 }

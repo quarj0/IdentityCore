@@ -43,6 +43,13 @@ async function refreshAccessToken() {
   return client.restoreSession();
 }
 
+export async function restRequest<T>(
+  path: string,
+  init: RequestInit = {},
+) {
+  return client.rest<T>(path, init);
+}
+
 export async function graphqlRequest<T>(
   query: string,
   variables?: Record<string, unknown>,
@@ -92,4 +99,3 @@ export async function graphqlRequest<T>(
 
   return payload.data;
 }
-

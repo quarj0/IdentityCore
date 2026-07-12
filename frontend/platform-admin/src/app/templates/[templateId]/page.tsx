@@ -6,6 +6,7 @@ type PageProps = {
   };
 };
 
-export default function Page({ params }: PageProps) {
-  return <TemplateDetailPage templateId={params.templateId} />;
+export default async function Page({ params }: PageProps) {
+  const { templateId } = await params;
+  return <TemplateDetailPage templateId={templateId} />;
 }

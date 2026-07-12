@@ -6,6 +6,7 @@ type PageProps = {
   };
 };
 
-export default function Page({ params }: PageProps) {
-  return <TenantDetailPage tenantId={params.tenantId} />;
+export default async function Page({ params }: PageProps) {
+  const { tenantId } = await params;
+  return <TenantDetailPage tenantId={tenantId} />;
 }
