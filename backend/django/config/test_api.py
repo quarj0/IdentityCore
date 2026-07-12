@@ -53,5 +53,10 @@ class CatalogEndpointTests(APITestCase):
         response = self.client.get(reverse("openapi-spec"))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn("openapi: 3.1.0", response.content.decode("utf-8"))
-        self.assertIn("IdentityCore Public API", response.content.decode("utf-8"))
+        body = response.content.decode("utf-8")
+        self.assertIn("openapi: 3.1.0", body)
+        self.assertIn("IdentityCore Public API", body)
+        self.assertIn("/uploads/", body)
+        self.assertIn("/organization/me/", body)
+        self.assertIn("/api-clients/", body)
+        self.assertIn("/verifications/manual-reviews", body)

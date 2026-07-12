@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: IdentityCore Public API
   version: 0.1.0
-  description: Public REST API surface used by IdentityCore SDKs.
+  description: Public REST API surface plus workspace-authenticated portal routes used by IdentityCore SDKs and sandbox testing.
 servers:
   - url: https://api.identitycore.com/api/v1
     description: Production
@@ -17,6 +17,15 @@ components:
       scheme: bearer
       bearerFormat: API client secret
       description: Send the API client secret as a bearer token and the client ID in `X-Client-Id`.
+    platformUserSession:
+      type: apiKey
+      in: cookie
+      name: sessionid
+      description: Portal session authentication used by authenticated workspace users.
+    platformUserBearer:
+      type: http
+      scheme: bearer
+      description: Portal JWT authentication used by authenticated workspace users.
   parameters:
     ClientIdHeader:
       name: X-Client-Id
@@ -247,6 +256,362 @@ components:
         pdf_download_url:
           type: string
           format: uri
+    PortalUploadCreateRequest:
+      type: object
+      required: [purpose, mime_type, file_size_bytes]
+      properties:
+        purpose:
+          type: string
+          enum: [document_capture, selfie_capture, liveness_capture]
+        mime_type:
+          type: string
+        file_size_bytes:
+          type: integer
+          minimum: 1
+    PortalUploadCreateResponse:
+      type: object
+      required: [upload_id, upload_url, upload_headers, upload_transfer_path, expires_at]
+      properties:
+        upload_id:
+          type: string
+        upload_url:
+          type: string
+          format: uri
+        upload_headers:
+          type: object
+          additionalProperties:
+            type: string
+        upload_transfer_path:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+    PortalUploadTransferResponse:
+      type: object
+      required: [upload_id]
+      properties:
+        upload_id:
+          type: string
+    OrganizationProfile:
+      type: object
+      required: [id, name, slug, status, settings, sandbox_usage]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        industry:
+          type: string
+        status:
+          type: string
+        tenant_id:
+          type: string
+        tenant_name:
+          type: string
+        tenant_status:
+          type: string
+        default_country_profile_id:
+          type: string
+        default_jurisdiction_id:
+          type: string
+        settings:
+          type: object
+          additionalProperties: true
+        sandbox_usage:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    OrganizationBrandingAssetUploadRequest:
+      type: object
+      required: [asset_type, filename, mime_type]
+      properties:
+        asset_type:
+          type: string
+          enum: [logo, branding_image]
+        filename:
+          type: string
+        mime_type:
+          type: string
+    OrganizationBrandingAssetUploadResponse:
+      type: object
+      required: [asset_type, storage_key, bucket_name, upload_url, asset_url]
+      properties:
+        asset_type:
+          type: string
+        storage_key:
+          type: string
+        bucket_name:
+          type: string
+        upload_url:
+          type: string
+          format: uri
+        asset_url:
+          type: string
+          format: uri
+    OrganizationSupportingDocumentUploadRequest:
+      type: object
+      required: [filename, mime_type, file_size_bytes]
+      properties:
+        filename:
+          type: string
+        mime_type:
+          type: string
+        file_size_bytes:
+          type: integer
+          minimum: 1
+    OrganizationSupportingDocumentUploadResponse:
+      type: object
+      required: [document_id, filename, file_size_bytes, status, storage_key, download_url, upload_url]
+      properties:
+        document_id:
+          type: string
+        filename:
+          type: string
+        file_size_bytes:
+          type: integer
+        status:
+          type: string
+        storage_key:
+          type: string
+        download_url:
+          type: string
+          format: uri
+        upload_url:
+          type: string
+          format: uri
+    OrganizationSupportingDocumentCompleteResponse:
+      type: object
+      required: [document_id, status]
+      properties:
+        document_id:
+          type: string
+        status:
+          type: string
+    OrganizationSupportingDocumentDeleteResponse:
+      type: object
+      required: [document_id, deleted]
+      properties:
+        document_id:
+          type: string
+        deleted:
+          type: boolean
+    ProjectSummary:
+      type: object
+      required: [id, name, slug, environment, status, allowed_origins, is_default, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        environment:
+          type: string
+          enum: [sandbox, production]
+        status:
+          type: string
+        allowed_origins:
+          type: array
+          items:
+            type: string
+        is_default:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ProjectCreateRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        environment:
+          type: string
+          enum: [sandbox, production]
+        allowed_origins:
+          type: array
+          items:
+            type: string
+            format: uri
+    APIClientSummary:
+      type: object
+      required: [public_id, tenant_public_id, name, client_id, status, scopes, allowed_networks, rate_limit_per_minute, created_at, updated_at]
+      properties:
+        public_id:
+          type: string
+        tenant_public_id:
+          type: string
+        project_id:
+          type: [string, "null"]
+        name:
+          type: string
+        client_id:
+          type: string
+        status:
+          type: string
+        scopes:
+          type: array
+          items:
+            type: string
+        allowed_networks:
+          type: array
+          items:
+            type: string
+        rate_limit_per_minute:
+          type: integer
+        last_used_at:
+          type: [string, "null"]
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    APIClientCreateRequest:
+      type: object
+      required: [name, scopes]
+      properties:
+        project_id:
+          type: string
+        name:
+          type: string
+        scopes:
+          type: array
+          items:
+            type: string
+        allowed_networks:
+          type: array
+          items:
+            type: string
+        rate_limit_per_minute:
+          type: integer
+          minimum: 1
+    APIClientCreateResponse:
+      allOf:
+        - $ref: "#/components/schemas/APIClientSummary"
+        - type: object
+          required: [client_secret]
+          properties:
+            client_secret:
+              type: string
+    WebhookEndpointSummary:
+      type: object
+      required: [id, url, events, status, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        project_id:
+          type: [string, "null"]
+        url:
+          type: string
+          format: uri
+        description:
+          type: string
+        events:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    WebhookEndpointCreateRequest:
+      type: object
+      required: [url, events]
+      properties:
+        project_id:
+          type: string
+        url:
+          type: string
+          format: uri
+        description:
+          type: string
+        events:
+          type: array
+          items:
+            type: string
+    WebhookEndpointCreateResponse:
+      allOf:
+        - $ref: "#/components/schemas/WebhookEndpointSummary"
+        - type: object
+          required: [secret]
+          properties:
+            secret:
+              type: string
+    WebhookEndpointTestResponse:
+      type: object
+      required: [queued]
+      properties:
+        queued:
+          type: boolean
+    ManualReviewSummary:
+      type: object
+      required: [verification_id, status, purpose, subject, risk_level, created_at]
+      properties:
+        verification_id:
+          type: string
+        status:
+          type: string
+        purpose:
+          type: string
+        subject:
+          type: object
+          properties:
+            id:
+              type: string
+            full_name:
+              type: string
+            email:
+              type: string
+        risk_level:
+          type: string
+        document_classification:
+          type: [object, "null"]
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+    ManualReviewDecisionRequest:
+      type: object
+      required: [decision, reason_code]
+      properties:
+        decision:
+          type: string
+          enum: [verified, rejected, manual_review_required, failed]
+        reason_code:
+          type: string
+        reason_detail:
+          type: string
+    ManualReviewDecisionResponse:
+      type: object
+      required: [verification_id, decision, decision_type, decided_at]
+      properties:
+        verification_id:
+          type: string
+        decision:
+          type: string
+        decision_type:
+          type: string
+        decided_at:
+          type: string
+          format: date-time
   responses:
     ValidationError:
       description: Validation error.
@@ -568,6 +933,960 @@ paths:
                     $ref: "#/components/schemas/EvidenceReport"
                   request_id:
                     type: string
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /uploads/:
+    post:
+      summary: Create a temporary upload transfer.
+      description: Workspace-authenticated users create uploads before transferring file bytes from the browser or app.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PortalUploadCreateRequest"
+      responses:
+        "201":
+          description: Upload transfer details.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/PortalUploadCreateResponse"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+  /uploads/{upload_id}/transfer:
+    post:
+      summary: Transfer file bytes into temporary storage.
+      description: Accepts the raw file bytes for a previously created upload transfer.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      parameters:
+        - name: upload_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Upload accepted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/PortalUploadTransferResponse"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /organization/me/:
+    get:
+      summary: Get the current organization profile.
+      description: Returns the authenticated workspace's organization settings and sandbox usage.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      responses:
+        "200":
+          description: Organization profile.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/OrganizationProfile"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+    patch:
+      summary: Update organization branding settings.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                logo_storage_key:
+                  type: string
+                branding_image_storage_keys:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Updated organization profile.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/OrganizationProfile"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+  /organization/me/branding/assets/upload/:
+    post:
+      summary: Create a branding asset upload.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrganizationBrandingAssetUploadRequest"
+      responses:
+        "201":
+          description: Branding asset upload details.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/OrganizationBrandingAssetUploadResponse"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+  /organization/me/verification-documents/upload/:
+    post:
+      summary: Create a supporting document upload.
+      description: Workspace-authenticated users upload organization verification documents to the public asset bucket.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrganizationSupportingDocumentUploadRequest"
+      responses:
+        "201":
+          description: Supporting document upload details.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/OrganizationSupportingDocumentUploadResponse"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+  /organization/me/verification-documents/{document_id}/complete/:
+    post:
+      summary: Mark a supporting document upload complete.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      parameters:
+        - name: document_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Supporting document status update.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/OrganizationSupportingDocumentCompleteResponse"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /organization/me/verification-documents/{document_id}/:
+    delete:
+      summary: Delete a supporting document.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      parameters:
+        - name: document_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Supporting document deleted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/OrganizationSupportingDocumentDeleteResponse"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /projects/:
+    get:
+      summary: List projects.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      responses:
+        "200":
+          description: Project list.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: object
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/ProjectSummary"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+    post:
+      summary: Create a project.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectCreateRequest"
+      responses:
+        "201":
+          description: Created project.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/ProjectSummary"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+  /projects/{project_id}:
+    get:
+      summary: Retrieve a project.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Project detail.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/ProjectSummary"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      summary: Update a project.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectCreateRequest"
+      responses:
+        "200":
+          description: Updated project.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/ProjectSummary"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /projects/{project_id}/{action}:
+    post:
+      summary: Suspend or reactivate a project.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: action
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [suspend, activate]
+      responses:
+        "200":
+          description: Updated project.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/ProjectSummary"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api-clients/:
+    get:
+      summary: List API clients.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      responses:
+        "200":
+          description: API client list.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: object
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/APIClientSummary"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+    post:
+      summary: Create an API client.
+      description: Pending workspaces can use this route to mint a sandbox test key for API testing.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/APIClientCreateRequest"
+      responses:
+        "201":
+          description: Created API client.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/APIClientCreateResponse"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+  /api-clients/{client_id}:
+    get:
+      summary: Retrieve an API client.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      parameters:
+        - name: client_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: API client detail.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/APIClientSummary"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      summary: Update an API client.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      parameters:
+        - name: client_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                scopes:
+                  type: array
+                  items:
+                    type: string
+                allowed_networks:
+                  type: array
+                  items:
+                    type: string
+                rate_limit_per_minute:
+                  type: integer
+      responses:
+        "200":
+          description: Updated API client.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/APIClientSummary"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api-clients/{client_id}/{action}:
+    post:
+      summary: Rotate, revoke, or reactivate an API client.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      parameters:
+        - name: client_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: action
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [rotate, revoke, reactivate]
+      responses:
+        "200":
+          description: API client action result.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/APIClientCreateResponse"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /webhook-endpoints/:
+    get:
+      summary: List webhook endpoints.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      responses:
+        "200":
+          description: Webhook endpoint list.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: object
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/WebhookEndpointSummary"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+    post:
+      summary: Create a webhook endpoint.
+      description: Pending workspaces can create a single disabled sandbox webhook for test delivery.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookEndpointCreateRequest"
+      responses:
+        "201":
+          description: Created webhook endpoint.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/WebhookEndpointCreateResponse"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+  /webhook-endpoints/{webhook_id}:
+    get:
+      summary: Retrieve a webhook endpoint.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      parameters:
+        - name: webhook_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Webhook endpoint detail.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/WebhookEndpointSummary"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      summary: Update a webhook endpoint.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      parameters:
+        - name: webhook_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  format: uri
+                description:
+                  type: string
+                events:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Updated webhook endpoint.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/WebhookEndpointSummary"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /webhook-endpoints/{webhook_id}/test:
+    post:
+      summary: Queue a test webhook delivery.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      parameters:
+        - name: webhook_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Test delivery queued.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/WebhookEndpointTestResponse"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /webhook-endpoints/{webhook_id}/{action}:
+    post:
+      summary: Disable or reactivate a webhook endpoint.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      parameters:
+        - name: webhook_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: action
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [disable, reactivate]
+      responses:
+        "200":
+          description: Updated webhook endpoint.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/WebhookEndpointSummary"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /verifications/manual-reviews:
+    get:
+      summary: List verifications requiring manual review.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      responses:
+        "200":
+          description: Manual review queue.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: object
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/ManualReviewSummary"
+                      pagination:
+                        $ref: "#/components/schemas/Pagination"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+  /verifications/manual-reviews/{verification_id}/decision:
+    post:
+      summary: Submit a manual review decision.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      parameters:
+        - name: verification_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManualReviewDecisionRequest"
+      responses:
+        "200":
+          description: Manual review decision recorded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/ManualReviewDecisionResponse"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /verifications/{verification_id}/evidence-report/download:
+    get:
+      summary: Download evidence-report data.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      parameters:
+        - name: verification_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Evidence report download.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /verifications/{verification_id}/evidence-report/download.pdf:
+    get:
+      summary: Download evidence-report PDF.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      parameters:
+        - name: verification_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Evidence report PDF download.
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
         "403":
           $ref: "#/components/responses/PermissionDenied"
         "404":

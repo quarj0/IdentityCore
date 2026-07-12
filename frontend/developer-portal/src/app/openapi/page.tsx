@@ -7,7 +7,7 @@ export default function OpenApiPage() {
   return (
     <DocsLayout
       title="OpenAPI spec"
-      description="Canonical machine-readable contract for the public IdentityCore API. Use this for code generation, contract tests, and future Swagger or Redoc tooling."
+      description="Canonical machine-readable contract for the public IdentityCore API plus workspace-authenticated portal routes. Use this for code generation, contract tests, and future Swagger or Redoc tooling."
     >
       <section className="rounded-3xl border border-slate-200 bg-white p-6">
         <h2 className="text-xl font-semibold">Source of truth</h2>
