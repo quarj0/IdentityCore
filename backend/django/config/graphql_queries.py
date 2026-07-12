@@ -1,4 +1,5 @@
 import strawberry
+from django.conf import settings
 from django_countries import countries
 from django.db import models
 from strawberry.types import Info
@@ -18,7 +19,9 @@ from apps.organizations.onboarding import (
 )
 from apps.organizations.serializers import serialize_organization
 from apps.providers.models import Provider
+from apps.providers.models import ProviderCheck
 from apps.providers.serializers import serialize_provider
+from apps.providers.serializers import serialize_provider_check
 from apps.reviewers.models import PlatformAdminInvitation
 from apps.accounts.serializers import serialize_user
 from apps.analytics.models import AnalyticsDashboard
@@ -57,7 +60,9 @@ from config.graphql_types import (
     OrganizationOnboardingNode,
     PlatformAdminInvitationNode,
     PlatformRoleNode,
+    PlatformSettingNode,
     ProviderNode,
+    ProviderCheckNode,
     SupportedDocumentTypeNode,
     VerificationNode,
     VerificationPolicyNode,
@@ -206,6 +211,68 @@ class Query:
         ]
 
     @strawberry.field
+    def platform_ai_providers(
+        self,
+        info: Info,
+        provider_type: str | None = None,
+        status: str | None = None,
+        search: str | None = None,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> list[ProviderNode]:
+        require_platform_admin(info)
+        queryset = Provider.objects.filter(
+            provider_type__in=[
+                "document",
+                "biometric",
+                "liveness",
+                "risk",
+                "identity_database",
+            ]
+        ).order_by("provider_type", "name")
+        if provider_type:
+            queryset = queryset.filter(provider_type=provider_type)
+        if status:
+            queryset = queryset.filter(status=status)
+        if search:
+            queryset = queryset.filter(
+                models.Q(name__icontains=search)
+                | models.Q(code__icontains=search)
+                | models.Q(provider_type__icontains=search)
+            )
+        page_obj, _ = paginate_results(queryset, page, page_size)
+        return [ProviderNode(**serialize_provider(provider)) for provider in page_obj.object_list]
+
+    @strawberry.field
+    def platform_ai_provider(self, info: Info, provider_id: str) -> ProviderNode | None:
+        require_platform_admin(info)
+        provider = Provider.objects.filter(public_id=provider_id).first()
+        return ProviderNode(**serialize_provider(provider)) if provider else None
+
+    @strawberry.field
+    def platform_provider_checks(
+        self,
+        info: Info,
+        provider_id: str | None = None,
+        check_type: str | None = None,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> list[ProviderCheckNode]:
+        require_platform_admin(info)
+        queryset = ProviderCheck.objects.select_related("verification", "provider").order_by(
+            "-started_at"
+        )
+        if provider_id:
+            queryset = queryset.filter(provider__public_id=provider_id)
+        if check_type:
+            queryset = queryset.filter(check_type=check_type)
+        page_obj, _ = paginate_results(queryset, page, page_size)
+        return [
+            ProviderCheckNode(**serialize_provider_check(item))
+            for item in page_obj.object_list
+        ]
+
+    @strawberry.field
     def platform_provider(self, info: Info, provider_id: str) -> ProviderNode | None:
         require_platform_admin(info)
         provider = Provider.objects.filter(public_id=provider_id).first()
@@ -341,6 +408,62 @@ class Query:
             if role
             else None
         )
+
+    @strawberry.field
+    def platform_settings(self, info: Info) -> list[PlatformSettingNode]:
+        require_platform_admin(info)
+        return [
+            PlatformSettingNode(
+                id="platform-email",
+                title="Email configuration",
+                category="Notifications",
+                status="configured" if settings.DEFAULT_FROM_EMAIL else "unconfigured",
+                primary_value=settings.DEFAULT_FROM_EMAIL,
+                secondary_value=settings.EMAIL_HOST or "console backend",
+                owner_team="Platform Ops",
+                description="Default sender and email transport configuration used across notifications.",
+                updated_at="Backend settings",
+            ),
+            PlatformSettingNode(
+                id="platform-storage",
+                title="Object storage",
+                category="Storage",
+                status="configured" if settings.OBJECT_STORAGE_BUCKET else "unconfigured",
+                primary_value=settings.OBJECT_STORAGE_BUCKET or "not set",
+                secondary_value=settings.OBJECT_STORAGE_PROVIDER or "not set",
+                owner_team="Infrastructure",
+                description="Default object storage bucket and provider used for uploads, evidence and public assets.",
+                updated_at="Backend settings",
+            ),
+            PlatformSettingNode(
+                id="platform-verification-portal",
+                title="Verification portal",
+                category="Identity verification",
+                status="configured" if settings.VERIFICATION_PORTAL_BASE_URL else "unconfigured",
+                primary_value=settings.VERIFICATION_PORTAL_BASE_URL,
+                secondary_value=settings.AI_SERVICE_BASE_URL or "not set",
+                owner_team="Identity Platform",
+                description="Base URLs used for subject-facing verification journeys and AI service calls.",
+                updated_at="Backend settings",
+            ),
+            PlatformSettingNode(
+                id="platform-ai-service",
+                title="AI service",
+                category="AI",
+                status="configured" if settings.AI_SERVICE_BASE_URL else "unconfigured",
+                primary_value=settings.AI_SERVICE_BASE_URL or "not set",
+                secondary_value=f"{settings.AI_SERVICE_TIMEOUT_SECONDS}s timeout",
+                owner_team="AI Platform",
+                description="Internal AI service endpoint and request timeout used by backend provider orchestration.",
+                updated_at="Backend settings",
+            ),
+        ]
+
+    @strawberry.field
+    def platform_setting(self, info: Info, setting_id: str) -> PlatformSettingNode | None:
+        require_platform_admin(info)
+        setting_map = {item.id: item for item in self.platform_settings(info)}
+        return setting_map.get(setting_id)
 
     @strawberry.field
     def platform_audit_event(self, info: Info, audit_id: str) -> AuditEventNode | None:

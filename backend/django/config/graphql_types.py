@@ -138,6 +138,24 @@ class ProviderNode:
 
 
 @strawberry.type
+class ProviderCheckNode:
+    id: str
+    verification_id: str
+    provider_id: str
+    provider_code: str
+    check_type: str
+    status: str
+    provider_reference: str
+    request_metadata: strawberry.scalars.JSON
+    response_metadata: strawberry.scalars.JSON
+    normalized_result: strawberry.scalars.JSON
+    error_code: str
+    error_message: str
+    started_at: str
+    completed_at: str | None
+
+
+@strawberry.type
 class PlatformRoleNode:
     id: str
     name: str
@@ -158,6 +176,19 @@ class PlatformAdminInvitationNode:
     accepted_at: str | None
     invited_by_email: str
     created_at: str
+    updated_at: str
+
+
+@strawberry.type
+class PlatformSettingNode:
+    id: str
+    title: str
+    category: str
+    status: str
+    primary_value: str
+    secondary_value: str
+    owner_team: str
+    description: str
     updated_at: str
 
 

@@ -1,19 +1,35 @@
-import { EmptyState } from "@/components/feedback/empty-state";
-import { PageHeader } from "@/components/shared/page-header";
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { AdminListPage } from "@/components/admin-module/admin-list-page";
+import { createAdminListConfig } from "@/components/admin-module/admin-module-types";
+import { buildSettingsConfig, fetchSettingsRecords } from "@/features/settings/live-data";
 
 export function SettingsListPage() {
-  return (
-    <div className="space-y-6 bg-white text-slate-950">
-      <PageHeader
-        eyebrow="Platform configuration"
-        title="Settings"
-        description="This area is reserved for future platform configuration APIs and is intentionally not faked."
-      />
+  const [records, setRecords] = useState<
+    ReturnType<typeof buildSettingsConfig>["records"]
+  >([]);
 
-      <EmptyState
-        title="Settings not wired yet"
-        description="We are hiding fake configuration data until the backend exposes a real admin contract."
-      />
-    </div>
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      const data = await fetchSettingsRecords();
+      if (active) {
+        setRecords(data);
+      }
+    }
+
+    void load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const config = useMemo(
+    () => createAdminListConfig(buildSettingsConfig(records)),
+    [records],
   );
+
+  return <AdminListPage config={config} />;
 }

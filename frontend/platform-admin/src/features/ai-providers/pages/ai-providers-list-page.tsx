@@ -1,19 +1,38 @@
-import { EmptyState } from "@/components/feedback/empty-state";
-import { PageHeader } from "@/components/shared/page-header";
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { AdminListPage } from "@/components/admin-module/admin-list-page";
+import { createAdminListConfig } from "@/components/admin-module/admin-module-types";
+import {
+  buildAiProviderConfig,
+  fetchAiProviderRecords,
+} from "@/features/ai-providers/live-data";
 
 export function AiProvidersListPage() {
-  return (
-    <div className="space-y-6 bg-white text-slate-950">
-      <PageHeader
-        eyebrow="AI infrastructure"
-        title="AI Providers"
-        description="This section is not yet connected to a backend admin API. The live console currently uses the Verification Providers area instead."
-      />
+  const [records, setRecords] = useState<
+    ReturnType<typeof buildAiProviderConfig>["records"]
+  >([]);
 
-      <EmptyState
-        title="AI Providers not wired yet"
-        description="We are keeping this section honest until there is a real backend API and governance model for it."
-      />
-    </div>
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      const data = await fetchAiProviderRecords();
+      if (active) {
+        setRecords(data);
+      }
+    }
+
+    void load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const config = useMemo(
+    () => createAdminListConfig(buildAiProviderConfig(records)),
+    [records],
   );
+
+  return <AdminListPage config={config} />;
 }
