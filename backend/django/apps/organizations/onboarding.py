@@ -44,6 +44,13 @@ ONBOARDING_STATUS_ACTIVE = "active"
 ONBOARDING_STATUS_NEEDS_INFORMATION = "needs_information"
 ONBOARDING_STATUS_REJECTED = "rejected"
 
+ORGANIZATION_VERIFICATION_REVIEW_DRAFT = "draft"
+ORGANIZATION_VERIFICATION_REVIEW_SUBMITTED = "submitted"
+ORGANIZATION_VERIFICATION_REVIEW_NEEDS_INFORMATION = "needs_information"
+ORGANIZATION_VERIFICATION_REVIEW_REJECTED = "rejected"
+ORGANIZATION_VERIFICATION_REVIEW_APPROVED = "approved"
+ORGANIZATION_VERIFICATION_REVIEW_CHANGED_AFTER_APPROVAL = "changed_after_approval"
+
 
 def split_full_name(full_name: str) -> tuple[str, str]:
     parts = full_name.strip().split(maxsplit=1)
@@ -127,6 +134,10 @@ def _build_onboarding_settings(
             "verified_at": None,
         },
         "organization_verification": {
+            "review_status": ORGANIZATION_VERIFICATION_REVIEW_DRAFT,
+            "reviewed_at": None,
+            "reviewed_by": "",
+            "review_note": "",
             "submitted_at": None,
             "business_registration_number": "",
             "tax_identification_number": "",
@@ -151,6 +162,60 @@ def _build_onboarding_settings(
 def _get_onboarding_settings(organization: Organization) -> dict:
     settings_json = dict(organization.settings_json or {})
     return dict(settings_json.get("onboarding") or {})
+
+
+def _normalize_supporting_document_keys(keys: list[str] | None) -> list[str]:
+    return sorted({key.strip() for key in (keys or []) if key and key.strip()})
+
+
+def _organization_verification_review_status(onboarding: dict) -> str:
+    organization_verification = dict(onboarding.get("organization_verification") or {})
+    review_status = organization_verification.get("review_status") or ""
+    if review_status:
+        return review_status
+    if not organization_verification.get("submitted_at"):
+        return ORGANIZATION_VERIFICATION_REVIEW_DRAFT
+    if onboarding.get("status") in {
+        ONBOARDING_STATUS_NEEDS_INFORMATION,
+        ONBOARDING_STATUS_REJECTED,
+    }:
+        return onboarding.get("status", ORGANIZATION_VERIFICATION_REVIEW_SUBMITTED)
+    return ORGANIZATION_VERIFICATION_REVIEW_SUBMITTED
+
+
+def _organization_verification_editable(onboarding: dict) -> bool:
+    return _organization_verification_review_status(onboarding) in {
+        ORGANIZATION_VERIFICATION_REVIEW_DRAFT,
+        ORGANIZATION_VERIFICATION_REVIEW_NEEDS_INFORMATION,
+        ORGANIZATION_VERIFICATION_REVIEW_REJECTED,
+    }
+
+
+def _organization_verification_has_changed(
+    *,
+    existing: dict,
+    business_registration_number: str,
+    registered_address: str,
+    official_website: str,
+    tax_identification_number: str,
+    supporting_document_keys: list[str] | None,
+) -> bool:
+    return any(
+        (
+            existing.get("business_registration_number", "").strip()
+            != business_registration_number.strip(),
+            existing.get("registered_address", "").strip()
+            != registered_address.strip(),
+            existing.get("official_website", "").strip()
+            != official_website.strip(),
+            existing.get("tax_identification_number", "").strip()
+            != tax_identification_number.strip(),
+            _normalize_supporting_document_keys(
+                existing.get("supporting_document_keys")
+            )
+            != _normalize_supporting_document_keys(supporting_document_keys),
+        )
+    )
 
 
 def _save_onboarding_settings(
@@ -268,6 +333,9 @@ def serialize_onboarding_state(
     documents = organization.supporting_documents.filter(deleted_at__isnull=True)
     country_code = registration.get("organization_country", "")
     country_names = dict(countries)
+    organization_verification_review_status = _organization_verification_review_status(
+        onboarding
+    )
     return {
         "organization_id": organization.public_id,
         "organization_name": organization.name,
@@ -301,17 +369,39 @@ def serialize_onboarding_state(
         "organization_verification_submitted_at": organization_verification.get(
             "submitted_at"
         ),
-        "organization_verification_editable": not bool(organization_verification.get("submitted_at")),
-        "business_registration_number": organization_verification.get("business_registration_number", ""),
-        "tax_identification_number": organization_verification.get("tax_identification_number", ""),
+        "organization_verification_editable": _organization_verification_editable(
+            onboarding
+        ),
+        "organization_verification_review_status": organization_verification_review_status,
+        "organization_verification_reviewed_at": organization_verification.get(
+            "reviewed_at"
+        ),
+        "organization_verification_review_note": organization_verification.get(
+            "review_note", ""
+        ),
+        "business_registration_number": organization_verification.get(
+            "business_registration_number", ""
+        ),
+        "tax_identification_number": organization_verification.get(
+            "tax_identification_number", ""
+        ),
         "registered_address": organization_verification.get("registered_address", ""),
         "official_website": organization_verification.get("official_website", ""),
-        "supporting_documents": [{"id": doc.public_id, "filename": doc.filename,
-                                  "file_size_bytes": doc.file_size_bytes, "status": doc.status,
-                                  "storage_key": doc.storage_key,
-                                  "download_url": build_signed_download_url(
-                                      storage_key=doc.storage_key, filename=doc.filename,
-                                      bucket_name=get_object_storage_media_bucket_name())} for doc in documents],
+        "supporting_documents": [
+            {
+                "id": doc.public_id,
+                "filename": doc.filename,
+                "file_size_bytes": doc.file_size_bytes,
+                "status": doc.status,
+                "storage_key": doc.storage_key,
+                "download_url": build_signed_download_url(
+                    storage_key=doc.storage_key,
+                    filename=doc.filename,
+                    bucket_name=get_object_storage_media_bucket_name(),
+                ),
+            }
+            for doc in documents
+        ],
         "administrator_identity_verification_status": admin_identity.get(
             "status", "pending"
         ),
@@ -390,16 +480,56 @@ def submit_organization_verification(
     documents.filter(status="uploaded").update(status="submitted")
     onboarding = _get_onboarding_settings(organization)
     existing_verification = dict(onboarding.get("organization_verification") or {})
+    has_changed = _organization_verification_has_changed(
+        existing=existing_verification,
+        business_registration_number=business_registration_number,
+        registered_address=registered_address,
+        official_website=official_website,
+        tax_identification_number=tax_identification_number,
+        supporting_document_keys=supporting_document_keys,
+    )
+    post_approval_edit = (
+        onboarding.get("status") == ONBOARDING_STATUS_ACTIVE
+        or organization.status == OrganizationStatus.ACTIVE
+        or tenant.status == TenantStatus.ACTIVE
+    )
+    if post_approval_edit and not has_changed:
+        return organization, tenant, user
+    review_status = ORGANIZATION_VERIFICATION_REVIEW_SUBMITTED
+    if post_approval_edit and has_changed:
+        review_status = ORGANIZATION_VERIFICATION_REVIEW_CHANGED_AFTER_APPROVAL
     onboarding["organization_verification"] = {
-        "submitted_at": existing_verification.get("submitted_at") or timezone.now().isoformat(),
+        "review_status": review_status,
+        "reviewed_at": None,
+        "reviewed_by": "",
+        "review_note": "",
+        "submitted_at": timezone.now().isoformat(),
         "business_registration_number": business_registration_number.strip(),
         "tax_identification_number": tax_identification_number.strip(),
         "registered_address": registered_address.strip(),
         "official_website": official_website.strip(),
-        "supporting_document_keys": supporting_document_keys or [],
+        "supporting_document_keys": _normalize_supporting_document_keys(
+            supporting_document_keys
+        ),
     }
-    onboarding["status"] = ONBOARDING_STATUS_ADMIN_IDENTITY_VERIFICATION_REQUIRED
-    onboarding["current_step"] = "administrator_identity_verification"
+    if post_approval_edit and has_changed:
+        onboarding["status"] = ONBOARDING_STATUS_PLATFORM_REVIEW_PENDING
+        onboarding["current_step"] = "platform_review"
+        onboarding["platform_review"] = {
+            "status": "pending_review",
+            "reviewed_at": None,
+            "reviewed_by": "",
+            "note": "Organization verification changed after approval.",
+        }
+        organization.status = OrganizationStatus.PENDING_REVIEW
+        tenant.status = TenantStatus.PENDING_REVIEW
+        organization.save(update_fields=["status", "updated_at"])
+        tenant.save(update_fields=["status", "updated_at"])
+    else:
+        onboarding["status"] = ONBOARDING_STATUS_ADMIN_IDENTITY_VERIFICATION_REQUIRED
+        onboarding["current_step"] = "administrator_identity_verification"
+        organization.save(update_fields=["status", "updated_at"])
+        tenant.save(update_fields=["status", "updated_at"])
     _save_onboarding_settings(organization, onboarding)
     record_audit_event(
         tenant=tenant,
@@ -487,6 +617,9 @@ def review_organization_onboarding(
         "reviewed_by": actor.public_id,
         "note": note.strip(),
     }
+    organization_verification = dict(
+        onboarding.get("organization_verification") or {}
+    )
 
     if decision == "approved":
         organization.status = OrganizationStatus.ACTIVE
@@ -494,6 +627,13 @@ def review_organization_onboarding(
         onboarding["tier"] = ORGANIZATION_TIER_VERIFIED
         onboarding["status"] = ONBOARDING_STATUS_ACTIVE
         onboarding["current_step"] = "active"
+        onboarding["organization_verification"] = {
+            **organization_verification,
+            "review_status": ORGANIZATION_VERIFICATION_REVIEW_APPROVED,
+            "reviewed_at": timezone.now().isoformat(),
+            "reviewed_by": actor.public_id,
+            "review_note": note.strip(),
+        }
         if user is not None and user.status == PlatformUserStatus.INACTIVE:
             user.status = PlatformUserStatus.ACTIVE
             user.save(update_fields=["status", "updated_at"])
@@ -502,14 +642,25 @@ def review_organization_onboarding(
         tenant.status = TenantStatus.PENDING_REVIEW
         onboarding["status"] = ONBOARDING_STATUS_NEEDS_INFORMATION
         onboarding["current_step"] = "organization_verification"
+        onboarding["organization_verification"] = {
+            **organization_verification,
+            "review_status": ORGANIZATION_VERIFICATION_REVIEW_NEEDS_INFORMATION,
+            "reviewed_at": timezone.now().isoformat(),
+            "reviewed_by": actor.public_id,
+            "review_note": note.strip(),
+        }
     else:
-        organization.status = OrganizationStatus.SUSPENDED
-        tenant.status = TenantStatus.SUSPENDED
+        organization.status = OrganizationStatus.PENDING_REVIEW
+        tenant.status = TenantStatus.PENDING_REVIEW
         onboarding["status"] = ONBOARDING_STATUS_REJECTED
-        onboarding["current_step"] = "platform_review"
-        if user is not None:
-            user.status = PlatformUserStatus.SUSPENDED
-            user.save(update_fields=["status", "updated_at"])
+        onboarding["current_step"] = "organization_verification"
+        onboarding["organization_verification"] = {
+            **organization_verification,
+            "review_status": ORGANIZATION_VERIFICATION_REVIEW_REJECTED,
+            "reviewed_at": timezone.now().isoformat(),
+            "reviewed_by": actor.public_id,
+            "review_note": note.strip(),
+        }
 
     organization.save(update_fields=["status", "updated_at"])
     tenant.save(update_fields=["status", "updated_at"])

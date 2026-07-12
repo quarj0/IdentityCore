@@ -25,9 +25,14 @@ export function getOnboardingRoute(state: OnboardingState | null) {
 
 export function buildOnboardingSteps(state: OnboardingState | null) {
   const currentStep = state?.currentStep ?? "organization_verification";
-  const organizationVerificationDone = Boolean(
-    state?.organizationVerificationSubmittedAt,
-  );
+  const organizationVerificationNeedsAttention = [
+    "needs_information",
+    "rejected",
+  ].includes(state?.organizationVerificationReviewStatus || "");
+  const organizationVerificationDone =
+    Boolean(state?.organizationVerificationSubmittedAt) &&
+    !organizationVerificationNeedsAttention &&
+    currentStep !== "organization_verification";
   const adminIdentityDone = ["submitted", "verified"].includes(
     state?.administratorIdentityVerificationStatus || "",
   );
@@ -51,11 +56,13 @@ export function buildOnboardingSteps(state: OnboardingState | null) {
     {
       title: "Organization verification",
       description: "Submit your registration details for workspace review.",
-      status: organizationVerificationDone
-        ? "complete"
-        : currentStep === "organization_verification"
+      status:
+        currentStep === "organization_verification" ||
+        organizationVerificationNeedsAttention
           ? "current"
-          : "upcoming",
+          : organizationVerificationDone
+            ? "complete"
+            : "upcoming",
       actionHref: "/onboarding/organization-verification",
       actionLabel: "Submit details",
     },

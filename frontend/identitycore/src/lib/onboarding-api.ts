@@ -29,6 +29,9 @@ export interface OnboardingState {
   currentStep: string;
   organizationVerificationSubmittedAt: string | null;
   organizationVerificationEditable: boolean;
+  organizationVerificationReviewStatus: string;
+  organizationVerificationReviewNote: string;
+  organizationVerificationReviewedAt: string | null;
   businessRegistrationNumber: string;
   taxIdentificationNumber: string;
   registeredAddress: string;
@@ -177,6 +180,12 @@ export async function registerOrganizationOnboarding(input: RegisterInput) {
             onboardingStatus
             currentStep
             organizationVerificationSubmittedAt
+            organizationVerificationEditable
+            businessRegistrationNumber
+            taxIdentificationNumber
+            registeredAddress
+            officialWebsite
+            supportingDocuments
             administratorIdentityVerificationStatus
             administratorIdentityVerificationId
             administratorIdentitySubmittedAt
@@ -224,6 +233,12 @@ export async function verifyOrganizationOnboardingEmail(token: string) {
             onboardingStatus
             currentStep
             organizationVerificationSubmittedAt
+            organizationVerificationEditable
+            businessRegistrationNumber
+            taxIdentificationNumber
+            registeredAddress
+            officialWebsite
+            supportingDocuments
             administratorIdentityVerificationStatus
             administratorIdentityVerificationId
             administratorIdentitySubmittedAt
@@ -281,6 +296,9 @@ export async function fetchCurrentOnboarding() {
         currentStep
         organizationVerificationSubmittedAt
         organizationVerificationEditable
+        organizationVerificationReviewStatus
+        organizationVerificationReviewNote
+        organizationVerificationReviewedAt
         businessRegistrationNumber
         taxIdentificationNumber
         registeredAddress
@@ -349,6 +367,12 @@ export async function submitOrganizationVerification(
             onboardingStatus
             currentStep
             organizationVerificationSubmittedAt
+            organizationVerificationEditable
+            businessRegistrationNumber
+            taxIdentificationNumber
+            registeredAddress
+            officialWebsite
+            supportingDocuments
             administratorIdentityVerificationStatus
             administratorIdentityVerificationId
             administratorIdentitySubmittedAt
@@ -401,6 +425,12 @@ export async function submitAdministratorIdentityVerification(
             onboardingStatus
             currentStep
             organizationVerificationSubmittedAt
+            organizationVerificationEditable
+            businessRegistrationNumber
+            taxIdentificationNumber
+            registeredAddress
+            officialWebsite
+            supportingDocuments
             administratorIdentityVerificationStatus
             administratorIdentityVerificationId
             administratorIdentitySubmittedAt

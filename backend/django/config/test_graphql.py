@@ -9,7 +9,7 @@ from rest_framework.test import APITestCase
 
 from apps.access_control.models import UserRole
 from apps.accounts.models import PlatformUser, PlatformUserStatus
-from apps.organizations.models import Organization
+from apps.organizations.models import Organization, OrganizationSupportingDocument
 from apps.risk.models import RiskAssessment
 from apps.tenants.models import Tenant
 from apps.verifications.models import (
@@ -76,6 +76,18 @@ class GraphQLAPITests(APITestCase):
             self.graphql_url,
             data=json.dumps(payload),
             **self.graphql_headers(token),
+        )
+
+    def create_supporting_document(self, organization, tenant, user):
+        return OrganizationSupportingDocument.objects.create(
+            organization=organization,
+            tenant=tenant,
+            uploaded_by=user,
+            filename="certificate.pdf",
+            mime_type="application/pdf",
+            file_size_bytes=1024,
+            storage_key="organizations/documents/certificate.pdf",
+            status="uploaded",
         )
 
     def test_countries_query_returns_full_public_catalog(self):
@@ -575,6 +587,11 @@ class GraphQLAPITests(APITestCase):
             format="json",
         )
         onboarding_token = login_response.data["data"]["tokens"]["access"]
+        self.create_supporting_document(
+            onboarding_user.tenant.organization,
+            onboarding_user.tenant,
+            onboarding_user,
+        )
 
         organization_verification_response = self.post_graphql(
             """
@@ -696,6 +713,7 @@ class GraphQLAPITests(APITestCase):
         self.assertEqual(review_payload["onboarding"]["onboardingStatus"], "active")
 
     def test_organization_onboarding_query_returns_authenticated_tenant_state(self):
+        submitted_at = timezone.now().isoformat()
         self.organization.settings_json = {
             "onboarding": {
                 "tier": "trial",
@@ -719,7 +737,7 @@ class GraphQLAPITests(APITestCase):
                     "verified_at": timezone.now().isoformat(),
                 },
                 "organization_verification": {
-                    "submitted_at": timezone.now().isoformat(),
+                    "submitted_at": submitted_at,
                     "business_registration_number": "BRN-1",
                     "tax_identification_number": "",
                     "registered_address": "Accra",
@@ -750,6 +768,13 @@ class GraphQLAPITests(APITestCase):
                     phoneNumber
                     onboardingStatus
                     currentStep
+                    organizationVerificationSubmittedAt
+                    organizationVerificationEditable
+                    organizationVerificationReviewStatus
+                    businessRegistrationNumber
+                    taxIdentificationNumber
+                    registeredAddress
+                    officialWebsite
                   }
                 }
             """)
@@ -768,4 +793,376 @@ class GraphQLAPITests(APITestCase):
         self.assertEqual(
             payload["data"]["organizationOnboarding"]["onboardingStatus"],
             "organization_verification_required",
+        )
+        self.assertEqual(
+            payload["data"]["organizationOnboarding"]["organizationVerificationSubmittedAt"],
+            submitted_at,
+        )
+        self.assertFalse(
+            payload["data"]["organizationOnboarding"]["organizationVerificationEditable"]
+        )
+        self.assertEqual(
+            payload["data"]["organizationOnboarding"][
+                "organizationVerificationReviewStatus"
+            ],
+            "submitted",
+        )
+        self.assertEqual(
+            payload["data"]["organizationOnboarding"]["businessRegistrationNumber"],
+            "BRN-1",
+        )
+        self.assertEqual(
+            payload["data"]["organizationOnboarding"]["taxIdentificationNumber"],
+            "",
+        )
+        self.assertEqual(
+            payload["data"]["organizationOnboarding"]["registeredAddress"],
+            "Accra",
+        )
+        self.assertEqual(
+            payload["data"]["organizationOnboarding"]["officialWebsite"],
+            "https://acme.example",
+        )
+
+    @override_settings(DEBUG=True)
+    def test_organization_verification_reopens_after_needs_information_review(self):
+        registration_response = self.post_graphql(
+            """
+                mutation RegisterOnboarding($input: RegisterOrganizationOnboardingInput!) {
+                  registerOrganizationOnboarding(input: $input) {
+                    onboarding {
+                      administratorUserId
+                    }
+                    debugEmailVerificationUrl
+                  }
+                }
+            """,
+            {
+                "input": {
+                    "fullName": "Kojo Addae",
+                    "businessEmail": "kojo@atlas.example",
+                    "password": "StrongPassword123!",
+                    "organizationName": "Atlas Verify",
+                    "organizationType": "startup",
+                    "organizationCountry": "GH",
+                    "website": "https://atlas.example",
+                    "supportEmail": "support@atlas.example",
+                    "phoneNumber": "+233244000111",
+                }
+            },
+            token="",
+        )
+        onboarding_payload = registration_response.json()["data"][
+            "registerOrganizationOnboarding"
+        ]
+        token = parse_qs(
+            urlparse(onboarding_payload["debugEmailVerificationUrl"]).query
+        )["token"][0]
+
+        confirm_response = self.post_graphql(
+            """
+                mutation VerifyOnboardingEmail($token: String!) {
+                  verifyOrganizationOnboardingEmail(token: $token) {
+                    onboarding {
+                      organizationId
+                    }
+                  }
+                }
+            """,
+            {"token": token},
+            token="",
+        )
+        organization_id = confirm_response.json()["data"][
+            "verifyOrganizationOnboardingEmail"
+        ]["onboarding"]["organizationId"]
+        onboarding_user = PlatformUser.objects.get(
+            public_id=onboarding_payload["onboarding"]["administratorUserId"]
+        )
+        login_response = self.client.post(
+            "/api/v1/auth/login",
+            {"email": onboarding_user.email, "password": "StrongPassword123!"},
+            format="json",
+        )
+        onboarding_token = login_response.data["data"]["tokens"]["access"]
+        self.create_supporting_document(
+            onboarding_user.tenant.organization,
+            onboarding_user.tenant,
+            onboarding_user,
+        )
+
+        submitted_response = self.post_graphql(
+            """
+                mutation SubmitOrganizationVerification($input: OrganizationVerificationInput!) {
+                  submitOrganizationOnboardingVerification(input: $input) {
+                    onboarding {
+                      organizationVerificationReviewStatus
+                      organizationVerificationEditable
+                      currentStep
+                    }
+                  }
+                }
+            """,
+            {
+                "input": {
+                    "businessRegistrationNumber": "BRN-2026-001",
+                    "registeredAddress": "10 Liberation Road, Accra",
+                    "officialWebsite": "https://atlas.example",
+                    "taxIdentificationNumber": "TIN-8899",
+                    "supportingDocumentKeys": [
+                        "organizations/documents/certificate.pdf"
+                    ],
+                }
+            },
+            token=onboarding_token,
+        )
+        self.assertEqual(
+            submitted_response.json()["data"]["submitOrganizationOnboardingVerification"][
+                "onboarding"
+            ]["currentStep"],
+            "administrator_identity_verification",
+        )
+
+        review_response = self.post_graphql(
+            """
+                mutation ReviewOnboarding($organizationId: String!, $decision: String!, $note: String!) {
+                  reviewOrganizationOnboarding(
+                    organizationId: $organizationId
+                    decision: $decision
+                    note: $note
+                  ) {
+                    nextAction
+                    onboarding {
+                      currentStep
+                      organizationVerificationEditable
+                      organizationVerificationReviewStatus
+                      organizationStatus
+                      tenantStatus
+                    }
+                  }
+                }
+            """,
+            {
+                "organizationId": organization_id,
+                "decision": "needs_information",
+                "note": "Please provide clearer company registration details.",
+            },
+            token=self.platform_access_token,
+        )
+        review_payload = review_response.json()["data"]["reviewOrganizationOnboarding"]
+        self.assertEqual(review_payload["nextAction"], "provide_additional_information")
+        self.assertEqual(review_payload["onboarding"]["currentStep"], "organization_verification")
+        self.assertEqual(review_payload["onboarding"]["organizationVerificationReviewStatus"], "needs_information")
+        self.assertTrue(review_payload["onboarding"]["organizationVerificationEditable"])
+        self.assertEqual(review_payload["onboarding"]["organizationStatus"], "pending_review")
+        self.assertEqual(review_payload["onboarding"]["tenantStatus"], "pending_review")
+
+        resubmit_response = self.post_graphql(
+            """
+                mutation SubmitOrganizationVerification($input: OrganizationVerificationInput!) {
+                  submitOrganizationOnboardingVerification(input: $input) {
+                    nextAction
+                    onboarding {
+                      currentStep
+                      organizationVerificationEditable
+                      organizationVerificationReviewStatus
+                    }
+                  }
+                }
+            """,
+            {
+                "input": {
+                    "businessRegistrationNumber": "BRN-2026-002",
+                    "registeredAddress": "10 Liberation Road, Accra",
+                    "officialWebsite": "https://atlas.example",
+                    "taxIdentificationNumber": "TIN-8899",
+                    "supportingDocumentKeys": [
+                        "organizations/documents/certificate.pdf"
+                    ],
+                }
+            },
+            token=onboarding_token,
+        )
+        resubmit_payload = resubmit_response.json()["data"][
+            "submitOrganizationOnboardingVerification"
+        ]
+        self.assertEqual(
+            resubmit_payload["nextAction"],
+            "submit_administrator_identity_verification",
+        )
+        self.assertEqual(
+            resubmit_payload["onboarding"]["currentStep"],
+            "administrator_identity_verification",
+        )
+        self.assertFalse(
+            resubmit_payload["onboarding"]["organizationVerificationEditable"]
+        )
+        self.assertEqual(
+            resubmit_payload["onboarding"]["organizationVerificationReviewStatus"],
+            "submitted",
+        )
+
+    @override_settings(DEBUG=True)
+    def test_organization_verification_edit_after_approval_requeues_workspace(self):
+        registration_response = self.post_graphql(
+            """
+                mutation RegisterOnboarding($input: RegisterOrganizationOnboardingInput!) {
+                  registerOrganizationOnboarding(input: $input) {
+                    onboarding {
+                      administratorUserId
+                    }
+                    debugEmailVerificationUrl
+                  }
+                }
+            """,
+            {
+                "input": {
+                    "fullName": "Kojo Addae",
+                    "businessEmail": "kojo@atlas.example",
+                    "password": "StrongPassword123!",
+                    "organizationName": "Atlas Verify",
+                    "organizationType": "startup",
+                    "organizationCountry": "GH",
+                    "website": "https://atlas.example",
+                    "supportEmail": "support@atlas.example",
+                    "phoneNumber": "+233244000111",
+                }
+            },
+            token="",
+        )
+        onboarding_payload = registration_response.json()["data"][
+            "registerOrganizationOnboarding"
+        ]
+        token = parse_qs(
+            urlparse(onboarding_payload["debugEmailVerificationUrl"]).query
+        )["token"][0]
+        confirm_response = self.post_graphql(
+            """
+                mutation VerifyOnboardingEmail($token: String!) {
+                  verifyOrganizationOnboardingEmail(token: $token) {
+                    onboarding {
+                      organizationId
+                    }
+                  }
+                }
+            """,
+            {"token": token},
+            token="",
+        )
+        organization_id = confirm_response.json()["data"][
+            "verifyOrganizationOnboardingEmail"
+        ]["onboarding"]["organizationId"]
+        onboarding_user = PlatformUser.objects.get(
+            public_id=onboarding_payload["onboarding"]["administratorUserId"]
+        )
+        login_response = self.client.post(
+            "/api/v1/auth/login",
+            {"email": onboarding_user.email, "password": "StrongPassword123!"},
+            format="json",
+        )
+        onboarding_token = login_response.data["data"]["tokens"]["access"]
+        self.create_supporting_document(
+            onboarding_user.tenant.organization,
+            onboarding_user.tenant,
+            onboarding_user,
+        )
+
+        self.post_graphql(
+            """
+                mutation SubmitOrganizationVerification($input: OrganizationVerificationInput!) {
+                  submitOrganizationOnboardingVerification(input: $input) {
+                    onboarding {
+                      currentStep
+                    }
+                  }
+                }
+            """,
+            {
+                "input": {
+                    "businessRegistrationNumber": "BRN-2026-001",
+                    "registeredAddress": "10 Liberation Road, Accra",
+                    "officialWebsite": "https://atlas.example",
+                    "taxIdentificationNumber": "TIN-8899",
+                    "supportingDocumentKeys": [
+                        "organizations/documents/certificate.pdf"
+                    ],
+                }
+            },
+            token=onboarding_token,
+        )
+        self.post_graphql(
+            """
+                mutation SubmitAdministratorIdentity($verificationId: String!) {
+                  submitAdministratorIdentityOnboardingVerification(
+                    verificationId: $verificationId
+                  ) {
+                    onboarding {
+                      currentStep
+                    }
+                  }
+                }
+            """,
+            {"verificationId": "ver_admin_identity_001"},
+            token=onboarding_token,
+        )
+        self.post_graphql(
+            """
+                mutation ReviewOnboarding($organizationId: String!, $decision: String!, $note: String!) {
+                  reviewOrganizationOnboarding(
+                    organizationId: $organizationId
+                    decision: $decision
+                    note: $note
+                  ) {
+                    onboarding {
+                      organizationStatus
+                      tenantStatus
+                      onboardingStatus
+                    }
+                  }
+                }
+            """,
+            {
+                "organizationId": organization_id,
+                "decision": "approved",
+                "note": "Onboarding approved for production.",
+            },
+            token=self.platform_access_token,
+        )
+
+        edit_response = self.post_graphql(
+            """
+                mutation SubmitOrganizationVerification($input: OrganizationVerificationInput!) {
+                  submitOrganizationOnboardingVerification(input: $input) {
+                    nextAction
+                    onboarding {
+                      currentStep
+                      organizationStatus
+                      tenantStatus
+                      onboardingStatus
+                      organizationVerificationReviewStatus
+                    }
+                  }
+                }
+            """,
+            {
+                "input": {
+                    "businessRegistrationNumber": "BRN-2026-003",
+                    "registeredAddress": "10 Liberation Road, Accra",
+                    "officialWebsite": "https://atlas.example",
+                    "taxIdentificationNumber": "TIN-8899",
+                    "supportingDocumentKeys": [
+                        "organizations/documents/certificate.pdf"
+                    ],
+                }
+            },
+            token=onboarding_token,
+        )
+        edit_payload = edit_response.json()["data"]["submitOrganizationOnboardingVerification"]
+        self.assertEqual(edit_payload["nextAction"], "await_platform_review")
+        self.assertEqual(edit_payload["onboarding"]["currentStep"], "platform_review")
+        self.assertEqual(edit_payload["onboarding"]["organizationStatus"], "pending_review")
+        self.assertEqual(edit_payload["onboarding"]["tenantStatus"], "pending_review")
+        self.assertEqual(edit_payload["onboarding"]["onboardingStatus"], "platform_review_pending")
+        self.assertEqual(
+            edit_payload["onboarding"]["organizationVerificationReviewStatus"],
+            "changed_after_approval",
         )

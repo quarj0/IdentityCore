@@ -289,6 +289,9 @@ class OrganizationOnboardingNode:
     current_step: str
     organization_verification_submitted_at: str | None
     organization_verification_editable: bool
+    organization_verification_review_status: str
+    organization_verification_reviewed_at: str | None
+    organization_verification_review_note: str
     business_registration_number: str
     tax_identification_number: str
     registered_address: str
@@ -930,15 +933,20 @@ class Mutation:
             )
         except ValidationError as exc:
             raise_graphql_validation_error(exc)
+        onboarding = serialize_onboarding_state(
+            organization=organization,
+            tenant=tenant,
+            user=tenant_user,
+        )
         return OrganizationOnboardingPayload(
             onboarding=to_onboarding_node(
-                serialize_onboarding_state(
-                    organization=organization,
-                    tenant=tenant,
-                    user=tenant_user,
-                )
+                onboarding
             ),
-            next_action="submit_administrator_identity_verification",
+            next_action=(
+                "await_platform_review"
+                if onboarding["current_step"] == "platform_review"
+                else "submit_administrator_identity_verification"
+            ),
         )
 
     @strawberry.mutation
@@ -996,11 +1004,7 @@ class Mutation:
         next_action = (
             "organization_active"
             if decision == "approved"
-            else (
-                "provide_additional_information"
-                if decision == "needs_information"
-                else "contact_support"
-            )
+            else "provide_additional_information"
         )
         return OrganizationOnboardingPayload(
             onboarding=to_onboarding_node(

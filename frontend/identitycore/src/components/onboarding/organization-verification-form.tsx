@@ -2,6 +2,7 @@
 
 import { SubmitEvent, useEffect, useState } from "react";
 import { ExternalLink, FileText, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
   Button,
   Card,
@@ -15,6 +16,7 @@ import {
 } from "@identitycore/ui";
 import { InlineStatus } from "@/components/feedback/inline-status";
 import { getErrorMessage } from "@/lib/api-client";
+import { getOnboardingRoute } from "@/lib/onboarding-state";
 import {
   fetchCurrentOnboarding,
   createOrganizationDocumentUpload,
@@ -22,6 +24,7 @@ import {
 } from "@/lib/onboarding-api";
 
 export function OrganizationVerificationForm() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{
@@ -44,6 +47,7 @@ export function OrganizationVerificationForm() {
   useEffect(() => {
     fetchCurrentOnboarding()
       .then((state) => {
+        const nextRoute = getOnboardingRoute(state);
         setForm((current) => ({
           ...current,
           businessRegistrationNumber: state.businessRegistrationNumber || "",
@@ -54,6 +58,9 @@ export function OrganizationVerificationForm() {
         setDocuments(state.supportingDocuments || []);
         setSavedDocumentCount(state.supportingDocuments?.length || 0);
         setReadOnly(!state.organizationVerificationEditable);
+        if (nextRoute !== "/onboarding/organization-verification") {
+          router.replace(nextRoute);
+        }
       })
       .catch((error) => {
         setFeedback({
@@ -63,7 +70,7 @@ export function OrganizationVerificationForm() {
         });
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [router]);
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -71,7 +78,7 @@ export function OrganizationVerificationForm() {
     setFeedback(null);
 
     try {
-      await submitOrganizationVerification({
+      const result = await submitOrganizationVerification({
         ...form,
         supportingDocumentKeys: documents.map(
           (document) => document.storage_key,
@@ -85,6 +92,11 @@ export function OrganizationVerificationForm() {
       });
       setReadOnly(true);
       setSavedDocumentCount(documents.length);
+      router.replace(
+        result.nextAction === "submit_administrator_identity_verification"
+          ? "/onboarding/admin-identity"
+          : getOnboardingRoute(result.onboarding),
+      );
     } catch (error) {
       setFeedback({
         kind: "error",
@@ -205,6 +217,7 @@ export function OrganizationVerificationForm() {
                   type="file"
                   accept="application/pdf,.pdf"
                   multiple
+                  disabled={readOnly}
                   onChange={async (event) => {
                     const files = Array.from(event.target.files || []);
                     if (documents.length + files.length > 5) {
@@ -258,7 +271,9 @@ export function OrganizationVerificationForm() {
                   {submitting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : null}
-                {readOnly ? "Submit supporting documents" : "Save and continue"}
+                  {readOnly
+                    ? "Submit supporting documents"
+                    : "Save and continue"}
                 </Button>
               </div>
             ) : null}
