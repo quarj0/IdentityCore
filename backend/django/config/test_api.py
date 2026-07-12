@@ -47,3 +47,11 @@ class CatalogEndpointTests(APITestCase):
         self.assertEqual(sdk_status["javascript"], "ready")
         self.assertEqual(sdk_status["java"], "not_started")
         self.assertEqual(sdk_status["csharp"], "not_started")
+        self.assertEqual(data["spec_url"], "/api/v1/docs/openapi.yaml")
+
+    def test_openapi_spec_returns_public_yaml(self):
+        response = self.client.get(reverse("openapi-spec"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("openapi: 3.1.0", response.content.decode("utf-8"))
+        self.assertIn("IdentityCore Public API", response.content.decode("utf-8"))

@@ -56,6 +56,12 @@ export const docsNav: DocsNavGroup[] = [
         icon: Code2,
       },
       {
+        href: "/openapi",
+        label: "OpenAPI spec",
+        description: "Machine-readable contract for codegen and tests",
+        icon: ScrollText,
+      },
+      {
         href: "/webhooks",
         label: "Webhooks",
         description: "Events and delivery behavior",
@@ -99,13 +105,13 @@ export const docsNav: DocsNavGroup[] = [
       {
         href: "/sdk",
         label: "SDKs",
-        description: "Client libraries and SDK plans",
+        description: "Client libraries and current build status",
         icon: Code2,
       },
       {
         href: "/cli",
         label: "CLI",
-        description: "Command line tooling",
+        description: "Command line roadmap and future workflows",
         icon: TerminalSquare,
       },
     ],

@@ -7,7 +7,11 @@ function trimTrailingSlash(value: string) {
   return value.endsWith("/") ? value.slice(0, -1) : value;
 }
 
-const API_ORIGIN = trimTrailingSlash(DEFAULT_API_ORIGIN);
+export const PUBLIC_API_ORIGIN = trimTrailingSlash(DEFAULT_API_ORIGIN);
+
+export function buildPublicApiUrl(path: string) {
+  return `${PUBLIC_API_ORIGIN}${path.startsWith("/") ? path : `/${path}`}`;
+}
 
 export type PublicApiDocsResource = {
   slug: string;
@@ -24,6 +28,7 @@ export type PublicApiDocsOverview = {
     production: string;
     development: string;
   };
+  spec_url?: string;
   authentication: {
     public_rest: {
       headers: string[];
@@ -53,7 +58,7 @@ export async function fetchPublicApiDocsOverview(): Promise<
   PublicApiDocsOverview | null
 > {
   try {
-    const response = await fetch(`${API_ORIGIN}/api/v1/docs/overview`, {
+    const response = await fetch(`${PUBLIC_API_ORIGIN}/api/v1/docs/overview`, {
       cache: "no-store",
     });
 

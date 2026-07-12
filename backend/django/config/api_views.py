@@ -1,9 +1,15 @@
+from pathlib import Path
+
+from django.http import HttpResponse
 from rest_framework.permissions import AllowAny
 from django_countries import countries
 from rest_framework.views import APIView
 
 from common.catalog import COUNTRY_PROFILES, DOCUMENT_TYPES
 from common.responses import success_response
+
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+OPENAPI_SPEC_PATH = PROJECT_ROOT / "docs" / "openapi" / "identitycore-public-api.yaml"
 
 
 class DocumentTypeListView(APIView):
@@ -43,6 +49,7 @@ class PublicDocsOverviewView(APIView):
                     "production": "https://api.identitycore.com/api/v1",
                     "development": "http://localhost:8000/api/v1",
                 },
+                "spec_url": "/api/v1/docs/openapi.yaml",
                 "authentication": {
                     "public_rest": {
                         "headers": [
@@ -164,3 +171,12 @@ class PublicDocsOverviewView(APIView):
             },
             request=request,
         )
+
+
+class OpenApiSpecView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        spec = OPENAPI_SPEC_PATH.read_text(encoding="utf-8")
+        return HttpResponse(spec, content_type="text/yaml; charset=utf-8")

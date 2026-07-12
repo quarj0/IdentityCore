@@ -13,6 +13,7 @@ from common.storage import (
     build_public_asset_url,
     determine_storage_provider,
     get_object_bytes,
+    get_object_storage_temp_bucket_name,
     move_object,
     put_object_bytes,
 )
@@ -47,6 +48,13 @@ class StorageHelpersTests(TestCase):
             build_public_asset_url("organizations/org_01TEST/logo.png"),
             "https://assets.example.com/public/organizations/org_01TEST/logo.png",
         )
+
+    @override_settings(
+        OBJECT_STORAGE_MEDIA_BUCKET="identitycore-media",
+        OBJECT_STORAGE_TEMP_BUCKET="",
+    )
+    def test_temp_bucket_falls_back_to_media_bucket(self):
+        self.assertEqual(get_object_storage_temp_bucket_name(), "identitycore-media")
 
     @override_settings(
         OBJECT_STORAGE_PROVIDER="cloudflare_r2",

@@ -1,30 +1,70 @@
 import { CodeBlock } from "@/components/docs/code-block";
 import { DocsLayout } from "@/components/docs/docs-layout";
+import {
+  buildPublicApiUrl,
+  fetchPublicApiDocsOverview,
+} from "@/lib/public-api-docs";
 
-export default function SdkPage() {
+const statusLabels: Record<string, string> = {
+  ready: "Ready",
+  in_progress: "In progress",
+  not_started: "Not started",
+};
+
+export default async function SdkPage() {
+  const overview = await fetchPublicApiDocsOverview();
+  const sdkStatus = overview?.sdk_status ?? [];
+
   return (
     <DocsLayout
       title="SDKs"
-      description="Use IdentityCore SDKs to create and monitor hosted verifications from your backend."
+      description="Use the supported IdentityCore client libraries now, and track the remaining language SDKs as they move from roadmap to release."
     >
       <section className="rounded-3xl border border-slate-200 bg-white p-6">
-        <h2 className="text-xl font-semibold">Python SDK</h2>
-        <p className="mt-3 text-sm leading-7 text-slate-600">
-          The first public SDK is Python. It authenticates with API-client
-          credentials and wraps the public verification and policy/template APIs.
-        </p>
-        <ul className="mt-4 list-disc space-y-3 pl-5 text-sm leading-7 text-slate-600">
-          <li>
-            Send <code>X-Client-Id</code> and <code>Authorization: Bearer</code>{" "}
-            headers automatically.
-          </li>
-          <li>List active verification templates before creating a verification.</li>
-          <li>Create, retrieve, cancel, resend, and inspect verification evidence URLs.</li>
-        </ul>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold">Current SDK status</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
+              The backend publishes the current SDK matrix so the portal always
+              reflects what is actually available.
+            </p>
+          </div>
+
+          {overview?.spec_url ? (
+            <a
+              href={buildPublicApiUrl(overview.spec_url)}
+              className="inline-flex items-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            >
+              OpenAPI spec
+            </a>
+          ) : null}
+        </div>
+
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          {sdkStatus.map((sdk) => (
+            <div
+              key={sdk.language}
+              className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+            >
+              <div className="flex items-center justify-between gap-4">
+                <h3 className="text-sm font-semibold capitalize text-slate-950">
+                  {sdk.language}
+                </h3>
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-200">
+                  {statusLabels[sdk.status] ?? sdk.status}
+                </span>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-slate-600">{sdk.notes}</p>
+              <p className="mt-3 text-xs uppercase tracking-wide text-slate-400">
+                {sdk.path}
+              </p>
+            </div>
+          ))}
+        </div>
       </section>
 
       <CodeBlock
-        title="Create a hosted verification"
+        title="Python SDK"
         language="python"
         code={`from identitycore import IdentityCoreClient
 
@@ -50,22 +90,21 @@ print(verification["verification_url"])`}
       />
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6">
-        <h2 className="text-xl font-semibold">Scopes</h2>
+        <h2 className="text-xl font-semibold">What ships now</h2>
         <ul className="mt-4 list-disc space-y-3 pl-5 text-sm leading-7 text-slate-600">
-          <li><code>policies:read</code> lists active templates.</li>
-          <li><code>verifications:create</code> creates, cancels, and resends links.</li>
-          <li><code>verifications:read</code> reads verification status and evidence URLs.</li>
+          <li>
+            The Python and JavaScript SDKs are implemented and tracked by the
+            backend docs metadata.
+          </li>
+          <li>
+            Java and C# are visible as roadmap items so the portal does not imply
+            they are production-ready yet.
+          </li>
+          <li>
+            The OpenAPI spec is the source of truth for generated clients, tests,
+            and future portal tooling.
+          </li>
         </ul>
-      </section>
-
-      <section className="rounded-3xl border border-slate-200 bg-white p-6">
-        <h2 className="text-xl font-semibold">JavaScript and Postman</h2>
-        <p className="mt-3 text-sm leading-7 text-slate-600">
-          A JavaScript SDK and focused Postman public API collection are available
-          in the repository under <code>sdk/javascript</code> and{" "}
-          <code>sdk/postman</code>. Both follow the same public REST contract as
-          the Python SDK.
-        </p>
       </section>
 
       <CodeBlock
