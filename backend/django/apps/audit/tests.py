@@ -57,6 +57,7 @@ class AuditEventTests(APITestCase):
     def api_client_headers(self):
         return {
             "HTTP_X_CLIENT_ID": self.api_client_obj.client_id,
+            "HTTP_IDEMPOTENCY_KEY": "audit-verification-created",
             "HTTP_AUTHORIZATION": f"Bearer {self.raw_secret}",
         }
 
