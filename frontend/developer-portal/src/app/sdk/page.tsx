@@ -18,7 +18,7 @@ export default async function SdkPage() {
   return (
     <DocsLayout
       title="SDKs"
-      description="Use the supported IdentityCore client libraries now, and track the remaining language SDKs as they move from roadmap to release."
+      description="Integrate IdentityCore with production-ready Python, JavaScript, Java, and .NET client libraries."
     >
       <section className="rounded-3xl border border-slate-200 bg-white p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -93,12 +93,12 @@ print(verification["verification_url"])`}
         <h2 className="text-xl font-semibold">What ships now</h2>
         <ul className="mt-4 list-disc space-y-3 pl-5 text-sm leading-7 text-slate-600">
           <li>
-            The Python and JavaScript SDKs are implemented and tracked by the
-            backend docs metadata.
+            Python, JavaScript, Java, and .NET SDKs are implemented, tested, and
+            tracked by the backend docs metadata.
           </li>
           <li>
-            Java and C# are visible as roadmap items so the portal does not imply
-            they are production-ready yet.
+            Each SDK supports policies, hosted verifications, safe retries,
+            request IDs, idempotent creation, and webhook signature verification.
           </li>
           <li>
             The OpenAPI spec is the source of truth for generated clients, tests,
@@ -132,6 +132,58 @@ const verification = await client.verifications.create({
 
 console.log(verification.verification_url);`}
       />
+
+      <CodeBlock
+        title="Java SDK"
+        language="java"
+        code={`import io.identitycore.IdentityCoreClient;
+
+var client = IdentityCoreClient.builder()
+    .apiOrigin("https://api.identitycore.com")
+    .clientId("cli_...")
+    .clientSecret("...")
+    .build();
+
+var policies = client.policies().list();
+var verification = client.verifications().create(
+    "Customer onboarding",
+    policies.get(0).get("id").asText(),
+    Map.of(
+        "full_name", "Kwame Mensah",
+        "email", "kwame@example.com"
+    ),
+    "customer_123"
+);
+
+System.out.println(verification.get("verification_url").asText());`}
+      />
+
+      <CodeBlock
+        title=".NET SDK"
+        language="csharp"
+        code={`using IdentityCore;
+
+using var client = new IdentityCoreClient(new IdentityCoreOptions
+{
+    ApiOrigin = new Uri("https://api.identitycore.com"),
+    ClientId = "cli_...",
+    ClientSecret = "...",
+});
+
+var policies = await client.Policies.ListAsync();
+var verification = await client.Verifications.CreateAsync(
+    purpose: "Customer onboarding",
+    policyId: policies[0].GetProperty("id").GetString()!,
+    verificationSubject: new
+    {
+        full_name = "Kwame Mensah",
+        email = "kwame@example.com",
+    },
+    externalReference: "customer_123");
+
+Console.WriteLine(verification.GetProperty("verification_url").GetString());`}
+      />
     </DocsLayout>
   );
 }
+
