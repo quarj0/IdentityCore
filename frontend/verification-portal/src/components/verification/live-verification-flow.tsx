@@ -56,6 +56,7 @@ export function LiveVerificationFlow({
   const [session, setSession] = useState<VerificationSession | null>(null);
   const [status, setStatus] = useState<VerificationStatus | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [selectedDocumentType, setSelectedDocumentType] = useState("");
   const [consented, setConsented] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +71,9 @@ export function LiveVerificationFlow({
       fetchVerificationStatus(nextCredentials),
     ]);
     setSession(nextSession);
+    setSelectedDocumentType(
+      (current) => current || nextSession.document.document_type,
+    );
     setStatus(nextStatus);
   }, []);
 
@@ -222,6 +226,10 @@ export function LiveVerificationFlow({
   }
 
   const step = status.current_step;
+  const selectedDocument =
+    session.available_documents.find(
+      (document) => document.document_type === selectedDocumentType,
+    ) ?? session.document;
   const finish = () => {
     clearSessionCredentials(credentials.sessionId);
     const returnUrl =
@@ -299,15 +307,39 @@ export function LiveVerificationFlow({
       {step === "document_capture" ? (
         <StepCard
           eyebrow="Step 2 of 5"
-          title={`Capture your ${session.document.label}`}
-          description="Use the original physical document. Keep all four edges visible and avoid glare, blur, screenshots, or photocopies."
+          title={`Capture your ${selectedDocument.label}`}
+          description="Choose the identity document you want to use, then capture the original physical document with all four edges visible."
         >
+          <label className="block space-y-2">
+            <span className="text-sm font-medium text-slate-800">
+              Document type
+            </span>
+            <select
+              value={selectedDocumentType}
+              onChange={(event) => {
+                setSelectedDocumentType(event.target.value);
+                setFile(null);
+                setError(null);
+              }}
+              disabled={busy}
+              className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            >
+              {session.available_documents.map((document) => (
+                <option
+                  key={document.document_type}
+                  value={document.document_type}
+                >
+                  {document.label}
+                </option>
+              ))}
+            </select>
+          </label>
           {file ? (
             <EvidenceReview file={file} onRetake={() => setFile(null)} />
           ) : (
             <CameraCapture
               facingMode="environment"
-              label={`${session.document.label} camera`}
+              label={`${selectedDocument.label} camera`}
               onCapture={selectEvidence}
             />
           )}
@@ -323,7 +355,7 @@ export function LiveVerificationFlow({
                     file,
                   );
                   await submitDocument(credentials, {
-                    documentType: session.document.document_type,
+                    documentType: selectedDocument.document_type,
                     countryCode: session.document.country_code,
                     uploadId,
                   });
