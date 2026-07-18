@@ -20,6 +20,7 @@ interface ApiErrorPayload {
 }
 
 type ApiEnvelope<T> = ApiSuccess<T> | ApiErrorPayload;
+const REQUEST_TIMEOUT_MS = 30_000;
 let refreshInFlight: Promise<string> | null = null;
 
 export class ApiError extends Error {
@@ -61,6 +62,30 @@ function buildHeaders(init?: HeadersInit, token?: string | null, body?: BodyInit
   return headers;
 }
 
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}) {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const abort = () => controller.abort();
+  init.signal?.addEventListener("abort", abort, { once: true });
+  try {
+    return await fetch(input, { ...init, signal: controller.signal, cache: "no-store" });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new ApiError("The request took too long. Check your connection and try again.", {
+        code: "request_timeout",
+        status: 408,
+      });
+    }
+    throw new ApiError("IdentityCore could not be reached. Check your connection and try again.", {
+      code: "network_error",
+      status: 0,
+    });
+  } finally {
+    window.clearTimeout(timeout);
+    init.signal?.removeEventListener("abort", abort);
+  }
+}
+
 async function parseJson<T>(response: Response) {
   const payload = await readJsonResponse<ApiEnvelope<T>>(response);
 
@@ -83,7 +108,7 @@ async function parseJson<T>(response: Response) {
 
 async function refreshAccessToken() {
   if (!refreshInFlight) {
-    refreshInFlight = fetch(`${getRestApiBaseUrl()}/auth/refresh`, {
+    refreshInFlight = fetchWithTimeout(`${getRestApiBaseUrl()}/auth/refresh`, {
       method: "POST", credentials: "include",
       headers: { Accept: "application/json", "Content-Type": "application/json" },
     }).then((response) => parseJson<{ tokens: { access: string } }>(response))
@@ -109,7 +134,7 @@ export async function restRequest<T>(
         ? null
         : getAccessToken();
 
-  const send = (access: string | null) => fetch(`${getRestApiBaseUrl()}${path}`, {
+  const send = (access: string | null) => fetchWithTimeout(`${getRestApiBaseUrl()}${path}`, {
     ...init,
     credentials: "include",
     headers: buildHeaders(init.headers, access, init.body),
@@ -155,7 +180,7 @@ export async function graphqlRequest<T>(
         ? null
         : getAccessToken();
 
-  const send = (access: string | null) => fetch(getGraphqlApiUrl(), {
+  const send = (access: string | null) => fetchWithTimeout(getGraphqlApiUrl(), {
     method: "POST",
     headers: buildHeaders(undefined, access),
     body: JSON.stringify({ query, variables }),
