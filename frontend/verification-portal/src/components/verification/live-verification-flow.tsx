@@ -56,6 +56,8 @@ export function LiveVerificationFlow({
   const [session, setSession] = useState<VerificationSession | null>(null);
   const [status, setStatus] = useState<VerificationStatus | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [selectedCountryCode, setSelectedCountryCode] = useState("");
+  const [selectedDocumentType, setSelectedDocumentType] = useState("");
   const [consented, setConsented] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +72,12 @@ export function LiveVerificationFlow({
       fetchVerificationStatus(nextCredentials),
     ]);
     setSession(nextSession);
+    setSelectedCountryCode(
+      (current) => current || nextSession.document.country_code,
+    );
+    setSelectedDocumentType(
+      (current) => current || nextSession.document.document_type,
+    );
     setStatus(nextStatus);
   }, []);
 
@@ -222,6 +230,28 @@ export function LiveVerificationFlow({
   }
 
   const step = status.current_step;
+  const availableCountries =
+    session.available_countries?.length
+      ? session.available_countries
+      : [
+          {
+            country_code: session.document.country_code,
+            country_name: session.document.country_code,
+            documents:
+              session.available_documents?.length
+                ? session.available_documents
+                : [session.document],
+          },
+        ];
+  const selectedCountry =
+    availableCountries.find(
+      (country) => country.country_code === selectedCountryCode,
+    ) ?? availableCountries[0];
+  const availableDocuments = selectedCountry.documents;
+  const selectedDocument =
+    availableDocuments.find(
+      (document) => document.document_type === selectedDocumentType,
+    ) ?? session.document;
   const finish = () => {
     clearSessionCredentials(credentials.sessionId);
     const returnUrl =
@@ -299,15 +329,68 @@ export function LiveVerificationFlow({
       {step === "document_capture" ? (
         <StepCard
           eyebrow="Step 2 of 5"
-          title={`Capture your ${session.document.label}`}
-          description="Use the original physical document. Keep all four edges visible and avoid glare, blur, screenshots, or photocopies."
+          title={`Capture your ${selectedDocument.label}`}
+          description="Choose the identity document you want to use, then capture the original physical document with all four edges visible."
         >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block space-y-2">
+              <span className="text-sm font-medium text-slate-800">
+                Issuing country
+              </span>
+              <select
+                value={selectedCountry.country_code}
+                onChange={(event) => {
+                  const nextCountry = availableCountries.find(
+                    (country) => country.country_code === event.target.value,
+                  );
+                  setSelectedCountryCode(event.target.value);
+                  setSelectedDocumentType(
+                    nextCountry?.documents[0]?.document_type ?? "",
+                  );
+                  setFile(null);
+                  setError(null);
+                }}
+                disabled={busy}
+                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              >
+                {availableCountries.map((country) => (
+                  <option key={country.country_code} value={country.country_code}>
+                    {country.country_name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block space-y-2">
+              <span className="text-sm font-medium text-slate-800">
+                Document type
+              </span>
+              <select
+              value={selectedDocumentType}
+              onChange={(event) => {
+                setSelectedDocumentType(event.target.value);
+                setFile(null);
+                setError(null);
+              }}
+              disabled={busy}
+              className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            >
+              {availableDocuments.map((document) => (
+                <option
+                  key={document.document_type}
+                  value={document.document_type}
+                >
+                  {document.label}
+                </option>
+              ))}
+              </select>
+            </label>
+          </div>
           {file ? (
             <EvidenceReview file={file} onRetake={() => setFile(null)} />
           ) : (
             <CameraCapture
               facingMode="environment"
-              label={`${session.document.label} camera`}
+              label={`${selectedDocument.label} camera`}
               onCapture={selectEvidence}
             />
           )}
@@ -323,8 +406,8 @@ export function LiveVerificationFlow({
                     file,
                   );
                   await submitDocument(credentials, {
-                    documentType: session.document.document_type,
-                    countryCode: session.document.country_code,
+                    documentType: selectedDocument.document_type,
+                    countryCode: selectedCountry.country_code,
                     uploadId,
                   });
                 })

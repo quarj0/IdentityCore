@@ -136,8 +136,18 @@ class VerificationSessionPortalTests(APITestCase):
             {
                 "country_code": "GH",
                 "document_type": "national_id",
-                "label": "Ghana Card",
+                "label": "National ID",
             },
+        )
+        self.assertEqual(
+            response.data["data"]["available_documents"],
+            [
+                {"document_type": "national_id", "label": "National ID"},
+                {"document_type": "passport", "label": "Passport"},
+                {"document_type": "driver_license", "label": "Driver License"},
+                {"document_type": "health_id", "label": "Health ID"},
+                {"document_type": "voter_id", "label": "Voter ID"},
+            ],
         )
 
     def test_get_session_rejects_invalid_token(self):
@@ -277,7 +287,7 @@ class VerificationSessionPortalTests(APITestCase):
         )
         self.assertEqual(identity_document.document_type_id, "national_id")
         self.assertEqual(identity_document.country_profile_id, "GH")
-        self.assertEqual(identity_document.local_document_name, "Ghana Card")
+        self.assertEqual(identity_document.local_document_name, "National ID")
         self.assertEqual(identity_document.status, "processing")
         self.assertEqual(identity_document.captures.count(), 2)
         self.assertSetEqual(
@@ -365,6 +375,7 @@ class VerificationSessionPortalTests(APITestCase):
             ),
             {
                 "document_type": "passport",
+                "country_code": "GH",
                 "captures": [{"side": "front", "upload_id": "upl_missing"}],
             },
             format="json",
@@ -649,7 +660,7 @@ class VerificationSessionPortalTests(APITestCase):
             verification_subject=self.subject,
             document_type_id="national_id",
             country_profile_id="GH",
-            local_document_name="Ghana Card",
+            local_document_name="National ID",
             status="rejected",
         )
 
@@ -666,8 +677,8 @@ class VerificationSessionPortalTests(APITestCase):
         self.assertEqual(
             response.data["data"]["message"],
             (
-                "Your previous Ghana Card image could not be verified. "
-                "Please capture the physical Ghana Card and try again."
+                "Your previous National ID image could not be verified. "
+                "Please capture the physical National ID and try again."
             ),
         )
 

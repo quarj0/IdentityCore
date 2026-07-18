@@ -54,6 +54,33 @@ def _resolve_document_label(document_type: str, country_code: str) -> str:
     )
 
 
+def _supported_documents(country_code: str) -> list[dict[str, str]]:
+    country_code = str(country_code or "").upper()
+    for profile in COUNTRY_PROFILES:
+        if profile["code"] == country_code:
+            return [
+                {
+                    "document_type": supported["document_type"],
+                    "label": _resolve_document_label(
+                        supported["document_type"], country_code
+                    ),
+                }
+                for supported in profile["supported_document_types"]
+            ]
+    return []
+
+
+def _available_country_profiles() -> list[dict]:
+    return [
+        {
+            "country_code": profile["code"],
+            "country_name": profile["name"],
+            "documents": _supported_documents(profile["code"]),
+        }
+        for profile in COUNTRY_PROFILES
+    ]
+
+
 def resolve_session_upload(
     *, verification_session: VerificationSession, upload_id: str, purpose: str
 ) -> Upload:
@@ -126,13 +153,27 @@ def serialize_verification_session(verification_session: VerificationSession) ->
     organization = verification.organization
     organization_logo_url = organization.settings_json.get("logo_url", "")
     metadata = verification.metadata_json or {}
-    onboarding = (organization.settings_json or {}).get("onboarding") or {}
-    registration = onboarding.get("registration") or {}
-    country_code = str(
-        metadata.get("country_code")
-        or registration.get("organization_country", "")
-    ).upper()
-    document_type = str(metadata.get("document_type", "national_id"))
+    configured_country_code = str(metadata.get("country_code", "")).upper()
+    supported_country_codes = {profile["code"] for profile in COUNTRY_PROFILES}
+    country_code = (
+        configured_country_code
+        if configured_country_code in supported_country_codes
+        else (COUNTRY_PROFILES[0]["code"] if COUNTRY_PROFILES else "")
+    )
+    configured_document_type = str(metadata.get("document_type", "national_id"))
+    supported_documents = _supported_documents(country_code)
+    supported_document_types = {
+        item["document_type"] for item in supported_documents
+    }
+    document_type = (
+        configured_document_type
+        if configured_document_type in supported_document_types
+        else (
+            supported_documents[0]["document_type"]
+            if supported_documents
+            else configured_document_type
+        )
+    )
     document_label = _resolve_document_label(document_type, country_code)
     return {
         "session_id": verification_session.public_id,
@@ -150,6 +191,8 @@ def serialize_verification_session(verification_session: VerificationSession) ->
             "document_type": document_type,
             "label": document_label,
         },
+        "available_documents": _supported_documents(country_code),
+        "available_countries": _available_country_profiles(),
         "expires_at": verification_session.expires_at.isoformat(),
     }
 
@@ -312,7 +355,7 @@ class DocumentCaptureInputSerializer(serializers.Serializer):
 
 class VerificationSessionDocumentSerializer(serializers.Serializer):
     document_type = serializers.CharField(max_length=64)
-    country_code = serializers.CharField(max_length=8, required=False, allow_blank=True)
+    country_code = serializers.CharField(max_length=8)
     captures = DocumentCaptureInputSerializer(many=True, allow_empty=False)
 
     def validate(self, attrs):
@@ -324,6 +367,21 @@ class VerificationSessionDocumentSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"detail": "Consent must be accepted before document submission."}
             )
+
+        country_code = str(attrs.get("country_code", "")).upper()
+        document_type = str(attrs["document_type"])
+        supported_types = {
+            item["document_type"] for item in _supported_documents(country_code)
+        }
+        if document_type not in supported_types:
+            raise serializers.ValidationError(
+                {
+                    "document_type": (
+                        "Choose a supported document type for the issuing country."
+                    )
+                }
+            )
+        attrs["country_code"] = country_code
 
         capture_sides = [capture["side"] for capture in attrs["captures"]]
         if len(capture_sides) != len(set(capture_sides)):

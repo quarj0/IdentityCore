@@ -23,6 +23,18 @@ export interface VerificationSession {
     document_type: string;
     label: string;
   };
+  available_documents?: Array<{
+    document_type: string;
+    label: string;
+  }>;
+  available_countries?: Array<{
+    country_code: string;
+    country_name: string;
+    documents: Array<{
+      document_type: string;
+      label: string;
+    }>;
+  }>;
   expires_at: string;
 }
 
@@ -189,6 +201,15 @@ export async function createUpload(
     }
   })();
 
+  const uploadThroughApi = async () => {
+    const form = new FormData();
+    form.set("file", file);
+    await request(credentials, upload.upload_transfer_path, {
+      method: "POST",
+      body: form,
+    });
+  };
+
   if (isDirectObjectStorageUpload) {
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -200,23 +221,22 @@ export async function createUpload(
         signal: controller.signal,
       });
       if (!response.ok) {
-        throw new Error("The secure evidence upload failed. Please try again.");
+        await uploadThroughApi();
       }
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
-        throw new Error("The evidence upload took too long. Check your connection and try again.");
+        throw new Error(
+          "The evidence upload took too long. Check your connection and try again.",
+        );
       }
-      throw error;
+      // A browser may block an otherwise healthy object-storage endpoint
+      // because of CORS. Route the same upload through Django in that case.
+      await uploadThroughApi();
     } finally {
       window.clearTimeout(timeout);
     }
   } else {
-    const form = new FormData();
-    form.set("file", file);
-    await request(credentials, upload.upload_transfer_path, {
-      method: "POST",
-      body: form,
-    });
+    await uploadThroughApi();
   }
   return upload.upload_id;
 }
