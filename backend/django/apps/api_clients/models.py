@@ -97,3 +97,29 @@ class APIClient(PublicIdModel, BaseModel):
 
     def __str__(self) -> str:
         return self.name
+
+
+class APIIdempotencyRecord(BaseModel):
+    """Stores a completed mutating API request for safe replay."""
+
+    api_client = models.ForeignKey(
+        APIClient,
+        on_delete=models.CASCADE,
+        related_name="idempotency_records",
+    )
+    key = models.CharField(max_length=255)
+    request_hash = models.CharField(max_length=64)
+    method = models.CharField(max_length=16)
+    path = models.CharField(max_length=512)
+    response_data_json = models.JSONField(null=True, blank=True)
+    response_status = models.PositiveSmallIntegerField(null=True, blank=True)
+    expires_at = models.DateTimeField(db_index=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["api_client", "key"],
+                name="unique_api_client_idempotency_key",
+            )
+        ]
+        indexes = [models.Index(fields=["api_client", "created_at"])]
