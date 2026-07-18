@@ -168,6 +168,7 @@ class WebhookEndpointTests(APITestCase):
             },
             format="json",
             HTTP_X_CLIENT_ID=api_client.client_id,
+            HTTP_IDEMPOTENCY_KEY="webhook-verification-created",
             HTTP_AUTHORIZATION="Bearer client-secret",
         )
 
