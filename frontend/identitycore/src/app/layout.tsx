@@ -42,6 +42,7 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${manrope.variable} ${plexMono.variable} h-full`}
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
       <body
