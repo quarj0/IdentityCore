@@ -524,9 +524,23 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
             ) from exc
 
         attrs["selfie_capture"] = selfie_capture
+        attrs["existing_liveness_check"] = (
+            verification.liveness_checks.filter(
+                selfie_capture=selfie_capture,
+                liveness_type=attrs["liveness_type"],
+            )
+            .order_by("-created_at")
+            .first()
+        )
         return attrs
 
     def save(self, **kwargs):
+        existing = self.validated_data.get("existing_liveness_check")
+        if existing is not None:
+            self.created = False
+            return existing
+
+        self.created = True
         request = self.context["request"]
         verification_session = request.verification_session
         verification = verification_session.verification
