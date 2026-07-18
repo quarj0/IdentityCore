@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Camera, ImagePlus, Loader2, RefreshCw, Upload } from "lucide-react";
 
 import { Button, Input } from "@identitycore/ui";
@@ -20,8 +20,13 @@ export function CameraCapture({
   const streamRef = useRef<MediaStream | null>(null);
   const [starting, setStarting] = useState(false);
   const [active, setActive] = useState(false);
-  const [cameraAvailable, setCameraAvailable] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const cameraAvailable = useSyncExternalStore(
+    () => () => undefined,
+    () =>
+      window.isSecureContext && Boolean(navigator.mediaDevices?.getUserMedia),
+    () => true,
+  );
 
   function stopCamera() {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -30,16 +35,10 @@ export function CameraCapture({
     setActive(false);
   }
 
-  useEffect(() => {
-    setCameraAvailable(
-      window.isSecureContext && Boolean(navigator.mediaDevices?.getUserMedia),
-    );
-    return stopCamera;
-  }, []);
+  useEffect(() => stopCamera, []);
 
   async function startCamera() {
     if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
-      setCameraAvailable(false);
       setError(
         "Your browser blocks live camera access on this HTTP address. Upload an image below, or use HTTPS or localhost for camera capture.",
       );
