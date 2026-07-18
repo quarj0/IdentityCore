@@ -237,3 +237,51 @@ class BiometricsTaskTests(TestCase):
             decision=VerificationStatus.MANUAL_REVIEW_REQUIRED,
             risk_level="high",
         )
+
+    @patch("apps.biometrics.tasks.ensure_verification_evidence_report")
+    @patch("apps.biometrics.tasks.queue_verification_status_notifications")
+    @patch("apps.biometrics.tasks.queue_webhook_events")
+    @patch("apps.biometrics.tasks.promote_upload_to_media_by_storage_key")
+    @patch("apps.biometrics.tasks.run_face_compare")
+    @patch("apps.biometrics.tasks.run_liveness_check")
+    def test_failed_liveness_emits_rejected_outcome(
+        self,
+        mock_liveness,
+        mock_face,
+        mock_promote,
+        mock_queue_webhooks,
+        mock_queue_notifications,
+        mock_evidence_report,
+    ):
+        mock_liveness.return_value = {
+            "status": "completed",
+            "score": 0.12,
+            "confidence_level": "high",
+            "passed": False,
+            "model_name": "mediapipe-liveness",
+            "model_version": "v1",
+        }
+        mock_face.return_value = {
+            "status": "completed",
+            "match_score": 0.96,
+            "confidence_level": "high",
+            "matched": True,
+            "threshold_used": 0.85,
+            "model_name": "insightface",
+            "model_version": "buffalo_l",
+        }
+
+        result = process_verification_biometrics_task(self.liveness_check.public_id)
+
+        self.assertEqual(result, VerificationStatus.REJECTED)
+        mock_queue_webhooks.assert_called_once_with(
+            tenant=self.tenant,
+            event_type="verification.rejected",
+            payload={
+                "verification_id": self.verification.public_id,
+                "external_reference": self.verification.external_reference,
+                "status": VerificationStatus.REJECTED,
+            },
+        )
+        mock_queue_notifications.assert_called_once()
+        mock_evidence_report.assert_called_once()
