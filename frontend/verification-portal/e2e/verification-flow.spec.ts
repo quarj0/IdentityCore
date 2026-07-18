@@ -146,6 +146,10 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   });
   await page.getByRole("button", { name: "Submit document" }).click();
 
+  await expect(page.getByText("Document received")).toBeVisible();
+  await expect(
+    page.getByText("Your document was uploaded successfully"),
+  ).toBeVisible();
   await expect(page.getByRole("heading", { name: "Take a live selfie" })).toBeVisible();
   await page.locator('input[type="file"]').setInputFiles({
     name: "selfie.png",
@@ -154,6 +158,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   });
   await page.getByRole("button", { name: "Submit selfie" }).click();
 
+  await expect(page.getByText("Selfie received")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Confirm you are present" })).toBeVisible();
   await page.getByRole("button", { name: "Start presence check" }).click();
 
