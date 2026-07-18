@@ -10,7 +10,6 @@ def test_bootstrap_creates_paddle_directories_before_initialization(
         ai_model_root=tmp_path,
         paddle_text_detection_model_dir=tmp_path / "paddleocr" / "det",
         paddle_text_recognition_model_dir=tmp_path / "paddleocr" / "rec",
-        paddle_textline_orientation_model_dir=tmp_path / "paddleocr" / "cls",
         insightface_model_name="buffalo_l",
         paddle_pdx_cache_home=str(tmp_path / "paddlex"),
     )
@@ -22,7 +21,6 @@ def test_bootstrap_creates_paddle_directories_before_initialization(
         for directory in (
             settings.paddle_text_detection_model_dir,
             settings.paddle_text_recognition_model_dir,
-            settings.paddle_textline_orientation_model_dir,
         ):
             assert directory.is_dir()
             (directory / "inference.yml").write_text("model: test")
