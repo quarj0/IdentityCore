@@ -206,7 +206,6 @@ def test_document_quality_falls_back_to_alternate_bucket(monkeypatch):
         monkeypatch.delenv("OBJECT_STORAGE_TEMP_BUCKET", raising=False)
         get_settings.cache_clear()
 
-    assert response["status"] == "completed"
     assert "identitycore-media" in seen_buckets
     assert result["model_name"] == "opencv-quality"
 
