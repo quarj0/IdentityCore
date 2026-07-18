@@ -19,4 +19,3 @@ var verification = client.verifications.create(input, "customer-123-onboarding-v
 The SDK provides policies, verification creation/list/detail/cancel/resend/evidence helpers, lazy pagination, safe retries, structured API errors, request IDs, timeouts, and constant-time webhook verification.
 
 Run `mvn test package` from this directory.
-
