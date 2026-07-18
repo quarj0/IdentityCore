@@ -65,7 +65,7 @@ class _VerificationsClient:
             "external_reference": external_reference,
             "redirect_url": redirect_url,
             "metadata": metadata or {},
-        }, idempotency_key=idempotency_key)
+        }, idempotency_key=idempotency_key or f"ik_{uuid.uuid4().hex}")
 
     def list(self, *, status: str = "", external_reference: str = "", page: int | None = None, page_size: int | None = None) -> dict[str, Any]:
         query = _query({"status": status, "external_reference": external_reference, "page": page, "page_size": page_size})
@@ -165,4 +165,3 @@ class IdentityCoreClient:
             error = payload.get("error") or {}
             raise IdentityCoreAPIError(_human_message(error.get("message", "Request failed. Please try again.")), code=error.get("code", "request_failed"), status=status, request_id=payload.get("request_id", ""), details=error.get("details") or {})
         return payload.get("data")
-
