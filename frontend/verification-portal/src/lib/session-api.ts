@@ -27,6 +27,14 @@ export interface VerificationSession {
     document_type: string;
     label: string;
   }>;
+  available_countries?: Array<{
+    country_code: string;
+    country_name: string;
+    documents: Array<{
+      document_type: string;
+      label: string;
+    }>;
+  }>;
   expires_at: string;
 }
 
