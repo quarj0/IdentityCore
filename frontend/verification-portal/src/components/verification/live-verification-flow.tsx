@@ -226,8 +226,12 @@ export function LiveVerificationFlow({
   }
 
   const step = status.current_step;
+  const availableDocuments =
+    session.available_documents?.length
+      ? session.available_documents
+      : [session.document];
   const selectedDocument =
-    session.available_documents.find(
+    availableDocuments.find(
       (document) => document.document_type === selectedDocumentType,
     ) ?? session.document;
   const finish = () => {
@@ -324,7 +328,7 @@ export function LiveVerificationFlow({
               disabled={busy}
               className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             >
-              {session.available_documents.map((document) => (
+              {availableDocuments.map((document) => (
                 <option
                   key={document.document_type}
                   value={document.document_type}
