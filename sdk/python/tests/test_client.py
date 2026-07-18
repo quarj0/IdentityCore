@@ -52,7 +52,7 @@ class IdentityCoreClientTests(unittest.TestCase):
     def test_post_without_idempotency_does_not_retry(self):
         client = self.make_client([(503, failure("Unavailable")), (201, envelope({}))])
         with self.assertRaises(IdentityCoreAPIError):
-            client.verifications.create(purpose="Onboarding", policy_id="pol_1", verification_subject={})
+            client.request("POST", "/unsafe-action", {})
         self.assertEqual(len(self.transport.calls), 1)
 
     def test_iterates_all_pages(self):
@@ -70,4 +70,3 @@ class IdentityCoreClientTests(unittest.TestCase):
 
 
 if __name__ == "__main__": unittest.main()
-
