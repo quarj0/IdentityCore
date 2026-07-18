@@ -266,17 +266,18 @@ class VerificationSessionLivenessView(VerificationSessionBaseView):
         serializer.is_valid(raise_exception=True)
         liveness_check = serializer.save()
         verification = request.verification_session.verification
-        if (
-            verification.metadata_json.get("workflow")
-            == "administrator_onboarding"
-            and verification.created_by is not None
-        ):
-            submit_administrator_identity_verification(
-                user=verification.created_by,
-                verification_id=verification.public_id,
-                request=request,
-            )
-        process_verification_biometrics_task.delay(liveness_check.public_id)
+        if getattr(serializer, "created", True):
+            if (
+                verification.metadata_json.get("workflow")
+                == "administrator_onboarding"
+                and verification.created_by is not None
+            ):
+                submit_administrator_identity_verification(
+                    user=verification.created_by,
+                    verification_id=verification.public_id,
+                    request=request,
+                )
+            process_verification_biometrics_task.delay(liveness_check.public_id)
         return success_response(
             {
                 "liveness_check_id": liveness_check.public_id,
