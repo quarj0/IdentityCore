@@ -10,8 +10,17 @@ html {
 }
 
 body {
+  min-width: 320px;
   background: #f8fafc;
   color: #0f172a;
+  text-rendering: optimizeLegibility;
+}
+
+.verification-page {
+  background:
+    radial-gradient(circle at 12% 8%, rgb(219 234 254 / 0.7), transparent 28rem),
+    radial-gradient(circle at 92% 16%, rgb(224 242 254 / 0.55), transparent 24rem),
+    linear-gradient(180deg, #f8fbff 0%, #f8fafc 48%, #ffffff 100%);
 }
 
 button,

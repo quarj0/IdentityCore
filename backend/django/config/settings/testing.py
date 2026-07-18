@@ -15,3 +15,8 @@ PASSWORD_HASHERS = [
 ]
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
+
+# Deterministic URL bases keep unit tests independent from external object storage.
+UPLOAD_URL_BASE = "http://testserver/uploads"
+MEDIA_DOWNLOAD_URL_BASE = "http://testserver/media"
+PUBLIC_ASSET_URL_BASE = "http://testserver/assets"

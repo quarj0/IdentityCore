@@ -1,4 +1,6 @@
 import asyncio
+import sys
+from types import SimpleNamespace
 
 import pytest
 from botocore.exceptions import ClientError
@@ -22,7 +24,12 @@ from app.main import (
     liveness_check,
     readiness,
 )
-from app.pipeline import run_document_quality_pipeline
+from app.pipeline import (
+    get_paddle_ocr_engine,
+    run_document_classification_pipeline,
+    run_document_ocr_pipeline,
+    run_document_quality_pipeline,
+)
 from app.settings import Settings, get_settings
 
 
@@ -114,22 +121,16 @@ def test_document_ocr_returns_manual_review_when_media_is_missing(monkeypatch):
 
     monkeypatch.setattr("app.pipeline.fetch_object_bytes", raise_missing_object)
 
-    response = asyncio.run(
-        document_ocr(
-            DocumentOCRRequest(
-                verification_id="ver_01TEST",
-                document_storage_key="uploads/documents/missing.jpg",
-                document_type="national_id",
-                country_code="GH",
-            )
-        )
+    result = run_document_ocr_pipeline(
+        "uploads/documents/missing.jpg",
+        "national_id",
+        "GH",
     )
 
-    assert response["status"] == "completed"
-    assert response["result"]["confidence_score"] == 0.0
-    assert response["result"]["requires_manual_review"] is True
-    assert response["result"]["manual_review"]["required"] is True
-    assert "document_media_missing" in response["result"]["issues"]
+    assert result["confidence_score"] == 0.0
+    assert result["requires_manual_review"] is True
+    assert result["manual_review"]["required"] is True
+    assert "document_media_missing" in result["issues"]
 
 
 def test_document_quality_flags_blurry_capture():
@@ -157,18 +158,10 @@ def test_document_quality_returns_review_signal_when_media_is_missing(monkeypatc
 
     monkeypatch.setattr("app.pipeline.fetch_object_bytes", raise_missing_object)
 
-    response = asyncio.run(
-        document_quality(
-            DocumentQualityRequest(
-                verification_id="ver_01TEST",
-                document_storage_key="uploads/documents/missing.jpg",
-            )
-        )
-    )
+    result = run_document_quality_pipeline("uploads/documents/missing.jpg")
 
-    assert response["status"] == "completed"
-    assert response["result"]["issues"] == ["document_media_missing"]
-    assert response["result"]["quality_score"] == 0.0
+    assert result["issues"] == ["document_media_missing"]
+    assert result["quality_score"] == 0.0
 
 
 def test_document_quality_falls_back_to_alternate_bucket(monkeypatch):
@@ -205,22 +198,16 @@ def test_document_quality_falls_back_to_alternate_bucket(monkeypatch):
     get_settings.cache_clear()
 
     try:
-        response = asyncio.run(
-            document_quality(
-                DocumentQualityRequest(
-                    verification_id="ver_01TEST",
-                    document_storage_key="uploads/documents/fallback.jpg",
-                )
-            )
+        result = run_document_quality_pipeline(
+            "uploads/documents/fallback.jpg"
         )
     finally:
         monkeypatch.delenv("OBJECT_STORAGE_MEDIA_BUCKET", raising=False)
         monkeypatch.delenv("OBJECT_STORAGE_TEMP_BUCKET", raising=False)
         get_settings.cache_clear()
 
-    assert response["status"] == "completed"
     assert "identitycore-media" in seen_buckets
-    assert response["result"]["model_name"] == "opencv-quality"
+    assert result["model_name"] == "opencv-quality"
 
 
 def test_document_classification_returns_predicted_type():
@@ -255,23 +242,17 @@ def test_document_classification_returns_manual_review_when_media_is_missing(
 
     monkeypatch.setattr("app.pipeline.fetch_object_bytes", raise_missing_object)
 
-    response = asyncio.run(
-        document_classify(
-            DocumentClassificationRequest(
-                verification_id="ver_01TEST",
-                document_storage_key="uploads/documents/missing.jpg",
-                document_type="national_id",
-                country_code="GH",
-            )
-        )
+    result = run_document_classification_pipeline(
+        "uploads/documents/missing.jpg",
+        "national_id",
+        "GH",
     )
 
-    assert response["status"] == "completed"
-    assert response["result"]["classification_status"] == "unknown"
-    assert response["result"]["workflow_action"] == "continue_with_review"
-    assert response["result"]["requires_manual_review"] is True
-    assert response["result"]["manual_review"]["required"] is True
-    assert "document_media_missing" in response["result"]["issues"]
+    assert result["classification_status"] == "unknown"
+    assert result["workflow_action"] == "continue_with_review"
+    assert result["requires_manual_review"] is True
+    assert result["manual_review"]["required"] is True
+    assert "document_media_missing" in result["issues"]
 
 
 def test_internal_token_is_enforced_when_configured(monkeypatch):
@@ -382,3 +363,52 @@ def test_hybrid_mode_is_degraded_but_ready_when_real_requirements_are_missing(mo
     monkeypatch.delenv("INSIGHTFACE_ALLOW_DOWNLOAD", raising=False)
     monkeypatch.delenv("PADDLE_OCR_ALLOW_DOWNLOAD", raising=False)
     get_settings.cache_clear()
+
+
+def test_real_paddle_ocr_disables_unstable_optional_classifiers(monkeypatch, tmp_path):
+    det = tmp_path / "det"
+    rec = tmp_path / "rec"
+    for directory, model_name in (
+        (det, "PP-OCRv5_server_det"),
+        (rec, "PP-OCRv5_server_rec"),
+    ):
+        directory.mkdir()
+        (directory / "inference.yml").write_text(
+            f"Global:\n  model_name: {model_name}\n",
+            encoding="utf-8",
+        )
+        (directory / "inference.json").write_text("{}", encoding="utf-8")
+
+    captured = {}
+
+    class FakePaddleOCR:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+    settings = SimpleNamespace(
+        paddle_allow_download=False,
+        paddle_text_detection_model_dir=det,
+        paddle_text_recognition_model_dir=rec,
+        paddle_model_is_complete=lambda path: (
+            (path / "inference.yml").is_file()
+            and (path / "inference.json").is_file()
+        ),
+    )
+    monkeypatch.setattr("app.pipeline.get_settings", lambda: settings)
+    monkeypatch.setitem(
+        sys.modules,
+        "paddleocr",
+        SimpleNamespace(PaddleOCR=FakePaddleOCR),
+    )
+    get_paddle_ocr_engine.cache_clear()
+
+    try:
+        get_paddle_ocr_engine()
+    finally:
+        get_paddle_ocr_engine.cache_clear()
+
+    assert captured["use_doc_orientation_classify"] is False
+    assert captured["use_doc_unwarping"] is False
+    assert captured["use_textline_orientation"] is False
+    assert captured["enable_mkldnn"] is False
+    assert "textline_orientation_model_dir" not in captured

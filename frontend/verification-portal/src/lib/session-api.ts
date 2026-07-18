@@ -3,6 +3,7 @@
 const API_ORIGIN = process.env.NEXT_PUBLIC_API_ORIGIN ?? "http://localhost:8000";
 const API_BASE = `${API_ORIGIN.replace(/\/$/, "")}/api/v1`;
 const TOKEN_KEY_PREFIX = "identitycore.verification.";
+const REQUEST_TIMEOUT_MS = 30_000;
 
 export interface SessionCredentials {
   sessionId: string;
@@ -54,7 +55,24 @@ async function request<T>(
   if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  const response = await fetch(`${API_BASE}${path}`, { ...init, headers });
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      headers,
+      signal: controller.signal,
+      cache: "no-store",
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("The request took too long. Check your connection and try again.");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
   const body = await response.text();
   let payload: ApiEnvelope<T>;
   try {
@@ -160,12 +178,45 @@ export async function createUpload(
       }),
     },
   );
-  const form = new FormData();
-  form.set("file", file);
-  await request(credentials, upload.upload_transfer_path, {
-    method: "POST",
-    body: form,
-  });
+  const uploadUrl = upload.upload_url.trim();
+  const isDirectObjectStorageUpload = (() => {
+    if (!uploadUrl) return false;
+    try {
+      return new URL(uploadUrl).origin !== new URL(API_ORIGIN).origin;
+    } catch {
+      return false;
+    }
+  })();
+
+  if (isDirectObjectStorageUpload) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      const response = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: upload.upload_headers,
+        body: file,
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        throw new Error("The secure evidence upload failed. Please try again.");
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        throw new Error("The evidence upload took too long. Check your connection and try again.");
+      }
+      throw error;
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  } else {
+    const form = new FormData();
+    form.set("file", file);
+    await request(credentials, upload.upload_transfer_path, {
+      method: "POST",
+      body: form,
+    });
+  }
   return upload.upload_id;
 }
 

@@ -11,7 +11,7 @@ COUNTRY_PROFILES = [
         "code": "GH",
         "name": "Ghana",
         "supported_document_types": [
-            {"document_type": "national_id", "local_name": "NATIONAL IDENTIFICATION CARD"},
+            {"document_type": "national_id", "local_name": "Ghana Card"},
             {"document_type": "passport", "local_name": "PASSPORT"},
             {"document_type": "driver_license", "local_name": "DRIVER LICENSE"},
             {"document_type": "health_id", "local_name": "NHIS CARD"},

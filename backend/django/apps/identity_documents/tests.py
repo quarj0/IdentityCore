@@ -223,7 +223,7 @@ class IdentityDocumentTaskTests(TestCase):
         self.identity_document.refresh_from_db()
         self.verification.refresh_from_db()
         self.assertEqual(self.identity_document.status, IdentityDocumentStatus.PROCESSED)
-        self.assertEqual(self.verification.status, VerificationStatus.MANUAL_REVIEW_REQUIRED)
+        self.assertEqual(self.verification.status, VerificationStatus.AWAITING_SELFIE)
         self.assertEqual(
             self.identity_document.extracted_data_json["document_classification"][
                 "workflow_action"
@@ -306,7 +306,7 @@ class IdentityDocumentTaskTests(TestCase):
         self.identity_document.refresh_from_db()
         self.verification.refresh_from_db()
         self.assertEqual(self.identity_document.status, IdentityDocumentStatus.PROCESSED)
-        self.assertEqual(self.verification.status, VerificationStatus.MANUAL_REVIEW_REQUIRED)
+        self.assertEqual(self.verification.status, VerificationStatus.AWAITING_SELFIE)
         classification_provider_check = self.verification.provider_checks.get(
             check_type=ProviderCheckType.DOCUMENT_CLASSIFICATION
         )

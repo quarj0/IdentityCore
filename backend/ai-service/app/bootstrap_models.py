@@ -11,7 +11,6 @@ from app.settings import get_settings
 PADDLE_MODEL_CANDIDATES = {
     "det": ("PP-OCRv5_server_det", "PP-OCRv5_mobile_det"),
     "rec": ("en_PP-OCRv5_mobile_rec", "PP-OCRv5_server_rec", "PP-OCRv5_mobile_rec"),
-    "cls": ("PP-LCNet_x1_0_textline_ori",),
 }
 
 
@@ -23,7 +22,6 @@ def _persist_downloaded_paddle_models(settings) -> None:
     targets = {
         "det": settings.paddle_text_detection_model_dir,
         "rec": settings.paddle_text_recognition_model_dir,
-        "cls": settings.paddle_textline_orientation_model_dir,
     }
     for kind, target in targets.items():
         if settings.paddle_model_is_complete(target):
@@ -49,7 +47,6 @@ def main() -> None:
     paddle_directories = (
         settings.paddle_text_detection_model_dir,
         settings.paddle_text_recognition_model_dir,
-        settings.paddle_textline_orientation_model_dir,
     )
     for directory in paddle_directories:
         directory.mkdir(parents=True, exist_ok=True)
@@ -78,7 +75,6 @@ def main() -> None:
         "paddle_models": {
             "detection": _model_name(settings.paddle_text_detection_model_dir),
             "recognition": _model_name(settings.paddle_text_recognition_model_dir),
-            "textline_orientation": _model_name(settings.paddle_textline_orientation_model_dir),
         },
         "files": files,
     }, indent=2), encoding="utf-8")

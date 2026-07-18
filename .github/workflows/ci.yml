@@ -13,6 +13,17 @@ jobs:
       - run: uv sync --project backend --group django --group dev --frozen
       - run: DJANGO_SETTINGS_MODULE=config.settings.testing uv run --project backend python backend/django/manage.py test apps config
 
+  ai-service:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --project backend --group ai-service --group dev --frozen
+      - name: Normalize OpenCV runtime
+        run: uv pip install --python backend/.venv/bin/python --reinstall opencv-contrib-python-headless==4.10.0.84
+      - run: uv run --project .. pytest tests
+        working-directory: backend/ai-service
+
   frontend:
     runs-on: ubuntu-latest
     steps:
@@ -32,4 +43,8 @@ jobs:
       - run: pnpm --recursive build
         working-directory: frontend
       - run: pnpm --filter @identitycore/api-client exec tsc -p tsconfig.json
+        working-directory: frontend
+      - run: pnpm --filter verification-portal exec playwright install --with-deps chromium
+        working-directory: frontend
+      - run: pnpm --filter verification-portal test:e2e
         working-directory: frontend

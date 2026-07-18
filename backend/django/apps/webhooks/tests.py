@@ -19,7 +19,7 @@ from apps.webhooks.services import _build_signature, deliver_webhook_event, proc
 
 class WebhookEndpointTests(APITestCase):
     def setUp(self):
-        self.organization = Organization.objects.create(name="Acme", slug="acme")
+        self.organization = Organization.objects.create(name="Acme", slug="acme", status="active")
         self.tenant = Tenant.objects.create(
             organization=self.organization,
             name="Acme Tenant",

@@ -14,10 +14,8 @@ from apps.providers.ai_service import (
     run_document_quality,
 )
 from apps.providers.models import ProviderCheckStatus, ProviderCheckType
-from apps.notifications.services import queue_verification_status_notifications
 from apps.uploads.services import promote_upload_to_media_by_storage_key
 from apps.verifications.models import VerificationStatus
-from apps.webhooks.services import queue_webhook_events
 from common.storage import get_object_storage_temp_bucket_name
 
 logger = logging.getLogger(__name__)
@@ -81,6 +79,24 @@ def _manual_review_classification_result(*, expected_document_type: str) -> dict
     }
 
 
+def _latest_provider_check_for_document(
+    verification, *, identity_document_id: str, check_type: str
+):
+    """Resolve metadata after field-level decryption instead of querying ciphertext."""
+    candidates = verification.provider_checks.filter(check_type=check_type).order_by(
+        "-created_at"
+    )
+    return next(
+        (
+            check
+            for check in candidates
+            if (check.request_metadata_json or {}).get("identity_document_id")
+            == identity_document_id
+        ),
+        None,
+    )
+
+
 @shared_task(queue="ai_processing")
 def process_identity_document_task(identity_document_id: str) -> str:
     identity_document = (
@@ -96,18 +112,21 @@ def process_identity_document_task(identity_document_id: str) -> str:
         return identity_document.status
 
     now = timezone.now()
-    ocr_provider_check = verification.provider_checks.filter(
-        request_metadata_json__identity_document_id=identity_document.public_id,
+    ocr_provider_check = _latest_provider_check_for_document(
+        verification,
+        identity_document_id=identity_document.public_id,
         check_type=ProviderCheckType.DOCUMENT_OCR,
-    ).order_by("-created_at").first()
-    classification_provider_check = verification.provider_checks.filter(
-        request_metadata_json__identity_document_id=identity_document.public_id,
+    )
+    classification_provider_check = _latest_provider_check_for_document(
+        verification,
+        identity_document_id=identity_document.public_id,
         check_type=ProviderCheckType.DOCUMENT_CLASSIFICATION,
-    ).order_by("-created_at").first()
-    quality_provider_check = verification.provider_checks.filter(
-        request_metadata_json__identity_document_id=identity_document.public_id,
+    )
+    quality_provider_check = _latest_provider_check_for_document(
+        verification,
+        identity_document_id=identity_document.public_id,
         check_type=ProviderCheckType.DOCUMENT_QUALITY,
-    ).order_by("-created_at").first()
+    )
 
     latest_quality_status = DocumentCaptureStatus.VALIDATED
     lowest_quality_score: Decimal | None = None
@@ -263,14 +282,14 @@ def process_identity_document_task(identity_document_id: str) -> str:
         )
         identity_document.save(update_fields=["extracted_data_json", "status", "updated_at"])
 
+        # A document review signal is not a final verification decision. Continue
+        # collecting selfie, liveness, and face-match evidence so a reviewer has
+        # the complete case. The risk engine consumes the persisted classification
+        # result and applies manual-review routing after biometrics finish.
         verification.status = (
-            VerificationStatus.MANUAL_REVIEW_REQUIRED
-            if manual_review_required and identity_document.status == IdentityDocumentStatus.PROCESSED
-            else (
-                VerificationStatus.AWAITING_SELFIE
-                if identity_document.status == IdentityDocumentStatus.PROCESSED
-                else VerificationStatus.AWAITING_DOCUMENT
-            )
+            VerificationStatus.AWAITING_SELFIE
+            if identity_document.status == IdentityDocumentStatus.PROCESSED
+            else VerificationStatus.AWAITING_DOCUMENT
         )
         verification.save(update_fields=["status", "updated_at"])
 
@@ -368,24 +387,11 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 "document_status": identity_document.status,
             },
         )
-        if verification.status == VerificationStatus.MANUAL_REVIEW_REQUIRED:
-            queue_webhook_events(
-                tenant=verification.tenant,
-                event_type="verification.manual_review_required",
-                payload={
-                    "verification_id": verification.public_id,
-                    "external_reference": verification.external_reference,
-                    "status": verification.status,
-                },
-            )
-            queue_verification_status_notifications(
-                verification=verification,
-                decision=verification.status,
-            )
+        if manual_review_required:
             record_audit_event(
                 tenant=verification.tenant,
                 actor=verification.verification_subject,
-                action="verification.manual_review_required",
+                action="document.review_flagged",
                 target_type="verification",
                 target_id=verification.public_id,
                 metadata={

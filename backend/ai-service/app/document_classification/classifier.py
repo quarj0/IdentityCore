@@ -272,15 +272,25 @@ def classify_document(
     for definition in applicable_definitions:
         scored = _score_definition(definition, lines, config=scoring_config)
         candidate_score = scored["score"]
-        if definition.document_type == "passport" and not any(
-            item.get("valid") for item in scored["structural_evidence"]
-        ):
+        has_valid_passport_mrz = (
+            definition.document_type == "passport"
+            and any(item.get("valid") for item in scored["structural_evidence"])
+        )
+        if definition.document_type == "passport" and not has_valid_passport_mrz:
             skipped_issues.append("passport_mrz_invalid")
             continue
-        if candidate_score.score < policy.minimum_candidate_evidence:
+        # A checksum-valid TD3 MRZ is stronger structural evidence than weak or
+        # localized visible wording, so it may independently identify a passport.
+        if (
+            candidate_score.score < policy.minimum_candidate_evidence
+            and not has_valid_passport_mrz
+        ):
             continue
-        if scored["definition"].required_phrase_groups and (
-            candidate_score.required_group_coverage < policy.minimum_required_group_coverage
+        if (
+            scored["definition"].required_phrase_groups
+            and candidate_score.required_group_coverage
+            < policy.minimum_required_group_coverage
+            and not has_valid_passport_mrz
         ):
             continue
         candidates.append(

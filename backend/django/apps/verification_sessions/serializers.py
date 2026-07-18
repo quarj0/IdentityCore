@@ -98,8 +98,8 @@ STATUS_PRESENTATION = {
         "Your verification is being processed.",
     ),
     VerificationStatus.MANUAL_REVIEW_REQUIRED: (
-        "processing",
-        "Your verification requires additional review.",
+        "completed",
+        "Your verification was submitted and requires additional review.",
     ),
     VerificationStatus.VERIFIED: (
         "completed",
@@ -524,9 +524,23 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
             ) from exc
 
         attrs["selfie_capture"] = selfie_capture
+        attrs["existing_liveness_check"] = (
+            verification.liveness_checks.filter(
+                selfie_capture=selfie_capture,
+                liveness_type=attrs["liveness_type"],
+            )
+            .order_by("-created_at")
+            .first()
+        )
         return attrs
 
     def save(self, **kwargs):
+        existing = self.validated_data.get("existing_liveness_check")
+        if existing is not None:
+            self.created = False
+            return existing
+
+        self.created = True
         request = self.context["request"]
         verification_session = request.verification_session
         verification = verification_session.verification
