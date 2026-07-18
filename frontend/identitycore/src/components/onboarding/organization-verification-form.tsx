@@ -22,6 +22,7 @@ import {
   createOrganizationDocumentUpload,
   deleteOrganizationDocument,
   submitOrganizationVerification,
+  type OnboardingState,
 } from "@/lib/onboarding-api";
 
 export function OrganizationVerificationForm() {
@@ -259,7 +260,7 @@ export function OrganizationVerificationForm() {
                     }
                     try {
                       setUploading(true);
-                      const uploaded = [];
+                      const uploaded: OnboardingState["supportingDocuments"] = [];
                       for (const file of files) uploaded.push(await createOrganizationDocumentUpload(file));
                       setDocuments((current) => [...current, ...uploaded]);
                       event.target.value = "";
