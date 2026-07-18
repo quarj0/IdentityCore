@@ -22,7 +22,7 @@ test("retries GET but not unsafe POST", async () => {
   assert.deepEqual(await getClient.policies.list(), []);
   let postCalls = 0;
   const postClient = new IdentityCoreClient({ apiOrigin: "https://api.example.test", clientId: "c", clientSecret: "s", retryBackoff: 0, fetch: async () => { postCalls += 1; return response({ success: false, error: { message: "down" } }, 503); } });
-  await assert.rejects(() => postClient.verifications.create({ purpose: "x", policyId: "p", verificationSubject: {} }), IdentityCoreAPIError);
+  await assert.rejects(() => postClient.request("POST", "/unsafe-action", {}), IdentityCoreAPIError);
   assert.equal(postCalls, 1);
 });
 
@@ -39,4 +39,3 @@ test("verifies signatures over the raw payload", () => {
   assert.equal(verifyWebhookSignature(body, { signature, timestamp, signingKey, now: 1001 }), true);
   assert.equal(verifyWebhookSignature(body, { signature, timestamp, signingKey, now: 2000 }), false);
 });
-
