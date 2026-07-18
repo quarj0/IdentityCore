@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Camera, ImagePlus, Loader2, RefreshCw, Upload } from "lucide-react";
 
 import { Button, Input } from "@identitycore/ui";
@@ -21,6 +21,12 @@ export function CameraCapture({
   const [starting, setStarting] = useState(false);
   const [active, setActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const cameraAvailable = useSyncExternalStore(
+    () => () => undefined,
+    () =>
+      window.isSecureContext && Boolean(navigator.mediaDevices?.getUserMedia),
+    () => true,
+  );
 
   function stopCamera() {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -33,7 +39,9 @@ export function CameraCapture({
 
   async function startCamera() {
     if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
-      setError("Camera access requires HTTPS or localhost. You can upload an image instead.");
+      setError(
+        "Your browser blocks live camera access on this HTTP address. Upload an image below, or use HTTPS or localhost for camera capture.",
+      );
       return;
     }
 
@@ -131,6 +139,18 @@ export function CameraCapture({
         )}
       </div>
 
+      {!cameraAvailable ? (
+        <div
+          role="status"
+          className="border-t border-amber-300/20 bg-amber-400/10 px-4 py-3 text-sm leading-6 text-amber-100"
+        >
+          <strong className="font-semibold">HTTP testing mode:</strong> live
+          camera access is disabled by the browser on this address. File upload
+          still works—choose <strong className="font-semibold">Upload image</strong>{" "}
+          below—or open the portal through HTTPS or localhost.
+        </div>
+      ) : null}
+
       {error ? (
         <p role="alert" className="border-t border-white/10 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
           {error}
@@ -139,7 +159,12 @@ export function CameraCapture({
 
       <div className="flex flex-col gap-3 p-4 sm:flex-row">
         {!active ? (
-          <Button type="button" onClick={startCamera} disabled={starting} className="flex-1">
+          <Button
+            type="button"
+            onClick={startCamera}
+            disabled={starting || !cameraAvailable}
+            className="flex-1"
+          >
             {starting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
             {starting ? "Starting camera…" : "Use camera"}
           </Button>

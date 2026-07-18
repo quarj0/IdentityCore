@@ -60,7 +60,13 @@ export function LiveVerificationFlow({
   const [selectedDocumentType, setSelectedDocumentType] = useState("");
   const [consented, setConsented] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [busyMessage, setBusyMessage] = useState("Submitting securely…");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{
+    title: string;
+    message: string;
+    kind: "success" | "info";
+  } | null>(null);
   const [deviceReady, setDeviceReady] = useState(false);
   const [continueOnDevice, setContinueOnDevice] = useState(Boolean(handoff));
   const [handoffUrl, setHandoffUrl] = useState("");
@@ -79,6 +85,7 @@ export function LiveVerificationFlow({
       (current) => current || nextSession.document.document_type,
     );
     setStatus(nextStatus);
+    return nextStatus;
   }, []);
 
   useEffect(() => {
@@ -156,14 +163,41 @@ export function LiveVerificationFlow({
     return () => window.clearInterval(timer);
   }, [continueOnDevice, credentials, handoffUrl]);
 
-  async function run(action: () => Promise<unknown>) {
+  async function run(
+    action: () => Promise<unknown>,
+    feedback?: {
+      title: string;
+      message: string;
+      busyMessage?: string;
+    },
+  ) {
     if (!credentials || busy) return;
+    const previousStep = status?.current_step;
     setBusy(true);
+    setBusyMessage(feedback?.busyMessage ?? "Submitting securely…");
     setError(null);
+    setNotice(null);
     try {
       await action();
+      const nextStatus = await load(credentials);
       setFile(null);
-      await load(credentials);
+      if (feedback) {
+        const remainedOnStep =
+          previousStep && nextStatus.current_step === previousStep;
+        setNotice(
+          remainedOnStep
+            ? {
+                kind: "info",
+                title: "Action required",
+                message: nextStatus.message,
+              }
+            : {
+                kind: "success",
+                title: feedback.title,
+                message: feedback.message,
+              },
+        );
+      }
     } catch (caught) {
       setError(messageOf(caught));
     } finally {
@@ -189,6 +223,7 @@ export function LiveVerificationFlow({
       return;
     }
     setError(null);
+    setNotice(null);
     setFile(nextFile);
   }
 
@@ -271,7 +306,23 @@ export function LiveVerificationFlow({
     >
       {error ? (
         <div role="alert" className="mb-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
+          <strong className="block font-semibold">We could not continue</strong>
+          <span className="mt-1 block">{error}</span>
+        </div>
+      ) : null}
+
+      {notice ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`mb-4 rounded-2xl border px-4 py-3 text-sm ${
+            notice.kind === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-blue-200 bg-blue-50 text-blue-800"
+          }`}
+        >
+          <strong className="block font-semibold">{notice.title}</strong>
+          <span className="mt-1 block leading-6">{notice.message}</span>
         </div>
       ) : null}
 
@@ -349,6 +400,7 @@ export function LiveVerificationFlow({
                   );
                   setFile(null);
                   setError(null);
+                  setNotice(null);
                 }}
                 disabled={busy}
                 className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
@@ -370,6 +422,7 @@ export function LiveVerificationFlow({
                 setSelectedDocumentType(event.target.value);
                 setFile(null);
                 setError(null);
+                setNotice(null);
               }}
               disabled={busy}
               className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
@@ -410,11 +463,16 @@ export function LiveVerificationFlow({
                     countryCode: selectedCountry.country_code,
                     uploadId,
                   });
+                }, {
+                  title: "Document received",
+                  message:
+                    "Your document was uploaded successfully and is now being checked. Keep this page open while processing completes.",
+                  busyMessage: "Uploading and submitting your document…",
                 })
               }
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Submit document
+              {busy ? "Uploading document…" : "Submit document"}
             </Button>
           </div>
         </StepCard>
@@ -460,11 +518,16 @@ export function LiveVerificationFlow({
                     file,
                   );
                   await submitSelfie(credentials, uploadId);
+                }, {
+                  title: "Selfie received",
+                  message:
+                    "Your selfie was uploaded successfully. Continue to the presence check.",
+                  busyMessage: "Uploading and submitting your selfie…",
                 })
               }
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Submit selfie
+              {busy ? "Uploading selfie…" : "Submit selfie"}
             </Button>
           </div>
         </StepCard>
@@ -536,7 +599,7 @@ export function LiveVerificationFlow({
       {busy ? (
         <p aria-live="polite" className="mt-4 flex items-center justify-end gap-2 text-xs text-slate-500">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          Submitting securely…
+          {busyMessage}
         </p>
       ) : null}
     </VerificationFrame>
