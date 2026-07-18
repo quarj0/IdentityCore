@@ -639,6 +639,29 @@ class VerificationSessionPortalTests(APITestCase):
             ),
         )
 
+    def test_get_session_status_for_manual_review_is_subject_complete(self):
+        self.verification.status = VerificationStatus.MANUAL_REVIEW_REQUIRED
+        self.verification.save(update_fields=["status", "updated_at"])
+
+        response = self.client.get(
+            reverse(
+                "verification-session-status",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            **self.session_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data["data"]["status"],
+            VerificationStatus.MANUAL_REVIEW_REQUIRED,
+        )
+        self.assertEqual(response.data["data"]["current_step"], "completed")
+        self.assertEqual(
+            response.data["data"]["message"],
+            "Your verification was submitted and requires additional review.",
+        )
+
     def test_get_session_status_for_verified(self):
         self.verification.status = VerificationStatus.VERIFIED
         self.verification.save(update_fields=["status", "updated_at"])
