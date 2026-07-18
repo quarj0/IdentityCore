@@ -24,7 +24,12 @@ from app.main import (
     liveness_check,
     readiness,
 )
-from app.pipeline import get_paddle_ocr_engine, run_document_quality_pipeline
+from app.pipeline import (
+    get_paddle_ocr_engine,
+    run_document_classification_pipeline,
+    run_document_ocr_pipeline,
+    run_document_quality_pipeline,
+)
 from app.settings import Settings, get_settings
 
 
@@ -116,22 +121,16 @@ def test_document_ocr_returns_manual_review_when_media_is_missing(monkeypatch):
 
     monkeypatch.setattr("app.pipeline.fetch_object_bytes", raise_missing_object)
 
-    response = asyncio.run(
-        document_ocr(
-            DocumentOCRRequest(
-                verification_id="ver_01TEST",
-                document_storage_key="uploads/documents/missing.jpg",
-                document_type="national_id",
-                country_code="GH",
-            )
-        )
+    result = run_document_ocr_pipeline(
+        "uploads/documents/missing.jpg",
+        "national_id",
+        "GH",
     )
 
-    assert response["status"] == "completed"
-    assert response["result"]["confidence_score"] == 0.0
-    assert response["result"]["requires_manual_review"] is True
-    assert response["result"]["manual_review"]["required"] is True
-    assert "document_media_missing" in response["result"]["issues"]
+    assert result["confidence_score"] == 0.0
+    assert result["requires_manual_review"] is True
+    assert result["manual_review"]["required"] is True
+    assert "document_media_missing" in result["issues"]
 
 
 def test_document_quality_flags_blurry_capture():
@@ -159,18 +158,10 @@ def test_document_quality_returns_review_signal_when_media_is_missing(monkeypatc
 
     monkeypatch.setattr("app.pipeline.fetch_object_bytes", raise_missing_object)
 
-    response = asyncio.run(
-        document_quality(
-            DocumentQualityRequest(
-                verification_id="ver_01TEST",
-                document_storage_key="uploads/documents/missing.jpg",
-            )
-        )
-    )
+    result = run_document_quality_pipeline("uploads/documents/missing.jpg")
 
-    assert response["status"] == "completed"
-    assert response["result"]["issues"] == ["document_media_missing"]
-    assert response["result"]["quality_score"] == 0.0
+    assert result["issues"] == ["document_media_missing"]
+    assert result["quality_score"] == 0.0
 
 
 def test_document_quality_falls_back_to_alternate_bucket(monkeypatch):
@@ -207,13 +198,8 @@ def test_document_quality_falls_back_to_alternate_bucket(monkeypatch):
     get_settings.cache_clear()
 
     try:
-        response = asyncio.run(
-            document_quality(
-                DocumentQualityRequest(
-                    verification_id="ver_01TEST",
-                    document_storage_key="uploads/documents/fallback.jpg",
-                )
-            )
+        result = run_document_quality_pipeline(
+            "uploads/documents/fallback.jpg"
         )
     finally:
         monkeypatch.delenv("OBJECT_STORAGE_MEDIA_BUCKET", raising=False)
@@ -222,7 +208,7 @@ def test_document_quality_falls_back_to_alternate_bucket(monkeypatch):
 
     assert response["status"] == "completed"
     assert "identitycore-media" in seen_buckets
-    assert response["result"]["model_name"] == "opencv-quality"
+    assert result["model_name"] == "opencv-quality"
 
 
 def test_document_classification_returns_predicted_type():
@@ -257,23 +243,17 @@ def test_document_classification_returns_manual_review_when_media_is_missing(
 
     monkeypatch.setattr("app.pipeline.fetch_object_bytes", raise_missing_object)
 
-    response = asyncio.run(
-        document_classify(
-            DocumentClassificationRequest(
-                verification_id="ver_01TEST",
-                document_storage_key="uploads/documents/missing.jpg",
-                document_type="national_id",
-                country_code="GH",
-            )
-        )
+    result = run_document_classification_pipeline(
+        "uploads/documents/missing.jpg",
+        "national_id",
+        "GH",
     )
 
-    assert response["status"] == "completed"
-    assert response["result"]["classification_status"] == "unknown"
-    assert response["result"]["workflow_action"] == "continue_with_review"
-    assert response["result"]["requires_manual_review"] is True
-    assert response["result"]["manual_review"]["required"] is True
-    assert "document_media_missing" in response["result"]["issues"]
+    assert result["classification_status"] == "unknown"
+    assert result["workflow_action"] == "continue_with_review"
+    assert result["requires_manual_review"] is True
+    assert result["manual_review"]["required"] is True
+    assert "document_media_missing" in result["issues"]
 
 
 def test_internal_token_is_enforced_when_configured(monkeypatch):
