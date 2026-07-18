@@ -136,8 +136,18 @@ class VerificationSessionPortalTests(APITestCase):
             {
                 "country_code": "GH",
                 "document_type": "national_id",
-                "label": "Ghana Card",
+                "label": "National ID",
             },
+        )
+        self.assertEqual(
+            response.data["data"]["available_documents"],
+            [
+                {"document_type": "national_id", "label": "National ID"},
+                {"document_type": "passport", "label": "Passport"},
+                {"document_type": "driver_license", "label": "Driver License"},
+                {"document_type": "health_id", "label": "Health ID"},
+                {"document_type": "voter_id", "label": "Voter ID"},
+            ],
         )
 
     def test_get_session_rejects_invalid_token(self):
