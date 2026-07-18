@@ -28,7 +28,7 @@ verification = client.verifications.create(
 print(verification["verification_url"])
 ```
 
-GET requests retry transient failures automatically. Mutating requests retry only when you provide an `idempotency_key`.
+GET requests retry transient failures automatically. Verification creation is idempotent and safely retried; cancellation and link resend are not retried automatically.
 
 ## Pagination and webhooks
 
@@ -49,4 +49,3 @@ valid = verify_webhook_signature(
 Always verify the unmodified webhook body before parsing JSON. The default timestamp tolerance is five minutes.
 
 Required scopes are `policies:read`, `verifications:create`, and `verifications:read` for their corresponding resources.
-
