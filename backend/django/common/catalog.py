@@ -17,5 +17,33 @@ COUNTRY_PROFILES = [
             {"document_type": "health_id", "local_name": "Health ID"},
             {"document_type": "voter_id", "local_name": "Voter ID"},
         ],
-    }
+    },
+    {
+        "code": "NG",
+        "name": "Nigeria",
+        "supported_document_types": [
+            {"document_type": "passport", "local_name": "Passport"},
+        ],
+    },
+    {
+        "code": "SN",
+        "name": "Senegal",
+        "supported_document_types": [
+            {"document_type": "passport", "local_name": "Passeport"},
+        ],
+    },
+    {
+        "code": "TG",
+        "name": "Togo",
+        "supported_document_types": [
+            {"document_type": "passport", "local_name": "Passeport"},
+        ],
+    },
+    {
+        "code": "CI",
+        "name": "Côte d’Ivoire",
+        "supported_document_types": [
+            {"document_type": "passport", "local_name": "Passeport"},
+        ],
+    },
 ]
