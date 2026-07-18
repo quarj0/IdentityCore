@@ -11,6 +11,7 @@ from apps.biometrics.models import FaceMatch, LivenessCheck, SelfieCapture
 from apps.consent.models import ConsentRecord, ConsentTemplate, ConsentTemplateStatus
 from apps.document_captures.models import DocumentCapture
 from apps.identity_documents.models import IdentityDocument
+from apps.identity_documents.tasks import process_identity_document_task
 from apps.notifications.models import Notification
 from apps.organizations.models import Organization
 from apps.providers.models import ProviderCheck, ProviderCheckStatus
@@ -24,6 +25,8 @@ from apps.verifications.models import (
     VerificationStatus,
 )
 from apps.verification_subjects.models import VerificationSubject
+from apps.biometrics.tasks import process_verification_biometrics_task
+from apps.webhooks.models import WebhookEndpoint, WebhookEvent
 
 
 class VerificationSessionPortalTests(APITestCase):
@@ -692,3 +695,204 @@ class VerificationSessionPortalTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["current_step"], "failed")
+
+    @patch("apps.biometrics.tasks.ensure_verification_evidence_report")
+    @patch("apps.biometrics.tasks.promote_upload_to_media_by_storage_key")
+    @patch("apps.biometrics.tasks.run_face_compare")
+    @patch("apps.biometrics.tasks.run_liveness_check")
+    @patch("apps.verification_sessions.views.process_verification_biometrics_task.delay")
+    @patch("apps.identity_documents.tasks.promote_upload_to_media_by_storage_key")
+    @patch("apps.identity_documents.tasks.run_document_ocr")
+    @patch("apps.identity_documents.tasks.run_document_classification")
+    @patch("apps.identity_documents.tasks.run_document_quality")
+    @patch("apps.verification_sessions.views.process_identity_document_task.delay")
+    def test_complete_public_verification_golden_path(
+        self,
+        mock_document_delay,
+        mock_quality,
+        mock_classification,
+        mock_ocr,
+        mock_document_promote,
+        mock_biometrics_delay,
+        mock_liveness,
+        mock_face,
+        mock_selfie_promote,
+        mock_evidence_report,
+    ):
+        ConsentTemplate.objects.create(
+            tenant=self.tenant,
+            name="Standard Verification Consent",
+            version=1,
+            language="en",
+            content="I consent to identity verification.",
+            status=ConsentTemplateStatus.ACTIVE,
+            created_by=self.user,
+        )
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/identitycore",
+            events_json=[
+                "verification.verified",
+                "verification.rejected",
+                "verification.manual_review_required",
+            ],
+            created_by=self.user,
+        )
+        endpoint.set_secret("golden-path-secret")
+        endpoint.save()
+
+        consent_response = self.client.post(
+            reverse(
+                "verification-session-consent",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            {"accepted": True},
+            format="json",
+            **self.session_headers(),
+        )
+        self.assertEqual(consent_response.status_code, status.HTTP_200_OK)
+
+        document_upload = self.create_upload(
+            purpose=UploadPurpose.DOCUMENT_CAPTURE,
+            suffix="GOLDENDOC",
+        )
+        document_response = self.client.post(
+            reverse(
+                "verification-session-documents",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            {
+                "document_type": "national_id",
+                "country_code": "GH",
+                "captures": [
+                    {"side": "front", "upload_id": document_upload.public_id}
+                ],
+            },
+            format="json",
+            **self.session_headers(),
+        )
+        self.assertEqual(document_response.status_code, status.HTTP_200_OK)
+        identity_document = IdentityDocument.objects.get(
+            public_id=document_response.data["data"]["identity_document_id"]
+        )
+        mock_quality.return_value = {
+            "status": "completed",
+            "quality_score": 0.92,
+            "issues": [],
+        }
+        mock_classification.return_value = {
+            "status": "completed",
+            "classification_status": "recognized",
+            "predicted_document_type": "national_id",
+            "predicted_country_code": "GH",
+            "expected_document_type": "national_id",
+            "matched_expected_document_type": True,
+            "confidence_score": 0.95,
+            "evidence_score": 0.95,
+            "classification_margin": 0.5,
+            "workflow_action": "continue",
+            "requires_manual_review": False,
+            "manual_review": {
+                "required": False,
+                "priority": "low",
+                "reason_codes": [],
+            },
+            "issues": [],
+            "ocr": {"average_confidence": 0.95, "line_count": 2},
+            "evidence": [],
+            "candidates": [],
+            "raw_text_lines": [],
+            "score_components": {},
+            "classifier": {"name": "identitycore-evidence", "version": "v2"},
+            "ocr_model": {"name": "paddleocr", "version": "PP-OCRv5"},
+        }
+        mock_ocr.return_value = {
+            "status": "completed",
+            "confidence_score": 0.94,
+            "extracted_fields": {"full_name": "Akosua Owusu"},
+            "raw_text_lines": [],
+            "model_name": "paddleocr",
+            "model_version": "PP-OCRv5",
+        }
+        process_identity_document_task(identity_document.public_id)
+        self.verification.refresh_from_db()
+        self.assertEqual(
+            self.verification.status,
+            VerificationStatus.AWAITING_SELFIE,
+        )
+
+        selfie_upload = self.create_upload(
+            purpose=UploadPurpose.SELFIE_CAPTURE,
+            suffix="GOLDENSELFIE",
+        )
+        selfie_response = self.client.post(
+            reverse(
+                "verification-session-selfies",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            {"capture_type": "image", "upload_id": selfie_upload.public_id},
+            format="json",
+            **self.session_headers(),
+        )
+        self.assertEqual(selfie_response.status_code, status.HTTP_200_OK)
+        selfie_id = selfie_response.data["data"]["selfie_capture_id"]
+
+        liveness_response = self.client.post(
+            reverse(
+                "verification-session-liveness",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            {"liveness_type": "passive", "selfie_capture_id": selfie_id},
+            format="json",
+            **self.session_headers(),
+        )
+        self.assertEqual(liveness_response.status_code, status.HTTP_200_OK)
+        mock_liveness.return_value = {
+            "status": "completed",
+            "passed": True,
+            "score": 0.97,
+            "confidence_level": "high",
+            "model_name": "mediapipe-liveness",
+            "model_version": "v1",
+        }
+        mock_face.return_value = {
+            "status": "completed",
+            "matched": True,
+            "match_score": 0.96,
+            "threshold_used": 0.85,
+            "confidence_level": "high",
+            "model_name": "insightface",
+            "model_version": "buffalo_l",
+        }
+        process_verification_biometrics_task(
+            liveness_response.data["data"]["liveness_check_id"]
+        )
+
+        self.verification.refresh_from_db()
+        final_status = self.client.get(
+            reverse(
+                "verification-session-status",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            **self.session_headers(),
+        )
+        self.assertEqual(self.verification.status, VerificationStatus.VERIFIED)
+        self.assertEqual(final_status.data["data"]["current_step"], "completed")
+        self.assertTrue(
+            VerificationDecision.objects.filter(
+                verification=self.verification,
+                decision=VerificationStatus.VERIFIED,
+            ).exists()
+        )
+        self.assertTrue(
+            WebhookEvent.objects.filter(
+                tenant=self.tenant,
+                webhook_endpoint=endpoint,
+                event_type="verification.verified",
+            ).exists()
+        )
+        mock_document_delay.assert_called_once_with(identity_document.public_id)
+        mock_biometrics_delay.assert_called_once()
+        mock_document_promote.assert_called()
+        mock_selfie_promote.assert_called_once()
+        mock_evidence_report.assert_called_once_with(self.verification)
