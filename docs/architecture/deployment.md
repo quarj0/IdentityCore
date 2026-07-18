@@ -887,3 +887,34 @@ Version 1.0 excludes:
 IdentityCore deployment must balance simplicity and seriousness.
 
 The MVP should be simple enough to operate with a small team, but disciplined enough to protect sensitive identity data, support reliable verification workflows, and evolve into enterprise or government-grade infrastructure without a full rewrite.
+
+## Verification evidence upload origins
+
+The verification portal uploads evidence directly to the private R2 temporary bucket by using short-lived presigned PUT URLs. Configure CORS on that bucket for every exact portal origin. Container health checks do not validate browser-to-R2 CORS.
+
+Development example:
+
+```json
+[
+  {
+    "AllowedOrigins": [
+      "http://localhost:3002",
+      "http://127.0.0.1:3002"
+    ],
+    "AllowedMethods": ["PUT"],
+    "AllowedHeaders": [
+      "Content-Type",
+      "x-amz-server-side-encryption"
+    ],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+For production, replace the development origins with the exact HTTPS verification portal origin, for example `https://verify.example.com`. Do not use `*` for identity-evidence uploads and do not add dashboard, marketing, or preview origins unless they actually host the verification portal.
+
+The Django API must separately allow the portal origin through `DJANGO_CORS_ALLOWED_ORIGINS`, and the portal must address Django through `NEXT_PUBLIC_API_ORIGIN`. Browser-visible configuration must never use Docker-only hostnames such as `django` or `ai-service`.
+
+If direct R2 upload is blocked by a browser or a transient CORS deployment mismatch, the portal falls back to the authenticated same-origin Django transfer endpoint. That fallback is resilience only; a correctly configured R2 CORS policy remains the normal production path.
+
