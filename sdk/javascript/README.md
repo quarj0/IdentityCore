@@ -1,6 +1,8 @@
 # IdentityCore JavaScript SDK
 
-JavaScript client for IdentityCore public REST APIs. It mirrors the Python SDK and uses API-client credentials.
+Typed, server-side JavaScript client for IdentityCore. Requires Node.js 18+.
+
+> This package uses secret API-client credentials and intentionally rejects browser use. Call it from your server, never from client-side JavaScript.
 
 ## Quick start
 
@@ -9,29 +11,41 @@ import { IdentityCoreClient } from "@identitycore/sdk";
 
 const client = new IdentityCoreClient({
   apiOrigin: "https://api.identitycore.com",
-  clientId: "cli_...",
-  clientSecret: "...",
+  clientId: process.env.IDENTITYCORE_CLIENT_ID,
+  clientSecret: process.env.IDENTITYCORE_CLIENT_SECRET,
 });
 
-const policies = await client.policies.list();
-
-const verification = await client.verifications.create({
-  purpose: "Customer onboarding",
-  policyId: policies[0].id,
-  verificationSubject: {
-    fullName: "Kwame Mensah",
-    email: "kwame@example.com",
+const [policy] = await client.policies.list();
+const verification = await client.verifications.create(
+  {
+    purpose: "Customer onboarding",
+    policyId: policy.id,
+    projectId: "prj_...",
+    verificationSubject: { fullName: "Kwame Mensah", email: "kwame@example.com" },
+    externalReference: "customer_123",
+    redirectUrl: "https://app.example.com/identity/complete",
   },
-  externalReference: "customer_123",
-});
-
-console.log(verification.verification_url);
+  { idempotencyKey: "customer_123-onboarding-v1" },
+);
 ```
 
-## Required scopes
+GET requests retry transient failures automatically. Mutating requests retry only when an `idempotencyKey` is supplied.
 
-- `policies:read` for policy/template list and detail.
-- `verifications:create` for verification creation, cancellation, and link resend.
-- `verifications:read` for verification list, detail, and evidence report URLs.
+## Pagination and webhooks
 
-API-client-created verifications must include an active `policyId`.
+```js
+import { verifyWebhookSignature } from "@identitycore/sdk";
+
+for await (const verification of client.verifications.iterate({ status: "verified" })) {
+  console.log(verification.id);
+}
+
+const valid = verifyWebhookSignature(rawRequestBody, {
+  signature: request.headers["x-identitycore-signature"],
+  timestamp: request.headers["x-identitycore-timestamp"],
+  signingKey: process.env.IDENTITYCORE_WEBHOOK_SECRET,
+});
+```
+
+Always verify the unmodified request body before parsing JSON. The default timestamp tolerance is five minutes.
+
