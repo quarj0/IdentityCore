@@ -62,8 +62,8 @@ export class IdentityCoreClient {
       list: ({ status = "", externalReference = "", page, pageSize } = {}) => this.request("GET", `/verifications/${compactQuery({ status, external_reference: externalReference, page, page_size: pageSize })}`),
       iterate: async function* (options = {}) { let page = 1; do { const result = await this.list({ ...options, page }); for (const item of result.results ?? []) yield item; if (page >= Number(result.pagination?.total_pages ?? page)) return; page += 1; } while (true); },
       retrieve: (id) => this.request("GET", `/verifications/${id}`),
-      cancel: (id, { reason = "", idempotencyKey = "" } = {}) => this.request("POST", `/verifications/${id}/cancel`, { reason }, { idempotencyKey }),
-      resendLink: (id, { channel = "email", idempotencyKey = "" } = {}) => this.request("POST", `/verifications/${id}/resend-link`, { channel }, { idempotencyKey }),
+      cancel: (id, { reason = "" } = {}) => this.request("POST", `/verifications/${id}/cancel`, { reason }),
+      resendLink: (id, { channel = "email" } = {}) => this.request("POST", `/verifications/${id}/resend-link`, { channel }),
       evidenceReport: (id) => this.request("GET", `/verifications/${id}/evidence-report`),
     };
   }
