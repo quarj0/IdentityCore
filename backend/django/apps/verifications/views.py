@@ -130,24 +130,24 @@ class VerificationListCreateView(VerificationAccessMixin, APIView):
             request_hash = hashlib.sha256(
                 json.dumps(request.data, sort_keys=True, separators=(",", ":")).encode("utf-8")
             ).hexdigest()
-            idempotency_record = (
-                APIIdempotencyRecord.objects.select_for_update()
-                .filter(api_client=request.api_client, key=idempotency_key)
-                .first()
-            )
-            if idempotency_record is not None and idempotency_record.expires_at <= timezone.now():
-                idempotency_record.delete()
-                idempotency_record = None
-            if idempotency_record is None:
-                idempotency_record = APIIdempotencyRecord.objects.create(
+            existing_record = APIIdempotencyRecord.objects.filter(
+                api_client=request.api_client, key=idempotency_key
+            ).first()
+            if existing_record is not None and existing_record.expires_at <= timezone.now():
+                existing_record.delete()
+            idempotency_record, idempotency_created = (
+                APIIdempotencyRecord.objects.get_or_create(
                     api_client=request.api_client,
                     key=idempotency_key,
-                    request_hash=request_hash,
-                    method=request.method,
-                    path=request.path,
-                    expires_at=timezone.now() + timedelta(hours=24),
+                    defaults={
+                        "request_hash": request_hash,
+                        "method": request.method,
+                        "path": request.path,
+                        "expires_at": timezone.now() + timedelta(hours=24),
+                    },
                 )
-            else:
+            )
+            if not idempotency_created:
                 if idempotency_record.request_hash != request_hash:
                     raise IdempotencyConflict(
                         "This Idempotency-Key was already used with a different request payload."
