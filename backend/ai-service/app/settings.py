@@ -264,7 +264,6 @@ class Settings(BaseSettings):
             for label, path in (
                 ("models.paddleocr.det", self.paddle_text_detection_model_dir),
                 ("models.paddleocr.rec", self.paddle_text_recognition_model_dir),
-                ("models.paddleocr.cls", self.paddle_textline_orientation_model_dir),
             ):
                 if not self.paddle_model_is_complete(path):
                     missing.append(f"{label}:{path}")
