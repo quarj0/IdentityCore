@@ -45,8 +45,8 @@ class CatalogEndpointTests(APITestCase):
         sdk_status = {item["language"]: item["status"] for item in data["sdk_status"]}
         self.assertEqual(sdk_status["python"], "ready")
         self.assertEqual(sdk_status["javascript"], "ready")
-        self.assertEqual(sdk_status["java"], "not_started")
-        self.assertEqual(sdk_status["csharp"], "not_started")
+        self.assertEqual(sdk_status["java"], "ready")
+        self.assertEqual(sdk_status["csharp"], "ready")
         self.assertEqual(data["spec_url"], "/api/v1/docs/openapi.yaml")
 
     def test_openapi_spec_returns_public_yaml(self):
