@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -46,15 +46,13 @@ export function EvidenceReview({
   file: File;
   onRetake: () => void;
 }) {
-  const [url, setUrl] = useState("");
-  const [previewFailed, setPreviewFailed] = useState(false);
+  const url = useMemo(() => URL.createObjectURL(file), [file]);
+  const [failedUrl, setFailedUrl] = useState("");
+  const previewFailed = failedUrl === url;
 
   useEffect(() => {
-    const objectUrl = URL.createObjectURL(file);
-    setUrl(objectUrl);
-    setPreviewFailed(false);
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [file]);
+    return () => URL.revokeObjectURL(url);
+  }, [url]);
 
   return (
     <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-950">
@@ -67,7 +65,7 @@ export function EvidenceReview({
         /* eslint-disable-next-line @next/next/no-img-element */
         <img
           src={url}
-          onError={() => setPreviewFailed(true)}
+          onError={() => setFailedUrl(url)}
           alt="Captured evidence preview"
           className="max-h-[32rem] min-h-72 w-full object-contain"
         />
