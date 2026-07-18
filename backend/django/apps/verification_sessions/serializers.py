@@ -67,9 +67,17 @@ def _supported_documents(country_code: str) -> list[dict[str, str]]:
                 }
                 for supported in profile["supported_document_types"]
             ]
+    return []
+
+
+def _available_country_profiles() -> list[dict]:
     return [
-        {"document_type": item["code"], "label": item["name"]}
-        for item in DOCUMENT_TYPES
+        {
+            "country_code": profile["code"],
+            "country_name": profile["name"],
+            "documents": _supported_documents(profile["code"]),
+        }
+        for profile in COUNTRY_PROFILES
     ]
 
 
@@ -147,10 +155,13 @@ def serialize_verification_session(verification_session: VerificationSession) ->
     metadata = verification.metadata_json or {}
     onboarding = (organization.settings_json or {}).get("onboarding") or {}
     registration = onboarding.get("registration") or {}
-    country_code = str(
-        metadata.get("country_code")
-        or registration.get("organization_country", "")
-    ).upper()
+    configured_country_code = str(metadata.get("country_code", "")).upper()
+    supported_country_codes = {profile["code"] for profile in COUNTRY_PROFILES}
+    country_code = (
+        configured_country_code
+        if configured_country_code in supported_country_codes
+        else (COUNTRY_PROFILES[0]["code"] if COUNTRY_PROFILES else "")
+    )
     document_type = str(metadata.get("document_type", "national_id"))
     document_label = _resolve_document_label(document_type, country_code)
     return {
@@ -170,6 +181,7 @@ def serialize_verification_session(verification_session: VerificationSession) ->
             "label": document_label,
         },
         "available_documents": _supported_documents(country_code),
+        "available_countries": _available_country_profiles(),
         "expires_at": verification_session.expires_at.isoformat(),
     }
 
@@ -332,7 +344,7 @@ class DocumentCaptureInputSerializer(serializers.Serializer):
 
 class VerificationSessionDocumentSerializer(serializers.Serializer):
     document_type = serializers.CharField(max_length=64)
-    country_code = serializers.CharField(max_length=8, required=False, allow_blank=True)
+    country_code = serializers.CharField(max_length=8)
     captures = DocumentCaptureInputSerializer(many=True, allow_empty=False)
 
     def validate(self, attrs):
