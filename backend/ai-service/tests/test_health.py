@@ -1,4 +1,6 @@
 import asyncio
+import sys
+from types import SimpleNamespace
 
 import pytest
 from botocore.exceptions import ClientError
@@ -22,7 +24,7 @@ from app.main import (
     liveness_check,
     readiness,
 )
-from app.pipeline import run_document_quality_pipeline
+from app.pipeline import get_paddle_ocr_engine, run_document_quality_pipeline
 from app.settings import Settings, get_settings
 
 
@@ -382,3 +384,52 @@ def test_hybrid_mode_is_degraded_but_ready_when_real_requirements_are_missing(mo
     monkeypatch.delenv("INSIGHTFACE_ALLOW_DOWNLOAD", raising=False)
     monkeypatch.delenv("PADDLE_OCR_ALLOW_DOWNLOAD", raising=False)
     get_settings.cache_clear()
+
+
+def test_real_paddle_ocr_disables_unstable_optional_classifiers(monkeypatch, tmp_path):
+    det = tmp_path / "det"
+    rec = tmp_path / "rec"
+    for directory, model_name in (
+        (det, "PP-OCRv5_server_det"),
+        (rec, "PP-OCRv5_server_rec"),
+    ):
+        directory.mkdir()
+        (directory / "inference.yml").write_text(
+            f"Global:\n  model_name: {model_name}\n",
+            encoding="utf-8",
+        )
+        (directory / "inference.json").write_text("{}", encoding="utf-8")
+
+    captured = {}
+
+    class FakePaddleOCR:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+    settings = SimpleNamespace(
+        paddle_allow_download=False,
+        paddle_text_detection_model_dir=det,
+        paddle_text_recognition_model_dir=rec,
+        paddle_model_is_complete=lambda path: (
+            (path / "inference.yml").is_file()
+            and (path / "inference.json").is_file()
+        ),
+    )
+    monkeypatch.setattr("app.pipeline.get_settings", lambda: settings)
+    monkeypatch.setitem(
+        sys.modules,
+        "paddleocr",
+        SimpleNamespace(PaddleOCR=FakePaddleOCR),
+    )
+    get_paddle_ocr_engine.cache_clear()
+
+    try:
+        get_paddle_ocr_engine()
+    finally:
+        get_paddle_ocr_engine.cache_clear()
+
+    assert captured["use_doc_orientation_classify"] is False
+    assert captured["use_doc_unwarping"] is False
+    assert captured["use_textline_orientation"] is False
+    assert captured["enable_mkldnn"] is False
+    assert "textline_orientation_model_dir" not in captured
