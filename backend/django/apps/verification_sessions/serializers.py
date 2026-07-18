@@ -98,8 +98,8 @@ STATUS_PRESENTATION = {
         "Your verification is being processed.",
     ),
     VerificationStatus.MANUAL_REVIEW_REQUIRED: (
-        "processing",
-        "Your verification requires additional review.",
+        "completed",
+        "Your verification was submitted and requires additional review.",
     ),
     VerificationStatus.VERIFIED: (
         "completed",
