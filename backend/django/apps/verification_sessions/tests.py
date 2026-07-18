@@ -547,6 +547,30 @@ class VerificationSessionPortalTests(APITestCase):
         )
         self.assertFalse(Notification.objects.filter(tenant=self.tenant).exists())
         mock_delay.assert_called_once_with(liveness_check.public_id)
+
+        retry_response = self.client.post(
+            reverse(
+                "verification-session-liveness",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            {"liveness_type": "passive", "selfie_capture_id": selfie_capture.public_id},
+            format="json",
+            **self.session_headers(),
+        )
+        self.assertEqual(retry_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            retry_response.data["data"]["liveness_check_id"],
+            liveness_check.public_id,
+        )
+        self.assertEqual(
+            LivenessCheck.objects.filter(
+                verification=self.verification,
+                selfie_capture=selfie_capture,
+            ).count(),
+            1,
+        )
+        mock_delay.assert_called_once_with(liveness_check.public_id)
+
         self.verification.refresh_from_db()
         self.assertEqual(self.verification.status, VerificationStatus.PROCESSING)
         self.organization.refresh_from_db()
