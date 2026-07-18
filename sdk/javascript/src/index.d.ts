@@ -15,12 +15,11 @@ export class IdentityCoreClient {
     list(options?: { status?: string; externalReference?: string; page?: number; pageSize?: number }): Promise<any>;
     iterate(options?: { status?: string; externalReference?: string; pageSize?: number }): AsyncIterable<Record<string, unknown>>;
     retrieve(id: string): Promise<Record<string, unknown>>;
-    cancel(id: string, options?: { reason?: string; idempotencyKey?: string }): Promise<Record<string, unknown>>;
-    resendLink(id: string, options?: { channel?: string; idempotencyKey?: string }): Promise<Record<string, unknown>>;
+    cancel(id: string, options?: { reason?: string }): Promise<Record<string, unknown>>;
+    resendLink(id: string, options?: { channel?: string }): Promise<Record<string, unknown>>;
     evidenceReport(id: string): Promise<Record<string, unknown>>;
   };
   health(): Promise<Record<string, unknown>>;
   request(method: string, path: string, body?: unknown, options?: RequestOptions): Promise<any>;
 }
 export function verifyWebhookSignature(payload: string | Uint8Array, options: { signature: string; timestamp: string | number; signingKey: string; toleranceSeconds?: number; now?: number }): boolean;
-
