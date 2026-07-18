@@ -84,11 +84,11 @@ class _VerificationsClient:
     def retrieve(self, verification_id: str) -> dict[str, Any]:
         return self.client.request("GET", f"/verifications/{verification_id}")
 
-    def cancel(self, verification_id: str, *, reason: str = "", idempotency_key: str = "") -> dict[str, Any]:
-        return self.client.request("POST", f"/verifications/{verification_id}/cancel", {"reason": reason}, idempotency_key=idempotency_key)
+    def cancel(self, verification_id: str, *, reason: str = "") -> dict[str, Any]:
+        return self.client.request("POST", f"/verifications/{verification_id}/cancel", {"reason": reason})
 
-    def resend_link(self, verification_id: str, *, channel: str = "email", idempotency_key: str = "") -> dict[str, Any]:
-        return self.client.request("POST", f"/verifications/{verification_id}/resend-link", {"channel": channel}, idempotency_key=idempotency_key)
+    def resend_link(self, verification_id: str, *, channel: str = "email") -> dict[str, Any]:
+        return self.client.request("POST", f"/verifications/{verification_id}/resend-link", {"channel": channel})
 
     def evidence_report(self, verification_id: str) -> dict[str, Any]:
         return self.client.request("GET", f"/verifications/{verification_id}/evidence-report")
