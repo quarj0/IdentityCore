@@ -153,8 +153,6 @@ def serialize_verification_session(verification_session: VerificationSession) ->
     organization = verification.organization
     organization_logo_url = organization.settings_json.get("logo_url", "")
     metadata = verification.metadata_json or {}
-    onboarding = (organization.settings_json or {}).get("onboarding") or {}
-    registration = onboarding.get("registration") or {}
     configured_country_code = str(metadata.get("country_code", "")).upper()
     supported_country_codes = {profile["code"] for profile in COUNTRY_PROFILES}
     country_code = (
@@ -162,7 +160,20 @@ def serialize_verification_session(verification_session: VerificationSession) ->
         if configured_country_code in supported_country_codes
         else (COUNTRY_PROFILES[0]["code"] if COUNTRY_PROFILES else "")
     )
-    document_type = str(metadata.get("document_type", "national_id"))
+    configured_document_type = str(metadata.get("document_type", "national_id"))
+    supported_documents = _supported_documents(country_code)
+    supported_document_types = {
+        item["document_type"] for item in supported_documents
+    }
+    document_type = (
+        configured_document_type
+        if configured_document_type in supported_document_types
+        else (
+            supported_documents[0]["document_type"]
+            if supported_documents
+            else configured_document_type
+        )
+    )
     document_label = _resolve_document_label(document_type, country_code)
     return {
         "session_id": verification_session.public_id,
