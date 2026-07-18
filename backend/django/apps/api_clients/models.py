@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 from apps.core.models import BaseModel, PublicIdModel, generate_public_id
+from common.fields import EncryptedJSONField
 
 
 class APIClientStatus(models.TextChoices):
@@ -111,7 +112,11 @@ class APIIdempotencyRecord(BaseModel):
     request_hash = models.CharField(max_length=64)
     method = models.CharField(max_length=16)
     path = models.CharField(max_length=512)
-    response_data_json = models.JSONField(null=True, blank=True)
+    response_data_json = EncryptedJSONField(
+        null=True,
+        blank=True,
+        encryption_purpose="api_clients.idempotency.response",
+    )
     response_status = models.PositiveSmallIntegerField(null=True, blank=True)
     expires_at = models.DateTimeField(db_index=True)
 
