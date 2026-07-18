@@ -54,6 +54,25 @@ def _resolve_document_label(document_type: str, country_code: str) -> str:
     )
 
 
+def _supported_documents(country_code: str) -> list[dict[str, str]]:
+    country_code = str(country_code or "").upper()
+    for profile in COUNTRY_PROFILES:
+        if profile["code"] == country_code:
+            return [
+                {
+                    "document_type": supported["document_type"],
+                    "label": _resolve_document_label(
+                        supported["document_type"], country_code
+                    ),
+                }
+                for supported in profile["supported_document_types"]
+            ]
+    return [
+        {"document_type": item["code"], "label": item["name"]}
+        for item in DOCUMENT_TYPES
+    ]
+
+
 def resolve_session_upload(
     *, verification_session: VerificationSession, upload_id: str, purpose: str
 ) -> Upload:
@@ -150,6 +169,7 @@ def serialize_verification_session(verification_session: VerificationSession) ->
             "document_type": document_type,
             "label": document_label,
         },
+        "available_documents": _supported_documents(country_code),
         "expires_at": verification_session.expires_at.isoformat(),
     }
 
@@ -324,6 +344,21 @@ class VerificationSessionDocumentSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"detail": "Consent must be accepted before document submission."}
             )
+
+        country_code = str(attrs.get("country_code", "")).upper()
+        document_type = str(attrs["document_type"])
+        supported_types = {
+            item["document_type"] for item in _supported_documents(country_code)
+        }
+        if document_type not in supported_types:
+            raise serializers.ValidationError(
+                {
+                    "document_type": (
+                        "Choose a supported document type for the issuing country."
+                    )
+                }
+            )
+        attrs["country_code"] = country_code
 
         capture_sides = [capture["side"] for capture in attrs["captures"]]
         if len(capture_sides) != len(set(capture_sides)):
