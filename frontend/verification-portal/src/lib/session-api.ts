@@ -23,7 +23,7 @@ export interface VerificationSession {
     document_type: string;
     label: string;
   };
-  available_documents: Array<{
+  available_documents?: Array<{
     document_type: string;
     label: string;
   }>;
