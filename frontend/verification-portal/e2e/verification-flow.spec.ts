@@ -35,7 +35,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
         document: {
           country_code: "GH",
           document_type: "national_id",
-          label: "Ghana Card",
+          label: "National ID",
         },
         expires_at: new Date(Date.now() + 60_000).toISOString(),
       });
@@ -138,7 +138,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "Accept and continue" }).click();
 
-  await expect(page.getByRole("heading", { name: "Capture your Ghana Card" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Capture your National ID" })).toBeVisible();
   await page.locator('input[type="file"]').setInputFiles({
     name: "ghana-card.png",
     mimeType: "image/png",
@@ -188,7 +188,7 @@ test("expired sessions render a safe terminal state", async ({ page }) => {
       document: {
         country_code: "GH",
         document_type: "national_id",
-        label: "Ghana Card",
+        label: "National ID",
       },
       expires_at: new Date(Date.now() - 60_000).toISOString(),
     });
