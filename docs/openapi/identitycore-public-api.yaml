@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: IdentityCore Public API
-  version: 0.1.0
+  version: 0.2.0
   description: Public REST API surface plus workspace-authenticated portal routes used by IdentityCore SDKs and sandbox testing.
 servers:
   - url: https://api.identitycore.com/api/v1
@@ -34,6 +34,15 @@ components:
       schema:
         type: string
       description: API client ID.
+    IdempotencyKeyHeader:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 255
+      description: A caller-generated key retained for 24 hours. Reusing it with the same payload replays the original result.
   schemas:
     Error:
       type: object
@@ -134,10 +143,10 @@ components:
           type: string
         policy_id:
           type: string
+          description: Active verification policy/template ID. Required for API-client requests.
         project_id:
           type: string
           description: Project environment identifier. Defaults to the tenant's sandbox project for backward compatibility.
-          description: Active verification policy/template ID. Required for API-client requests.
         verification_subject:
           $ref: "#/components/schemas/VerificationSubjectInput"
         redirect_url:
@@ -757,9 +766,10 @@ paths:
           $ref: "#/components/responses/PermissionDenied"
     post:
       summary: Create a hosted verification request.
-      description: Requires `verifications:create`; API-client requests must include an active `policy_id`.
+      description: Requires `verifications:create`; API-client requests must include an active `policy_id` and an idempotency key.
       parameters:
         - $ref: "#/components/parameters/ClientIdHeader"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
       requestBody:
         required: true
         content:
@@ -784,6 +794,12 @@ paths:
           $ref: "#/components/responses/ValidationError"
         "403":
           $ref: "#/components/responses/PermissionDenied"
+        "409":
+          description: The idempotency key was previously used with a different payload.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /verifications/{verification_id}:
     get:
       summary: Retrieve a verification.
