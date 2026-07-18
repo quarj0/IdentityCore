@@ -19,6 +19,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --project backend --group ai-service --group dev --frozen
+      - name: Normalize OpenCV runtime
+        run: uv pip install --python backend/.venv/bin/python --reinstall opencv-contrib-python-headless==4.10.0.84
       - run: uv run --project .. pytest tests
         working-directory: backend/ai-service
 
