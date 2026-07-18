@@ -42,3 +42,7 @@ jobs:
         working-directory: frontend
       - run: pnpm --filter @identitycore/api-client exec tsc -p tsconfig.json
         working-directory: frontend
+      - run: pnpm --filter verification-portal exec playwright install --with-deps chromium
+        working-directory: frontend
+      - run: pnpm --filter verification-portal test:e2e
+        working-directory: frontend
