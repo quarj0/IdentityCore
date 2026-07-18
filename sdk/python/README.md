@@ -1,18 +1,8 @@
 # IdentityCore Python SDK
 
-Python client for IdentityCore public REST APIs.
+Typed, server-side Python client for IdentityCore. Requires Python 3.9+ and has no runtime dependencies.
 
-## Install
-
-```bash
-pip install identitycore
-```
-
-During local development, install from this directory:
-
-```bash
-pip install -e sdk/python
-```
+> Never place an API client secret in browser, desktop, or mobile application code.
 
 ## Quick start
 
@@ -25,25 +15,38 @@ client = IdentityCoreClient(
     client_secret="...",
 )
 
-policies = client.policies.list()
-
+policy = client.policies.list()[0]
 verification = client.verifications.create(
     purpose="Customer onboarding",
-    policy_id=policies[0]["id"],
-    verification_subject={
-        "full_name": "Kwame Mensah",
-        "email": "kwame@example.com",
-    },
+    policy_id=policy["id"],
+    project_id="prj_...",
+    verification_subject={"full_name": "Kwame Mensah", "email": "kwame@example.com"},
     external_reference="customer_123",
+    redirect_url="https://app.example.com/identity/complete",
+    idempotency_key="customer_123-onboarding-v1",
 )
-
 print(verification["verification_url"])
 ```
 
-## Required scopes
+GET requests retry transient failures automatically. Mutating requests retry only when you provide an `idempotency_key`.
 
-- `policies:read` for policy/template list and detail.
-- `verifications:create` for verification creation, cancellation, and link resend.
-- `verifications:read` for verification list, detail, and evidence report URLs.
+## Pagination and webhooks
 
-API-client-created verifications must include an active `policy_id`.
+```python
+from identitycore import verify_webhook_signature
+
+for verification in client.verifications.iter(status="verified"):
+    print(verification["id"])
+
+valid = verify_webhook_signature(
+    raw_request_body,
+    signature=request.headers["X-IdentityCore-Signature"],
+    timestamp=request.headers["X-IdentityCore-Timestamp"],
+    signing_key=webhook_signing_key,
+)
+```
+
+Always verify the unmodified webhook body before parsing JSON. The default timestamp tolerance is five minutes.
+
+Required scopes are `policies:read`, `verifications:create`, and `verifications:read` for their corresponding resources.
+
