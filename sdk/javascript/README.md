@@ -29,7 +29,7 @@ const verification = await client.verifications.create(
 );
 ```
 
-GET requests retry transient failures automatically. Mutating requests retry only when an `idempotencyKey` is supplied.
+GET requests retry transient failures automatically. Verification creation is idempotent and safely retried; cancellation and link resend are not retried automatically.
 
 ## Pagination and webhooks
 
@@ -48,4 +48,3 @@ const valid = verifyWebhookSignature(rawRequestBody, {
 ```
 
 Always verify the unmodified request body before parsing JSON. The default timestamp tolerance is five minutes.
-
