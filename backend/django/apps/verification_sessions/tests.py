@@ -287,7 +287,7 @@ class VerificationSessionPortalTests(APITestCase):
         )
         self.assertEqual(identity_document.document_type_id, "national_id")
         self.assertEqual(identity_document.country_profile_id, "GH")
-        self.assertEqual(identity_document.local_document_name, "Ghana Card")
+        self.assertEqual(identity_document.local_document_name, "National ID")
         self.assertEqual(identity_document.status, "processing")
         self.assertEqual(identity_document.captures.count(), 2)
         self.assertSetEqual(
@@ -659,7 +659,7 @@ class VerificationSessionPortalTests(APITestCase):
             verification_subject=self.subject,
             document_type_id="national_id",
             country_profile_id="GH",
-            local_document_name="Ghana Card",
+            local_document_name="National ID",
             status="rejected",
         )
 
@@ -676,8 +676,8 @@ class VerificationSessionPortalTests(APITestCase):
         self.assertEqual(
             response.data["data"]["message"],
             (
-                "Your previous Ghana Card image could not be verified. "
-                "Please capture the physical Ghana Card and try again."
+                "Your previous National ID image could not be verified. "
+                "Please capture the physical National ID and try again."
             ),
         )
 
