@@ -58,6 +58,7 @@ class VerificationSessionPortalTests(APITestCase):
             organization=self.organization,
             verification_subject=self.subject,
             purpose="Customer onboarding verification",
+            redirect_url="https://customer.example/verification/complete",
             status=VerificationStatus.PENDING_CONSENT,
             expires_at=timezone.now() + timedelta(hours=24),
             created_by=self.user,
@@ -119,6 +120,10 @@ class VerificationSessionPortalTests(APITestCase):
         self.assertEqual(self.session.status, "active")
         self.assertIsNotNone(self.session.started_at)
         self.assertEqual(response.data["data"]["session_id"], self.session.public_id)
+        self.assertEqual(
+            response.data["data"]["redirect_url"],
+            "https://customer.example/verification/complete",
+        )
         self.assertEqual(
             response.data["data"]["organization"]["name"], self.organization.name
         )
