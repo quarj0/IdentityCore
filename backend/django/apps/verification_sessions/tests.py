@@ -375,6 +375,7 @@ class VerificationSessionPortalTests(APITestCase):
             ),
             {
                 "document_type": "passport",
+                "country_code": "GH",
                 "captures": [{"side": "front", "upload_id": "upl_missing"}],
             },
             format="json",
