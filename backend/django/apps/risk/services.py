@@ -22,6 +22,18 @@ def _get_policy_thresholds(verification) -> tuple[Decimal, Decimal]:
     return face_match_threshold, manual_review_threshold
 
 
+def _document_requires_manual_review(classification: dict | None) -> bool:
+    if not isinstance(classification, dict):
+        return False
+    manual_review = classification.get("manual_review") or {}
+    return bool(
+        classification.get("provider_error")
+        or classification.get("requires_manual_review")
+        or classification.get("workflow_action") == "continue_with_review"
+        or manual_review.get("required")
+    )
+
+
 def evaluate_risk_assessment(verification) -> RiskAssessment:
     latest_liveness_check = verification.liveness_checks.order_by("-checked_at").first()
     latest_face_match = verification.face_matches.order_by("-matched_at").first()
@@ -36,6 +48,9 @@ def evaluate_risk_assessment(verification) -> RiskAssessment:
     signals = {
         "document_submitted": verification.identity_documents.exists(),
         "document_classification": document_classification,
+        "document_requires_manual_review": _document_requires_manual_review(
+            document_classification
+        ),
         "selfie_submitted": verification.selfie_captures.exists(),
         "liveness_status": (
             latest_liveness_check.status if latest_liveness_check else "missing"
@@ -92,6 +107,13 @@ def evaluate_risk_assessment(verification) -> RiskAssessment:
             risk_score = Decimal("68.00")
             risk_level = RiskLevel.MEDIUM
             recommendation = RiskRecommendation.MANUAL_REVIEW
+    elif _document_requires_manual_review(document_classification):
+        # Strong biometric evidence must not automatically approve a document
+        # that was inconclusive, mismatched, or unavailable. Preserve the full
+        # evidence set and route the completed case to a human reviewer.
+        risk_score = Decimal("72.00")
+        risk_level = RiskLevel.HIGH
+        recommendation = RiskRecommendation.MANUAL_REVIEW
     else:
         face_score = latest_face_match.match_score or Decimal("0")
         if (
