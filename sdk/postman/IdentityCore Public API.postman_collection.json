@@ -9,7 +9,10 @@
     "type": "noauth"
   },
   "variable": [
-    { "key": "api_base", "value": "{{base_url}}/api/v1" }
+    {
+      "key": "api_base",
+      "value": "{{base_url}}/api/v1"
+    }
   ],
   "item": [
     {
@@ -17,7 +20,10 @@
       "request": {
         "method": "GET",
         "header": [
-          { "key": "Accept", "value": "application/json" }
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
         ],
         "url": "{{api_base}}/health"
       }
@@ -45,9 +51,18 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
-              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Client-Id",
+                "value": "{{api_client_id}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_client_secret}}"
+              }
             ],
             "url": "{{api_base}}/policies/"
           }
@@ -57,9 +72,18 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
-              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Client-Id",
+                "value": "{{api_client_id}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_client_secret}}"
+              }
             ],
             "url": "{{api_base}}/policies/{{policy_id}}"
           }
@@ -90,10 +114,27 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
-              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Client-Id",
+                "value": "{{api_client_id}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_client_secret}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotency_key}}",
+                "description": "Reuse only when retrying the exact same create payload."
+              }
             ],
             "body": {
               "mode": "raw",
@@ -107,9 +148,18 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
-              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Client-Id",
+                "value": "{{api_client_id}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_client_secret}}"
+              }
             ],
             "url": "{{api_base}}/verifications/?external_reference={{external_reference}}"
           }
@@ -119,9 +169,18 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
-              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Client-Id",
+                "value": "{{api_client_id}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_client_secret}}"
+              }
             ],
             "url": "{{api_base}}/verifications/{{verification_id}}"
           }
@@ -131,9 +190,18 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
-              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Client-Id",
+                "value": "{{api_client_id}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_client_secret}}"
+              }
             ],
             "url": "{{api_base}}/verifications/{{verification_id}}/evidence-report"
           }
@@ -159,10 +227,22 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
-              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Client-Id",
+                "value": "{{api_client_id}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_client_secret}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -176,10 +256,22 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
-              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Client-Id",
+                "value": "{{api_client_id}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_client_secret}}"
+              }
             ],
             "body": {
               "mode": "raw",
