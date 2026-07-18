@@ -22,12 +22,14 @@ import {
   createOrganizationDocumentUpload,
   deleteOrganizationDocument,
   submitOrganizationVerification,
+  type OnboardingState,
 } from "@/lib/onboarding-api";
 
 export function OrganizationVerificationForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [feedback, setFeedback] = useState<{
     kind: "error" | "success";
     title: string;
@@ -237,7 +239,7 @@ export function OrganizationVerificationForm() {
                   type="file"
                   accept="application/pdf,.pdf"
                   multiple
-                  disabled={readOnly}
+                  disabled={uploading || submitting}
                   onChange={async (event) => {
                     const files = Array.from(event.target.files || []);
                     if (documents.length + files.length > 5) {
@@ -248,12 +250,20 @@ export function OrganizationVerificationForm() {
                       });
                       return;
                     }
+                    const invalid = files.find(
+                      (file) => file.type.toLowerCase() !== "application/pdf" || !file.name.toLowerCase().endsWith(".pdf") || file.size <= 0 || file.size > 10 * 1024 * 1024,
+                    );
+                    if (invalid) {
+                      setFeedback({ kind: "error", title: "Invalid document", message: "Choose non-empty PDF files no larger than 10 MB each." });
+                      event.target.value = "";
+                      return;
+                    }
                     try {
-                      setSubmitting(true);
-                      const uploaded = await Promise.all(
-                        files.map(createOrganizationDocumentUpload),
-                      );
+                      setUploading(true);
+                      const uploaded: OnboardingState["supportingDocuments"] = [];
+                      for (const file of files) uploaded.push(await createOrganizationDocumentUpload(file));
                       setDocuments((current) => [...current, ...uploaded]);
+                      event.target.value = "";
                     } catch (error) {
                       setFeedback({
                         kind: "error",
@@ -261,7 +271,7 @@ export function OrganizationVerificationForm() {
                         message: getErrorMessage(error),
                       });
                     } finally {
-                      setSubmitting(false);
+                      setUploading(false);
                     }
                   }}
                 />
@@ -282,6 +292,7 @@ export function OrganizationVerificationForm() {
                       variant="ghost"
                       className="text-slate-600 hover:text-red-600"
                       onClick={() => removeDocument(document.storage_key)}
+                      disabled={uploading || submitting}
                       aria-label={`Remove ${document.filename}`}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -298,9 +309,9 @@ export function OrganizationVerificationForm() {
                   type="submit"
                   size="lg"
                   className="w-full rounded-xl sm:w-auto"
-                  disabled={submitting || documents.length === 0}
+                  disabled={submitting || uploading || documents.length === 0}
                 >
-                  {submitting ? (
+                  {submitting || uploading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : null}
                   {readOnly

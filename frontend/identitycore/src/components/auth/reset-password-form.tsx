@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ArrowRight, Loader2, LockKeyhole } from "lucide-react";
 import {
   Button,
@@ -20,7 +19,6 @@ import { getErrorMessage } from "@/lib/api-client";
 import { resetPassword } from "@/lib/public-graphql";
 
 export function ResetPasswordForm({ token = "" }: { token?: string }) {
-  const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -50,7 +48,6 @@ export function ResetPasswordForm({ token = "" }: { token?: string }) {
         title: "Password reset complete",
         message: payload.message,
       });
-      router.push("/login");
     } catch (error) {
       setFeedback({
         kind: "error",
@@ -123,6 +120,11 @@ export function ResetPasswordForm({ token = "" }: { token?: string }) {
                 )}
                 Reset password
               </Button>
+              {feedback?.kind === "success" ? (
+                <Button asChild variant="outline" className="w-full rounded-xl">
+                  <Link href="/login">Continue to sign in</Link>
+                </Button>
+              ) : null}
             </form>
           ) : (
             <div className="space-y-4 text-sm text-muted-foreground">

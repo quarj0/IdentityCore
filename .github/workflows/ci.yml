@@ -66,3 +66,30 @@ jobs:
         working-directory: sdk/javascript
       - run: npm pack --dry-run
         working-directory: sdk/javascript
+
+  java-sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+          cache-dependency-path: sdk/java/pom.xml
+      - run: mvn --batch-mode test package
+        working-directory: sdk/java
+
+  dotnet-sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - run: dotnet restore IdentityCore.sln
+        working-directory: sdk/dotnet
+      - run: dotnet test IdentityCore.sln --configuration Release --no-restore
+        working-directory: sdk/dotnet
+      - run: dotnet pack src/IdentityCore/IdentityCore.csproj --configuration Release --no-restore
+        working-directory: sdk/dotnet

@@ -534,7 +534,7 @@ export function RegisterForm() {
             </div>
 
             <p className="text-center text-sm text-muted-foreground">
-              Already have an workspace?{" "}
+              Already have a workspace?{" "}
               <Link href="/login" className="font-medium text-blue-600">
                 Sign in
               </Link>
