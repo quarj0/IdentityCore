@@ -225,7 +225,8 @@ export function LiveVerificationFlow({
   const finish = () => {
     clearSessionCredentials(credentials.sessionId);
     const returnUrl =
-      process.env.NEXT_PUBLIC_ONBOARDING_RETURN_URL ??
+      session.redirect_url ||
+      process.env.NEXT_PUBLIC_ONBOARDING_RETURN_URL ||
       "http://localhost:3001/onboarding";
     window.location.assign(returnUrl);
   };
