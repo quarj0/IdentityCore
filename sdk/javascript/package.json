@@ -1,17 +1,15 @@
 {
   "name": "@identitycore/sdk",
-  "version": "0.1.0",
-  "description": "JavaScript SDK for the IdentityCore public REST API.",
+  "version": "0.2.0",
+  "description": "Server-side JavaScript SDK for the IdentityCore REST API.",
   "type": "module",
   "main": "./src/index.js",
-  "exports": {
-    ".": "./src/index.js"
-  },
-  "scripts": {
-    "test": "node --test"
-  },
-  "engines": {
-    "node": ">=18"
-  },
+  "types": "./src/index.d.ts",
+  "exports": { ".": { "types": "./src/index.d.ts", "import": "./src/index.js" } },
+  "files": ["src", "README.md"],
+  "sideEffects": false,
+  "scripts": { "test": "node --test", "pack:check": "npm pack --dry-run" },
+  "engines": { "node": ">=18" },
   "license": "UNLICENSED"
 }
+
