@@ -79,6 +79,24 @@ def _manual_review_classification_result(*, expected_document_type: str) -> dict
     }
 
 
+def _latest_provider_check_for_document(
+    verification, *, identity_document_id: str, check_type: str
+):
+    """Resolve metadata after field-level decryption instead of querying ciphertext."""
+    candidates = verification.provider_checks.filter(check_type=check_type).order_by(
+        "-created_at"
+    )
+    return next(
+        (
+            check
+            for check in candidates
+            if (check.request_metadata_json or {}).get("identity_document_id")
+            == identity_document_id
+        ),
+        None,
+    )
+
+
 @shared_task(queue="ai_processing")
 def process_identity_document_task(identity_document_id: str) -> str:
     identity_document = (
@@ -94,18 +112,21 @@ def process_identity_document_task(identity_document_id: str) -> str:
         return identity_document.status
 
     now = timezone.now()
-    ocr_provider_check = verification.provider_checks.filter(
-        request_metadata_json__identity_document_id=identity_document.public_id,
+    ocr_provider_check = _latest_provider_check_for_document(
+        verification,
+        identity_document_id=identity_document.public_id,
         check_type=ProviderCheckType.DOCUMENT_OCR,
-    ).order_by("-created_at").first()
-    classification_provider_check = verification.provider_checks.filter(
-        request_metadata_json__identity_document_id=identity_document.public_id,
+    )
+    classification_provider_check = _latest_provider_check_for_document(
+        verification,
+        identity_document_id=identity_document.public_id,
         check_type=ProviderCheckType.DOCUMENT_CLASSIFICATION,
-    ).order_by("-created_at").first()
-    quality_provider_check = verification.provider_checks.filter(
-        request_metadata_json__identity_document_id=identity_document.public_id,
+    )
+    quality_provider_check = _latest_provider_check_for_document(
+        verification,
+        identity_document_id=identity_document.public_id,
         check_type=ProviderCheckType.DOCUMENT_QUALITY,
-    ).order_by("-created_at").first()
+    )
 
     latest_quality_status = DocumentCaptureStatus.VALIDATED
     lowest_quality_score: Decimal | None = None
