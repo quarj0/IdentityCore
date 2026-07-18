@@ -58,7 +58,7 @@ export class IdentityCoreClient {
     this.apiOrigin = apiOrigin.replace(/\/$/, ""); this.clientId = clientId; this.clientSecret = clientSecret; this.fetch = fetchImpl; this.timeout = timeout; this.maxRetries = maxRetries; this.retryBackoff = retryBackoff;
     this.policies = { list: () => this.request("GET", "/policies/"), retrieve: (id) => this.request("GET", `/policies/${id}`) };
     this.verifications = {
-      create: (input, options = {}) => this.request("POST", "/verifications/", { purpose: input.purpose, policy_id: input.policyId ?? input.policy_id, project_id: input.projectId ?? input.project_id ?? "", verification_subject: subjectToApi(input.verificationSubject ?? input.verification_subject), external_reference: input.externalReference ?? input.external_reference ?? "", redirect_url: input.redirectUrl ?? input.redirect_url ?? "", metadata: input.metadata ?? {} }, options),
+      create: (input, options = {}) => this.request("POST", "/verifications/", { purpose: input.purpose, policy_id: input.policyId ?? input.policy_id, project_id: input.projectId ?? input.project_id ?? "", verification_subject: subjectToApi(input.verificationSubject ?? input.verification_subject), external_reference: input.externalReference ?? input.external_reference ?? "", redirect_url: input.redirectUrl ?? input.redirect_url ?? "", metadata: input.metadata ?? {} }, { ...options, idempotencyKey: options.idempotencyKey || `ik_${randomUUID().replaceAll("-", "")}` }),
       list: ({ status = "", externalReference = "", page, pageSize } = {}) => this.request("GET", `/verifications/${compactQuery({ status, external_reference: externalReference, page, page_size: pageSize })}`),
       iterate: async function* (options = {}) { let page = 1; do { const result = await this.list({ ...options, page }); for (const item of result.results ?? []) yield item; if (page >= Number(result.pagination?.total_pages ?? page)) return; page += 1; } while (true); },
       retrieve: (id) => this.request("GET", `/verifications/${id}`),
@@ -101,4 +101,3 @@ export class IdentityCoreClient {
     return payload.data;
   }
 }
-
