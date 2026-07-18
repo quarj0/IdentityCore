@@ -8,10 +8,5 @@
     "dev:web": "pnpm --filter identitycore-web dev",
     "dev:docs": "pnpm --filter developer-portal dev",
     "dev:admin": "pnpm --filter platform-admin dev"
-  },
-  "pnpm": {
-    "overrides": {
-      "postcss": "8.5.16"
-    }
   }
 }
