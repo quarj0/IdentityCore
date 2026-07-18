@@ -1,15 +1,20 @@
 from datetime import timedelta
+import hashlib
+import json
 
 from django.conf import settings
 from django.http import HttpResponse
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.exceptions import APIException, ValidationError
 from rest_framework.settings import api_settings
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from apps.audit.services import record_audit_event
+from apps.api_clients.models import APIIdempotencyRecord
 from apps.platform_settings.services import get_platform_setting_value
 from apps.notifications.services import (
     queue_verification_created_notifications,
@@ -40,6 +45,11 @@ from apps.verifications.models import (
 from common.authentication import APIClientAuthentication
 from common.permissions import HasAPIClientScopes, IsTenantUser
 from common.responses import success_response
+
+
+class IdempotencyConflict(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_code = "idempotency_conflict"
 
 
 class VerificationAccessMixin:
@@ -107,8 +117,47 @@ class VerificationListCreateView(VerificationAccessMixin, APIView):
             request=request,
         )
 
+    @transaction.atomic
     def post(self, request):
         self._set_request_tenant(request)
+        idempotency_record = None
+        if self._is_api_client_request(request):
+            idempotency_key = request.headers.get("Idempotency-Key", "").strip()
+            if not idempotency_key:
+                raise ValidationError(
+                    {"idempotency_key": "Idempotency-Key is required for verification creation."}
+                )
+            request_hash = hashlib.sha256(
+                json.dumps(request.data, sort_keys=True, separators=(",", ":")).encode("utf-8")
+            ).hexdigest()
+            existing_record = APIIdempotencyRecord.objects.filter(
+                api_client=request.api_client, key=idempotency_key
+            ).first()
+            if existing_record is not None and existing_record.expires_at <= timezone.now():
+                existing_record.delete()
+            idempotency_record, idempotency_created = (
+                APIIdempotencyRecord.objects.get_or_create(
+                    api_client=request.api_client,
+                    key=idempotency_key,
+                    defaults={
+                        "request_hash": request_hash,
+                        "method": request.method,
+                        "path": request.path,
+                        "expires_at": timezone.now() + timedelta(hours=24),
+                    },
+                )
+            )
+            if not idempotency_created:
+                if idempotency_record.request_hash != request_hash:
+                    raise IdempotencyConflict(
+                        "This Idempotency-Key was already used with a different request payload."
+                    )
+                if idempotency_record.response_data_json is not None:
+                    return success_response(
+                        idempotency_record.response_data_json,
+                        request=request,
+                        status=idempotency_record.response_status or status.HTTP_201_CREATED,
+                    )
         tenant = self._get_tenant(request)
         if tenant.organization.status != "active":
             month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -143,15 +192,22 @@ class VerificationListCreateView(VerificationAccessMixin, APIView):
             verification=verification,
             verification_url=verification._verification_url,
         )
+        response_data = {
+            "id": verification.public_id,
+            "status": verification.status,
+            "verification_url": verification._verification_url,
+            "session_id": session.public_id,
+            "session_token": verification._initial_session_token,
+            "expires_at": verification.expires_at.isoformat(),
+        }
+        if idempotency_record is not None:
+            idempotency_record.response_data_json = response_data
+            idempotency_record.response_status = status.HTTP_201_CREATED
+            idempotency_record.save(
+                update_fields=["response_data_json", "response_status", "updated_at"]
+            )
         return success_response(
-            {
-                "id": verification.public_id,
-                "status": verification.status,
-                "verification_url": verification._verification_url,
-                "session_id": session.public_id,
-                "session_token": verification._initial_session_token,
-                "expires_at": verification.expires_at.isoformat(),
-            },
+            response_data,
             request=request,
             status=status.HTTP_201_CREATED,
         )

@@ -80,10 +80,12 @@ class VerificationWorkflowTests(APITestCase):
             created_by=self.user,
         )
 
-    def auth_headers(self):
+    def auth_headers(self, *, idempotency_key=None):
+        self._idempotency_sequence = getattr(self, "_idempotency_sequence", 0) + 1
         return {
             "HTTP_X_CLIENT_ID": self.api_client.client_id,
             "HTTP_AUTHORIZATION": f"Bearer {self.raw_secret}",
+            "HTTP_IDEMPOTENCY_KEY": idempotency_key or f"test-{self._idempotency_sequence}",
         }
 
     def authenticate_dashboard_user(self):
@@ -133,6 +135,60 @@ class VerificationWorkflowTests(APITestCase):
                 recipient="kwame@example.com",
             ).exists()
         )
+
+    def test_api_client_create_requires_idempotency_key(self):
+        response = self.client.post(
+            reverse("verification-list-create"),
+            {
+                "purpose": "Customer onboarding verification",
+                "policy_id": self.policy.public_id,
+                "verification_subject": {"full_name": "Kwame Mensah"},
+            },
+            format="json",
+            HTTP_X_CLIENT_ID=self.api_client.client_id,
+            HTTP_AUTHORIZATION=f"Bearer {self.raw_secret}",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("idempotency_key", response.data["error"]["details"])
+
+    def test_create_verification_replays_same_idempotency_key(self):
+        payload = {
+            "purpose": "Customer onboarding verification",
+            "policy_id": self.policy.public_id,
+            "verification_subject": {"full_name": "Kwame Mensah"},
+        }
+        headers = self.auth_headers(idempotency_key="customer-123-onboarding")
+
+        first = self.client.post(
+            reverse("verification-list-create"), payload, format="json", **headers
+        )
+        second = self.client.post(
+            reverse("verification-list-create"), payload, format="json", **headers
+        )
+
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(second.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(first.data["data"]["id"], second.data["data"]["id"])
+        self.assertEqual(Verification.objects.count(), 1)
+
+    def test_idempotency_key_rejects_a_different_payload(self):
+        headers = self.auth_headers(idempotency_key="customer-123-onboarding")
+        base = {
+            "purpose": "Customer onboarding verification",
+            "policy_id": self.policy.public_id,
+            "verification_subject": {"full_name": "Kwame Mensah"},
+        }
+        self.client.post(
+            reverse("verification-list-create"), base, format="json", **headers
+        )
+        changed = {**base, "external_reference": "different"}
+        response = self.client.post(
+            reverse("verification-list-create"), changed, format="json", **headers
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(Verification.objects.count(), 1)
 
     def test_dashboard_user_can_create_verification(self):
         self.authenticate_dashboard_user()

@@ -1,8 +1,16 @@
-from typing import Optional
+from typing import Any, Optional
 
 
 class IdentityCoreError(Exception):
     """Base exception for IdentityCore SDK errors."""
+
+
+class IdentityCoreConnectionError(IdentityCoreError):
+    """Raised when IdentityCore cannot be reached."""
+
+
+class IdentityCoreTimeoutError(IdentityCoreConnectionError):
+    """Raised when an IdentityCore request exceeds its timeout."""
 
 
 class IdentityCoreAPIError(IdentityCoreError):
@@ -15,7 +23,7 @@ class IdentityCoreAPIError(IdentityCoreError):
         code: str = "request_failed",
         status: int = 500,
         request_id: str = "",
-        details: Optional[dict] = None,
+        details: Optional[dict[str, Any]] = None,
     ) -> None:
         super().__init__(message)
         self.message = message
@@ -23,3 +31,4 @@ class IdentityCoreAPIError(IdentityCoreError):
         self.status = status
         self.request_id = request_id
         self.details = details or {}
+

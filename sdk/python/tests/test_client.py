@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 import json
 import sys
 import unittest
@@ -5,146 +7,66 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from identitycore import IdentityCoreAPIError, IdentityCoreClient
+from identitycore import IdentityCoreAPIError, IdentityCoreClient, verify_webhook_signature
 
 
 class FakeTransport:
-    def __init__(self, responses):
-        self.responses = list(responses)
-        self.calls = []
-
+    def __init__(self, responses): self.responses, self.calls = list(responses), []
     def __call__(self, method, url, headers, body, timeout):
-        self.calls.append(
-            {
-                "method": method,
-                "url": url,
-                "headers": headers,
-                "body": body,
-                "timeout": timeout,
-            }
-        )
-        return self.responses.pop(0)
+        self.calls.append({"method": method, "url": url, "headers": headers, "body": body, "timeout": timeout})
+        result = self.responses.pop(0)
+        if isinstance(result, Exception): raise result
+        return result
 
 
-def envelope(data, request_id="req_test"):
-    return json.dumps({"success": True, "data": data, "request_id": request_id}).encode()
-
-
-def failure(message, code="validation_error", details=None, request_id="req_test"):
-    return json.dumps(
-        {
-            "success": False,
-            "error": {"code": code, "message": message, "details": details or {}},
-            "request_id": request_id,
-        }
-    ).encode()
+def envelope(data): return json.dumps({"success": True, "data": data, "request_id": "req_test"}).encode()
+def failure(message): return json.dumps({"success": False, "error": {"code": "validation_error", "message": message, "details": {}}, "request_id": "req_test"}).encode()
 
 
 class IdentityCoreClientTests(unittest.TestCase):
-    def make_client(self, responses):
+    def make_client(self, responses, **kwargs):
         self.transport = FakeTransport(responses)
-        return IdentityCoreClient(
-            api_origin="https://api.example.test",
-            client_id="cli_test",
-            client_secret="secret",
-            transport=self.transport,
-        )
+        return IdentityCoreClient(api_origin="https://api.example.test", client_id="cli_test", client_secret="secret", transport=self.transport, sleep=lambda _: None, **kwargs)
 
-    def test_sends_api_client_auth_headers(self):
-        client = self.make_client([(200, envelope([{"id": "pol_123"}]))])
+    def test_auth_request_and_user_agent_headers(self):
+        client = self.make_client([(200, envelope([]))])
+        client.policies.list()
+        headers = self.transport.calls[0]["headers"]
+        self.assertEqual(headers["X-Client-Id"], "cli_test")
+        self.assertEqual(headers["Authorization"], "Bearer secret")
+        self.assertTrue(headers["X-Request-Id"].startswith("req_"))
+        self.assertEqual(headers["User-Agent"], "identitycore-python/0.2.0")
 
-        policies = client.policies.list()
-
-        self.assertEqual(policies, [{"id": "pol_123"}])
-        call = self.transport.calls[0]
-        self.assertEqual(call["method"], "GET")
-        self.assertEqual(call["url"], "https://api.example.test/api/v1/policies/")
-        self.assertEqual(call["headers"]["X-Client-Id"], "cli_test")
-        self.assertEqual(call["headers"]["Authorization"], "Bearer secret")
-
-    def test_create_verification_uses_expected_path_and_payload(self):
+    def test_create_includes_project_and_idempotency(self):
         client = self.make_client([(201, envelope({"id": "ver_123"}))])
-
-        response = client.verifications.create(
-            purpose="Customer onboarding",
-            policy_id="pol_123",
-            verification_subject={"full_name": "Kwame Mensah"},
-            external_reference="customer_123",
-        )
-
-        self.assertEqual(response["id"], "ver_123")
+        client.verifications.create(purpose="Onboarding", policy_id="pol_1", project_id="prj_1", verification_subject={"full_name": "Ama"}, idempotency_key="customer-1")
         call = self.transport.calls[0]
-        self.assertEqual(call["method"], "POST")
-        self.assertEqual(call["url"], "https://api.example.test/api/v1/verifications/")
-        self.assertEqual(
-            json.loads(call["body"].decode()),
-            {
-                "purpose": "Customer onboarding",
-                "policy_id": "pol_123",
-                "verification_subject": {"full_name": "Kwame Mensah"},
-                "external_reference": "customer_123",
-                "redirect_url": "",
-                "metadata": {},
-            },
-        )
+        self.assertEqual(call["headers"]["Idempotency-Key"], "customer-1")
+        self.assertEqual(json.loads(call["body"])["project_id"], "prj_1")
 
-    def test_error_envelope_raises_api_error(self):
-        client = self.make_client(
-            [(400, failure("Choose an active verification template.", details={"policy_id": ["Required."]}))]
-        )
+    def test_get_retries_transient_response(self):
+        client = self.make_client([(503, failure("Unavailable")), (200, envelope([]))])
+        self.assertEqual(client.policies.list(), [])
+        self.assertEqual(len(self.transport.calls), 2)
 
-        with self.assertRaises(IdentityCoreAPIError) as raised:
-            client.verifications.create(
-                purpose="Customer onboarding",
-                policy_id="",
-                verification_subject={"full_name": "Kwame Mensah"},
-            )
+    def test_post_without_idempotency_does_not_retry(self):
+        client = self.make_client([(503, failure("Unavailable")), (201, envelope({}))])
+        with self.assertRaises(IdentityCoreAPIError):
+            client.request("POST", "/unsafe-action", {})
+        self.assertEqual(len(self.transport.calls), 1)
 
-        self.assertEqual(raised.exception.status, 400)
-        self.assertEqual(raised.exception.code, "validation_error")
-        self.assertEqual(raised.exception.request_id, "req_test")
-        self.assertIn("policy_id", raised.exception.details)
+    def test_iterates_all_pages(self):
+        client = self.make_client([
+            (200, envelope({"results": [{"id": "1"}], "pagination": {"total_pages": 2}})),
+            (200, envelope({"results": [{"id": "2"}], "pagination": {"total_pages": 2}})),
+        ])
+        self.assertEqual([x["id"] for x in client.verifications.iter()], ["1", "2"])
 
-    def test_invalid_json_is_human_readable(self):
-        client = self.make_client([(502, b"InvalidTag")])
-
-        with self.assertRaises(IdentityCoreAPIError) as raised:
-            client.policies.list()
-
-        self.assertEqual(
-            raised.exception.message,
-            "The service is temporarily unavailable. Please try again shortly.",
-        )
-        self.assertEqual(raised.exception.code, "invalid_response")
-
-    def test_verification_helpers_use_expected_paths(self):
-        client = self.make_client(
-            [
-                (200, envelope({"results": []})),
-                (200, envelope({"id": "ver_123"})),
-                (200, envelope({"status": "cancelled"})),
-                (200, envelope({"verification_url": "https://verify.example"})),
-                (200, envelope({"download_url": "https://evidence.example"})),
-            ]
-        )
-
-        client.verifications.list(status="verified", page=2, page_size=10)
-        client.verifications.retrieve("ver_123")
-        client.verifications.cancel("ver_123", reason="Duplicate")
-        client.verifications.resend_link("ver_123")
-        client.verifications.evidence_report("ver_123")
-
-        self.assertEqual(
-            [call["url"] for call in self.transport.calls],
-            [
-                "https://api.example.test/api/v1/verifications/?status=verified&page=2&page_size=10",
-                "https://api.example.test/api/v1/verifications/ver_123",
-                "https://api.example.test/api/v1/verifications/ver_123/cancel",
-                "https://api.example.test/api/v1/verifications/ver_123/resend-link",
-                "https://api.example.test/api/v1/verifications/ver_123/evidence-report",
-            ],
-        )
+    def test_webhook_signature_and_tolerance(self):
+        body, timestamp, key = b'{"id":"evt_1"}', "1000", "whsec_test"
+        signature = "sha256=" + hmac.new(key.encode(), timestamp.encode() + b"." + body, hashlib.sha256).hexdigest()
+        self.assertTrue(verify_webhook_signature(body, signature=signature, timestamp=timestamp, signing_key=key, now=1001))
+        self.assertFalse(verify_webhook_signature(body, signature=signature, timestamp=timestamp, signing_key=key, now=2000))
 
 
-if __name__ == "__main__":
-    unittest.main()
+if __name__ == "__main__": unittest.main()

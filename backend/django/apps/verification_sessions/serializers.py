@@ -143,6 +143,7 @@ def serialize_verification_session(verification_session: VerificationSession) ->
             "logo_url": organization_logo_url,
         },
         "purpose": verification.purpose,
+        "redirect_url": verification.redirect_url,
         "required_steps": REQUIRED_STEPS,
         "document": {
             "country_code": country_code,

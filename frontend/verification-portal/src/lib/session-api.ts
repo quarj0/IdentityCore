@@ -16,6 +16,7 @@ export interface VerificationSession {
   status: string;
   organization: { name: string; logo_url: string };
   purpose: string;
+  redirect_url: string;
   required_steps: string[];
   document: {
     country_code: string;
