@@ -102,6 +102,23 @@ def test_classify_reports_invalid_passport_mrz():
     assert result["matched_expected_document_type"] is None
 
 
+def test_non_passport_unknown_does_not_report_invalid_passport_mrz():
+    result = classify_document(
+        build_ocr_lines(
+            ["cg", "Creativity", "group"],
+            [0.93, 0.92, 0.93],
+        ),
+        expected_document_type="national_id",
+        country_code="GH",
+    )
+
+    assert result["classification_status"] == "unknown"
+    assert result["predicted_document_type"] == "unknown"
+    assert result["issues"] == ["document_type_not_determined"]
+    assert result["manual_review"]["required"] is True
+    assert result["workflow_action"] == "continue_with_review"
+
+
 def test_classify_returns_unknown_for_blank_ocr():
     result = classify_document(
         build_ocr_lines([], []),

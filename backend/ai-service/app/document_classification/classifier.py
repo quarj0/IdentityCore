@@ -315,7 +315,10 @@ def classify_document(
     if not candidates:
         status = "insufficient_evidence" if average_confidence < policy.minimum_average_ocr_confidence else "unknown"
         issue = "ocr_confidence_too_low" if status == "insufficient_evidence" else "document_type_not_determined"
-        if "passport_mrz_invalid" in skipped_issues:
+        if (
+            expected_document_type == "passport"
+            and "passport_mrz_invalid" in skipped_issues
+        ):
             issue = "passport_mrz_invalid"
             status = "unknown"
         return {

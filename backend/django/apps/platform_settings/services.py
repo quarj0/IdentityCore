@@ -7,6 +7,9 @@ from django.utils import timezone
 from apps.platform_settings.models import PlatformSetting, PlatformSettingRevision
 
 
+_UNSET = object()
+
+
 PLATFORM_SETTING_DEFINITIONS: dict[str, dict[str, Any]] = {
     "security.admin_mfa_required": {
         "group": "security",
@@ -193,15 +196,25 @@ def get_platform_setting_record(key: str) -> PlatformSetting | None:
     return PlatformSetting.objects.filter(key=key).first()
 
 
-def get_platform_setting_value(key: str, default: Any = None) -> Any:
+def get_platform_setting_value(key: str, default: Any = _UNSET) -> Any:
+    """Return an active runtime override, then the caller's configured fallback.
+
+    Callers commonly pass a value sourced from Django settings/environment. That
+    value must take precedence over the platform definition when no database
+    override exists; otherwise container-safe environment configuration can be
+    silently replaced by localhost-oriented UI defaults.
+    """
     definition = get_platform_setting_definition(key)
     if definition is None:
-        return default
+        return None if default is _UNSET else default
+
+    fallback = definition["default_value"] if default is _UNSET else default
     setting = get_platform_setting_record(key)
-    if setting is None:
-        return definition["default_value"]
+    if setting is None or setting.status != "active":
+        return fallback
+
     value = setting.effective_value
-    return definition["default_value"] if value == {} else value
+    return fallback if value == {} else value
 
 
 def _display_platform_setting_value(is_secret: bool, value: Any) -> Any:
