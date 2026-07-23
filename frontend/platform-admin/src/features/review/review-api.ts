@@ -26,6 +26,9 @@ export interface OrganizationReviewItem {
   website: string;
   onboardingStatus: string;
   currentStep: string;
+  administratorIdentityVerificationStatus: string;
+  administratorIdentityVerificationId: string;
+  administratorIdentitySubmittedAt: string | null;
   organizationVerificationSubmittedAt: string | null;
   organizationVerificationEditable: boolean;
   organizationVerificationReviewStatus: string;
@@ -74,6 +77,9 @@ const REVIEW_FIELDS = `
   website
   onboardingStatus
   currentStep
+  administratorIdentityVerificationStatus
+  administratorIdentityVerificationId
+  administratorIdentitySubmittedAt
   organizationVerificationSubmittedAt
   organizationVerificationEditable
   organizationVerificationReviewStatus
