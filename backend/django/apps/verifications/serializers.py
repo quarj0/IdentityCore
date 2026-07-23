@@ -73,7 +73,6 @@ def serialize_verification(verification: Verification, request=None) -> dict:
         else None
     )
     decision_record = getattr(verification, "decision_record", None)
-    latest_identity_document = verification.identity_documents.order_by("-created_at").first()
     return {
         "id": verification.public_id,
         "status": verification.status,
@@ -89,9 +88,7 @@ def serialize_verification(verification: Verification, request=None) -> dict:
             "full_name": verification.verification_subject.full_name,
         },
         "checks": {
-            "document": {
-                "status": latest_identity_document.status if latest_identity_document else "pending"
-            },
+            "document": {"status": "pending"},
             "liveness": {
                 "status": (
                     latest_liveness_check.status if latest_liveness_check else "pending"
@@ -347,9 +344,9 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
 
     def save(self, *, verification: Verification, decided_by):
         now = timezone.now()
-        decision_record = VerificationDecision.objects.create(
+        decision_record, _ = VerificationDecision.objects.update_or_create(
             verification=verification,
-            **{
+            defaults={
                 "tenant": verification.tenant,
                 "decision": self.validated_data["decision"],
                 "decision_type": VerificationDecisionType.MANUAL,
