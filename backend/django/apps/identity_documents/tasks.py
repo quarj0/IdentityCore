@@ -97,7 +97,14 @@ def _latest_provider_check_for_document(
     )
 
 
-@shared_task(queue="ai_processing")
+@shared_task(
+    queue="ai_processing",
+    autoretry_for=(AIServiceUnavailable,),
+    retry_backoff=15,
+    retry_backoff_max=120,
+    retry_jitter=True,
+    retry_kwargs={"max_retries": 3},
+)
 def process_identity_document_task(identity_document_id: str) -> str:
     identity_document = (
         IdentityDocument.objects.select_related("verification", "verification_subject", "tenant")
@@ -400,6 +407,10 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 },
             )
         return identity_document.status
+    except AIServiceUnavailable:
+        # Infrastructure timeouts are retryable and are not evidence that the
+        # submitted identity document is invalid.
+        raise
     except Exception as exc:
         logger.exception(
             "Document processing failed for document %s and verification %s",
