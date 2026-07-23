@@ -1140,3 +1140,166 @@ class VerificationOperationsTaskTests(TestCase):
         )
 
         self.assertEqual(cleanup_retained_media_task(limit=10), 0)
+
+
+
+class ReviewIntegrityRegressionTests(APITestCase):
+    def setUp(self):
+        self.organization = Organization.objects.create(name="Review Org", slug="review-org")
+        self.tenant = Tenant.objects.create(
+            organization=self.organization,
+            name="Review Tenant",
+            slug="review-tenant",
+            status="active",
+        )
+        self.user = PlatformUser.objects.create_user(
+            email="reviewer@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            tenant=self.tenant,
+        )
+        self.subject = VerificationSubject.objects.create(
+            tenant=self.tenant,
+            full_name="Review Subject",
+        )
+        self.client.force_authenticate(self.user)
+
+    def create_verification(self, *, status_value=VerificationStatus.MANUAL_REVIEW_REQUIRED, metadata=None):
+        return Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.subject,
+            purpose="Identity verification",
+            status=status_value,
+            metadata_json=metadata or {},
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+
+    def decision_url(self, verification):
+        return reverse(
+            "manual-review-decision",
+            kwargs={"verification_id": verification.public_id},
+        )
+
+    def test_terminal_manual_decision_cannot_be_overwritten(self):
+        verification = self.create_verification()
+        first = self.client.post(
+            self.decision_url(verification),
+            {
+                "decision": VerificationStatus.REJECTED,
+                "reason_code": "document_invalid",
+                "reason_detail": "The supplied document could not be validated.",
+            },
+            format="json",
+        )
+        second = self.client.post(
+            self.decision_url(verification),
+            {
+                "decision": VerificationStatus.MANUAL_REVIEW_REQUIRED,
+                "reason_code": "more_review",
+                "reason_detail": "Attempt to reopen the case.",
+            },
+            format="json",
+        )
+
+        verification.refresh_from_db()
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        self.assertEqual(second.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(verification.status, VerificationStatus.REJECTED)
+        self.assertEqual(VerificationDecision.objects.filter(verification=verification).count(), 1)
+        self.assertEqual(
+            verification.decision_record.reason_code,
+            "document_invalid",
+        )
+
+    def test_cancelled_verification_cannot_be_cancelled_or_reopened(self):
+        verification = self.create_verification(status_value=VerificationStatus.CANCELLED)
+        response = self.client.post(
+            reverse(
+                "verification-cancel",
+                kwargs={"verification_id": verification.public_id},
+            ),
+            {"reason": "Second cancellation"},
+            format="json",
+        )
+        resend = self.client.post(
+            reverse(
+                "verification-resend-link",
+                kwargs={"verification_id": verification.public_id},
+            ),
+            {"channel": "email"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(resend.status_code, status.HTTP_409_CONFLICT)
+
+    def test_administrator_onboarding_is_absent_from_tenant_surfaces(self):
+        onboarding = self.create_verification(
+            metadata={"workflow": "administrator_onboarding"}
+        )
+        ordinary = self.create_verification()
+
+        list_response = self.client.get(reverse("verification-list-create"))
+        review_response = self.client.get(reverse("manual-review-list"))
+        detail_response = self.client.get(
+            reverse(
+                "verification-detail",
+                kwargs={"verification_id": onboarding.public_id},
+            )
+        )
+        decision_response = self.client.post(
+            self.decision_url(onboarding),
+            {
+                "decision": VerificationStatus.VERIFIED,
+                "reason_code": "self_approval_attempt",
+                "reason_detail": "Must be blocked.",
+            },
+            format="json",
+        )
+
+        listed_ids = {
+            item["id"] for item in list_response.data["data"]["results"]
+        }
+        review_ids = {
+            item["verification_id"]
+            for item in review_response.data["data"]["results"]
+        }
+        self.assertIn(ordinary.public_id, listed_ids)
+        self.assertIn(ordinary.public_id, review_ids)
+        self.assertNotIn(onboarding.public_id, listed_ids)
+        self.assertNotIn(onboarding.public_id, review_ids)
+        self.assertEqual(detail_response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(decision_response.status_code, status.HTTP_403_FORBIDDEN)
+        onboarding.refresh_from_db()
+        self.assertEqual(
+            onboarding.status,
+            VerificationStatus.MANUAL_REVIEW_REQUIRED,
+        )
+        self.assertFalse(
+            VerificationDecision.objects.filter(verification=onboarding).exists()
+        )
+
+    def test_detail_uses_latest_document_status(self):
+        verification = self.create_verification()
+        IdentityDocument.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            verification_subject=self.subject,
+            document_type_id="national_id",
+            country_profile_id="GH",
+            status=IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
+        )
+
+        response = self.client.get(
+            reverse(
+                "verification-detail",
+                kwargs={"verification_id": verification.public_id},
+            )
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data["data"]["checks"]["document"]["status"],
+            IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
+        )
