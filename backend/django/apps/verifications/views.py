@@ -8,7 +8,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.exceptions import APIException, ValidationError
+from rest_framework.exceptions import APIException, PermissionDenied, ValidationError
 from rest_framework.settings import api_settings
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -68,6 +68,13 @@ TERMINAL_VERIFICATION_STATUSES = {
 
 def is_administrator_onboarding(verification: Verification) -> bool:
     return (verification.metadata_json or {}).get("workflow") == "administrator_onboarding"
+
+
+def enforce_tenant_verification_scope(verification: Verification) -> None:
+    if is_administrator_onboarding(verification):
+        raise PermissionDenied(
+            "Organization onboarding evidence and decisions are available only in Platform Admin."
+        )
 
 
 class VerificationAccessMixin:
@@ -243,8 +250,7 @@ class VerificationDetailView(VerificationAccessMixin, APIView):
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
-        if is_administrator_onboarding(verification):
-            raise ValidationError("Organization onboarding reviews are available only in Platform Admin.")
+        enforce_tenant_verification_scope(verification)
         return success_response(
             serialize_verification(verification, request=request),
             request=request,
@@ -260,8 +266,7 @@ class VerificationCancelView(VerificationAccessMixin, APIView):
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
-        if is_administrator_onboarding(verification):
-            raise ValidationError("Organization onboarding is managed in Platform Admin.")
+        enforce_tenant_verification_scope(verification)
         if verification.status in TERMINAL_VERIFICATION_STATUSES:
             raise VerificationStateConflict(
                 f"Verification is already {verification.status} and cannot be cancelled."
@@ -313,8 +318,7 @@ class VerificationResendLinkView(VerificationAccessMixin, APIView):
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
-        if is_administrator_onboarding(verification):
-            raise ValidationError("Organization onboarding is managed in Platform Admin.")
+        enforce_tenant_verification_scope(verification)
         if verification.status in TERMINAL_VERIFICATION_STATUSES:
             raise VerificationStateConflict(
                 f"Verification is already {verification.status} and cannot receive a new link."
@@ -375,6 +379,7 @@ class VerificationEvidenceReportView(VerificationAccessMixin, APIView):
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
+        enforce_tenant_verification_scope(verification)
         ensure_verification_evidence_report(verification)
         verification.refresh_from_db()
         return success_response(
@@ -408,6 +413,7 @@ class VerificationEvidenceReportDownloadView(VerificationAccessMixin, APIView):
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
+        enforce_tenant_verification_scope(verification)
         ensure_verification_evidence_report(verification)
         content, content_type, filename = download_verification_evidence_object(
             verification,
@@ -427,6 +433,7 @@ class VerificationEvidenceReportPDFDownloadView(VerificationAccessMixin, APIView
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
+        enforce_tenant_verification_scope(verification)
         ensure_verification_evidence_report(verification)
         content, content_type, filename = download_verification_evidence_object(
             verification,
@@ -471,8 +478,7 @@ class ManualReviewDecisionView(APIView):
             public_id=verification_id,
             status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
         )
-        if is_administrator_onboarding(verification):
-            raise ValidationError("Organization onboarding reviews are available only in Platform Admin.")
+        enforce_tenant_verification_scope(verification)
         serializer = ManualReviewDecisionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         decision_record = serializer.save(
