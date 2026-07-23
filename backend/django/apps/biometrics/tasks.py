@@ -58,6 +58,7 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
     temp_bucket = get_object_storage_temp_bucket_name()
     media_bucket = get_object_storage_media_bucket_name()
 
+    processing_stage = "liveness"
     try:
         liveness_result = run_liveness_check(
             verification_id=verification.public_id,
@@ -125,6 +126,7 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                 else face_match.identity_document.captures.order_by("created_at").first()
             )
             document_storage_key = source_document_capture.storage_key
+            processing_stage = "face_match"
             face_result = run_face_compare(
                 verification_id=verification.public_id,
                 selfie_storage_key=selfie_capture.storage_key,
@@ -267,7 +269,10 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
         return verification.status
     except Exception as exc:
         now = timezone.now()
-        if liveness_provider_check is not None:
+        if (
+            processing_stage == "liveness"
+            and liveness_provider_check is not None
+        ):
             liveness_provider_check.status = ProviderCheckStatus.FAILED
             liveness_provider_check.error_code = "provider_unavailable"
             liveness_provider_check.error_message = str(exc)
@@ -281,7 +286,10 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                     "updated_at",
                 ]
             )
-        if face_provider_check is not None:
+        if (
+            processing_stage == "face_match"
+            and face_provider_check is not None
+        ):
             face_provider_check.status = ProviderCheckStatus.FAILED
             face_provider_check.error_code = "provider_unavailable"
             face_provider_check.error_message = str(exc)
@@ -295,18 +303,19 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                     "updated_at",
                 ]
             )
-        liveness_check.status = LivenessCheckStatus.ERROR
-        liveness_check.failure_reason = "provider_unavailable"
-        liveness_check.checked_at = now
-        liveness_check.save(
-            update_fields=[
-                "status",
-                "failure_reason",
-                "checked_at",
-                "updated_at",
-            ]
-        )
-        if face_match is not None:
+        if processing_stage == "liveness":
+            liveness_check.status = LivenessCheckStatus.ERROR
+            liveness_check.failure_reason = "provider_unavailable"
+            liveness_check.checked_at = now
+            liveness_check.save(
+                update_fields=[
+                    "status",
+                    "failure_reason",
+                    "checked_at",
+                    "updated_at",
+                ]
+            )
+        elif face_match is not None:
             face_match.status = FaceMatchStatus.ERROR
             face_match.matched_at = now
             face_match.save(update_fields=["status", "matched_at", "updated_at"])
