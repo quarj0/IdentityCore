@@ -131,7 +131,14 @@ export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
   async function submitDecision(
     decision: "approved" | "rejected" | "needs_information",
   ) {
-    if (!item) return;
+    if (!item || savingDecision) return;
+    if (!note.trim()) {
+      setError("Enter a review rationale before submitting a decision.");
+      return;
+    }
+    if (!window.confirm(`Confirm ${decision.replace(/_/g, " ")} for ${item.organizationName}?`)) {
+      return;
+    }
 
     setSavingDecision(decision);
     setError(null);
@@ -189,6 +196,10 @@ export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
   }
 
   const supportingDocuments = normalizeSupportingDocuments(item.supportingDocuments);
+  const canAct = [
+    "submitted",
+    "changed_after_approval",
+  ].includes(item.organizationVerificationReviewStatus);
 
   return (
     <div className="space-y-6 bg-white text-slate-950">
@@ -351,8 +362,10 @@ export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
               onChange={(event) => setNote(event.target.value)}
               placeholder="Add a reviewer note..."
               className="min-h-35"
+              disabled={!canAct || savingDecision !== null}
             />
 
+            {canAct ? (
             <div className="mt-4 flex flex-wrap gap-2">
               <Button
                 onClick={() => submitDecision("approved")}
@@ -379,6 +392,11 @@ export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
                 {savingDecision === "rejected" ? "Rejecting..." : "Reject"}
               </Button>
             </div>
+            ) : (
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                This review is closed. The recorded decision is immutable until the organization submits new evidence.
+              </div>
+            )}
           </SectionCard>
         </div>
 
@@ -414,6 +432,34 @@ export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
                 <dt className="text-xs uppercase tracking-wide text-slate-500">Platform reviewed at</dt>
                 <dd className="mt-1 font-medium text-slate-950">
                   {formatDateTime(item.platformReviewedAt)}
+                </dd>
+              </div>
+            </dl>
+          </SectionCard>
+
+          <SectionCard
+            title="Administrator identity"
+            description="Identity verification submitted as part of organization onboarding."
+          >
+            <dl className="space-y-4 text-sm">
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-slate-500">Verification status</dt>
+                <dd className="mt-1">
+                  <StatusPill tone={reviewStatusTone(item.administratorIdentityVerificationStatus)}>
+                    {statusLabel(item.administratorIdentityVerificationStatus || "pending")}
+                  </StatusPill>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-slate-500">Verification ID</dt>
+                <dd className="mt-1 break-all font-mono text-xs text-slate-800">
+                  {item.administratorIdentityVerificationId || "Not submitted"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-slate-500">Submitted</dt>
+                <dd className="mt-1 font-medium text-slate-950">
+                  {formatDateTime(item.administratorIdentitySubmittedAt)}
                 </dd>
               </div>
             </dl>

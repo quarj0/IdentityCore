@@ -905,7 +905,12 @@ class Mutation:
             Verification,
             tenant=user.tenant,
             public_id=verification_id,
+            status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
         )
+        if (verification.metadata_json or {}).get("workflow") == "administrator_onboarding":
+            raise GraphQLError(
+                "Organization onboarding reviews are available only in Platform Admin."
+            )
         serializer = ManualReviewDecisionSerializer(
             data={
                 "decision": decision,
