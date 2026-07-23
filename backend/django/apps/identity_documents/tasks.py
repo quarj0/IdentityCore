@@ -138,6 +138,7 @@ def process_identity_document_task(identity_document_id: str) -> str:
     latest_quality_status = DocumentCaptureStatus.VALIDATED
     lowest_quality_score: Decimal | None = None
     issues_found: list[str] = []
+    capture_quality_results: list[dict] = []
     temp_bucket = get_object_storage_temp_bucket_name()
 
     try:
@@ -154,6 +155,17 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 else DocumentCaptureStatus.VALIDATED
             )
             capture.save(update_fields=["quality_score", "status", "updated_at"])
+            capture_quality_results.append(
+                {
+                    "capture_id": capture.public_id,
+                    "status": capture.status,
+                    "quality_score": float(capture.quality_score),
+                    "issues": list(quality_result.get("issues") or []),
+                    "metrics": quality_result.get("metrics") or {},
+                    "model_name": quality_result.get("model_name", ""),
+                    "model_version": quality_result.get("model_version", ""),
+                }
+            )
             if lowest_quality_score is None or capture.quality_score < lowest_quality_score:
                 lowest_quality_score = capture.quality_score
             if quality_result.get("issues"):
@@ -281,6 +293,19 @@ def process_identity_document_task(identity_document_id: str) -> str:
         identity_document.extracted_data_json = {
             **ocr_result.get("extracted_fields", {}),
             "document_classification": classification_result,
+            "document_quality": {
+                "status": latest_quality_status,
+                "quality_score": (
+                    float(lowest_quality_score)
+                    if lowest_quality_score is not None
+                    else None
+                ),
+                "issues": list(dict.fromkeys(issues_found)),
+                "requires_recapture": (
+                    latest_quality_status == DocumentCaptureStatus.REJECTED
+                ),
+                "capture_results": capture_quality_results,
+            },
         }
         identity_document.status = (
             IdentityDocumentStatus.PROCESSED
