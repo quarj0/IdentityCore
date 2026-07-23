@@ -401,6 +401,11 @@ def process_identity_document_task(identity_document_id: str) -> str:
             )
         return identity_document.status
     except Exception as exc:
+        logger.exception(
+            "Document processing failed for document %s and verification %s",
+            identity_document.public_id,
+            verification.public_id,
+        )
         error_code = getattr(exc, "error_code", "provider_unavailable")
         provider_check_status = getattr(
             exc, "provider_check_status", ProviderCheckStatus.FAILED
