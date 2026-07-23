@@ -211,7 +211,10 @@ def serialize_verification_session_status(
     )
     document_continues_with_review = bool(
         latest_document is not None
-        and latest_document.status == IdentityDocumentStatus.PROCESSED
+        and latest_document.status in {
+            IdentityDocumentStatus.PROCESSED,
+            IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
+        }
         and latest_document_classification
         and (
             latest_document_classification.get("provider_error")
@@ -517,7 +520,10 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
                 }
             )
         latest_document = verification.identity_documents.order_by("-created_at").first()
-        if latest_document.status != IdentityDocumentStatus.PROCESSED:
+        if latest_document.status not in {
+            IdentityDocumentStatus.PROCESSED,
+            IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
+        }:
             raise serializers.ValidationError(
                 {
                     "detail": (
@@ -578,7 +584,10 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
         verification = request.verification_session.verification
 
         latest_document = verification.identity_documents.order_by("-created_at").first()
-        if latest_document is None or latest_document.status != IdentityDocumentStatus.PROCESSED:
+        if latest_document is None or latest_document.status not in {
+            IdentityDocumentStatus.PROCESSED,
+            IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
+        }:
             raise serializers.ValidationError(
                 {
                     "detail": (
