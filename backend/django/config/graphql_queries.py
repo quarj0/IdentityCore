@@ -1139,9 +1139,13 @@ class Query:
         self, info: Info, page: int = 1, page_size: int = 20
     ) -> list[ManualReviewNode]:
         user = require_tenant_user(info)
-        queryset = user.tenant.verifications.filter(
-            status=VerificationStatus.MANUAL_REVIEW_REQUIRED
-        ).order_by("-created_at")
+        queryset = (
+            user.tenant.verifications.filter(
+                status=VerificationStatus.MANUAL_REVIEW_REQUIRED
+            )
+            .exclude(metadata_json__workflow="administrator_onboarding")
+            .order_by("-created_at")
+        )
         page_obj, _ = paginate_results(queryset, page, page_size)
         return [
             ManualReviewNode(**serialize_manual_review_summary(item))
