@@ -9,6 +9,21 @@ from apps.platform_settings.services import (
 
 
 class PlatformSettingsTests(TestCase):
+    def test_caller_fallback_is_used_when_no_database_override_exists(self):
+        self.assertEqual(
+            get_platform_setting_value(
+                "integrations.ai_service_base_url",
+                "http://ai-service:8001",
+            ),
+            "http://ai-service:8001",
+        )
+
+    def test_definition_default_is_used_when_caller_omits_fallback(self):
+        self.assertEqual(
+            get_platform_setting_value("integrations.ai_service_base_url"),
+            "http://localhost:8001",
+        )
+
     def test_upsert_and_reset_platform_setting_records_revisions(self):
         setting = upsert_platform_setting(
             key="security.session_timeout_minutes",
