@@ -308,9 +308,13 @@ def process_identity_document_task(identity_document_id: str) -> str:
             },
         }
         identity_document.status = (
-            IdentityDocumentStatus.PROCESSED
-            if latest_quality_status == DocumentCaptureStatus.VALIDATED
-            else IdentityDocumentStatus.REJECTED
+            IdentityDocumentStatus.REJECTED
+            if latest_quality_status == DocumentCaptureStatus.REJECTED
+            else (
+                IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED
+                if manual_review_required
+                else IdentityDocumentStatus.PROCESSED
+            )
         )
         identity_document.save(update_fields=["extracted_data_json", "status", "updated_at"])
 
@@ -320,7 +324,10 @@ def process_identity_document_task(identity_document_id: str) -> str:
         # result and applies manual-review routing after biometrics finish.
         verification.status = (
             VerificationStatus.AWAITING_SELFIE
-            if identity_document.status == IdentityDocumentStatus.PROCESSED
+            if identity_document.status in {
+                IdentityDocumentStatus.PROCESSED,
+                IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
+            }
             else VerificationStatus.AWAITING_DOCUMENT
         )
         verification.save(update_fields=["status", "updated_at"])

@@ -219,10 +219,13 @@ class IdentityDocumentTaskTests(TestCase):
 
         result = process_identity_document_task(self.identity_document.public_id)
 
-        self.assertEqual(result, IdentityDocumentStatus.PROCESSED)
+        self.assertEqual(result, IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED)
         self.identity_document.refresh_from_db()
         self.verification.refresh_from_db()
-        self.assertEqual(self.identity_document.status, IdentityDocumentStatus.PROCESSED)
+        self.assertEqual(
+            self.identity_document.status,
+            IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
+        )
         self.assertEqual(self.verification.status, VerificationStatus.AWAITING_SELFIE)
         self.assertEqual(
             self.identity_document.extracted_data_json["document_classification"][
@@ -302,10 +305,13 @@ class IdentityDocumentTaskTests(TestCase):
 
         result = process_identity_document_task(self.identity_document.public_id)
 
-        self.assertEqual(result, IdentityDocumentStatus.PROCESSED)
+        self.assertEqual(result, IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED)
         self.identity_document.refresh_from_db()
         self.verification.refresh_from_db()
-        self.assertEqual(self.identity_document.status, IdentityDocumentStatus.PROCESSED)
+        self.assertEqual(
+            self.identity_document.status,
+            IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
+        )
         self.assertEqual(self.verification.status, VerificationStatus.AWAITING_SELFIE)
         classification_provider_check = self.verification.provider_checks.get(
             check_type=ProviderCheckType.DOCUMENT_CLASSIFICATION
@@ -399,10 +405,13 @@ class IdentityDocumentTaskTests(TestCase):
 
         result = process_identity_document_task(self.identity_document.public_id)
 
-        self.assertEqual(result, IdentityDocumentStatus.PROCESSED)
+        self.assertEqual(result, IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED)
         self.identity_document.refresh_from_db()
         self.verification.refresh_from_db()
-        self.assertEqual(self.identity_document.status, IdentityDocumentStatus.PROCESSED)
+        self.assertEqual(
+            self.identity_document.status,
+            IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
+        )
         self.assertEqual(self.verification.status, VerificationStatus.AWAITING_SELFIE)
 
     @patch("apps.identity_documents.tasks.run_document_classification")
@@ -452,8 +461,11 @@ class IdentityDocumentTaskTests(TestCase):
 
         result = process_identity_document_task(self.identity_document.public_id)
 
-        self.assertEqual(result, IdentityDocumentStatus.PROCESSED)
+        self.assertEqual(result, IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED)
         self.identity_document.refresh_from_db()
         self.verification.refresh_from_db()
-        self.assertEqual(self.identity_document.status, IdentityDocumentStatus.PROCESSED)
+        self.assertEqual(
+            self.identity_document.status,
+            IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
+        )
         self.assertEqual(self.verification.status, VerificationStatus.AWAITING_SELFIE)
