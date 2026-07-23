@@ -79,32 +79,35 @@ def _manual_review_classification_result(*, expected_document_type: str) -> dict
     }
 
 
-def _latest_provider_check_for_document(
-    verification, *, identity_document_id: str, check_type: str
-):
-    """Resolve metadata after field-level decryption instead of querying ciphertext."""
-    candidates = verification.provider_checks.filter(check_type=check_type).order_by(
-        "-created_at"
-    )
-    return next(
-        (
-            check
-            for check in candidates
-            if (check.request_metadata_json or {}).get("identity_document_id")
-            == identity_document_id
-        ),
-        None,
-    )
+def _promote_captures_best_effort(captures, *, verification, identity_document) -> None:
+    for capture in captures:
+        try:
+            promote_upload_to_media_by_storage_key(capture.storage_key)
+        except Exception as exc:
+            logger.warning(
+                "Failed to promote document upload %s for verification %s: %s",
+                capture.storage_key,
+                verification.public_id,
+                exc,
+            )
+            record_audit_event(
+                tenant=verification.tenant,
+                actor=verification.verification_subject,
+                action="document.promotion_failed",
+                target_type="verification",
+                target_id=verification.public_id,
+                metadata={
+                    "identity_document_id": identity_document.public_id,
+                    "storage_key": capture.storage_key,
+                },
+                sensitive_metadata={
+                    "error": str(exc),
+                    "error_class": exc.__class__.__name__,
+                },
+            )
 
 
-@shared_task(
-    queue="ai_processing",
-    autoretry_for=(AIServiceUnavailable,),
-    retry_backoff=15,
-    retry_backoff_max=120,
-    retry_jitter=True,
-    retry_kwargs={"max_retries": 3},
-)
+@shared_task(queue="ai_processing")
 def process_identity_document_task(identity_document_id: str) -> str:
     identity_document = (
         IdentityDocument.objects.select_related("verification", "verification_subject", "tenant")
@@ -112,6 +115,14 @@ def process_identity_document_task(identity_document_id: str) -> str:
         .get(public_id=identity_document_id)
     )
     verification = identity_document.verification
+    if verification.status in {
+        VerificationStatus.CANCELLED,
+        VerificationStatus.EXPIRED,
+        VerificationStatus.FAILED,
+        VerificationStatus.REJECTED,
+        VerificationStatus.VERIFIED,
+    }:
+        return verification.status
     captures = list(identity_document.captures.order_by("created_at"))
     if not captures:
         identity_document.status = IdentityDocumentStatus.FAILED
@@ -290,6 +301,16 @@ def process_identity_document_task(identity_document_id: str) -> str:
         ):
             manual_review_required = True
 
+        verification.refresh_from_db(fields=["status"])
+        if verification.status in {
+            VerificationStatus.CANCELLED,
+            VerificationStatus.EXPIRED,
+            VerificationStatus.FAILED,
+            VerificationStatus.REJECTED,
+            VerificationStatus.VERIFIED,
+        }:
+            return verification.status
+
         identity_document.extracted_data_json = {
             **ocr_result.get("extracted_fields", {}),
             "document_classification": classification_result,
@@ -454,9 +475,19 @@ def process_identity_document_task(identity_document_id: str) -> str:
             exc, "provider_check_status", ProviderCheckStatus.FAILED
         )
         internal_reason = getattr(exc, "reason", str(exc))
-        identity_document.status = IdentityDocumentStatus.FAILED
-        identity_document.save(update_fields=["status", "updated_at"])
-        verification.status = VerificationStatus.AWAITING_DOCUMENT
+        _promote_captures_best_effort(
+            captures, verification=verification, identity_document=identity_document
+        )
+        identity_document.extracted_data_json = {
+            "document_classification": _manual_review_classification_result(
+                expected_document_type=identity_document.document_type_id,
+            )
+        }
+        identity_document.status = IdentityDocumentStatus.PROCESSED
+        identity_document.save(
+            update_fields=["extracted_data_json", "status", "updated_at"]
+        )
+        verification.status = VerificationStatus.AWAITING_SELFIE
         verification.save(update_fields=["status", "updated_at"])
         for provider_check in (
             quality_provider_check,

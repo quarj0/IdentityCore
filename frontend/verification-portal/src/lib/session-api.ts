@@ -278,3 +278,14 @@ export function submitLiveness(
     }),
   });
 }
+
+export function cancelVerificationSession(credentials: SessionCredentials) {
+  return request<{ verification_id: string; status: string; session_status: string }>(
+    credentials,
+    `/sessions/${credentials.sessionId}/cancel`,
+    {
+      method: "POST",
+      body: JSON.stringify({}),
+    },
+  );
+}

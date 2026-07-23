@@ -25,6 +25,7 @@ from apps.verifications.models import (
     VerificationMobileHandoff,
     VerificationSession,
     VerificationSessionStatus,
+    VerificationStatus,
 )
 from common.authentication import VerificationSessionAuthentication
 from common.responses import success_response
@@ -282,6 +283,61 @@ class VerificationSessionLivenessView(VerificationSessionBaseView):
             {
                 "liveness_check_id": liveness_check.public_id,
                 "status": "processing",
+            },
+            request=request,
+        )
+
+
+class VerificationSessionCancelView(VerificationSessionBaseView):
+    def post(self, request, session_id: str):
+        self._touch_session(request)
+        verification_session = request.verification_session
+        verification = verification_session.verification
+        now = timezone.now()
+
+        if verification.status not in {
+            VerificationStatus.VERIFIED,
+            VerificationStatus.REJECTED,
+            VerificationStatus.CANCELLED,
+            VerificationStatus.EXPIRED,
+            VerificationStatus.FAILED,
+        }:
+            verification.status = VerificationStatus.CANCELLED
+            verification.cancelled_at = now
+            verification.completed_at = now
+            verification.save(
+                update_fields=["status", "cancelled_at", "completed_at", "updated_at"]
+            )
+
+        verification.sessions.exclude(status=VerificationSessionStatus.REVOKED).update(
+            status=VerificationSessionStatus.REVOKED,
+            updated_at=now,
+        )
+        verification_session.status = VerificationSessionStatus.REVOKED
+        verification_session.save(update_fields=["status", "updated_at"])
+        queue_webhook_events(
+            tenant=request.tenant,
+            event_type="verification.cancelled",
+            payload={
+                "verification_id": verification.public_id,
+                "external_reference": verification.external_reference,
+                "status": verification.status,
+            },
+        )
+        record_audit_event(
+            tenant=request.tenant,
+            actor=verification.verification_subject,
+            request=request,
+            action="verification.cancelled",
+            target_type="verification",
+            target_id=verification.public_id,
+            metadata={"session_id": verification_session.public_id},
+        )
+        return success_response(
+            {
+                "verification_id": verification.public_id,
+                "status": verification.status,
+                "session_status": verification_session.status,
             },
             request=request,
         )

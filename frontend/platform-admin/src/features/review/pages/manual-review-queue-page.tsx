@@ -124,6 +124,7 @@ export function ManualReviewQueuePage() {
         actions={
           <>
             <Button
+              type="button"
               variant="outline"
               onClick={() => setRefreshTick((value) => value + 1)}
               disabled={loading}
@@ -131,7 +132,9 @@ export function ManualReviewQueuePage() {
               <RefreshCcw className="mr-2 size-4" />
               Refresh
             </Button>
-            <Button variant="outline">Export queue</Button>
+            <Button type="button" variant="outline">
+              Export queue
+            </Button>
           </>
         }
       />
@@ -170,12 +173,12 @@ export function ManualReviewQueuePage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline">
+            <Button type="button" variant="outline">
               <Filter className="mr-2 size-4" />
               Filters
             </Button>
-            <Button variant="outline">Pending</Button>
-            <Button variant="outline">Changed after approval</Button>
+            <Button type="button" variant="outline">Pending</Button>
+            <Button type="button" variant="outline">Changed after approval</Button>
           </div>
         </div>
       </section>
@@ -185,7 +188,7 @@ export function ManualReviewQueuePage() {
           title="Unable to load the queue"
           description={error}
           action={
-            <Button onClick={() => setRefreshTick((value) => value + 1)}>
+            <Button type="button" onClick={() => setRefreshTick((value) => value + 1)}>
               Try again
             </Button>
           }

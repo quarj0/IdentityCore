@@ -653,6 +653,50 @@ class VerificationSessionPortalTests(APITestCase):
             response.data["data"]["message"], "Your verification is being processed."
         )
 
+    def test_get_session_status_keeps_moving_after_document_processing_outage(self):
+        IdentityDocument.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_subject=self.subject,
+            document_type_id="national_id",
+            country_profile_id="GH",
+            local_document_name="Ghana Card",
+            status="processed",
+            extracted_data_json={
+                "document_classification": {
+                    "status": "completed",
+                    "requires_manual_review": True,
+                    "manual_review": {
+                        "required": True,
+                        "priority": "high",
+                        "reason_codes": ["document_classification_unavailable"],
+                        "review_category": "document_classification",
+                    },
+                    "issues": ["document_classification_unavailable"],
+                }
+            },
+        )
+        self.verification.status = VerificationStatus.AWAITING_SELFIE
+        self.verification.save(update_fields=["status", "updated_at"])
+
+        response = self.client.get(
+            reverse(
+                "verification-session-status",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            **self.session_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["data"]["current_step"], "selfie_capture")
+        self.assertEqual(
+            response.data["data"]["message"],
+            (
+                "We couldn't fully process your document just now, but you can continue "
+                "with selfie capture. Our reviewers will check it after you finish."
+            ),
+        )
+
     def test_get_session_status_names_the_previously_rejected_document(self):
         IdentityDocument.objects.create(
             tenant=self.tenant,

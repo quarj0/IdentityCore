@@ -183,7 +183,11 @@ class Query:
         page_size: int = 20,
     ) -> list[AuditEventNode]:
         require_platform_admin(info)
-        queryset = AuditEvent.objects.select_related("tenant").order_by("-created_at")
+        queryset = (
+            AuditEvent.objects.select_related("tenant")
+            .exclude(action="graphql.query")
+            .order_by("-created_at")
+        )
         if actor_type:
             queryset = queryset.filter(actor_type=actor_type)
         if action:
@@ -199,8 +203,11 @@ class Query:
                 actor_type=payload["actor_type"],
                 actor_id=payload["actor_id"],
                 action=payload["action"],
+                action_label=payload["action_label"],
+                actor_display_name=payload["actor_display_name"],
                 target_type=payload["target_type"],
                 target_id=payload["target_id"],
+                target_label=payload["target_label"],
                 ip_address=payload["ip_address"],
                 user_agent=payload["user_agent"],
                 metadata=payload["metadata"],
@@ -546,8 +553,11 @@ class Query:
             actor_type=payload["actor_type"],
             actor_id=payload["actor_id"],
             action=payload["action"],
+            action_label=payload["action_label"],
+            actor_display_name=payload["actor_display_name"],
             target_type=payload["target_type"],
             target_id=payload["target_id"],
+            target_label=payload["target_label"],
             ip_address=payload["ip_address"],
             user_agent=payload["user_agent"],
             metadata=payload["metadata"],
@@ -1190,7 +1200,7 @@ class Query:
         page_size: int = 20,
     ) -> list[AuditEventNode]:
         user = require_tenant_user(info)
-        queryset = user.tenant.audit_events.order_by("-created_at")
+        queryset = user.tenant.audit_events.exclude(action="graphql.query").order_by("-created_at")
         if actor_type:
             queryset = queryset.filter(actor_type=actor_type)
         if action:
@@ -1206,8 +1216,11 @@ class Query:
                 actor_type=payload["actor_type"],
                 actor_id=payload["actor_id"],
                 action=payload["action"],
+                action_label=payload["action_label"],
+                actor_display_name=payload["actor_display_name"],
                 target_type=payload["target_type"],
                 target_id=payload["target_id"],
+                target_label=payload["target_label"],
                 ip_address=payload["ip_address"],
                 user_agent=payload["user_agent"],
                 metadata=payload["metadata"],

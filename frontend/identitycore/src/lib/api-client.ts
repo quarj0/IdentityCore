@@ -237,6 +237,10 @@ export function getErrorMessage(error: unknown) {
 }
 
 function humanizeErrorMessage(message: string) {
+  if (message.includes("A tenant-scoped platform user is required.")) {
+    return "This is only available to workspace users. Please sign in with your workspace account.";
+  }
+
   const technicalError =
     /unexpected token|invalidtag|not valid json|json\.parse|syntaxerror|failed to fetch|networkerror|for update|outer join|traceback|databaseerror|operationalerror|integrityerror|psycopg/i;
   return technicalError.test(message)

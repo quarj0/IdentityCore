@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-from decouple import config
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 
@@ -293,17 +292,10 @@ OBJECT_STORAGE_EVIDENCE_BUCKET = env_one_of(
 OBJECT_STORAGE_PUBLIC_BUCKET = env_one_of(
     "OBJECT_STORAGE_PUBLIC_BUCKET", ["R2_PUBLIC_BUCKET"], ""
 )
-OBJECT_STORAGE_ENDPOINT_URL = config(
-    "R2_ENDPOINT_URL", default=os.getenv("OBJECT_STORAGE_ENDPOINT_URL", "")
-)
-OBJECT_STORAGE_ACCESS_KEY_ID = config(
-    "R2_ACCESS_KEY_ID", default=os.getenv("OBJECT_STORAGE_ACCESS_KEY_ID", "")
-)
-OBJECT_STORAGE_SECRET_ACCESS_KEY = config(
-    "R2_SECRET_ACCESS_KEY",
-    default=os.getenv("OBJECT_STORAGE_SECRET_ACCESS_KEY", ""),
-)
-OBJECT_STORAGE_ACCOUNT_ID = config(
+OBJECT_STORAGE_ENDPOINT_URL =env_one_of("R2_ENDPOINT_URL", default=os.getenv("OBJECT_STORAGE_ENDPOINT_URL", ""))
+OBJECT_STORAGE_ACCESS_KEY_ID = env_one_of("R2_ACCESS_KEY_ID")
+OBJECT_STORAGE_SECRET_ACCESS_KEY = env_one_of("R2_SECRET_ACCESS_KEY")
+OBJECT_STORAGE_ACCOUNT_ID = env_one_of(
     "R2_ACCOUNT_ID", default=os.getenv("OBJECT_STORAGE_ACCOUNT_ID", "")
 )
 

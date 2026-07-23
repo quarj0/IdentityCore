@@ -2,6 +2,7 @@ from django.urls import path
 
 from apps.verification_sessions.views import (
     VerificationSessionConsentView,
+    VerificationSessionCancelView,
     VerificationSessionDetailView,
     VerificationSessionDocumentView,
     VerificationSessionLivenessView,
@@ -34,6 +35,11 @@ urlpatterns = [
         "<str:session_id>/liveness",
         VerificationSessionLivenessView.as_view(),
         name="verification-session-liveness",
+    ),
+    path(
+        "<str:session_id>/cancel",
+        VerificationSessionCancelView.as_view(),
+        name="verification-session-cancel",
     ),
     path(
         "<str:session_id>/status",

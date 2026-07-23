@@ -3,6 +3,8 @@ from django.urls import reverse
 from django.test import override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
+from unittest.mock import patch
 
 from apps.organizations.models import Organization, OrganizationStatus
 from apps.accounts.models import PlatformUser, PlatformUserStatus
@@ -92,9 +94,54 @@ class OrganizationSupportingDocumentTests(APITestCase):
             status=PlatformUserStatus.ACTIVE,
             tenant=self.tenant,
         )
+        self.client.force_authenticate(self.user)
 
-    @override_settings(PUBLIC_ASSET_URL_BASE="https://assets.example.com/public")
-    def test_onboarding_state_uses_public_asset_urls_for_supporting_documents(self):
+    def test_document_upload_returns_transfer_path(self):
+        response = self.client.post(
+            reverse("organization-document-upload"),
+            {
+                "filename": "certificate.pdf",
+                "mime_type": "application/pdf",
+                "file_size_bytes": 12345,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(
+            response.data["data"]["upload_transfer_path"],
+            f"/organization/me/verification-documents/{response.data['data']['document_id']}/transfer/",
+        )
+
+    @patch("apps.organizations.views.put_object_bytes")
+    def test_document_upload_transfer_stores_file_server_side(self, mock_put_object_bytes):
+        document = OrganizationSupportingDocument.objects.create(
+            organization=self.organization,
+            tenant=self.tenant,
+            uploaded_by=self.user,
+            filename="certificate.pdf",
+            mime_type="application/pdf",
+            file_size_bytes=12,
+            storage_key="organizations/org_01TEST/verification/certificate.pdf",
+            status="initiated",
+        )
+
+        response = self.client.post(
+            reverse(
+                "organization-document-upload-transfer",
+                kwargs={"document_id": document.public_id},
+            ),
+            {"file": SimpleUploadedFile("certificate.pdf", b"hello world!", content_type="application/pdf")},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_put_object_bytes.assert_called_once()
+
+    @override_settings(MEDIA_DOWNLOAD_URL_BASE="https://assets.example.com/public")
+    @patch("common.storage.get_object_storage_client", return_value=None)
+    def test_onboarding_state_uses_signed_download_urls_for_supporting_documents(
+        self, _mock_storage_client
+    ):
         OrganizationSupportingDocument.objects.create(
             organization=self.organization,
             tenant=self.tenant,
@@ -114,7 +161,7 @@ class OrganizationSupportingDocumentTests(APITestCase):
 
         self.assertEqual(
             onboarding["supporting_documents"][0]["download_url"],
-            "https://assets.example.com/public/organizations/org_01TEST/verification/certificate.pdf",
+            "https://assets.example.com/public/organizations/org_01TEST/verification/certificate.pdf?expires_in=300&filename=certificate.pdf",
         )
 
 

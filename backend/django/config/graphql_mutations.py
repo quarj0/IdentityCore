@@ -111,6 +111,15 @@ class Mutation:
     ) -> AdministratorVerificationLaunchNode:
         request = info.context["request"]
         user = require_tenant_user(info)
+        onboarding = serialize_onboarding_state(
+            organization=user.tenant.organization,
+            tenant=user.tenant,
+            user=user,
+        )
+        if not onboarding["organization_verification_submitted_at"]:
+            raise GraphQLError(
+                "Complete organization verification before administrator identity verification."
+            )
         allowed_reasons = {
             "previous_attempt_failed_or_expired",
             "periodic_compliance_renewal",

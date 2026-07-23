@@ -11,7 +11,7 @@ export function PlatformSidebar() {
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-slate-200 bg-white/95 px-4 py-5 backdrop-blur lg:block">
-      <Link href="/" className="flex items-center gap-3 px-2">
+      <Link href="/dashboard" className="flex items-center gap-3 px-2">
         <div className="flex size-10 items-center justify-center rounded-2xl bg-cyan-400/10 text-orange-500 ring-1 ring-orange-300/30">
           <ShieldCheck className="size-5" aria-hidden="true" />
         </div>
@@ -24,10 +24,7 @@ export function PlatformSidebar() {
 
       <nav className="mt-8 space-y-1" aria-label="Platform admin navigation">
         {platformNavItems.map((item) => {
-          const isActive =
-            item.href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(item.href);
+          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
           return (
             <Link

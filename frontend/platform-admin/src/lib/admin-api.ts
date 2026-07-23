@@ -99,3 +99,23 @@ export async function graphqlRequest<T>(
 
   return payload.data;
 }
+
+export function getErrorMessage(error: unknown) {
+  if (error instanceof IdentityCoreApiError) {
+    return humanizeErrorMessage(error.message);
+  }
+
+  if (error instanceof Error) {
+    return humanizeErrorMessage(error.message);
+  }
+
+  return "Something went wrong. Please try again.";
+}
+
+function humanizeErrorMessage(message: string) {
+  const technicalError =
+    /unexpected token|invalidtag|not valid json|json\.parse|syntaxerror|failed to fetch|networkerror|for update|outer join|traceback|databaseerror|operationalerror|integrityerror|psycopg/i;
+  return technicalError.test(message)
+    ? "The service is temporarily unavailable. Please try again shortly."
+    : message || "Something went wrong. Please try again.";
+}

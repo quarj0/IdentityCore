@@ -17,7 +17,7 @@ from apps.audit.services import record_audit_event
 from apps.organizations.models import OrganizationStatus, OrganizationSupportingDocument
 from apps.tenants.models import TenantStatus
 from apps.verifications.models import VerificationSessionStatus
-from common.storage import delete_object, get_object_storage_public_bucket_name
+from common.storage import delete_object, get_object_storage_public_bucket_name, put_object_bytes
 from rest_framework_simplejwt.token_blacklist.models import (
     OutstandingToken,
     BlacklistedToken,
@@ -96,6 +96,48 @@ class OrganizationDocumentUploadCompleteView(APIView):
         document.save(update_fields=["status", "updated_at"])
         return success_response(
             {"document_id": document.public_id, "status": document.status},
+            request=request,
+        )
+
+
+class OrganizationDocumentUploadTransferView(APIView):
+    permission_classes = [IsAuthenticated, IsTenantUser]
+
+    def post(self, request, document_id):
+        document = get_object_or_404(
+            OrganizationSupportingDocument.objects,
+            public_id=document_id,
+            tenant=request.user.tenant,
+            organization=request.user.tenant.organization,
+            status="initiated",
+            deleted_at__isnull=True,
+        )
+        uploaded_file = request.FILES.get("file")
+        if uploaded_file is None:
+            from rest_framework.exceptions import ValidationError
+
+            raise ValidationError({"file": "Choose a PDF document to upload."})
+        if uploaded_file.size != document.file_size_bytes:
+            from rest_framework.exceptions import ValidationError
+
+            raise ValidationError(
+                {"file": "The selected file changed. Please choose it again."}
+            )
+        if uploaded_file.content_type != document.mime_type:
+            from rest_framework.exceptions import ValidationError
+
+            raise ValidationError(
+                {"file": "The selected file type does not match the upload."}
+            )
+
+        put_object_bytes(
+            bucket_name=get_object_storage_public_bucket_name(),
+            key=document.storage_key,
+            content=uploaded_file.read(),
+            content_type=document.mime_type,
+        )
+        return success_response(
+            {"document_id": document.public_id},
             request=request,
         )
 

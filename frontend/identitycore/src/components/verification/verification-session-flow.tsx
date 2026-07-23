@@ -47,6 +47,8 @@ import {
 } from "@/lib/verification-api";
 
 const STEPS = ["Consent", "Document", "Selfie", "Liveness", "Result"];
+const WORKSPACE_DASHBOARD_ORIGIN =
+  process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3000";
 
 export function VerificationSessionFlow({
   sessionId = "",
@@ -294,18 +296,7 @@ export function VerificationSessionFlow({
       });
       await submitAdministratorIdentityVerification(verificationId);
       setOnboardingSubmitted(true);
-      const [nextStatus, nextDetail] = await Promise.all([
-        fetchVerificationStatus(credentials),
-        fetchVerificationDetail(verificationId),
-      ]);
-      setStatus(nextStatus);
-      setDetail(nextDetail);
-      setFeedback({
-        kind: "success",
-        title: "Verification submitted",
-        message:
-          "Identity evidence is now being processed and the onboarding record has been updated.",
-      });
+      window.location.assign(WORKSPACE_DASHBOARD_ORIGIN.replace(/\/$/, ""));
     } catch (error) {
       setFeedback({
         kind: "error",

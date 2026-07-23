@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.utils import timezone
 
 from apps.biometrics.models import FaceMatchStatus, LivenessCheckStatus
+from apps.identity_documents.models import IdentityDocumentStatus
 from apps.providers.models import ProviderCheckStatus, ProviderCheckType
 from apps.providers.services import create_provider_check
 from apps.risk.models import RiskAssessment, RiskLevel, RiskRecommendation
@@ -44,13 +45,14 @@ def evaluate_risk_assessment(verification) -> RiskAssessment:
         else None
     )
     face_match_threshold, manual_review_threshold = _get_policy_thresholds(verification)
+    document_requires_manual_review = _document_requires_manual_review(
+        latest_identity_document,
+        document_classification,
+    )
 
     signals = {
         "document_submitted": verification.identity_documents.exists(),
         "document_classification": document_classification,
-        "document_requires_manual_review": _document_requires_manual_review(
-            document_classification
-        ),
         "selfie_submitted": verification.selfie_captures.exists(),
         "liveness_status": (
             latest_liveness_check.status if latest_liveness_check else "missing"
@@ -74,7 +76,11 @@ def evaluate_risk_assessment(verification) -> RiskAssessment:
         },
     }
 
-    if latest_liveness_check is None or latest_face_match is None:
+    if document_requires_manual_review:
+        risk_score = Decimal("62.00")
+        risk_level = RiskLevel.MEDIUM
+        recommendation = RiskRecommendation.MANUAL_REVIEW
+    elif latest_liveness_check is None or latest_face_match is None:
         risk_score = Decimal("95.00")
         risk_level = RiskLevel.CRITICAL
         recommendation = RiskRecommendation.MANUAL_REVIEW

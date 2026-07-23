@@ -173,7 +173,50 @@ class GraphQLAPITests(APITestCase):
             payload["data"]["verifications"][0]["riskAssessment"]["riskLevel"], "high"
         )
 
+    def test_create_administrator_onboarding_verification_requires_organization_verification(self):
+        response = self.post_graphql(
+            """
+                mutation CreateAdministratorVerification {
+                  createAdministratorOnboardingVerification {
+                    verificationId
+                  }
+                }
+            """
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = response.json()
+        self.assertIn("errors", payload)
+        self.assertIn(
+            "Complete organization verification before administrator identity verification.",
+            payload["errors"][0]["message"],
+        )
+
     def test_create_administrator_onboarding_verification_is_server_linked(self):
+        self.create_supporting_document(self.organization, self.tenant, self.user)
+        self.post_graphql(
+            """
+                mutation SubmitOrganizationVerification($input: OrganizationVerificationInput!) {
+                  submitOrganizationOnboardingVerification(input: $input) {
+                    onboarding {
+                      organizationVerificationSubmittedAt
+                    }
+                  }
+                }
+            """,
+            {
+                "input": {
+                    "businessRegistrationNumber": "BRN-1",
+                    "registeredAddress": "1 Admin Street",
+                    "officialWebsite": "https://example.com",
+                    "taxIdentificationNumber": "TIN-1",
+                    "supportingDocumentKeys": [
+                        "organizations/documents/certificate.pdf"
+                    ],
+                }
+            },
+            token=self.access_token,
+        )
         response = self.post_graphql(
             """
                 mutation CreateAdministratorVerification {

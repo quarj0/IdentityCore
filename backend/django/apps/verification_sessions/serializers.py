@@ -122,7 +122,7 @@ STATUS_PRESENTATION = {
     ),
     VerificationStatus.PROCESSING: (
         "processing",
-        "Your verification is being processed.",
+        "Your verification is still working, and this may take a moment.",
     ),
     VerificationStatus.MANUAL_REVIEW_REQUIRED: (
         "completed",
@@ -204,13 +204,25 @@ def serialize_verification_session_status(
     latest_selfie = verification.selfie_captures.order_by("-created_at").first()
     latest_document = verification.identity_documents.order_by("-created_at").first()
     latest_liveness = verification.liveness_checks.order_by("-created_at").first()
+    latest_document_classification = (
+        (latest_document.extracted_data_json or {}).get("document_classification")
+        if latest_document is not None
+        else None
+    )
+    document_continues_with_review = bool(
+        latest_document is not None
+        and latest_document.status == IdentityDocumentStatus.PROCESSED
+        and latest_document_classification
+        and (
+            latest_document_classification.get("provider_error")
+            or latest_document_classification.get("requires_manual_review")
+            or (latest_document_classification.get("manual_review") or {}).get("required")
+        )
+    )
     if latest_document is not None and latest_document.status == IdentityDocumentStatus.PROCESSING:
         current_step = "document_processing"
         message = "Your identity document is being checked before selfie capture."
-    elif latest_document is not None and latest_document.status in {
-        IdentityDocumentStatus.REJECTED,
-        IdentityDocumentStatus.FAILED,
-    }:
+    elif latest_document is not None and latest_document.status == IdentityDocumentStatus.REJECTED:
         current_step = "document_capture"
         document_label = latest_document.local_document_name or _resolve_document_label(
             latest_document.document_type_id,
@@ -220,12 +232,7 @@ def serialize_verification_session_status(
             "document_classification", {}
         )
         classification_issues = set(classification.get("issues") or [])
-        if latest_document.status == IdentityDocumentStatus.FAILED:
-            message = (
-                f"We couldn't process your previous {document_label} just now. "
-                "Please capture it again to continue."
-            )
-        elif latest_document.captures.filter(
+        if latest_document.captures.filter(
             status=DocumentCaptureStatus.REJECTED
         ).exists():
             message = (
@@ -255,6 +262,15 @@ def serialize_verification_session_status(
     elif latest_selfie is not None and latest_liveness is None:
         current_step = "liveness_check"
         message = "Please complete the passive liveness check."
+    elif (
+        verification.status == VerificationStatus.AWAITING_SELFIE
+        and document_continues_with_review
+    ):
+        current_step = "selfie_capture"
+        message = (
+            "We couldn't fully process your document just now, but you can continue "
+            "with selfie capture. Our reviewers will check it after you finish."
+        )
     else:
         current_step, message = STATUS_PRESENTATION.get(
             verification.status,

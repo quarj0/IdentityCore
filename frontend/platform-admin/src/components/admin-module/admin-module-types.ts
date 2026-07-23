@@ -19,6 +19,10 @@ export type AdminRecord = {
   owner: string;
   updatedAt: string;
   href: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  operationName?: string;
+  metadata?: Record<string, unknown>;
 };
 
 export type AdminDetailMetric = {

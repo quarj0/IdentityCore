@@ -14,7 +14,10 @@ from apps.audit.services import record_audit_event
 from apps.organizations.models import Organization, OrganizationStatus
 from apps.tenants.models import Tenant, TenantStatus
 from common.validators import normalize_email, validate_business_email
-from common.storage import build_public_asset_url
+from common.storage import (
+    build_signed_download_url,
+    get_object_storage_public_bucket_name,
+)
 
 ORGANIZATION_TYPE_CHOICES = (
     "government",
@@ -228,6 +231,11 @@ def _organization_verification_has_changed(
             != _normalize_supporting_document_keys(supporting_document_keys),
         )
     )
+
+
+def _organization_verification_is_submitted(onboarding: dict) -> bool:
+    organization_verification = dict(onboarding.get("organization_verification") or {})
+    return bool(organization_verification.get("submitted_at"))
 
 
 def _platform_review_state(onboarding: dict) -> dict:
@@ -497,7 +505,11 @@ def serialize_onboarding_state(
                 "file_size_bytes": doc.file_size_bytes,
                 "status": doc.status,
                 "storage_key": doc.storage_key,
-                "download_url": build_public_asset_url(doc.storage_key),
+                "download_url": build_signed_download_url(
+                    storage_key=doc.storage_key,
+                    filename=doc.filename,
+                    bucket_name=get_object_storage_public_bucket_name(),
+                ),
             }
             for doc in documents
         ],
@@ -711,6 +723,10 @@ def submit_administrator_identity_verification(
     tenant = user.tenant
     organization = tenant.organization
     onboarding = _get_onboarding_settings(organization)
+    if not _organization_verification_is_submitted(onboarding):
+        raise ValidationError(
+            "Complete organization verification before administrator identity verification."
+        )
     existing = dict(onboarding.get("administrator_identity_verification") or {})
     if (
         existing.get("status") == "submitted"
