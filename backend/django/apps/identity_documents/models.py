@@ -8,6 +8,7 @@ class IdentityDocumentStatus(models.TextChoices):
     SUBMITTED = "submitted", "Submitted"
     PROCESSING = "processing", "Processing"
     PROCESSED = "processed", "Processed"
+    MANUAL_REVIEW_REQUIRED = "manual_review_required", "Manual Review Required"
     FAILED = "failed", "Failed"
     REJECTED = "rejected", "Rejected"
 
