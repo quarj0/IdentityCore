@@ -217,7 +217,9 @@ class BiometricsTaskTests(TestCase):
         )
         self.assertIsNone(self.verification.completed_at)
         self.assertEqual(self.liveness_check.status, LivenessCheckStatus.ERROR)
-        self.assertEqual(self.face_match.status, FaceMatchStatus.ERROR)
+        # Face matching was never attempted because liveness failed first.
+        # Preserve its initial state instead of reporting a false provider error.
+        self.assertEqual(self.face_match.status, FaceMatchStatus.INCONCLUSIVE)
         self.assertEqual(
             decision.reason_code,
             "biometric_provider_unavailable",
