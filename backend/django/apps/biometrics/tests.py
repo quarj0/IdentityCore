@@ -285,3 +285,38 @@ class BiometricsTaskTests(TestCase):
         )
         mock_queue_notifications.assert_called_once()
         mock_evidence_report.assert_called_once()
+
+    @patch("apps.biometrics.tasks.queue_verification_status_notifications")
+    @patch("apps.biometrics.tasks.queue_webhook_events")
+    @patch("apps.biometrics.tasks.run_face_compare")
+    @patch("apps.biometrics.tasks.run_liveness_check")
+    def test_face_failure_preserves_completed_liveness(
+        self,
+        mock_liveness,
+        mock_face,
+        mock_queue_webhooks,
+        mock_queue_notifications,
+    ):
+        mock_liveness.return_value = {
+            "status": "completed",
+            "score": 0.94,
+            "confidence_level": "high",
+            "passed": True,
+            "model_name": "active-liveness",
+            "model_version": "v1",
+        }
+        mock_face.side_effect = RuntimeError("face comparison unavailable")
+
+        result = process_verification_biometrics_task(self.liveness_check.public_id)
+
+        self.assertEqual(result, VerificationStatus.MANUAL_REVIEW_REQUIRED)
+        self.liveness_check.refresh_from_db()
+        self.face_match.refresh_from_db()
+        liveness_provider_check = ProviderCheck.objects.get(public_id="pck_liveness")
+        face_provider_check = ProviderCheck.objects.get(public_id="pck_face")
+        self.assertEqual(self.liveness_check.status, LivenessCheckStatus.PASSED)
+        self.assertEqual(self.face_match.status, FaceMatchStatus.ERROR)
+        self.assertEqual(liveness_provider_check.status, ProviderCheckStatus.COMPLETED)
+        self.assertEqual(face_provider_check.status, ProviderCheckStatus.FAILED)
+        mock_queue_webhooks.assert_called_once()
+        mock_queue_notifications.assert_called_once()
