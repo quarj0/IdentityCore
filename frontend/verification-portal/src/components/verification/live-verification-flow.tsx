@@ -623,7 +623,7 @@ function MobileHandoff({
 }) {
   return (
     <main id="main-content" className="verification-page flex min-h-screen items-center px-4 py-10">
-      <Card className="mx-auto w-full max-w-xl overflow-hidden rounded-[2rem] border-slate-200 bg-white shadow-2xl shadow-slate-300/40">
+      <Card className="mx-auto w-full max-w-xl overflow-hidden rounded-4xl border-slate-200 bg-white shadow-2xl shadow-slate-300/40">
         <CardHeader className="border-b border-slate-100 px-6 py-7 sm:px-8">
           <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
             <Smartphone className="h-6 w-6" aria-hidden="true" />
@@ -681,7 +681,7 @@ function OpeningState({
 }) {
   return (
     <main id="main-content" className="verification-page flex min-h-screen items-center px-4 py-10">
-      <Card className="mx-auto w-full max-w-md rounded-[2rem] border-slate-200 bg-white shadow-xl shadow-slate-200/50">
+      <Card className="mx-auto w-full max-w-md rounded-4xl border-slate-200 bg-white shadow-xl shadow-slate-200/50">
         <CardContent className="flex min-h-64 flex-col items-center justify-center gap-3 p-8 text-center">
           {!message ? <Loader2 className="h-7 w-7 animate-spin text-blue-600" /> : <ShieldCheck className="h-8 w-8 text-slate-400" />}
           <h1 className="text-xl font-semibold tracking-tight text-slate-950">{title}</h1>
