@@ -65,6 +65,7 @@ export function ManualReviewQueuePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "changed">("all");
 
   useEffect(() => {
     let active = true;
@@ -99,9 +100,22 @@ export function ManualReviewQueuePage() {
 
   const filteredItems = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return items;
-    return items.filter((item) => buildSearchIndex(item).includes(normalizedQuery));
-  }, [items, query]);
+    return items.filter((item) => {
+      const matchesQuery = !normalizedQuery || buildSearchIndex(item).includes(normalizedQuery);
+      const matchesStatus = statusFilter === "all" ||
+        (statusFilter === "pending" && item.organizationVerificationReviewStatus === "submitted") ||
+        (statusFilter === "changed" && item.organizationVerificationChangedAfterApproval);
+      return matchesQuery && matchesStatus;
+    });
+  }, [items, query, statusFilter]);
+
+  function exportQueue() {
+    const header = ["Organization", "Review status", "Organization status", "Submitted", "Reviewer note"];
+    const rows = filteredItems.map((item) => [item.organizationName, item.organizationVerificationReviewStatus, item.organizationStatus, item.organizationVerificationSubmittedAt ?? "", item.organizationVerificationReviewNote ?? ""]);
+    const csv = [header, ...rows].map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a"); link.href = url; link.download = "organization-review-queue.csv"; link.click(); URL.revokeObjectURL(url);
+  }
 
   const pendingCount = items.filter(
     (item) =>
@@ -131,7 +145,7 @@ export function ManualReviewQueuePage() {
               <RefreshCcw className="mr-2 size-4" />
               Refresh
             </Button>
-            <Button variant="outline">Export queue</Button>
+            <Button variant="outline" onClick={exportQueue} disabled={!filteredItems.length}>Export queue</Button>
           </>
         }
       />
@@ -170,12 +184,12 @@ export function ManualReviewQueuePage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => setStatusFilter("all")}>
               <Filter className="mr-2 size-4" />
-              Filters
+              All reviews
             </Button>
-            <Button variant="outline">Pending</Button>
-            <Button variant="outline">Changed after approval</Button>
+            <Button variant={statusFilter === "pending" ? "default" : "outline"} onClick={() => setStatusFilter("pending")}>Pending</Button>
+            <Button variant={statusFilter === "changed" ? "default" : "outline"} onClick={() => setStatusFilter("changed")}>Changed after approval</Button>
           </div>
         </div>
       </section>

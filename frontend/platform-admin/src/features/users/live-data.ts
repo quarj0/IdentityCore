@@ -43,6 +43,8 @@ type InvitePlatformAdminResponse = {
   };
 };
 
+type DeactivatePlatformAdminResponse = { deactivatePlatformAdmin: PlatformAdmin };
+
 function tone(status: string): AdminRecord["statusTone"] {
   if (status === "active") return "success";
   if (status === "invited") return "warning";
@@ -142,6 +144,16 @@ export async function invitePlatformAdmin(email: string, roleName: string) {
   );
 
   return data.invitePlatformAdmin.invitation;
+}
+
+export async function deactivatePlatformAdmin(userId: string, reason: string) {
+  const data = await graphqlRequest<DeactivatePlatformAdminResponse>(
+    `mutation DeactivatePlatformAdmin($userId: String!, $reason: String!) {
+      deactivatePlatformAdmin(userId: $userId, reason: $reason) { publicId status }
+    }`,
+    { userId, reason: reason.trim() },
+  );
+  return data.deactivatePlatformAdmin;
 }
 
 export function buildPlatformAdminConfig(records: AdminRecord[]): AdminModuleConfig {
