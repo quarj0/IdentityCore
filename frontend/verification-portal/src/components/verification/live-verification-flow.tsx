@@ -695,10 +695,7 @@ function MobileHandoff({
   onContinue: () => void;
 }) {
   return (
-    <main
-      id="main-content"
-      className="verification-page flex min-h-screen items-center px-4 py-10"
-    >
+    <main id="main-content" className="verification-page flex min-h-screen items-center px-4 py-10">
       <Card className="mx-auto w-full max-w-xl overflow-hidden rounded-4xl border-slate-200 bg-white shadow-2xl shadow-slate-300/40">
         <CardHeader className="border-b border-slate-100 px-6 py-7 sm:px-8">
           <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
@@ -771,11 +768,8 @@ function MobileHandoff({
 
 function OpeningState({ title, message }: { title: string; message?: string }) {
   return (
-    <main
-      id="main-content"
-      className="verification-page flex min-h-screen items-center px-4 py-10"
-    >
-      <Card className="mx-auto w-full max-w-md rounded-[2rem] border-slate-200 bg-white shadow-xl shadow-slate-200/50">
+    <main id="main-content" className="verification-page flex min-h-screen items-center px-4 py-10">
+      <Card className="mx-auto w-full max-w-md rounded-4xl border-slate-200 bg-white shadow-xl shadow-slate-200/50">
         <CardContent className="flex min-h-64 flex-col items-center justify-center gap-3 p-8 text-center">
           {!message ? (
             <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
