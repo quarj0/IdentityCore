@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.test import SimpleTestCase
+from django.urls import reverse
 
 from apps.biometrics.tasks import process_verification_biometrics_task
 from apps.identity_documents.tasks import process_identity_document_task
@@ -117,3 +118,19 @@ class JwtConfigurationTests(SimpleTestCase):
     def test_jwt_signing_key_is_never_blank(self):
         self.assertTrue(settings.SIMPLE_JWT["SIGNING_KEY"])
         self.assertNotEqual(settings.SIMPLE_JWT["SIGNING_KEY"].strip(), "")
+
+
+class CorsConfigurationTests(SimpleTestCase):
+    def test_login_preflight_allows_session_scope_header(self):
+        response = self.client.options(
+            reverse("auth-login"),
+            HTTP_ORIGIN="http://localhost:3000",
+            HTTP_ACCESS_CONTROL_REQUEST_METHOD="POST",
+            HTTP_ACCESS_CONTROL_REQUEST_HEADERS="x-identitycore-session-scope",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(
+            "X-IdentityCore-Session-Scope",
+            response["Access-Control-Allow-Headers"],
+        )
