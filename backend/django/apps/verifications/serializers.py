@@ -20,6 +20,7 @@ from apps.verifications.models import (
     VerificationSession,
     VerificationStatus,
 )
+from apps.verifications.review_access import review_owner_for_metadata
 
 
 def get_request_tenant(request):
@@ -274,6 +275,7 @@ class VerificationCreateSerializer(serializers.Serializer):
             purpose=validated_data["purpose"],
             external_reference=external_reference,
             metadata_json=validated_data.get("metadata", {}),
+            review_owner=review_owner_for_metadata(validated_data.get("metadata")),
             redirect_url=validated_data.get("redirect_url", ""),
             status=VerificationStatus.PENDING_CONSENT,
             expires_at=expires_at,
