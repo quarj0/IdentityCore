@@ -31,8 +31,8 @@ export function AdminIdentityPanel() {
   const [consent, setConsent] = useState(false);
   const [loading, setLoading] = useState(true);
   const [launching, setLaunching] = useState(false);
-  const [reason, setReason] = useState("");
-  const [showReverification, setShowReverification] = useState(false);
+  const [reverificationReason, setReverificationReason] = useState("");
+  const [customReason, setCustomReason] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -49,6 +49,11 @@ export function AdminIdentityPanel() {
       return;
     }
 
+    const reason =
+      reverificationReason === "custom"
+        ? `custom:${customReason.trim()}`
+        : reverificationReason;
+
     setLaunching(true);
     setErrorMessage(null);
     try {
@@ -56,7 +61,23 @@ export function AdminIdentityPanel() {
         await createAdministratorOnboardingVerification(reason);
       window.location.assign(verification.verificationUrl);
     } catch (error) {
-      setErrorMessage(getErrorMessage(error));
+      const message = getErrorMessage(error);
+
+      // The verification service is the source of truth. If its status has
+      // advanced before the onboarding projection is refreshed, present the
+      // reverification controls instead of offering an invalid resume action.
+      if (message.includes("Administrator identity is already verified")) {
+        setState((current) =>
+          current
+            ? {
+                ...current,
+                administratorIdentityVerificationStatus: "verified",
+              }
+            : current,
+        );
+      } else {
+        setErrorMessage(message);
+      }
     } finally {
       setLaunching(false);
     }
@@ -73,9 +94,16 @@ export function AdminIdentityPanel() {
   const verificationStatus =
     state?.administratorIdentityVerificationStatus || "pending";
   const completed = verificationStatus === "verified";
-  const needsReason =
-    ["rejected", "failed", "expired"].includes(verificationStatus) ||
-    (completed && showReverification);
+  const isResumable = ["submitted", "in_progress", "pending_review"].includes(
+    verificationStatus,
+  );
+  const isCustomReason = reverificationReason === "custom";
+  const hasReverificationReason = Boolean(
+    isCustomReason ? customReason.trim() : reverificationReason,
+  );
+  const canLaunch = completed
+    ? consent && hasReverificationReason && !launching
+    : consent && !launching;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_0.42fr]">
@@ -129,7 +157,6 @@ export function AdminIdentityPanel() {
               className="mt-1"
               checked={consent}
               onCheckedChange={(checked) => setConsent(Boolean(checked))}
-              disabled={completed && !showReverification}
             />
             <Label
               htmlFor="consent"
@@ -140,66 +167,97 @@ export function AdminIdentityPanel() {
             </Label>
           </div>
 
-          {completed && !showReverification ? (
-            <div className="flex items-center gap-3">
-              <Button size="lg" className="rounded-xl" disabled>
-                <Check className="h-4 w-4" />
-                Verified
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowReverification(true)}
-              >
-                Start reverification
-              </Button>
-            </div>
+          {completed ? (
+            <>
+              <InlineStatus
+                kind="success"
+                title="Identity verified"
+                message="Administrator identity verification was completed successfully."
+                persist
+              />
+
+              <div className="space-y-2">
+                <Label htmlFor="reverificationReason">
+                  Reason for reverification
+                </Label>
+                <select
+                  id="reverificationReason"
+                  value={reverificationReason}
+                  onChange={(event) => {
+                    setReverificationReason(event.target.value);
+                    setCustomReason("");
+                  }}
+                  className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
+                >
+                  <option value="">Choose a reason</option>
+                  <option value="periodic_compliance_renewal">
+                    Periodic compliance renewal
+                  </option>
+                  <option value="identity_document_changed">
+                    Identity document changed
+                  </option>
+                  <option value="suspected_evidence_compromise">
+                    Suspected evidence compromise
+                  </option>
+                  <option value="custom">Custom reason</option>
+                </select>
+              </div>
+
+              {isCustomReason ? (
+                <div className="space-y-2">
+                  <Label htmlFor="customReverificationReason">
+                    Custom reverification reason
+                  </Label>
+                  <textarea
+                    id="customReverificationReason"
+                    value={customReason}
+                    onChange={(event) => setCustomReason(event.target.value)}
+                    maxLength={500}
+                    rows={3}
+                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+                    placeholder="Describe why this administrator needs to be verified again."
+                  />
+                </div>
+              ) : null}
+
+              <div className="flex flex-wrap items-center gap-3">
+                <Button type="button" size="lg" className="rounded-xl" disabled>
+                  <Check className="h-4 w-4" />
+                  Verified
+                </Button>
+                <Button
+                  type="button"
+                  size="lg"
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={handleLaunch}
+                  disabled={!canLaunch}
+                >
+                  {launching ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ArrowRight className="h-4 w-4" />
+                  )}
+                  Start reverification
+                </Button>
+              </div>
+            </>
           ) : (
             <Button
+              type="button"
               size="lg"
               className="rounded-xl"
               onClick={handleLaunch}
-              disabled={!consent || launching || (needsReason && !reason)}
+              disabled={!canLaunch}
             >
               {launching ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <ArrowRight className="h-4 w-4" />
               )}
-              {verificationStatus === "submitted"
-                ? "Resume verification"
-                : showReverification
-                  ? "Start reverification"
-                  : "Launch verification"}
+              {isResumable ? "Resume verification" : "Start verification"}
             </Button>
           )}
-          {needsReason ? (
-            <div className="space-y-2">
-              <Label htmlFor="reverificationReason">
-                Reason for reverification
-              </Label>
-              <select
-                id="reverificationReason"
-                value={reason}
-                onChange={(event) => setReason(event.target.value)}
-                className="h-10 w-full rounded-md border bg-white px-3 text-sm"
-              >
-                <option value="">Choose reason</option>
-                <option value="previous_attempt_failed_or_expired">
-                  Previous attempt failed or expired
-                </option>
-                <option value="periodic_compliance_renewal">
-                  Periodic compliance renewal
-                </option>
-                <option value="identity_document_changed">
-                  Identity document changed
-                </option>
-                <option value="suspected_evidence_compromise">
-                  Suspected evidence compromise
-                </option>
-              </select>
-            </div>
-          ) : null}
         </CardContent>
       </Card>
 
