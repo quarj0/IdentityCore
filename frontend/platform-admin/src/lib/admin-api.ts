@@ -28,7 +28,7 @@ export async function loginPlatformAdmin(email: string, password: string) {
   if (!user.is_platform_admin) {
     await client.logout();
     throw new IdentityCoreApiError(
-      "This account is not authorized for Platform Admin.",
+      "Invalid email or password.",
       "platform_access_required",
       403,
     );
