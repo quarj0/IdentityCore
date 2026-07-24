@@ -1,4 +1,8 @@
+import { Button } from "@identitycore/ui";
+import { WorkflowArchiveDialog } from "@/features/workflows/components/workflow-archive-dialog";
+import { WorkflowPublishDialog } from "@/features/workflows/components/workflow-publish-dialog";
 import { WorkflowStatusPill } from "@/features/workflows/components/workflow-status-pill";
+import { CloneWorkflowDialog } from "@/features/workflows/forms/clone-workflow-dialog";
 import type { WorkflowRecord } from "@/features/workflows/live-data";
 
 type WorkflowHeaderProps = {
