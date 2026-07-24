@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { cloneTemplate } from "@/features/templates/live-data";
 import { Copy } from "lucide-react";
 import {
   Button,
@@ -17,10 +18,15 @@ import {
 
 type CloneTemplateDialogProps = {
   templateName: string;
+  templateId: string;
+  onComplete?: () => void;
 };
 
-export function CloneTemplateDialog({ templateName }: CloneTemplateDialogProps) {
+export function CloneTemplateDialog({ templateName, templateId, onComplete }: CloneTemplateDialogProps) {
   const [name, setName] = useState(`${templateName} Copy`);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const submit = async () => { setSubmitting(true); setError(null); try { await cloneTemplate(templateId, name); onComplete?.(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to clone template."); } finally { setSubmitting(false); } };
 
   return (
     <Dialog>
@@ -48,9 +54,10 @@ export function CloneTemplateDialog({ templateName }: CloneTemplateDialogProps) 
           />
         </div>
 
+        {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
         <DialogFooter>
           <Button variant="outline">Cancel</Button>
-          <Button disabled={!name.trim()}>Clone template</Button>
+          <Button onClick={submit} disabled={submitting || !name.trim()}>{submitting ? "Cloning…" : "Clone template"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

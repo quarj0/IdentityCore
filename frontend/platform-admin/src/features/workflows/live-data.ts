@@ -195,3 +195,26 @@ export function normalizeWorkflowVersionHistory(versions: WorkflowVersionRecord[
     status: "published",
   }));
 }
+
+const workflowFields = `id name description status projectName steps settings currentVersion createdByEmail createdAt updatedAt`;
+async function runWorkflowMutation(mutation: string, variables: Record<string, unknown>) {
+  return graphqlRequest<{ workflow: WorkflowRecord }>(mutation, variables).then((data) => data.workflow);
+}
+export const cloneWorkflow = (workflowId: string, name: string) =>
+  runWorkflowMutation(`mutation CloneWorkflow($workflowId: String!, $name: String!) { workflow: clonePlatformWorkflow(workflowId: $workflowId, name: $name) { ${workflowFields} } }`, { workflowId, name });
+export const publishWorkflow = (workflowId: string) =>
+  graphqlRequest(`mutation PublishWorkflow($workflowId: String!) { publishPlatformWorkflow(workflowId: $workflowId) { id version } }`, { workflowId });
+export const archiveWorkflow = (workflowId: string) =>
+  runWorkflowMutation(`mutation ArchiveWorkflow($workflowId: String!) { workflow: archivePlatformWorkflow(workflowId: $workflowId) { ${workflowFields} } }`, { workflowId });
+
+export async function createWorkflow(input: { tenantId: string; projectId: string; name: string; description: string }) {
+  const data = await graphqlRequest<{ workflow: WorkflowRecord }>(
+    `mutation CreateWorkflow($tenantId: String!, $projectId: String!, $name: String!, $description: String!) {
+      workflow: createPlatformWorkflow(tenantId: $tenantId, projectId: $projectId, name: $name, description: $description) { ${workflowFields} }
+    }`, input,
+  );
+  return data.workflow;
+}
+
+export const updateWorkflow = (workflowId: string, input: { name: string; description: string }) =>
+  runWorkflowMutation(`mutation UpdateWorkflow($workflowId: String!, $name: String!, $description: String!) { workflow: updatePlatformWorkflow(workflowId: $workflowId, name: $name, description: $description) { ${workflowFields} } }`, { workflowId, ...input });

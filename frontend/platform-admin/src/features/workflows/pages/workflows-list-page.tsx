@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
-import { Input } from "@identitycore/ui";
+import { Search, SlidersHorizontal } from "lucide-react";
+import { Button, Input } from "@identitycore/ui";
+import { downloadCsv } from "@/lib/export-csv";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import {
@@ -16,6 +17,8 @@ export function WorkflowsListPage() {
   const [workflows, setWorkflows] = useState<WorkflowRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const reload = async () => { setLoading(true); setError(null); try { setWorkflows(await fetchWorkflowRecords()); } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to load workflows."); } finally { setLoading(false); } };
 
   useEffect(() => {
     let active = true;
@@ -79,6 +82,12 @@ export function WorkflowsListPage() {
         eyebrow="Official workflow library"
         title="Global Workflows"
         description="Manage official IdentityCore workflow blueprints that combine templates, provider routing, policies, risk checks and manual review."
+        actions={
+          <>
+            <Button variant="outline" onClick={() => downloadCsv("workflows.csv", workflows.map((workflow) => ({ id: workflow.id, name: workflow.name, status: workflow.status, description: workflow.description })))}>Export</Button>
+            <CreateWorkflowDialog onCreated={reload} />
+          </>
+        }
       />
 
       <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">

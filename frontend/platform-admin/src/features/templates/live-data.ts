@@ -151,3 +151,31 @@ export function buildTemplateConfig(records: AdminRecord[]): AdminModuleConfig {
     ],
   };
 }
+
+export async function createTemplate(input: { name: string; description: string; category: string }) {
+  const data = await graphqlRequest<{ createPlatformTemplate: TemplateRecord }>(
+    `mutation CreatePlatformTemplate($name: String!, $description: String!, $category: String!) {
+      createPlatformTemplate(name: $name, description: $description, category: $category) {
+        id name description category status version countries requiredChecks usageCount
+        clonedByOrganizations ownerTeam riskLevel createdById createdByEmail createdAt updatedAt
+      }
+    }`, input,
+  );
+  return data.createPlatformTemplate;
+}
+
+async function runTemplateMutation(mutation: string, variables: Record<string, unknown>) {
+  const data = await graphqlRequest<{ template: TemplateRecord }>(mutation, variables);
+  return data.template;
+}
+
+const templateFields = `id name description category status version countries requiredChecks usageCount clonedByOrganizations ownerTeam riskLevel createdById createdByEmail createdAt updatedAt`;
+
+export const updateTemplate = (templateId: string, input: Pick<TemplateRecord, "name">) =>
+  runTemplateMutation(`mutation UpdateTemplate($templateId: String!, $name: String!) { template: updatePlatformTemplate(templateId: $templateId, name: $name) { ${templateFields} } }`, { templateId, ...input });
+export const cloneTemplate = (templateId: string, name: string) =>
+  runTemplateMutation(`mutation CloneTemplate($templateId: String!, $name: String!) { template: clonePlatformTemplate(templateId: $templateId, name: $name) { ${templateFields} } }`, { templateId, name });
+export const publishTemplate = (templateId: string) =>
+  runTemplateMutation(`mutation PublishTemplate($templateId: String!) { template: publishPlatformTemplate(templateId: $templateId) { ${templateFields} } }`, { templateId });
+export const archiveTemplate = (templateId: string) =>
+  runTemplateMutation(`mutation ArchiveTemplate($templateId: String!) { template: archivePlatformTemplate(templateId: $templateId) { ${templateFields} } }`, { templateId });

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
-import { Input } from "@identitycore/ui";
+import { Search, SlidersHorizontal } from "lucide-react";
+import { Button, Input } from "@identitycore/ui";
+import { downloadCsv } from "@/lib/export-csv";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { fetchTemplateRecords, type TemplateRecord } from "@/features/templates/live-data";
@@ -13,6 +14,11 @@ export function TemplatesListPage() {
   const [templates, setTemplates] = useState<TemplateRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const loadTemplates = async () => {
+    setLoading(true); setError(null);
+    try { setTemplates(await fetchTemplateRecords()); } catch (loadError) { setError(loadError instanceof Error ? loadError.message : "Unable to load templates."); } finally { setLoading(false); }
+  };
 
   useEffect(() => {
     let active = true;
@@ -69,6 +75,12 @@ export function TemplatesListPage() {
         eyebrow="Official library"
         title="Global Templates"
         description="Manage official IdentityCore templates used by organizations for verification, compliance and identity workflows."
+        actions={
+          <>
+            <Button variant="outline" onClick={() => downloadCsv("templates.csv", templates.map((template) => ({ id: template.id, name: template.name, status: template.status, description: template.description })))}>Export</Button>
+            <CreateTemplateDialog onCreated={loadTemplates} />
+          </>
+        }
       />
 
       <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">

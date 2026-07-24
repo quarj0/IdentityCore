@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createTemplate } from "@/features/templates/live-data";
 import { Plus } from "lucide-react";
 import {
   Button,
@@ -21,10 +22,21 @@ import {
   Textarea,
 } from "@identitycore/ui";
 
-export function CreateTemplateDialog() {
+export function CreateTemplateDialog({ onCreated }: { onCreated?: () => void }) {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    setSubmitting(true); setError(null);
+    try {
+      await createTemplate({ name, description, category: category.replace(/-/g, "_") });
+      onCreated?.();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to create template."); }
+    finally { setSubmitting(false); }
+  }
 
   return (
     <Dialog>
@@ -82,10 +94,11 @@ export function CreateTemplateDialog() {
           </div>
         </div>
 
+        {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
         <DialogFooter>
           <Button variant="outline">Cancel</Button>
-          <Button disabled={!name.trim() || !category || !description.trim()}>
-            Create draft
+          <Button onClick={submit} disabled={submitting || !name.trim() || !category || !description.trim()}>
+            {submitting ? "Creating…" : "Create draft"}
           </Button>
         </DialogFooter>
       </DialogContent>
