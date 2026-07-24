@@ -540,7 +540,7 @@ export function LiveVerificationFlow({
         <StepCard
           eyebrow="Step 4 of 5"
           title="Confirm you are present"
-          description="Complete a short, randomized movement challenge using a live video."
+          description="Use the standard presence check, or complete a stronger live-video movement challenge."
         >
           <div className="rounded-3xl border border-blue-100 bg-blue-50/60 p-6 text-center">
             <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white text-blue-700 shadow-sm">
@@ -551,9 +551,21 @@ export function LiveVerificationFlow({
               Your challenge is single-use and must be completed in one short video.
             </p>
             {!livenessChallenge ? (
-              <Button className="mt-5" disabled={busy} onClick={() => run(async () => setLivenessChallenge(await createLivenessChallenge(credentials)), { title: "Challenge ready", message: "Follow the two on-screen movements while recording." })}>
-                <ScanFace className="h-4 w-4" />Get live challenge
-              </Button>
+              <div className="mt-5 flex flex-col justify-center gap-3 sm:flex-row">
+                <Button
+                  disabled={!status.evidence.selfie_capture_id || busy}
+                  onClick={() => run(() => submitLiveness(credentials, status.evidence.selfie_capture_id), { title: "Presence check submitted", message: "Your selfie is being checked." })}
+                >
+                  <ScanFace className="h-4 w-4" />Start presence check
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => run(async () => setLivenessChallenge(await createLivenessChallenge(credentials)), { title: "Challenge ready", message: "Follow the two on-screen movements while recording." })}
+                >
+                  Use live video challenge
+                </Button>
+              </div>
             ) : (
               <div className="mt-5 space-y-4">
                 <p className="font-semibold text-slate-900">{livenessChallenge.actions.map((action) => action.replace("_", " ")).join(" → ")}</p>
