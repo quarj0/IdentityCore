@@ -171,7 +171,7 @@ export function acceptConsent(credentials: SessionCredentials) {
 
 export async function createUpload(
   credentials: SessionCredentials,
-  purpose: "document_capture" | "selfie_capture",
+  purpose: "document_capture" | "selfie_capture" | "liveness_capture",
   file: File,
 ) {
   const upload = await request<{
@@ -255,13 +255,13 @@ export function submitDocument(
   });
 }
 
-export function submitSelfie(credentials: SessionCredentials, uploadId: string) {
+export function submitSelfie(credentials: SessionCredentials, uploadId: string, captureType: "image" | "video" = "image") {
   return request<{ selfie_capture_id: string }>(
     credentials,
     `/sessions/${credentials.sessionId}/selfies`,
     {
       method: "POST",
-      body: JSON.stringify({ capture_type: "image", upload_id: uploadId }),
+      body: JSON.stringify({ capture_type: captureType, upload_id: uploadId }),
     },
   );
 }
@@ -269,12 +269,22 @@ export function submitSelfie(credentials: SessionCredentials, uploadId: string) 
 export function submitLiveness(
   credentials: SessionCredentials,
   selfieCaptureId: string,
+  input: { livenessType?: "passive" | "active"; challengeId?: string } = {},
 ) {
   return request(credentials, `/sessions/${credentials.sessionId}/liveness`, {
     method: "POST",
     body: JSON.stringify({
-      liveness_type: "passive",
+      liveness_type: input.livenessType ?? "passive",
       selfie_capture_id: selfieCaptureId,
+      ...(input.challengeId ? { challenge_id: input.challengeId } : {}),
     }),
   });
+}
+
+export function createLivenessChallenge(credentials: SessionCredentials) {
+  return request<{ challenge_id: string; actions: string[]; expires_at: string }>(
+    credentials,
+    `/sessions/${credentials.sessionId}/liveness/challenge`,
+    { method: "POST", body: "{}" },
+  );
 }

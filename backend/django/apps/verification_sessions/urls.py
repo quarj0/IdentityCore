@@ -5,6 +5,7 @@ from apps.verification_sessions.views import (
     VerificationSessionDetailView,
     VerificationSessionDocumentView,
     VerificationSessionLivenessView,
+    VerificationSessionLivenessChallengeView,
     VerificationSessionSelfieView,
     VerificationSessionStatusView,
     VerificationMobileHandoffCreateView,
@@ -34,6 +35,11 @@ urlpatterns = [
         "<str:session_id>/liveness",
         VerificationSessionLivenessView.as_view(),
         name="verification-session-liveness",
+    ),
+    path(
+        "<str:session_id>/liveness/challenge",
+        VerificationSessionLivenessChallengeView.as_view(),
+        name="verification-session-liveness-challenge",
     ),
     path(
         "<str:session_id>/status",

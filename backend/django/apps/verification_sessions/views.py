@@ -16,6 +16,7 @@ from apps.webhooks.services import queue_webhook_events
 from apps.verification_sessions.serializers import (
     VerificationSessionConsentSerializer,
     VerificationSessionDocumentSerializer,
+    VerificationSessionLivenessChallengeSerializer,
     VerificationSessionLivenessSerializer,
     VerificationSessionSelfieSerializer,
     serialize_verification_session,
@@ -282,6 +283,33 @@ class VerificationSessionLivenessView(VerificationSessionBaseView):
             {
                 "liveness_check_id": liveness_check.public_id,
                 "status": "processing",
+            },
+            request=request,
+        )
+
+
+class VerificationSessionLivenessChallengeView(VerificationSessionBaseView):
+    def post(self, request, session_id: str):
+        self._touch_session(request)
+        serializer = VerificationSessionLivenessChallengeSerializer(
+            data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        challenge = serializer.save()
+        record_audit_event(
+            tenant=request.tenant,
+            actor=request.verification_session.verification.verification_subject,
+            request=request,
+            action="liveness.challenge_issued",
+            target_type="verification_session",
+            target_id=request.verification_session.public_id,
+            metadata={"challenge_id": challenge.public_id, "expires_at": challenge.expires_at.isoformat()},
+        )
+        return success_response(
+            {
+                "challenge_id": challenge.public_id,
+                "actions": challenge.actions,
+                "expires_at": challenge.expires_at.isoformat(),
             },
             request=request,
         )

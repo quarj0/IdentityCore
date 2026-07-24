@@ -36,7 +36,7 @@ from common.storage import (
 @shared_task(queue="ai_processing")
 def process_verification_biometrics_task(liveness_check_id: str) -> str:
     liveness_check = LivenessCheck.objects.select_related(
-        "verification", "selfie_capture", "tenant"
+        "verification", "selfie_capture", "tenant", "challenge"
     ).get(public_id=liveness_check_id)
     verification = liveness_check.verification
     selfie_capture = liveness_check.selfie_capture
@@ -65,6 +65,11 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             selfie_storage_key=selfie_capture.storage_key,
             liveness_type=liveness_check.liveness_type,
             selfie_storage_bucket=temp_bucket,
+            challenge_actions=(
+                liveness_check.challenge.actions
+                if liveness_check.challenge_id
+                else None
+            ),
         )
         liveness_check.status = (
             LivenessCheckStatus.PASSED
