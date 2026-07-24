@@ -7,6 +7,7 @@ import {
   buildPlatformAdminConfig,
   fetchPlatformAdminRecord,
 } from "@/features/users/live-data";
+import { DisableAdminDialog } from "@/features/users/components/disable-admin-dialog";
 
 type AdminDetailPageProps = {
   userId: string;
@@ -15,6 +16,9 @@ type AdminDetailPageProps = {
 export function AdminDetailPage({ userId }: AdminDetailPageProps) {
   const [config, setConfig] =
     useState<ReturnType<typeof buildPlatformAdminConfig> | null>(null);
+  const [refreshToken, setRefreshToken] = useState(0);
+  const [adminName, setAdminName] = useState("");
+  const [adminStatus, setAdminStatus] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -24,13 +28,15 @@ export function AdminDetailPage({ userId }: AdminDetailPageProps) {
       if (!active || !user) return;
 
       setConfig(buildPlatformAdminConfig([adminUserToAdminRecord(user)]));
+      setAdminName([user.firstName, user.lastName].filter(Boolean).join(" ") || user.email);
+      setAdminStatus(user.status);
     }
 
     void load();
     return () => {
       active = false;
     };
-  }, [userId]);
+  }, [userId, refreshToken]);
 
   const resolvedConfig = useMemo(() => config, [config]);
 
@@ -38,5 +44,18 @@ export function AdminDetailPage({ userId }: AdminDetailPageProps) {
     return null;
   }
 
-  return <ModuleDetailPage id={userId} config={resolvedConfig} />;
+  return (
+    <div className="space-y-4">
+      {adminStatus === "active" ? (
+        <div className="flex justify-end">
+          <DisableAdminDialog
+            adminName={adminName}
+            userId={userId}
+            onDeactivated={() => setRefreshToken((value) => value + 1)}
+          />
+        </div>
+      ) : null}
+      <ModuleDetailPage id={userId} config={resolvedConfig} />
+    </div>
+  );
 }

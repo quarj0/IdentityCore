@@ -6,7 +6,6 @@ import { Button, Input } from "@identitycore/ui";
 import { downloadCsv } from "@/lib/export-csv";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
-import { CreateTemplateDialog } from "@/features/templates/forms/create-template-dialog";
 import { fetchTemplateRecords, type TemplateRecord } from "@/features/templates/live-data";
 import { TemplatesTable } from "@/features/templates/tables/templates-table";
 
@@ -100,15 +99,6 @@ export function TemplatesListPage() {
             />
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline">Status</Button>
-            <Button variant="outline">Category</Button>
-            <Button variant="outline">Country</Button>
-            <Button variant="outline">
-              <SlidersHorizontal className="mr-2 size-4" aria-hidden="true" />
-              More filters
-            </Button>
-          </div>
         </div>
       </section>
 
