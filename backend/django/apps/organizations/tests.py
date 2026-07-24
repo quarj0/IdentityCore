@@ -117,6 +117,32 @@ class OrganizationSupportingDocumentTests(APITestCase):
             "https://assets.example.com/public/organizations/org_01TEST/verification/certificate.pdf",
         )
 
+    @override_settings(
+        OBJECT_STORAGE_ENFORCE_SERVER_SIDE_ENCRYPTION=True,
+        OBJECT_STORAGE_SERVER_SIDE_ENCRYPTION="AES256",
+    )
+    def test_document_upload_includes_headers_required_by_signed_upload(self):
+        self.client.force_authenticate(self.user)
+
+        response = self.client.post(
+            "/api/v1/organization/me/verification-documents/upload/",
+            {
+                "filename": "registration.pdf",
+                "mime_type": "application/pdf",
+                "file_size_bytes": 12345,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(
+            response.data["data"]["upload_headers"],
+            {
+                "Content-Type": "application/pdf",
+                "x-amz-server-side-encryption": "AES256",
+            },
+        )
+
 
 class OrganizationOnboardingEmailTests(APITestCase):
     def setUp(self):
