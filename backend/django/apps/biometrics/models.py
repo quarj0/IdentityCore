@@ -71,6 +71,32 @@ class LivenessCheckStatus(models.TextChoices):
     ERROR = "error", "Error"
 
 
+class LivenessChallenge(PublicIdModel, BaseModel):
+    """A single-use, server-issued challenge for an active liveness capture."""
+
+    public_id_prefix = "lch"
+
+    tenant = models.ForeignKey(
+        "tenants.Tenant", on_delete=models.PROTECT, related_name="liveness_challenges"
+    )
+    verification = models.ForeignKey(
+        "verifications.Verification",
+        on_delete=models.PROTECT,
+        related_name="liveness_challenges",
+    )
+    verification_session = models.ForeignKey(
+        "verifications.VerificationSession",
+        on_delete=models.PROTECT,
+        related_name="liveness_challenges",
+    )
+    actions = models.JSONField(default=list)
+    expires_at = models.DateTimeField(db_index=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
 class LivenessCheck(PublicIdModel, BaseModel):
     public_id_prefix = "liv"
 
@@ -88,6 +114,13 @@ class LivenessCheck(PublicIdModel, BaseModel):
         SelfieCapture,
         on_delete=models.PROTECT,
         related_name="liveness_checks",
+    )
+    challenge = models.ForeignKey(
+        LivenessChallenge,
+        on_delete=models.PROTECT,
+        related_name="liveness_checks",
+        null=True,
+        blank=True,
     )
     provider_check_id = models.CharField(max_length=64, blank=True)
     liveness_type = models.CharField(max_length=16, choices=LivenessType.choices)

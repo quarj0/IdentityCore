@@ -1,3 +1,6 @@
+from datetime import timedelta
+import secrets
+
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -6,6 +9,7 @@ from apps.biometrics.models import (
     FaceMatchStatus,
     LivenessCheck,
     LivenessCheckStatus,
+    LivenessChallenge,
     LivenessType,
     SelfieCapture,
     SelfieCaptureStatus,
@@ -556,6 +560,7 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
 class VerificationSessionLivenessSerializer(serializers.Serializer):
     liveness_type = serializers.ChoiceField(choices=LivenessType.choices)
     selfie_capture_id = serializers.CharField(max_length=64)
+    challenge_id = serializers.CharField(max_length=64, required=False)
 
     def validate(self, attrs):
         request = self.context["request"]
@@ -582,7 +587,35 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
                 }
             ) from exc
 
+        challenge = None
+        if attrs["liveness_type"] == LivenessType.ACTIVE:
+            challenge_id = attrs.get("challenge_id")
+            if not challenge_id:
+                raise serializers.ValidationError(
+                    {"challenge_id": "An active liveness challenge is required."}
+                )
+            try:
+                challenge = LivenessChallenge.objects.get(
+                    public_id=challenge_id,
+                    verification=verification,
+                    verification_session=request.verification_session,
+                    deleted_at__isnull=True,
+                )
+            except LivenessChallenge.DoesNotExist as exc:
+                raise serializers.ValidationError(
+                    {"challenge_id": "Liveness challenge was not found for this session."}
+                ) from exc
+            if challenge.completed_at is not None:
+                raise serializers.ValidationError({"challenge_id": "Liveness challenge was already used."})
+            if challenge.expires_at <= timezone.now():
+                raise serializers.ValidationError({"challenge_id": "Liveness challenge has expired."})
+            if selfie_capture.capture_type != SelfieCaptureType.VIDEO:
+                raise serializers.ValidationError(
+                    {"selfie_capture_id": "Active liveness requires a video capture."}
+                )
+
         attrs["selfie_capture"] = selfie_capture
+        attrs["challenge"] = challenge
         attrs["existing_liveness_check"] = (
             verification.liveness_checks.filter(
                 selfie_capture=selfie_capture,
@@ -621,10 +654,15 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
             tenant=verification.tenant,
             verification=verification,
             selfie_capture=self.validated_data["selfie_capture"],
+            challenge=self.validated_data.get("challenge"),
             liveness_type=self.validated_data["liveness_type"],
             status=LivenessCheckStatus.INCONCLUSIVE,
             checked_at=now,
         )
+        if self.validated_data.get("challenge") is not None:
+            challenge = self.validated_data["challenge"]
+            challenge.completed_at = now
+            challenge.save(update_fields=["completed_at", "updated_at"])
         liveness_provider_check = create_provider_check(
             verification=verification,
             check_type=ProviderCheckType.LIVENESS,
@@ -678,3 +716,25 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
         verification_session.last_seen_at = now
         verification_session.save(update_fields=["last_seen_at", "updated_at"])
         return liveness_check
+
+
+class VerificationSessionLivenessChallengeSerializer(serializers.Serializer):
+    """Issue a short-lived randomized directional challenge for a video capture."""
+
+    def create(self, validated_data):
+        request = self.context["request"]
+        verification_session = request.verification_session
+        now = timezone.now()
+        actions = list(secrets.SystemRandom().sample(
+            ["turn_left", "turn_right", "look_up", "look_down"], k=2
+        ))
+        return LivenessChallenge.objects.create(
+            tenant=verification_session.tenant,
+            verification=verification_session.verification,
+            verification_session=verification_session,
+            actions=actions,
+            expires_at=min(
+                verification_session.expires_at,
+                now + timedelta(minutes=3),
+            ),
+        )

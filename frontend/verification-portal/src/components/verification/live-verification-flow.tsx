@@ -21,6 +21,7 @@ import {
   clearSessionCredentials,
   consumeSessionCredentials,
   createMobileHandoff,
+  createLivenessChallenge,
   createUpload,
   fetchVerificationSession,
   fetchVerificationStatus,
@@ -56,6 +57,8 @@ export function LiveVerificationFlow({
   const [session, setSession] = useState<VerificationSession | null>(null);
   const [status, setStatus] = useState<VerificationStatus | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [activeLivenessFile, setActiveLivenessFile] = useState<File | null>(null);
+  const [livenessChallenge, setLivenessChallenge] = useState<{ challenge_id: string; actions: string[] } | null>(null);
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
   const [selectedDocumentType, setSelectedDocumentType] = useState("");
   const [consented, setConsented] = useState(false);
@@ -537,31 +540,39 @@ export function LiveVerificationFlow({
         <StepCard
           eyebrow="Step 4 of 5"
           title="Confirm you are present"
-          description="A passive liveness check evaluates the live selfie for presence signals. It does not search for your face in an identity database."
+          description="Use the standard presence check, or complete a stronger live-video movement challenge."
         >
           <div className="rounded-3xl border border-blue-100 bg-blue-50/60 p-6 text-center">
             <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white text-blue-700 shadow-sm">
               <ScanFace className="h-8 w-8" aria-hidden="true" />
             </span>
-            <h3 className="mt-4 text-base font-semibold text-slate-950">Ready for the presence check</h3>
+            <h3 className="mt-4 text-base font-semibold text-slate-950">Complete your live challenge</h3>
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-              This uses the selfie you just reviewed. No additional gesture is required.
+              Your challenge is single-use and must be completed in one short video.
             </p>
-            <Button
-              className="mt-5"
-              disabled={!status.evidence.selfie_capture_id || busy}
-              onClick={() =>
-                run(() =>
-                  submitLiveness(
-                    credentials,
-                    status.evidence.selfie_capture_id,
-                  ),
-                )
-              }
-            >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanFace className="h-4 w-4" />}
-              Start presence check
-            </Button>
+            {!livenessChallenge ? (
+              <div className="mt-5 flex flex-col justify-center gap-3 sm:flex-row">
+                <Button
+                  disabled={!status.evidence.selfie_capture_id || busy}
+                  onClick={() => run(() => submitLiveness(credentials, status.evidence.selfie_capture_id), { title: "Presence check submitted", message: "Your selfie is being checked." })}
+                >
+                  <ScanFace className="h-4 w-4" />Start presence check
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => run(async () => setLivenessChallenge(await createLivenessChallenge(credentials)), { title: "Challenge ready", message: "Follow the two on-screen movements while recording." })}
+                >
+                  Use live video challenge
+                </Button>
+              </div>
+            ) : (
+              <div className="mt-5 space-y-4">
+                <p className="font-semibold text-slate-900">{livenessChallenge.actions.map((action) => action.replace("_", " ")).join(" → ")}</p>
+                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-2 text-sm font-medium text-white"><ScanFace className="h-4 w-4" />Record or select challenge video<input className="sr-only" type="file" accept="video/mp4,video/webm,video/quicktime" capture="user" onChange={(event) => setActiveLivenessFile(event.target.files?.[0] ?? null)} /></label>
+                {activeLivenessFile ? <Button disabled={busy} onClick={() => run(async () => { const uploadId = await createUpload(credentials, "liveness_capture", activeLivenessFile); const capture = await submitSelfie(credentials, uploadId, "video"); await submitLiveness(credentials, capture.selfie_capture_id, { livenessType: "active", challengeId: livenessChallenge.challenge_id }); }, { title: "Liveness submitted", message: "Your live challenge is being checked.", busyMessage: "Uploading and checking your video…" })}>Submit live video</Button> : null}
+              </div>
+            )}
           </div>
         </StepCard>
       ) : null}
