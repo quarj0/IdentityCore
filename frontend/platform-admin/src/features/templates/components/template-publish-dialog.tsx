@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { publishTemplate } from "@/features/templates/live-data";
 import { UploadCloud } from "lucide-react";
 import {
   Button,
@@ -17,10 +18,15 @@ import {
 
 type TemplatePublishDialogProps = {
   templateName: string;
+  templateId: string;
+  onComplete?: () => void;
 };
 
-export function TemplatePublishDialog({ templateName }: TemplatePublishDialogProps) {
+export function TemplatePublishDialog({ templateName, templateId, onComplete }: TemplatePublishDialogProps) {
   const [notes, setNotes] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const submit = async () => { setSubmitting(true); setError(null); try { await publishTemplate(templateId); onComplete?.(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to publish template."); } finally { setSubmitting(false); } };
 
   return (
     <Dialog>
@@ -49,9 +55,10 @@ export function TemplatePublishDialog({ templateName }: TemplatePublishDialogPro
           />
         </div>
 
+        {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
         <DialogFooter>
           <Button variant="outline">Cancel</Button>
-          <Button disabled={!notes.trim()}>Publish template</Button>
+          <Button onClick={submit} disabled={submitting || !notes.trim()}>{submitting ? "Publishing…" : "Publish template"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

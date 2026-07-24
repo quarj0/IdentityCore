@@ -62,7 +62,7 @@ function normalizeSupportingDocuments(
   return (documents ?? []).map((document, index) => {
     if (typeof document === "string") {
       return {
-        id: document || `document-${index}`,
+        id: `${document || "document"}-${index}`,
         filename: document || `Document ${index + 1}`,
         status: "uploaded",
         file_size_bytes: undefined,
@@ -71,7 +71,7 @@ function normalizeSupportingDocuments(
     }
 
     return {
-      id: asString(document.id) || `document-${index}`,
+      id: `${asString(document.id) || "document"}-${index}`,
       filename: asString(document.filename) || `Document ${index + 1}`,
       status: asString(document.status) || "uploaded",
       file_size_bytes:

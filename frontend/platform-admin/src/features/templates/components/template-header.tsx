@@ -1,4 +1,4 @@
-import { Button } from "@identitycore/ui";
+import { EditTemplateDialog } from "@/features/templates/forms/edit-template-dialog";
 import { CloneTemplateDialog } from "@/features/templates/forms/clone-template-dialog";
 import { TemplateArchiveDialog } from "@/features/templates/components/template-archive-dialog";
 import { TemplatePublishDialog } from "@/features/templates/components/template-publish-dialog";
@@ -7,9 +7,10 @@ import type { TemplateRecord } from "@/features/templates/live-data";
 
 type TemplateHeaderProps = {
   template: TemplateRecord;
+  onChanged?: () => void;
 };
 
-export function TemplateHeader({ template }: TemplateHeaderProps) {
+export function TemplateHeader({ template, onChanged }: TemplateHeaderProps) {
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -46,12 +47,12 @@ export function TemplateHeader({ template }: TemplateHeaderProps) {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline">Edit draft</Button>
-          <CloneTemplateDialog templateName={template.name} />
+          <EditTemplateDialog template={template} onComplete={onChanged} />
+          <CloneTemplateDialog templateName={template.name} templateId={template.id} onComplete={onChanged} />
           {template.status !== "published" ? (
-            <TemplatePublishDialog templateName={template.name} />
+            <TemplatePublishDialog templateName={template.name} templateId={template.id} onComplete={onChanged} />
           ) : (
-            <TemplateArchiveDialog templateName={template.name} />
+            <TemplateArchiveDialog templateName={template.name} templateId={template.id} onComplete={onChanged} />
           )}
         </div>
       </div>

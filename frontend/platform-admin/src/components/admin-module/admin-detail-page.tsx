@@ -110,14 +110,14 @@ export function AdminDetailPage({ id, config }: AdminDetailPageProps) {
               description={section.description}
             >
               <div className="space-y-3">
-                {section.items.map((item) => (
+                {section.items.map((item, itemIndex) => (
                   <div
-                    key={item.label}
+                    key={`${section.title}-${item.label}-${itemIndex}`}
                     className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
                   >
                     <p className="text-sm text-slate-500">{item.label}</p>
                     <p className="mt-2 text-sm font-medium leading-6 text-slate-950">
-                      {item.value}
+                      {item.value.startsWith("http") ? <a className="text-blue-700 underline" href={item.value} target="_blank" rel="noreferrer">Open document</a> : item.value}
                     </p>
                   </div>
                 ))}
