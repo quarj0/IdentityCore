@@ -1,16 +1,14 @@
 from rest_framework import serializers
 from django.utils import timezone
-from django.conf import settings
 
 from apps.organizations.models import Organization, OrganizationSupportingDocument
-from common.storage import build_public_asset_url, build_signed_upload_url, get_object_storage_public_bucket_name
+from common.storage import build_public_asset_url
 from pathlib import Path
 import secrets
 from apps.organizations.services import (
     ORGANIZATION_BRANDING_SEGMENTS,
     build_organization_branding_upload,
 )
-from common.storage import build_public_asset_url
 
 
 def serialize_organization(organization: Organization) -> dict:
@@ -125,16 +123,7 @@ class OrganizationDocumentUploadSerializer(serializers.Serializer):
             organization=organization, tenant=user.tenant, uploaded_by=user,
             storage_key=key, status="initiated", **validated_data,
         )
-        upload_headers = {"Content-Type": "application/pdf"}
-        if getattr(settings, "OBJECT_STORAGE_ENFORCE_SERVER_SIDE_ENCRYPTION", True):
-            encryption = getattr(
-                settings, "OBJECT_STORAGE_SERVER_SIDE_ENCRYPTION", ""
-            ).strip()
-            if encryption:
-                upload_headers["x-amz-server-side-encryption"] = encryption
         return {"document_id": document.public_id, "filename": document.filename,
                 "file_size_bytes": document.file_size_bytes, "status": document.status,
                 "storage_key": key, "download_url": build_public_asset_url(key),
-                "upload_headers": upload_headers,
-                "upload_url": build_signed_upload_url(
-                    storage_key=key, mime_type="application/pdf", bucket_name=get_object_storage_public_bucket_name())}
+                "upload_url": f"/organization/me/verification-documents/{document.public_id}/content/"}

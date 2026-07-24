@@ -1,3 +1,5 @@
+from unittest.mock import ANY, patch
+
 from django.test import TestCase
 from django.urls import reverse
 from django.test import override_settings
@@ -117,11 +119,8 @@ class OrganizationSupportingDocumentTests(APITestCase):
             "https://assets.example.com/public/organizations/org_01TEST/verification/certificate.pdf",
         )
 
-    @override_settings(
-        OBJECT_STORAGE_ENFORCE_SERVER_SIDE_ENCRYPTION=True,
-        OBJECT_STORAGE_SERVER_SIDE_ENCRYPTION="AES256",
-    )
-    def test_document_upload_includes_headers_required_by_signed_upload(self):
+    @patch("apps.organizations.views.put_object_bytes")
+    def test_document_content_upload_is_proxied_through_the_api(self, mock_put_object):
         self.client.force_authenticate(self.user)
 
         response = self.client.post(
@@ -135,12 +134,29 @@ class OrganizationSupportingDocumentTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        document_id = response.data["data"]["document_id"]
         self.assertEqual(
-            response.data["data"]["upload_headers"],
-            {
-                "Content-Type": "application/pdf",
-                "x-amz-server-side-encryption": "AES256",
-            },
+            response.data["data"]["upload_url"],
+            f"/organization/me/verification-documents/{document_id}/content/",
+        )
+
+        content = b"%PDF-1.7\n"
+        document = OrganizationSupportingDocument.objects.get(public_id=document_id)
+        document.file_size_bytes = len(content)
+        document.save(update_fields=["file_size_bytes"])
+
+        content_response = self.client.put(
+            reverse("organization-document-content-upload", args=[document_id]),
+            content,
+            content_type="application/pdf",
+        )
+
+        self.assertEqual(content_response.status_code, status.HTTP_200_OK)
+        mock_put_object.assert_called_once_with(
+            bucket_name=ANY,
+            key=document.storage_key,
+            content=content,
+            content_type="application/pdf",
         )
 
 

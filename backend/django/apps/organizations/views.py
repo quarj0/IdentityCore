@@ -12,12 +12,16 @@ from apps.organizations.serializers import (
 )
 from apps.organizations.services import update_organization_branding_settings
 from common.permissions import IsTenantUser
-from common.responses import success_response
+from common.responses import error_response, success_response
 from apps.audit.services import record_audit_event
 from apps.organizations.models import OrganizationStatus, OrganizationSupportingDocument
 from apps.tenants.models import TenantStatus
 from apps.verifications.models import VerificationSessionStatus
-from common.storage import delete_object, get_object_storage_public_bucket_name
+from common.storage import (
+    delete_object,
+    get_object_storage_public_bucket_name,
+    put_object_bytes,
+)
 from rest_framework_simplejwt.token_blacklist.models import (
     OutstandingToken,
     BlacklistedToken,
@@ -96,6 +100,50 @@ class OrganizationDocumentUploadCompleteView(APIView):
         document.save(update_fields=["status", "updated_at"])
         return success_response(
             {"document_id": document.public_id, "status": document.status},
+            request=request,
+        )
+
+
+class OrganizationDocumentContentUploadView(APIView):
+    """Store organization evidence through the API to avoid browser-to-R2 CORS."""
+
+    permission_classes = [IsAuthenticated, IsTenantUser]
+
+    def put(self, request, document_id):
+        document = get_object_or_404(
+            OrganizationSupportingDocument.objects,
+            public_id=document_id,
+            tenant=request.user.tenant,
+            organization=request.user.tenant.organization,
+            status="initiated",
+            deleted_at__isnull=True,
+        )
+        content_type = (request.content_type or "").split(";", maxsplit=1)[0].lower()
+        content = request.body
+
+        if content_type != "application/pdf":
+            return error_response(
+                "unsupported_media_type",
+                "Supporting documents must be uploaded as PDFs.",
+                request=request,
+                status=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            )
+        if not content or len(content) != document.file_size_bytes:
+            return error_response(
+                "invalid_upload_size",
+                "The uploaded document does not match the expected file size.",
+                request=request,
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        put_object_bytes(
+            bucket_name=get_object_storage_public_bucket_name(),
+            key=document.storage_key,
+            content=content,
+            content_type=document.mime_type,
+        )
+        return success_response(
+            {"document_id": document.public_id, "status": "stored"},
             request=request,
         )
 
