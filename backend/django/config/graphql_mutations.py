@@ -60,6 +60,11 @@ from apps.verifications.models import (
 )
 from apps.verifications.review_access import manual_review_queryset_for_user
 from apps.tenants.models import Tenant
+from apps.projects.models import Project
+from apps.templates.models import Template, TemplateStatus, TemplateCategory
+from apps.templates.serializers import serialize_template
+from apps.workflows.models import Workflow, WorkflowStatus, WorkflowVersion
+from apps.verification_policies.models import VerificationPolicy, VerificationPolicyStatus
 from apps.verifications.serializers import (
     ManualReviewDecisionSerializer,
     VerificationCreateSerializer,
@@ -98,6 +103,9 @@ from config.graphql_types import (
     ProviderRegistrationInput,
     ProviderNode,
     to_onboarding_node,
+    TemplateNode,
+    WorkflowNode,
+    WorkflowVersionNode,
 )
 
 
@@ -106,6 +114,127 @@ logger = logging.getLogger(__name__)
 
 @strawberry.type
 class Mutation:
+
+    def _template_node(self, template: Template) -> TemplateNode:
+        return TemplateNode(**serialize_template(template))
+
+    def _workflow_node(self, workflow: Workflow) -> WorkflowNode:
+        return WorkflowNode(
+            id=workflow.public_id, tenant_id=workflow.tenant.public_id,
+            project_id=workflow.project.public_id, project_name=workflow.project.name,
+            name=workflow.name, description=workflow.description, status=workflow.status,
+            steps=workflow.steps_json, settings=workflow.settings_json,
+            current_version=workflow.current_version, created_by_id=workflow.created_by.public_id,
+            created_by_email=workflow.created_by.email, created_at=workflow.created_at.isoformat(),
+            updated_at=workflow.updated_at.isoformat(),
+        )
+
+    @strawberry.mutation
+    def create_platform_template(self, info: Info, name: str, description: str, category: str, countries: list[str] | None = None, required_checks: list[str] | None = None, owner_team: str = "", risk_level: str = "") -> TemplateNode:
+        actor = require_platform_admin(info)
+        if category not in TemplateCategory.values or not name.strip() or not description.strip():
+            raise GraphQLError("A name, description, and valid category are required.")
+        template = Template.objects.create(name=name.strip(), description=description.strip(), category=category, status=TemplateStatus.DRAFT, version="1.0", countries_json=countries or [], required_checks_json=required_checks or [], owner_team=owner_team.strip(), risk_level=risk_level.strip(), created_by=actor)
+        record_audit_event(actor=actor, request=info.context["request"], action="template.created", target_type="template", target_id=template.public_id)
+        return self._template_node(template)
+
+    @strawberry.mutation
+    def update_platform_template(self, info: Info, template_id: str, name: str | None = None, description: str | None = None, category: str | None = None, countries: list[str] | None = None, required_checks: list[str] | None = None, owner_team: str | None = None, risk_level: str | None = None) -> TemplateNode:
+        actor = require_platform_admin(info)
+        template = get_object_or_404(Template, public_id=template_id)
+        if template.status == TemplateStatus.ARCHIVED:
+            raise GraphQLError("Archived templates cannot be edited.")
+        if category is not None and category not in TemplateCategory.values:
+            raise GraphQLError("Choose a valid template category.")
+        for field, value in {"name": name.strip() if name else None, "description": description.strip() if description else None, "category": category, "countries_json": countries, "required_checks_json": required_checks, "owner_team": owner_team.strip() if owner_team is not None else None, "risk_level": risk_level.strip() if risk_level is not None else None}.items():
+            if value is not None: setattr(template, field, value)
+        template.save()
+        record_audit_event(actor=actor, request=info.context["request"], action="template.updated", target_type="template", target_id=template.public_id)
+        return self._template_node(template)
+
+    @strawberry.mutation
+    def clone_platform_template(self, info: Info, template_id: str, name: str) -> TemplateNode:
+        actor = require_platform_admin(info); source = get_object_or_404(Template, public_id=template_id)
+        if not name.strip(): raise GraphQLError("A clone name is required.")
+        clone = Template.objects.create(name=name.strip(), description=source.description, category=source.category, status=TemplateStatus.DRAFT, version="1.0", countries_json=source.countries_json, required_checks_json=source.required_checks_json, owner_team=source.owner_team, risk_level=source.risk_level, created_by=actor)
+        record_audit_event(actor=actor, request=info.context["request"], action="template.cloned", target_type="template", target_id=clone.public_id, metadata={"source_id": source.public_id})
+        return self._template_node(clone)
+
+    @strawberry.mutation
+    def publish_platform_template(self, info: Info, template_id: str) -> TemplateNode:
+        actor = require_platform_admin(info); template = get_object_or_404(Template, public_id=template_id)
+        if not template.required_checks_json: raise GraphQLError("Add at least one required check before publishing.")
+        template.status = TemplateStatus.PUBLISHED; template.save(update_fields=["status", "updated_at"])
+        record_audit_event(actor=actor, request=info.context["request"], action="template.published", target_type="template", target_id=template.public_id)
+        return self._template_node(template)
+
+    @strawberry.mutation
+    def archive_platform_template(self, info: Info, template_id: str) -> TemplateNode:
+        actor = require_platform_admin(info); template = get_object_or_404(Template, public_id=template_id)
+        template.status = TemplateStatus.ARCHIVED; template.save(update_fields=["status", "updated_at"])
+        record_audit_event(actor=actor, request=info.context["request"], action="template.archived", target_type="template", target_id=template.public_id)
+        return self._template_node(template)
+
+    @strawberry.mutation
+    def create_platform_workflow(self, info: Info, tenant_id: str, project_id: str, name: str, description: str = "", steps: list[strawberry.scalars.JSON] | None = None, settings: strawberry.scalars.JSON | None = None) -> WorkflowNode:
+        actor = require_platform_admin(info); tenant = get_object_or_404(Tenant, public_id=tenant_id); project = get_object_or_404(Project, public_id=project_id)
+        if project.tenant_id != tenant.id or not name.strip(): raise GraphQLError("Choose a project in the selected tenant and provide a name.")
+        workflow = Workflow.objects.create(tenant=tenant, project=project, name=name.strip(), description=description.strip(), steps_json=steps or [], settings_json=settings or {}, created_by=actor)
+        record_audit_event(tenant=tenant, actor=actor, request=info.context["request"], action="workflow.created", target_type="workflow", target_id=workflow.public_id)
+        return self._workflow_node(workflow)
+
+    @strawberry.mutation
+    def update_platform_workflow(self, info: Info, workflow_id: str, name: str | None = None, description: str | None = None, steps: list[strawberry.scalars.JSON] | None = None, settings: strawberry.scalars.JSON | None = None) -> WorkflowNode:
+        actor = require_platform_admin(info); workflow = get_object_or_404(Workflow.objects.select_related("tenant", "project", "created_by"), public_id=workflow_id)
+        if workflow.status == WorkflowStatus.ARCHIVED: raise GraphQLError("Archived workflows cannot be edited.")
+        if name is not None: workflow.name = name.strip()
+        if description is not None: workflow.description = description.strip()
+        if steps is not None: workflow.steps_json = steps
+        if settings is not None: workflow.settings_json = settings
+        workflow.save(); record_audit_event(tenant=workflow.tenant, actor=actor, request=info.context["request"], action="workflow.updated", target_type="workflow", target_id=workflow.public_id)
+        return self._workflow_node(workflow)
+
+    @strawberry.mutation
+    def publish_platform_workflow(self, info: Info, workflow_id: str) -> WorkflowVersionNode:
+        actor = require_platform_admin(info)
+        workflow = get_object_or_404(
+            Workflow.objects.select_related("tenant", "project", "created_by"),
+            public_id=workflow_id,
+        )
+        if not workflow.steps_json:
+            raise GraphQLError("Add at least one workflow step before publishing.")
+        version = workflow.current_version + 1
+        policy = VerificationPolicy.objects.create(
+            tenant=workflow.tenant, project=workflow.project,
+            name=f"{workflow.name} workflow policy", version=version,
+            status=VerificationPolicyStatus.ACTIVE, created_by=actor,
+        )
+        workflow_version = WorkflowVersion.objects.create(
+            workflow=workflow, version=version, steps_json=workflow.steps_json,
+            settings_json=workflow.settings_json, policy=policy, published_by=actor,
+        )
+        workflow.current_version = version
+        workflow.status = WorkflowStatus.PUBLISHED
+        workflow.save(update_fields=["current_version", "status", "updated_at"])
+        record_audit_event(
+            tenant=workflow.tenant, actor=actor, request=info.context["request"],
+            action="workflow.published", target_type="workflow", target_id=workflow.public_id,
+            metadata={"version": version, "policy_id": policy.public_id},
+        )
+        return WorkflowVersionNode(
+            id=workflow_version.public_id, workflow_id=workflow.public_id,
+            workflow_name=workflow.name, version=version, steps=workflow.steps_json,
+            settings=workflow.settings_json, policy_id=policy.public_id, policy_name=policy.name,
+            published_by_id=actor.public_id, published_by_email=actor.email,
+            published_at=workflow_version.published_at.isoformat(),
+        )
+
+    @strawberry.mutation
+    def archive_platform_workflow(self, info: Info, workflow_id: str) -> WorkflowNode:
+        actor = require_platform_admin(info); workflow = get_object_or_404(Workflow.objects.select_related("tenant", "project", "created_by"), public_id=workflow_id)
+        workflow.status = WorkflowStatus.ARCHIVED; workflow.save(update_fields=["status", "updated_at"]); record_audit_event(tenant=workflow.tenant, actor=actor, request=info.context["request"], action="workflow.archived", target_type="workflow", target_id=workflow.public_id)
+        return self._workflow_node(workflow)
+
     @strawberry.mutation
     def create_administrator_onboarding_verification(
         self, info: Info, reason: str = ""

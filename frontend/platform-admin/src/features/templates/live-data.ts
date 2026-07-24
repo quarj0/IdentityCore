@@ -151,3 +151,15 @@ export function buildTemplateConfig(records: AdminRecord[]): AdminModuleConfig {
     ],
   };
 }
+
+export async function createTemplate(input: { name: string; description: string; category: string }) {
+  const data = await graphqlRequest<{ createPlatformTemplate: TemplateRecord }>(
+    `mutation CreatePlatformTemplate($name: String!, $description: String!, $category: String!) {
+      createPlatformTemplate(name: $name, description: $description, category: $category) {
+        id name description category status version countries requiredChecks usageCount
+        clonedByOrganizations ownerTeam riskLevel createdById createdByEmail createdAt updatedAt
+      }
+    }`, input,
+  );
+  return data.createPlatformTemplate;
+}

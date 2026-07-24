@@ -15,6 +15,11 @@ export function TemplatesListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const loadTemplates = async () => {
+    setLoading(true); setError(null);
+    try { setTemplates(await fetchTemplateRecords()); } catch (loadError) { setError(loadError instanceof Error ? loadError.message : "Unable to load templates."); } finally { setLoading(false); }
+  };
+
   useEffect(() => {
     let active = true;
     async function load() {
@@ -73,7 +78,7 @@ export function TemplatesListPage() {
         actions={
           <>
             <Button variant="outline">Export</Button>
-            <CreateTemplateDialog />
+            <CreateTemplateDialog onCreated={loadTemplates} />
           </>
         }
       />
