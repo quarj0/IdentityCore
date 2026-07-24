@@ -10,9 +10,25 @@ def require_trusted_cookie_origin(request) -> None:
         raise PermissionDenied("Untrusted request origin.")
 
 
-def set_refresh_cookie(response, refresh_token: str) -> None:
+SESSION_SCOPE_HEADER = "X-IdentityCore-Session-Scope"
+SESSION_SCOPE_COOKIE_SUFFIXES = {
+    "dashboard": "dashboard",
+    "platform_admin": "platform_admin",
+}
+
+
+def get_refresh_cookie_name(request) -> str:
+    """Return a first-party app-specific refresh cookie name when requested."""
+    scope = request.headers.get(SESSION_SCOPE_HEADER, "")
+    suffix = SESSION_SCOPE_COOKIE_SUFFIXES.get(scope)
+    if not suffix:
+        return settings.AUTH_REFRESH_COOKIE_NAME
+    return f"{settings.AUTH_REFRESH_COOKIE_NAME}_{suffix}"
+
+
+def set_refresh_cookie(response, refresh_token: str, *, cookie_name: str | None = None) -> None:
     response.set_cookie(
-        settings.AUTH_REFRESH_COOKIE_NAME,
+        cookie_name or settings.AUTH_REFRESH_COOKIE_NAME,
         refresh_token,
         httponly=True,
         secure=settings.AUTH_REFRESH_COOKIE_SECURE,
@@ -23,9 +39,9 @@ def set_refresh_cookie(response, refresh_token: str) -> None:
     )
 
 
-def clear_refresh_cookie(response) -> None:
+def clear_refresh_cookie(response, *, cookie_name: str | None = None) -> None:
     response.delete_cookie(
-        settings.AUTH_REFRESH_COOKIE_NAME,
+        cookie_name or settings.AUTH_REFRESH_COOKIE_NAME,
         domain=settings.AUTH_REFRESH_COOKIE_DOMAIN,
         path=settings.AUTH_REFRESH_COOKIE_PATH,
         samesite=settings.AUTH_REFRESH_COOKIE_SAMESITE,

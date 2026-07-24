@@ -8,6 +8,7 @@ const client = createIdentityCoreClient({
   apiOrigin: getBackendOrigin(),
   getAccessToken,
   setAccessToken,
+  sessionScope: "platform_admin",
 });
 
 export type PlatformUser = {

@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from apps.biometrics.models import SelfieCapture
 from common.permissions import IsTenantUser
 from common.responses import success_response
-from common.storage import build_signed_download_url
+from common.storage import build_signed_download_url, get_object_storage_media_bucket_name
 
 
 class SelfieCaptureDownloadURLView(APIView):
@@ -21,7 +21,8 @@ class SelfieCaptureDownloadURLView(APIView):
             {
                 "id": selfie_capture.public_id,
                 "download_url": build_signed_download_url(
-                    storage_key=selfie_capture.storage_key
+                    storage_key=selfie_capture.storage_key,
+                    bucket_name=get_object_storage_media_bucket_name(),
                 ),
                 "expires_in_seconds": 300,
             },

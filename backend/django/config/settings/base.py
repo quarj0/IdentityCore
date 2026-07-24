@@ -57,7 +57,7 @@ CORS_ALLOWED_ORIGINS = env_list(
 )
 CORS_ALLOW_HEADERS = env_list(
     "DJANGO_CORS_ALLOW_HEADERS",
-    "Accept,Authorization,Content-Type,X-Requested-With,X-Session-Id,X-Device-Fingerprint,X-Request-Id",
+    "Accept,Authorization,Content-Type,X-Requested-With,X-Session-Id,X-Device-Fingerprint,X-Request-Id,X-IdentityCore-Session-Scope",
 )
 CORS_ALLOW_METHODS = env_list(
     "DJANGO_CORS_ALLOW_METHODS",

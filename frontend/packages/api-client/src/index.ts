@@ -23,19 +23,31 @@ export function createIdentityCoreClient({
   apiOrigin,
   getAccessToken = () => null,
   setAccessToken = () => undefined,
+  sessionScope,
 }: {
   apiOrigin: string;
   getAccessToken?: () => string | null;
   setAccessToken?: (token: string | null) => void;
+  /** Keeps refresh sessions isolated when multiple first-party apps share an API origin. */
+  sessionScope?: "dashboard" | "platform_admin";
 }) {
   const origin = apiOrigin.replace(/\/$/, "");
   let refreshInFlight: Promise<{ tokens: { access: string } }> | null = null;
+
+  function authHeaders() {
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    };
+    if (sessionScope) headers["X-IdentityCore-Session-Scope"] = sessionScope;
+    return headers;
+  }
 
   function refreshAccessToken() {
     if (!refreshInFlight) {
       refreshInFlight = fetch(`${origin}/api/v1/auth/refresh`, {
         method: "POST", credentials: "include",
-        headers: { Accept: "application/json", "Content-Type": "application/json" },
+        headers: authHeaders(),
       }).then((response) => parse<{ tokens: { access: string } }>(response))
         .then((data) => { setAccessToken(data.tokens.access); return data; })
         .finally(() => { refreshInFlight = null; });
@@ -73,6 +85,7 @@ export function createIdentityCoreClient({
   async function rest<T>(path: string, init: RequestInit = {}) {
     const headers = new Headers(init.headers);
     headers.set("Accept", "application/json");
+    if (sessionScope) headers.set("X-IdentityCore-Session-Scope", sessionScope);
     if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
     const token = getAccessToken();
     if (token) headers.set("Authorization", `Bearer ${token}`);
