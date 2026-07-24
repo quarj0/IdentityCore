@@ -6,11 +6,19 @@ import { ShieldCheck } from "lucide-react";
 import { cn } from "@identitycore/ui";
 import { platformNavItems } from "@/components/navigation/platform-nav-items";
 
-export function PlatformSidebar() {
+type PlatformSidebarProps = {
+  mobile?: boolean;
+  onNavigate?: () => void;
+};
+
+export function PlatformSidebar({ mobile = false, onNavigate }: PlatformSidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-slate-200 bg-white/95 px-4 py-5 backdrop-blur lg:block">
+    <aside className={cn(
+      "fixed inset-y-0 left-0 z-40 w-72 overflow-y-auto border-r border-slate-200 bg-white/95 px-4 py-5 backdrop-blur",
+      mobile ? "block lg:hidden" : "hidden lg:block",
+    )}>
       <Link href="/" className="flex items-center gap-3 px-2">
         <div className="flex size-10 items-center justify-center rounded-2xl bg-cyan-400/10 text-orange-500 ring-1 ring-orange-300/30">
           <ShieldCheck className="size-5" aria-hidden="true" />
@@ -33,6 +41,7 @@ export function PlatformSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={cn(
                 "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium outline-none transition",
                 "focus-visible:ring-2 focus-visible:ring-cyan-300",

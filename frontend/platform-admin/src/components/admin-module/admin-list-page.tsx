@@ -6,10 +6,10 @@ import { Button, Input } from "@identitycore/ui";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { AdminRecordTable } from "@/components/admin-module/admin-record-table";
-import type { AdminListConfig } from "@/components/admin-module/admin-module-types";
+import type { AdminListPageConfig } from "@/components/admin-module/admin-module-types";
 
 type AdminListPageProps = {
-  config: AdminListConfig;
+  config: AdminListPageConfig;
 };
 
 export function AdminListPage({ config }: AdminListPageProps) {
@@ -54,10 +54,7 @@ export function AdminListPage({ config }: AdminListPageProps) {
         title={config.listTitle}
         description={config.listDescription}
         actions={
-          <>
-            <Button variant="outline">{config.exportLabel}</Button>
-            <Button>{config.createLabel}</Button>
-          </>
+          config.headerActions
         }
       />
 
