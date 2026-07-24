@@ -353,9 +353,17 @@ class Mutation:
     ) -> AuthUserNode:
         actor = require_platform_admin(info)
         request = info.context["request"]
+        if actor.public_id == user_id:
+            raise GraphQLError("You cannot deactivate your own platform administrator account.")
         user = get_object_or_404(
             PlatformUser, public_id=user_id, is_platform_admin=True
         )
+        if user.status != PlatformUserStatus.ACTIVE:
+            raise GraphQLError("This platform administrator is already inactive.")
+        if PlatformUser.objects.filter(
+            is_platform_admin=True, status=PlatformUserStatus.ACTIVE
+        ).count() <= 1:
+            raise GraphQLError("The final active platform administrator cannot be deactivated.")
         user.status = PlatformUserStatus.INACTIVE
         user.save(update_fields=["status", "updated_at"])
         if getattr(actor, "tenant_id", None) is not None:
