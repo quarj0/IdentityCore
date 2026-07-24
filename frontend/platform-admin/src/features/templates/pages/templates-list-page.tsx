@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search } from "lucide-react";
 import { Button, Input } from "@identitycore/ui";
 import { downloadCsv } from "@/lib/export-csv";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { CreateTemplateDialog } from "@/features/templates/forms/create-template-dialog";
 import { fetchTemplateRecords, type TemplateRecord } from "@/features/templates/live-data";
 import { TemplatesTable } from "@/features/templates/tables/templates-table";
 
