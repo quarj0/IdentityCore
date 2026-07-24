@@ -61,5 +61,8 @@ def api_exception_handler(exc, context):
     response.data = error_payload(code, message, details=details, request=request)
     if getattr(exc, "clear_refresh_cookie", False):
         from apps.accounts.cookies import clear_refresh_cookie
-        clear_refresh_cookie(response)
+        clear_refresh_cookie(
+            response,
+            cookie_name=getattr(exc, "refresh_cookie_name", None),
+        )
     return response

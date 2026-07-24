@@ -162,6 +162,39 @@ class AuthEndpointTests(APITestCase):
             first_cookie,
         )
 
+    def test_refresh_sessions_are_isolated_by_first_party_app(self):
+        dashboard_login = self.client.post(
+            reverse("auth-login"),
+            {"email": "user@example.com", "password": "StrongPassword123!"},
+            format="json",
+            HTTP_X_IDENTITYCORE_SESSION_SCOPE="dashboard",
+        )
+        platform_login = self.client.post(
+            reverse("auth-login"),
+            {"email": "user@example.com", "password": "StrongPassword123!"},
+            format="json",
+            HTTP_X_IDENTITYCORE_SESSION_SCOPE="platform_admin",
+        )
+
+        self.assertIn("identitycore_refresh_dashboard", dashboard_login.cookies)
+        self.assertIn("identitycore_refresh_platform_admin", platform_login.cookies)
+
+        dashboard_refresh = self.client.post(
+            reverse("auth-refresh"),
+            {},
+            format="json",
+            HTTP_X_IDENTITYCORE_SESSION_SCOPE="dashboard",
+        )
+        platform_refresh = self.client.post(
+            reverse("auth-refresh"),
+            {},
+            format="json",
+            HTTP_X_IDENTITYCORE_SESSION_SCOPE="platform_admin",
+        )
+
+        self.assertEqual(dashboard_refresh.status_code, status.HTTP_200_OK)
+        self.assertEqual(platform_refresh.status_code, status.HTTP_200_OK)
+
     def test_refresh_rejects_untrusted_cookie_origin(self):
         self.client.post(
             reverse("auth-login"),

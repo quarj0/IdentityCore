@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search } from "lucide-react";
 import { Button, Input } from "@identitycore/ui";
 import { downloadCsv } from "@/lib/export-csv";
 import { EmptyState } from "@/components/feedback/empty-state";
@@ -10,6 +10,7 @@ import {
   fetchWorkflowRecords,
   type WorkflowRecord,
 } from "@/features/workflows/live-data";
+import { CreateWorkflowDialog } from "@/features/workflows/forms/create-workflow-dialog";
 import { WorkflowsTable } from "@/features/workflows/tables/workflows-table";
 
 export function WorkflowsListPage() {

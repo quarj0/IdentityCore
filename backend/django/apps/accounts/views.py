@@ -1,7 +1,6 @@
 import hashlib
 import secrets
 from datetime import timedelta
-from django.conf import settings
 from django.utils import timezone
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import status
@@ -25,6 +24,7 @@ from apps.accounts.serializers import (
 )
 from apps.accounts.cookies import (
     clear_refresh_cookie,
+    get_refresh_cookie_name,
     require_trusted_cookie_origin,
     set_refresh_cookie,
 )
@@ -58,7 +58,11 @@ class LoginView(APIView):
             request=request,
             status=status.HTTP_200_OK,
         )
-        set_refresh_cookie(response, serializer.validated_data["tokens"]["refresh"])
+        set_refresh_cookie(
+            response,
+            serializer.validated_data["tokens"]["refresh"],
+            cookie_name=get_refresh_cookie_name(request),
+        )
         return response
 
 
@@ -68,7 +72,8 @@ class RefreshView(APIView):
 
     def post(self, request):
         require_trusted_cookie_origin(request)
-        refresh_token = request.COOKIES.get(settings.AUTH_REFRESH_COOKIE_NAME, "")
+        cookie_name = get_refresh_cookie_name(request)
+        refresh_token = request.COOKIES.get(cookie_name, "")
         serializer = RefreshInputSerializer(data={"refresh": refresh_token})
         try:
             serializer.is_valid(raise_exception=True)
@@ -77,6 +82,7 @@ class RefreshView(APIView):
             # consistently converting it to a DRF authentication response.
             auth_error = AuthenticationFailed("Your session has expired. Please sign in again.")
             auth_error.clear_refresh_cookie = True
+            auth_error.refresh_cookie_name = cookie_name
             raise auth_error from exc
         response = success_response(
             {"tokens": {"access": serializer.validated_data["access"]}},
@@ -85,7 +91,7 @@ class RefreshView(APIView):
         )
         rotated_refresh = serializer.validated_data.get("refresh")
         if rotated_refresh:
-            set_refresh_cookie(response, rotated_refresh)
+            set_refresh_cookie(response, rotated_refresh, cookie_name=cookie_name)
         return response
 
 
@@ -95,7 +101,8 @@ class LogoutView(APIView):
 
     def post(self, request):
         require_trusted_cookie_origin(request)
-        raw_token = request.COOKIES.get(settings.AUTH_REFRESH_COOKIE_NAME, "")
+        cookie_name = get_refresh_cookie_name(request)
+        raw_token = request.COOKIES.get(cookie_name, "")
         if raw_token:
             try:
                 RefreshToken(raw_token).blacklist()
@@ -104,7 +111,7 @@ class LogoutView(APIView):
         response = success_response(
             {"logged_out": True}, request=request, status=status.HTTP_200_OK
         )
-        clear_refresh_cookie(response)
+        clear_refresh_cookie(response, cookie_name=cookie_name)
         return response
 
 
