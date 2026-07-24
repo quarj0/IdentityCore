@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { Button, Input } from "@identitycore/ui";
+import { downloadCsv } from "@/lib/export-csv";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { CreateTemplateDialog } from "@/features/templates/forms/create-template-dialog";
@@ -77,7 +78,7 @@ export function TemplatesListPage() {
         description="Manage official IdentityCore templates used by organizations for verification, compliance and identity workflows."
         actions={
           <>
-            <Button variant="outline">Export</Button>
+            <Button variant="outline" onClick={() => downloadCsv("templates.csv", templates.map((template) => ({ id: template.id, name: template.name, status: template.status, description: template.description })))}>Export</Button>
             <CreateTemplateDialog onCreated={loadTemplates} />
           </>
         }

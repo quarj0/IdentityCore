@@ -206,3 +206,15 @@ export const publishWorkflow = (workflowId: string) =>
   graphqlRequest(`mutation PublishWorkflow($workflowId: String!) { publishPlatformWorkflow(workflowId: $workflowId) { id version } }`, { workflowId });
 export const archiveWorkflow = (workflowId: string) =>
   runWorkflowMutation(`mutation ArchiveWorkflow($workflowId: String!) { workflow: archivePlatformWorkflow(workflowId: $workflowId) { ${workflowFields} } }`, { workflowId });
+
+export async function createWorkflow(input: { tenantId: string; projectId: string; name: string; description: string }) {
+  const data = await graphqlRequest<{ workflow: WorkflowRecord }>(
+    `mutation CreateWorkflow($tenantId: String!, $projectId: String!, $name: String!, $description: String!) {
+      workflow: createPlatformWorkflow(tenantId: $tenantId, projectId: $projectId, name: $name, description: $description) { ${workflowFields} }
+    }`, input,
+  );
+  return data.workflow;
+}
+
+export const updateWorkflow = (workflowId: string, input: { name: string; description: string }) =>
+  runWorkflowMutation(`mutation UpdateWorkflow($workflowId: String!, $name: String!, $description: String!) { workflow: updatePlatformWorkflow(workflowId: $workflowId, name: $name, description: $description) { ${workflowFields} } }`, { workflowId, ...input });

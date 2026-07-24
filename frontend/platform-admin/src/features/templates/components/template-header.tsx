@@ -1,4 +1,4 @@
-import { Button } from "@identitycore/ui";
+import { EditTemplateDialog } from "@/features/templates/forms/edit-template-dialog";
 import { CloneTemplateDialog } from "@/features/templates/forms/clone-template-dialog";
 import { TemplateArchiveDialog } from "@/features/templates/components/template-archive-dialog";
 import { TemplatePublishDialog } from "@/features/templates/components/template-publish-dialog";
@@ -47,7 +47,7 @@ export function TemplateHeader({ template, onChanged }: TemplateHeaderProps) {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline">Edit draft</Button>
+          <EditTemplateDialog template={template} onComplete={onChanged} />
           <CloneTemplateDialog templateName={template.name} templateId={template.id} onComplete={onChanged} />
           {template.status !== "published" ? (
             <TemplatePublishDialog templateName={template.name} templateId={template.id} onComplete={onChanged} />
