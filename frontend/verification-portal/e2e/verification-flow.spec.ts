@@ -13,6 +13,25 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   let step = "consent";
   let uploadNumber = 0;
 
+  await page.addInitScript(() => {
+    class MockMediaRecorder {
+      static isTypeSupported() { return true; }
+      state = "inactive";
+      ondataavailable: ((event: { data: Blob }) => void) | null = null;
+      onstop: (() => void) | null = null;
+      start() { this.state = "recording"; }
+      stop() {
+        this.state = "inactive";
+        this.ondataavailable?.({ data: new Blob(["live-video"], { type: "video/webm" }) });
+        this.onstop?.();
+      }
+    }
+    Object.defineProperty(window, "MediaRecorder", { value: MockMediaRecorder });
+    Object.defineProperty(navigator, "mediaDevices", {
+      value: { getUserMedia: async () => new MediaStream() },
+    });
+  });
+
   await page.route("http://localhost:8000/api/v1/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -117,6 +136,17 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     }
 
     if (
+      path === `/api/v1/sessions/${sessionId}/liveness/challenge` &&
+      method === "POST"
+    ) {
+      return json(route, {
+        challenge_id: "lch_1",
+        actions: ["turn_left", "look_up"],
+        expires_at: new Date(Date.now() + 60_000).toISOString(),
+      });
+    }
+
+    if (
       path === `/api/v1/sessions/${sessionId}/liveness` &&
       method === "POST"
     ) {
@@ -159,8 +189,12 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   await page.getByRole("button", { name: "Submit selfie" }).click();
 
   await expect(page.getByText("Selfie received")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Confirm you are present" })).toBeVisible();
-  await page.getByRole("button", { name: "Start presence check" }).click();
+  await expect(page.getByRole("heading", { name: "Complete a live camera check" })).toBeVisible();
+  await page.getByRole("button", { name: "Begin live camera check" }).click();
+  await page.getByRole("button", { name: "Enable camera" }).click();
+  await page.getByRole("button", { name: "Start live challenge" }).click();
+  await expect(page.getByRole("button", { name: "Submit live check" })).toBeVisible({ timeout: 10_000 });
+  await page.getByRole("button", { name: "Submit live check" }).click();
 
   await expect(page.getByRole("heading", { name: "Submitted for review" })).toBeVisible();
   await expect(page.getByText("requires additional review")).toBeVisible();

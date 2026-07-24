@@ -7,7 +7,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
-from apps.biometrics.models import FaceMatch, LivenessCheck, SelfieCapture
+from apps.biometrics.models import FaceMatch, LivenessChallenge, LivenessCheck, SelfieCapture
 from apps.consent.models import ConsentRecord, ConsentTemplate, ConsentTemplateStatus
 from apps.document_captures.models import DocumentCapture
 from apps.identity_documents.models import IdentityDocument
@@ -499,8 +499,8 @@ class VerificationSessionPortalTests(APITestCase):
             verification_subject=self.subject,
             storage_key="uploads/selfies/upl_01JSELFIE",
             storage_provider="local",
-            capture_type="image",
-            mime_type="image/jpeg",
+            capture_type="video",
+            mime_type="video/webm",
             file_size_bytes=0,
             checksum_sha256="",
             face_count=1,
@@ -513,12 +513,23 @@ class VerificationSessionPortalTests(APITestCase):
             update_fields=["status", "metadata_json", "updated_at"]
         )
 
+        challenge = LivenessChallenge.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_session=self.session,
+            actions=["turn_left", "look_up"],
+            expires_at=timezone.now() + timedelta(minutes=3),
+        )
         response = self.client.post(
             reverse(
                 "verification-session-liveness",
                 kwargs={"session_id": self.session.public_id},
             ),
-            {"liveness_type": "passive", "selfie_capture_id": selfie_capture.public_id},
+            {
+                "liveness_type": "active",
+                "selfie_capture_id": selfie_capture.public_id,
+                "challenge_id": challenge.public_id,
+            },
             format="json",
             **self.session_headers(),
         )
@@ -529,7 +540,7 @@ class VerificationSessionPortalTests(APITestCase):
             public_id=response.data["data"]["liveness_check_id"]
         )
         self.assertEqual(liveness_check.selfie_capture, selfie_capture)
-        self.assertEqual(liveness_check.liveness_type, "passive")
+        self.assertEqual(liveness_check.liveness_type, "active")
         self.assertEqual(liveness_check.status, "inconclusive")
         self.assertTrue(liveness_check.provider_check_id.startswith("pck_"))
         face_match = FaceMatch.objects.get(
@@ -569,7 +580,11 @@ class VerificationSessionPortalTests(APITestCase):
                 "verification-session-liveness",
                 kwargs={"session_id": self.session.public_id},
             ),
-            {"liveness_type": "passive", "selfie_capture_id": selfie_capture.public_id},
+            {
+                "liveness_type": "active",
+                "selfie_capture_id": selfie_capture.public_id,
+                "challenge_id": challenge.public_id,
+            },
             format="json",
             **self.session_headers(),
         )
@@ -875,14 +890,38 @@ class VerificationSessionPortalTests(APITestCase):
             **self.session_headers(),
         )
         self.assertEqual(selfie_response.status_code, status.HTTP_200_OK)
-        selfie_id = selfie_response.data["data"]["selfie_capture_id"]
-
+        liveness_upload = self.create_upload(
+            purpose=UploadPurpose.LIVENESS_CAPTURE,
+            suffix="GOLDENLIVENESS",
+            mime_type="video/webm",
+        )
+        liveness_selfie_response = self.client.post(
+            reverse(
+                "verification-session-selfies",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            {"capture_type": "video", "upload_id": liveness_upload.public_id},
+            format="json",
+            **self.session_headers(),
+        )
+        self.assertEqual(liveness_selfie_response.status_code, status.HTTP_200_OK)
+        challenge = LivenessChallenge.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_session=self.session,
+            actions=["turn_left", "look_up"],
+            expires_at=timezone.now() + timedelta(minutes=3),
+        )
         liveness_response = self.client.post(
             reverse(
                 "verification-session-liveness",
                 kwargs={"session_id": self.session.public_id},
             ),
-            {"liveness_type": "passive", "selfie_capture_id": selfie_id},
+            {
+                "liveness_type": "active",
+                "selfie_capture_id": liveness_selfie_response.data["data"]["selfie_capture_id"],
+                "challenge_id": challenge.public_id,
+            },
             format="json",
             **self.session_headers(),
         )
