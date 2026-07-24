@@ -10,6 +10,36 @@ const client = createIdentityCoreClient({
   setAccessToken,
 });
 
+export type PlatformUser = {
+  email: string;
+  first_name: string;
+  last_name: string;
+  is_platform_admin: boolean;
+};
+
+export async function getCurrentPlatformUser() {
+  const response = await client.me<PlatformUser>();
+  return response.user;
+}
+
+export async function loginPlatformAdmin(email: string, password: string) {
+  const response = await client.login(email.trim(), password);
+  const user = response.user as PlatformUser;
+  if (!user.is_platform_admin) {
+    await client.logout();
+    throw new IdentityCoreApiError(
+      "This account is not authorized for Platform Admin.",
+      "platform_access_required",
+      403,
+    );
+  }
+  return user;
+}
+
+export async function logoutPlatformAdmin() {
+  await client.logout();
+}
+
 type GraphqlResponse<T> = {
   data?: T;
   errors?: Array<{ message: string }>;

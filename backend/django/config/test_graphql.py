@@ -1545,6 +1545,23 @@ class PlatformAdminGraphQLTests(APITestCase):
         self.assertEqual(invite_payload["invitation"]["status"], "pending")
         self.assertTrue(invite_payload["debugAcceptToken"])
 
+        duplicate_invite_response = self.post_graphql(
+            """
+                mutation InvitePlatformAdmin($email: String!, $roleName: String!) {
+                  invitePlatformAdmin(email: $email, roleName: $roleName) {
+                    invitation { id }
+                  }
+                }
+            """,
+            {"email": "new-admin@example.com", "roleName": "Platform Admin"},
+            token=self.platform_access_token,
+        )
+        self.assertEqual(duplicate_invite_response.status_code, status.HTTP_200_OK)
+        self.assertIn(
+            "pending invitation already exists",
+            duplicate_invite_response.json()["errors"][0]["message"],
+        )
+
         accept_response = self.post_graphql(
             """
                 mutation AcceptPlatformAdminInvitation($token: String!, $password: String!) {

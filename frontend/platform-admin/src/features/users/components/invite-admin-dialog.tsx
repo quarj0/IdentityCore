@@ -19,10 +19,33 @@ import {
   SelectValue,
 } from "@identitycore/ui";
 import { UserPlus } from "lucide-react";
+import { invitePlatformAdmin } from "@/features/users/live-data";
 
-export function InviteAdminDialog() {
+type InviteAdminDialogProps = {
+  onInvited: () => void;
+};
+
+export function InviteAdminDialog({ onInvited }: InviteAdminDialogProps) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function submit() {
+    setIsSubmitting(true);
+    setMessage(null);
+    try {
+      await invitePlatformAdmin(email, role);
+      setMessage(`Invitation sent to ${email.trim()}.`);
+      setEmail("");
+      setRole("");
+      onInvited();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to send invitation.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <Dialog>
@@ -72,11 +95,14 @@ export function InviteAdminDialog() {
               </SelectContent>
             </Select>
           </div>
+          {message ? <p className="text-sm text-slate-600" role="status">{message}</p> : null}
         </div>
 
         <DialogFooter>
           <Button variant="outline">Cancel</Button>
-          <Button disabled={!email.trim() || !role}>Send invite</Button>
+          <Button disabled={!email.trim() || !role || isSubmitting} onClick={submit}>
+            {isSubmitting ? "Sending…" : "Send invite"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
