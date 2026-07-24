@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -73,6 +74,7 @@ def serialize_verification(verification: Verification, request=None) -> dict:
         else None
     )
     decision_record = getattr(verification, "decision_record", None)
+    latest_identity_document = verification.identity_documents.order_by("-created_at").first()
     return {
         "id": verification.public_id,
         "status": verification.status,
@@ -88,7 +90,13 @@ def serialize_verification(verification: Verification, request=None) -> dict:
             "full_name": verification.verification_subject.full_name,
         },
         "checks": {
-            "document": {"status": "pending"},
+            "document": {
+                "status": (
+                    latest_identity_document.status
+                    if latest_identity_document is not None
+                    else "pending"
+                )
+            },
             "liveness": {
                 "status": (
                     latest_liveness_check.status if latest_liveness_check else "pending"
@@ -342,40 +350,69 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
     reason_code = serializers.CharField(max_length=120)
     reason_detail = serializers.CharField(required=False, allow_blank=True)
 
+    @transaction.atomic
     def save(self, *, verification: Verification, decided_by):
-        now = timezone.now()
-        decision_record, _ = VerificationDecision.objects.update_or_create(
-            verification=verification,
-            defaults={
-                "tenant": verification.tenant,
-                "decision": self.validated_data["decision"],
-                "decision_type": VerificationDecisionType.MANUAL,
-                "reason_code": self.validated_data["reason_code"],
-                "reason_detail": self.validated_data["reason_detail"],
-                "evidence_summary_json": {
-                    "liveness_status": (
-                        verification.liveness_checks.order_by("-checked_at")
-                        .first()
-                        .status
-                        if verification.liveness_checks.exists()
-                        else "pending"
-                    ),
-                    "face_match_status": (
-                        verification.face_matches.order_by("-matched_at").first().status
-                        if verification.face_matches.exists()
-                        else "pending"
-                    ),
-                },
-                "decided_by": decided_by,
-                "decided_at": now,
-            },
+        verification = (
+            Verification.objects.select_for_update()
+            .select_related("verification_subject")
+            .get(pk=verification.pk)
         )
-        verification.status = self.validated_data["decision"]
-        if verification.status in {
+        terminal_statuses = {
             VerificationStatus.VERIFIED,
             VerificationStatus.REJECTED,
             VerificationStatus.FAILED,
-        }:
+            VerificationStatus.EXPIRED,
+            VerificationStatus.CANCELLED,
+        }
+        if verification.status in terminal_statuses or hasattr(
+            verification, "decision_record"
+        ):
+            raise serializers.ValidationError(
+                {"decision": "This verification already has a final outcome."}
+            )
+        if verification.status != VerificationStatus.MANUAL_REVIEW_REQUIRED:
+            raise serializers.ValidationError(
+                {"decision": "Only a verification awaiting manual review can be decided."}
+            )
+
+        reviewer_email = (getattr(decided_by, "email", "") or "").strip().lower()
+        subject_email = (
+            verification.verification_subject.email or ""
+        ).strip().lower()
+        if verification.created_by_id == getattr(decided_by, "pk", None) or (
+            reviewer_email and reviewer_email == subject_email
+        ):
+            raise serializers.ValidationError(
+                {"decision": "You cannot review your own verification."}
+            )
+
+        now = timezone.now()
+        decision_record = VerificationDecision.objects.create(
+            verification=verification,
+            tenant=verification.tenant,
+            decision=self.validated_data["decision"],
+            decision_type=VerificationDecisionType.MANUAL,
+            reason_code=self.validated_data["reason_code"],
+            reason_detail=self.validated_data["reason_detail"],
+            evidence_summary_json={
+                "liveness_status": (
+                    verification.liveness_checks.order_by("-checked_at")
+                    .first()
+                    .status
+                    if verification.liveness_checks.exists()
+                    else "pending"
+                ),
+                "face_match_status": (
+                    verification.face_matches.order_by("-matched_at").first().status
+                    if verification.face_matches.exists()
+                    else "pending"
+                ),
+            },
+            decided_by=decided_by,
+            decided_at=now,
+        )
+        verification.status = self.validated_data["decision"]
+        if verification.status in terminal_statuses:
             verification.completed_at = now
             verification.save(update_fields=["status", "completed_at", "updated_at"])
         else:
