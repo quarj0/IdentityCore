@@ -501,7 +501,10 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
                 }
             )
         latest_document = verification.identity_documents.order_by("-created_at").first()
-        if latest_document.status != IdentityDocumentStatus.PROCESSED:
+        if latest_document.status not in {
+            IdentityDocumentStatus.PROCESSED,
+            IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
+        }:
             raise serializers.ValidationError(
                 {
                     "detail": (
@@ -562,7 +565,10 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
         verification = request.verification_session.verification
 
         latest_document = verification.identity_documents.order_by("-created_at").first()
-        if latest_document is None or latest_document.status != IdentityDocumentStatus.PROCESSED:
+        if latest_document is None or latest_document.status not in {
+            IdentityDocumentStatus.PROCESSED,
+            IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
+        }:
             raise serializers.ValidationError(
                 {
                     "detail": (
