@@ -131,7 +131,7 @@ export async function createOrganizationDocumentUpload(file: File) {
   }
   if (file.size <= 0) throw new Error("The selected PDF is empty.");
   if (file.size > MAX_ORGANIZATION_DOCUMENT_BYTES) throw new Error("Each PDF must be 10 MB or smaller.");
-  const upload = await restRequest<{ document_id: string; filename: string; file_size_bytes: number; status: string; storage_key: string; upload_url: string; download_url: string }>(
+  const upload = await restRequest<{ document_id: string; filename: string; file_size_bytes: number; status: string; storage_key: string; upload_url: string; download_url: string; upload_headers: Record<string, string> }>(
     "/organization/me/verification-documents/upload/",
     { method: "POST", body: JSON.stringify({ filename: file.name, mime_type: file.type, file_size_bytes: file.size }) },
   );
@@ -142,7 +142,7 @@ export async function createOrganizationDocumentUpload(file: File) {
   try {
     response = await fetch(upload.upload_url, {
       method: "PUT",
-      headers: { "Content-Type": "application/pdf" },
+      headers: upload.upload_headers,
       body: file,
       signal: controller.signal,
     });

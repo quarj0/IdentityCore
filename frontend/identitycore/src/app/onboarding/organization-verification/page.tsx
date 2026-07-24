@@ -8,6 +8,7 @@ export default function OrganizationVerificationPage() {
       title="Verify your organization."
       description="Upload documents that prove your organization is legitimate before production access is approved."
       pathname="/onboarding/organization-verification"
+      hideNextNavigation
     >
       <OrganizationVerificationForm />
     </OnboardingPageShell>

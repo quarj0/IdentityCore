@@ -24,6 +24,7 @@ interface OnboardingPageShellProps {
   description: string;
   children: ReactNode;
   pathname: string;
+  hideNextNavigation?: boolean;
 }
 
 export function OnboardingPageShell({
@@ -32,6 +33,7 @@ export function OnboardingPageShell({
   description,
   children,
   pathname,
+  hideNextNavigation = false,
 }: OnboardingPageShellProps) {
   const currentIndex = getOnboardingStepIndex(pathname);
   const previousPath =
@@ -79,7 +81,7 @@ export function OnboardingPageShell({
                   </Link>
                 </Button>
 
-                {nextPath ? (
+                {nextPath && !hideNextNavigation ? (
                   <Button asChild className="rounded-xl">
                     <Link href={nextPath}>
                       Continue to next step
