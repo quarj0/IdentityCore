@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search, SlidersHorizontal } from "lucide-react";
-import { Button, Input } from "@identitycore/ui";
+import { Search } from "lucide-react";
+import { Input } from "@identitycore/ui";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
-import { CreateWorkflowDialog } from "@/features/workflows/forms/create-workflow-dialog";
 import {
   fetchWorkflowRecords,
   type WorkflowRecord,
@@ -80,12 +79,6 @@ export function WorkflowsListPage() {
         eyebrow="Official workflow library"
         title="Global Workflows"
         description="Manage official IdentityCore workflow blueprints that combine templates, provider routing, policies, risk checks and manual review."
-        actions={
-          <>
-            <Button variant="outline">Export</Button>
-            <CreateWorkflowDialog />
-          </>
-        }
       />
 
       <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -104,15 +97,6 @@ export function WorkflowsListPage() {
             />
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline">Status</Button>
-            <Button variant="outline">Category</Button>
-            <Button variant="outline">Country</Button>
-            <Button variant="outline">
-              <SlidersHorizontal className="mr-2 size-4" aria-hidden="true" />
-              More filters
-            </Button>
-          </div>
         </div>
       </section>
 

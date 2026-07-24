@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search, SlidersHorizontal } from "lucide-react";
-import { Button, Input } from "@identitycore/ui";
+import { Search } from "lucide-react";
+import { Input } from "@identitycore/ui";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
-import { CreateTemplateDialog } from "@/features/templates/forms/create-template-dialog";
 import { fetchTemplateRecords, type TemplateRecord } from "@/features/templates/live-data";
 import { TemplatesTable } from "@/features/templates/tables/templates-table";
 
@@ -70,12 +69,6 @@ export function TemplatesListPage() {
         eyebrow="Official library"
         title="Global Templates"
         description="Manage official IdentityCore templates used by organizations for verification, compliance and identity workflows."
-        actions={
-          <>
-            <Button variant="outline">Export</Button>
-            <CreateTemplateDialog />
-          </>
-        }
       />
 
       <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -94,15 +87,6 @@ export function TemplatesListPage() {
             />
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline">Status</Button>
-            <Button variant="outline">Category</Button>
-            <Button variant="outline">Country</Button>
-            <Button variant="outline">
-              <SlidersHorizontal className="mr-2 size-4" aria-hidden="true" />
-              More filters
-            </Button>
-          </div>
         </div>
       </section>
 

@@ -1,7 +1,3 @@
-import { Button } from "@identitycore/ui";
-import { CloneTemplateDialog } from "@/features/templates/forms/clone-template-dialog";
-import { TemplateArchiveDialog } from "@/features/templates/components/template-archive-dialog";
-import { TemplatePublishDialog } from "@/features/templates/components/template-publish-dialog";
 import { TemplateStatusPill } from "@/features/templates/components/template-status-pill";
 import type { TemplateRecord } from "@/features/templates/live-data";
 
@@ -45,15 +41,6 @@ export function TemplateHeader({ template }: TemplateHeaderProps) {
           </dl>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline">Edit draft</Button>
-          <CloneTemplateDialog templateName={template.name} />
-          {template.status !== "published" ? (
-            <TemplatePublishDialog templateName={template.name} />
-          ) : (
-            <TemplateArchiveDialog templateName={template.name} />
-          )}
-        </div>
       </div>
     </section>
   );

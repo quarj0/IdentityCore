@@ -1,7 +1,3 @@
-import { Button } from "@identitycore/ui";
-import { CloneWorkflowDialog } from "@/features/workflows/forms/clone-workflow-dialog";
-import { WorkflowArchiveDialog } from "@/features/workflows/components/workflow-archive-dialog";
-import { WorkflowPublishDialog } from "@/features/workflows/components/workflow-publish-dialog";
 import { WorkflowStatusPill } from "@/features/workflows/components/workflow-status-pill";
 import type { WorkflowRecord } from "@/features/workflows/live-data";
 
@@ -47,15 +43,6 @@ export function WorkflowHeader({ workflow }: WorkflowHeaderProps) {
           </dl>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline">Edit draft</Button>
-          <CloneWorkflowDialog workflowName={workflow.name} />
-          {workflow.status !== "published" ? (
-            <WorkflowPublishDialog workflowName={workflow.name} />
-          ) : (
-            <WorkflowArchiveDialog workflowName={workflow.name} />
-          )}
-        </div>
       </div>
     </section>
   );
