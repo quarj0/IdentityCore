@@ -270,7 +270,15 @@ class Mutation:
             "suspected_evidence_compromise",
         }
         normalized_reason = reason.strip()
-        if normalized_reason and normalized_reason not in allowed_reasons:
+        is_custom_reason = normalized_reason.startswith("custom:")
+        if is_custom_reason:
+            custom_reason = normalized_reason.removeprefix("custom:").strip()
+            if not custom_reason or len(custom_reason) > 500:
+                raise GraphQLError(
+                    "Provide a custom reverification reason of 500 characters or fewer."
+                )
+            normalized_reason = f"custom:{custom_reason}"
+        elif normalized_reason and normalized_reason not in allowed_reasons:
             raise GraphQLError("Choose a valid reason for reverification.")
 
         latest = (
