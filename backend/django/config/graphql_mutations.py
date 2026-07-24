@@ -184,6 +184,28 @@ class Mutation:
         return self._workflow_node(workflow)
 
     @strawberry.mutation
+    def clone_platform_workflow(self, info: Info, workflow_id: str, name: str) -> WorkflowNode:
+        actor = require_platform_admin(info)
+        source = get_object_or_404(
+            Workflow.objects.select_related("tenant", "project", "created_by"),
+            public_id=workflow_id,
+        )
+        if not name.strip():
+            raise GraphQLError("A clone name is required.")
+        clone = Workflow.objects.create(
+            tenant=source.tenant, project=source.project, name=name.strip(),
+            description=source.description, steps_json=source.steps_json,
+            settings_json=source.settings_json, status=WorkflowStatus.DRAFT,
+            created_by=actor,
+        )
+        record_audit_event(
+            tenant=clone.tenant, actor=actor, request=info.context["request"],
+            action="workflow.cloned", target_type="workflow", target_id=clone.public_id,
+            metadata={"source_id": source.public_id},
+        )
+        return self._workflow_node(clone)
+
+    @strawberry.mutation
     def update_platform_workflow(self, info: Info, workflow_id: str, name: str | None = None, description: str | None = None, steps: list[strawberry.scalars.JSON] | None = None, settings: strawberry.scalars.JSON | None = None) -> WorkflowNode:
         actor = require_platform_admin(info); workflow = get_object_or_404(Workflow.objects.select_related("tenant", "project", "created_by"), public_id=workflow_id)
         if workflow.status == WorkflowStatus.ARCHIVED: raise GraphQLError("Archived workflows cannot be edited.")

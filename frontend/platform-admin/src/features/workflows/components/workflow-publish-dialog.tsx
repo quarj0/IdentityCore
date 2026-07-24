@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { publishWorkflow } from "@/features/workflows/live-data";
 import { UploadCloud } from "lucide-react";
 import {
   Button,
@@ -17,10 +18,15 @@ import {
 
 type WorkflowPublishDialogProps = {
   workflowName: string;
+  workflowId: string;
+  onComplete?: () => void;
 };
 
-export function WorkflowPublishDialog({ workflowName }: WorkflowPublishDialogProps) {
+export function WorkflowPublishDialog({ workflowName, workflowId, onComplete }: WorkflowPublishDialogProps) {
   const [notes, setNotes] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const submit = async () => { setSubmitting(true); setError(null); try { await publishWorkflow(workflowId); onComplete?.(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to publish workflow."); } finally { setSubmitting(false); } };
 
   return (
     <Dialog>
@@ -49,9 +55,10 @@ export function WorkflowPublishDialog({ workflowName }: WorkflowPublishDialogPro
           />
         </div>
 
+        {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
         <DialogFooter>
           <Button variant="outline">Cancel</Button>
-          <Button disabled={!notes.trim()}>Publish workflow</Button>
+          <Button onClick={submit} disabled={submitting || !notes.trim()}>{submitting ? "Publishing…" : "Publish workflow"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

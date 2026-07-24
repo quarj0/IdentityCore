@@ -25,6 +25,7 @@ export function WorkflowDetailPage({ workflowId }: WorkflowDetailPageProps) {
   const [versions, setVersions] = useState<WorkflowVersionRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -56,7 +57,7 @@ export function WorkflowDetailPage({ workflowId }: WorkflowDetailPageProps) {
     return () => {
       active = false;
     };
-  }, [workflowId]);
+  }, [workflowId, reloadKey]);
 
   if (loading && !workflow) {
     return (
@@ -98,7 +99,7 @@ export function WorkflowDetailPage({ workflowId }: WorkflowDetailPageProps) {
         <span className="text-slate-700">{workflow.name}</span>
       </nav>
 
-      <WorkflowHeader workflow={workflow} />
+      <WorkflowHeader workflow={workflow} onChanged={() => setReloadKey((key) => key + 1)} />
 
       <div className="grid gap-4 xl:grid-cols-3">
         <div className="space-y-4 xl:col-span-2">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { cloneWorkflow } from "@/features/workflows/live-data";
 import { Copy } from "lucide-react";
 import {
   Button,
@@ -17,10 +18,15 @@ import {
 
 type CloneWorkflowDialogProps = {
   workflowName: string;
+  workflowId: string;
+  onComplete?: () => void;
 };
 
-export function CloneWorkflowDialog({ workflowName }: CloneWorkflowDialogProps) {
+export function CloneWorkflowDialog({ workflowName, workflowId, onComplete }: CloneWorkflowDialogProps) {
   const [name, setName] = useState(`${workflowName} Copy`);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const submit = async () => { setSubmitting(true); setError(null); try { await cloneWorkflow(workflowId, name); onComplete?.(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to clone workflow."); } finally { setSubmitting(false); } };
 
   return (
     <Dialog>
@@ -48,9 +54,10 @@ export function CloneWorkflowDialog({ workflowName }: CloneWorkflowDialogProps) 
           />
         </div>
 
+        {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
         <DialogFooter>
           <Button variant="outline">Cancel</Button>
-          <Button disabled={!name.trim()}>Clone workflow</Button>
+          <Button onClick={submit} disabled={submitting || !name.trim()}>{submitting ? "Cloning…" : "Clone workflow"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

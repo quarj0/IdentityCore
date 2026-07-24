@@ -7,9 +7,10 @@ import type { TemplateRecord } from "@/features/templates/live-data";
 
 type TemplateHeaderProps = {
   template: TemplateRecord;
+  onChanged?: () => void;
 };
 
-export function TemplateHeader({ template }: TemplateHeaderProps) {
+export function TemplateHeader({ template, onChanged }: TemplateHeaderProps) {
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -47,11 +48,11 @@ export function TemplateHeader({ template }: TemplateHeaderProps) {
 
         <div className="flex flex-wrap gap-2">
           <Button variant="outline">Edit draft</Button>
-          <CloneTemplateDialog templateName={template.name} />
+          <CloneTemplateDialog templateName={template.name} templateId={template.id} onComplete={onChanged} />
           {template.status !== "published" ? (
-            <TemplatePublishDialog templateName={template.name} />
+            <TemplatePublishDialog templateName={template.name} templateId={template.id} onComplete={onChanged} />
           ) : (
-            <TemplateArchiveDialog templateName={template.name} />
+            <TemplateArchiveDialog templateName={template.name} templateId={template.id} onComplete={onChanged} />
           )}
         </div>
       </div>

@@ -7,9 +7,10 @@ import type { WorkflowRecord } from "@/features/workflows/live-data";
 
 type WorkflowHeaderProps = {
   workflow: WorkflowRecord;
+  onChanged?: () => void;
 };
 
-export function WorkflowHeader({ workflow }: WorkflowHeaderProps) {
+export function WorkflowHeader({ workflow, onChanged }: WorkflowHeaderProps) {
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -49,11 +50,11 @@ export function WorkflowHeader({ workflow }: WorkflowHeaderProps) {
 
         <div className="flex flex-wrap gap-2">
           <Button variant="outline">Edit draft</Button>
-          <CloneWorkflowDialog workflowName={workflow.name} />
+          <CloneWorkflowDialog workflowName={workflow.name} workflowId={workflow.id} onComplete={onChanged} />
           {workflow.status !== "published" ? (
-            <WorkflowPublishDialog workflowName={workflow.name} />
+            <WorkflowPublishDialog workflowName={workflow.name} workflowId={workflow.id} onComplete={onChanged} />
           ) : (
-            <WorkflowArchiveDialog workflowName={workflow.name} />
+            <WorkflowArchiveDialog workflowName={workflow.name} workflowId={workflow.id} onComplete={onChanged} />
           )}
         </div>
       </div>

@@ -23,6 +23,7 @@ export function TemplateDetailPage({ templateId }: TemplateDetailPageProps) {
   const [template, setTemplate] = useState<TemplateRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -50,7 +51,7 @@ export function TemplateDetailPage({ templateId }: TemplateDetailPageProps) {
     return () => {
       active = false;
     };
-  }, [templateId]);
+  }, [templateId, reloadKey]);
 
   if (error) {
     return (
@@ -93,7 +94,7 @@ export function TemplateDetailPage({ templateId }: TemplateDetailPageProps) {
         <span className="text-slate-700">{template.name}</span>
       </nav>
 
-      <TemplateHeader template={template} />
+      <TemplateHeader template={template} onChanged={() => setReloadKey((key) => key + 1)} />
 
       <div className="grid gap-4 xl:grid-cols-3">
         <div className="space-y-4 xl:col-span-2">
