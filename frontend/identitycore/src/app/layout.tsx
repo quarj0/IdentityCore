@@ -1,22 +1,9 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Manrope } from "next/font/google";
 import { ThemeProvider, Toaster } from "@identitycore/ui";
 import "./globals.css";
 
-const manrope = Manrope({
-  variable: "--font-brand-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const plexMono = IBM_Plex_Mono({
-  variable: "--font-brand-mono",
-  weight: ["400", "500"],
-  subsets: ["latin"],
-  display: "swap",
-});
-
 export const metadata: Metadata = {
+  applicationName: "IdentityCore",
   title: {
     default: "IdentityCore | Modern Identity Verification Infrastructure",
     template: "%s | IdentityCore",
@@ -31,6 +18,23 @@ export const metadata: Metadata = {
     "liveness check",
     "OCR API",
   ],
+  robots: {
+    index: true,
+    follow: true,
+  },
+  openGraph: {
+    type: "website",
+    siteName: "IdentityCore",
+    title: "IdentityCore | Modern Identity Verification Infrastructure",
+    description:
+      "Enterprise-grade identity verification infrastructure for modern organizations.",
+  },
+  twitter: {
+    card: "summary",
+    title: "IdentityCore | Modern Identity Verification Infrastructure",
+    description:
+      "Enterprise-grade identity verification infrastructure for modern organizations.",
+  },
 };
 
 export default function RootLayout({
@@ -41,7 +45,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${manrope.variable} ${plexMono.variable} h-full`}
+      className="h-full"
       suppressHydrationWarning
     >
       <body

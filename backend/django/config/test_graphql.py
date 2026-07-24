@@ -244,6 +244,21 @@ class GraphQLAPITests(APITestCase):
         self.assertEqual(reverification["action"], "reverify")
         self.assertNotEqual(reverification["verificationId"], verification.public_id)
 
+        Verification.objects.filter(public_id=reverification["verificationId"]).update(
+            status="verified"
+        )
+        custom_reverification = self.post_graphql(
+            """
+                mutation CustomReverification($reason: String!) {
+                  createAdministratorOnboardingVerification(reason: $reason) {
+                    action
+                  }
+                }
+            """,
+            {"reason": "custom:Administrator changed legal name"},
+        ).json()["data"]["createAdministratorOnboardingVerification"]
+        self.assertEqual(custom_reverification["action"], "reverify")
+
     def test_record_manual_decision_mutation_updates_verification(self):
         subject = VerificationSubject.objects.create(
             tenant=self.tenant,

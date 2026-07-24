@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { ChevronDown, ExternalLink } from "lucide-react";
 import { cn } from "@identitycore/ui";
 import type { NavGroup } from "./nav-data";
@@ -12,9 +13,21 @@ interface NavFlyoutProps {
 
 export function NavFlyout({ group, activePath }: NavFlyoutProps) {
   const isActive = group.items.some((item) => item.href === activePath);
+  const [isOpen, setIsOpen] = useState(false);
+  const menuId = `navigation-menu-${group.label.toLowerCase().replaceAll(" ", "-")}`;
 
   return (
-    <div className="group relative">
+    <div
+      className="group relative"
+      onMouseEnter={() => setIsOpen(true)}
+      onMouseLeave={() => setIsOpen(false)}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          setIsOpen(false);
+          event.currentTarget.querySelector<HTMLButtonElement>("button")?.focus();
+        }
+      }}
+    >
       <button
         type="button"
         className={cn(
@@ -24,12 +37,28 @@ export function NavFlyout({ group, activePath }: NavFlyoutProps) {
             : "text-muted-foreground hover:text-foreground",
         )}
         aria-haspopup="true"
+        aria-controls={menuId}
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((open) => !open)}
       >
         {group.label}
-        <ChevronDown className="h-3.5 w-3.5 transition-transform group-hover:rotate-180" />
+        <ChevronDown
+          className={cn(
+            "h-3.5 w-3.5 transition-transform",
+            isOpen && "rotate-180",
+          )}
+        />
       </button>
 
-      <div className="invisible absolute left-1/2 top-full z-50 mt-3 w-[560px] -translate-x-1/2 opacity-0 transition-all duration-150 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+      <div
+        id={menuId}
+        className={cn(
+          "absolute left-1/2 top-full z-50 mt-3 w-[560px] -translate-x-1/2 transition-all duration-150",
+          isOpen
+            ? "visible translate-y-0 opacity-100"
+            : "invisible -translate-y-1 opacity-0",
+        )}
+      >
         <div className="rounded-3xl border border-slate-200 bg-white p-3 shadow-[0_24px_80px_rgba(15,23,42,0.14)]">
           <div className="grid gap-2 sm:grid-cols-2">
             {group.items.map((item) => {
