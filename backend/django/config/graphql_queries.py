@@ -42,6 +42,7 @@ from apps.incidents.serializers import serialize_incident
 from apps.verification_policies.models import VerificationPolicy
 from apps.verification_policies.serializers import serialize_verification_policy
 from apps.verifications.models import Verification, VerificationStatus
+from apps.verifications.review_access import manual_review_queryset_for_user
 from apps.verifications.serializers import paginate_results, serialize_manual_review_summary, serialize_verification
 from apps.security.models import SecurityCase
 from apps.security.serializers import serialize_security_case
@@ -56,7 +57,7 @@ from apps.tenants.serializers import serialize_tenant
 from apps.projects.models import Project
 from apps.workflows.models import Workflow, WorkflowVersion
 
-from config.graphql_auth import require_platform_admin, require_tenant_user, serialize_platform_admin_invitation
+from config.graphql_auth import require_authenticated_user, require_platform_admin, require_tenant_user, serialize_platform_admin_invitation
 from config.graphql_types import (
     APIClientNode,
     AuditEventNode,
@@ -1138,14 +1139,10 @@ class Query:
     def manual_reviews(
         self, info: Info, page: int = 1, page_size: int = 20
     ) -> list[ManualReviewNode]:
-        user = require_tenant_user(info)
-        queryset = (
-            user.tenant.verifications.filter(
-                status=VerificationStatus.MANUAL_REVIEW_REQUIRED
-            )
-            .exclude(metadata_json__workflow="administrator_onboarding")
-            .order_by("-created_at")
-        )
+        user = require_authenticated_user(info)
+        queryset = manual_review_queryset_for_user(user).filter(
+            status=VerificationStatus.MANUAL_REVIEW_REQUIRED
+        ).order_by("-created_at")
         page_obj, _ = paginate_results(queryset, page, page_size)
         return [
             ManualReviewNode(**serialize_manual_review_summary(item))
