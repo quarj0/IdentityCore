@@ -11,6 +11,7 @@ from apps.audit.models import AuditEvent
 from apps.audit.serializers import serialize_audit_event
 from apps.organizations.models import Organization
 from apps.organizations.models import OrganizationSupportingDocument
+from common.storage import build_signed_download_url, get_object_storage_public_bucket_name
 from apps.organizations.onboarding import (
     ORGANIZATION_TYPE_CHOICES,
     serialize_organization_review_state,
@@ -884,6 +885,7 @@ class Query:
                 mime_type=document.mime_type,
                 file_size_bytes=document.file_size_bytes,
                 storage_key=document.storage_key,
+                download_url=build_signed_download_url(storage_key=document.storage_key, bucket_name=get_object_storage_public_bucket_name()),
                 status=document.status,
                 created_at=document.created_at.isoformat(),
                 updated_at=document.updated_at.isoformat(),

@@ -378,6 +378,7 @@ class OrganizationSupportingDocumentNode:
     mime_type: str
     file_size_bytes: int
     storage_key: str
+    download_url: str
     status: str
     created_at: str
     updated_at: str

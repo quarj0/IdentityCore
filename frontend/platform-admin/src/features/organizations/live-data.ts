@@ -34,6 +34,7 @@ type OrganizationSupportingDocument = {
   status: string;
   uploadedByEmail: string;
   createdAt: string;
+  downloadUrl: string;
 };
 
 type OrganizationResponse = {
@@ -130,6 +131,7 @@ export async function fetchOrganizationRecord(organizationId: string) {
           status
           uploadedByEmail
           createdAt
+          downloadUrl
         }
       }
     `,
@@ -180,18 +182,9 @@ export function buildOrganizationConfig(
         items: supportingDocuments.length
           ? supportingDocuments.map((document) => ({
               label: document.filename,
-              value: `${document.status} · ${toSizeLabel(document.fileSizeBytes)} · ${document.uploadedByEmail}`,
+              value: document.downloadUrl || `${document.status} · ${toSizeLabel(document.fileSizeBytes)} · ${document.uploadedByEmail}`,
             }))
           : [{ label: "Documents", value: "No supporting documents submitted yet." }],
-      },
-      {
-        title: "Backend metadata",
-        description: "Raw platform values carried through from the GraphQL backend.",
-        items: [
-          { label: "Country profile", value: record.tertiaryMeta },
-          { label: "Jurisdiction", value: record.owner },
-          { label: "Last sync", value: record.updatedAt },
-        ],
       },
     ],
   };
