@@ -1103,9 +1103,11 @@ class Query:
         page_size: int = 20,
     ) -> list[VerificationNode]:
         user = require_tenant_user(info)
-        queryset = user.tenant.verifications.select_related(
-            "verification_subject"
-        ).order_by("-created_at")
+        queryset = (
+            user.tenant.verifications.select_related("verification_subject")
+            .exclude(metadata_json__workflow="administrator_onboarding")
+            .order_by("-created_at")
+        )
         if status:
             queryset = queryset.filter(status=status)
         if external_reference:
@@ -1123,6 +1125,7 @@ class Query:
         user = require_tenant_user(info)
         verification = (
             user.tenant.verifications.select_related("verification_subject")
+            .exclude(metadata_json__workflow="administrator_onboarding")
             .filter(public_id=verification_id)
             .first()
         )
