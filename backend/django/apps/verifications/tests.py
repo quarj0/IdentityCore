@@ -30,6 +30,7 @@ from apps.verifications.models import (
     VerificationSession,
     VerificationSessionStatus,
     VerificationStatus,
+    VerificationReviewOwner,
 )
 from apps.verifications.tasks import (
     cleanup_expired_verification_sessions_task,
@@ -1188,6 +1189,11 @@ class ManualReviewOwnershipTests(APITestCase):
             purpose=name,
             status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
             metadata_json=metadata,
+            review_owner=(
+                VerificationReviewOwner.PLATFORM
+                if metadata.get("workflow") == "administrator_onboarding"
+                else VerificationReviewOwner.TENANT
+            ),
             expires_at=timezone.now() + timedelta(hours=1),
         )
 
