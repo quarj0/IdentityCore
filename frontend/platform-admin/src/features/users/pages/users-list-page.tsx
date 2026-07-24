@@ -7,11 +7,13 @@ import {
   buildPlatformAdminConfig,
   fetchPlatformAdminRecords,
 } from "@/features/users/live-data";
+import { InviteAdminDialog } from "@/features/users/components/invite-admin-dialog";
 
 export function UsersListPage() {
   const [records, setRecords] = useState<
     ReturnType<typeof buildPlatformAdminConfig>["records"]
   >([]);
+  const [refreshToken, setRefreshToken] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -27,10 +29,15 @@ export function UsersListPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [refreshToken]);
 
   const config = useMemo(
-    () => createAdminListConfig(buildPlatformAdminConfig(records)),
+    () => ({
+      ...createAdminListConfig(buildPlatformAdminConfig(records)),
+      headerActions: (
+        <InviteAdminDialog onInvited={() => setRefreshToken((value) => value + 1)} />
+      ),
+    }),
     [records],
   );
 

@@ -250,6 +250,14 @@ class Mutation:
         normalized_email = email.strip().lower()
         if not normalized_email:
             raise GraphQLError("Email is required.")
+        if PlatformUser.objects.filter(email=normalized_email).exists():
+            raise GraphQLError("An account already exists for this email address.")
+        if PlatformAdminInvitation.objects.filter(
+            email=normalized_email,
+            status=PlatformAdminInvitationStatus.PENDING,
+            expires_at__gt=timezone.now(),
+        ).exists():
+            raise GraphQLError("A pending invitation already exists for this email address.")
         role = ensure_platform_role(
             name=role_name.strip() or "Platform Admin",
             description=role_description.strip(),
@@ -340,7 +348,9 @@ class Mutation:
         )
 
     @strawberry.mutation
-    def deactivate_platform_admin(self, info: Info, user_id: str) -> AuthUserNode:
+    def deactivate_platform_admin(
+        self, info: Info, user_id: str, reason: str = ""
+    ) -> AuthUserNode:
         actor = require_platform_admin(info)
         request = info.context["request"]
         user = get_object_or_404(
@@ -356,7 +366,7 @@ class Mutation:
                 action="platform_admin.deactivated",
                 target_type="platform_user",
                 target_id=user.public_id,
-                metadata={"email": user.email},
+                metadata={"email": user.email, "reason": reason.strip()},
             )
         return AuthUserNode(**serialize_user(user))
 

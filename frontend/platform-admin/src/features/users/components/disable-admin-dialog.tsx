@@ -14,13 +14,30 @@ import {
   Label,
   Textarea,
 } from "@identitycore/ui";
+import { deactivatePlatformAdmin } from "@/features/users/live-data";
 
 type DisableAdminDialogProps = {
   adminName: string;
+  userId: string;
+  onDeactivated: () => void;
 };
 
-export function DisableAdminDialog({ adminName }: DisableAdminDialogProps) {
+export function DisableAdminDialog({ adminName, userId, onDeactivated }: DisableAdminDialogProps) {
   const [reason, setReason] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function submit() {
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      await deactivatePlatformAdmin(userId, reason);
+      setMessage("Platform admin access has been revoked.");
+      onDeactivated();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to disable this account.");
+    } finally { setSubmitting(false); }
+  }
 
   return (
     <Dialog>
@@ -52,10 +69,11 @@ export function DisableAdminDialog({ adminName }: DisableAdminDialogProps) {
 
         <DialogFooter>
           <Button variant="outline">Cancel</Button>
-          <Button variant="destructive" disabled={!reason.trim()}>
-            Disable admin
+          <Button variant="destructive" disabled={!reason.trim() || submitting} onClick={submit}>
+            {submitting ? "Disabling…" : "Disable admin"}
           </Button>
         </DialogFooter>
+        {message ? <p className="text-sm text-slate-600" role="status">{message}</p> : null}
       </DialogContent>
     </Dialog>
   );

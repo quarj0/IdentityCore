@@ -32,6 +32,19 @@ type UsersResponse = {
   platformAdmins: PlatformAdmin[];
 };
 
+type InvitePlatformAdminResponse = {
+  invitePlatformAdmin: {
+    invitation: {
+      id: string;
+      email: string;
+      roleName: string;
+      status: string;
+    };
+  };
+};
+
+type DeactivatePlatformAdminResponse = { deactivatePlatformAdmin: PlatformAdmin };
+
 function tone(status: string): AdminRecord["statusTone"] {
   if (status === "active") return "success";
   if (status === "invited") return "warning";
@@ -111,6 +124,36 @@ export async function fetchPlatformAdminRecord(userId: string) {
   );
   const user = data.platformAdmins.find((item) => item.publicId === userId);
   return user ?? null;
+}
+
+export async function invitePlatformAdmin(email: string, roleName: string) {
+  const data = await graphqlRequest<InvitePlatformAdminResponse>(
+    `
+      mutation InvitePlatformAdmin($email: String!, $roleName: String!) {
+        invitePlatformAdmin(email: $email, roleName: $roleName) {
+          invitation {
+            id
+            email
+            roleName
+            status
+          }
+        }
+      }
+    `,
+    { email: email.trim(), roleName },
+  );
+
+  return data.invitePlatformAdmin.invitation;
+}
+
+export async function deactivatePlatformAdmin(userId: string, reason: string) {
+  const data = await graphqlRequest<DeactivatePlatformAdminResponse>(
+    `mutation DeactivatePlatformAdmin($userId: String!, $reason: String!) {
+      deactivatePlatformAdmin(userId: $userId, reason: $reason) { publicId status }
+    }`,
+    { userId, reason: reason.trim() },
+  );
+  return data.deactivatePlatformAdmin;
 }
 
 export function buildPlatformAdminConfig(records: AdminRecord[]): AdminModuleConfig {

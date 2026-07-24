@@ -64,9 +64,14 @@ export type AdminListConfig = Pick<
   | "records"
 >;
 
+export type AdminListPageConfig = AdminListConfig & {
+  /** Optional, module-specific controls for operations that change live data. */
+  headerActions?: ReactNode;
+};
+
 export function createAdminListConfig(
   config: AdminModuleConfig,
-): AdminListConfig {
+): AdminListPageConfig {
   return {
     moduleLabel: config.moduleLabel,
     listTitle: config.listTitle,
