@@ -55,6 +55,14 @@ class IdentityCoreClientTests(unittest.TestCase):
             client.request("POST", "/unsafe-action", {})
         self.assertEqual(len(self.transport.calls), 1)
 
+    def test_encodes_identifiers_used_in_api_paths(self):
+        client = self.make_client([(200, envelope({}))])
+        client.verifications.cancel("ver_1/../../policies?include=all")
+        self.assertEqual(
+            self.transport.calls[0]["url"],
+            "https://api.example.test/api/v1/verifications/ver_1%2F..%2F..%2Fpolicies%3Finclude%3Dall/cancel",
+        )
+
     def test_iterates_all_pages(self):
         client = self.make_client([
             (200, envelope({"results": [{"id": "1"}], "pagination": {"total_pages": 2}})),

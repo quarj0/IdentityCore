@@ -7,7 +7,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Any, Callable, Iterator, Optional, Tuple
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode, urlparse
+from urllib.parse import quote, urlencode, urlparse
 from urllib.request import Request, urlopen
 
 from identitycore.errors import (
@@ -41,6 +41,11 @@ def _query(params: dict[str, Any]) -> str:
     return f"?{urlencode(filtered)}" if filtered else ""
 
 
+def _path_segment(value: str) -> str:
+    """Encode an identifier before interpolating it into an API path."""
+    return quote(str(value), safe="")
+
+
 @dataclass
 class _PoliciesClient:
     client: "IdentityCoreClient"
@@ -49,7 +54,7 @@ class _PoliciesClient:
         return self.client.request("GET", "/policies/")
 
     def retrieve(self, policy_id: str) -> dict[str, Any]:
-        return self.client.request("GET", f"/policies/{policy_id}")
+        return self.client.request("GET", f"/policies/{_path_segment(policy_id)}")
 
 
 @dataclass
@@ -82,16 +87,16 @@ class _VerificationsClient:
             page += 1
 
     def retrieve(self, verification_id: str) -> dict[str, Any]:
-        return self.client.request("GET", f"/verifications/{verification_id}")
+        return self.client.request("GET", f"/verifications/{_path_segment(verification_id)}")
 
     def cancel(self, verification_id: str, *, reason: str = "") -> dict[str, Any]:
-        return self.client.request("POST", f"/verifications/{verification_id}/cancel", {"reason": reason})
+        return self.client.request("POST", f"/verifications/{_path_segment(verification_id)}/cancel", {"reason": reason})
 
     def resend_link(self, verification_id: str, *, channel: str = "email") -> dict[str, Any]:
-        return self.client.request("POST", f"/verifications/{verification_id}/resend-link", {"channel": channel})
+        return self.client.request("POST", f"/verifications/{_path_segment(verification_id)}/resend-link", {"channel": channel})
 
     def evidence_report(self, verification_id: str) -> dict[str, Any]:
-        return self.client.request("GET", f"/verifications/{verification_id}/evidence-report")
+        return self.client.request("GET", f"/verifications/{_path_segment(verification_id)}/evidence-report")
 
 
 class IdentityCoreClient:
