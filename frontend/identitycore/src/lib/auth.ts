@@ -2,6 +2,7 @@
 
 const ACCESS_TOKEN_KEY = "identitycore.access_token";
 const USER_KEY = "identitycore.user";
+export const AUTH_SESSION_CHANGED_EVENT = "identitycore:auth-session-changed";
 let accessToken: string | null = null;
 
 export interface AuthUser {
@@ -26,6 +27,10 @@ function canUseStorage() {
   return typeof window !== "undefined";
 }
 
+function notifyAuthSessionChanged() {
+  window.dispatchEvent(new Event(AUTH_SESSION_CHANGED_EVENT));
+}
+
 export function saveAuthSession(session: AuthSession) {
   if (!canUseStorage()) {
     return;
@@ -34,6 +39,7 @@ export function saveAuthSession(session: AuthSession) {
   accessToken = session.accessToken;
   window.sessionStorage.setItem(ACCESS_TOKEN_KEY, session.accessToken);
   window.localStorage.setItem(USER_KEY, JSON.stringify(session.user));
+  notifyAuthSessionChanged();
 }
 
 export function clearAuthSession() {
@@ -44,6 +50,7 @@ export function clearAuthSession() {
   accessToken = null;
   window.sessionStorage.removeItem(ACCESS_TOKEN_KEY);
   window.localStorage.removeItem(USER_KEY);
+  notifyAuthSessionChanged();
 }
 
 export function getAccessToken() {
@@ -78,4 +85,8 @@ export function getStoredUser() {
     clearAuthSession();
     return null;
   }
+}
+
+export function getCurrentAuthUser() {
+  return getAccessToken() ? getStoredUser() : null;
 }
