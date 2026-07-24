@@ -42,8 +42,9 @@ from apps.verifications.models import (
     VerificationSession,
     VerificationStatus,
 )
+from apps.verifications.review_access import manual_review_queryset_for_user
 from common.authentication import APIClientAuthentication
-from common.permissions import HasAPIClientScopes, IsTenantUser
+from common.permissions import HasAPIClientScopes, IsManualReviewUser, IsTenantUser
 from common.responses import success_response
 
 
@@ -403,12 +404,12 @@ class VerificationEvidenceReportPDFDownloadView(VerificationAccessMixin, APIView
 
 
 class ManualReviewListView(APIView):
-    permission_classes = [IsAuthenticated, IsTenantUser]
+    permission_classes = [IsAuthenticated, IsManualReviewUser]
 
     def get(self, request):
-        verifications = request.user.tenant.verifications.select_related(
-            "verification_subject"
-        ).filter(status=VerificationStatus.MANUAL_REVIEW_REQUIRED).order_by("-created_at")
+        verifications = manual_review_queryset_for_user(request.user).filter(
+            status=VerificationStatus.MANUAL_REVIEW_REQUIRED
+        ).order_by("-created_at")
         page = int(request.query_params.get("page", 1))
         page_size = int(request.query_params.get("page_size", 20))
         page_obj, pagination = paginate_results(verifications, page, page_size)
@@ -425,12 +426,11 @@ class ManualReviewListView(APIView):
 
 
 class ManualReviewDecisionView(APIView):
-    permission_classes = [IsAuthenticated, IsTenantUser]
+    permission_classes = [IsAuthenticated, IsManualReviewUser]
 
     def post(self, request, verification_id: str):
         verification = get_object_or_404(
-            Verification,
-            tenant=request.user.tenant,
+            manual_review_queryset_for_user(request.user),
             public_id=verification_id,
         )
         serializer = ManualReviewDecisionSerializer(data=request.data)
@@ -439,7 +439,7 @@ class ManualReviewDecisionView(APIView):
             verification=verification, decided_by=request.user
         )
         record_audit_event(
-            tenant=request.user.tenant,
+            tenant=verification.tenant,
             actor=request.user,
             request=request,
             action=f"verification.{decision_record.decision}",
@@ -457,7 +457,7 @@ class ManualReviewDecisionView(APIView):
             VerificationStatus.MANUAL_REVIEW_REQUIRED,
         }:
             queue_webhook_events(
-                tenant=request.user.tenant,
+                tenant=verification.tenant,
                 event_type=f"verification.{decision_record.decision}",
                 payload={
                     "verification_id": verification.public_id,

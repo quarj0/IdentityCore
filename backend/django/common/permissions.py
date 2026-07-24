@@ -25,3 +25,18 @@ class HasAPIClientScopes(BasePermission):
 
         required_scopes = getattr(view, "required_scopes", self.required_scopes)
         return set(required_scopes).issubset(set(api_client.scopes))
+
+
+class IsManualReviewUser(BasePermission):
+    message = "A tenant reviewer or platform administrator is required."
+
+    def has_permission(self, request, view):
+        user = request.user
+        return bool(
+            user
+            and user.is_authenticated
+            and (
+                getattr(user, "is_platform_admin", False)
+                or getattr(user, "tenant_id", None) is not None
+            )
+        )

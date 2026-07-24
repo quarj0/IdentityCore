@@ -30,6 +30,7 @@ from apps.verifications.models import (
     VerificationSession,
     VerificationSessionStatus,
     VerificationStatus,
+    VerificationReviewOwner,
 )
 from apps.verifications.tasks import (
     cleanup_expired_verification_sessions_task,
@@ -1140,3 +1141,124 @@ class VerificationOperationsTaskTests(TestCase):
         )
 
         self.assertEqual(cleanup_retained_media_task(limit=10), 0)
+
+
+
+class ManualReviewOwnershipTests(APITestCase):
+    def setUp(self):
+        self.organization = Organization.objects.create(
+            name="Review Ownership", slug="review-ownership"
+        )
+        self.tenant = Tenant.objects.create(
+            organization=self.organization,
+            name="Review Ownership Tenant",
+            slug="review-ownership-tenant",
+            status="active",
+        )
+        self.tenant_reviewer = PlatformUser.objects.create_user(
+            email="tenant-reviewer@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            tenant=self.tenant,
+        )
+        self.platform_reviewer = PlatformUser.objects.create_user(
+            email="platform-reviewer@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            is_platform_admin=True,
+        )
+        self.tenant_case = self._create_case(
+            "Tenant Case",
+            metadata={},
+        )
+        self.platform_case = self._create_case(
+            "Administrator Onboarding",
+            metadata={"workflow": "administrator_onboarding"},
+        )
+
+    def _create_case(self, name, *, metadata):
+        subject = VerificationSubject.objects.create(
+            tenant=self.tenant,
+            full_name=name,
+            email=f"{name.lower().replace(' ', '-')}@example.com",
+        )
+        return Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=subject,
+            purpose=name,
+            status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
+            metadata_json=metadata,
+            review_owner=(
+                VerificationReviewOwner.PLATFORM
+                if metadata.get("workflow") == "administrator_onboarding"
+                else VerificationReviewOwner.TENANT
+            ),
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+
+    def test_tenant_queue_excludes_platform_owned_cases(self):
+        self.client.force_authenticate(self.tenant_reviewer)
+
+        response = self.client.get(reverse("manual-review-list"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            [item["verification_id"] for item in response.data["data"]["results"]],
+            [self.tenant_case.public_id],
+        )
+
+    def test_platform_queue_contains_only_platform_owned_cases(self):
+        self.client.force_authenticate(self.platform_reviewer)
+
+        response = self.client.get(reverse("manual-review-list"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            [item["verification_id"] for item in response.data["data"]["results"]],
+            [self.platform_case.public_id],
+        )
+
+    def test_tenant_reviewer_cannot_decide_platform_owned_case(self):
+        self.client.force_authenticate(self.tenant_reviewer)
+
+        response = self.client.post(
+            reverse(
+                "manual-review-decision",
+                kwargs={"verification_id": self.platform_case.public_id},
+            ),
+            {
+                "decision": VerificationStatus.VERIFIED,
+                "reason_code": "evidence_confirmed",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.platform_case.refresh_from_db()
+        self.assertEqual(
+            self.platform_case.status,
+            VerificationStatus.MANUAL_REVIEW_REQUIRED,
+        )
+
+    def test_platform_reviewer_cannot_decide_tenant_owned_case(self):
+        self.client.force_authenticate(self.platform_reviewer)
+
+        response = self.client.post(
+            reverse(
+                "manual-review-decision",
+                kwargs={"verification_id": self.tenant_case.public_id},
+            ),
+            {
+                "decision": VerificationStatus.VERIFIED,
+                "reason_code": "evidence_confirmed",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.tenant_case.refresh_from_db()
+        self.assertEqual(
+            self.tenant_case.status,
+            VerificationStatus.MANUAL_REVIEW_REQUIRED,
+        )

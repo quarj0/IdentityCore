@@ -58,6 +58,7 @@ from apps.verifications.models import (
     VerificationSessionStatus,
     VerificationStatus,
 )
+from apps.verifications.review_access import manual_review_queryset_for_user
 from apps.tenants.models import Tenant
 from apps.verifications.serializers import (
     ManualReviewDecisionSerializer,
@@ -899,11 +900,10 @@ class Mutation:
         reason_code: str,
         reason_detail: str = "",
     ) -> ManualDecisionPayload:
-        user = require_tenant_user(info)
+        user = require_authenticated_user(info)
         request = info.context["request"]
         verification = get_object_or_404(
-            Verification,
-            tenant=user.tenant,
+            manual_review_queryset_for_user(user),
             public_id=verification_id,
         )
         serializer = ManualReviewDecisionSerializer(
@@ -916,7 +916,7 @@ class Mutation:
         serializer.is_valid(raise_exception=True)
         decision_record = serializer.save(verification=verification, decided_by=user)
         record_audit_event(
-            tenant=user.tenant,
+            tenant=verification.tenant,
             actor=user,
             request=request,
             action=f"verification.{decision_record.decision}",
@@ -934,7 +934,7 @@ class Mutation:
             VerificationStatus.MANUAL_REVIEW_REQUIRED,
         }:
             queue_webhook_events(
-                tenant=user.tenant,
+                tenant=verification.tenant,
                 event_type=f"verification.{decision_record.decision}",
                 payload={
                     "verification_id": verification.public_id,
