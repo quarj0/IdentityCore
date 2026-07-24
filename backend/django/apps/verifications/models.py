@@ -36,6 +36,11 @@ class VerificationDecisionType(models.TextChoices):
     SYSTEM = "system", "System"
 
 
+class VerificationReviewOwner(models.TextChoices):
+    TENANT = "tenant", "Tenant"
+    PLATFORM = "platform", "Platform"
+
+
 class Verification(PublicIdModel, BaseModel):
     public_id_prefix = "ver"
 
@@ -74,6 +79,12 @@ class Verification(PublicIdModel, BaseModel):
         db_index=True,
     )
     purpose = models.CharField(max_length=255)
+    review_owner = models.CharField(
+        max_length=16,
+        choices=VerificationReviewOwner.choices,
+        default=VerificationReviewOwner.TENANT,
+        db_index=True,
+    )
     external_reference = models.CharField(max_length=255, blank=True, db_index=True)
     metadata_json = EncryptedJSONField(
         default=dict,
