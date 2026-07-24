@@ -587,8 +587,19 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
                 }
             ) from exc
 
+        existing_liveness_check = (
+            verification.liveness_checks.filter(
+                selfie_capture=selfie_capture,
+                liveness_type=attrs["liveness_type"],
+            )
+            .order_by("-created_at")
+            .first()
+        )
         challenge = None
-        if attrs["liveness_type"] == LivenessType.ACTIVE:
+        if (
+            existing_liveness_check is None
+            and attrs["liveness_type"] == LivenessType.ACTIVE
+        ):
             challenge_id = attrs.get("challenge_id")
             if not challenge_id:
                 raise serializers.ValidationError(
@@ -616,14 +627,7 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
 
         attrs["selfie_capture"] = selfie_capture
         attrs["challenge"] = challenge
-        attrs["existing_liveness_check"] = (
-            verification.liveness_checks.filter(
-                selfie_capture=selfie_capture,
-                liveness_type=attrs["liveness_type"],
-            )
-            .order_by("-created_at")
-            .first()
-        )
+        attrs["existing_liveness_check"] = existing_liveness_check
         return attrs
 
     def save(self, **kwargs):
