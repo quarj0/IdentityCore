@@ -558,7 +558,7 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
 
 
 class VerificationSessionLivenessSerializer(serializers.Serializer):
-    liveness_type = serializers.ChoiceField(choices=LivenessType.choices)
+    liveness_type = serializers.ChoiceField(choices=[LivenessType.ACTIVE])
     selfie_capture_id = serializers.CharField(max_length=64)
     challenge_id = serializers.CharField(max_length=64, required=False)
 
