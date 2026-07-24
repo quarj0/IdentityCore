@@ -1,9 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { Menu, X } from "lucide-react";
-import { BrandMark, Button } from "@identitycore/ui";
+import { useEffect, useState } from "react";
+import { Menu, Settings, X } from "lucide-react";
+import {
+  BrandMark,
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@identitycore/ui";
+import {
+  AUTH_SESSION_CHANGED_EVENT,
+  clearAuthSession,
+  getCurrentAuthUser,
+  type AuthUser,
+} from "@/lib/auth";
 import { NAV_GROUPS } from "./nav-data";
 import { NavFlyout } from "./nav-flyout";
 import { MobileNav } from "./mobile-nav";
@@ -14,6 +29,19 @@ export interface MarketingNavProps {
 
 export function MarketingNav({ activePath }: MarketingNavProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    const syncAuthState = () => setUser(getCurrentAuthUser());
+
+    syncAuthState();
+    window.addEventListener(AUTH_SESSION_CHANGED_EVENT, syncAuthState);
+    window.addEventListener("storage", syncAuthState);
+    return () => {
+      window.removeEventListener(AUTH_SESSION_CHANGED_EVENT, syncAuthState);
+      window.removeEventListener("storage", syncAuthState);
+    };
+  }, []);
 
   const closeMenu = () => setMenuOpen(false);
 
@@ -39,13 +67,19 @@ export function MarketingNav({ activePath }: MarketingNavProps) {
         </nav>
 
         <div className="ml-auto hidden items-center gap-2 md:flex">
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/login">Sign in</Link>
-          </Button>
+          {user ? (
+            <AuthenticatedActions user={user} />
+          ) : (
+            <>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/login">Sign in</Link>
+              </Button>
 
-          <Button asChild size="sm" className="rounded-xl">
-            <Link href="/register">Create workspace</Link>
-          </Button>
+              <Button asChild size="sm" className="rounded-xl">
+                <Link href="/register">Create workspace</Link>
+              </Button>
+            </>
+          )}
         </div>
 
         <button
@@ -69,8 +103,65 @@ export function MarketingNav({ activePath }: MarketingNavProps) {
           groups={NAV_GROUPS}
           onNavigate={closeMenu}
           activePath={activePath}
+          user={user}
         />
       ) : null}
     </header>
+  );
+}
+
+function AuthenticatedActions({ user }: { user: AuthUser }) {
+  const displayName = [user.first_name, user.last_name].filter(Boolean).join(" ") || user.email;
+  const initials = displayName
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  return (
+    <>
+      <Button asChild size="sm" className="rounded-xl">
+        <Link href="/onboarding">Workspace setup</Link>
+      </Button>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            aria-label="Open account menu"
+            className="flex items-center gap-2 rounded-xl border border-border bg-background py-1.5 pl-2 pr-3 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <span className="flex size-7 items-center justify-center rounded-lg bg-slate-900 text-[11px] font-semibold text-white">
+              {initials}
+            </span>
+            <span className="max-w-36 truncate text-sm font-medium">{displayName}</span>
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-64" sideOffset={8}>
+          <DropdownMenuLabel className="normal-case tracking-normal">
+            <span className="block truncate text-sm font-semibold text-foreground">{displayName}</span>
+            <span className="mt-0.5 block truncate text-xs font-normal text-muted-foreground">{user.email}</span>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link href="/onboarding" className="flex items-center gap-2">
+              <Settings className="h-4 w-4 text-muted-foreground" />
+              Workspace setup
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            className="text-red-700 focus:bg-red-50 focus:text-red-700"
+            onSelect={() => {
+              clearAuthSession();
+              window.location.assign("/");
+            }}
+          >
+            Sign out
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
   );
 }

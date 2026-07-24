@@ -123,7 +123,6 @@ export interface OrganizationVerificationInput {
 }
 
 const MAX_ORGANIZATION_DOCUMENT_BYTES = 10 * 1024 * 1024;
-const UPLOAD_TIMEOUT_MS = 60_000;
 
 export async function createOrganizationDocumentUpload(file: File) {
   if (file.type.toLowerCase() !== "application/pdf" || !file.name.toLowerCase().endsWith(".pdf")) {
@@ -131,30 +130,25 @@ export async function createOrganizationDocumentUpload(file: File) {
   }
   if (file.size <= 0) throw new Error("The selected PDF is empty.");
   if (file.size > MAX_ORGANIZATION_DOCUMENT_BYTES) throw new Error("Each PDF must be 10 MB or smaller.");
-  const upload = await restRequest<{ document_id: string; filename: string; file_size_bytes: number; status: string; storage_key: string; upload_url: string; download_url: string; upload_headers: Record<string, string> }>(
+  const upload = await restRequest<{ document_id: string; filename: string; file_size_bytes: number; status: string; storage_key: string; upload_url: string; download_url: string }>(
     "/organization/me/verification-documents/upload/",
     { method: "POST", body: JSON.stringify({ filename: file.name, mime_type: file.type, file_size_bytes: file.size }) },
   );
   if (!upload.upload_url) throw new Error("Secure document storage is not configured. Contact support.");
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
-  let response: Response;
   try {
-    response = await fetch(upload.upload_url, {
+    await restRequest(upload.upload_url, {
       method: "PUT",
-      headers: upload.upload_headers,
+      headers: { "Content-Type": file.type },
       body: file,
-      signal: controller.signal,
     });
   } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error("The document upload took too long. Check your connection and try again.");
+    try {
+      await deleteOrganizationDocument(upload.document_id);
+    } catch {
+      // The failed upload will remain in an initiated state for later cleanup.
     }
-    throw new Error("The document could not be uploaded. Check your connection and try again.");
-  } finally {
-    window.clearTimeout(timeout);
+    throw error;
   }
-  if (!response.ok) throw new Error("The secure document upload failed. Please try again.");
   await restRequest(`/organization/me/verification-documents/${upload.document_id}/complete/`, { method: "POST", body: "{}" });
   return { id: upload.document_id, ...upload, status: "uploaded" };
 }
