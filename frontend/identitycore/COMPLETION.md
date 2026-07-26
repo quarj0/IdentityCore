@@ -36,30 +36,32 @@ is not complete or production-ready.
 
 ## P0: complete the real user journeys
 
+### Implementation progress
+
+- **Verification application boundary: implemented.** New administrator sessions already
+  launch the dedicated verification portal. The legacy `/verification` entry point now
+  performs a compatibility redirect to that portal, moving its query-string credential
+  into a URL fragment. The duplicate document, selfie, passive-liveness, evidence, and
+  verification API implementation has been removed from this application.
+- **Live capture implementation: owned by `verification-portal`.** That application
+  contains camera capture, server-issued active liveness challenges, short video capture,
+  upload fallback, and mobile handoff. Remaining work here is cross-application contract,
+  security, accessibility, and browser certification rather than another capture UI.
+
 ### 1. Separate organization onboarding from applicant verification
 
-The `/verification` route currently embeds a special administrator flow inside the
-marketing/onboarding application. It accepts session credentials in the query string,
-uploads document and selfie files, performs passive liveness, displays detailed evidence,
-and calls an onboarding mutation after submission.
-
-Finish this boundary by either:
-
-- moving the capture journey to `frontend/verification-portal` and returning only a
-  signed completion result to this application; or
-- explicitly making the shared verification flow a reusable package used by both apps.
-
-Do not maintain two divergent applicant capture implementations. Session tokens should
-not remain visible in browser history longer than necessary, and applicants should not
-receive internal evidence or decision details unless policy permits it.
+Administrator verification is now owned by `frontend/verification-portal`. Keep the
+legacy compatibility redirect until previously issued links have expired, then remove
+the route. Formalize the completion contract between onboarding and the verification
+domain so this frontend reads authoritative state rather than receiving internal
+evidence. Do not reintroduce document, selfie, or liveness capture here.
 
 ### 2. Replace upload-only biometrics with real capture UX
 
-The administrator journey currently asks for an existing selfie file and then submits a
-passive liveness check against that image. Complete camera capture, permissions,
-framing/quality guidance, retry states, active challenge support, mobile handoff, device
-compatibility, and accessible fallbacks. Liveness must be an actual provider-backed
-capture protocol rather than a confirmation button after file upload.
+Complete end-to-end certification of the dedicated portal's camera capture, permissions,
+framing/quality guidance, retry states, active challenges, mobile handoff, device
+compatibility, and accessible fallbacks. IdentityCore web should only launch the portal
+and reflect its server-authored completion state.
 
 ### 3. Make “choose first workflow” a transaction
 
