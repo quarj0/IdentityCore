@@ -103,7 +103,11 @@ def _available_country_profiles() -> list[dict]:
 
 
 def resolve_session_upload(
-    *, verification_session: VerificationSession, upload_id: str, purpose: str
+    *,
+    verification_session: VerificationSession,
+    upload_id: str,
+    purpose: str,
+    allow_consumed: bool = False,
 ) -> Upload:
     try:
         upload = Upload.objects.get(
@@ -119,7 +123,7 @@ def resolve_session_upload(
             {"upload_id": "Upload is invalid for this verification session."}
         ) from exc
 
-    if upload.status == UploadStatus.CONSUMED:
+    if upload.status in {UploadStatus.CONSUMED, UploadStatus.PROMOTED} and not allow_consumed:
         raise serializers.ValidationError(
             {"upload_id": "Upload has already been used."}
         )
@@ -468,11 +472,60 @@ class VerificationSessionDocumentSerializer(serializers.Serializer):
                 verification_session=verification_session,
                 upload_id=capture["upload_id"],
                 purpose=UploadPurpose.DOCUMENT_CAPTURE,
+                allow_consumed=True,
             )
         attrs["resolved_uploads"] = resolved_uploads
+
+        used_uploads = [
+            upload
+            for upload in resolved_uploads.values()
+            if upload.status in {UploadStatus.CONSUMED, UploadStatus.PROMOTED}
+        ]
+        if used_uploads:
+            if len(used_uploads) != len(resolved_uploads):
+                raise serializers.ValidationError(
+                    {
+                        "captures": (
+                            "A previous document submission was only partially completed. "
+                            "Capture the document again to continue."
+                        )
+                    }
+                )
+            expected_captures = {
+                capture["side"]: resolved_uploads[capture["upload_id"]].storage_key
+                for capture in attrs["captures"]
+            }
+            candidate_documents = verification.identity_documents.filter(
+                document_type_id=document_type,
+                country_profile_id=country_code,
+                captures__storage_key__in=expected_captures.values(),
+            ).distinct()
+            existing_document = next(
+                (
+                    candidate
+                    for candidate in candidate_documents
+                    if {
+                        capture.side: capture.storage_key
+                        for capture in candidate.captures.all()
+                    }
+                    == expected_captures
+                ),
+                None,
+            )
+            if existing_document is None:
+                raise serializers.ValidationError(
+                    {"captures": "One or more uploads have already been used."}
+                )
+            attrs["existing_identity_document"] = existing_document
         return attrs
 
     def save(self, **kwargs):
+        existing = self.validated_data.get("existing_identity_document")
+        if existing is not None:
+            self.created = False
+            return existing
+
+        self.created = True
         request = self.context["request"]
         verification_session = request.verification_session
         verification = verification_session.verification

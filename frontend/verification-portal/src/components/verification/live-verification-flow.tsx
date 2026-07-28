@@ -63,6 +63,9 @@ export function LiveVerificationFlow({
   const [documentFiles, setDocumentFiles] = useState<
     Partial<Record<DocumentCaptureSide, File>>
   >({});
+  const [documentUploadIds, setDocumentUploadIds] = useState<
+    Partial<Record<DocumentCaptureSide, string>>
+  >({});
   const [activeDocumentSide, setActiveDocumentSide] =
     useState<DocumentCaptureSide>("front");
   const [activeLivenessFile, setActiveLivenessFile] = useState<File | null>(null);
@@ -193,6 +196,7 @@ export function LiveVerificationFlow({
       const nextStatus = await load(credentials);
       setFile(null);
       setDocumentFiles({});
+      setDocumentUploadIds({});
       if (feedback) {
         const remainedOnStep =
           previousStep && nextStatus.current_step === previousStep;
@@ -256,6 +260,11 @@ export function LiveVerificationFlow({
     setError(null);
     setNotice(null);
     setDocumentFiles((current) => ({ ...current, [side]: nextFile }));
+    setDocumentUploadIds((current) => {
+      const next = { ...current };
+      delete next[side];
+      return next;
+    });
   }
 
   async function startMobileHandoff() {
@@ -448,6 +457,7 @@ export function LiveVerificationFlow({
                     nextCountry?.documents[0]?.document_type ?? "",
                   );
                   setDocumentFiles({});
+                  setDocumentUploadIds({});
                   setActiveDocumentSide(
                     nextCountry?.documents[0]?.capture_requirements[0]?.side ?? "front",
                   );
@@ -476,6 +486,7 @@ export function LiveVerificationFlow({
                   (document) => document.document_type === event.target.value,
                 );
                 setDocumentFiles({});
+                setDocumentUploadIds({});
                 setActiveDocumentSide(
                   nextDocument?.capture_requirements[0]?.side ?? "front",
                 );
@@ -526,13 +537,18 @@ export function LiveVerificationFlow({
             {activeDocumentFile ? (
               <EvidenceReview
                 file={activeDocumentFile}
-                onRetake={() =>
+                onRetake={() => {
                   setDocumentFiles((current) => {
                     const next = { ...current };
                     delete next[activeCaptureRequirement.side];
                     return next;
-                  })
-                }
+                  });
+                  setDocumentUploadIds((current) => {
+                    const next = { ...current };
+                    delete next[activeCaptureRequirement.side];
+                    return next;
+                  });
+                }}
               />
             ) : (
               <CameraCapture
@@ -559,16 +575,29 @@ export function LiveVerificationFlow({
               onClick={() =>
                 run(async () => {
                   if (!allRequiredDocumentSidesCaptured) return;
-                  const captures = await Promise.all(
-                    requiredCaptureRequirements.map(async (requirement) => ({
-                      side: requirement.side,
-                      uploadId: await createUpload(
+                  const captures: Array<{
+                    side: DocumentCaptureSide;
+                    uploadId: string;
+                  }> = [];
+                  for (const [index, requirement] of requiredCaptureRequirements.entries()) {
+                    setBusyMessage(
+                      `Uploading ${requirement.label.toLowerCase()} (${index + 1} of ${requiredCaptureRequirements.length})…`,
+                    );
+                    let uploadId = documentUploadIds[requirement.side];
+                    if (!uploadId) {
+                      uploadId = await createUpload(
                         credentials,
                         "document_capture",
                         documentFiles[requirement.side]!,
-                      ),
-                    })),
-                  );
+                      );
+                      setDocumentUploadIds((current) => ({
+                        ...current,
+                        [requirement.side]: uploadId,
+                      }));
+                    }
+                    captures.push({ side: requirement.side, uploadId });
+                  }
+                  setBusyMessage("Submitting your document securely…");
                   await submitDocument(credentials, {
                     documentType: selectedDocument.document_type,
                     countryCode: selectedCountry.country_code,

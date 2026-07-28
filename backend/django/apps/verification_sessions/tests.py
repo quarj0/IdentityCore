@@ -300,22 +300,23 @@ class VerificationSessionPortalTests(APITestCase):
             purpose=UploadPurpose.DOCUMENT_CAPTURE, suffix="01JABD"
         )
 
-        response = self.client.post(
-            reverse(
-                "verification-session-documents",
-                kwargs={"session_id": self.session.public_id},
-            ),
-            {
-                "document_type": "national_id",
-                "country_code": "GH",
-                "captures": [
-                    {"side": "front", "upload_id": front_upload.public_id},
-                    {"side": "back", "upload_id": back_upload.public_id},
-                ],
-            },
-            format="json",
-            **self.session_headers(),
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                reverse(
+                    "verification-session-documents",
+                    kwargs={"session_id": self.session.public_id},
+                ),
+                {
+                    "document_type": "national_id",
+                    "country_code": "GH",
+                    "captures": [
+                        {"side": "front", "upload_id": front_upload.public_id},
+                        {"side": "back", "upload_id": back_upload.public_id},
+                    ],
+                },
+                format="json",
+                **self.session_headers(),
+            )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["status"], "processing")
@@ -358,6 +359,28 @@ class VerificationSessionPortalTests(APITestCase):
         back_upload.refresh_from_db()
         self.assertEqual(front_upload.status, UploadStatus.CONSUMED)
         self.assertEqual(back_upload.status, UploadStatus.CONSUMED)
+        replay_response = self.client.post(
+            reverse(
+                "verification-session-documents",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            {
+                "document_type": "national_id",
+                "country_code": "GH",
+                "captures": [
+                    {"side": "front", "upload_id": front_upload.public_id},
+                    {"side": "back", "upload_id": back_upload.public_id},
+                ],
+            },
+            format="json",
+            **self.session_headers(),
+        )
+        self.assertEqual(replay_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            replay_response.data["data"]["identity_document_id"],
+            identity_document.public_id,
+        )
+        self.assertEqual(self.verification.identity_documents.count(), 1)
         mock_delay.assert_called_once_with(identity_document.public_id)
         self.verification.refresh_from_db()
         self.assertEqual(self.verification.status, VerificationStatus.AWAITING_DOCUMENT)
@@ -884,25 +907,26 @@ class VerificationSessionPortalTests(APITestCase):
             purpose=UploadPurpose.DOCUMENT_CAPTURE,
             suffix="GOLDENDOCBACK",
         )
-        document_response = self.client.post(
-            reverse(
-                "verification-session-documents",
-                kwargs={"session_id": self.session.public_id},
-            ),
-            {
-                "document_type": "national_id",
-                "country_code": "GH",
-                "captures": [
-                    {"side": "front", "upload_id": document_upload.public_id},
-                    {
-                        "side": "back",
-                        "upload_id": document_back_upload.public_id,
-                    },
-                ],
-            },
-            format="json",
-            **self.session_headers(),
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            document_response = self.client.post(
+                reverse(
+                    "verification-session-documents",
+                    kwargs={"session_id": self.session.public_id},
+                ),
+                {
+                    "document_type": "national_id",
+                    "country_code": "GH",
+                    "captures": [
+                        {"side": "front", "upload_id": document_upload.public_id},
+                        {
+                            "side": "back",
+                            "upload_id": document_back_upload.public_id,
+                        },
+                    ],
+                },
+                format="json",
+                **self.session_headers(),
+            )
         self.assertEqual(document_response.status_code, status.HTTP_200_OK)
         identity_document = IdentityDocument.objects.get(
             public_id=document_response.data["data"]["identity_document_id"]

@@ -24,6 +24,8 @@ test("subject completes consent, document, selfie, liveness, and review routing"
 }) => {
   let step = "consent";
   let uploadNumber = 0;
+  let uploadCreateRequests = 0;
+  let failBackUploadOnce = true;
   let documentPayload: {
     captures?: Array<{ side: string; upload_id: string }>;
   } = {};
@@ -113,6 +115,18 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     }
 
     if (path === "/api/v1/uploads/" && method === "POST") {
+      uploadCreateRequests += 1;
+      if (uploadNumber === 1 && failBackUploadOnce) {
+        failBackUploadOnce = false;
+        return route.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: JSON.stringify({
+            success: false,
+            error: { message: "The upload service is temporarily unavailable." },
+          }),
+        });
+      }
       uploadNumber += 1;
       return json(
         route,
@@ -201,6 +215,10 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     buffer: image,
   });
   await page.getByRole("button", { name: "Submit document" }).click();
+  await expect(page.getByRole("alert")).toContainText(
+    "The upload service is temporarily unavailable.",
+  );
+  await page.getByRole("button", { name: "Submit document" }).click();
 
   await expect(page.getByText("Document received")).toBeVisible();
   await expect(
@@ -211,6 +229,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     { side: "front", upload_id: "upl_1" },
     { side: "back", upload_id: "upl_2" },
   ]);
+  expect(uploadCreateRequests).toBe(3);
   await page.locator('input[type="file"]').setInputFiles({
     name: "selfie.png",
     mimeType: "image/png",
