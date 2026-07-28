@@ -58,7 +58,14 @@ def _resolve_document_label(document_type: str, country_code: str) -> str:
     )
 
 
-def _supported_documents(country_code: str) -> list[dict[str, str]]:
+CAPTURE_SIDE_LABELS = {
+    DocumentCaptureSide.FRONT: "Front",
+    DocumentCaptureSide.BACK: "Back",
+    DocumentCaptureSide.SINGLE: "Photo page",
+}
+
+
+def _supported_documents(country_code: str) -> list[dict]:
     country_code = str(country_code or "").upper()
     for profile in COUNTRY_PROFILES:
         if profile["code"] == country_code:
@@ -68,6 +75,16 @@ def _supported_documents(country_code: str) -> list[dict[str, str]]:
                     "label": _resolve_document_label(
                         supported["document_type"], country_code
                     ),
+                    "capture_requirements": [
+                        {
+                            "side": side,
+                            "label": CAPTURE_SIDE_LABELS[side],
+                            "required": True,
+                        }
+                        for side in supported.get(
+                            "capture_sides", [DocumentCaptureSide.FRONT]
+                        )
+                    ],
                 }
                 for supported in profile["supported_document_types"]
             ]
@@ -179,6 +196,10 @@ def serialize_verification_session(verification_session: VerificationSession) ->
         )
     )
     document_label = _resolve_document_label(document_type, country_code)
+    document_configuration = next(
+        (item for item in supported_documents if item["document_type"] == document_type),
+        None,
+    )
     return {
         "session_id": verification_session.public_id,
         "verification_id": verification.public_id,
@@ -194,6 +215,11 @@ def serialize_verification_session(verification_session: VerificationSession) ->
             "country_code": country_code,
             "document_type": document_type,
             "label": document_label,
+            "capture_requirements": (
+                document_configuration["capture_requirements"]
+                if document_configuration is not None
+                else []
+            ),
         },
         "available_documents": _supported_documents(country_code),
         "available_countries": _available_country_profiles(),
@@ -393,9 +419,41 @@ class VerificationSessionDocumentSerializer(serializers.Serializer):
                 {"captures": "Each document side may be submitted only once."}
             )
 
-        if len(capture_sides) == 1 and capture_sides[0] == DocumentCaptureSide.BACK:
+        document_configuration = next(
+            (
+                item
+                for item in _supported_documents(country_code)
+                if item["document_type"] == document_type
+            ),
+            None,
+        )
+        capture_requirements = document_configuration["capture_requirements"]
+        required_sides = {
+            requirement["side"]
+            for requirement in capture_requirements
+            if requirement["required"]
+        }
+        allowed_sides = {requirement["side"] for requirement in capture_requirements}
+        submitted_sides = set(capture_sides)
+        missing_sides = required_sides - submitted_sides
+        unexpected_sides = submitted_sides - allowed_sides
+        if missing_sides:
             raise serializers.ValidationError(
-                {"captures": "Back-only document submissions are not supported."}
+                {
+                    "captures": (
+                        "Capture every required document side. Missing: "
+                        f"{', '.join(sorted(missing_sides))}."
+                    )
+                }
+            )
+        if unexpected_sides:
+            raise serializers.ValidationError(
+                {
+                    "captures": (
+                        "The submission contains unsupported document sides: "
+                        f"{', '.join(sorted(unexpected_sides))}."
+                    )
+                }
             )
 
         upload_ids = [capture["upload_id"] for capture in attrs["captures"]]
