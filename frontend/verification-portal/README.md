@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# IdentityCore Verification Portal
 
-## Getting Started
+The verification portal is the subject-facing Next.js application for consent,
+identity-document capture, selfie and active-liveness capture, processing status,
+and desktop-to-mobile handoff. It runs on port `3002` locally.
 
-First, run the development server:
+## Local development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+cp .env.example .env.local
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The Django API must be available at `NEXT_PUBLIC_API_ORIGIN`. Verification links
+have the form `/verify/{session_id}#token={session_token}`. The portal
+removes the fragment from browser history and never sends it in a referrer.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Runtime configuration
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_API_ORIGIN` | Browser-visible Django API origin. |
+| `NEXT_PUBLIC_ONBOARDING_RETURN_URL` | Optional safe fallback after completion. |
+| `NEXT_PUBLIC_ALLOWED_RETURN_ORIGINS` | Comma-separated allowlist of organization return origins. |
 
-## Learn More
+Production return URLs must use HTTPS and must match the portal origin or an
+origin in `NEXT_PUBLIC_ALLOWED_RETURN_ORIGINS`. Local HTTP origins are accepted
+only outside production. Invalid organization redirects fall back safely to the
+configured return URL or the portal origin.
 
-To learn more about Next.js, take a look at the following resources:
+## Security model
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Every route sends a no-store cache policy, a restrictive Content Security Policy,
+clickjacking protection, a no-referrer policy, MIME-sniffing protection, and a
+Permissions Policy that limits camera access to this origin. The API origin is
+the only external connection target admitted by the portal CSP. Organization
+logos are limited to HTTPS outside local development.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+TLS and `Strict-Transport-Security` must be enforced at the production ingress.
+Only explicitly trusted portal origins should be present in Django's CORS
+configuration.
 
-## Deploy on Vercel
+## Camera and media compatibility
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Live capture requires a secure context and a current browser with `getUserMedia`.
+The liveness recorder negotiates MP4/H.264 first for Safari and iOS, then WebM
+VP8/VP9 for Chromium-based browsers. Recordings are capped at 15 seconds and
+25 MB. Camera streams are stopped when the page is hidden or the capture
+component unmounts; an interrupted liveness challenge must be started again so
+partial video is never submitted as complete evidence.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Checks
+
+```bash
+pnpm lint
+pnpm build
+pnpm exec playwright install chromium
+pnpm test:e2e
+```
+
+The browser suite covers the primary subject flow, expiry handling, and response
+security headers. Provider, storage, worker, and Django integration tests live in
+their owning backend applications.

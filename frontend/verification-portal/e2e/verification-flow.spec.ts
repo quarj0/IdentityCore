@@ -7,11 +7,29 @@ const image = Buffer.from(
   "base64",
 );
 
+test("verification pages send hardened browser security headers", async ({ request }) => {
+  const response = await request.get("/");
+
+  expect(response.headers()["cache-control"]).toContain("no-store");
+  expect(response.headers()["content-security-policy"]).toContain("frame-ancestors 'none'");
+  expect(response.headers()["permissions-policy"]).toContain("camera=(self)");
+  expect(response.headers()["referrer-policy"]).toBe("no-referrer");
+  expect(response.headers()["x-content-type-options"]).toBe("nosniff");
+  expect(response.headers()["x-frame-options"]).toBe("DENY");
+  expect(response.headers()["x-powered-by"]).toBeUndefined();
+});
+
 test("subject completes consent, document, selfie, liveness, and review routing", async ({
   page,
 }) => {
   let step = "consent";
   let uploadNumber = 0;
+  let uploadCreateRequests = 0;
+  let failBackUploadOnce = true;
+  let livenessUploadMimeType = "";
+  let documentPayload: {
+    captures?: Array<{ side: string; upload_id: string }>;
+  } = {};
 
   await page.addInitScript(() => {
     class MockMediaRecorder {
@@ -55,6 +73,10 @@ test("subject completes consent, document, selfie, liveness, and review routing"
           country_code: "GH",
           document_type: "national_id",
           label: "National ID",
+          capture_requirements: [
+            { side: "front", label: "Front", required: true },
+            { side: "back", label: "Back", required: true },
+          ],
         },
         expires_at: new Date(Date.now() + 60_000).toISOString(),
       });
@@ -94,6 +116,25 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     }
 
     if (path === "/api/v1/uploads/" && method === "POST") {
+      uploadCreateRequests += 1;
+      const uploadPayload = request.postDataJSON() as {
+        purpose?: string;
+        mime_type?: string;
+      };
+      if (uploadPayload.purpose === "liveness_capture") {
+        livenessUploadMimeType = uploadPayload.mime_type ?? "";
+      }
+      if (uploadNumber === 1 && failBackUploadOnce) {
+        failBackUploadOnce = false;
+        return route.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: JSON.stringify({
+            success: false,
+            error: { message: "The upload service is temporarily unavailable." },
+          }),
+        });
+      }
       uploadNumber += 1;
       return json(
         route,
@@ -115,6 +156,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
       path === `/api/v1/sessions/${sessionId}/documents` &&
       method === "POST"
     ) {
+      documentPayload = request.postDataJSON() as typeof documentPayload;
       step = "selfie_capture";
       return json(route, {
         identity_document_id: "doc_1",
@@ -170,10 +212,20 @@ test("subject completes consent, document, selfie, liveness, and review routing"
 
   await expect(page.getByRole("heading", { name: "Capture your National ID" })).toBeVisible();
   await page.locator('input[type="file"]').setInputFiles({
-    name: "ghana-card.png",
+    name: "ghana-card-front.png",
     mimeType: "image/png",
     buffer: image,
   });
+  await page.getByRole("button", { name: "Capture back" }).click();
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "ghana-card-back.png",
+    mimeType: "image/png",
+    buffer: image,
+  });
+  await page.getByRole("button", { name: "Submit document" }).click();
+  await expect(page.getByRole("alert")).toContainText(
+    "The upload service is temporarily unavailable.",
+  );
   await page.getByRole("button", { name: "Submit document" }).click();
 
   await expect(page.getByText("Document received")).toBeVisible();
@@ -181,6 +233,11 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     page.getByText("Your document was uploaded successfully"),
   ).toBeVisible();
   await expect(page.getByRole("heading", { name: "Take a live selfie" })).toBeVisible();
+  expect(documentPayload.captures).toEqual([
+    { side: "front", upload_id: "upl_1" },
+    { side: "back", upload_id: "upl_2" },
+  ]);
+  expect(uploadCreateRequests).toBe(3);
   await page.locator('input[type="file"]').setInputFiles({
     name: "selfie.png",
     mimeType: "image/png",
@@ -195,6 +252,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   await page.getByRole("button", { name: "Start live challenge" }).click();
   await expect(page.getByRole("button", { name: "Submit live check" })).toBeVisible({ timeout: 10_000 });
   await page.getByRole("button", { name: "Submit live check" }).click();
+  expect(livenessUploadMimeType).toBe("video/mp4");
 
   await expect(page.getByRole("heading", { name: "Submitted for review" })).toBeVisible();
   await expect(page.getByText("requires additional review")).toBeVisible();
@@ -228,6 +286,10 @@ test("expired sessions render a safe terminal state", async ({ page }) => {
         country_code: "GH",
         document_type: "national_id",
         label: "National ID",
+        capture_requirements: [
+          { side: "front", label: "Front", required: true },
+          { side: "back", label: "Back", required: true },
+        ],
       },
       expires_at: new Date(Date.now() - 60_000).toISOString(),
     });

@@ -18,6 +18,7 @@ export function CameraCapture({
 }: CameraCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const stoppingCameraRef = useRef(false);
   const [starting, setStarting] = useState(false);
   const [active, setActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,13 +30,24 @@ export function CameraCapture({
   );
 
   function stopCamera() {
+    stoppingCameraRef.current = true;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
     setActive(false);
+    stoppingCameraRef.current = false;
   }
 
-  useEffect(() => stopCamera, []);
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && streamRef.current) stopCamera();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      stopCamera();
+    };
+  }, []);
 
   async function startCamera() {
     if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
@@ -58,9 +70,14 @@ export function CameraCapture({
         },
       });
       streamRef.current = stream;
+      stream.getVideoTracks()[0]?.addEventListener("ended", () => {
+        if (stoppingCameraRef.current) return;
+        stopCamera();
+        setError("The camera is no longer available. Enable it and try again.");
+      }, { once: true });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        void videoRef.current.play().catch(() => undefined);
       }
       setActive(true);
     } catch (caught) {
