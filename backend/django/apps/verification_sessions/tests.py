@@ -203,6 +203,63 @@ class VerificationSessionPortalTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_session_uses_immutable_policy_consent_locale_and_documents(self):
+        template = ConsentTemplate.objects.create(
+            tenant=self.tenant,
+            name="French biometric consent",
+            version=3,
+            language="fr",
+            content="Texte actuellement modifiable.",
+            status=ConsentTemplateStatus.ACTIVE,
+            created_by=self.user,
+        )
+        frozen_content = "Je consens au traitement de mes données biométriques."
+        self.verification.policy_snapshot_json = {
+            "required_document_types": ["passport"],
+            "default_locale": "fr",
+            "supported_locales": ["fr"],
+            "consent": {
+                "template_id": template.public_id,
+                "version": 3,
+                "language": "fr",
+                "content": frozen_content,
+            },
+        }
+        self.verification.save(update_fields=["policy_snapshot_json", "updated_at"])
+        template.content = "Texte modifié après création."
+        template.save(update_fields=["content", "updated_at"])
+
+        response = self.client.get(
+            reverse(
+                "verification-session-detail",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            HTTP_ACCEPT_LANGUAGE="fr-FR,fr;q=0.9",
+            **self.session_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["data"]["locale"], "fr")
+        self.assertEqual(response.data["data"]["consent"]["content"], frozen_content)
+        self.assertEqual(
+            [item["document_type"] for item in response.data["data"]["available_documents"]],
+            ["passport"],
+        )
+
+        consent_response = self.client.post(
+            reverse(
+                "verification-session-consent",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            {"accepted": True},
+            format="json",
+            **self.session_headers(),
+        )
+        self.assertEqual(consent_response.status_code, status.HTTP_200_OK)
+        record = self.verification.consent_records.get()
+        self.assertEqual(record.consent_template, template)
+        self.assertEqual(record.consent_text_snapshot, frozen_content)
+
     def test_expired_session_is_rejected_and_marked_expired(self):
         self.session.expires_at = timezone.now() - timedelta(minutes=1)
         self.session.save(update_fields=["expires_at", "updated_at"])

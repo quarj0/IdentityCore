@@ -27,6 +27,14 @@ export interface VerificationSession {
   status: string;
   organization: { name: string; logo_url: string };
   purpose: string;
+  locale: string;
+  supported_locales: string[];
+  consent: {
+    template_id: string;
+    version: number | null;
+    language: string;
+    content: string;
+  };
   redirect_url: string;
   required_steps: string[];
   workflow: {

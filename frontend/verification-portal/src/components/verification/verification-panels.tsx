@@ -25,11 +25,22 @@ export function StepCard({
   description: string;
   children: ReactNode;
 }) {
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>("[data-step-heading]")?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [title]);
+
   return (
     <Card className="overflow-hidden rounded-[2rem] border-slate-200 bg-white shadow-xl shadow-slate-200/40">
       <CardHeader className="border-b border-slate-100 px-5 py-6 sm:px-8 sm:py-7">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">{eyebrow}</p>
-        <CardTitle className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+        <CardTitle
+          data-step-heading
+          tabIndex={-1}
+          className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 outline-none sm:text-3xl"
+        >
           {title}
         </CardTitle>
         <p className="max-w-2xl text-sm leading-6 text-slate-500">{description}</p>

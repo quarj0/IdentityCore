@@ -147,6 +147,11 @@ export function LiveVerificationFlow({
   }, [handoff, load, sessionId]);
 
   useEffect(() => {
+    if (!session?.locale) return;
+    document.documentElement.lang = session.locale;
+  }, [session?.locale]);
+
+  useEffect(() => {
     if (!credentials || !status || !PROCESSING_STEPS.has(status.current_step)) {
       return;
     }
@@ -420,6 +425,7 @@ export function LiveVerificationFlow({
               <span className="whitespace-pre-line">{session.consent.content}</span>
               <span className="sr-only">
                 Consent template version {session.consent.version}.
+                Consent template version {session.consent.version ?? "organization default"}.
               </span>
             </span>
           </label>

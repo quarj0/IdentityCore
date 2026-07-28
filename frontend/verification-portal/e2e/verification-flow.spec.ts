@@ -33,6 +33,7 @@ test("BFF rejects cross-origin session exchange and unauthenticated proxy calls"
 });
 
 test("subject completes consent, document, selfie, liveness, and review routing", async ({
+  isMobile,
   page,
 }) => {
   let step = "consent";
@@ -66,7 +67,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   await page.route("**/api/verification/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
-    const path = url.pathname;
+    const path = apiPath(url);
     const method = request.method();
 
     if (path === "/api/verification/session" && method === "POST") {
@@ -80,6 +81,14 @@ test("subject completes consent, document, selfie, liveness, and review routing"
         status: "active",
         organization: { name: "Example Bank", logo_url: "" },
         purpose: "Customer onboarding",
+        locale: "en",
+        supported_locales: ["en"],
+        consent: {
+          template_id: "ctm_test",
+          version: 2,
+          language: "en",
+          content: "I consent to Example Bank processing my identity evidence.",
+        },
         required_steps: [
           "consent",
           "document_capture",
@@ -226,9 +235,14 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   });
 
   await page.goto(`/verify/${sessionId}#token=browser-secret`);
-  await page.getByRole("button", { name: "Continue on this computer" }).click();
+  if (!isMobile) {
+    await page.getByRole("button", { name: "Continue on this computer" }).click();
+  }
 
   await expect(page.getByRole("heading", { name: "Review and give consent" })).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.getByText("I consent to Example Bank processing my identity evidence.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Review and give consent" })).toBeFocused();
   await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "Accept and continue" }).click();
 
@@ -283,9 +297,16 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   await expect(page).toHaveURL(`/verify/${sessionId}`);
 });
 
-test("expired sessions render a safe terminal state", async ({ page }) => {
+test("expired sessions render a safe terminal state", async ({
+  isMobile,
+  page,
+}) => {
   await page.route("**/api/verification/**", async (route) => {
-    const path = new URL(route.request().url()).pathname;
+    const request = route.request();
+    const path = apiPath(new URL(request.url()));
+    if (path === "/api/v1/session" && request.method() === "POST") {
+      return json(route, {});
+    }
     if (path.endsWith("/status")) {
       return json(route, {
         verification_id: verificationId,
@@ -304,7 +325,15 @@ test("expired sessions render a safe terminal state", async ({ page }) => {
       verification_id: verificationId,
       status: "expired",
       organization: { name: "Example Bank", logo_url: "" },
-      purpose: "Customer onboarding",
+        purpose: "Customer onboarding",
+        locale: "en",
+        supported_locales: ["en"],
+        consent: {
+          template_id: "ctm_test",
+          version: 2,
+          language: "en",
+          content: "I consent to Example Bank processing my identity evidence.",
+        },
       required_steps: [],
       workflow: { steps: [], liveness_mode: "passive" },
       locale: "en",
@@ -324,7 +353,9 @@ test("expired sessions render a safe terminal state", async ({ page }) => {
   });
 
   await page.goto(`/verify/${sessionId}#token=expired-secret`);
-  await page.getByRole("button", { name: "Continue on this computer" }).click();
+  if (!isMobile) {
+    await page.getByRole("button", { name: "Continue on this computer" }).click();
+  }
   await expect(page.getByRole("heading", { name: "This session has expired" })).toBeVisible();
 });
 
@@ -334,4 +365,8 @@ function json(route: Route, data: unknown, status = 200) {
     contentType: "application/json",
     body: JSON.stringify({ success: true, data }),
   });
+}
+
+function apiPath(url: URL) {
+  return url.pathname.replace(/^\/api\/verification/, "/api/v1");
 }
