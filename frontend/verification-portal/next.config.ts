@@ -1,19 +1,10 @@
 import type { NextConfig } from "next";
 import path from "path";
 
-const apiOrigin = process.env.NEXT_PUBLIC_API_ORIGIN ?? "http://localhost:8000";
-const apiSource = (() => {
-  try {
-    return new URL(apiOrigin).origin;
-  } catch {
-    return "'none'";
-  }
-})();
-
 const contentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",
-  `connect-src 'self' ${apiSource}`,
+  "connect-src 'self'",
   "font-src 'self' data:",
   "form-action 'self'",
   "frame-ancestors 'none'",

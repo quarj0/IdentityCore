@@ -117,7 +117,7 @@ export function LiveVerificationFlow({
             );
           }
         } else {
-          nextCredentials = consumeSessionCredentials(sessionId);
+          nextCredentials = await consumeSessionCredentials(sessionId);
         }
 
         if (!nextCredentials) {

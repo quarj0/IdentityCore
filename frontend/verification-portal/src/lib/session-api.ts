@@ -1,13 +1,10 @@
 "use client";
 
-const API_ORIGIN = process.env.NEXT_PUBLIC_API_ORIGIN ?? "http://localhost:8000";
-const API_BASE = `${API_ORIGIN.replace(/\/$/, "")}/api/v1`;
-const TOKEN_KEY_PREFIX = "identitycore.verification.";
+const API_BASE = "/api/verification";
 const REQUEST_TIMEOUT_MS = 30_000;
 
 export interface SessionCredentials {
   sessionId: string;
-  sessionToken: string;
 }
 
 export type DocumentCaptureSide = "front" | "back" | "single";
@@ -80,8 +77,6 @@ async function request<T>(
 ) {
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
-  headers.set("Authorization", `Bearer ${credentials.sessionToken}`);
-  headers.set("X-Session-Id", credentials.sessionId);
   if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
@@ -121,20 +116,24 @@ async function request<T>(
   return payload.data;
 }
 
-export function consumeSessionCredentials(sessionId: string) {
+export async function consumeSessionCredentials(sessionId: string) {
   const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
   const fragmentToken = hash.get("token");
-  const storageKey = `${TOKEN_KEY_PREFIX}${sessionId}`;
   if (fragmentToken) {
-    window.sessionStorage.setItem(storageKey, fragmentToken);
     window.history.replaceState(null, "", window.location.pathname);
+    const response = await fetch(`${API_BASE}/session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId, sessionToken: fragmentToken }),
+    });
+    if (!response.ok) throw new Error("The secure verification credential could not be accepted.");
   }
-  const sessionToken = fragmentToken ?? window.sessionStorage.getItem(storageKey);
-  return sessionToken ? { sessionId, sessionToken } : null;
+  return { sessionId };
 }
 
 export function clearSessionCredentials(sessionId: string) {
-  window.sessionStorage.removeItem(`${TOKEN_KEY_PREFIX}${sessionId}`);
+  void sessionId;
+  void fetch(`${API_BASE}/session`, { method: "DELETE", keepalive: true });
 }
 
 export function fetchVerificationSession(credentials: SessionCredentials) {
@@ -157,7 +156,7 @@ export function createMobileHandoff(credentials: SessionCredentials) {
 }
 
 export async function redeemMobileHandoff(handoff: string) {
-  const response = await fetch(`${API_BASE}/sessions/mobile-handoff/redeem`, {
+  const response = await fetch(`${API_BASE}/handoff`, {
     method: "POST",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify({ handoff }),
@@ -165,7 +164,6 @@ export async function redeemMobileHandoff(handoff: string) {
   const body = await response.text();
   let payload: ApiEnvelope<{
     session_id: string;
-    session_token: string;
     verification_id: string;
   }>;
   try { payload = JSON.parse(body) as typeof payload; }
@@ -175,7 +173,6 @@ export async function redeemMobileHandoff(handoff: string) {
   }
   return {
     sessionId: payload.data.session_id,
-    sessionToken: payload.data.session_token,
   };
 }
 
@@ -212,7 +209,7 @@ export async function createUpload(
   const isDirectObjectStorageUpload = (() => {
     if (!uploadUrl) return false;
     try {
-      return new URL(uploadUrl).origin !== new URL(API_ORIGIN).origin;
+      return new URL(uploadUrl).origin !== window.location.origin;
     } catch {
       return false;
     }
