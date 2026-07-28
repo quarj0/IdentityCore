@@ -1,16 +1,25 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { ThemeProvider, Toaster } from "@identitycore/ui";
+import { SessionExpiryBoundary } from "@/components/auth/session-expiry-boundary";
 import "./globals.css";
+
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3001";
+const allowIndexing = process.env.NEXT_PUBLIC_ALLOW_INDEXING === "true";
 
 export const metadata: Metadata = {
   applicationName: "IdentityCore",
+  metadataBase: new URL(siteUrl),
   title: {
-    default: "IdentityCore | Modern Identity Verification Infrastructure",
+    default: "IdentityCore | Identity Infrastructure and Orchestration",
     template: "%s | IdentityCore",
   },
   description:
-    "Enterprise-grade identity verification, OCR, face matching, and liveness check APIs built for modern developer-first organizations.",
+    "Build identity services with one control plane for workflows, policies, evidence, and managed or bring-your-own providers.",
   keywords: [
+    "identity infrastructure",
+    "identity orchestration",
+    "bring your own identity provider",
     "identity verification",
     "KYC",
     "compliance",
@@ -19,21 +28,24 @@ export const metadata: Metadata = {
     "OCR API",
   ],
   robots: {
-    index: true,
-    follow: true,
+    index: allowIndexing,
+    follow: allowIndexing,
   },
   openGraph: {
     type: "website",
     siteName: "IdentityCore",
-    title: "IdentityCore | Modern Identity Verification Infrastructure",
+    title: "IdentityCore | Identity Infrastructure and Orchestration",
     description:
-      "Enterprise-grade identity verification infrastructure for modern organizations.",
+      "Compose identity workflows, policies, evidence, and providers behind one stable platform contract.",
+    url: "/",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
   },
   twitter: {
-    card: "summary",
-    title: "IdentityCore | Modern Identity Verification Infrastructure",
+    card: "summary_large_image",
+    title: "IdentityCore | Identity Infrastructure and Orchestration",
     description:
-      "Enterprise-grade identity verification infrastructure for modern organizations.",
+      "Compose identity workflows, policies, evidence, and providers behind one stable platform contract.",
+    images: ["/opengraph-image"],
   },
 };
 
@@ -59,6 +71,9 @@ export default function RootLayout({
           Skip to content
         </a>
         <ThemeProvider defaultTheme="light" storageKey="identitycore-web-theme">
+          <Suspense fallback={null}>
+            <SessionExpiryBoundary />
+          </Suspense>
           {children}
           <Toaster />
         </ThemeProvider>

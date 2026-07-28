@@ -3,6 +3,7 @@
 const ACCESS_TOKEN_KEY = "identitycore.access_token";
 const USER_KEY = "identitycore.user";
 export const AUTH_SESSION_CHANGED_EVENT = "identitycore:auth-session-changed";
+export const AUTH_SESSION_EXPIRED_EVENT = "identitycore:auth-session-expired";
 let accessToken: string | null = null;
 
 export interface AuthUser {
@@ -51,6 +52,11 @@ export function clearAuthSession() {
   window.sessionStorage.removeItem(ACCESS_TOKEN_KEY);
   window.localStorage.removeItem(USER_KEY);
   notifyAuthSessionChanged();
+}
+
+export function notifyAuthSessionExpired() {
+  if (!canUseStorage()) return;
+  window.dispatchEvent(new Event(AUTH_SESSION_EXPIRED_EVENT));
 }
 
 export function getAccessToken() {

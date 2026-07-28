@@ -38,6 +38,10 @@ def serialize_workflow(x):
         "steps": x.steps_json,
         "settings": x.settings_json,
         "current_version": x.current_version,
+        "source_template_id": (
+            x.source_template.public_id if x.source_template_id else None
+        ),
+        "source_template_version": x.source_template_version,
         "created_at": x.created_at.isoformat(),
         "updated_at": x.updated_at.isoformat(),
     }
@@ -66,15 +70,24 @@ class WorkflowSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         request = self.context["request"]
-        if self.instance is None and request.user.tenant.organization.status != OrganizationStatus.ACTIVE:
+        if (
+            self.instance is None
+            and request.user.tenant.organization.status != OrganizationStatus.ACTIVE
+        ):
             if request.user.tenant.workflows.exists():
                 raise serializers.ValidationError(
-                    {"detail": "Pending workspaces are limited to one draft sandbox workflow."}
+                    {
+                        "detail": "Pending workspaces are limited to one draft sandbox workflow."
+                    }
                 )
-            project = request.user.tenant.projects.filter(public_id=attrs.get("project_id")).first()
+            project = request.user.tenant.projects.filter(
+                public_id=attrs.get("project_id")
+            ).first()
             if project is None or project.environment != "sandbox":
                 raise serializers.ValidationError(
-                    {"project_id": "Pending workspaces can create workflows only in the sandbox project."}
+                    {
+                        "project_id": "Pending workspaces can create workflows only in the sandbox project."
+                    }
                 )
         return attrs
 
