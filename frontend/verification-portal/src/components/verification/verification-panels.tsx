@@ -25,6 +25,13 @@ export function StepCard({
   description: string;
   children: ReactNode;
 }) {
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>("[data-step-heading]")?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [title]);
+
   return (
     <Card className="overflow-hidden rounded-[2rem] border-slate-200 bg-white shadow-xl shadow-slate-200/40">
       <CardHeader className="border-b border-slate-100 px-5 py-6 sm:px-8 sm:py-7">

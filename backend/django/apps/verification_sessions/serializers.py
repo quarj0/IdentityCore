@@ -401,8 +401,19 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
             if consent_snapshot.get("template_id")
             else None
         )
+        if consent_template is None and not consent_snapshot:
+            consent_template = (
+                ConsentTemplate.objects.filter(
+                    tenant=verification.tenant,
+                    status="active",
+                )
+                .order_by("-version", "-created_at")
+                .first()
+            )
         consent_text_snapshot = consent_snapshot.get("content") or (
-            f"I consent to the identity verification process for {verification.purpose}."
+            consent_template.content
+            if consent_template is not None
+            else f"I consent to the identity verification process for {verification.purpose}."
         )
 
         now = timezone.now()

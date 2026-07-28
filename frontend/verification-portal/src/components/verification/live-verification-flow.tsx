@@ -149,13 +149,6 @@ export function LiveVerificationFlow({
   }, [session?.locale]);
 
   useEffect(() => {
-    if (!status?.current_step) return;
-    window.requestAnimationFrame(() => {
-      document.querySelector<HTMLElement>("[data-step-heading]")?.focus();
-    });
-  }, [status?.current_step]);
-
-  useEffect(() => {
     if (!credentials || !status || !PROCESSING_STEPS.has(status.current_step)) {
       return;
     }
