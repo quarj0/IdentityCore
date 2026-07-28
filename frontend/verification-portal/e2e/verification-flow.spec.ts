@@ -24,6 +24,9 @@ test("subject completes consent, document, selfie, liveness, and review routing"
 }) => {
   let step = "consent";
   let uploadNumber = 0;
+  let documentPayload: {
+    captures?: Array<{ side: string; upload_id: string }>;
+  } = {};
 
   await page.addInitScript(() => {
     class MockMediaRecorder {
@@ -67,6 +70,10 @@ test("subject completes consent, document, selfie, liveness, and review routing"
           country_code: "GH",
           document_type: "national_id",
           label: "National ID",
+          capture_requirements: [
+            { side: "front", label: "Front", required: true },
+            { side: "back", label: "Back", required: true },
+          ],
         },
         expires_at: new Date(Date.now() + 60_000).toISOString(),
       });
@@ -127,6 +134,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
       path === `/api/v1/sessions/${sessionId}/documents` &&
       method === "POST"
     ) {
+      documentPayload = request.postDataJSON() as typeof documentPayload;
       step = "selfie_capture";
       return json(route, {
         identity_document_id: "doc_1",
@@ -182,7 +190,13 @@ test("subject completes consent, document, selfie, liveness, and review routing"
 
   await expect(page.getByRole("heading", { name: "Capture your National ID" })).toBeVisible();
   await page.locator('input[type="file"]').setInputFiles({
-    name: "ghana-card.png",
+    name: "ghana-card-front.png",
+    mimeType: "image/png",
+    buffer: image,
+  });
+  await page.getByRole("button", { name: "Capture back" }).click();
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "ghana-card-back.png",
     mimeType: "image/png",
     buffer: image,
   });
@@ -193,6 +207,10 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     page.getByText("Your document was uploaded successfully"),
   ).toBeVisible();
   await expect(page.getByRole("heading", { name: "Take a live selfie" })).toBeVisible();
+  expect(documentPayload.captures).toEqual([
+    { side: "front", upload_id: "upl_1" },
+    { side: "back", upload_id: "upl_2" },
+  ]);
   await page.locator('input[type="file"]').setInputFiles({
     name: "selfie.png",
     mimeType: "image/png",
@@ -240,6 +258,10 @@ test("expired sessions render a safe terminal state", async ({ page }) => {
         country_code: "GH",
         document_type: "national_id",
         label: "National ID",
+        capture_requirements: [
+          { side: "front", label: "Front", required: true },
+          { side: "back", label: "Back", required: true },
+        ],
       },
       expires_at: new Date(Date.now() - 60_000).toISOString(),
     });
