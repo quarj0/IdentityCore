@@ -23,14 +23,12 @@ from apps.verifications.models import (
     VerificationDecisionType,
     VerificationStatus,
 )
-
-logger = logging.getLogger(__name__)
-
-
 from common.storage import (
     get_object_storage_media_bucket_name,
     get_object_storage_temp_bucket_name,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @shared_task(queue="ai_processing")
@@ -65,6 +63,7 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             selfie_storage_key=selfie_capture.storage_key,
             liveness_type=liveness_check.liveness_type,
             selfie_storage_bucket=temp_bucket,
+            selfie_mime_type=selfie_capture.mime_type,
             challenge_actions=(
                 liveness_check.challenge.actions
                 if liveness_check.challenge_id
@@ -138,6 +137,7 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                 document_storage_key=document_storage_key,
                 threshold=threshold,
                 selfie_storage_bucket=temp_bucket,
+                selfie_mime_type=selfie_capture.mime_type,
                 document_storage_bucket=(
                     media_bucket
                     if source_document_capture and source_document_capture.status != "uploaded"

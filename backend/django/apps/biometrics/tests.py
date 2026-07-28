@@ -194,7 +194,9 @@ class BiometricsTaskTests(TestCase):
             Notification.objects.filter(template_code="verification.verified").exists()
         )
         self.assertEqual(mock_liveness.call_args.kwargs["selfie_storage_bucket"], "")
+        self.assertEqual(mock_liveness.call_args.kwargs["selfie_mime_type"], "image/jpeg")
         self.assertEqual(mock_face.call_args.kwargs["selfie_storage_bucket"], "")
+        self.assertEqual(mock_face.call_args.kwargs["selfie_mime_type"], "image/jpeg")
 
     @patch("apps.biometrics.tasks.queue_verification_status_notifications")
     @patch("apps.biometrics.tasks.queue_webhook_events")

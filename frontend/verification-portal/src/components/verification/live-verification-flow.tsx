@@ -29,10 +29,12 @@ import {
   submitDocument,
   submitLiveness,
   submitSelfie,
+  type DocumentCaptureSide,
   type SessionCredentials,
   type VerificationSession,
   type VerificationStatus,
 } from "@/lib/session-api";
+import { resolveOrganizationLogoUrl, resolveReturnUrl } from "@/lib/safe-navigation";
 
 import { CameraCapture } from "./camera-capture";
 import { LiveLivenessCapture } from "./live-liveness-capture";
@@ -58,6 +60,14 @@ export function LiveVerificationFlow({
   const [session, setSession] = useState<VerificationSession | null>(null);
   const [status, setStatus] = useState<VerificationStatus | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [documentFiles, setDocumentFiles] = useState<
+    Partial<Record<DocumentCaptureSide, File>>
+  >({});
+  const [documentUploadIds, setDocumentUploadIds] = useState<
+    Partial<Record<DocumentCaptureSide, string>>
+  >({});
+  const [activeDocumentSide, setActiveDocumentSide] =
+    useState<DocumentCaptureSide>("front");
   const [activeLivenessFile, setActiveLivenessFile] = useState<File | null>(null);
   const [livenessChallenge, setLivenessChallenge] = useState<{ challenge_id: string; actions: string[] } | null>(null);
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
@@ -134,6 +144,11 @@ export function LiveVerificationFlow({
   }, [handoff, load, sessionId]);
 
   useEffect(() => {
+    if (!session?.locale) return;
+    document.documentElement.lang = session.locale;
+  }, [session?.locale]);
+
+  useEffect(() => {
     if (!credentials || !status || !PROCESSING_STEPS.has(status.current_step)) {
       return;
     }
@@ -185,6 +200,8 @@ export function LiveVerificationFlow({
       await action();
       const nextStatus = await load(credentials);
       setFile(null);
+      setDocumentFiles({});
+      setDocumentUploadIds({});
       if (feedback) {
         const remainedOnStep =
           previousStep && nextStatus.current_step === previousStep;
@@ -229,6 +246,30 @@ export function LiveVerificationFlow({
     setError(null);
     setNotice(null);
     setFile(nextFile);
+  }
+
+  function selectDocumentEvidence(side: DocumentCaptureSide, nextFile: File) {
+    const supportedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+    if (!supportedTypes.has(nextFile.type.toLowerCase())) {
+      setError("Choose a JPEG, PNG, or WebP image.");
+      return;
+    }
+    if (nextFile.size > MAX_IMAGE_BYTES) {
+      setError("The image must be 10 MB or smaller.");
+      return;
+    }
+    if (nextFile.size === 0) {
+      setError("The selected image is empty. Choose another image.");
+      return;
+    }
+    setError(null);
+    setNotice(null);
+    setDocumentFiles((current) => ({ ...current, [side]: nextFile }));
+    setDocumentUploadIds((current) => {
+      const next = { ...current };
+      delete next[side];
+      return next;
+    });
   }
 
   async function startMobileHandoff() {
@@ -291,19 +332,37 @@ export function LiveVerificationFlow({
     availableDocuments.find(
       (document) => document.document_type === selectedDocumentType,
     ) ?? session.document;
+  const captureRequirements = selectedDocument.capture_requirements?.length
+    ? selectedDocument.capture_requirements
+    : [{ side: "front" as const, label: "Front", required: true }];
+  const activeCaptureRequirement =
+    captureRequirements.find(
+      (requirement) => requirement.side === activeDocumentSide,
+    ) ?? captureRequirements[0];
+  const requiredCaptureRequirements = captureRequirements.filter(
+    (requirement) => requirement.required,
+  );
+  const allRequiredDocumentSidesCaptured = requiredCaptureRequirements.every(
+    (requirement) => Boolean(documentFiles[requirement.side]),
+  );
+  const nextMissingCapture = requiredCaptureRequirements.find(
+    (requirement) => !documentFiles[requirement.side],
+  );
+  const activeDocumentFile = documentFiles[activeCaptureRequirement.side];
   const finish = () => {
     clearSessionCredentials(credentials.sessionId);
-    const returnUrl =
-      session.redirect_url ||
-      process.env.NEXT_PUBLIC_ONBOARDING_RETURN_URL ||
-      "http://localhost:3001/onboarding";
+    const returnUrl = resolveReturnUrl({
+      requestedUrl: session.redirect_url,
+      fallbackUrl: process.env.NEXT_PUBLIC_ONBOARDING_RETURN_URL,
+      portalOrigin: window.location.origin,
+    });
     window.location.assign(returnUrl);
   };
 
   return (
     <VerificationFrame
       organizationName={session.organization.name}
-      organizationLogoUrl={session.organization.logo_url}
+      organizationLogoUrl={resolveOrganizationLogoUrl(session.organization.logo_url)}
       purpose={session.purpose}
       currentStep={step}
       reference={status.verification_id}
@@ -360,9 +419,10 @@ export function LiveVerificationFlow({
               className="mt-1 h-4 w-4 rounded border-slate-300 accent-blue-600"
             />
             <span className="text-sm leading-6 text-slate-600">
-              I consent to {session.organization.name} using IdentityCore to
-              process my document, selfie, biometric evidence, and security
-              metadata for <strong className="font-medium text-slate-900">{session.purpose}</strong>.
+              <span className="whitespace-pre-line">{session.consent.content}</span>
+              <span className="sr-only">
+                Consent template version {session.consent.version ?? "organization default"}.
+              </span>
             </span>
           </label>
           <div className="flex items-center justify-between gap-4 border-t border-slate-100 pt-5">
@@ -402,7 +462,11 @@ export function LiveVerificationFlow({
                   setSelectedDocumentType(
                     nextCountry?.documents[0]?.document_type ?? "",
                   );
-                  setFile(null);
+                  setDocumentFiles({});
+                  setDocumentUploadIds({});
+                  setActiveDocumentSide(
+                    nextCountry?.documents[0]?.capture_requirements[0]?.side ?? "front",
+                  );
                   setError(null);
                   setNotice(null);
                 }}
@@ -424,7 +488,14 @@ export function LiveVerificationFlow({
               value={selectedDocumentType}
               onChange={(event) => {
                 setSelectedDocumentType(event.target.value);
-                setFile(null);
+                const nextDocument = availableDocuments.find(
+                  (document) => document.document_type === event.target.value,
+                );
+                setDocumentFiles({});
+                setDocumentUploadIds({});
+                setActiveDocumentSide(
+                  nextDocument?.capture_requirements[0]?.side ?? "front",
+                );
                 setError(null);
                 setNotice(null);
               }}
@@ -442,30 +513,101 @@ export function LiveVerificationFlow({
               </select>
             </label>
           </div>
-          {file ? (
-            <EvidenceReview file={file} onRetake={() => setFile(null)} />
-          ) : (
-            <CameraCapture
-              facingMode="environment"
-              label={`${selectedDocument.label} camera`}
-              onCapture={selectEvidence}
-            />
-          )}
-          <div className="flex justify-end border-t border-slate-100 pt-5">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {captureRequirements.map((requirement) => (
+              <button
+                key={requirement.side}
+                type="button"
+                onClick={() => setActiveDocumentSide(requirement.side)}
+                disabled={busy}
+                aria-pressed={requirement.side === activeCaptureRequirement.side}
+                className={`rounded-2xl border px-4 py-3 text-left transition ${
+                  requirement.side === activeCaptureRequirement.side
+                    ? "border-blue-500 bg-blue-50 ring-2 ring-blue-100"
+                    : "border-slate-200 bg-white hover:border-blue-300"
+                }`}
+              >
+                <span className="block text-sm font-semibold text-slate-900">
+                  {requirement.label}
+                </span>
+                <span className="mt-1 block text-xs text-slate-500">
+                  {documentFiles[requirement.side] ? "Captured — select to review" : "Not captured"}
+                </span>
+              </button>
+            ))}
+          </div>
+          <div>
+            <p className="mb-3 text-sm font-semibold text-slate-900">
+              Capture {activeCaptureRequirement.label.toLowerCase()}
+            </p>
+            {activeDocumentFile ? (
+              <EvidenceReview
+                file={activeDocumentFile}
+                onRetake={() => {
+                  setDocumentFiles((current) => {
+                    const next = { ...current };
+                    delete next[activeCaptureRequirement.side];
+                    return next;
+                  });
+                  setDocumentUploadIds((current) => {
+                    const next = { ...current };
+                    delete next[activeCaptureRequirement.side];
+                    return next;
+                  });
+                }}
+              />
+            ) : (
+              <CameraCapture
+                facingMode="environment"
+                label={`${selectedDocument.label} ${activeCaptureRequirement.label} camera`}
+                onCapture={(nextFile) =>
+                  selectDocumentEvidence(activeCaptureRequirement.side, nextFile)
+                }
+              />
+            )}
+          </div>
+          <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
+            {activeDocumentFile && nextMissingCapture ? (
+              <Button
+                variant="outline"
+                disabled={busy}
+                onClick={() => setActiveDocumentSide(nextMissingCapture.side)}
+              >
+                Capture {nextMissingCapture.label.toLowerCase()}
+              </Button>
+            ) : null}
             <Button
-              disabled={!file || busy}
+              disabled={!allRequiredDocumentSidesCaptured || busy}
               onClick={() =>
                 run(async () => {
-                  if (!file) return;
-                  const uploadId = await createUpload(
-                    credentials,
-                    "document_capture",
-                    file,
-                  );
+                  if (!allRequiredDocumentSidesCaptured) return;
+                  const captures: Array<{
+                    side: DocumentCaptureSide;
+                    uploadId: string;
+                  }> = [];
+                  for (const [index, requirement] of requiredCaptureRequirements.entries()) {
+                    setBusyMessage(
+                      `Uploading ${requirement.label.toLowerCase()} (${index + 1} of ${requiredCaptureRequirements.length})…`,
+                    );
+                    let uploadId = documentUploadIds[requirement.side];
+                    if (!uploadId) {
+                      uploadId = await createUpload(
+                        credentials,
+                        "document_capture",
+                        documentFiles[requirement.side]!,
+                      );
+                      setDocumentUploadIds((current) => ({
+                        ...current,
+                        [requirement.side]: uploadId,
+                      }));
+                    }
+                    captures.push({ side: requirement.side, uploadId });
+                  }
+                  setBusyMessage("Submitting your document securely…");
                   await submitDocument(credentials, {
                     documentType: selectedDocument.document_type,
                     countryCode: selectedCountry.country_code,
-                    uploadId,
+                    captures,
                   });
                 }, {
                   title: "Document received",

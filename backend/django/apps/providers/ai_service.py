@@ -117,6 +117,7 @@ def run_liveness_check(
     selfie_storage_key: str,
     liveness_type: str,
     selfie_storage_bucket: str = "",
+    selfie_mime_type: str = "",
     challenge_actions: list[str] | None = None,
 ) -> dict:
     payload = {
@@ -126,6 +127,8 @@ def run_liveness_check(
     }
     if selfie_storage_bucket:
         payload["selfie_storage_bucket"] = selfie_storage_bucket
+    if selfie_mime_type:
+        payload["selfie_mime_type"] = selfie_mime_type
     if challenge_actions:
         payload["challenge_actions"] = challenge_actions
     return _post_json("/v1/liveness/check", payload)
@@ -138,6 +141,7 @@ def run_face_compare(
     document_storage_key: str,
     threshold: float,
     selfie_storage_bucket: str = "",
+    selfie_mime_type: str = "",
     document_storage_bucket: str = "",
 ) -> dict:
     payload = {
@@ -148,6 +152,8 @@ def run_face_compare(
     }
     if selfie_storage_bucket:
         payload["selfie_storage_bucket"] = selfie_storage_bucket
+    if selfie_mime_type:
+        payload["selfie_mime_type"] = selfie_mime_type
     if document_storage_bucket:
         payload["document_storage_bucket"] = document_storage_bucket
     return _post_json("/v1/face/compare", payload)

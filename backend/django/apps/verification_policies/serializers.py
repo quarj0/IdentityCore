@@ -12,6 +12,9 @@ def serialize_verification_policy(policy: VerificationPolicy) -> dict:
         "project_id": policy.project.public_id if policy.project else None,
         "name": policy.name,
         "description": policy.description,
+        "consent_template_id": policy.consent_template.public_id if policy.consent_template else None,
+        "default_locale": policy.default_locale,
+        "supported_locales": policy.supported_locales_json or [policy.default_locale],
         "version": policy.version,
         "status": policy.status,
         "required_document_types": policy.required_document_types,
@@ -30,6 +33,11 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
     project_id = serializers.CharField(required=False, allow_blank=True)
     name = serializers.CharField(max_length=255)
     description = serializers.CharField(required=False, allow_blank=True)
+    consent_template_id = serializers.CharField(required=False, allow_blank=True)
+    default_locale = serializers.CharField(max_length=16, required=False, default="en")
+    supported_locales = serializers.ListField(
+        child=serializers.CharField(max_length=16), required=False, default=list
+    )
     required_document_types = serializers.ListField(
         child=serializers.CharField(max_length=64),
         allow_empty=False,
@@ -44,6 +52,7 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
     metadata_retention_days = serializers.IntegerField(min_value=1)
 
     def validate(self, attrs):
+        tenant = self.context["request"].user.tenant
         unknown = set(attrs["required_document_types"]) - VALID_DOCUMENT_TYPES
         if unknown:
             raise serializers.ValidationError(
@@ -55,6 +64,25 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
                     "manual_review_threshold": "Manual review threshold must not exceed the face match threshold."
                 }
             )
+        template_id = attrs.get("consent_template_id", "")
+        if template_id:
+            template = tenant.consent_templates.filter(
+                public_id=template_id, status="active"
+            ).first()
+            if template is None:
+                raise serializers.ValidationError(
+                    {"consent_template_id": "Choose an active consent template."}
+                )
+            attrs["consent_template"] = template
+        locales = list(dict.fromkeys(attrs.get("supported_locales") or []))
+        default_locale = attrs.get("default_locale", "en")
+        if default_locale not in locales:
+            locales.insert(0, default_locale)
+        if attrs.get("consent_template") and attrs["consent_template"].language != default_locale:
+            raise serializers.ValidationError(
+                {"default_locale": "The default locale must match the consent template language."}
+            )
+        attrs["supported_locales"] = locales
         return attrs
 
     def create(self, validated_data):
@@ -73,6 +101,9 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
             or tenant.projects.filter(is_default=True).first(),
             name=name,
             description=validated_data.get("description", ""),
+            consent_template=validated_data.get("consent_template"),
+            default_locale=validated_data["default_locale"],
+            supported_locales_json=validated_data["supported_locales"],
             version=next_version,
             status="draft",
             required_document_types_json=validated_data["required_document_types"],
@@ -88,6 +119,11 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
 
 class VerificationPolicyUpdateSerializer(VerificationPolicyCreateSerializer):
     name = serializers.CharField(max_length=255, required=False)
+    consent_template_id = serializers.CharField(required=False, allow_blank=True)
+    default_locale = serializers.CharField(max_length=16, required=False)
+    supported_locales = serializers.ListField(
+        child=serializers.CharField(max_length=16), required=False
+    )
     required_document_types = serializers.ListField(
         child=serializers.CharField(max_length=64), required=False, allow_empty=False
     )
@@ -121,6 +157,34 @@ class VerificationPolicyUpdateSerializer(VerificationPolicyCreateSerializer):
                     "manual_review_threshold": "Manual review threshold must not exceed the face match threshold."
                 }
             )
+        if "consent_template_id" in attrs:
+            template_id = attrs.get("consent_template_id", "")
+            template = (
+                self.context["request"].user.tenant.consent_templates.filter(
+                    public_id=template_id, status="active"
+                ).first()
+                if template_id
+                else None
+            )
+            if template_id and template is None:
+                raise serializers.ValidationError(
+                    {"consent_template_id": "Choose an active consent template."}
+                )
+            attrs["consent_template"] = template
+        default_locale = attrs.get("default_locale", policy.default_locale)
+        locales = list(
+            dict.fromkeys(
+                attrs.get("supported_locales", policy.supported_locales_json) or []
+            )
+        )
+        if default_locale not in locales:
+            locales.insert(0, default_locale)
+        template = attrs.get("consent_template", policy.consent_template)
+        if template and template.language != default_locale:
+            raise serializers.ValidationError(
+                {"default_locale": "The default locale must match the consent template language."}
+            )
+        attrs["supported_locales"] = locales
         return attrs
 
     def update(self, instance, validated_data):
@@ -129,9 +193,13 @@ class VerificationPolicyUpdateSerializer(VerificationPolicyCreateSerializer):
                 {"status": "Only draft templates can be edited."}
             )
         for field, value in validated_data.items():
+            if field == "consent_template_id":
+                continue
             model_field = (
                 "required_document_types_json"
                 if field == "required_document_types"
+                else "supported_locales_json"
+                if field == "supported_locales"
                 else field
             )
             setattr(instance, model_field, value)
