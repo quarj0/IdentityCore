@@ -16,7 +16,7 @@ from apps.biometrics.models import (
     SelfieCaptureStatus,
     SelfieCaptureType,
 )
-from apps.consent.models import ConsentRecord, ConsentTemplate, ConsentTemplateStatus
+from apps.consent.models import ConsentRecord, ConsentTemplate
 from apps.document_captures.models import (
     DocumentCapture,
     DocumentCaptureSide,
@@ -249,6 +249,14 @@ def serialize_verification_session(verification_session: VerificationSession, re
     )
     configured_document_type = str(metadata.get("document_type", "national_id"))
     supported_documents = _supported_documents(country_code)
+    policy_snapshot = verification.policy_snapshot_json or {}
+    required_document_types = set(policy_snapshot.get("required_document_types") or [])
+    if required_document_types:
+        supported_documents = [
+            item
+            for item in supported_documents
+            if item["document_type"] in required_document_types
+        ]
     supported_document_types = {
         item["document_type"] for item in supported_documents
     }
@@ -283,6 +291,17 @@ def serialize_verification_session(verification_session: VerificationSession, re
             "logo_url": organization_logo_url,
         },
         "purpose": verification.purpose,
+        "locale": locale,
+        "supported_locales": supported_locales,
+        "consent": {
+            "template_id": consent.get("template_id", ""),
+            "version": consent.get("version"),
+            "language": consent.get("language", locale),
+            "content": consent.get(
+                "content",
+                f"I consent to the identity verification process for {verification.purpose}.",
+            ),
+        },
         "redirect_url": verification.redirect_url,
         "required_steps": required_steps,
         "workflow": {
@@ -307,8 +326,24 @@ def serialize_verification_session(verification_session: VerificationSession, re
                 else []
             ),
         },
-        "available_documents": _supported_documents(country_code),
-        "available_countries": _available_country_profiles(),
+        "available_documents": supported_documents,
+        "available_countries": [
+            {
+                **profile,
+                "documents": [
+                    document
+                    for document in profile["documents"]
+                    if not required_document_types
+                    or document["document_type"] in required_document_types
+                ],
+            }
+            for profile in _available_country_profiles()
+            if any(
+                not required_document_types
+                or document["document_type"] in required_document_types
+                for document in profile["documents"]
+            )
+        ],
         "expires_at": verification_session.expires_at.isoformat(),
     }
 
@@ -440,13 +475,28 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
                 verification.save(update_fields=["status", "updated_at"])
             return existing_record
 
+        consent_snapshot = (verification.policy_snapshot_json or {}).get("consent") or {}
         consent_template = (
             ConsentTemplate.objects.filter(
                 tenant=verification.tenant,
-                public_id=artifact["template_id"],
+                public_id=consent_snapshot.get("template_id"),
             ).first()
-            if artifact["template_id"] != "generated"
+            if consent_snapshot.get("template_id")
             else None
+        )
+        if consent_template is None and not consent_snapshot:
+            consent_template = (
+                ConsentTemplate.objects.filter(
+                    tenant=verification.tenant,
+                    status="active",
+                )
+                .order_by("-version", "-created_at")
+                .first()
+            )
+        consent_text_snapshot = consent_snapshot.get("content") or (
+            consent_template.content
+            if consent_template is not None
+            else f"I consent to the identity verification process for {verification.purpose}."
         )
         consent_text_snapshot = artifact["content"]
 
