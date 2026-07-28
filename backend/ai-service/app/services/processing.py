@@ -27,6 +27,7 @@ def process_face_compare(payload: FaceCompareRequest) -> dict:
             document_storage_key=payload.document_storage_key,
             threshold=payload.threshold,
             selfie_bucket_name=payload.selfie_storage_bucket,
+            selfie_mime_type=payload.selfie_mime_type,
             document_bucket_name=payload.document_storage_bucket,
         ),
         mock_callable=build_mock_face_compare,
@@ -45,6 +46,7 @@ def process_liveness(payload: LivenessCheckRequest) -> dict:
             liveness_type=payload.liveness_type,
             challenge_actions=payload.challenge_actions,
             bucket_name=payload.selfie_storage_bucket,
+            media_mime_type=payload.selfie_mime_type,
         ),
         mock_callable=build_mock_liveness,
         mock_args=(

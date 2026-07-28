@@ -26,6 +26,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   let uploadNumber = 0;
   let uploadCreateRequests = 0;
   let failBackUploadOnce = true;
+  let livenessUploadMimeType = "";
   let documentPayload: {
     captures?: Array<{ side: string; upload_id: string }>;
   } = {};
@@ -116,6 +117,13 @@ test("subject completes consent, document, selfie, liveness, and review routing"
 
     if (path === "/api/v1/uploads/" && method === "POST") {
       uploadCreateRequests += 1;
+      const uploadPayload = request.postDataJSON() as {
+        purpose?: string;
+        mime_type?: string;
+      };
+      if (uploadPayload.purpose === "liveness_capture") {
+        livenessUploadMimeType = uploadPayload.mime_type ?? "";
+      }
       if (uploadNumber === 1 && failBackUploadOnce) {
         failBackUploadOnce = false;
         return route.fulfill({
@@ -244,6 +252,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   await page.getByRole("button", { name: "Start live challenge" }).click();
   await expect(page.getByRole("button", { name: "Submit live check" })).toBeVisible({ timeout: 10_000 });
   await page.getByRole("button", { name: "Submit live check" }).click();
+  expect(livenessUploadMimeType).toBe("video/mp4");
 
   await expect(page.getByRole("heading", { name: "Submitted for review" })).toBeVisible();
   await expect(page.getByText("requires additional review")).toBeVisible();

@@ -41,6 +41,15 @@ TLS and `Strict-Transport-Security` must be enforced at the production ingress.
 Only explicitly trusted portal origins should be present in Django's CORS
 configuration.
 
+## Camera and media compatibility
+
+Live capture requires a secure context and a current browser with `getUserMedia`.
+The liveness recorder negotiates MP4/H.264 first for Safari and iOS, then WebM
+VP8/VP9 for Chromium-based browsers. Recordings are capped at 15 seconds and
+25 MB. Camera streams are stopped when the page is hidden or the capture
+component unmounts; an interrupted liveness challenge must be started again so
+partial video is never submitted as complete evidence.
+
 ## Checks
 
 ```bash
