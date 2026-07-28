@@ -7,6 +7,8 @@
     "dev:verify": "pnpm --filter verification-portal dev",
     "dev:web": "pnpm --filter identitycore-web dev",
     "dev:docs": "pnpm --filter developer-portal dev",
-    "dev:admin": "pnpm --filter platform-admin dev"
+    "dev:admin": "pnpm --filter platform-admin dev",
+    "test:e2e:verify:install": "pnpm --filter verification-portal test:e2e:install",
+    "test:e2e:verify": "pnpm --filter verification-portal test:e2e"
   }
 }
