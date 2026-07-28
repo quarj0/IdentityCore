@@ -48,7 +48,9 @@ curl https://api.identitycore.com/api/v1/docs/openapi.yaml`}
         <ul className="mt-4 list-disc space-y-3 pl-5 text-sm leading-7 text-slate-600">
           <li>Generate or refresh SDKs from one canonical spec file.</li>
           <li>Validate portal examples against the contract during reviews.</li>
-          <li>Use Swagger UI or Redoc later without changing the backend source.</li>
+          <li>
+            Use Swagger UI or Redoc later without changing the backend source.
+          </li>
         </ul>
       </section>
     </DocsLayout>

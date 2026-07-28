@@ -46,7 +46,8 @@ export function InlineStatus({
   onTimeout?: () => void;
 }) {
   const styles = STYLES[kind];
-  const Icon = kind === "error" ? AlertCircle : kind === "success" ? CheckCircle2 : Info;
+  const Icon =
+    kind === "error" ? AlertCircle : kind === "success" ? CheckCircle2 : Info;
   const statusKey = `${kind}:${title ?? ""}:${message}`;
   const [dismissedKey, setDismissedKey] = useState<string | null>(null);
 
@@ -68,9 +69,16 @@ export function InlineStatus({
   }
 
   return (
-    <div className={`rounded-2xl border p-4 ${styles.container}`} role="status" aria-live="polite">
+    <div
+      className={`rounded-2xl border p-4 ${styles.container}`}
+      role="status"
+      aria-live="polite"
+    >
       <div className="flex gap-3">
-        <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${styles.icon}`} aria-hidden="true" />
+        <Icon
+          className={`mt-0.5 h-5 w-5 shrink-0 ${styles.icon}`}
+          aria-hidden="true"
+        />
         <div className="space-y-1">
           <p className="text-sm font-semibold">{title ?? styles.title}</p>
           <p className="text-sm leading-6">{message}</p>

@@ -128,8 +128,7 @@ export function buildIncidentConfig(records: AdminRecord[]): AdminModuleConfig {
         items: [
           {
             label: "Detected",
-            value:
-              "Alert triggered by provider health and latency monitors.",
+            value: "Alert triggered by provider health and latency monitors.",
           },
           { label: "Current status", value: record.status },
           {
@@ -139,7 +138,8 @@ export function buildIncidentConfig(records: AdminRecord[]): AdminModuleConfig {
           },
           {
             label: "Next update",
-            value: "Post update to status page every 30 minutes until resolved.",
+            value:
+              "Post update to status page every 30 minutes until resolved.",
           },
         ],
       },
@@ -151,7 +151,10 @@ export function buildIncidentConfig(records: AdminRecord[]): AdminModuleConfig {
             label: "Mitigation",
             value: "Enable failover, scale workers and monitor queue depth.",
           },
-          { label: "Postmortem", value: "Required for major and critical incidents." },
+          {
+            label: "Postmortem",
+            value: "Required for major and critical incidents.",
+          },
         ],
       },
     ],

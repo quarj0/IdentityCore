@@ -27,9 +27,7 @@ export function RelatedTemplates({
     <section className="bg-slate-50 py-24">
       <div className="mx-auto max-w-7xl px-6">
         <div className="max-w-3xl">
-          <p className="text-sm font-medium text-blue-600">
-            Related templates
-          </p>
+          <p className="text-sm font-medium text-blue-600">Related templates</p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
             Explore more workflows.
           </h2>

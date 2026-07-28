@@ -53,9 +53,7 @@ export function AdminListPage({ config }: AdminListPageProps) {
         eyebrow={config.moduleLabel}
         title={config.listTitle}
         description={config.listDescription}
-        actions={
-          config.headerActions
-        }
+        actions={config.headerActions}
       />
 
       <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">

@@ -112,7 +112,10 @@ export function LoginForm() {
             </div>
 
             <p className="text-right text-sm">
-              <Link href="/forgot-password" className="font-medium text-blue-600">
+              <Link
+                href="/forgot-password"
+                className="font-medium text-blue-600"
+              >
                 Forgot password?
               </Link>
             </p>

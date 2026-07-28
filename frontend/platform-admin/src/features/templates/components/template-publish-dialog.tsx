@@ -22,11 +22,28 @@ type TemplatePublishDialogProps = {
   onComplete?: () => void;
 };
 
-export function TemplatePublishDialog({ templateName, templateId, onComplete }: TemplatePublishDialogProps) {
+export function TemplatePublishDialog({
+  templateName,
+  templateId,
+  onComplete,
+}: TemplatePublishDialogProps) {
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const submit = async () => { setSubmitting(true); setError(null); try { await publishTemplate(templateId); onComplete?.(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to publish template."); } finally { setSubmitting(false); } };
+  const submit = async () => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      await publishTemplate(templateId);
+      onComplete?.();
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Unable to publish template.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <Dialog>
@@ -41,7 +58,8 @@ export function TemplatePublishDialog({ templateName, templateId, onComplete }: 
         <DialogHeader>
           <DialogTitle>Publish {templateName}?</DialogTitle>
           <DialogDescription>
-            Publishing makes this template available to organizations from the official template library.
+            Publishing makes this template available to organizations from the
+            official template library.
           </DialogDescription>
         </DialogHeader>
 
@@ -55,10 +73,16 @@ export function TemplatePublishDialog({ templateName, templateId, onComplete }: 
           />
         </div>
 
-        {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
+        {error ? (
+          <p role="alert" className="text-sm text-red-700">
+            {error}
+          </p>
+        ) : null}
         <DialogFooter>
           <Button variant="outline">Cancel</Button>
-          <Button onClick={submit} disabled={submitting || !notes.trim()}>{submitting ? "Publishing…" : "Publish template"}</Button>
+          <Button onClick={submit} disabled={submitting || !notes.trim()}>
+            {submitting ? "Publishing…" : "Publish template"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -15,7 +15,9 @@ type WebhookDetailPageProps = {
 };
 
 export function WebhookDetailPage({ webhookId }: WebhookDetailPageProps) {
-  const [config, setConfig] = useState<ReturnType<typeof buildWebhookConfig> | null>(null);
+  const [config, setConfig] = useState<ReturnType<
+    typeof buildWebhookConfig
+  > | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {

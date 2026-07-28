@@ -14,7 +14,9 @@ export default function WorkflowDetailError({
   return (
     <ErrorState
       title="Unable to load workflow"
-      description={error.message || "Something went wrong while loading this workflow."}
+      description={
+        error.message || "Something went wrong while loading this workflow."
+      }
       actionLabel="Try again"
       onAction={reset}
     />

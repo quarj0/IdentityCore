@@ -7,10 +7,5 @@ export default async function VerifyEmailPage({
 }) {
   const params = await searchParams;
 
-  return (
-    <VerifyEmailPanel
-      token={params.token}
-      emailFromUrl={params.email}
-    />
-  );
+  return <VerifyEmailPanel token={params.token} emailFromUrl={params.email} />;
 }

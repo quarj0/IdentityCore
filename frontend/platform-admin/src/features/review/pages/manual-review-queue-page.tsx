@@ -65,7 +65,9 @@ export function ManualReviewQueuePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "changed">("all");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "pending" | "changed"
+  >("all");
 
   useEffect(() => {
     let active = true;
@@ -101,20 +103,48 @@ export function ManualReviewQueuePage() {
   const filteredItems = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return items.filter((item) => {
-      const matchesQuery = !normalizedQuery || buildSearchIndex(item).includes(normalizedQuery);
-      const matchesStatus = statusFilter === "all" ||
-        (statusFilter === "pending" && item.organizationVerificationReviewStatus === "submitted") ||
-        (statusFilter === "changed" && item.organizationVerificationChangedAfterApproval);
+      const matchesQuery =
+        !normalizedQuery || buildSearchIndex(item).includes(normalizedQuery);
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "pending" &&
+          item.organizationVerificationReviewStatus === "submitted") ||
+        (statusFilter === "changed" &&
+          item.organizationVerificationChangedAfterApproval);
       return matchesQuery && matchesStatus;
     });
   }, [items, query, statusFilter]);
 
   function exportQueue() {
-    const header = ["Organization", "Review status", "Organization status", "Submitted", "Reviewer note"];
-    const rows = filteredItems.map((item) => [item.organizationName, item.organizationVerificationReviewStatus, item.organizationStatus, item.organizationVerificationSubmittedAt ?? "", item.organizationVerificationReviewNote ?? ""]);
-    const csv = [header, ...rows].map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n");
-    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    const link = document.createElement("a"); link.href = url; link.download = "organization-review-queue.csv"; link.click(); URL.revokeObjectURL(url);
+    const header = [
+      "Organization",
+      "Review status",
+      "Organization status",
+      "Submitted",
+      "Reviewer note",
+    ];
+    const rows = filteredItems.map((item) => [
+      item.organizationName,
+      item.organizationVerificationReviewStatus,
+      item.organizationStatus,
+      item.organizationVerificationSubmittedAt ?? "",
+      item.organizationVerificationReviewNote ?? "",
+    ]);
+    const csv = [header, ...rows]
+      .map((row) =>
+        row
+          .map((value) => `"${String(value).replaceAll('"', '""')}"`)
+          .join(","),
+      )
+      .join("\n");
+    const url = URL.createObjectURL(
+      new Blob([csv], { type: "text/csv;charset=utf-8" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "organization-review-queue.csv";
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   const pendingCount = items.filter(
@@ -145,7 +175,13 @@ export function ManualReviewQueuePage() {
               <RefreshCcw className="mr-2 size-4" />
               Refresh
             </Button>
-            <Button variant="outline" onClick={exportQueue} disabled={!filteredItems.length}>Export queue</Button>
+            <Button
+              variant="outline"
+              onClick={exportQueue}
+              disabled={!filteredItems.length}
+            >
+              Export queue
+            </Button>
           </>
         }
       />
@@ -156,17 +192,25 @@ export function ManualReviewQueuePage() {
           <p className="mt-2 text-3xl font-semibold text-slate-950">
             {loading ? "..." : pendingCount}
           </p>
-          <p className="mt-1 text-sm text-slate-500">Loaded from the backend queue</p>
+          <p className="mt-1 text-sm text-slate-500">
+            Loaded from the backend queue
+          </p>
         </div>
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">Needs information</p>
-          <p className="mt-2 text-3xl font-semibold text-slate-950">{needsInfoCount}</p>
+          <p className="mt-2 text-3xl font-semibold text-slate-950">
+            {needsInfoCount}
+          </p>
           <p className="mt-1 text-sm text-slate-500">Requires a resubmission</p>
         </div>
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">Changed after approval</p>
-          <p className="mt-2 text-3xl font-semibold text-slate-950">{changedCount}</p>
-          <p className="mt-1 text-sm text-slate-500">Returned to review after edits</p>
+          <p className="mt-2 text-3xl font-semibold text-slate-950">
+            {changedCount}
+          </p>
+          <p className="mt-1 text-sm text-slate-500">
+            Returned to review after edits
+          </p>
         </div>
       </section>
 
@@ -188,8 +232,18 @@ export function ManualReviewQueuePage() {
               <Filter className="mr-2 size-4" />
               All reviews
             </Button>
-            <Button variant={statusFilter === "pending" ? "default" : "outline"} onClick={() => setStatusFilter("pending")}>Pending</Button>
-            <Button variant={statusFilter === "changed" ? "default" : "outline"} onClick={() => setStatusFilter("changed")}>Changed after approval</Button>
+            <Button
+              variant={statusFilter === "pending" ? "default" : "outline"}
+              onClick={() => setStatusFilter("pending")}
+            >
+              Pending
+            </Button>
+            <Button
+              variant={statusFilter === "changed" ? "default" : "outline"}
+              onClick={() => setStatusFilter("changed")}
+            >
+              Changed after approval
+            </Button>
           </div>
         </div>
       </section>
@@ -221,7 +275,10 @@ export function ManualReviewQueuePage() {
 
               <tbody className="divide-y divide-slate-200">
                 {filteredItems.map((item) => (
-                  <tr key={item.organizationId} className="transition hover:bg-slate-50">
+                  <tr
+                    key={item.organizationId}
+                    className="transition hover:bg-slate-50"
+                  >
                     <td className="px-5 py-4">
                       <Link
                         href={`/review/${item.organizationId}`}
@@ -230,25 +287,38 @@ export function ManualReviewQueuePage() {
                         {item.organizationName}
                       </Link>
                       <p className="mt-1 text-xs text-slate-500">
-                        {item.organizationCountryName} · {item.organizationType} ·{" "}
-                        {item.organizationSlug}
+                        {item.organizationCountryName} · {item.organizationType}{" "}
+                        · {item.organizationSlug}
                       </p>
                     </td>
 
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap gap-2">
-                        <StatusPill tone={reviewStatusTone(item.organizationVerificationReviewStatus)}>
-                          {item.organizationVerificationReviewStatus.replace(/_/g, " ")}
+                        <StatusPill
+                          tone={reviewStatusTone(
+                            item.organizationVerificationReviewStatus,
+                          )}
+                        >
+                          {item.organizationVerificationReviewStatus.replace(
+                            /_/g,
+                            " ",
+                          )}
                         </StatusPill>
                         {item.organizationVerificationChangedAfterApproval ? (
-                          <StatusPill tone="info">changed after approval</StatusPill>
+                          <StatusPill tone="info">
+                            changed after approval
+                          </StatusPill>
                         ) : null}
                       </div>
                     </td>
 
                     <td className="px-5 py-4">
-                      <p className="font-medium text-slate-950">{item.organizationStatus}</p>
-                      <p className="mt-1 text-xs text-slate-500">{item.tenantStatus}</p>
+                      <p className="font-medium text-slate-950">
+                        {item.organizationStatus}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {item.tenantStatus}
+                      </p>
                     </td>
 
                     <td className="px-5 py-4 text-slate-700">
@@ -257,7 +327,8 @@ export function ManualReviewQueuePage() {
 
                     <td className="px-5 py-4 text-slate-700">
                       <p className="max-w-70 truncate">
-                        {item.organizationVerificationReviewNote || "No note recorded yet."}
+                        {item.organizationVerificationReviewNote ||
+                          "No note recorded yet."}
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
                         Priority: {item.reviewPriority ?? "normal"}
@@ -266,7 +337,9 @@ export function ManualReviewQueuePage() {
 
                     <td className="px-5 py-4 text-right">
                       <Button asChild variant="outline" size="sm">
-                        <Link href={`/review/${item.organizationId}`}>Review</Link>
+                        <Link href={`/review/${item.organizationId}`}>
+                          Review
+                        </Link>
                       </Button>
                     </td>
                   </tr>

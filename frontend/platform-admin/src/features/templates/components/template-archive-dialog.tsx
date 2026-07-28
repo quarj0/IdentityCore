@@ -22,11 +22,28 @@ type TemplateArchiveDialogProps = {
   onComplete?: () => void;
 };
 
-export function TemplateArchiveDialog({ templateName, templateId, onComplete }: TemplateArchiveDialogProps) {
+export function TemplateArchiveDialog({
+  templateName,
+  templateId,
+  onComplete,
+}: TemplateArchiveDialogProps) {
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const submit = async () => { setSubmitting(true); setError(null); try { await archiveTemplate(templateId); onComplete?.(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to archive template."); } finally { setSubmitting(false); } };
+  const submit = async () => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      await archiveTemplate(templateId);
+      onComplete?.();
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Unable to archive template.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <Dialog>
@@ -41,7 +58,8 @@ export function TemplateArchiveDialog({ templateName, templateId, onComplete }: 
         <DialogHeader>
           <DialogTitle>Archive {templateName}?</DialogTitle>
           <DialogDescription>
-            Archived templates stay visible in history but cannot be selected for new workflows.
+            Archived templates stay visible in history but cannot be selected
+            for new workflows.
           </DialogDescription>
         </DialogHeader>
 
@@ -55,10 +73,20 @@ export function TemplateArchiveDialog({ templateName, templateId, onComplete }: 
           />
         </div>
 
-        {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
+        {error ? (
+          <p role="alert" className="text-sm text-red-700">
+            {error}
+          </p>
+        ) : null}
         <DialogFooter>
           <Button variant="outline">Cancel</Button>
-          <Button variant="destructive" onClick={submit} disabled={submitting || !reason.trim()}>{submitting ? "Archiving…" : "Archive template"}</Button>
+          <Button
+            variant="destructive"
+            onClick={submit}
+            disabled={submitting || !reason.trim()}
+          >
+            {submitting ? "Archiving…" : "Archive template"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

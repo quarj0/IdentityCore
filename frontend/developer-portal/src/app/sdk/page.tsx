@@ -54,7 +54,9 @@ export default async function SdkPage() {
                   {statusLabels[sdk.status] ?? sdk.status}
                 </span>
               </div>
-              <p className="mt-3 text-sm leading-6 text-slate-600">{sdk.notes}</p>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                {sdk.notes}
+              </p>
               <p className="mt-3 text-xs uppercase tracking-wide text-slate-400">
                 {sdk.path}
               </p>
@@ -98,11 +100,12 @@ print(verification["verification_url"])`}
           </li>
           <li>
             Each SDK supports policies, hosted verifications, safe retries,
-            request IDs, idempotent creation, and webhook signature verification.
+            request IDs, idempotent creation, and webhook signature
+            verification.
           </li>
           <li>
-            The OpenAPI spec is the source of truth for generated clients, tests,
-            and future portal tooling.
+            The OpenAPI spec is the source of truth for generated clients,
+            tests, and future portal tooling.
           </li>
         </ul>
       </section>
@@ -186,4 +189,3 @@ Console.WriteLine(verification.GetProperty("verification_url").GetString());`}
     </DocsLayout>
   );
 }
-

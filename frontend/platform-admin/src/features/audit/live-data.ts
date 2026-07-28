@@ -28,7 +28,11 @@ type AuditResponse = {
 };
 
 function tone(action: string): AdminRecord["statusTone"] {
-  if (action.includes("suspend") || action.includes("reject") || action.includes("delete")) {
+  if (
+    action.includes("suspend") ||
+    action.includes("reject") ||
+    action.includes("delete")
+  ) {
     return "danger";
   }
   if (action.includes("export") || action.includes("review")) {

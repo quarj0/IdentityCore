@@ -14,7 +14,9 @@ export default function TemplateDetailError({
   return (
     <ErrorState
       title="Unable to load template"
-      description={error.message || "Something went wrong while loading this template."}
+      description={
+        error.message || "Something went wrong while loading this template."
+      }
       actionLabel="Try again"
       onAction={reset}
     />

@@ -11,7 +11,9 @@ import {
 } from "@/features/compliance/live-data";
 
 export function ComplianceListPage() {
-  const [records, setRecords] = useState<ReturnType<typeof buildComplianceConfig>["records"]>([]);
+  const [records, setRecords] = useState<
+    ReturnType<typeof buildComplianceConfig>["records"]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,7 +63,12 @@ export function ComplianceListPage() {
   }
 
   if (error && records.length === 0) {
-    return <EmptyState title="Unable to load compliance policies" description={error} />;
+    return (
+      <EmptyState
+        title="Unable to load compliance policies"
+        description={error}
+      />
+    );
   }
 
   const config = createAdminListConfig(buildComplianceConfig(records));

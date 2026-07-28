@@ -14,7 +14,12 @@ interface MobileNavProps {
   user: AuthUser | null;
 }
 
-export function MobileNav({ groups, onNavigate, activePath, user }: MobileNavProps) {
+export function MobileNav({
+  groups,
+  onNavigate,
+  activePath,
+  user,
+}: MobileNavProps) {
   return (
     <div
       id="mobile-marketing-menu"
@@ -78,9 +83,12 @@ export function MobileNav({ groups, onNavigate, activePath, user }: MobileNavPro
           <div className="space-y-2 px-3">
             <div className="rounded-xl border border-border bg-muted/40 px-3 py-2.5">
               <p className="truncate text-sm font-semibold text-foreground">
-                {[user.first_name, user.last_name].filter(Boolean).join(" ") || user.email}
+                {[user.first_name, user.last_name].filter(Boolean).join(" ") ||
+                  user.email}
               </p>
-              <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {user.email}
+              </p>
             </div>
             <Button asChild size="sm" className="w-full">
               <Link href="/onboarding" onClick={onNavigate}>
@@ -94,7 +102,9 @@ export function MobileNav({ groups, onNavigate, activePath, user }: MobileNavPro
               className="w-full"
               onClick={() => {
                 onNavigate();
-                void endAuthSession().finally(() => window.location.assign("/"));
+                void endAuthSession().finally(() =>
+                  window.location.assign("/"),
+                );
               }}
             >
               <LogOut className="h-4 w-4" />

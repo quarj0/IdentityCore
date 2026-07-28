@@ -81,18 +81,16 @@ export function buildOnboardingSteps(state: OnboardingState | null) {
       title: "First workflow",
       description: "Choose the first workflow template for your workspace.",
       status:
-        adminIdentityDone || productionPending || active ? "current" : "upcoming",
+        adminIdentityDone || productionPending || active
+          ? "current"
+          : "upcoming",
       actionHref: "/onboarding/first-workflow",
       actionLabel: "Choose workflow",
     },
     {
       title: "Production approval",
       description: "Track your workspace review and production readiness.",
-      status: active
-        ? "complete"
-        : productionPending
-          ? "current"
-          : "upcoming",
+      status: active ? "complete" : productionPending ? "current" : "upcoming",
       actionHref: "/onboarding/production-approval",
       actionLabel: "Review status",
     },

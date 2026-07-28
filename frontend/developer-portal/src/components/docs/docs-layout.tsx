@@ -19,7 +19,6 @@ export function DocsLayout({ title, description, children }: DocsLayoutProps) {
           <MobileDocsNav />
 
           <div className="mt-10 lg:mt-0">
-          
             <div className="mb-8">
               <DocsSearch />
             </div>

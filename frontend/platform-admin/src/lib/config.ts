@@ -9,4 +9,3 @@ export function getBackendOrigin() {
 export function getGraphqlApiUrl() {
   return `${getBackendOrigin().replace(/\/$/, "")}/api/graphql`;
 }
-

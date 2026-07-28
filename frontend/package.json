@@ -3,6 +3,8 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "dev:dashboard": "pnpm --filter dashboard dev",
     "dev:verify": "pnpm --filter verification-portal dev",
     "dev:web": "pnpm --filter identitycore-web dev",
@@ -10,5 +12,8 @@
     "dev:admin": "pnpm --filter platform-admin dev",
     "test:e2e:verify:install": "pnpm --filter verification-portal test:e2e:install",
     "test:e2e:verify": "pnpm --filter verification-portal test:e2e"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
   }
 }

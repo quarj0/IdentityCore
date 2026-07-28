@@ -38,11 +38,14 @@ function tone(status: string): AdminRecord["statusTone"] {
   return "info";
 }
 
-export function compliancePolicyToRecord(policy: VerificationPolicy): AdminRecord {
+export function compliancePolicyToRecord(
+  policy: VerificationPolicy,
+): AdminRecord {
   return {
     id: policy.id,
     title: policy.name,
-    subtitle: policy.description || `${policy.name} policy version ${policy.version}`,
+    subtitle:
+      policy.description || `${policy.name} policy version ${policy.version}`,
     status: policy.status,
     statusTone: tone(policy.status.toLowerCase()),
     primaryMeta: `${policy.requiredDocumentTypes.length} document types`,
@@ -108,7 +111,9 @@ export async function fetchComplianceRecord(policyId: string) {
   return data.platformVerificationPolicy;
 }
 
-export function buildComplianceConfig(records: AdminRecord[]): AdminModuleConfig {
+export function buildComplianceConfig(
+  records: AdminRecord[],
+): AdminModuleConfig {
   return {
     moduleLabel: "Compliance",
     listTitle: "Compliance",
@@ -122,9 +127,21 @@ export function buildComplianceConfig(records: AdminRecord[]): AdminModuleConfig
     records,
     getRecord: (id) => records.find((record) => record.id === id),
     getMetrics: (record): AdminDetailMetric[] => [
-      { label: "Documents", value: record.primaryMeta, helper: "policy coverage" },
-      { label: "Liveness", value: record.secondaryMeta, helper: "required level" },
-      { label: "Retention", value: record.tertiaryMeta, helper: "data retention" },
+      {
+        label: "Documents",
+        value: record.primaryMeta,
+        helper: "policy coverage",
+      },
+      {
+        label: "Liveness",
+        value: record.secondaryMeta,
+        helper: "required level",
+      },
+      {
+        label: "Retention",
+        value: record.tertiaryMeta,
+        helper: "data retention",
+      },
       { label: "Version", value: record.owner, helper: "current" },
     ],
     getSections: (record): AdminDetailSection[] => [

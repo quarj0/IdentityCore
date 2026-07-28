@@ -39,7 +39,8 @@ export const workflowTemplates: WorkflowTemplate[] = [
     audience: "Banks, fintechs, lenders, wallets, and investment platforms.",
     outcome:
       "Approve legitimate customers faster while routing suspicious onboarding attempts to manual review.",
-    turnaround: "Typical launch: 1 to 2 weeks with hosted workflows or API onboarding.",
+    turnaround:
+      "Typical launch: 1 to 2 weeks with hosted workflows or API onboarding.",
     highlights: [
       "Built for KYC and regulated account opening journeys",
       "Supports document capture, selfie, liveness, and risk scoring",
@@ -92,7 +93,8 @@ export const workflowTemplates: WorkflowTemplate[] = [
       "Universities, edtech products, certification providers, and exam platforms.",
     outcome:
       "Ensure the enrolled or examined student is the right person without slowing admissions or learning access.",
-    turnaround: "Typical launch: a few days for pilot enrollment and exam verification.",
+    turnaround:
+      "Typical launch: a few days for pilot enrollment and exam verification.",
     highlights: [
       "Supports remote admissions and online assessment programs",
       "Works for enrollment, exam sitting, and certificate release",

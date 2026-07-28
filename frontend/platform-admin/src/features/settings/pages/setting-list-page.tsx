@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { AdminListPage } from "@/components/admin-module/admin-list-page";
 import { createAdminListConfig } from "@/components/admin-module/admin-module-types";
-import { buildSettingsConfig, fetchSettingsRecords } from "@/features/settings/live-data";
+import {
+  buildSettingsConfig,
+  fetchSettingsRecords,
+} from "@/features/settings/live-data";
 
 export function SettingsListPage() {
   const [records, setRecords] = useState<

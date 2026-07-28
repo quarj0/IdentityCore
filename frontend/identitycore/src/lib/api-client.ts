@@ -52,7 +52,11 @@ export class ApiError extends Error {
   }
 }
 
-function buildHeaders(init?: HeadersInit, token?: string | null, body?: BodyInit | null) {
+function buildHeaders(
+  init?: HeadersInit,
+  token?: string | null,
+  body?: BodyInit | null,
+) {
   const headers = new Headers(init);
   headers.set("Accept", "application/json");
 
@@ -67,24 +71,40 @@ function buildHeaders(init?: HeadersInit, token?: string | null, body?: BodyInit
   return headers;
 }
 
-async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}) {
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+) {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeout = window.setTimeout(
+    () => controller.abort(),
+    REQUEST_TIMEOUT_MS,
+  );
   const abort = () => controller.abort();
   init.signal?.addEventListener("abort", abort, { once: true });
   try {
-    return await fetch(input, { ...init, signal: controller.signal, cache: "no-store" });
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+      cache: "no-store",
+    });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
-      throw new ApiError("The request took too long. Check your connection and try again.", {
-        code: "request_timeout",
-        status: 408,
-      });
+      throw new ApiError(
+        "The request took too long. Check your connection and try again.",
+        {
+          code: "request_timeout",
+          status: 408,
+        },
+      );
     }
-    throw new ApiError("IdentityCore could not be reached. Check your connection and try again.", {
-      code: "network_error",
-      status: 0,
-    });
+    throw new ApiError(
+      "IdentityCore could not be reached. Check your connection and try again.",
+      {
+        code: "network_error",
+        status: 0,
+      },
+    );
   } finally {
     window.clearTimeout(timeout);
     init.signal?.removeEventListener("abort", abort);
@@ -99,7 +119,8 @@ async function parseJson<T>(response: Response) {
       payload && "error" in payload
         ? payload.error.message
         : "The request could not be processed.";
-    const code = payload && "error" in payload ? payload.error.code : "request_failed";
+    const code =
+      payload && "error" in payload ? payload.error.code : "request_failed";
     const details = payload && "error" in payload ? payload.error.details : {};
     throw new ApiError(message, {
       code,
@@ -114,16 +135,26 @@ async function parseJson<T>(response: Response) {
 async function refreshAccessToken() {
   if (!refreshInFlight) {
     refreshInFlight = fetchWithTimeout(`${getRestApiBaseUrl()}/auth/refresh`, {
-      method: "POST", credentials: "include",
-      headers: { Accept: "application/json", "Content-Type": "application/json" },
-    }).then((response) => parseJson<{ tokens: { access: string } }>(response))
-      .then((data) => { setAccessToken(data.tokens.access); return data.tokens.access; })
+      method: "POST",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    })
+      .then((response) => parseJson<{ tokens: { access: string } }>(response))
+      .then((data) => {
+        setAccessToken(data.tokens.access);
+        return data.tokens.access;
+      })
       .catch((error) => {
         clearAuthSession();
         notifyAuthSessionExpired();
         throw error;
       })
-      .finally(() => { refreshInFlight = null; });
+      .finally(() => {
+        refreshInFlight = null;
+      });
   }
   return refreshInFlight;
 }
@@ -143,13 +174,18 @@ export async function restRequest<T>(
         ? null
         : getAccessToken();
 
-  const send = (access: string | null) => fetchWithTimeout(`${getRestApiBaseUrl()}${path}`, {
-    ...init,
-    credentials: "include",
-    headers: buildHeaders(init.headers, access, init.body),
-  });
+  const send = (access: string | null) =>
+    fetchWithTimeout(`${getRestApiBaseUrl()}${path}`, {
+      ...init,
+      credentials: "include",
+      headers: buildHeaders(init.headers, access, init.body),
+    });
   let response = await send(token);
-  if (response.status === 401 && options.useAuth !== false && path !== "/auth/refresh") {
+  if (
+    response.status === 401 &&
+    options.useAuth !== false &&
+    path !== "/auth/refresh"
+  ) {
     response = await send(await refreshAccessToken());
   }
   return parseJson<T>(response);
@@ -189,12 +225,13 @@ export async function graphqlRequest<T>(
         ? null
         : getAccessToken();
 
-  const send = (access: string | null) => fetchWithTimeout(getGraphqlApiUrl(), {
-    method: "POST",
-    headers: buildHeaders(undefined, access),
-    body: JSON.stringify({ query, variables }),
-    credentials: "include",
-  });
+  const send = (access: string | null) =>
+    fetchWithTimeout(getGraphqlApiUrl(), {
+      method: "POST",
+      headers: buildHeaders(undefined, access),
+      body: JSON.stringify({ query, variables }),
+      credentials: "include",
+    });
   let response = await send(token);
   if (response.status === 401 && options.useAuth !== false) {
     response = await send(await refreshAccessToken());
@@ -203,10 +240,13 @@ export async function graphqlRequest<T>(
   const payload = await readJsonResponse<GraphqlResponse<T>>(response);
 
   if (!payload || typeof payload !== "object") {
-    throw new ApiError("The service returned an unexpected response. Please try again.", {
-      code: "invalid_response",
-      status: response.status,
-    });
+    throw new ApiError(
+      "The service returned an unexpected response. Please try again.",
+      {
+        code: "invalid_response",
+        status: response.status,
+      },
+    );
   }
 
   if (!response.ok) {

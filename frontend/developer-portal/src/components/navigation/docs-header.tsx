@@ -31,7 +31,10 @@ export function DocsHeader() {
           <Link href="/webhooks" className="hover:text-slate-950">
             Webhooks
           </Link>
-          <a href={siteConfig.marketingSiteUrl} className="hover:text-slate-950">
+          <a
+            href={siteConfig.marketingSiteUrl}
+            className="hover:text-slate-950"
+          >
             Main site
           </a>
         </nav>

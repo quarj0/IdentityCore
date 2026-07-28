@@ -10,7 +10,9 @@ import {
 } from "@/features/webhooks/live-data";
 
 export function WebhooksListPage() {
-  const [records, setRecords] = useState<ReturnType<typeof buildWebhookConfig>["records"]>([]);
+  const [records, setRecords] = useState<
+    ReturnType<typeof buildWebhookConfig>["records"]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

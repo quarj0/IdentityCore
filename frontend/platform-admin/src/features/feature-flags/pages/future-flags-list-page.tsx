@@ -26,7 +26,9 @@ export function FeatureFlagsListPage() {
       } catch (loadError) {
         if (active) {
           setError(
-            loadError instanceof Error ? loadError.message : "Unable to load feature flags.",
+            loadError instanceof Error
+              ? loadError.message
+              : "Unable to load feature flags.",
           );
         }
       } finally {
@@ -44,7 +46,11 @@ export function FeatureFlagsListPage() {
   if (error) {
     return (
       <>
-        <PageHeader eyebrow="Feature flags" title="Feature Flags" description="Live release controls." />
+        <PageHeader
+          eyebrow="Feature flags"
+          title="Feature Flags"
+          description="Live release controls."
+        />
         <EmptyState title="Unable to load feature flags" description={error} />
       </>
     );

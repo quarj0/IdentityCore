@@ -1,11 +1,31 @@
 import { Check, Circle } from "lucide-react";
 
 const STEPS = [
-  { key: "consent", label: "Consent", description: "Review how your data is used" },
-  { key: "document_capture", label: "Identity document", description: "Capture a clear document image" },
-  { key: "selfie_capture", label: "Live selfie", description: "Confirm the document belongs to you" },
-  { key: "liveness_check", label: "Presence check", description: "Complete passive liveness" },
-  { key: "processing", label: "Decision", description: "Secure evidence evaluation" },
+  {
+    key: "consent",
+    label: "Consent",
+    description: "Review how your data is used",
+  },
+  {
+    key: "document_capture",
+    label: "Identity document",
+    description: "Capture a clear document image",
+  },
+  {
+    key: "selfie_capture",
+    label: "Live selfie",
+    description: "Confirm the document belongs to you",
+  },
+  {
+    key: "liveness_check",
+    label: "Presence check",
+    description: "Complete passive liveness",
+  },
+  {
+    key: "processing",
+    label: "Decision",
+    description: "Secure evidence evaluation",
+  },
 ] as const;
 
 const STEP_INDEX: Record<string, number> = {
@@ -53,15 +73,27 @@ export function VerificationProgress({ currentStep }: { currentStep: string }) {
                 }`}
                 aria-hidden="true"
               >
-                {complete ? <Check className="h-3.5 w-3.5" /> : <Circle className="h-2.5 w-2.5 fill-current" />}
+                {complete ? (
+                  <Check className="h-3.5 w-3.5" />
+                ) : (
+                  <Circle className="h-2.5 w-2.5 fill-current" />
+                )}
               </span>
               <div>
-                <p className={`text-sm font-medium ${active ? "text-blue-700" : complete ? "text-slate-800" : "text-slate-400"}`}>
+                <p
+                  className={`text-sm font-medium ${active ? "text-blue-700" : complete ? "text-slate-800" : "text-slate-400"}`}
+                >
                   {step.label}
-                  {active ? <span className="sr-only">, current step</span> : null}
-                  {complete ? <span className="sr-only">, completed</span> : null}
+                  {active ? (
+                    <span className="sr-only">, current step</span>
+                  ) : null}
+                  {complete ? (
+                    <span className="sr-only">, completed</span>
+                  ) : null}
                 </p>
-                <p className="mt-0.5 text-xs leading-5 text-slate-400">{step.description}</p>
+                <p className="mt-0.5 text-xs leading-5 text-slate-400">
+                  {step.description}
+                </p>
               </div>
             </li>
           );

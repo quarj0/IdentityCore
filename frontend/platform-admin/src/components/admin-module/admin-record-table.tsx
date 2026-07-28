@@ -41,12 +41,20 @@ export function AdminRecordTable({ records }: AdminRecordTableProps) {
                 </td>
 
                 <td className="px-5 py-4">
-                  <StatusPill tone={record.statusTone}>{record.status}</StatusPill>
+                  <StatusPill tone={record.statusTone}>
+                    {record.status}
+                  </StatusPill>
                 </td>
 
-                <td className="px-5 py-4 text-slate-700">{record.primaryMeta}</td>
-                <td className="px-5 py-4 text-slate-700">{record.secondaryMeta}</td>
-                <td className="px-5 py-4 text-slate-700">{record.tertiaryMeta}</td>
+                <td className="px-5 py-4 text-slate-700">
+                  {record.primaryMeta}
+                </td>
+                <td className="px-5 py-4 text-slate-700">
+                  {record.secondaryMeta}
+                </td>
+                <td className="px-5 py-4 text-slate-700">
+                  {record.tertiaryMeta}
+                </td>
                 <td className="px-5 py-4 text-slate-700">{record.owner}</td>
                 <td className="px-5 py-4 text-slate-500">{record.updatedAt}</td>
 

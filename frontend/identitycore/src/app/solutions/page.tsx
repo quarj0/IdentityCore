@@ -1,5 +1,12 @@
 import Link from "next/link";
-import { ArrowRight, Cloud, Code2, GitBranch, Network, Users } from "lucide-react";
+import {
+  ArrowRight,
+  Cloud,
+  Code2,
+  GitBranch,
+  Network,
+  Users,
+} from "lucide-react";
 import { Badge, Button } from "@identitycore/ui";
 import { FeatureCard } from "@/components/marketing/feature-card";
 import { MarketingHeader } from "@/components/marketing/marketing-header";

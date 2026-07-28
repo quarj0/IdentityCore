@@ -15,8 +15,8 @@ export default function VerificationPortalHome() {
           </h1>
 
           <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-            IdentityCore verification sessions are opened from the link sent
-            by the requesting organization. If your link expired, ask them to send
+            IdentityCore verification sessions are opened from the link sent by
+            the requesting organization. If your link expired, ask them to send
             a fresh one.
           </p>
         </div>
@@ -32,7 +32,9 @@ export default function VerificationPortalHome() {
             <ul className="mt-3 space-y-3 text-sm text-slate-600">
               <li>Use the newest verification link you received.</li>
               <li>Have your identity document ready.</li>
-              <li>Use a mobile phone for the best camera and liveness experience.</li>
+              <li>
+                Use a mobile phone for the best camera and liveness experience.
+              </li>
             </ul>
           </div>
         </aside>

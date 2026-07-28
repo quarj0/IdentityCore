@@ -30,7 +30,9 @@ export function MobileDocsNav() {
                 }
               >
                 <Icon
-                  className={active ? "h-4 w-4 text-blue-700" : "h-4 w-4 text-blue-600"}
+                  className={
+                    active ? "h-4 w-4 text-blue-700" : "h-4 w-4 text-blue-600"
+                  }
                 />
                 <span
                   className={active ? "font-semibold text-blue-700" : undefined}

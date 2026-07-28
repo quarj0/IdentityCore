@@ -22,11 +22,28 @@ type CloneWorkflowDialogProps = {
   onComplete?: () => void;
 };
 
-export function CloneWorkflowDialog({ workflowName, workflowId, onComplete }: CloneWorkflowDialogProps) {
+export function CloneWorkflowDialog({
+  workflowName,
+  workflowId,
+  onComplete,
+}: CloneWorkflowDialogProps) {
   const [name, setName] = useState(`${workflowName} Copy`);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const submit = async () => { setSubmitting(true); setError(null); try { await cloneWorkflow(workflowId, name); onComplete?.(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to clone workflow."); } finally { setSubmitting(false); } };
+  const submit = async () => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      await cloneWorkflow(workflowId, name);
+      onComplete?.();
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Unable to clone workflow.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <Dialog>
@@ -54,10 +71,16 @@ export function CloneWorkflowDialog({ workflowName, workflowId, onComplete }: Cl
           />
         </div>
 
-        {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
+        {error ? (
+          <p role="alert" className="text-sm text-red-700">
+            {error}
+          </p>
+        ) : null}
         <DialogFooter>
           <Button variant="outline">Cancel</Button>
-          <Button onClick={submit} disabled={submitting || !name.trim()}>{submitting ? "Cloning…" : "Clone workflow"}</Button>
+          <Button onClick={submit} disabled={submitting || !name.trim()}>
+            {submitting ? "Cloning…" : "Clone workflow"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

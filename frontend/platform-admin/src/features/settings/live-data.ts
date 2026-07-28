@@ -106,7 +106,11 @@ export function buildSettingsConfig(records: AdminRecord[]): AdminModuleConfig {
     getRecord: (id) => records.find((record) => record.id === id),
     getMetrics: (record): AdminDetailMetric[] => [
       { label: "Primary", value: record.primaryMeta, helper: "configuration" },
-      { label: "Secondary", value: record.secondaryMeta, helper: "configuration" },
+      {
+        label: "Secondary",
+        value: record.secondaryMeta,
+        helper: "configuration",
+      },
       { label: "Category", value: record.tertiaryMeta, helper: "area" },
       { label: "Updated", value: record.updatedAt, helper: "backend" },
     ],

@@ -21,7 +21,8 @@ const searchIndex = [
     title: endpoint.title,
     description: endpoint.path,
     section: `API reference · ${endpoint.category}`,
-    keywords: `${endpoint.title} ${endpoint.description} ${endpoint.path} ${endpoint.category}`.toLowerCase(),
+    keywords:
+      `${endpoint.title} ${endpoint.description} ${endpoint.path} ${endpoint.category}`.toLowerCase(),
   })),
 ];
 

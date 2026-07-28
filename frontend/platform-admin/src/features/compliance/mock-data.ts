@@ -1,10 +1,14 @@
-import type { AdminModuleConfig, AdminRecord } from "@/components/admin-module/admin-module-types";
+import type {
+  AdminModuleConfig,
+  AdminRecord,
+} from "@/components/admin-module/admin-module-types";
 
 export const complianceRecords: AdminRecord[] = [
   {
     id: "comp_ghana_policy",
     title: "Ghana Identity Compliance",
-    subtitle: "Supported IDs, retention, consent and NDPR/Ghana Data Protection alignment.",
+    subtitle:
+      "Supported IDs, retention, consent and NDPR/Ghana Data Protection alignment.",
     status: "Active",
     statusTone: "success",
     primaryMeta: "Ghana",
@@ -30,7 +34,8 @@ export const complianceRecords: AdminRecord[] = [
   {
     id: "comp_gdpr",
     title: "GDPR Data Protection Controls",
-    subtitle: "EU privacy, consent, deletion, processor records and export controls.",
+    subtitle:
+      "EU privacy, consent, deletion, processor records and export controls.",
     status: "Active",
     statusTone: "success",
     primaryMeta: "EU/UK",
@@ -43,7 +48,8 @@ export const complianceRecords: AdminRecord[] = [
   {
     id: "comp_soc2",
     title: "SOC 2 Readiness",
-    subtitle: "Security, availability, processing integrity, confidentiality and privacy controls.",
+    subtitle:
+      "Security, availability, processing integrity, confidentiality and privacy controls.",
     status: "In progress",
     statusTone: "info",
     primaryMeta: "Platform-wide",
@@ -69,7 +75,11 @@ export const complianceConfig: AdminModuleConfig = {
   getRecord: (id) => complianceRecords.find((record) => record.id === id),
   getMetrics: (record) => [
     { label: "Coverage", value: record.primaryMeta, helper: "jurisdiction" },
-    { label: "Supported IDs", value: record.secondaryMeta, helper: "identity types" },
+    {
+      label: "Supported IDs",
+      value: record.secondaryMeta,
+      helper: "identity types",
+    },
     { label: "Retention", value: record.tertiaryMeta, helper: "policy" },
     { label: "Owner", value: record.owner, helper: "responsible team" },
   ],
@@ -78,10 +88,22 @@ export const complianceConfig: AdminModuleConfig = {
       title: "Policy controls",
       description: "Core compliance controls applied by this policy.",
       items: [
-        { label: "Consent", value: "Consent is required before document, biometric and verification processing." },
+        {
+          label: "Consent",
+          value:
+            "Consent is required before document, biometric and verification processing.",
+        },
         { label: "Retention", value: record.tertiaryMeta },
-        { label: "Audit exports", value: "Exports include decision logs, policy version, actor, timestamp and organization scope." },
-        { label: "Deletion", value: "Deletion requests are processed through organization-approved retention workflows." },
+        {
+          label: "Audit exports",
+          value:
+            "Exports include decision logs, policy version, actor, timestamp and organization scope.",
+        },
+        {
+          label: "Deletion",
+          value:
+            "Deletion requests are processed through organization-approved retention workflows.",
+        },
       ],
     },
     {
@@ -89,7 +111,11 @@ export const complianceConfig: AdminModuleConfig = {
       description: "Identity documents and checks covered.",
       items: [
         { label: "Documents", value: record.secondaryMeta },
-        { label: "Verification checks", value: "OCR, document authenticity, face match, liveness and manual review fallback." },
+        {
+          label: "Verification checks",
+          value:
+            "OCR, document authenticity, face match, liveness and manual review fallback.",
+        },
       ],
     },
   ],

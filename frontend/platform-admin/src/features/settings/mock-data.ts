@@ -1,10 +1,14 @@
-import type { AdminModuleConfig, AdminRecord } from "@/components/admin-module/admin-module-types";
+import type {
+  AdminModuleConfig,
+  AdminRecord,
+} from "@/components/admin-module/admin-module-types";
 
 export const settingsRecords: AdminRecord[] = [
   {
     id: "set_branding",
     title: "Platform Branding",
-    subtitle: "IdentityCore name, logo, default colors and public platform metadata.",
+    subtitle:
+      "IdentityCore name, logo, default colors and public platform metadata.",
     status: "Configured",
     statusTone: "success",
     primaryMeta: "IdentityCore",
@@ -17,7 +21,8 @@ export const settingsRecords: AdminRecord[] = [
   {
     id: "set_email",
     title: "Email Settings",
-    subtitle: "Transactional sender, support sender, templates and notification channels.",
+    subtitle:
+      "Transactional sender, support sender, templates and notification channels.",
     status: "Configured",
     statusTone: "success",
     primaryMeta: "noreply",
@@ -30,7 +35,8 @@ export const settingsRecords: AdminRecord[] = [
   {
     id: "set_storage",
     title: "Storage Defaults",
-    subtitle: "Default evidence buckets, temporary storage, public assets and lifecycle settings.",
+    subtitle:
+      "Default evidence buckets, temporary storage, public assets and lifecycle settings.",
     status: "Review needed",
     statusTone: "warning",
     primaryMeta: "R2",
@@ -43,7 +49,8 @@ export const settingsRecords: AdminRecord[] = [
   {
     id: "set_ai_defaults",
     title: "AI Defaults",
-    subtitle: "Default OCR, face, liveness, confidence thresholds and failover behavior.",
+    subtitle:
+      "Default OCR, face, liveness, confidence thresholds and failover behavior.",
     status: "Configured",
     statusTone: "success",
     primaryMeta: "PaddleOCR",
@@ -69,7 +76,11 @@ export const settingsConfig: AdminModuleConfig = {
   getRecord: (id) => settingsRecords.find((record) => record.id === id),
   getMetrics: (record) => [
     { label: "Primary", value: record.primaryMeta, helper: "default" },
-    { label: "Secondary", value: record.secondaryMeta, helper: "configuration" },
+    {
+      label: "Secondary",
+      value: record.secondaryMeta,
+      helper: "configuration",
+    },
     { label: "Scope", value: record.tertiaryMeta, helper: "platform" },
     { label: "Owner", value: record.owner, helper: "team" },
   ],
@@ -88,8 +99,15 @@ export const settingsConfig: AdminModuleConfig = {
       title: "Change control",
       description: "Operational controls for platform settings.",
       items: [
-        { label: "Audit", value: "All setting changes must generate immutable audit logs." },
-        { label: "Approval", value: "Sensitive settings require platform owner approval before production changes." },
+        {
+          label: "Audit",
+          value: "All setting changes must generate immutable audit logs.",
+        },
+        {
+          label: "Approval",
+          value:
+            "Sensitive settings require platform owner approval before production changes.",
+        },
       ],
     },
   ],

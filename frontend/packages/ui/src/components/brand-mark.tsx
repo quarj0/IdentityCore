@@ -10,9 +10,24 @@ interface BrandMarkProps {
 }
 
 const sizeConfig = {
-  sm: { icon: "h-7 w-7", iconInner: "h-3.5 w-3.5", title: "text-xs", subtitle: "text-[10px]" },
-  md: { icon: "h-8 w-8", iconInner: "h-4 w-4", title: "text-sm", subtitle: "text-xs" },
-  lg: { icon: "h-9 w-9", iconInner: "h-4 w-4", title: "text-sm", subtitle: "text-xs" },
+  sm: {
+    icon: "h-7 w-7",
+    iconInner: "h-3.5 w-3.5",
+    title: "text-xs",
+    subtitle: "text-[10px]",
+  },
+  md: {
+    icon: "h-8 w-8",
+    iconInner: "h-4 w-4",
+    title: "text-sm",
+    subtitle: "text-xs",
+  },
+  lg: {
+    icon: "h-9 w-9",
+    iconInner: "h-4 w-4",
+    title: "text-sm",
+    subtitle: "text-xs",
+  },
 };
 
 export function BrandMark({
@@ -32,7 +47,7 @@ export function BrandMark({
           config.icon,
           isSidebar
             ? "bg-sidebar-primary text-sidebar-primary-foreground"
-            : "bg-primary text-primary-foreground"
+            : "bg-primary text-primary-foreground",
         )}
       >
         <Fingerprint className={config.iconInner} strokeWidth={2} />
@@ -42,7 +57,7 @@ export function BrandMark({
           className={cn(
             "font-semibold tracking-tight",
             config.title,
-            isSidebar ? "text-sidebar-foreground" : "text-foreground"
+            isSidebar ? "text-sidebar-foreground" : "text-foreground",
           )}
         >
           IdentityCore
@@ -51,7 +66,9 @@ export function BrandMark({
           <div
             className={cn(
               config.subtitle,
-              isSidebar ? "text-sidebar-muted-foreground" : "text-muted-foreground"
+              isSidebar
+                ? "text-sidebar-muted-foreground"
+                : "text-muted-foreground",
             )}
           >
             {subtitle}

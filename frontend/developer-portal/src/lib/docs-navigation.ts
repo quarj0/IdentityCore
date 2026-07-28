@@ -13,5 +13,7 @@ export function getDocsNavItems() {
 }
 
 export function getPrimaryDocsItem(pathname: string): DocsNavItem | undefined {
-  return getDocsNavItems().find((item) => isDocsPathActive(pathname, item.href));
+  return getDocsNavItems().find((item) =>
+    isDocsPathActive(pathname, item.href),
+  );
 }

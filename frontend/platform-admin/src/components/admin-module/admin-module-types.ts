@@ -1,11 +1,7 @@
 import type { ReactNode } from "react";
 
 export type AdminRecordStatusTone =
-  | "success"
-  | "warning"
-  | "danger"
-  | "neutral"
-  | "info";
+  "success" | "warning" | "danger" | "neutral" | "info";
 
 export type AdminRecord = {
   id: string;

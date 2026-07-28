@@ -36,7 +36,14 @@ export interface OnboardingState {
   taxIdentificationNumber: string;
   registeredAddress: string;
   officialWebsite: string;
-  supportingDocuments: Array<{ id: string; filename: string; file_size_bytes: number; status: string; storage_key: string; download_url: string }>;
+  supportingDocuments: Array<{
+    id: string;
+    filename: string;
+    file_size_bytes: number;
+    status: string;
+    storage_key: string;
+    download_url: string;
+  }>;
   administratorIdentityVerificationStatus: string;
   administratorIdentityVerificationId: string;
   administratorIdentitySubmittedAt: string | null;
@@ -118,16 +125,35 @@ export interface OrganizationVerificationInput {
 const MAX_ORGANIZATION_DOCUMENT_BYTES = 10 * 1024 * 1024;
 
 export async function createOrganizationDocumentUpload(file: File) {
-  if (file.type.toLowerCase() !== "application/pdf" || !file.name.toLowerCase().endsWith(".pdf")) {
+  if (
+    file.type.toLowerCase() !== "application/pdf" ||
+    !file.name.toLowerCase().endsWith(".pdf")
+  ) {
     throw new Error("Choose a PDF document.");
   }
   if (file.size <= 0) throw new Error("The selected PDF is empty.");
-  if (file.size > MAX_ORGANIZATION_DOCUMENT_BYTES) throw new Error("Each PDF must be 10 MB or smaller.");
-  const upload = await restRequest<{ document_id: string; filename: string; file_size_bytes: number; status: string; storage_key: string; upload_url: string; download_url: string }>(
-    "/organization/me/verification-documents/upload/",
-    { method: "POST", body: JSON.stringify({ filename: file.name, mime_type: file.type, file_size_bytes: file.size }) },
-  );
-  if (!upload.upload_url) throw new Error("Secure document storage is not configured. Contact support.");
+  if (file.size > MAX_ORGANIZATION_DOCUMENT_BYTES)
+    throw new Error("Each PDF must be 10 MB or smaller.");
+  const upload = await restRequest<{
+    document_id: string;
+    filename: string;
+    file_size_bytes: number;
+    status: string;
+    storage_key: string;
+    upload_url: string;
+    download_url: string;
+  }>("/organization/me/verification-documents/upload/", {
+    method: "POST",
+    body: JSON.stringify({
+      filename: file.name,
+      mime_type: file.type,
+      file_size_bytes: file.size,
+    }),
+  });
+  if (!upload.upload_url)
+    throw new Error(
+      "Secure document storage is not configured. Contact support.",
+    );
   try {
     await restRequest(upload.upload_url, {
       method: "PUT",
@@ -142,7 +168,10 @@ export async function createOrganizationDocumentUpload(file: File) {
     }
     throw error;
   }
-  await restRequest(`/organization/me/verification-documents/${upload.document_id}/complete/`, { method: "POST", body: "{}" });
+  await restRequest(
+    `/organization/me/verification-documents/${upload.document_id}/complete/`,
+    { method: "POST", body: "{}" },
+  );
   return { id: upload.document_id, ...upload, status: "uploaded" };
 }
 
@@ -338,7 +367,8 @@ export async function fetchCurrentOnboarding() {
 }
 
 export async function createAdministratorOnboardingVerification(reason = "") {
-  const data = await graphqlRequest<CreateAdministratorVerificationResponse>(`
+  const data = await graphqlRequest<CreateAdministratorVerificationResponse>(
+    `
     mutation CreateAdministratorOnboardingVerification($reason: String!) {
       createAdministratorOnboardingVerification(reason: $reason) {
         verificationId
@@ -349,7 +379,9 @@ export async function createAdministratorOnboardingVerification(reason = "") {
         action
       }
     }
-  `, { reason });
+  `,
+    { reason },
+  );
   return data.createAdministratorOnboardingVerification;
 }
 

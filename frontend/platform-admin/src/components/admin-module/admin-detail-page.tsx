@@ -61,20 +61,36 @@ export function AdminDetailPage({ id, config }: AdminDetailPageProps) {
 
             <dl className="mt-5 grid gap-3 sm:grid-cols-4">
               <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-500">Primary</dt>
-                <dd className="mt-1 text-sm font-medium text-slate-950">{record.primaryMeta}</dd>
+                <dt className="text-xs uppercase tracking-wide text-slate-500">
+                  Primary
+                </dt>
+                <dd className="mt-1 text-sm font-medium text-slate-950">
+                  {record.primaryMeta}
+                </dd>
               </div>
               <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-500">Secondary</dt>
-                <dd className="mt-1 text-sm font-medium text-slate-950">{record.secondaryMeta}</dd>
+                <dt className="text-xs uppercase tracking-wide text-slate-500">
+                  Secondary
+                </dt>
+                <dd className="mt-1 text-sm font-medium text-slate-950">
+                  {record.secondaryMeta}
+                </dd>
               </div>
               <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-500">Owner</dt>
-                <dd className="mt-1 text-sm font-medium text-slate-950">{record.owner}</dd>
+                <dt className="text-xs uppercase tracking-wide text-slate-500">
+                  Owner
+                </dt>
+                <dd className="mt-1 text-sm font-medium text-slate-950">
+                  {record.owner}
+                </dd>
               </div>
               <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-500">Updated</dt>
-                <dd className="mt-1 text-sm font-medium text-slate-950">{record.updatedAt}</dd>
+                <dt className="text-xs uppercase tracking-wide text-slate-500">
+                  Updated
+                </dt>
+                <dd className="mt-1 text-sm font-medium text-slate-950">
+                  {record.updatedAt}
+                </dd>
               </div>
             </dl>
           </div>
@@ -117,7 +133,18 @@ export function AdminDetailPage({ id, config }: AdminDetailPageProps) {
                   >
                     <p className="text-sm text-slate-500">{item.label}</p>
                     <p className="mt-2 text-sm font-medium leading-6 text-slate-950">
-                      {item.value.startsWith("http") ? <a className="text-blue-700 underline" href={item.value} target="_blank" rel="noreferrer">Open document</a> : item.value}
+                      {item.value.startsWith("http") ? (
+                        <a
+                          className="text-blue-700 underline"
+                          href={item.value}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Open document
+                        </a>
+                      ) : (
+                        item.value
+                      )}
                     </p>
                   </div>
                 ))}

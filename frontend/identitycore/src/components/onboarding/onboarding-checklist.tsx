@@ -16,9 +16,7 @@ interface OnboardingChecklistProps {
   steps: OnboardingStep[];
 }
 
-export function OnboardingChecklist({
-  steps,
-}: OnboardingChecklistProps) {
+export function OnboardingChecklist({ steps }: OnboardingChecklistProps) {
   return (
     <div className="grid gap-4">
       {steps.map((step, index) => {
@@ -49,7 +47,9 @@ export function OnboardingChecklist({
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="font-semibold">{step.title}</h2>
                     <Badge
-                      variant={isComplete || isCurrent ? "default" : "secondary"}
+                      variant={
+                        isComplete || isCurrent ? "default" : "secondary"
+                      }
                       className="rounded-full"
                     >
                       {isComplete

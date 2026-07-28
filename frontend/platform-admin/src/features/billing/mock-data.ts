@@ -1,4 +1,7 @@
-import type { AdminModuleConfig, AdminRecord } from "@/components/admin-module/admin-module-types";
+import type {
+  AdminModuleConfig,
+  AdminRecord,
+} from "@/components/admin-module/admin-module-types";
 
 export const billingRecords: AdminRecord[] = [
   {
@@ -75,8 +78,15 @@ export const billingConfig: AdminModuleConfig = {
       title: "Usage billing",
       description: "Usage-based billing breakdown.",
       items: [
-        { label: "Verification checks", value: "Document OCR, face match, liveness and manual review billable events." },
-        { label: "Platform fees", value: "Applied according to organization plan and volume tier." },
+        {
+          label: "Verification checks",
+          value:
+            "Document OCR, face match, liveness and manual review billable events.",
+        },
+        {
+          label: "Platform fees",
+          value: "Applied according to organization plan and volume tier.",
+        },
       ],
     },
   ],

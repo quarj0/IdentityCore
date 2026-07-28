@@ -48,12 +48,19 @@ export function SecurityDetailPage({ securityId }: SecurityDetailPageProps) {
     };
   }, [securityId]);
 
-  const config = useMemo(() => buildSecurityConfig(record ? [record] : []), [record]);
+  const config = useMemo(
+    () => buildSecurityConfig(record ? [record] : []),
+    [record],
+  );
 
   if (error) {
     return (
       <>
-        <PageHeader eyebrow="Security" title="Security record" description="Live security data." />
+        <PageHeader
+          eyebrow="Security"
+          title="Security record"
+          description="Live security data."
+        />
         <EmptyState title="Security record unavailable" description={error} />
       </>
     );

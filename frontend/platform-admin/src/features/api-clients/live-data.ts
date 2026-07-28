@@ -103,7 +103,9 @@ export async function fetchApiClientRecord(clientId: string) {
   return data.platformApiClient;
 }
 
-export function buildApiClientConfig(records: AdminRecord[]): AdminModuleConfig {
+export function buildApiClientConfig(
+  records: AdminRecord[],
+): AdminModuleConfig {
   return {
     moduleLabel: "API clients",
     listTitle: "API Clients",
@@ -118,7 +120,11 @@ export function buildApiClientConfig(records: AdminRecord[]): AdminModuleConfig 
     getRecord: (id) => records.find((record) => record.id === id),
     getMetrics: (record): AdminDetailMetric[] => [
       { label: "Scopes", value: record.primaryMeta, helper: "permissions" },
-      { label: "Allowlist", value: record.secondaryMeta, helper: "network rules" },
+      {
+        label: "Allowlist",
+        value: record.secondaryMeta,
+        helper: "network rules",
+      },
       { label: "Rate limit", value: record.tertiaryMeta, helper: "requests" },
       { label: "Tenant", value: record.owner, helper: "owner" },
     ],

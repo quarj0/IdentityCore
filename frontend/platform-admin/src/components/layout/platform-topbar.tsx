@@ -32,7 +32,13 @@ export function PlatformTopbar({ onOpenNavigation }: PlatformTopbarProps) {
           <Menu className="size-5" aria-hidden="true" />
         </Button>
 
-        <Button variant="ghost" size="icon" className="ml-auto text-slate-300" aria-label="Sign out" onClick={logout}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="ml-auto text-slate-300"
+          aria-label="Sign out"
+          onClick={logout}
+        >
           <LogOut className="size-5" aria-hidden="true" />
         </Button>
 

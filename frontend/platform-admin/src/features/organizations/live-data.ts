@@ -73,7 +73,9 @@ function toRecord(organization: Organization): AdminRecord {
   };
 }
 
-export function organizationRecordToAdminRecord(organization: Organization): AdminRecord {
+export function organizationRecordToAdminRecord(
+  organization: Organization,
+): AdminRecord {
   return toRecord(organization);
 }
 
@@ -161,9 +163,21 @@ export function buildOrganizationConfig(
     getRecord: (id) => records.find((record) => record.id === id),
     getMetrics: (record): AdminDetailMetric[] => [
       { label: "Tenant", value: record.primaryMeta, helper: "linked tenant" },
-      { label: "Tenant status", value: record.secondaryMeta, helper: "current state" },
-      { label: "Country profile", value: record.tertiaryMeta, helper: "default profile" },
-      { label: "Jurisdiction", value: record.owner, helper: "default jurisdiction" },
+      {
+        label: "Tenant status",
+        value: record.secondaryMeta,
+        helper: "current state",
+      },
+      {
+        label: "Country profile",
+        value: record.tertiaryMeta,
+        helper: "default profile",
+      },
+      {
+        label: "Jurisdiction",
+        value: record.owner,
+        helper: "default jurisdiction",
+      },
     ],
     getSections: (record): AdminDetailSection[] => [
       {
@@ -178,13 +192,21 @@ export function buildOrganizationConfig(
       },
       {
         title: "Supporting documents",
-        description: "Uploaded organizational evidence and current review snapshot.",
+        description:
+          "Uploaded organizational evidence and current review snapshot.",
         items: supportingDocuments.length
           ? supportingDocuments.map((document) => ({
               label: document.filename,
-              value: document.downloadUrl || `${document.status} · ${toSizeLabel(document.fileSizeBytes)} · ${document.uploadedByEmail}`,
+              value:
+                document.downloadUrl ||
+                `${document.status} · ${toSizeLabel(document.fileSizeBytes)} · ${document.uploadedByEmail}`,
             }))
-          : [{ label: "Documents", value: "No supporting documents submitted yet." }],
+          : [
+              {
+                label: "Documents",
+                value: "No supporting documents submitted yet.",
+              },
+            ],
       },
     ],
   };
