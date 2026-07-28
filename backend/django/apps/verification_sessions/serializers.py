@@ -16,7 +16,7 @@ from apps.biometrics.models import (
     SelfieCaptureStatus,
     SelfieCaptureType,
 )
-from apps.consent.models import ConsentRecord, ConsentTemplate
+from apps.consent.models import ConsentRecord, ConsentTemplate, ConsentTemplateStatus
 from apps.document_captures.models import (
     DocumentCapture,
     DocumentCaptureSide,
@@ -296,17 +296,6 @@ def serialize_verification_session(verification_session: VerificationSession, re
             "logo_url": organization_logo_url,
         },
         "purpose": verification.purpose,
-        "locale": locale,
-        "supported_locales": supported_locales,
-        "consent": {
-            "template_id": consent.get("template_id", ""),
-            "version": consent.get("version"),
-            "language": consent.get("language", locale),
-            "content": consent.get(
-                "content",
-                f"I consent to the identity verification process for {verification.purpose}.",
-            ),
-        },
         "redirect_url": verification.redirect_url,
         "required_steps": required_steps,
         "workflow": {
@@ -444,10 +433,10 @@ def serialize_verification_session_status(
 
 class VerificationSessionConsentSerializer(serializers.Serializer):
     accepted = serializers.BooleanField()
-    template_id = serializers.CharField(max_length=64)
-    version = serializers.IntegerField(min_value=1)
-    locale = serializers.CharField(max_length=16)
-    content_hash = serializers.RegexField(r"^[a-f0-9]{64}$")
+    template_id = serializers.CharField(max_length=64, required=False)
+    version = serializers.IntegerField(min_value=1, required=False)
+    locale = serializers.CharField(max_length=16, required=False)
+    content_hash = serializers.RegexField(r"^[a-f0-9]{64}$", required=False)
 
     def validate_accepted(self, value):
         if not value:
@@ -466,9 +455,10 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
         submitted_artifact = {
             key: self.validated_data[key]
             for key in ("template_id", "version", "locale", "content_hash")
+            if key in self.validated_data
         }
         expected_artifact = {key: artifact[key] for key in submitted_artifact}
-        if submitted_artifact != expected_artifact:
+        if submitted_artifact and submitted_artifact != expected_artifact:
             raise serializers.ValidationError(
                 "The consent notice changed. Review the current notice before accepting."
             )
