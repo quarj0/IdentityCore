@@ -7,7 +7,7 @@
     "dev": "next dev --port 3002",
     "build": "next build",
     "start": "next start --port 3002",
-    "start:standalone": "PORT=3002 HOSTNAME=127.0.0.1 node .next/standalone/verification-portal/server.js",
+    "start:standalone": "rm -rf .next/standalone/verification-portal/.next/static .next/standalone/verification-portal/public && cp -R .next/static .next/standalone/verification-portal/.next/static && cp -R public .next/standalone/verification-portal/public && PORT=3002 HOSTNAME=127.0.0.1 node .next/standalone/verification-portal/server.js",
     "lint": "eslint",
     "test:e2e:install": "playwright install chromium webkit",
     "test:e2e": "playwright test"
