@@ -1,4 +1,5 @@
 from datetime import timedelta
+import hashlib
 import secrets
 
 from django.utils import timezone
@@ -34,12 +35,41 @@ from apps.verifications.models import (
 from common.catalog import COUNTRY_PROFILES, DOCUMENT_TYPES
 
 
-REQUIRED_STEPS = [
-    "consent",
-    "document_capture",
-    "selfie_capture",
-    "liveness_check",
-]
+SUPPORTED_LOCALES = {"en", "ar"}
+
+
+def _request_locale(request) -> str:
+    requested = request.headers.get("Accept-Language", "en").split(",", 1)[0]
+    locale = requested.strip().split("-", 1)[0].lower()
+    return locale if locale in SUPPORTED_LOCALES else "en"
+
+
+def _resolve_consent_template(verification, locale: str):
+    templates = ConsentTemplate.objects.filter(
+        tenant=verification.tenant,
+        status=ConsentTemplateStatus.ACTIVE,
+    )
+    return (
+        templates.filter(language=locale).order_by("-version", "-created_at").first()
+        or templates.filter(language="en").order_by("-version", "-created_at").first()
+        or templates.order_by("-version", "-created_at").first()
+    )
+
+
+def _consent_artifact(verification, locale: str) -> dict:
+    template = _resolve_consent_template(verification, locale)
+    content = (
+        template.content
+        if template is not None
+        else f"I consent to the identity verification process for {verification.purpose}."
+    )
+    return {
+        "template_id": template.public_id if template is not None else "generated",
+        "version": template.version if template is not None else 1,
+        "locale": template.language if template is not None else locale,
+        "content": content,
+        "content_hash": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+    }
 
 
 def _resolve_document_label(document_type: str, country_code: str) -> str:
@@ -173,7 +203,7 @@ STATUS_PRESENTATION = {
 }
 
 
-def serialize_verification_session(verification_session: VerificationSession) -> dict:
+def serialize_verification_session(verification_session: VerificationSession, request=None) -> dict:
     verification = verification_session.verification
     organization = verification.organization
     organization_logo_url = organization.settings_json.get("logo_url", "")
@@ -204,6 +234,13 @@ def serialize_verification_session(verification_session: VerificationSession) ->
         (item for item in supported_documents if item["document_type"] == document_type),
         None,
     )
+    locale = _request_locale(request) if request is not None else "en"
+    configured_liveness = str(
+        verification.policy_snapshot_json.get("required_liveness_level", "passive")
+    )
+    liveness_mode = "active" if configured_liveness == "active" else "passive"
+    required_steps = ["consent", "document_capture", "selfie_capture"]
+    required_steps.append("liveness_check")
     return {
         "session_id": verification_session.public_id,
         "verification_id": verification.public_id,
@@ -214,7 +251,14 @@ def serialize_verification_session(verification_session: VerificationSession) ->
         },
         "purpose": verification.purpose,
         "redirect_url": verification.redirect_url,
-        "required_steps": REQUIRED_STEPS,
+        "required_steps": required_steps,
+        "workflow": {
+            "steps": required_steps,
+            "liveness_mode": liveness_mode,
+        },
+        "locale": locale,
+        "direction": "rtl" if locale == "ar" else "ltr",
+        "consent": _consent_artifact(verification, locale),
         "document": {
             "country_code": country_code,
             "document_type": document_type,
@@ -288,7 +332,14 @@ def serialize_verification_session_status(
             )
     elif latest_selfie is not None and latest_liveness is None:
         current_step = "liveness_check"
-        message = "Please complete the passive liveness check."
+        configured_liveness = verification.policy_snapshot_json.get(
+            "required_liveness_level", "passive"
+        )
+        message = (
+            "Please complete the active liveness challenge."
+            if configured_liveness == "active"
+            else "Please complete the passive liveness check."
+        )
     else:
         current_step, message = STATUS_PRESENTATION.get(
             verification.status,
@@ -315,6 +366,10 @@ def serialize_verification_session_status(
 
 class VerificationSessionConsentSerializer(serializers.Serializer):
     accepted = serializers.BooleanField()
+    template_id = serializers.CharField(max_length=64)
+    version = serializers.IntegerField(min_value=1)
+    locale = serializers.CharField(max_length=16)
+    content_hash = serializers.RegexField(r"^[a-f0-9]{64}$")
 
     def validate_accepted(self, value):
         if not value:
@@ -326,6 +381,17 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
         verification_session = request.verification_session
         verification = verification_session.verification
 
+        artifact = _consent_artifact(verification, _request_locale(request))
+        submitted_artifact = {
+            key: self.validated_data[key]
+            for key in ("template_id", "version", "locale", "content_hash")
+        }
+        expected_artifact = {key: artifact[key] for key in submitted_artifact}
+        if submitted_artifact != expected_artifact:
+            raise serializers.ValidationError(
+                "The consent notice changed. Review the current notice before accepting."
+            )
+
         existing_record = verification.consent_records.order_by("-accepted_at").first()
         if existing_record:
             if verification.status == VerificationStatus.PENDING_CONSENT:
@@ -333,19 +399,8 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
                 verification.save(update_fields=["status", "updated_at"])
             return existing_record
 
-        consent_template = (
-            ConsentTemplate.objects.filter(
-                tenant=verification.tenant,
-                status=ConsentTemplateStatus.ACTIVE,
-            )
-            .order_by("-version", "-created_at")
-            .first()
-        )
-        consent_text_snapshot = (
-            consent_template.content
-            if consent_template is not None
-            else f"I consent to the identity verification process for {verification.purpose}."
-        )
+        consent_template = _resolve_consent_template(verification, artifact["locale"])
+        consent_text_snapshot = artifact["content"]
 
         now = timezone.now()
         consent_record = ConsentRecord.objects.create(
@@ -354,6 +409,8 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
             verification_subject=verification.verification_subject,
             consent_template=consent_template,
             consent_text_snapshot=consent_text_snapshot,
+            consent_locale=artifact["locale"],
+            consent_content_hash=artifact["content_hash"],
             accepted=True,
             accepted_at=now,
             ip_address=request.META.get("REMOTE_ADDR"),
@@ -669,13 +726,28 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
 
 
 class VerificationSessionLivenessSerializer(serializers.Serializer):
-    liveness_type = serializers.ChoiceField(choices=[LivenessType.ACTIVE])
+    liveness_type = serializers.ChoiceField(
+        choices=[LivenessType.PASSIVE, LivenessType.ACTIVE]
+    )
     selfie_capture_id = serializers.CharField(max_length=64)
     challenge_id = serializers.CharField(max_length=64, required=False)
 
     def validate(self, attrs):
         request = self.context["request"]
         verification = request.verification_session.verification
+
+        configured_liveness = verification.policy_snapshot_json.get(
+            "required_liveness_level", "passive"
+        )
+        expected_liveness = (
+            LivenessType.ACTIVE
+            if configured_liveness == "active"
+            else LivenessType.PASSIVE
+        )
+        if attrs["liveness_type"] != expected_liveness:
+            raise serializers.ValidationError(
+                {"liveness_type": "Liveness type does not match this verification policy."}
+            )
 
         latest_document = verification.identity_documents.order_by("-created_at").first()
         if latest_document is None or latest_document.status != IdentityDocumentStatus.PROCESSED:
@@ -839,6 +911,12 @@ class VerificationSessionLivenessChallengeSerializer(serializers.Serializer):
     def create(self, validated_data):
         request = self.context["request"]
         verification_session = request.verification_session
+        if verification_session.verification.policy_snapshot_json.get(
+            "required_liveness_level", "passive"
+        ) != "active":
+            raise serializers.ValidationError(
+                "An active liveness challenge is not enabled by this verification policy."
+            )
         now = timezone.now()
         actions = list(secrets.SystemRandom().sample(
             ["turn_left", "turn_right", "look_up", "look_down"], k=2

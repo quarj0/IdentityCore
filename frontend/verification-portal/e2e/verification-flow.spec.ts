@@ -19,6 +19,19 @@ test("verification pages send hardened browser security headers", async ({ reque
   expect(response.headers()["x-powered-by"]).toBeUndefined();
 });
 
+test("BFF rejects cross-origin session exchange and unauthenticated proxy calls", async ({ request }) => {
+  const exchange = await request.post("/api/verification/session", {
+    headers: { Origin: "https://attacker.example" },
+    data: { sessionId, sessionToken: "stolen-token" },
+  });
+  expect(exchange.status()).toBe(403);
+
+  const proxy = await request.post(`/api/verification/sessions/${sessionId}/consent`, {
+    data: { accepted: true },
+  });
+  expect(proxy.status()).toBe(401);
+});
+
 test("subject completes consent, document, selfie, liveness, and review routing", async ({
   page,
 }) => {
@@ -50,13 +63,17 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     });
   });
 
-  await page.route("http://localhost:8000/api/v1/**", async (route) => {
+  await page.route("**/api/verification/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
     const path = url.pathname;
     const method = request.method();
 
-    if (path === `/api/v1/sessions/${sessionId}` && method === "GET") {
+    if (path === "/api/verification/session" && method === "POST") {
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ success: true }) });
+    }
+
+    if (path === `/api/verification/sessions/${sessionId}` && method === "GET") {
       return json(route, {
         session_id: sessionId,
         verification_id: verificationId,
@@ -69,6 +86,10 @@ test("subject completes consent, document, selfie, liveness, and review routing"
           "selfie_capture",
           "liveness_check",
         ],
+        workflow: { steps: ["consent", "document_capture", "selfie_capture", "liveness_check"], liveness_mode: "active" },
+        locale: "en",
+        direction: "ltr",
+        consent: { template_id: "ctm_test", version: 3, locale: "en", content: "I consent to identity verification for customer onboarding.", content_hash: "a".repeat(64) },
         document: {
           country_code: "GH",
           document_type: "national_id",
@@ -83,7 +104,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     }
 
     if (
-      path === `/api/v1/sessions/${sessionId}/status` &&
+      path === `/api/verification/sessions/${sessionId}/status` &&
       method === "GET"
     ) {
       return json(route, {
@@ -108,14 +129,14 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     }
 
     if (
-      path === `/api/v1/sessions/${sessionId}/consent` &&
+      path === `/api/verification/sessions/${sessionId}/consent` &&
       method === "POST"
     ) {
       step = "document_capture";
       return json(route, { next_step: step });
     }
 
-    if (path === "/api/v1/uploads/" && method === "POST") {
+    if (path === "/api/verification/uploads/" && method === "POST") {
       uploadCreateRequests += 1;
       const uploadPayload = request.postDataJSON() as {
         purpose?: string;
@@ -153,7 +174,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     }
 
     if (
-      path === `/api/v1/sessions/${sessionId}/documents` &&
+      path === `/api/verification/sessions/${sessionId}/documents` &&
       method === "POST"
     ) {
       documentPayload = request.postDataJSON() as typeof documentPayload;
@@ -166,7 +187,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     }
 
     if (
-      path === `/api/v1/sessions/${sessionId}/selfies` &&
+      path === `/api/verification/sessions/${sessionId}/selfies` &&
       method === "POST"
     ) {
       step = "liveness_check";
@@ -178,7 +199,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     }
 
     if (
-      path === `/api/v1/sessions/${sessionId}/liveness/challenge` &&
+      path === `/api/verification/sessions/${sessionId}/liveness/challenge` &&
       method === "POST"
     ) {
       return json(route, {
@@ -189,7 +210,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     }
 
     if (
-      path === `/api/v1/sessions/${sessionId}/liveness` &&
+      path === `/api/verification/sessions/${sessionId}/liveness` &&
       method === "POST"
     ) {
       step = "completed";
@@ -262,7 +283,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
 });
 
 test("expired sessions render a safe terminal state", async ({ page }) => {
-  await page.route("http://localhost:8000/api/v1/**", async (route) => {
+  await page.route("**/api/verification/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith("/status")) {
       return json(route, {
@@ -284,6 +305,10 @@ test("expired sessions render a safe terminal state", async ({ page }) => {
       organization: { name: "Example Bank", logo_url: "" },
       purpose: "Customer onboarding",
       required_steps: [],
+      workflow: { steps: [], liveness_mode: "passive" },
+      locale: "en",
+      direction: "ltr",
+      consent: { template_id: "ctm_test", version: 1, locale: "en", content: "Consent text", content_hash: "b".repeat(64) },
       document: {
         country_code: "GH",
         document_type: "national_id",

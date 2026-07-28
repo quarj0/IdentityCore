@@ -56,7 +56,7 @@ class VerificationSessionDetailView(VerificationSessionBaseView):
     def get(self, request, session_id: str):
         self._touch_session(request)
         return success_response(
-            serialize_verification_session(request.verification_session),
+            serialize_verification_session(request.verification_session, request),
             request=request,
         )
 

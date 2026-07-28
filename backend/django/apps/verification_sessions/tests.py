@@ -1,5 +1,6 @@
 from datetime import timedelta
 from unittest.mock import patch
+import hashlib
 
 from django.urls import reverse
 from django.utils import timezone
@@ -63,6 +64,7 @@ class VerificationSessionPortalTests(APITestCase):
             expires_at=timezone.now() + timedelta(hours=24),
             created_by=self.user,
             metadata_json={"country_code": "GH", "document_type": "national_id"},
+            policy_snapshot_json={"required_liveness_level": "active"},
         )
         self.session = VerificationSession(
             verification=self.verification,
@@ -231,7 +233,13 @@ class VerificationSessionPortalTests(APITestCase):
                 "verification-session-consent",
                 kwargs={"session_id": self.session.public_id},
             ),
-            {"accepted": True},
+            {
+                "accepted": True,
+                "template_id": ConsentTemplate.objects.get(language="en").public_id,
+                "version": 1,
+                "locale": "en",
+                "content_hash": hashlib.sha256(b"I consent to identity verification.").hexdigest(),
+            },
             format="json",
             **self.session_headers(),
         )
@@ -250,6 +258,11 @@ class VerificationSessionPortalTests(APITestCase):
             "I consent to identity verification.",
         )
         self.assertEqual(consent_record.device_fingerprint, "device-123")
+        self.assertEqual(consent_record.consent_locale, "en")
+        self.assertEqual(
+            consent_record.consent_content_hash,
+            hashlib.sha256(b"I consent to identity verification.").hexdigest(),
+        )
 
     def test_accept_consent_requires_true(self):
         response = self.client.post(
@@ -893,7 +906,13 @@ class VerificationSessionPortalTests(APITestCase):
                 "verification-session-consent",
                 kwargs={"session_id": self.session.public_id},
             ),
-            {"accepted": True},
+            {
+                "accepted": True,
+                "template_id": ConsentTemplate.objects.get(language="en").public_id,
+                "version": 1,
+                "locale": "en",
+                "content_hash": hashlib.sha256(b"I consent to identity verification.").hexdigest(),
+            },
             format="json",
             **self.session_headers(),
         )
