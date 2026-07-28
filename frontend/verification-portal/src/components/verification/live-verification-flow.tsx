@@ -33,6 +33,7 @@ import {
   type VerificationSession,
   type VerificationStatus,
 } from "@/lib/session-api";
+import { resolveOrganizationLogoUrl, resolveReturnUrl } from "@/lib/safe-navigation";
 
 import { CameraCapture } from "./camera-capture";
 import { LiveLivenessCapture } from "./live-liveness-capture";
@@ -293,17 +294,18 @@ export function LiveVerificationFlow({
     ) ?? session.document;
   const finish = () => {
     clearSessionCredentials(credentials.sessionId);
-    const returnUrl =
-      session.redirect_url ||
-      process.env.NEXT_PUBLIC_ONBOARDING_RETURN_URL ||
-      "http://localhost:3001/onboarding";
+    const returnUrl = resolveReturnUrl({
+      requestedUrl: session.redirect_url,
+      fallbackUrl: process.env.NEXT_PUBLIC_ONBOARDING_RETURN_URL,
+      portalOrigin: window.location.origin,
+    });
     window.location.assign(returnUrl);
   };
 
   return (
     <VerificationFrame
       organizationName={session.organization.name}
-      organizationLogoUrl={session.organization.logo_url}
+      organizationLogoUrl={resolveOrganizationLogoUrl(session.organization.logo_url)}
       purpose={session.purpose}
       currentStep={step}
       reference={status.verification_id}

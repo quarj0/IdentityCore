@@ -7,6 +7,18 @@ const image = Buffer.from(
   "base64",
 );
 
+test("verification pages send hardened browser security headers", async ({ request }) => {
+  const response = await request.get("/");
+
+  expect(response.headers()["cache-control"]).toContain("no-store");
+  expect(response.headers()["content-security-policy"]).toContain("frame-ancestors 'none'");
+  expect(response.headers()["permissions-policy"]).toContain("camera=(self)");
+  expect(response.headers()["referrer-policy"]).toBe("no-referrer");
+  expect(response.headers()["x-content-type-options"]).toBe("nosniff");
+  expect(response.headers()["x-frame-options"]).toBe("DENY");
+  expect(response.headers()["x-powered-by"]).toBeUndefined();
+});
+
 test("subject completes consent, document, selfie, liveness, and review routing", async ({
   page,
 }) => {
