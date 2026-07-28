@@ -35,6 +35,7 @@ import {
   type VerificationStatus,
 } from "@/lib/session-api";
 import { resolveOrganizationLogoUrl, resolveReturnUrl } from "@/lib/safe-navigation";
+import { translate } from "@/lib/i18n";
 
 import { CameraCapture } from "./camera-capture";
 import { LiveLivenessCapture } from "./live-liveness-capture";
@@ -92,6 +93,8 @@ export function LiveVerificationFlow({
       fetchVerificationStatus(nextCredentials),
     ]);
     setSession(nextSession);
+    document.documentElement.lang = nextSession.locale;
+    document.documentElement.dir = nextSession.direction;
     setSelectedCountryCode(
       (current) => current || nextSession.document.country_code,
     );
@@ -117,7 +120,7 @@ export function LiveVerificationFlow({
             );
           }
         } else {
-          nextCredentials = consumeSessionCredentials(sessionId);
+          nextCredentials = await consumeSessionCredentials(sessionId);
         }
 
         if (!nextCredentials) {
@@ -387,8 +390,8 @@ export function LiveVerificationFlow({
       {step === "consent" ? (
         <StepCard
           eyebrow="Step 1 of 5"
-          title="Review and give consent"
-          description="Understand what will be processed before you continue. You remain in control of whether to proceed."
+          title={translate(session.locale, "consentTitle")}
+          description={translate(session.locale, "consentDescription")}
         >
           <div className="grid gap-3 sm:grid-cols-3">
             {[
@@ -414,9 +417,10 @@ export function LiveVerificationFlow({
               className="mt-1 h-4 w-4 rounded border-slate-300 accent-blue-600"
             />
             <span className="text-sm leading-6 text-slate-600">
-              I consent to {session.organization.name} using IdentityCore to
-              process my document, selfie, biometric evidence, and security
-              metadata for <strong className="font-medium text-slate-900">{session.purpose}</strong>.
+              <span className="whitespace-pre-line">{session.consent.content}</span>
+              <span className="sr-only">
+                Consent template version {session.consent.version}.
+              </span>
             </span>
           </label>
           <div className="flex items-center justify-between gap-4 border-t border-slate-100 pt-5">
@@ -426,10 +430,10 @@ export function LiveVerificationFlow({
             </p>
             <Button
               disabled={!consented || busy}
-              onClick={() => run(() => acceptConsent(credentials))}
+              onClick={() => run(() => acceptConsent(credentials, session.consent))}
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-              Accept and continue
+              {translate(session.locale, "accept")}
             </Button>
           </div>
         </StepCard>
@@ -676,8 +680,8 @@ export function LiveVerificationFlow({
       {step === "liveness_check" ? (
         <StepCard
           eyebrow="Step 4 of 5"
-          title="Complete a live camera check"
-          description="Follow a short, server-issued movement sequence while your camera records. A photo, uploaded video, or presence-only check cannot complete this step."
+          title={translate(session.locale, "livenessTitle")}
+          description={translate(session.locale, session.workflow.liveness_mode === "active" ? "activeDescription" : "passiveDescription")}
         >
           <div className="rounded-3xl border border-blue-100 bg-blue-50/60 p-6 text-center">
             <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white text-blue-700 shadow-sm">
@@ -687,7 +691,13 @@ export function LiveVerificationFlow({
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
               Your challenge is single-use, randomized, and recorded directly from this device in one short video.
             </p>
-            {!livenessChallenge ? (
+            {session.workflow.liveness_mode === "passive" ? (
+              <div className="mt-5 flex justify-center">
+                <Button disabled={busy || !status.evidence.selfie_capture_id} onClick={() => run(() => submitLiveness(credentials, status.evidence.selfie_capture_id, { livenessType: "passive" }), { title: "Presence check submitted", message: "Your live selfie is being checked.", busyMessage: "Checking your live selfie…" })}>
+                  <ScanFace className="h-4 w-4" />{translate(session.locale, "passiveSubmit")}
+                </Button>
+              </div>
+            ) : !livenessChallenge ? (
               <div className="mt-5 flex justify-center">
                 <Button disabled={busy} onClick={() => run(async () => setLivenessChallenge(await createLivenessChallenge(credentials)), { title: "Live challenge ready", message: "Enable your camera and follow the on-screen instructions." })}>
                   <ScanFace className="h-4 w-4" />Begin live camera check

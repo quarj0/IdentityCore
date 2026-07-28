@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start --port 3002",
     "lint": "eslint",
-    "test:e2e:install": "playwright install chromium",
+    "test:e2e:install": "playwright install chromium webkit",
     "test:e2e": "playwright test"
   },
   "dependencies": {
@@ -25,6 +25,7 @@
     "@types/node": "^26.1.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "axe-core": "4.12.1",
     "eslint": "^9.39.2",
     "eslint-config-next": "16.2.12",
     "tailwindcss": "^4.3.3",
