@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Loader2, Mail } from "lucide-react";
 import {
@@ -19,11 +19,13 @@ import { PasswordInput } from "@/components/auth/password-input";
 import { InlineStatus } from "@/components/feedback/inline-status";
 import { saveAuthSession } from "@/lib/auth";
 import { getErrorMessage } from "@/lib/api-client";
+import { getSafeReturnTo } from "@/lib/auth-routing";
 import { fetchCurrentOnboarding, login } from "@/lib/onboarding-api";
 import { getOnboardingRoute } from "@/lib/onboarding-state";
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -41,7 +43,8 @@ export function LoginForm() {
         user: payload.user,
       });
       const onboarding = await fetchCurrentOnboarding();
-      router.push(getOnboardingRoute(onboarding));
+      const returnTo = getSafeReturnTo(searchParams.get("returnTo"));
+      router.push(returnTo ?? getOnboardingRoute(onboarding));
       router.refresh();
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
@@ -69,6 +72,13 @@ export function LoginForm() {
 
         <CardContent>
           <form className="space-y-5" onSubmit={handleSubmit}>
+            {searchParams.get("reason") === "session_expired" ? (
+              <InlineStatus
+                kind="error"
+                title="Session expired"
+                message="Sign in again to continue where you left off."
+              />
+            ) : null}
             {errorMessage ? (
               <InlineStatus
                 kind="error"

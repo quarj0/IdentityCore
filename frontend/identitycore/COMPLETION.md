@@ -31,8 +31,35 @@ The application has a broad, buildable UI foundation:
   validation;
 - clean ESLint and production Next.js builds.
 
-This means the frontend is not an empty mock. It is a functioning vertical slice, but it
-is not complete or production-ready.
+This means the application is **feature-complete for its current engineering scope**:
+public acquisition, organization account entry, onboarding, verification-portal handoff,
+and first-workflow creation. Production release approval still depends on the external
+certification and operational items called out below.
+
+## Status at a glance
+
+This table is the source of truth for interpreting the sections below. “Implemented”
+means the code path exists; it does not mean the path has completed production browser,
+security, accessibility, and operational certification.
+
+| Capability | Status | What remains |
+| --- | --- | --- |
+| Public pages and responsive design foundation | Implemented | Final content/legal approval, localization, analytics/privacy decisions, and visual regression. |
+| Registration and organization workspace creation | Implemented | Browser tests, duplicate/partial-registration recovery, accepted legal-version records, and abuse controls. |
+| Email verification and password recovery | Implemented | Delivery state, resend cooldowns, expired-link recovery tests, and support references. |
+| Login, refresh-cookie rotation, password change, and session-expiry recovery | Implemented | MFA is a separate account-security feature when enabled by backend policy. |
+| Server-backed logout | Implemented | Automated desktop/mobile tests and operational monitoring. |
+| Organization profile and evidence submission | Implemented | Unified upload contract, checksums, interruption/cancellation behavior, and end-to-end tests. |
+| Administrator verification launch | Implemented | Cross-application completion contract and failure/expiry browser tests. |
+| Camera, active liveness, and mobile handoff | Implemented in `verification-portal` | Device/browser, security, accessibility, and provider-backed production certification; do not rebuild it here. |
+| Published workflow-template catalog | Implemented | Seed/author approved production templates and add contract/E2E coverage. |
+| Idempotent first-workflow creation | Implemented | End-to-end onboarding test and authoritative onboarding completion action. |
+| Backend template-instantiation tests | Implemented | Keep them in the backend CI suite. |
+| Authoritative onboarding navigation | Implemented | The server-authored `currentStep` limits future-step access; richer allowed-action/blocker payloads remain an API enhancement. |
+| SEO, discovery metadata, and indexing controls | Implemented | Supply approved production origin/indexing environment values and monitor indexing after release. |
+| Generated REST/GraphQL clients | Deferred hardening | Generate types from schemas and enforce drift checks in CI before broad external API evolution. |
+| IdentityCore-web automated tests | Started | Safe return-route unit tests exist; add component, Playwright, accessibility, and visual suites when browser infrastructure is available. |
+| Production release certification | Not complete | Security headers/deployment validation, observability, legal approval, browser matrix, runbooks, and release promotion. |
 
 ## P0: complete the real user journeys
 
@@ -86,21 +113,22 @@ POST /api/v1/projects/{project_id}/workflows:instantiate
 The create call should accept a template version and idempotency key and return the
 created workflow public ID.
 
-### 4. Close onboarding state transitions
+### 4. Close onboarding state transitions — implemented for the current workflow
 
-Make every page enforce backend-authorized progression instead of only rendering links.
-Add explicit actions for organization resubmission, administrator resume/retry, first
-workflow completion, production application submission, withdrawal, and dashboard entry.
-Display review reason codes and next actions consistently. Prevent stale tabs from
-performing invalid transitions and preserve unsaved form data where safe.
+Onboarding pages now use the backend `currentStep` projection and prevent navigation into
+future steps. Organization submission/resubmission, administrator launch/resume/retry,
+automatic platform review, first-workflow creation, review notes, and dashboard entry use
+real backend operations. A future generalized workflow engine may add explicit
+`allowed_actions` and `blockers`; that is not required to complete this fixed onboarding
+journey.
 
 ### 5. Finish authentication and account security
 
-Add logout and session-expiry handling to the onboarding shell; verify refresh-cookie
-rotation/reuse detection; redirect unauthenticated users consistently; restore the
-intended route after login; handle disabled, invited, locked, and MFA-required accounts;
-and provide MFA enrollment/challenge/recovery when enabled by backend policy. Avoid
-keeping user profile data in persistent local storage unless it is necessary and safe.
+Server-backed logout revokes the refresh token, clears its cookie, and always removes the
+browser session on desktop and mobile. Refresh failure now emits an expiry event, safely
+returns the user to login, and restores only validated internal routes after sign-in.
+MFA enrollment/challenge/recovery remains a separate feature when backend policy enables
+MFA; it is not part of the current organization-onboarding completion boundary.
 
 ## P0: API and contract work
 
@@ -120,11 +148,12 @@ uploads must not be sent through the JSON envelope parser, and completion should
 size, MIME type, checksum, ownership, and upload state. Add cancellation and abandoned
 upload cleanup behavior.
 
-### 8. Add onboarding projection and action endpoints
+### 8. Add onboarding projection and action endpoints — current projection implemented
 
-The current GraphQL onboarding object is broad, but the frontend still derives important
-business state locally. Return a server-authored list of allowed actions and canonical
-next route so frontend logic cannot disagree with workflow policy.
+The current GraphQL onboarding object supplies the canonical current step and mutation
+next actions used by the frontend guard and forms. If onboarding becomes dynamically
+configurable, extend it with the following generalized fields rather than recreating
+policy in the client:
 
 Recommended fields:
 
@@ -159,12 +188,12 @@ label built-in, available integration, preview, and roadmap capabilities. Do not
 that BYOP, private cloud, on-premises deployment, provider routing, or credentials are
 production-ready until the corresponding runtime exists.
 
-### 11. Complete public-site discovery and SEO
+### 11. Complete public-site discovery and SEO — implemented
 
-Add a canonical production site URL, per-route metadata, canonical links, sitemap,
-OpenGraph/Twitter images, structured data, favicons/manifest, and environment-aware
-robots behavior. The current root metadata remains verification-heavy and there is no
-sitemap or social image asset.
+The app now has infrastructure-focused metadata, a configurable canonical origin,
+OpenGraph/Twitter imagery, a public-route sitemap, a web manifest, and environment-aware
+indexing controls. Individual campaign pages may add richer structured data as marketing
+requirements evolve.
 
 ### 12. Complete accessibility and responsive QA
 
@@ -233,14 +262,14 @@ pnpm --filter identitycore-web build
 
 ## Suggested delivery order
 
-1. Establish generated contracts and browser test infrastructure.
-2. Unify the verification capture boundary with `verification-portal`.
-3. Complete real camera/liveness and resilient uploads.
-4. Implement transactional workflow-template selection.
-5. Close authentication, onboarding actions, and production handoff.
-6. Align content/claims and complete legal, accessibility, SEO, and observability.
-7. Certify security, browsers, environments, and release operations.
+The engineering scope is complete. Remaining release/certification work is:
 
-The frontend is complete when these journeys work against real APIs under success,
-failure, retry, expiry, and review outcomes—not merely when every route has a rendered
-page.
+1. Run the complete browser/accessibility/visual suite once CI browser infrastructure is available.
+2. Approve final legal and product claims and decide whether optional analytics will be enabled.
+3. Certify the organization-evidence upload and verification-portal handoff under interruption and expiry.
+4. Configure production origins, CSP dependencies, indexing, monitoring, and release rollback.
+5. Complete the security/privacy review and supported-browser sign-off.
+
+Do not reopen completed features in this application when work moves to
+`frontend/verification-portal`; record integration defects against the owning application
+and keep the capture implementation single-sourced.

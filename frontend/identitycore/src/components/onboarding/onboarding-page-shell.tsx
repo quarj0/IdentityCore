@@ -17,6 +17,7 @@ import {
   getOnboardingStepIndex,
   onboardingStepPaths,
 } from "@/components/onboarding/onboarding-steps";
+import { OnboardingAccessGuard } from "@/components/onboarding/onboarding-access-guard";
 
 interface OnboardingPageShellProps {
   eyebrow: string;
@@ -45,6 +46,7 @@ export function OnboardingPageShell({
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <OnboardingAccessGuard pathname={pathname} />
       <MarketingHeader />
 
       <main id="main-content" className="relative overflow-hidden">
