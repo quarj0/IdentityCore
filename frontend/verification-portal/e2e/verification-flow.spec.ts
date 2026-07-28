@@ -88,6 +88,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
         ],
         workflow: { steps: ["consent", "document_capture", "selfie_capture", "liveness_check"], liveness_mode: "active" },
         locale: "en",
+        supported_locales: ["en"],
         direction: "ltr",
         consent: { template_id: "ctm_test", version: 3, locale: "en", content: "I consent to identity verification for customer onboarding.", content_hash: "a".repeat(64) },
         document: {

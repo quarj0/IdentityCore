@@ -38,10 +38,32 @@ from common.catalog import COUNTRY_PROFILES, DOCUMENT_TYPES
 SUPPORTED_LOCALES = {"en", "ar"}
 
 
-def _request_locale(request) -> str:
-    requested = request.headers.get("Accept-Language", "en").split(",", 1)[0]
-    locale = requested.strip().split("-", 1)[0].lower()
-    return locale if locale in SUPPORTED_LOCALES else "en"
+def _request_locale(request, policy_snapshot: dict | None = None) -> str:
+    snapshot = policy_snapshot or {}
+    default_locale = str(snapshot.get("default_locale") or "en").lower()
+    configured = snapshot.get("supported_locales") or list(SUPPORTED_LOCALES)
+    supported_locales = [str(locale).lower() for locale in configured]
+    if default_locale not in supported_locales:
+        supported_locales.append(default_locale)
+    requested_languages = [
+        item.partition(";")[0].strip().lower()
+        for item in (
+            request.headers.get("Accept-Language", "").split(",")
+            if request is not None
+            else []
+        )
+        if item.partition(";")[0].strip()
+    ]
+    return next(
+        (
+            supported
+            for requested in requested_languages
+            for supported in supported_locales
+            if requested == supported
+            or requested.split("-", 1)[0] == supported.split("-", 1)[0]
+        ),
+        default_locale,
+    )
 
 
 def _resolve_consent_template(verification, locale: str):
@@ -57,6 +79,16 @@ def _resolve_consent_template(verification, locale: str):
 
 
 def _consent_artifact(verification, locale: str) -> dict:
+    consent_snapshot = (verification.policy_snapshot_json or {}).get("consent") or {}
+    if consent_snapshot:
+        content = str(consent_snapshot.get("content") or "")
+        return {
+            "template_id": str(consent_snapshot.get("template_id") or "generated"),
+            "version": int(consent_snapshot.get("version") or 1),
+            "locale": str(consent_snapshot.get("locale") or locale),
+            "content": content,
+            "content_hash": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+        }
     template = _resolve_consent_template(verification, locale)
     content = (
         template.content
@@ -234,9 +266,10 @@ def serialize_verification_session(verification_session: VerificationSession, re
         (item for item in supported_documents if item["document_type"] == document_type),
         None,
     )
-    locale = _request_locale(request) if request is not None else "en"
+    policy_snapshot = verification.policy_snapshot_json or {}
+    locale = _request_locale(request, policy_snapshot)
     configured_liveness = str(
-        verification.policy_snapshot_json.get("required_liveness_level", "passive")
+        policy_snapshot.get("required_liveness_level", "passive")
     )
     liveness_mode = "active" if configured_liveness == "active" else "passive"
     required_steps = ["consent", "document_capture", "selfie_capture"]
@@ -257,6 +290,11 @@ def serialize_verification_session(verification_session: VerificationSession, re
             "liveness_mode": liveness_mode,
         },
         "locale": locale,
+        "supported_locales": [
+            str(item)
+            for item in policy_snapshot.get("supported_locales")
+            or sorted(SUPPORTED_LOCALES)
+        ],
         "direction": "rtl" if locale == "ar" else "ltr",
         "consent": _consent_artifact(verification, locale),
         "document": {
@@ -381,7 +419,10 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
         verification_session = request.verification_session
         verification = verification_session.verification
 
-        artifact = _consent_artifact(verification, _request_locale(request))
+        artifact = _consent_artifact(
+            verification,
+            _request_locale(request, verification.policy_snapshot_json or {}),
+        )
         submitted_artifact = {
             key: self.validated_data[key]
             for key in ("template_id", "version", "locale", "content_hash")
@@ -399,7 +440,14 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
                 verification.save(update_fields=["status", "updated_at"])
             return existing_record
 
-        consent_template = _resolve_consent_template(verification, artifact["locale"])
+        consent_template = (
+            ConsentTemplate.objects.filter(
+                tenant=verification.tenant,
+                public_id=artifact["template_id"],
+            ).first()
+            if artifact["template_id"] != "generated"
+            else None
+        )
         consent_text_snapshot = artifact["content"]
 
         now = timezone.now()

@@ -417,7 +417,10 @@ export function LiveVerificationFlow({
               className="mt-1 h-4 w-4 rounded border-slate-300 accent-blue-600"
             />
             <span className="text-sm leading-6 text-slate-600">
-              {session.consent.content}
+              <span className="whitespace-pre-line">{session.consent.content}</span>
+              <span className="sr-only">
+                Consent template version {session.consent.version}.
+              </span>
             </span>
           </label>
           <div className="flex items-center justify-between gap-4 border-t border-slate-100 pt-5">
