@@ -30,7 +30,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "pnpm build && pnpm start",
+    command: "pnpm build && pnpm start:standalone",
     url: "http://127.0.0.1:3002",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
