@@ -38,6 +38,9 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  experimental: {
+    useTypeScriptCli: true,
+  },
   turbopack: {
     root: path.join(__dirname, ".."),
   },

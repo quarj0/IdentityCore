@@ -223,7 +223,9 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     buffer: image,
   });
   await page.getByRole("button", { name: "Submit document" }).click();
-  await expect(page.getByRole("alert")).toContainText(
+  await expect(
+    page.getByRole("alert").filter({ hasText: "We could not continue" }),
+  ).toContainText(
     "The upload service is temporarily unavailable.",
   );
   await page.getByRole("button", { name: "Submit document" }).click();
