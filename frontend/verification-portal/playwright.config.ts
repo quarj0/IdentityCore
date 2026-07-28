@@ -1,5 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
 
+// Snap-packaged editors can leak GTK libraries built against an older glibc
+// into WebKit's child processes, causing navigation to fail before page load.
+for (const variable of ["GIO_MODULE_DIR", "GTK_PATH"]) {
+  if (process.env[variable]?.includes("/snap/")) {
+    delete process.env[variable];
+  }
+}
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
