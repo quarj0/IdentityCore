@@ -11,6 +11,9 @@ NEXT_PUBLIC_VERIFICATION_URL=http://localhost:3002
 
 Use `pnpm --filter identitycore-web lint` and `pnpm --filter identitycore-web build` for validation.
 
+See [COMPLETION.md](COMPLETION.md) for the audited completion boundary, missing API
+contracts, prioritized frontend work, and production release gates.
+
 ## Production requirements
 
 - Set every public URL explicitly; `NEXT_PUBLIC_API_ORIGIN` must be an HTTPS origin in production.
