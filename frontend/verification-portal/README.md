@@ -12,15 +12,19 @@ cp .env.example .env.local
 pnpm dev
 ```
 
-The Django API must be available at `NEXT_PUBLIC_API_ORIGIN`. Verification links
+The Django API must be available at `API_ORIGIN` (the legacy
+`NEXT_PUBLIC_API_ORIGIN` is accepted as a fallback). Verification links
 have the form `/verify/{session_id}#token={session_token}`. The portal
-removes the fragment from browser history and never sends it in a referrer.
+immediately exchanges the fragment for a same-origin, `HttpOnly`, `SameSite=Strict`
+cookie and removes it from browser history. Browser code never persists or sends
+the bearer credential to Django directly; all authenticated requests pass through
+the portal BFF.
 
 ## Runtime configuration
 
 | Variable | Purpose |
 | --- | --- |
-| `NEXT_PUBLIC_API_ORIGIN` | Browser-visible Django API origin. |
+| `API_ORIGIN` | Server-only Django API origin used by the BFF. |
 | `NEXT_PUBLIC_ONBOARDING_RETURN_URL` | Optional safe fallback after completion. |
 | `NEXT_PUBLIC_ALLOWED_RETURN_ORIGINS` | Comma-separated allowlist of organization return origins. |
 
@@ -33,13 +37,12 @@ configured return URL or the portal origin.
 
 Every route sends a no-store cache policy, a restrictive Content Security Policy,
 clickjacking protection, a no-referrer policy, MIME-sniffing protection, and a
-Permissions Policy that limits camera access to this origin. The API origin is
-the only external connection target admitted by the portal CSP. Organization
-logos are limited to HTTPS outside local development.
+Permissions Policy that limits camera access to this origin. Authenticated browser connections are restricted to the same-origin BFF.
+Organization logos are limited to HTTPS outside local development.
 
 TLS and `Strict-Transport-Security` must be enforced at the production ingress.
-Only explicitly trusted portal origins should be present in Django's CORS
-configuration.
+The browser does not require Django CORS access. Mutating BFF routes reject
+cross-origin requests in addition to the strict cookie policy.
 
 ## Camera and media compatibility
 
@@ -55,10 +58,13 @@ partial video is never submitted as complete evidence.
 ```bash
 pnpm lint
 pnpm build
-pnpm exec playwright install chromium
+pnpm exec playwright install chromium webkit
 pnpm test:e2e
 ```
 
-The browser suite covers the primary subject flow, expiry handling, and response
-security headers. Provider, storage, worker, and Django integration tests live in
-their owning backend applications.
+The browser matrix runs desktop Chromium and WebKit plus Pixel and iPhone device
+profiles. It covers the primary subject flow, keyboard interaction, expiry
+handling, and response security headers. Physical-device certification remains
+a release evidence gate because an emulator cannot certify camera hardware.
+Provider, storage, worker, and Django integration tests live in their owning
+backend applications.
