@@ -233,6 +233,18 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     mimeType: "image/png",
     buffer: image,
   });
+  await page.getByRole("button", { name: "Capture back" }).click();
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "ghana-card-back.png",
+    mimeType: "image/png",
+    buffer: image,
+  });
+  await page.getByRole("button", { name: "Submit document" }).click();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "We could not continue" }),
+  ).toContainText(
+    "The upload service is temporarily unavailable.",
+  );
   await page.getByRole("button", { name: "Submit document" }).click();
   await expect(page.getByRole("alert")).toContainText(
     "The upload service is temporarily unavailable.",
