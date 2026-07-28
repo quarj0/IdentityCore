@@ -96,9 +96,7 @@ performing invalid transitions and preserve unsaved form data where safe.
 
 ### 5. Finish authentication and account security
 
-Server-backed logout now revokes the refresh token, clears its cookie, and always removes
-the browser session on both desktop and mobile navigation. Add session-expiry handling to
-the onboarding shell; verify refresh-cookie
+Add logout and session-expiry handling to the onboarding shell; verify refresh-cookie
 rotation/reuse detection; redirect unauthenticated users consistently; restore the
 intended route after login; handle disabled, invited, locked, and MFA-required accounts;
 and provide MFA enrollment/challenge/recovery when enabled by backend policy. Avoid
