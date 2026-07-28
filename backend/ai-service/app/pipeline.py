@@ -70,8 +70,20 @@ def _decode_image_bytes(content: bytes) -> np.ndarray | None:
     return image
 
 
-def _sample_video_frames(content: bytes, storage_key: str, limit: int) -> list[np.ndarray]:
-    suffix = Path(storage_key).suffix or ".mp4"
+def _sample_video_frames(
+    content: bytes,
+    storage_key: str,
+    limit: int,
+    media_mime_type: str | None = None,
+) -> list[np.ndarray]:
+    suffix_by_mime_type = {
+        "video/mp4": ".mp4",
+        "video/quicktime": ".mov",
+        "video/webm": ".webm",
+    }
+    suffix = Path(storage_key).suffix or suffix_by_mime_type.get(
+        media_mime_type or "", ".mp4"
+    )
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as temp_file:
         temp_file.write(content)
         temp_path = Path(temp_file.name)
@@ -95,7 +107,11 @@ def _sample_video_frames(content: bytes, storage_key: str, limit: int) -> list[n
     return frames
 
 
-def load_media_asset(storage_key: str, bucket_name: str | None = None) -> MediaAsset:
+def load_media_asset(
+    storage_key: str,
+    bucket_name: str | None = None,
+    media_mime_type: str | None = None,
+) -> MediaAsset:
     settings = get_settings()
     media_bucket_name = get_object_storage_media_bucket_name()
     temp_bucket_name = get_object_storage_temp_bucket_name()
@@ -150,6 +166,7 @@ def load_media_asset(storage_key: str, bucket_name: str | None = None) -> MediaA
         content=content,
         storage_key=storage_key,
         limit=settings.video_frame_sample_limit,
+        media_mime_type=media_mime_type,
     )
     if not frames:
         raise ProcessingError(f"Could not decode media for storage key '{storage_key}'.")
@@ -293,9 +310,14 @@ def run_liveness_pipeline(
     *,
     challenge_actions: list[str] | None = None,
     bucket_name: str | None = None,
+    media_mime_type: str | None = None,
 ) -> dict[str, Any]:
     settings = get_settings()
-    asset = load_media_asset(storage_key, bucket_name=bucket_name)
+    asset = load_media_asset(
+        storage_key,
+        bucket_name=bucket_name,
+        media_mime_type=media_mime_type,
+    )
     frame_detections = [_detect_faces(frame) for frame in asset.frames]
     face_presence_ratio = _safe_mean(
         [1.0 if len(detections) == 1 else 0.0 for detections in frame_detections]
@@ -416,10 +438,15 @@ def run_face_compare_pipeline(
     threshold: float,
     *,
     selfie_bucket_name: str | None = None,
+    selfie_mime_type: str | None = None,
     document_bucket_name: str | None = None,
 ) -> dict[str, Any]:
     settings = get_settings()
-    selfie_asset = load_media_asset(selfie_storage_key, bucket_name=selfie_bucket_name)
+    selfie_asset = load_media_asset(
+        selfie_storage_key,
+        bucket_name=selfie_bucket_name,
+        media_mime_type=selfie_mime_type,
+    )
     document_asset = load_media_asset(document_storage_key, bucket_name=document_bucket_name)
 
     selfie_detections = _detect_faces(selfie_asset.primary_frame)

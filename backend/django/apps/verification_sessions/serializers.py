@@ -15,7 +15,7 @@ from apps.biometrics.models import (
     SelfieCaptureStatus,
     SelfieCaptureType,
 )
-from apps.consent.models import ConsentRecord, ConsentTemplate, ConsentTemplateStatus
+from apps.consent.models import ConsentRecord, ConsentTemplate
 from apps.document_captures.models import (
     DocumentCapture,
     DocumentCaptureSide,
@@ -58,7 +58,14 @@ def _resolve_document_label(document_type: str, country_code: str) -> str:
     )
 
 
-def _supported_documents(country_code: str) -> list[dict[str, str]]:
+CAPTURE_SIDE_LABELS = {
+    DocumentCaptureSide.FRONT: "Front",
+    DocumentCaptureSide.BACK: "Back",
+    DocumentCaptureSide.SINGLE: "Photo page",
+}
+
+
+def _supported_documents(country_code: str) -> list[dict]:
     country_code = str(country_code or "").upper()
     for profile in COUNTRY_PROFILES:
         if profile["code"] == country_code:
@@ -68,6 +75,16 @@ def _supported_documents(country_code: str) -> list[dict[str, str]]:
                     "label": _resolve_document_label(
                         supported["document_type"], country_code
                     ),
+                    "capture_requirements": [
+                        {
+                            "side": side,
+                            "label": CAPTURE_SIDE_LABELS[side],
+                            "required": True,
+                        }
+                        for side in supported.get(
+                            "capture_sides", [DocumentCaptureSide.FRONT]
+                        )
+                    ],
                 }
                 for supported in profile["supported_document_types"]
             ]
@@ -86,7 +103,11 @@ def _available_country_profiles() -> list[dict]:
 
 
 def resolve_session_upload(
-    *, verification_session: VerificationSession, upload_id: str, purpose: str
+    *,
+    verification_session: VerificationSession,
+    upload_id: str,
+    purpose: str,
+    allow_consumed: bool = False,
 ) -> Upload:
     try:
         upload = Upload.objects.get(
@@ -102,7 +123,7 @@ def resolve_session_upload(
             {"upload_id": "Upload is invalid for this verification session."}
         ) from exc
 
-    if upload.status == UploadStatus.CONSUMED:
+    if upload.status in {UploadStatus.CONSUMED, UploadStatus.PROMOTED} and not allow_consumed:
         raise serializers.ValidationError(
             {"upload_id": "Upload has already been used."}
         )
@@ -152,7 +173,7 @@ STATUS_PRESENTATION = {
 }
 
 
-def serialize_verification_session(verification_session: VerificationSession) -> dict:
+def serialize_verification_session(verification_session: VerificationSession, request=None) -> dict:
     verification = verification_session.verification
     organization = verification.organization
     organization_logo_url = organization.settings_json.get("logo_url", "")
@@ -166,6 +187,14 @@ def serialize_verification_session(verification_session: VerificationSession) ->
     )
     configured_document_type = str(metadata.get("document_type", "national_id"))
     supported_documents = _supported_documents(country_code)
+    policy_snapshot = verification.policy_snapshot_json or {}
+    required_document_types = set(policy_snapshot.get("required_document_types") or [])
+    if required_document_types:
+        supported_documents = [
+            item
+            for item in supported_documents
+            if item["document_type"] in required_document_types
+        ]
     supported_document_types = {
         item["document_type"] for item in supported_documents
     }
@@ -179,6 +208,34 @@ def serialize_verification_session(verification_session: VerificationSession) ->
         )
     )
     document_label = _resolve_document_label(document_type, country_code)
+    document_configuration = next(
+        (item for item in supported_documents if item["document_type"] == document_type),
+        None,
+    )
+    default_locale = str(policy_snapshot.get("default_locale") or "en")
+    supported_locales = list(
+        policy_snapshot.get("supported_locales") or [default_locale]
+    )
+    requested_languages = [
+        item.partition(";")[0].strip().lower()
+        for item in (
+            str(request.headers.get("Accept-Language", "")).split(",")
+            if request is not None
+            else []
+        )
+        if item.partition(";")[0].strip()
+    ]
+    locale = next(
+        (
+            supported
+            for requested in requested_languages
+            for supported in supported_locales
+            if requested == str(supported).lower()
+            or requested.split("-")[0] == str(supported).lower().split("-")[0]
+        ),
+        default_locale,
+    )
+    consent = policy_snapshot.get("consent") or {}
     return {
         "session_id": verification_session.public_id,
         "verification_id": verification.public_id,
@@ -188,15 +245,47 @@ def serialize_verification_session(verification_session: VerificationSession) ->
             "logo_url": organization_logo_url,
         },
         "purpose": verification.purpose,
+        "locale": locale,
+        "supported_locales": supported_locales,
+        "consent": {
+            "template_id": consent.get("template_id", ""),
+            "version": consent.get("version"),
+            "language": consent.get("language", locale),
+            "content": consent.get(
+                "content",
+                f"I consent to the identity verification process for {verification.purpose}.",
+            ),
+        },
         "redirect_url": verification.redirect_url,
         "required_steps": REQUIRED_STEPS,
         "document": {
             "country_code": country_code,
             "document_type": document_type,
             "label": document_label,
+            "capture_requirements": (
+                document_configuration["capture_requirements"]
+                if document_configuration is not None
+                else []
+            ),
         },
-        "available_documents": _supported_documents(country_code),
-        "available_countries": _available_country_profiles(),
+        "available_documents": supported_documents,
+        "available_countries": [
+            {
+                **profile,
+                "documents": [
+                    document
+                    for document in profile["documents"]
+                    if not required_document_types
+                    or document["document_type"] in required_document_types
+                ],
+            }
+            for profile in _available_country_profiles()
+            if any(
+                not required_document_types
+                or document["document_type"] in required_document_types
+                for document in profile["documents"]
+            )
+        ],
         "expires_at": verification_session.expires_at.isoformat(),
     }
 
@@ -303,18 +392,17 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
                 verification.save(update_fields=["status", "updated_at"])
             return existing_record
 
+        consent_snapshot = (verification.policy_snapshot_json or {}).get("consent") or {}
         consent_template = (
             ConsentTemplate.objects.filter(
                 tenant=verification.tenant,
-                status=ConsentTemplateStatus.ACTIVE,
-            )
-            .order_by("-version", "-created_at")
-            .first()
+                public_id=consent_snapshot.get("template_id"),
+            ).first()
+            if consent_snapshot.get("template_id")
+            else None
         )
-        consent_text_snapshot = (
-            consent_template.content
-            if consent_template is not None
-            else f"I consent to the identity verification process for {verification.purpose}."
+        consent_text_snapshot = consent_snapshot.get("content") or (
+            f"I consent to the identity verification process for {verification.purpose}."
         )
 
         now = timezone.now()
@@ -393,9 +481,41 @@ class VerificationSessionDocumentSerializer(serializers.Serializer):
                 {"captures": "Each document side may be submitted only once."}
             )
 
-        if len(capture_sides) == 1 and capture_sides[0] == DocumentCaptureSide.BACK:
+        document_configuration = next(
+            (
+                item
+                for item in _supported_documents(country_code)
+                if item["document_type"] == document_type
+            ),
+            None,
+        )
+        capture_requirements = document_configuration["capture_requirements"]
+        required_sides = {
+            requirement["side"]
+            for requirement in capture_requirements
+            if requirement["required"]
+        }
+        allowed_sides = {requirement["side"] for requirement in capture_requirements}
+        submitted_sides = set(capture_sides)
+        missing_sides = required_sides - submitted_sides
+        unexpected_sides = submitted_sides - allowed_sides
+        if missing_sides:
             raise serializers.ValidationError(
-                {"captures": "Back-only document submissions are not supported."}
+                {
+                    "captures": (
+                        "Capture every required document side. Missing: "
+                        f"{', '.join(sorted(missing_sides))}."
+                    )
+                }
+            )
+        if unexpected_sides:
+            raise serializers.ValidationError(
+                {
+                    "captures": (
+                        "The submission contains unsupported document sides: "
+                        f"{', '.join(sorted(unexpected_sides))}."
+                    )
+                }
             )
 
         upload_ids = [capture["upload_id"] for capture in attrs["captures"]]
@@ -410,11 +530,60 @@ class VerificationSessionDocumentSerializer(serializers.Serializer):
                 verification_session=verification_session,
                 upload_id=capture["upload_id"],
                 purpose=UploadPurpose.DOCUMENT_CAPTURE,
+                allow_consumed=True,
             )
         attrs["resolved_uploads"] = resolved_uploads
+
+        used_uploads = [
+            upload
+            for upload in resolved_uploads.values()
+            if upload.status in {UploadStatus.CONSUMED, UploadStatus.PROMOTED}
+        ]
+        if used_uploads:
+            if len(used_uploads) != len(resolved_uploads):
+                raise serializers.ValidationError(
+                    {
+                        "captures": (
+                            "A previous document submission was only partially completed. "
+                            "Capture the document again to continue."
+                        )
+                    }
+                )
+            expected_captures = {
+                capture["side"]: resolved_uploads[capture["upload_id"]].storage_key
+                for capture in attrs["captures"]
+            }
+            candidate_documents = verification.identity_documents.filter(
+                document_type_id=document_type,
+                country_profile_id=country_code,
+                captures__storage_key__in=expected_captures.values(),
+            ).distinct()
+            existing_document = next(
+                (
+                    candidate
+                    for candidate in candidate_documents
+                    if {
+                        capture.side: capture.storage_key
+                        for capture in candidate.captures.all()
+                    }
+                    == expected_captures
+                ),
+                None,
+            )
+            if existing_document is None:
+                raise serializers.ValidationError(
+                    {"captures": "One or more uploads have already been used."}
+                )
+            attrs["existing_identity_document"] = existing_document
         return attrs
 
     def save(self, **kwargs):
+        existing = self.validated_data.get("existing_identity_document")
+        if existing is not None:
+            self.created = False
+            return existing
+
+        self.created = True
         request = self.context["request"]
         verification_session = request.verification_session
         verification = verification_session.verification

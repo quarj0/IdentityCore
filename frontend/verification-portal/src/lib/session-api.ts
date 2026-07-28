@@ -10,30 +10,47 @@ export interface SessionCredentials {
   sessionToken: string;
 }
 
+export type DocumentCaptureSide = "front" | "back" | "single";
+
+export interface DocumentCaptureRequirement {
+  side: DocumentCaptureSide;
+  label: string;
+  required: boolean;
+}
+
+export interface AvailableDocument {
+  document_type: string;
+  label: string;
+  capture_requirements: DocumentCaptureRequirement[];
+}
+
 export interface VerificationSession {
   session_id: string;
   verification_id: string;
   status: string;
   organization: { name: string; logo_url: string };
   purpose: string;
+  locale: string;
+  supported_locales: string[];
+  consent: {
+    template_id: string;
+    version: number | null;
+    language: string;
+    content: string;
+  };
   redirect_url: string;
   required_steps: string[];
   document: {
     country_code: string;
     document_type: string;
     label: string;
+    capture_requirements: DocumentCaptureRequirement[];
   };
-  available_documents?: Array<{
-    document_type: string;
-    label: string;
-  }>;
+  available_documents?: AvailableDocument[];
   available_countries?: Array<{
     country_code: string;
     country_name: string;
-    documents: Array<{
-      document_type: string;
-      label: string;
-    }>;
+    documents: AvailableDocument[];
   }>;
   expires_at: string;
 }
@@ -243,14 +260,21 @@ export async function createUpload(
 
 export function submitDocument(
   credentials: SessionCredentials,
-  input: { documentType: string; countryCode: string; uploadId: string },
+  input: {
+    documentType: string;
+    countryCode: string;
+    captures: Array<{ side: DocumentCaptureSide; uploadId: string }>;
+  },
 ) {
   return request(credentials, `/sessions/${credentials.sessionId}/documents`, {
     method: "POST",
     body: JSON.stringify({
       document_type: input.documentType,
       country_code: input.countryCode,
-      captures: [{ side: "front", upload_id: input.uploadId }],
+      captures: input.captures.map((capture) => ({
+        side: capture.side,
+        upload_id: capture.uploadId,
+      })),
     }),
   });
 }
