@@ -1,8 +1,17 @@
 from django.urls import path
-from .views import ProjectDetailView, ProjectListCreateView, ProjectStatusView
+from .views import (
+    ProjectDetailView,
+    ProjectListCreateView,
+    ProjectStatusView,
+    ProjectWorkflowInstantiationView,
+)
 
 urlpatterns = [
     path("", ProjectListCreateView.as_view()),
+    path(
+        "<str:project_id>/workflows:instantiate",
+        ProjectWorkflowInstantiationView.as_view(),
+    ),
     path("<str:project_id>", ProjectDetailView.as_view()),
     path("<str:project_id>/<str:action>", ProjectStatusView.as_view()),
 ]

@@ -2,7 +2,19 @@
 
 > IdentityCore is an enterprise digital identity infrastructure platform. Version 1.0 delivers secure identity verification while establishing the foundation for trusted digital identity services across organizations and governments.
 
-IdentityCore is a multi-tenant identity verification platform that enables organizations to verify the identity of individuals through secure document capture, biometric verification, liveness detection, and policy-driven decision making.
+IdentityCore is a multi-tenant **identity infrastructure and orchestration platform**.
+Organizations use its common control plane, APIs, workflows, evidence model, policy
+engine, audit trail, and provider ecosystem to build identification and digital-trust
+services. Document capture, biometric verification, liveness detection, and
+policy-driven decisions are the first workload running on that infrastructure; they are
+not the boundary of the product.
+
+Like a cloud platform offers common infrastructure while customers choose managed or
+third-party services, IdentityCore is intended to let organizations compose
+IdentityCore-managed capabilities, their own internal systems, and specialist identity
+providers behind one stable contract. A document, biometric, registry, storage, risk,
+or notification vendor can therefore participate as a provider instead of being treated
+only as a competing end-to-end product.
 
 The platform is designed with security, privacy, auditability, and scalability as first-class principles. While the initial target market is Ghana, IdentityCore is built to support multiple countries through configurable Country Profiles, Verification Policies, and Provider Adapters rather than country-specific business logic.
 
@@ -10,9 +22,14 @@ The platform is designed with security, privacy, auditability, and scalability a
 
 ## Vision
 
-To build trusted identity infrastructure that organizations can rely on for secure, privacy-preserving, and auditable identity verification.
+To provide the trusted infrastructure on which organizations can build secure,
+privacy-preserving, interoperable, and auditable identification services.
 
-IdentityCore is designed to evolve from a verification platform into a broader digital trust platform supporting enterprises, financial institutions, educational institutions, healthcare providers, and government organizations.
+IdentityCore's first complete service is identity verification, but its platform boundary
+is broader: reusable identity workflows, provider orchestration, evidence and claims,
+policy enforcement, consent, lifecycle controls, and digital-trust services for
+enterprises, financial institutions, educational institutions, healthcare providers,
+and governments.
 
 ---
 
@@ -160,13 +177,17 @@ Version 1.0 includes:
 
 ## Project Status
 
-Current Phase:
+Current phase: **working vertical slice, pre-production**.
 
-**Foundation Complete**
+The repository now contains implemented Django, AI-service, and frontend foundations,
+including the core verification journey. It is not yet a production-complete version of
+the full product vision. In particular, Bring Your Own Provider currently has a provider
+registry, tenant assignments, normalized check records, and notification adapters, but
+does not yet provide general custom-provider execution, conditional routing, ordered
+fallback chains, tenant-owned storage, or customer-managed encryption keys.
 
-The project documentation, architecture, and engineering standards have been completed.
-
-The next phase is implementation.
+See the [product alignment and gap assessment](docs/architecture/product-alignment.md)
+for a capability-by-capability statement of what exists and what remains.
 
 ---
 

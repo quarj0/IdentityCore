@@ -1,7 +1,5 @@
 import strawberry
 
-from common.catalog import COUNTRY_PROFILES, DOCUMENT_TYPES
-
 
 @strawberry.type
 class VerificationSubjectNode:
@@ -540,8 +538,13 @@ class TemplateNode:
     category: str
     status: str
     version: str
+    slug: str
     countries: list[str]
     required_checks: list[str]
+    steps: list[str]
+    settings: strawberry.scalars.JSON
+    provider_requirements: list[str]
+    output_claims: list[str]
     usage_count: int
     cloned_by_organizations: int
     owner_team: str

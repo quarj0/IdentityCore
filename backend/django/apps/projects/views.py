@@ -1,6 +1,7 @@
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
+from django.shortcuts import get_object_or_404
 
 from apps.audit.services import record_audit_event
 from apps.projects.models import ProjectStatus
@@ -8,6 +9,9 @@ from apps.projects.models import Project
 from apps.projects.serializers import ProjectSerializer, serialize_project
 from common.permissions import IsTenantUser
 from common.responses import success_response
+from apps.templates.models import Template
+from apps.templates.services import instantiate_workflow_template
+from apps.workflows.serializers import serialize_workflow
 
 
 class ProjectListCreateView(APIView):
@@ -53,7 +57,10 @@ class ProjectDetailView(APIView):
     permission_classes = [IsAuthenticated, IsTenantUser]
 
     def get_object(self, request, project_id):
-        return request.user.tenant.projects.get(public_id=project_id)
+        return get_object_or_404(
+            request.user.tenant.projects,
+            public_id=project_id,
+        )
 
     def get(self, request, project_id):
         return success_response(
@@ -94,3 +101,24 @@ class ProjectStatusView(ProjectDetailView):
             target_id=project.public_id,
         )
         return success_response(serialize_project(project), request=request)
+
+
+class ProjectWorkflowInstantiationView(ProjectDetailView):
+    def post(self, request, project_id):
+        project = self.get_object(request, project_id)
+        template = get_object_or_404(
+            Template, public_id=request.data.get("template_id", "")
+        )
+        workflow, created = instantiate_workflow_template(
+            request=request,
+            project=project,
+            template=template,
+            template_version=str(request.data.get("template_version", "")),
+            name=str(request.data.get("name", "")),
+            idempotency_key=request.headers.get("Idempotency-Key", "").strip(),
+        )
+        return success_response(
+            {**serialize_workflow(workflow), "created": created},
+            request=request,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
