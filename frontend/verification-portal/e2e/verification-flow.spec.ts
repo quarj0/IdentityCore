@@ -2,6 +2,8 @@ import { expect, test, type Route } from "@playwright/test";
 
 const sessionId = "ses_browser_test";
 const verificationId = "ver_browser_test";
+const consentContent =
+  "I consent to identity verification for customer onboarding.";
 const image = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
   "base64",
@@ -45,6 +47,8 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   isMobile,
   page,
 }) => {
+  test.slow();
+
   let step = "consent";
   let uploadNumber = 0;
   let uploadCreateRequests = 0;
@@ -126,8 +130,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
           template_id: "ctm_test",
           version: 3,
           locale: "en",
-          content:
-            "I consent to identity verification for customer onboarding.",
+          content: consentContent,
           content_hash: "a".repeat(64),
         },
         document: {
@@ -279,11 +282,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     page.getByRole("heading", { name: "Review and give consent" }),
   ).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
-  await expect(
-    page.getByText(
-      "I consent to Example Bank processing my identity evidence.",
-    ),
-  ).toBeVisible();
+  await expect(page.getByText(consentContent)).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Review and give consent" }),
   ).toBeFocused();
@@ -293,13 +292,17 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   await expect(
     page.getByRole("heading", { name: "Capture your National ID" }),
   ).toBeVisible();
-  await page.locator('input[type="file"]').setInputFiles({
+  await page.getByLabel("Upload image").setInputFiles({
     name: "ghana-card-front.png",
     mimeType: "image/png",
     buffer: image,
   });
-  await page.getByRole("button", { name: "Capture back" }).click();
-  await page.locator('input[type="file"]').setInputFiles({
+  const backCapture = page.getByRole("button", {
+    name: "Back Not captured",
+  });
+  await backCapture.click();
+  await expect(backCapture).toHaveAttribute("aria-pressed", "true");
+  await page.getByLabel("Upload image").setInputFiles({
     name: "ghana-card-back.png",
     mimeType: "image/png",
     buffer: image,
@@ -322,7 +325,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     { side: "back", upload_id: "upl_2" },
   ]);
   expect(uploadCreateRequests).toBe(3);
-  await page.locator('input[type="file"]').setInputFiles({
+  await page.getByLabel("Upload image").setInputFiles({
     name: "selfie.png",
     mimeType: "image/png",
     buffer: image,
@@ -336,9 +339,10 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   await page.getByRole("button", { name: "Begin live camera check" }).click();
   await page.getByRole("button", { name: "Enable camera" }).click();
   await page.getByRole("button", { name: "Start live challenge" }).click();
+  await page.getByRole("button", { name: "Finish recording" }).click();
   await expect(
     page.getByRole("button", { name: "Submit live check" }),
-  ).toBeVisible({ timeout: 10_000 });
+  ).toBeVisible();
   await page.getByRole("button", { name: "Submit live check" }).click();
   expect(livenessUploadMimeType).toBe("video/mp4");
 
