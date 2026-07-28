@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { ExternalLink, LogOut, Settings } from "lucide-react";
 import { Button, Separator } from "@identitycore/ui";
-import { clearAuthSession, type AuthUser } from "@/lib/auth";
+import type { AuthUser } from "@/lib/auth";
+import { endAuthSession } from "@/lib/logout";
 import type { NavGroup } from "./nav-data";
 
 interface MobileNavProps {
@@ -92,9 +93,8 @@ export function MobileNav({ groups, onNavigate, activePath, user }: MobileNavPro
               size="sm"
               className="w-full"
               onClick={() => {
-                clearAuthSession();
                 onNavigate();
-                window.location.assign("/");
+                void endAuthSession().finally(() => window.location.assign("/"));
               }}
             >
               <LogOut className="h-4 w-4" />
