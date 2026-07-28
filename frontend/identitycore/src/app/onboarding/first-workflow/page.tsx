@@ -61,7 +61,9 @@ export default function FirstWorkflowPage() {
         fetchWorkspaceProjects(),
       ]);
       const sandbox =
-        projects.find((item) => item.environment === "sandbox" && item.is_default) ??
+        projects.find(
+          (item) => item.environment === "sandbox" && item.is_default,
+        ) ??
         projects.find((item) => item.environment === "sandbox") ??
         null;
       setTemplates(availableTemplates);
@@ -72,7 +74,9 @@ export default function FirstWorkflowPage() {
         setWorkflowName((current) => current || first.name);
       }
       if (!sandbox) {
-        setErrorMessage("A sandbox project is required before creating a workflow.");
+        setErrorMessage(
+          "A sandbox project is required before creating a workflow.",
+        );
       }
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
@@ -144,7 +148,11 @@ export default function FirstWorkflowPage() {
   return (
     <OnboardingPageShell
       eyebrow="First workflow"
-      title={createdWorkflow ? "Your first workflow is ready." : "Choose your first identity workflow."}
+      title={
+        createdWorkflow
+          ? "Your first workflow is ready."
+          : "Choose your first identity workflow."
+      }
       description={
         createdWorkflow
           ? "The versioned template was copied into your sandbox project and is ready to configure."
@@ -153,7 +161,10 @@ export default function FirstWorkflowPage() {
       pathname="/onboarding/first-workflow"
     >
       {loading ? (
-        <div className="flex min-h-64 items-center justify-center" aria-label="Loading workflow templates">
+        <div
+          className="flex min-h-64 items-center justify-center"
+          aria-label="Loading workflow templates"
+        >
           <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
         </div>
       ) : createdWorkflow ? (
@@ -173,9 +184,8 @@ export default function FirstWorkflowPage() {
             {templates.length === 0 ? (
               <Card className="rounded-3xl border-dashed p-8 text-center">
                 <Workflow className="mx-auto h-7 w-7 text-slate-400" />
-                <p className="mt-3 font-medium">No published templates are available.</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Ask a platform administrator to publish a workflow template.
+                <p className="mt-3 font-medium">
+                  No published templates are available.
                 </p>
               </Card>
             ) : (
@@ -195,8 +205,12 @@ export default function FirstWorkflowPage() {
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <Badge variant="secondary">{template.category.replaceAll("_", " ")}</Badge>
-                        <span className="text-xs text-muted-foreground">v{template.version}</span>
+                        <Badge variant="secondary">
+                          {template.category.replaceAll("_", " ")}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          v{template.version}
+                        </span>
                       </div>
                       <h3 className="mt-4 font-semibold">{template.name}</h3>
                       <p className="mt-2 text-sm leading-6 text-muted-foreground">
@@ -216,19 +230,31 @@ export default function FirstWorkflowPage() {
             <CardHeader>
               <CardTitle>{selected?.name ?? "Select a template"}</CardTitle>
               <CardDescription>
-                {selected?.description ?? "Choose a published template to review its contract."}
+                {selected?.description ??
+                  "Choose a published template to review its contract."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
               {errorMessage ? (
-                <InlineStatus kind="error" title="Unable to create workflow" message={errorMessage} persist />
+                <InlineStatus
+                  kind="error"
+                  title="Unable to create workflow"
+                  message={errorMessage}
+                  persist
+                />
               ) : null}
 
               {selected ? (
                 <>
                   <DefinitionList label="Steps" values={selected.steps} />
-                  <DefinitionList label="Provider capabilities" values={selected.provider_requirements} />
-                  <DefinitionList label="Output claims" values={selected.output_claims} />
+                  <DefinitionList
+                    label="Provider capabilities"
+                    values={selected.provider_requirements}
+                  />
+                  <DefinitionList
+                    label="Output claims"
+                    values={selected.output_claims}
+                  />
                   <div className="space-y-2">
                     <Label htmlFor="workflowName">Workflow name</Label>
                     <Input
@@ -250,14 +276,24 @@ export default function FirstWorkflowPage() {
                     disabled={!project || !workflowName.trim() || submitting}
                     onClick={() => void createWorkflow()}
                   >
-                    {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Workflow className="h-4 w-4" />}
-                    {submitting ? "Creating workflow…" : "Create sandbox workflow"}
+                    {submitting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Workflow className="h-4 w-4" />
+                    )}
+                    {submitting
+                      ? "Creating workflow…"
+                      : "Create sandbox workflow"}
                   </Button>
                 </>
               ) : null}
 
               {errorMessage ? (
-                <Button variant="outline" className="w-full" onClick={() => void load()}>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => void load()}
+                >
                   <RefreshCw className="h-4 w-4" /> Retry loading
                 </Button>
               ) : null}
@@ -269,12 +305,26 @@ export default function FirstWorkflowPage() {
   );
 }
 
-function DefinitionList({ label, values }: { label: string; values: string[] }) {
+function DefinitionList({
+  label,
+  values,
+}: {
+  label: string;
+  values: string[];
+}) {
   return (
     <div>
       <p className="text-sm font-medium">{label}</p>
       <div className="mt-2 flex flex-wrap gap-2">
-        {values.length ? values.map((value) => <Badge key={value} variant="outline">{value.replaceAll("_", " ")}</Badge>) : <span className="text-sm text-muted-foreground">None specified</span>}
+        {values.length ? (
+          values.map((value) => (
+            <Badge key={value} variant="outline">
+              {value.replaceAll("_", " ")}
+            </Badge>
+          ))
+        ) : (
+          <span className="text-sm text-muted-foreground">None specified</span>
+        )}
       </div>
     </div>
   );
@@ -287,7 +337,8 @@ function CreatedWorkflowCard({ workflow }: { workflow: InstantiatedWorkflow }) {
         <CheckCircle2 className="mb-4 h-8 w-8 text-emerald-600" />
         <CardTitle>{workflow.name}</CardTitle>
         <CardDescription>
-          Draft created from template version {workflow.source_template_version} with {workflow.steps.length} steps.
+          Draft created from template version {workflow.source_template_version}{" "}
+          with {workflow.steps.length} steps.
         </CardDescription>
       </CardHeader>
       <CardContent>
