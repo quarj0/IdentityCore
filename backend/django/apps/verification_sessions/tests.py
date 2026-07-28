@@ -137,16 +137,54 @@ class VerificationSessionPortalTests(APITestCase):
                 "country_code": "GH",
                 "document_type": "national_id",
                 "label": "National ID",
+                "capture_requirements": [
+                    {"side": "front", "label": "Front", "required": True},
+                    {"side": "back", "label": "Back", "required": True},
+                ],
             },
         )
         self.assertEqual(
             response.data["data"]["available_documents"],
             [
-                {"document_type": "national_id", "label": "National ID"},
-                {"document_type": "passport", "label": "Passport"},
-                {"document_type": "driver_license", "label": "Driver License"},
-                {"document_type": "health_id", "label": "Health ID"},
-                {"document_type": "voter_id", "label": "Voter ID"},
+                {
+                    "document_type": "national_id",
+                    "label": "National ID",
+                    "capture_requirements": [
+                        {"side": "front", "label": "Front", "required": True},
+                        {"side": "back", "label": "Back", "required": True},
+                    ],
+                },
+                {
+                    "document_type": "passport",
+                    "label": "Passport",
+                    "capture_requirements": [
+                        {"side": "single", "label": "Photo page", "required": True}
+                    ],
+                },
+                {
+                    "document_type": "driver_license",
+                    "label": "Driver License",
+                    "capture_requirements": [
+                        {"side": "front", "label": "Front", "required": True},
+                        {"side": "back", "label": "Back", "required": True},
+                    ],
+                },
+                {
+                    "document_type": "health_id",
+                    "label": "Health ID",
+                    "capture_requirements": [
+                        {"side": "front", "label": "Front", "required": True},
+                        {"side": "back", "label": "Back", "required": True},
+                    ],
+                },
+                {
+                    "document_type": "voter_id",
+                    "label": "Voter ID",
+                    "capture_requirements": [
+                        {"side": "front", "label": "Front", "required": True},
+                        {"side": "back", "label": "Back", "required": True},
+                    ],
+                },
             ],
         )
 
@@ -262,22 +300,23 @@ class VerificationSessionPortalTests(APITestCase):
             purpose=UploadPurpose.DOCUMENT_CAPTURE, suffix="01JABD"
         )
 
-        response = self.client.post(
-            reverse(
-                "verification-session-documents",
-                kwargs={"session_id": self.session.public_id},
-            ),
-            {
-                "document_type": "national_id",
-                "country_code": "GH",
-                "captures": [
-                    {"side": "front", "upload_id": front_upload.public_id},
-                    {"side": "back", "upload_id": back_upload.public_id},
-                ],
-            },
-            format="json",
-            **self.session_headers(),
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                reverse(
+                    "verification-session-documents",
+                    kwargs={"session_id": self.session.public_id},
+                ),
+                {
+                    "document_type": "national_id",
+                    "country_code": "GH",
+                    "captures": [
+                        {"side": "front", "upload_id": front_upload.public_id},
+                        {"side": "back", "upload_id": back_upload.public_id},
+                    ],
+                },
+                format="json",
+                **self.session_headers(),
+            )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["status"], "processing")
@@ -320,6 +359,28 @@ class VerificationSessionPortalTests(APITestCase):
         back_upload.refresh_from_db()
         self.assertEqual(front_upload.status, UploadStatus.CONSUMED)
         self.assertEqual(back_upload.status, UploadStatus.CONSUMED)
+        replay_response = self.client.post(
+            reverse(
+                "verification-session-documents",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            {
+                "document_type": "national_id",
+                "country_code": "GH",
+                "captures": [
+                    {"side": "front", "upload_id": front_upload.public_id},
+                    {"side": "back", "upload_id": back_upload.public_id},
+                ],
+            },
+            format="json",
+            **self.session_headers(),
+        )
+        self.assertEqual(replay_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            replay_response.data["data"]["identity_document_id"],
+            identity_document.public_id,
+        )
+        self.assertEqual(self.verification.identity_documents.count(), 1)
         mock_delay.assert_called_once_with(identity_document.public_id)
         self.verification.refresh_from_db()
         self.assertEqual(self.verification.status, VerificationStatus.AWAITING_DOCUMENT)
@@ -347,9 +408,10 @@ class VerificationSessionPortalTests(APITestCase):
             ),
             {
                 "document_type": "passport",
+                "country_code": "GH",
                 "captures": [
-                    {"side": "front", "upload_id": front_upload.public_id},
-                    {"side": "front", "upload_id": back_upload.public_id},
+                    {"side": "single", "upload_id": front_upload.public_id},
+                    {"side": "single", "upload_id": back_upload.public_id},
                 ],
             },
             format="json",
@@ -357,6 +419,36 @@ class VerificationSessionPortalTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_submit_documents_rejects_missing_required_side(self):
+        ConsentRecord.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_subject=self.subject,
+            consent_text_snapshot="I consent to identity verification.",
+            accepted=True,
+            accepted_at=timezone.now(),
+        )
+        front_upload = self.create_upload(
+            purpose=UploadPurpose.DOCUMENT_CAPTURE, suffix="01JABC"
+        )
+
+        response = self.client.post(
+            reverse(
+                "verification-session-documents",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            {
+                "document_type": "national_id",
+                "country_code": "GH",
+                "captures": [{"side": "front", "upload_id": front_upload.public_id}],
+            },
+            format="json",
+            **self.session_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Missing: back", str(response.data["error"]["details"]))
 
     def test_submit_documents_rejects_invalid_upload_id(self):
         ConsentRecord.objects.create(
@@ -376,7 +468,7 @@ class VerificationSessionPortalTests(APITestCase):
             {
                 "document_type": "passport",
                 "country_code": "GH",
-                "captures": [{"side": "front", "upload_id": "upl_missing"}],
+                "captures": [{"side": "single", "upload_id": "upl_missing"}],
             },
             format="json",
             **self.session_headers(),
@@ -811,21 +903,30 @@ class VerificationSessionPortalTests(APITestCase):
             purpose=UploadPurpose.DOCUMENT_CAPTURE,
             suffix="GOLDENDOC",
         )
-        document_response = self.client.post(
-            reverse(
-                "verification-session-documents",
-                kwargs={"session_id": self.session.public_id},
-            ),
-            {
-                "document_type": "national_id",
-                "country_code": "GH",
-                "captures": [
-                    {"side": "front", "upload_id": document_upload.public_id}
-                ],
-            },
-            format="json",
-            **self.session_headers(),
+        document_back_upload = self.create_upload(
+            purpose=UploadPurpose.DOCUMENT_CAPTURE,
+            suffix="GOLDENDOCBACK",
         )
+        with self.captureOnCommitCallbacks(execute=True):
+            document_response = self.client.post(
+                reverse(
+                    "verification-session-documents",
+                    kwargs={"session_id": self.session.public_id},
+                ),
+                {
+                    "document_type": "national_id",
+                    "country_code": "GH",
+                    "captures": [
+                        {"side": "front", "upload_id": document_upload.public_id},
+                        {
+                            "side": "back",
+                            "upload_id": document_back_upload.public_id,
+                        },
+                    ],
+                },
+                format="json",
+                **self.session_headers(),
+            )
         self.assertEqual(document_response.status_code, status.HTTP_200_OK)
         identity_document = IdentityDocument.objects.get(
             public_id=document_response.data["data"]["identity_document_id"]

@@ -190,31 +190,35 @@ class VerificationSessionConsentView(VerificationSessionBaseView):
 
 
 class VerificationSessionDocumentView(VerificationSessionBaseView):
+    @transaction.atomic
     def post(self, request, session_id: str):
         self._touch_session(request)
         serializer = VerificationSessionDocumentSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         identity_document = serializer.save()
         verification = request.verification_session.verification
-        record_audit_event(
-            tenant=request.tenant,
-            actor=verification.verification_subject,
-            request=request,
-            action="document.uploaded",
-            target_type="verification",
-            target_id=verification.public_id,
-            metadata={"identity_document_id": identity_document.public_id},
-        )
-        queue_webhook_events(
-            tenant=request.tenant,
-            event_type="verification.document_uploaded",
-            payload={
-                "verification_id": verification.public_id,
-                "external_reference": verification.external_reference,
-                "status": verification.status,
-            },
-        )
-        process_identity_document_task.delay(identity_document.public_id)
+        if getattr(serializer, "created", True):
+            record_audit_event(
+                tenant=request.tenant,
+                actor=verification.verification_subject,
+                request=request,
+                action="document.uploaded",
+                target_type="verification",
+                target_id=verification.public_id,
+                metadata={"identity_document_id": identity_document.public_id},
+            )
+            queue_webhook_events(
+                tenant=request.tenant,
+                event_type="verification.document_uploaded",
+                payload={
+                    "verification_id": verification.public_id,
+                    "external_reference": verification.external_reference,
+                    "status": verification.status,
+                },
+            )
+            transaction.on_commit(
+                lambda: process_identity_document_task.delay(identity_document.public_id)
+            )
         return success_response(
             {
                 "identity_document_id": identity_document.public_id,
