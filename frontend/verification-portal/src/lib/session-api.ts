@@ -42,7 +42,7 @@ export interface VerificationSession {
     liveness_mode: "passive" | "active";
   };
   locale: string;
-  supported_locales?: string[];
+  supported_locales: string[];
   direction: "ltr" | "rtl";
   consent: {
     template_id: string;

@@ -133,6 +133,8 @@ class VerificationSessionPortalTests(APITestCase):
             response.data["data"]["required_steps"],
             ["consent", "document_capture", "selfie_capture", "liveness_check"],
         )
+        self.assertEqual(response.data["data"]["locale"], "en")
+        self.assertEqual(response.data["data"]["supported_locales"], ["ar", "en"])
         self.assertEqual(
             response.data["data"]["document"],
             {

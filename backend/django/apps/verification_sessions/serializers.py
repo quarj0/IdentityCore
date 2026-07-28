@@ -276,6 +276,11 @@ def serialize_verification_session(verification_session: VerificationSession, re
     )
     policy_snapshot = verification.policy_snapshot_json or {}
     locale = _request_locale(request, policy_snapshot)
+    supported_locales = [
+        str(item)
+        for item in policy_snapshot.get("supported_locales")
+        or sorted(SUPPORTED_LOCALES)
+    ]
     configured_liveness = str(
         policy_snapshot.get("required_liveness_level", "passive")
     )
