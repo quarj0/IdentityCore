@@ -87,7 +87,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     const path = apiPath(url);
     const method = request.method();
 
-    if (path === "/api/verification/session" && method === "POST") {
+    if (path === "/api/v1/session" && method === "POST") {
       return route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -96,7 +96,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     }
 
     if (
-      path === `/api/verification/sessions/${sessionId}` &&
+      path === `/api/v1/sessions/${sessionId}` &&
       method === "GET"
     ) {
       return json(route, {
@@ -145,7 +145,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     }
 
     if (
-      path === `/api/verification/sessions/${sessionId}/status` &&
+      path === `/api/v1/sessions/${sessionId}/status` &&
       method === "GET"
     ) {
       return json(route, {
@@ -172,14 +172,14 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     }
 
     if (
-      path === `/api/verification/sessions/${sessionId}/consent` &&
+      path === `/api/v1/sessions/${sessionId}/consent` &&
       method === "POST"
     ) {
       step = "document_capture";
       return json(route, { next_step: step });
     }
 
-    if (path === "/api/verification/uploads/" && method === "POST") {
+    if (path === "/api/v1/uploads/" && method === "POST") {
       uploadCreateRequests += 1;
       const uploadPayload = request.postDataJSON() as {
         purpose?: string;
@@ -219,7 +219,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     }
 
     if (
-      path === `/api/verification/sessions/${sessionId}/documents` &&
+      path === `/api/v1/sessions/${sessionId}/documents` &&
       method === "POST"
     ) {
       documentPayload = request.postDataJSON() as typeof documentPayload;
@@ -232,7 +232,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     }
 
     if (
-      path === `/api/verification/sessions/${sessionId}/selfies` &&
+      path === `/api/v1/sessions/${sessionId}/selfies` &&
       method === "POST"
     ) {
       step = "liveness_check";
@@ -244,7 +244,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     }
 
     if (
-      path === `/api/verification/sessions/${sessionId}/liveness/challenge` &&
+      path === `/api/v1/sessions/${sessionId}/liveness/challenge` &&
       method === "POST"
     ) {
       return json(route, {
@@ -255,7 +255,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     }
 
     if (
-      path === `/api/verification/sessions/${sessionId}/liveness` &&
+      path === `/api/v1/sessions/${sessionId}/liveness` &&
       method === "POST"
     ) {
       step = "completed";

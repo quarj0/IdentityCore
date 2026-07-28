@@ -25,7 +25,7 @@ test("landing page has no serious or critical axe violations", async ({
         };
       }
     ).axe;
-    const result = await axe.run(undefined, {
+    const result = await axe.run(document, {
       runOnly: {
         type: "tag",
         values: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"],
