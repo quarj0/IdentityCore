@@ -77,13 +77,6 @@ interface SubmitOrganizationVerificationResponse {
   };
 }
 
-interface SubmitAdministratorIdentityResponse {
-  submitAdministratorIdentityOnboardingVerification: {
-    onboarding: OnboardingState;
-    nextAction: string;
-  };
-}
-
 interface CreateAdministratorVerificationResponse {
   createAdministratorOnboardingVerification: {
     verificationId: string;
@@ -414,62 +407,4 @@ export async function submitOrganizationVerification(
   );
 
   return data.submitOrganizationOnboardingVerification;
-}
-
-export async function submitAdministratorIdentityVerification(
-  verificationId: string,
-) {
-  const data = await graphqlRequest<SubmitAdministratorIdentityResponse>(
-    `
-      mutation SubmitAdministratorIdentityVerification(
-        $verificationId: String!
-      ) {
-        submitAdministratorIdentityOnboardingVerification(
-          verificationId: $verificationId
-        ) {
-          nextAction
-          onboarding {
-            organizationId
-            organizationName
-            organizationSlug
-            organizationType
-            organizationCountry
-            organizationStatus
-            organizationTier
-            tenantId
-            tenantSlug
-            tenantStatus
-            administratorUserId
-            administratorFullName
-            administratorEmail
-            administratorCountry
-            administratorStatus
-            supportEmail
-            phoneNumber
-            website
-            requiresEmailVerification
-            emailVerifiedAt
-            onboardingStatus
-            currentStep
-            organizationVerificationSubmittedAt
-            organizationVerificationEditable
-            businessRegistrationNumber
-            taxIdentificationNumber
-            registeredAddress
-            officialWebsite
-            supportingDocuments
-            administratorIdentityVerificationStatus
-            administratorIdentityVerificationId
-            administratorIdentitySubmittedAt
-            platformReviewStatus
-            platformReviewNote
-            platformReviewedAt
-          }
-        }
-      }
-    `,
-    { verificationId },
-  );
-
-  return data.submitAdministratorIdentityOnboardingVerification;
 }
