@@ -5,7 +5,11 @@ export interface RecordingFormat {
 }
 
 const RECORDING_FORMATS: RecordingFormat[] = [
-  { recorderMimeType: "video/mp4", fileMimeType: "video/mp4", extension: "mp4" },
+  {
+    recorderMimeType: "video/mp4",
+    fileMimeType: "video/mp4",
+    extension: "mp4",
+  },
   {
     recorderMimeType: "video/mp4;codecs=avc1.42E01E",
     fileMimeType: "video/mp4",
@@ -21,7 +25,11 @@ const RECORDING_FORMATS: RecordingFormat[] = [
     fileMimeType: "video/webm",
     extension: "webm",
   },
-  { recorderMimeType: "video/webm", fileMimeType: "video/webm", extension: "webm" },
+  {
+    recorderMimeType: "video/webm",
+    fileMimeType: "video/webm",
+    extension: "webm",
+  },
 ];
 
 export function selectRecordingFormat(

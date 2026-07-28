@@ -19,7 +19,10 @@ export async function readBffSession() {
 }
 
 export function apiUrl(path: string) {
-  const origin = process.env.API_ORIGIN ?? process.env.NEXT_PUBLIC_API_ORIGIN ?? "http://localhost:8000";
+  const origin =
+    process.env.API_ORIGIN ??
+    process.env.NEXT_PUBLIC_API_ORIGIN ??
+    "http://localhost:8000";
   return `${origin.replace(/\/$/, "")}/api/v1/${path.replace(/^\//, "")}`;
 }
 

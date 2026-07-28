@@ -24,7 +24,9 @@ export default function RootLayout({
           Skip to content
         </a>
 
-        <DashboardSession><DashboardFrame>{children}</DashboardFrame></DashboardSession>
+        <DashboardSession>
+          <DashboardFrame>{children}</DashboardFrame>
+        </DashboardSession>
         <Toaster />
       </body>
     </html>

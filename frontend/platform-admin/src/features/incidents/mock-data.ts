@@ -1,10 +1,14 @@
-import type { AdminModuleConfig, AdminRecord } from "@/components/admin-module/admin-module-types";
+import type {
+  AdminModuleConfig,
+  AdminRecord,
+} from "@/components/admin-module/admin-module-types";
 
 export const incidentRecords: AdminRecord[] = [
   {
     id: "inc_ocr_latency",
     title: "OCR latency elevated in Africa West",
-    subtitle: "PaddleOCR workers are processing slower than expected. Failover is active.",
+    subtitle:
+      "PaddleOCR workers are processing slower than expected. Failover is active.",
     status: "Investigating",
     statusTone: "warning",
     primaryMeta: "Major",
@@ -17,7 +21,8 @@ export const incidentRecords: AdminRecord[] = [
   {
     id: "inc_webhook_retries",
     title: "Webhook retries increased",
-    subtitle: "Some organizations are receiving delayed webhook delivery under retry policy.",
+    subtitle:
+      "Some organizations are receiving delayed webhook delivery under retry policy.",
     status: "Monitoring",
     statusTone: "info",
     primaryMeta: "Minor",
@@ -30,7 +35,8 @@ export const incidentRecords: AdminRecord[] = [
   {
     id: "inc_storage_maintenance",
     title: "Evidence storage maintenance",
-    subtitle: "Scheduled maintenance for evidence storage lifecycle processing.",
+    subtitle:
+      "Scheduled maintenance for evidence storage lifecycle processing.",
     status: "Scheduled",
     statusTone: "neutral",
     primaryMeta: "Maintenance",
@@ -65,18 +71,34 @@ export const incidentsConfig: AdminModuleConfig = {
       title: "Incident timeline",
       description: "Current operational timeline for this incident.",
       items: [
-        { label: "Detected", value: "Alert triggered by provider health and latency monitors." },
+        {
+          label: "Detected",
+          value: "Alert triggered by provider health and latency monitors.",
+        },
         { label: "Current status", value: record.status },
-        { label: "Customer impact", value: "Verification completion may be delayed but failover keeps core workflow available." },
-        { label: "Next update", value: "Post update to status page every 30 minutes until resolved." },
+        {
+          label: "Customer impact",
+          value:
+            "Verification completion may be delayed but failover keeps core workflow available.",
+        },
+        {
+          label: "Next update",
+          value: "Post update to status page every 30 minutes until resolved.",
+        },
       ],
     },
     {
       title: "Response plan",
       description: "Operational response and recovery steps.",
       items: [
-        { label: "Mitigation", value: "Enable failover, scale workers and monitor queue depth." },
-        { label: "Postmortem", value: "Required for major and critical incidents." },
+        {
+          label: "Mitigation",
+          value: "Enable failover, scale workers and monitor queue depth.",
+        },
+        {
+          label: "Postmortem",
+          value: "Required for major and critical incidents.",
+        },
       ],
     },
   ],

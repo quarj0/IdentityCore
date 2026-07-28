@@ -5,17 +5,16 @@ import { EmptyState } from "@/components/feedback/empty-state";
 import { AdminDetailPage } from "@/components/admin-module/admin-detail-page";
 import { PageHeader } from "@/components/shared/page-header";
 import { auditEventToRecord } from "@/features/audit/live-data";
-import {
-  buildAuditConfig,
-  fetchAuditRecord,
-} from "@/features/audit/live-data";
+import { buildAuditConfig, fetchAuditRecord } from "@/features/audit/live-data";
 
 type AuditDetailPageProps = {
   auditId: string;
 };
 
 export function AuditDetailPage({ auditId }: AuditDetailPageProps) {
-  const [config, setConfig] = useState<ReturnType<typeof buildAuditConfig> | null>(null);
+  const [config, setConfig] = useState<ReturnType<
+    typeof buildAuditConfig
+  > | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -51,10 +50,7 @@ export function AuditDetailPage({ auditId }: AuditDetailPageProps) {
 
   if (error) {
     return (
-      <EmptyState
-        title="Unable to load audit event"
-        description={error}
-      />
+      <EmptyState title="Unable to load audit event" description={error} />
     );
   }
 

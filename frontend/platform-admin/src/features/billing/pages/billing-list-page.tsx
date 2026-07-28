@@ -53,7 +53,10 @@ export function BillingListPage() {
           title="Billing"
           description="Manage organizations, invoices, subscriptions, usage, revenue and platform fees."
         />
-        <EmptyState title="Unable to load billing records" description={error} />
+        <EmptyState
+          title="Unable to load billing records"
+          description={error}
+        />
       </>
     );
   }

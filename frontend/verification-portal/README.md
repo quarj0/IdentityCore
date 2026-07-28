@@ -22,10 +22,10 @@ the portal BFF.
 
 ## Runtime configuration
 
-| Variable | Purpose |
-| --- | --- |
-| `API_ORIGIN` | Server-only Django API origin used by the BFF. |
-| `NEXT_PUBLIC_ONBOARDING_RETURN_URL` | Optional safe fallback after completion. |
+| Variable                             | Purpose                                                   |
+| ------------------------------------ | --------------------------------------------------------- |
+| `API_ORIGIN`                         | Server-only Django API origin used by the BFF.            |
+| `NEXT_PUBLIC_ONBOARDING_RETURN_URL`  | Optional safe fallback after completion.                  |
 | `NEXT_PUBLIC_ALLOWED_RETURN_ORIGINS` | Comma-separated allowlist of organization return origins. |
 
 Production return URLs must use HTTPS and must match the portal origin or an

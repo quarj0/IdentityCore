@@ -15,8 +15,9 @@ type OrganizationDetailPageProps = {
 export function OrganizationDetailPage({
   organizationId,
 }: OrganizationDetailPageProps) {
-  const [config, setConfig] =
-    useState<ReturnType<typeof buildOrganizationConfig> | null>(null);
+  const [config, setConfig] = useState<ReturnType<
+    typeof buildOrganizationConfig
+  > | null>(null);
 
   useEffect(() => {
     let active = true;

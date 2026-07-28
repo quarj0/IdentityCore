@@ -40,7 +40,9 @@ function tone(status: string): AdminRecord["statusTone"] {
   return "info";
 }
 
-export function templateRecordToAdminRecord(template: TemplateRecord): AdminRecord {
+export function templateRecordToAdminRecord(
+  template: TemplateRecord,
+): AdminRecord {
   return {
     id: template.id,
     title: template.name,
@@ -132,7 +134,11 @@ export function buildTemplateConfig(records: AdminRecord[]): AdminModuleConfig {
     records,
     getRecord: (id) => records.find((record) => record.id === id),
     getMetrics: (record): AdminDetailMetric[] => [
-      { label: "Category", value: record.primaryMeta, helper: "template class" },
+      {
+        label: "Category",
+        value: record.primaryMeta,
+        helper: "template class",
+      },
       { label: "Version", value: record.secondaryMeta, helper: "release" },
       { label: "Countries", value: record.tertiaryMeta, helper: "coverage" },
       { label: "Owner", value: record.owner, helper: "team" },
@@ -152,30 +158,56 @@ export function buildTemplateConfig(records: AdminRecord[]): AdminModuleConfig {
   };
 }
 
-export async function createTemplate(input: { name: string; description: string; category: string }) {
+export async function createTemplate(input: {
+  name: string;
+  description: string;
+  category: string;
+}) {
   const data = await graphqlRequest<{ createPlatformTemplate: TemplateRecord }>(
     `mutation CreatePlatformTemplate($name: String!, $description: String!, $category: String!) {
       createPlatformTemplate(name: $name, description: $description, category: $category) {
         id name description category status version countries requiredChecks usageCount
         clonedByOrganizations ownerTeam riskLevel createdById createdByEmail createdAt updatedAt
       }
-    }`, input,
+    }`,
+    input,
   );
   return data.createPlatformTemplate;
 }
 
-async function runTemplateMutation(mutation: string, variables: Record<string, unknown>) {
-  const data = await graphqlRequest<{ template: TemplateRecord }>(mutation, variables);
+async function runTemplateMutation(
+  mutation: string,
+  variables: Record<string, unknown>,
+) {
+  const data = await graphqlRequest<{ template: TemplateRecord }>(
+    mutation,
+    variables,
+  );
   return data.template;
 }
 
 const templateFields = `id name description category status version countries requiredChecks usageCount clonedByOrganizations ownerTeam riskLevel createdById createdByEmail createdAt updatedAt`;
 
-export const updateTemplate = (templateId: string, input: Pick<TemplateRecord, "name">) =>
-  runTemplateMutation(`mutation UpdateTemplate($templateId: String!, $name: String!) { template: updatePlatformTemplate(templateId: $templateId, name: $name) { ${templateFields} } }`, { templateId, ...input });
+export const updateTemplate = (
+  templateId: string,
+  input: Pick<TemplateRecord, "name">,
+) =>
+  runTemplateMutation(
+    `mutation UpdateTemplate($templateId: String!, $name: String!) { template: updatePlatformTemplate(templateId: $templateId, name: $name) { ${templateFields} } }`,
+    { templateId, ...input },
+  );
 export const cloneTemplate = (templateId: string, name: string) =>
-  runTemplateMutation(`mutation CloneTemplate($templateId: String!, $name: String!) { template: clonePlatformTemplate(templateId: $templateId, name: $name) { ${templateFields} } }`, { templateId, name });
+  runTemplateMutation(
+    `mutation CloneTemplate($templateId: String!, $name: String!) { template: clonePlatformTemplate(templateId: $templateId, name: $name) { ${templateFields} } }`,
+    { templateId, name },
+  );
 export const publishTemplate = (templateId: string) =>
-  runTemplateMutation(`mutation PublishTemplate($templateId: String!) { template: publishPlatformTemplate(templateId: $templateId) { ${templateFields} } }`, { templateId });
+  runTemplateMutation(
+    `mutation PublishTemplate($templateId: String!) { template: publishPlatformTemplate(templateId: $templateId) { ${templateFields} } }`,
+    { templateId },
+  );
 export const archiveTemplate = (templateId: string) =>
-  runTemplateMutation(`mutation ArchiveTemplate($templateId: String!) { template: archivePlatformTemplate(templateId: $templateId) { ${templateFields} } }`, { templateId });
+  runTemplateMutation(
+    `mutation ArchiveTemplate($templateId: String!) { template: archivePlatformTemplate(templateId: $templateId) { ${templateFields} } }`,
+    { templateId },
+  );

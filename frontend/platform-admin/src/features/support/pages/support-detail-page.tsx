@@ -48,12 +48,19 @@ export function SupportDetailPage({ ticketId }: SupportDetailPageProps) {
     };
   }, [ticketId]);
 
-  const config = useMemo(() => buildSupportConfig(record ? [record] : []), [record]);
+  const config = useMemo(
+    () => buildSupportConfig(record ? [record] : []),
+    [record],
+  );
 
   if (error) {
     return (
       <>
-        <PageHeader eyebrow="Support" title="Support ticket" description="Live support data." />
+        <PageHeader
+          eyebrow="Support"
+          title="Support ticket"
+          description="Live support data."
+        />
         <EmptyState title="Support ticket unavailable" description={error} />
       </>
     );

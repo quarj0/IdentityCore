@@ -55,7 +55,11 @@ export function getPasswordValidationMessage(password: string) {
   if (password.length < 8) {
     return PASSWORD_REQUIREMENTS_MESSAGE;
   }
-  if (!LETTER_RE.test(password) || !DIGIT_RE.test(password) || !SPECIAL_RE.test(password)) {
+  if (
+    !LETTER_RE.test(password) ||
+    !DIGIT_RE.test(password) ||
+    !SPECIAL_RE.test(password)
+  ) {
     return PASSWORD_REQUIREMENTS_MESSAGE;
   }
   return "";

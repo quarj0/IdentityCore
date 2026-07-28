@@ -15,7 +15,9 @@ type ComplianceDetailPageProps = {
 };
 
 export function ComplianceDetailPage({ policyId }: ComplianceDetailPageProps) {
-  const [config, setConfig] = useState<ReturnType<typeof buildComplianceConfig> | null>(null);
+  const [config, setConfig] = useState<ReturnType<
+    typeof buildComplianceConfig
+  > | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {

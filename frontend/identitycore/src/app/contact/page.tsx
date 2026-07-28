@@ -1,8 +1,4 @@
-import {
-  Building2,
-  MessageSquare,
-  ShieldCheck,
-} from "lucide-react";
+import { Building2, MessageSquare, ShieldCheck } from "lucide-react";
 import { Badge } from "@identitycore/ui";
 import { ContactForm } from "@/components/contact/contact-form";
 import { MarketingHeader } from "@/components/marketing/marketing-header";

@@ -28,4 +28,3 @@ export function setAccessToken(token: string | null) {
     window.sessionStorage.removeItem(ACCESS_TOKEN_KEY);
   }
 }
-

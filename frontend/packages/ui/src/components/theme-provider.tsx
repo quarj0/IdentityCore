@@ -20,7 +20,8 @@ const initialState: ThemeProviderState = {
   setTheme: () => null,
 };
 
-const ThemeProviderContext = React.createContext<ThemeProviderState>(initialState);
+const ThemeProviderContext =
+  React.createContext<ThemeProviderState>(initialState);
 
 const isTheme = (value: string | null): value is Theme =>
   value === "light" || value === "dark";
@@ -31,14 +32,12 @@ const ThemeProvider = ({
   storageKey = "identitycore-theme",
   ...props
 }: ThemeProviderProps) => {
-  const [theme, setTheme] = React.useState<Theme>(
-    () => {
-      if (typeof window === "undefined") return defaultTheme;
+  const [theme, setTheme] = React.useState<Theme>(() => {
+    if (typeof window === "undefined") return defaultTheme;
 
-      const storedTheme = localStorage.getItem(storageKey);
-      return isTheme(storedTheme) ? storedTheme : defaultTheme;
-    }
-  );
+    const storedTheme = localStorage.getItem(storageKey);
+    return isTheme(storedTheme) ? storedTheme : defaultTheme;
+  });
 
   React.useEffect(() => {
     const root = window.document.documentElement;

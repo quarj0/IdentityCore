@@ -27,7 +27,9 @@ export function IncidentsListPage() {
       } catch (loadError) {
         if (active) {
           setError(
-            loadError instanceof Error ? loadError.message : "Unable to load incidents.",
+            loadError instanceof Error
+              ? loadError.message
+              : "Unable to load incidents.",
           );
         }
       } finally {
@@ -46,7 +48,11 @@ export function IncidentsListPage() {
   if (error) {
     return (
       <>
-        <PageHeader eyebrow="Incidents" title="Incidents" description="Live platform incidents." />
+        <PageHeader
+          eyebrow="Incidents"
+          title="Incidents"
+          description="Live platform incidents."
+        />
         <EmptyState title="Unable to load incidents" description={error} />
       </>
     );

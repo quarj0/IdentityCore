@@ -12,8 +12,12 @@ type AiProviderDetailPageProps = {
   providerId: string;
 };
 
-export function AiProviderDetailPage({ providerId }: AiProviderDetailPageProps) {
-  const [config, setConfig] = useState<ReturnType<typeof buildAiProviderConfig> | null>(null);
+export function AiProviderDetailPage({
+  providerId,
+}: AiProviderDetailPageProps) {
+  const [config, setConfig] = useState<ReturnType<
+    typeof buildAiProviderConfig
+  > | null>(null);
 
   useEffect(() => {
     let active = true;

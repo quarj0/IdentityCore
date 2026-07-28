@@ -89,7 +89,9 @@ export async function fetchVerificationProviderRecord(providerId: string) {
   return data.platformProvider;
 }
 
-export function buildProvidersConfig(records: AdminRecord[]): AdminModuleConfig {
+export function buildProvidersConfig(
+  records: AdminRecord[],
+): AdminModuleConfig {
   return {
     moduleLabel: "Verification providers",
     listTitle: "Verification Providers",

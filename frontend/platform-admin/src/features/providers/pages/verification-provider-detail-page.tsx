@@ -17,8 +17,9 @@ export function VerificationProviderDetailPage({
   providerId,
 }: VerificationProviderDetailPageProps) {
   const [recordId, setRecordId] = useState<string | null>(null);
-  const [config, setConfig] =
-    useState<ReturnType<typeof buildProvidersConfig> | null>(null);
+  const [config, setConfig] = useState<ReturnType<
+    typeof buildProvidersConfig
+  > | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -54,7 +55,12 @@ export function VerificationProviderDetailPage({
   }, [providerId]);
 
   if (error) {
-    return <EmptyState title="Verification provider unavailable" description={error} />;
+    return (
+      <EmptyState
+        title="Verification provider unavailable"
+        description={error}
+      />
+    );
   }
 
   if (!config || !recordId) {

@@ -14,7 +14,9 @@ export default function AiProvidersError({
   return (
     <ErrorState
       title="Unable to load AI providers"
-      description={error.message || "Something went wrong while loading AI providers."}
+      description={
+        error.message || "Something went wrong while loading AI providers."
+      }
       actionLabel="Try again"
       onAction={reset}
     />

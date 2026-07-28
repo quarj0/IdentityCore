@@ -2,16 +2,27 @@
 
 import { useEffect, useState } from "react";
 import { Loader2, Rocket, ShieldCheck } from "lucide-react";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@identitycore/ui";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@identitycore/ui";
 import { InlineStatus } from "@/components/feedback/inline-status";
 import { getErrorMessage } from "@/lib/api-client";
-import { fetchCurrentOnboarding, type OnboardingState } from "@/lib/onboarding-api";
+import {
+  fetchCurrentOnboarding,
+  type OnboardingState,
+} from "@/lib/onboarding-api";
 
 export function ProductionApprovalPanel() {
   const [state, setState] = useState<OnboardingState | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3000";
+  const dashboardUrl =
+    process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3000";
 
   useEffect(() => {
     fetchCurrentOnboarding()
@@ -45,14 +56,23 @@ export function ProductionApprovalPanel() {
           <Rocket className="mb-4 h-7 w-7 text-blue-600" />
           <CardTitle>Production approval status</CardTitle>
           <CardDescription className="leading-7">
-            The onboarding workflow is currently `{state?.platformReviewStatus ?? "not_started"}`.
-            Tenant users do not submit a separate production request in the current API;
-            the platform review begins after administrator identity submission.
+            The onboarding workflow is currently `
+            {state?.platformReviewStatus ?? "not_started"}`. Tenant users do not
+            submit a separate production request in the current API; the
+            platform review begins after administrator identity submission.
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-4">
-          <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4"><p className="text-sm text-blue-900">Your review continues in the background. Continue when you are ready; this page will not redirect you automatically.</p><Button asChild className="mt-3"><a href={dashboardUrl}>Go to dashboard now</a></Button></div>
+          <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+            <p className="text-sm text-blue-900">
+              Your review continues in the background. Continue when you are
+              ready; this page will not redirect you automatically.
+            </p>
+            <Button asChild className="mt-3">
+              <a href={dashboardUrl}>Go to dashboard now</a>
+            </Button>
+          </div>
           <div className="rounded-2xl bg-slate-50 p-4">
             <div className="flex gap-3">
               <ShieldCheck className="mt-1 h-5 w-5 text-blue-600" />

@@ -22,11 +22,28 @@ type WorkflowPublishDialogProps = {
   onComplete?: () => void;
 };
 
-export function WorkflowPublishDialog({ workflowName, workflowId, onComplete }: WorkflowPublishDialogProps) {
+export function WorkflowPublishDialog({
+  workflowName,
+  workflowId,
+  onComplete,
+}: WorkflowPublishDialogProps) {
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const submit = async () => { setSubmitting(true); setError(null); try { await publishWorkflow(workflowId); onComplete?.(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to publish workflow."); } finally { setSubmitting(false); } };
+  const submit = async () => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      await publishWorkflow(workflowId);
+      onComplete?.();
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Unable to publish workflow.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <Dialog>
@@ -41,7 +58,8 @@ export function WorkflowPublishDialog({ workflowName, workflowId, onComplete }: 
         <DialogHeader>
           <DialogTitle>Publish {workflowName}?</DialogTitle>
           <DialogDescription>
-            Publishing makes this workflow available in the official workflow library.
+            Publishing makes this workflow available in the official workflow
+            library.
           </DialogDescription>
         </DialogHeader>
 
@@ -55,10 +73,16 @@ export function WorkflowPublishDialog({ workflowName, workflowId, onComplete }: 
           />
         </div>
 
-        {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
+        {error ? (
+          <p role="alert" className="text-sm text-red-700">
+            {error}
+          </p>
+        ) : null}
         <DialogFooter>
           <Button variant="outline">Cancel</Button>
-          <Button onClick={submit} disabled={submitting || !notes.trim()}>{submitting ? "Publishing…" : "Publish workflow"}</Button>
+          <Button onClick={submit} disabled={submitting || !notes.trim()}>
+            {submitting ? "Publishing…" : "Publish workflow"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

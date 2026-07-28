@@ -1,10 +1,14 @@
-import type { AdminModuleConfig, AdminRecord } from "@/components/admin-module/admin-module-types";
+import type {
+  AdminModuleConfig,
+  AdminRecord,
+} from "@/components/admin-module/admin-module-types";
 
 export const auditRecords: AdminRecord[] = [
   {
     id: "audit_9001",
     title: "Organization suspended",
-    subtitle: "HealthPass Clinics was suspended by platform administrator after compliance review.",
+    subtitle:
+      "HealthPass Clinics was suspended by platform administrator after compliance review.",
     status: "Completed",
     statusTone: "success",
     primaryMeta: "Organization",
@@ -17,7 +21,8 @@ export const auditRecords: AdminRecord[] = [
   {
     id: "audit_9002",
     title: "AI provider priority changed",
-    subtitle: "PaddleOCR failover priority was changed due to latency threshold.",
+    subtitle:
+      "PaddleOCR failover priority was changed due to latency threshold.",
     status: "Completed",
     statusTone: "success",
     primaryMeta: "AI Provider",
@@ -75,8 +80,15 @@ export const auditConfig: AdminModuleConfig = {
       title: "Export readiness",
       description: "Audit export and compliance evidence details.",
       items: [
-        { label: "Integrity", value: "Event should be immutable and signed by the audit logging service." },
-        { label: "Export", value: "Available in CSV and JSON for compliance reviews." },
+        {
+          label: "Integrity",
+          value:
+            "Event should be immutable and signed by the audit logging service.",
+        },
+        {
+          label: "Export",
+          value: "Available in CSV and JSON for compliance reviews.",
+        },
       ],
     },
   ],

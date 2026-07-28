@@ -28,33 +28,59 @@ export function WorkflowHeader({ workflow, onChanged }: WorkflowHeaderProps) {
 
           <dl className="mt-5 grid gap-3 sm:grid-cols-4">
             <div>
-              <dt className="text-xs uppercase tracking-wide text-slate-500">Project</dt>
-              <dd className="mt-1 text-sm font-medium text-slate-950">{workflow.projectName}</dd>
+              <dt className="text-xs uppercase tracking-wide text-slate-500">
+                Project
+              </dt>
+              <dd className="mt-1 text-sm font-medium text-slate-950">
+                {workflow.projectName}
+              </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wide text-slate-500">Version</dt>
+              <dt className="text-xs uppercase tracking-wide text-slate-500">
+                Version
+              </dt>
               <dd className="mt-1 text-sm font-medium text-slate-950">
                 {workflow.version.toString()}
               </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wide text-slate-500">Created by</dt>
-              <dd className="mt-1 text-sm font-medium text-slate-950">{workflow.createdByEmail}</dd>
+              <dt className="text-xs uppercase tracking-wide text-slate-500">
+                Created by
+              </dt>
+              <dd className="mt-1 text-sm font-medium text-slate-950">
+                {workflow.createdByEmail}
+              </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wide text-slate-500">Updated</dt>
-              <dd className="mt-1 text-sm font-medium text-slate-950">{workflow.updatedAt}</dd>
+              <dt className="text-xs uppercase tracking-wide text-slate-500">
+                Updated
+              </dt>
+              <dd className="mt-1 text-sm font-medium text-slate-950">
+                {workflow.updatedAt}
+              </dd>
             </div>
           </dl>
         </div>
 
         <div className="flex flex-wrap gap-2">
           <Button variant="outline">Edit draft</Button>
-          <CloneWorkflowDialog workflowName={workflow.name} workflowId={workflow.id} onComplete={onChanged} />
+          <CloneWorkflowDialog
+            workflowName={workflow.name}
+            workflowId={workflow.id}
+            onComplete={onChanged}
+          />
           {workflow.status !== "published" ? (
-            <WorkflowPublishDialog workflowName={workflow.name} workflowId={workflow.id} onComplete={onChanged} />
+            <WorkflowPublishDialog
+              workflowName={workflow.name}
+              workflowId={workflow.id}
+              onComplete={onChanged}
+            />
           ) : (
-            <WorkflowArchiveDialog workflowName={workflow.name} workflowId={workflow.id} onComplete={onChanged} />
+            <WorkflowArchiveDialog
+              workflowName={workflow.name}
+              workflowId={workflow.id}
+              onComplete={onChanged}
+            />
           )}
         </div>
       </div>

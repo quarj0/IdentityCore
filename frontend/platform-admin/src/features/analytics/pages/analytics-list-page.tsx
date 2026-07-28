@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/feedback/empty-state";
@@ -46,7 +46,11 @@ export function AnalyticsListPage() {
   if (error) {
     return (
       <>
-        <PageHeader eyebrow="Analytics" title="Analytics" description="Live analytics dashboards." />
+        <PageHeader
+          eyebrow="Analytics"
+          title="Analytics"
+          description="Live analytics dashboards."
+        />
         <EmptyState title="Unable to load analytics" description={error} />
       </>
     );

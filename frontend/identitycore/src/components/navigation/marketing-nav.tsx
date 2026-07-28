@@ -62,7 +62,11 @@ export function MarketingNav({ activePath }: MarketingNavProps) {
           className="ml-10 hidden items-center gap-1 md:flex"
         >
           {NAV_GROUPS.map((group) => (
-            <NavFlyout key={group.label} group={group} activePath={activePath} />
+            <NavFlyout
+              key={group.label}
+              group={group}
+              activePath={activePath}
+            />
           ))}
         </nav>
 
@@ -111,7 +115,8 @@ export function MarketingNav({ activePath }: MarketingNavProps) {
 }
 
 function AuthenticatedActions({ user }: { user: AuthUser }) {
-  const displayName = [user.first_name, user.last_name].filter(Boolean).join(" ") || user.email;
+  const displayName =
+    [user.first_name, user.last_name].filter(Boolean).join(" ") || user.email;
   const initials = displayName
     .split(/\s+/)
     .map((part) => part[0])
@@ -135,13 +140,19 @@ function AuthenticatedActions({ user }: { user: AuthUser }) {
             <span className="flex size-7 items-center justify-center rounded-lg bg-slate-900 text-[11px] font-semibold text-white">
               {initials}
             </span>
-            <span className="max-w-36 truncate text-sm font-medium">{displayName}</span>
+            <span className="max-w-36 truncate text-sm font-medium">
+              {displayName}
+            </span>
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64" sideOffset={8}>
           <DropdownMenuLabel className="normal-case tracking-normal">
-            <span className="block truncate text-sm font-semibold text-foreground">{displayName}</span>
-            <span className="mt-0.5 block truncate text-xs font-normal text-muted-foreground">{user.email}</span>
+            <span className="block truncate text-sm font-semibold text-foreground">
+              {displayName}
+            </span>
+            <span className="mt-0.5 block truncate text-xs font-normal text-muted-foreground">
+              {user.email}
+            </span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>

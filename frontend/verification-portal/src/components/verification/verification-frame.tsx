@@ -38,17 +38,25 @@ export function VerificationFrame({
               <p className="text-sm font-semibold tracking-tight text-slate-950">
                 IdentityCore Verify
               </p>
-              <p className="text-xs text-slate-500">Secure identity verification</p>
+              <p className="text-xs text-slate-500">
+                Secure identity verification
+              </p>
             </div>
           </div>
           <div className="hidden items-center gap-2 text-xs font-medium text-slate-500 sm:flex">
-            <LockKeyhole className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+            <LockKeyhole
+              className="h-4 w-4 text-emerald-600"
+              aria-hidden="true"
+            />
             Encrypted session
           </div>
         </div>
       </header>
 
-      <main id="main-content" className="mx-auto grid max-w-6xl gap-8 px-4 py-7 sm:px-6 lg:grid-cols-[19rem_minmax(0,1fr)] lg:py-12">
+      <main
+        id="main-content"
+        className="mx-auto grid max-w-6xl gap-8 px-4 py-7 sm:px-6 lg:grid-cols-[19rem_minmax(0,1fr)] lg:py-12"
+      >
         <aside className="space-y-5 lg:sticky lg:top-8 lg:self-start">
           <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/50">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
@@ -82,11 +90,17 @@ export function VerificationFrame({
 
           <section className="rounded-3xl border border-blue-100 bg-blue-50/70 p-5">
             <div className="flex gap-3">
-              <BadgeCheck className="mt-0.5 h-5 w-5 shrink-0 text-blue-700" aria-hidden="true" />
+              <BadgeCheck
+                className="mt-0.5 h-5 w-5 shrink-0 text-blue-700"
+                aria-hidden="true"
+              />
               <div>
-                <h2 className="text-sm font-semibold text-blue-950">Your data stays protected</h2>
+                <h2 className="text-sm font-semibold text-blue-950">
+                  Your data stays protected
+                </h2>
                 <p className="mt-1.5 text-xs leading-5 text-blue-900/70">
-                  Evidence is encrypted, access is audited, and it is used only for this verification.
+                  Evidence is encrypted, access is audited, and it is used only
+                  for this verification.
                 </p>
               </div>
             </div>

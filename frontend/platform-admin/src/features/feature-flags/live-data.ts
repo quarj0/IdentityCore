@@ -108,7 +108,9 @@ export async function fetchFeatureFlagRecord(flagId: string) {
   return data.platformFeatureFlag;
 }
 
-export function buildFeatureFlagConfig(records: AdminRecord[]): AdminModuleConfig {
+export function buildFeatureFlagConfig(
+  records: AdminRecord[],
+): AdminModuleConfig {
   return {
     moduleLabel: "Release controls",
     listTitle: "Feature Flags",
@@ -123,7 +125,11 @@ export function buildFeatureFlagConfig(records: AdminRecord[]): AdminModuleConfi
     getRecord: (id) => records.find((record) => record.id === id),
     getMetrics: (record): AdminDetailMetric[] => [
       { label: "Rollout", value: record.primaryMeta, helper: "percentage" },
-      { label: "Channel", value: record.secondaryMeta, helper: "release track" },
+      {
+        label: "Channel",
+        value: record.secondaryMeta,
+        helper: "release track",
+      },
       { label: "Audience", value: record.tertiaryMeta, helper: "target" },
       { label: "Owner", value: record.owner, helper: "team" },
     ],
@@ -153,7 +159,8 @@ export function buildFeatureFlagConfig(records: AdminRecord[]): AdminModuleConfi
           },
           {
             label: "Approval",
-            value: "Production rollout above 50% requires product and engineering approval.",
+            value:
+              "Production rollout above 50% requires product and engineering approval.",
           },
         ],
       },

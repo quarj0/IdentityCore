@@ -49,7 +49,10 @@ export function OnboardingTierCard({
         {features.length > 0 ? (
           <div className="space-y-3">
             {features.map((feature) => (
-              <div key={feature} className="flex gap-3 text-sm text-muted-foreground">
+              <div
+                key={feature}
+                className="flex gap-3 text-sm text-muted-foreground"
+              >
                 <Check className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
                 {feature}
               </div>

@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { FeatureErrorState } from "@/components/feedback/feature-error-state";
 

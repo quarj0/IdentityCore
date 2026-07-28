@@ -48,12 +48,19 @@ export function IncidentDetailPage({ incidentId }: IncidentDetailPageProps) {
     };
   }, [incidentId]);
 
-  const config = useMemo(() => buildIncidentConfig(record ? [record] : []), [record]);
+  const config = useMemo(
+    () => buildIncidentConfig(record ? [record] : []),
+    [record],
+  );
 
   if (error) {
     return (
       <>
-        <PageHeader eyebrow="Incidents" title="Incident record" description="Live incident data." />
+        <PageHeader
+          eyebrow="Incidents"
+          title="Incident record"
+          description="Live incident data."
+        />
         <EmptyState title="Incident record unavailable" description={error} />
       </>
     );

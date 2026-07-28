@@ -2,20 +2,38 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Copy, Download, Loader2, RefreshCw } from "lucide-react";
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label } from "@identitycore/ui";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Input,
+  Label,
+} from "@identitycore/ui";
 import { PageHeading } from "@/components/shared/page-heading";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { dashboardApi, VerificationDetail } from "@/lib/dashboard-api";
 
 function messageOf(error: unknown) {
-  return error instanceof Error ? error.message : "Something went wrong. Please try again.";
+  return error instanceof Error
+    ? error.message
+    : "Something went wrong. Please try again.";
 }
 
 function subjectOf(item: VerificationDetail) {
-  return item.verification_subject ?? item.subject ?? { full_name: "", email: "" };
+  return (
+    item.verification_subject ?? item.subject ?? { full_name: "", email: "" }
+  );
 }
 
-export function LiveVerificationDetail({ id, review = false }: { id: string; review?: boolean }) {
+export function LiveVerificationDetail({
+  id,
+  review = false,
+}: {
+  id: string;
+  review?: boolean;
+}) {
   const [item, setItem] = useState<VerificationDetail | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -32,7 +50,8 @@ export function LiveVerificationDetail({ id, review = false }: { id: string; rev
   }, [id]);
 
   useEffect(() => {
-    dashboardApi.verification(id)
+    dashboardApi
+      .verification(id)
       .then(setItem)
       .catch((caught) => setError(messageOf(caught)));
   }, [id]);
@@ -44,7 +63,9 @@ export function LiveVerificationDetail({ id, review = false }: { id: string; rev
     try {
       const result = await dashboardApi.resendVerification(id);
       await navigator.clipboard.writeText(result.verification_url);
-      setMessage("A fresh verification link was created, queued for delivery, and copied. Previous active links were revoked.");
+      setMessage(
+        "A fresh verification link was created, queued for delivery, and copied. Previous active links were revoked.",
+      );
       await load();
     } catch (caught) {
       setError(messageOf(caught));
@@ -73,7 +94,11 @@ export function LiveVerificationDetail({ id, review = false }: { id: string; rev
     setMessage("");
     setError("");
     try {
-      await dashboardApi.decideReview(id, decision, reason.trim() || "Reviewed from dashboard.");
+      await dashboardApi.decideReview(
+        id,
+        decision,
+        reason.trim() || "Reviewed from dashboard.",
+      );
       setMessage("Manual review decision recorded.");
       setReason("");
       await load();
@@ -88,7 +113,11 @@ export function LiveVerificationDetail({ id, review = false }: { id: string; rev
     return <p className="text-sm text-slate-500">Loading verification...</p>;
   }
   if (!item) {
-    return <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-700">{error}</div>;
+    return (
+      <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-700">
+        {error}
+      </div>
+    );
   }
 
   const subject = subjectOf(item);
@@ -116,11 +145,15 @@ export function LiveVerificationDetail({ id, review = false }: { id: string; rev
         {Object.entries(item.checks).map(([name, check]) => (
           <Card key={name} className="rounded-2xl border-slate-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="capitalize">{name.replaceAll("_", " ")}</CardTitle>
+              <CardTitle className="capitalize">
+                {name.replaceAll("_", " ")}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <StatusBadge status={check.status} />
-              {check.score != null ? <p className="text-sm text-slate-600">Score: {check.score}</p> : null}
+              {check.score != null ? (
+                <p className="text-sm text-slate-600">Score: {check.score}</p>
+              ) : null}
             </CardContent>
           </Card>
         ))}
@@ -132,19 +165,27 @@ export function LiveVerificationDetail({ id, review = false }: { id: string; rev
             <CardTitle>Evidence summary</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-slate-700">
-            <p>Subject: {subject.full_name || "Unknown"} {subject.email ? `(${subject.email})` : ""}</p>
+            <p>
+              Subject: {subject.full_name || "Unknown"}{" "}
+              {subject.email ? `(${subject.email})` : ""}
+            </p>
             <p>External reference: {item.external_reference || "None"}</p>
             <p>Created: {new Date(item.created_at).toLocaleString()}</p>
             <p>Expires: {new Date(item.expires_at).toLocaleString()}</p>
             {item.risk_assessment ? (
               <p>
-                Risk: {item.risk_assessment.risk_level} ({item.risk_assessment.risk_score}) · {item.risk_assessment.recommendation}
+                Risk: {item.risk_assessment.risk_level} (
+                {item.risk_assessment.risk_score}) ·{" "}
+                {item.risk_assessment.recommendation}
               </p>
             ) : (
               <p>Risk: Not assessed yet</p>
             )}
             {item.decision ? (
-              <p>Decision: {item.decision.decision} · {item.decision.reason_detail}</p>
+              <p>
+                Decision: {item.decision.decision} ·{" "}
+                {item.decision.reason_detail}
+              </p>
             ) : (
               <p>Decision: Pending</p>
             )}
@@ -172,12 +213,29 @@ export function LiveVerificationDetail({ id, review = false }: { id: string; rev
             <CardTitle>Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button onClick={resend} disabled={Boolean(busy)} className="w-full rounded-xl">
-              {busy === "resend" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
+            <Button
+              onClick={resend}
+              disabled={Boolean(busy)}
+              className="w-full rounded-xl"
+            >
+              {busy === "resend" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
               Resend fresh link
             </Button>
-            <Button variant="outline" onClick={cancel} disabled={Boolean(busy)} className="w-full rounded-xl">
-              {busy === "cancel" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            <Button
+              variant="outline"
+              onClick={cancel}
+              disabled={Boolean(busy)}
+              className="w-full rounded-xl"
+            >
+              {busy === "cancel" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
               Cancel request
             </Button>
           </CardContent>
@@ -200,13 +258,27 @@ export function LiveVerificationDetail({ id, review = false }: { id: string; rev
               />
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button onClick={() => decide("verified")} disabled={Boolean(busy)} className="rounded-xl">
+              <Button
+                onClick={() => decide("verified")}
+                disabled={Boolean(busy)}
+                className="rounded-xl"
+              >
                 Approve
               </Button>
-              <Button variant="outline" onClick={() => decide("rejected")} disabled={Boolean(busy)} className="rounded-xl">
+              <Button
+                variant="outline"
+                onClick={() => decide("rejected")}
+                disabled={Boolean(busy)}
+                className="rounded-xl"
+              >
                 Reject
               </Button>
-              <Button variant="outline" onClick={() => decide("manual_review_required")} disabled={Boolean(busy)} className="rounded-xl">
+              <Button
+                variant="outline"
+                onClick={() => decide("manual_review_required")}
+                disabled={Boolean(busy)}
+                className="rounded-xl"
+              >
                 Needs more review
               </Button>
             </div>

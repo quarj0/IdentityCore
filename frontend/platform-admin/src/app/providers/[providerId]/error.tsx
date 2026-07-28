@@ -14,7 +14,9 @@ export default function ProviderDetailError({
   return (
     <ErrorState
       title="Unable to load verification provider"
-      description={error.message || "Something went wrong while loading this provider."}
+      description={
+        error.message || "Something went wrong while loading this provider."
+      }
       actionLabel="Try again"
       onAction={reset}
     />

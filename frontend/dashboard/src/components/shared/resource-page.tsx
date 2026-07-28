@@ -4,7 +4,6 @@ import { EmptyState } from "./empty-state";
 import { PageHeading } from "./page-heading";
 import { RichDataTable } from "../table/rich-data-table";
 
-
 interface ResourcePageProps {
   title: string;
   description: string;

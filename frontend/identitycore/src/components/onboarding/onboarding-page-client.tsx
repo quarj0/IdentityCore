@@ -16,7 +16,10 @@ import { InlineStatus } from "@/components/feedback/inline-status";
 import { OnboardingChecklist } from "@/components/onboarding/onboarding-checklist";
 import { OnboardingTierCard } from "@/components/onboarding/onboarding-tier-card";
 import { getErrorMessage } from "@/lib/api-client";
-import { fetchCurrentOnboarding, type OnboardingState } from "@/lib/onboarding-api";
+import {
+  fetchCurrentOnboarding,
+  type OnboardingState,
+} from "@/lib/onboarding-api";
 import { buildOnboardingSteps } from "@/lib/onboarding-state";
 
 export function OnboardingPageClient() {
@@ -34,7 +37,9 @@ export function OnboardingPageClient() {
   }, []);
 
   const steps = useMemo(() => buildOnboardingSteps(state), [state]);
-  const completedSteps = steps.filter((step) => step.status === "complete").length;
+  const completedSteps = steps.filter(
+    (step) => step.status === "complete",
+  ).length;
   const currentStep = steps.find((step) => step.status === "current");
   const progressValue = Math.round((completedSteps / steps.length) * 100);
 
@@ -65,7 +70,9 @@ export function OnboardingPageClient() {
                 <CardHeader className="pb-3">
                   <CardDescription>Account status</CardDescription>
                   <CardTitle>
-                    {state?.emailVerifiedAt ? "Email verified" : "Email pending"}
+                    {state?.emailVerifiedAt
+                      ? "Email verified"
+                      : "Email pending"}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -85,7 +92,9 @@ export function OnboardingPageClient() {
               <Card className="rounded-3xl border-slate-200 bg-white shadow-sm">
                 <CardHeader className="pb-3">
                   <CardDescription>Current focus</CardDescription>
-                  <CardTitle>{currentStep?.title ?? "Getting started"}</CardTitle>
+                  <CardTitle>
+                    {currentStep?.title ?? "Getting started"}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm leading-6 text-muted-foreground">
@@ -103,7 +112,8 @@ export function OnboardingPageClient() {
                 <CardContent className="space-y-3">
                   <Progress value={progressValue} />
                   <p className="text-sm leading-6 text-muted-foreground">
-                    {completedSteps} of {steps.length} onboarding milestones completed.
+                    {completedSteps} of {steps.length} onboarding milestones
+                    completed.
                   </p>
                 </CardContent>
               </Card>
@@ -149,9 +159,14 @@ export function OnboardingPageClient() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm text-muted-foreground">
-                <p>Organization status: {state?.organizationStatus ?? "unknown"}</p>
+                <p>
+                  Organization status: {state?.organizationStatus ?? "unknown"}
+                </p>
                 <p>Tenant status: {state?.tenantStatus ?? "unknown"}</p>
-                <p>Platform review: {state?.platformReviewStatus ?? "not_started"}</p>
+                <p>
+                  Platform review:{" "}
+                  {state?.platformReviewStatus ?? "not_started"}
+                </p>
               </CardContent>
             </Card>
           </div>

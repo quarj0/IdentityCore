@@ -32,7 +32,9 @@ function tone(status: string): AdminRecord["statusTone"] {
   return "info";
 }
 
-export function webhookEndpointToRecord(endpoint: WebhookEndpoint): AdminRecord {
+export function webhookEndpointToRecord(
+  endpoint: WebhookEndpoint,
+): AdminRecord {
   return {
     id: endpoint.id,
     title: endpoint.url,

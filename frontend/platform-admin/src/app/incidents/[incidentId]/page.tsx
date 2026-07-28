@@ -1,4 +1,4 @@
-import { IncidentDetailPage } from "@/features/incidents/pages/incident-detail-page"; 
+import { IncidentDetailPage } from "@/features/incidents/pages/incident-detail-page";
 
 type PageProps = { params: { incidentId: string } };
 

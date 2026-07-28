@@ -22,7 +22,8 @@ export function DashboardSession({ children }: { children: React.ReactNode }) {
   const publicRoute = pathname === "/login";
 
   useEffect(() => {
-    backend.restoreSession()
+    backend
+      .restoreSession()
       .then(() => backend.me<DashboardUser>())
       .then((payload) => setUser(payload.user))
       .catch(() => setUser(null))
@@ -47,10 +48,18 @@ export function DashboardSession({ children }: { children: React.ReactNode }) {
   }
 
   if (!ready && !publicRoute) {
-    return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
   }
 
-  return <SessionContext.Provider value={{ user, login, logout }}>{children}</SessionContext.Provider>;
+  return (
+    <SessionContext.Provider value={{ user, login, logout }}>
+      {children}
+    </SessionContext.Provider>
+  );
 }
 
 export function useDashboardSession() {

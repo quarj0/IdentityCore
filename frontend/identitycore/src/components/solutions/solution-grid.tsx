@@ -1,5 +1,5 @@
 import { solutions } from "@/data/solutions";
-import { SolutionCard } from "./solutions-card"; 
+import { SolutionCard } from "./solutions-card";
 
 export function SolutionGrid() {
   return (
