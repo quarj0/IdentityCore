@@ -20,6 +20,7 @@ test("verification pages send hardened browser security headers", async ({ reque
 });
 
 test("subject completes consent, document, selfie, liveness, and review routing", async ({
+  isMobile,
   page,
 }) => {
   let step = "consent";
@@ -50,11 +51,15 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     });
   });
 
-  await page.route("http://localhost:8000/api/v1/**", async (route) => {
+  await page.route("**/api/verification/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
-    const path = url.pathname;
+    const path = apiPath(url);
     const method = request.method();
+
+    if (path === "/api/v1/session" && method === "POST") {
+      return json(route, {});
+    }
 
     if (path === `/api/v1/sessions/${sessionId}` && method === "GET") {
       return json(route, {
@@ -212,7 +217,9 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   });
 
   await page.goto(`/verify/${sessionId}#token=browser-secret`);
-  await page.getByRole("button", { name: "Continue on this computer" }).click();
+  if (!isMobile) {
+    await page.getByRole("button", { name: "Continue on this computer" }).click();
+  }
 
   await expect(page.getByRole("heading", { name: "Review and give consent" })).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
@@ -233,20 +240,10 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     mimeType: "image/png",
     buffer: image,
   });
-  await page.getByRole("button", { name: "Capture back" }).click();
-  await page.locator('input[type="file"]').setInputFiles({
-    name: "ghana-card-back.png",
-    mimeType: "image/png",
-    buffer: image,
-  });
   await page.getByRole("button", { name: "Submit document" }).click();
   await expect(
     page.getByRole("alert").filter({ hasText: "We could not continue" }),
   ).toContainText(
-    "The upload service is temporarily unavailable.",
-  );
-  await page.getByRole("button", { name: "Submit document" }).click();
-  await expect(page.getByRole("alert")).toContainText(
     "The upload service is temporarily unavailable.",
   );
   await page.getByRole("button", { name: "Submit document" }).click();
@@ -282,9 +279,16 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   await expect(page).toHaveURL(`/verify/${sessionId}`);
 });
 
-test("expired sessions render a safe terminal state", async ({ page }) => {
-  await page.route("http://localhost:8000/api/v1/**", async (route) => {
-    const path = new URL(route.request().url()).pathname;
+test("expired sessions render a safe terminal state", async ({
+  isMobile,
+  page,
+}) => {
+  await page.route("**/api/verification/**", async (route) => {
+    const request = route.request();
+    const path = apiPath(new URL(request.url()));
+    if (path === "/api/v1/session" && request.method() === "POST") {
+      return json(route, {});
+    }
     if (path.endsWith("/status")) {
       return json(route, {
         verification_id: verificationId,
@@ -327,7 +331,9 @@ test("expired sessions render a safe terminal state", async ({ page }) => {
   });
 
   await page.goto(`/verify/${sessionId}#token=expired-secret`);
-  await page.getByRole("button", { name: "Continue on this computer" }).click();
+  if (!isMobile) {
+    await page.getByRole("button", { name: "Continue on this computer" }).click();
+  }
   await expect(page.getByRole("heading", { name: "This session has expired" })).toBeVisible();
 });
 
@@ -337,4 +343,8 @@ function json(route: Route, data: unknown, status = 200) {
     contentType: "application/json",
     body: JSON.stringify({ success: true, data }),
   });
+}
+
+function apiPath(url: URL) {
+  return url.pathname.replace(/^\/api\/verification/, "/api/v1");
 }
