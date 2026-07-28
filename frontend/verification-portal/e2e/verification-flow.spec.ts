@@ -83,11 +83,10 @@ test("subject completes consent, document, selfie, liveness, and review routing"
 
   await page.route("**/api/verification/**", async (route) => {
     const request = route.request();
-    const url = new URL(request.url());
-    const path = apiPath(url);
+    const path = new URL(request.url()).pathname;
     const method = request.method();
 
-    if (path === "/api/v1/session" && method === "POST") {
+    if (path === "/api/verification/session" && method === "POST") {
       return route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -96,7 +95,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     }
 
     if (
-      path === `/api/v1/sessions/${sessionId}` &&
+      path === `/api/verification/sessions/${sessionId}` &&
       method === "GET"
     ) {
       return json(route, {
@@ -145,7 +144,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     }
 
     if (
-      path === `/api/v1/sessions/${sessionId}/status` &&
+      path === `/api/verification/sessions/${sessionId}/status` &&
       method === "GET"
     ) {
       return json(route, {
@@ -172,14 +171,14 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     }
 
     if (
-      path === `/api/v1/sessions/${sessionId}/consent` &&
+      path === `/api/verification/sessions/${sessionId}/consent` &&
       method === "POST"
     ) {
       step = "document_capture";
       return json(route, { next_step: step });
     }
 
-    if (path === "/api/v1/uploads/" && method === "POST") {
+    if (path === "/api/verification/uploads/" && method === "POST") {
       uploadCreateRequests += 1;
       const uploadPayload = request.postDataJSON() as {
         purpose?: string;
@@ -214,12 +213,12 @@ test("subject completes consent, document, selfie, liveness, and review routing"
       );
     }
 
-    if (/\/api\/v1\/uploads\/upl_\d+\/transfer$/.test(path)) {
+    if (/\/api\/verification\/uploads\/upl_\d+\/transfer$/.test(path)) {
       return json(route, { upload_id: `upl_${uploadNumber}` });
     }
 
     if (
-      path === `/api/v1/sessions/${sessionId}/documents` &&
+      path === `/api/verification/sessions/${sessionId}/documents` &&
       method === "POST"
     ) {
       documentPayload = request.postDataJSON() as typeof documentPayload;
@@ -232,7 +231,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     }
 
     if (
-      path === `/api/v1/sessions/${sessionId}/selfies` &&
+      path === `/api/verification/sessions/${sessionId}/selfies` &&
       method === "POST"
     ) {
       step = "liveness_check";
@@ -244,7 +243,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     }
 
     if (
-      path === `/api/v1/sessions/${sessionId}/liveness/challenge` &&
+      path === `/api/verification/sessions/${sessionId}/liveness/challenge` &&
       method === "POST"
     ) {
       return json(route, {
@@ -255,7 +254,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     }
 
     if (
-      path === `/api/v1/sessions/${sessionId}/liveness` &&
+      path === `/api/verification/sessions/${sessionId}/liveness` &&
       method === "POST"
     ) {
       step = "completed";
@@ -356,8 +355,11 @@ test("expired sessions render a safe terminal state", async ({
 }) => {
   await page.route("**/api/verification/**", async (route) => {
     const request = route.request();
-    const path = apiPath(new URL(request.url()));
-    if (path === "/api/v1/session" && request.method() === "POST") {
+    const path = new URL(request.url()).pathname;
+    if (
+      path === "/api/verification/session" &&
+      request.method() === "POST"
+    ) {
       return json(route, {});
     }
     if (path.endsWith("/status")) {
@@ -421,8 +423,4 @@ function json(route: Route, data: unknown, status = 200) {
     contentType: "application/json",
     body: JSON.stringify({ success: true, data }),
   });
-}
-
-function apiPath(url: URL) {
-  return url.pathname.replace(/^\/api\/verification/, "/api/v1");
 }
