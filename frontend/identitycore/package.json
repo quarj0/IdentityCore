@@ -1,12 +1,14 @@
 {
   "name": "identitycore-web",
   "version": "0.1.0",
+  "type": "module",
   "private": true,
   "scripts": {
     "dev": "next dev --port 3001",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --test src/lib/*.test.ts"
   },
   "dependencies": {
     "@identitycore/api-client": "workspace:*",

@@ -1,6 +1,11 @@
 "use client";
 
-import { clearAuthSession, getAccessToken, setAccessToken } from "@/lib/auth";
+import {
+  clearAuthSession,
+  getAccessToken,
+  notifyAuthSessionExpired,
+  setAccessToken,
+} from "@/lib/auth";
 import { getGraphqlApiUrl, getRestApiBaseUrl } from "@/lib/config";
 
 interface ApiSuccess<T> {
@@ -113,7 +118,11 @@ async function refreshAccessToken() {
       headers: { Accept: "application/json", "Content-Type": "application/json" },
     }).then((response) => parseJson<{ tokens: { access: string } }>(response))
       .then((data) => { setAccessToken(data.tokens.access); return data.tokens.access; })
-      .catch((error) => { clearAuthSession(); throw error; })
+      .catch((error) => {
+        clearAuthSession();
+        notifyAuthSessionExpired();
+        throw error;
+      })
       .finally(() => { refreshInFlight = null; });
   }
   return refreshInFlight;

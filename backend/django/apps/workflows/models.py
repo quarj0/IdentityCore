@@ -32,13 +32,27 @@ class Workflow(PublicIdModel, BaseModel):
         on_delete=models.PROTECT,
         related_name="created_workflows",
     )
+    source_template = models.ForeignKey(
+        "templates.Template",
+        on_delete=models.PROTECT,
+        related_name="instantiated_workflows",
+        null=True,
+        blank=True,
+    )
+    source_template_version = models.CharField(max_length=32, blank=True)
+    instantiation_key = models.CharField(max_length=255, blank=True)
 
     class Meta:
         ordering = ["name"]
         constraints = [
             models.UniqueConstraint(
                 fields=["project", "name"], name="workflow_project_name_uniq"
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["tenant", "instantiation_key"],
+                condition=~models.Q(instantiation_key=""),
+                name="workflow_tenant_instantiation_key_uniq",
+            ),
         ]
 
 

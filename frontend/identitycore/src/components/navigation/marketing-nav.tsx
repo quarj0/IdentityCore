@@ -15,10 +15,10 @@ import {
 } from "@identitycore/ui";
 import {
   AUTH_SESSION_CHANGED_EVENT,
-  clearAuthSession,
   getCurrentAuthUser,
   type AuthUser,
 } from "@/lib/auth";
+import { endAuthSession } from "@/lib/logout";
 import { NAV_GROUPS } from "./nav-data";
 import { NavFlyout } from "./nav-flyout";
 import { MobileNav } from "./mobile-nav";
@@ -154,8 +154,7 @@ function AuthenticatedActions({ user }: { user: AuthUser }) {
           <DropdownMenuItem
             className="text-red-700 focus:bg-red-50 focus:text-red-700"
             onSelect={() => {
-              clearAuthSession();
-              window.location.assign("/");
+              void endAuthSession().finally(() => window.location.assign("/"));
             }}
           >
             Sign out
