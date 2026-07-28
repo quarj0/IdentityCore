@@ -47,6 +47,11 @@ is not complete or production-ready.
   contains camera capture, server-issued active liveness challenges, short video capture,
   upload fallback, and mobile handoff. Remaining work here is cross-application contract,
   security, accessibility, and browser certification rather than another capture UI.
+- **Transactional first workflow: implemented.** The backend now exposes a published,
+  versioned template catalog and an idempotent project-scoped instantiation transaction.
+  The onboarding page selects a real template, previews its steps, providers, and claims,
+  creates a lineage-linked sandbox workflow, and uses the returned workflow ID for the
+  dashboard handoff.
 
 ### 1. Separate organization onboarding from applicant verification
 
@@ -63,16 +68,14 @@ framing/quality guidance, retry states, active challenges, mobile handoff, devic
 compatibility, and accessible fallbacks. IdentityCore web should only launch the portal
 and reflect its server-authored completion state.
 
-### 3. Make “choose first workflow” a transaction
+### 3. Make “choose first workflow” a transaction — implemented
 
-Public workflow templates are static frontend data, and “Use this template” redirects to
-the dashboard. The onboarding first-workflow page merely reads the first existing
-workflow. Add a canonical backend template catalog and an idempotent API that instantiates
-a selected, versioned template into the current tenant/project/environment. The UI must
-show preview, provider requirements, policy defaults, creation progress, validation
-errors, and the created workflow—not infer selection from `workflows[0]`.
+Published workflow templates now carry executable steps, settings, provider requirements,
+and output claims. Instantiation copies the selected version into the tenant project,
+records immutable lineage and an audit event, and safely replays an idempotency key. The
+onboarding UI uses the returned workflow rather than inferring selection from a list.
 
-Required API shape:
+Implemented API shape:
 
 ```text
 GET  /api/v1/workflow-templates
