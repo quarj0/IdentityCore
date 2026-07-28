@@ -22,6 +22,8 @@ def serialize_consent_record(record: ConsentRecord) -> dict:
         "consent_template_id": (
             record.consent_template.public_id if record.consent_template else None
         ),
+        "consent_locale": record.consent_locale,
+        "consent_content_hash": record.consent_content_hash,
         "accepted": record.accepted,
         "accepted_at": record.accepted_at.isoformat(),
         "withdrawn_at": (

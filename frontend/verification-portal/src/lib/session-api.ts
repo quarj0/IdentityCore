@@ -37,6 +37,20 @@ export interface VerificationSession {
   };
   redirect_url: string;
   required_steps: string[];
+  workflow: {
+    steps: string[];
+    liveness_mode: "passive" | "active";
+  };
+  locale: string;
+  supported_locales?: string[];
+  direction: "ltr" | "rtl";
+  consent: {
+    template_id: string;
+    version: number;
+    locale: string;
+    content: string;
+    content_hash: string;
+  };
   document: {
     country_code: string;
     document_type: string;
@@ -176,10 +190,19 @@ export async function redeemMobileHandoff(handoff: string) {
   };
 }
 
-export function acceptConsent(credentials: SessionCredentials) {
+export function acceptConsent(
+  credentials: SessionCredentials,
+  consent: VerificationSession["consent"],
+) {
   return request(credentials, `/sessions/${credentials.sessionId}/consent`, {
     method: "POST",
-    body: JSON.stringify({ accepted: true }),
+    body: JSON.stringify({
+      accepted: true,
+      template_id: consent.template_id,
+      version: consent.version,
+      locale: consent.locale,
+      content_hash: consent.content_hash,
+    }),
   });
 }
 

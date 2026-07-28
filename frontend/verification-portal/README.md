@@ -68,3 +68,27 @@ handling, and response security headers. Physical-device certification remains
 a release evidence gate because an emulator cannot certify camera hardware.
 Provider, storage, worker, and Django integration tests live in their owning
 backend applications.
+
+## Policy, consent, and localization
+
+The Django session response is authoritative for the ordered workflow and its
+`passive` or `active` liveness mode. The portal does not allow the subject to
+select a weaker liveness mode. Consent is rendered from a server-selected,
+locale-specific immutable artifact; acceptance echoes its template ID, version,
+locale, and SHA-256 digest, and the backend rejects stale artifacts.
+
+English and Arabic are the initial locale architecture baseline. The document
+language and direction follow locale negotiation and are updated to the
+session-selected locale. New production locales must add a complete catalog and
+pass the RTL, keyboard, axe, WebKit, and physical-device evidence gates described
+in `docs/operations/verification-portal-production.md`.
+
+## Production image
+
+Build the standalone non-root image with the frontend directory as context:
+
+```bash
+docker build -f verification-portal/Dockerfile -t identitycore/verification-portal .
+```
+
+The runtime exposes `/api/health` for orchestration liveness/readiness probes.

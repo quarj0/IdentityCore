@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   SESSION_COOKIE,
   SESSION_ID_COOKIE,
+  apiUrl,
   requestIsSameOrigin,
   sessionCookieOptions,
 } from "@/lib/bff-session";
@@ -15,6 +16,28 @@ export async function POST(request: Request) {
     | null;
   if (!body?.sessionId || !body.sessionToken || body.sessionToken.length > 4096) {
     return NextResponse.json({ error: "Invalid verification credential." }, { status: 400 });
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+  let upstream: Response;
+  try {
+    upstream = await fetch(apiUrl(`sessions/${encodeURIComponent(body.sessionId)}`), {
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${body.sessionToken}`,
+        "X-Session-Id": body.sessionId,
+        "Accept-Language": request.headers.get("accept-language") ?? "en",
+      },
+      cache: "no-store",
+      signal: controller.signal,
+    });
+  } catch {
+    return NextResponse.json({ error: "Verification service unavailable." }, { status: 502 });
+  } finally {
+    clearTimeout(timeout);
+  }
+  if (!upstream.ok) {
+    return NextResponse.json({ error: "Invalid or expired verification credential." }, { status: 401 });
   }
   const response = NextResponse.json({ success: true });
   response.cookies.set(SESSION_COOKIE, body.sessionToken, sessionCookieOptions);
