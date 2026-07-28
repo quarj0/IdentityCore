@@ -15,7 +15,7 @@ from apps.biometrics.models import (
     SelfieCaptureStatus,
     SelfieCaptureType,
 )
-from apps.consent.models import ConsentRecord, ConsentTemplate, ConsentTemplateStatus
+from apps.consent.models import ConsentRecord, ConsentTemplate
 from apps.document_captures.models import (
     DocumentCapture,
     DocumentCaptureSide,
@@ -173,7 +173,7 @@ STATUS_PRESENTATION = {
 }
 
 
-def serialize_verification_session(verification_session: VerificationSession) -> dict:
+def serialize_verification_session(verification_session: VerificationSession, request=None) -> dict:
     verification = verification_session.verification
     organization = verification.organization
     organization_logo_url = organization.settings_json.get("logo_url", "")
@@ -187,6 +187,14 @@ def serialize_verification_session(verification_session: VerificationSession) ->
     )
     configured_document_type = str(metadata.get("document_type", "national_id"))
     supported_documents = _supported_documents(country_code)
+    policy_snapshot = verification.policy_snapshot_json or {}
+    required_document_types = set(policy_snapshot.get("required_document_types") or [])
+    if required_document_types:
+        supported_documents = [
+            item
+            for item in supported_documents
+            if item["document_type"] in required_document_types
+        ]
     supported_document_types = {
         item["document_type"] for item in supported_documents
     }
@@ -204,6 +212,30 @@ def serialize_verification_session(verification_session: VerificationSession) ->
         (item for item in supported_documents if item["document_type"] == document_type),
         None,
     )
+    default_locale = str(policy_snapshot.get("default_locale") or "en")
+    supported_locales = list(
+        policy_snapshot.get("supported_locales") or [default_locale]
+    )
+    requested_languages = [
+        item.partition(";")[0].strip().lower()
+        for item in (
+            str(request.headers.get("Accept-Language", "")).split(",")
+            if request is not None
+            else []
+        )
+        if item.partition(";")[0].strip()
+    ]
+    locale = next(
+        (
+            supported
+            for requested in requested_languages
+            for supported in supported_locales
+            if requested == str(supported).lower()
+            or requested.split("-")[0] == str(supported).lower().split("-")[0]
+        ),
+        default_locale,
+    )
+    consent = policy_snapshot.get("consent") or {}
     return {
         "session_id": verification_session.public_id,
         "verification_id": verification.public_id,
@@ -213,6 +245,17 @@ def serialize_verification_session(verification_session: VerificationSession) ->
             "logo_url": organization_logo_url,
         },
         "purpose": verification.purpose,
+        "locale": locale,
+        "supported_locales": supported_locales,
+        "consent": {
+            "template_id": consent.get("template_id", ""),
+            "version": consent.get("version"),
+            "language": consent.get("language", locale),
+            "content": consent.get(
+                "content",
+                f"I consent to the identity verification process for {verification.purpose}.",
+            ),
+        },
         "redirect_url": verification.redirect_url,
         "required_steps": REQUIRED_STEPS,
         "document": {
@@ -225,8 +268,24 @@ def serialize_verification_session(verification_session: VerificationSession) ->
                 else []
             ),
         },
-        "available_documents": _supported_documents(country_code),
-        "available_countries": _available_country_profiles(),
+        "available_documents": supported_documents,
+        "available_countries": [
+            {
+                **profile,
+                "documents": [
+                    document
+                    for document in profile["documents"]
+                    if not required_document_types
+                    or document["document_type"] in required_document_types
+                ],
+            }
+            for profile in _available_country_profiles()
+            if any(
+                not required_document_types
+                or document["document_type"] in required_document_types
+                for document in profile["documents"]
+            )
+        ],
         "expires_at": verification_session.expires_at.isoformat(),
     }
 
@@ -333,18 +392,17 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
                 verification.save(update_fields=["status", "updated_at"])
             return existing_record
 
+        consent_snapshot = (verification.policy_snapshot_json or {}).get("consent") or {}
         consent_template = (
             ConsentTemplate.objects.filter(
                 tenant=verification.tenant,
-                status=ConsentTemplateStatus.ACTIVE,
-            )
-            .order_by("-version", "-created_at")
-            .first()
+                public_id=consent_snapshot.get("template_id"),
+            ).first()
+            if consent_snapshot.get("template_id")
+            else None
         )
-        consent_text_snapshot = (
-            consent_template.content
-            if consent_template is not None
-            else f"I consent to the identity verification process for {verification.purpose}."
+        consent_text_snapshot = consent_snapshot.get("content") or (
+            f"I consent to the identity verification process for {verification.purpose}."
         )
 
         now = timezone.now()

@@ -63,6 +63,14 @@ test("subject completes consent, document, selfie, liveness, and review routing"
         status: "active",
         organization: { name: "Example Bank", logo_url: "" },
         purpose: "Customer onboarding",
+        locale: "en",
+        supported_locales: ["en"],
+        consent: {
+          template_id: "ctm_test",
+          version: 2,
+          language: "en",
+          content: "I consent to Example Bank processing my identity evidence.",
+        },
         required_steps: [
           "consent",
           "document_capture",
@@ -207,6 +215,9 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   await page.getByRole("button", { name: "Continue on this computer" }).click();
 
   await expect(page.getByRole("heading", { name: "Review and give consent" })).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.getByText("I consent to Example Bank processing my identity evidence.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Review and give consent" })).toBeFocused();
   await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "Accept and continue" }).click();
 
@@ -282,7 +293,15 @@ test("expired sessions render a safe terminal state", async ({ page }) => {
       verification_id: verificationId,
       status: "expired",
       organization: { name: "Example Bank", logo_url: "" },
-      purpose: "Customer onboarding",
+        purpose: "Customer onboarding",
+        locale: "en",
+        supported_locales: ["en"],
+        consent: {
+          template_id: "ctm_test",
+          version: 2,
+          language: "en",
+          content: "I consent to Example Bank processing my identity evidence.",
+        },
       required_steps: [],
       document: {
         country_code: "GH",

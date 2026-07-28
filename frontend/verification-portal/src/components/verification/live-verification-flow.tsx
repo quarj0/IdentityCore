@@ -144,6 +144,18 @@ export function LiveVerificationFlow({
   }, [handoff, load, sessionId]);
 
   useEffect(() => {
+    if (!session?.locale) return;
+    document.documentElement.lang = session.locale;
+  }, [session?.locale]);
+
+  useEffect(() => {
+    if (!status?.current_step) return;
+    window.requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>("[data-step-heading]")?.focus();
+    });
+  }, [status?.current_step]);
+
+  useEffect(() => {
     if (!credentials || !status || !PROCESSING_STEPS.has(status.current_step)) {
       return;
     }
@@ -414,9 +426,10 @@ export function LiveVerificationFlow({
               className="mt-1 h-4 w-4 rounded border-slate-300 accent-blue-600"
             />
             <span className="text-sm leading-6 text-slate-600">
-              I consent to {session.organization.name} using IdentityCore to
-              process my document, selfie, biometric evidence, and security
-              metadata for <strong className="font-medium text-slate-900">{session.purpose}</strong>.
+              <span className="whitespace-pre-line">{session.consent.content}</span>
+              <span className="sr-only">
+                Consent template version {session.consent.version ?? "organization default"}.
+              </span>
             </span>
           </label>
           <div className="flex items-center justify-between gap-4 border-t border-slate-100 pt-5">

@@ -28,6 +28,15 @@ class VerificationPolicy(PublicIdModel, BaseModel):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     version = models.PositiveIntegerField(default=1)
+    consent_template = models.ForeignKey(
+        "consent.ConsentTemplate",
+        on_delete=models.PROTECT,
+        related_name="verification_policies",
+        null=True,
+        blank=True,
+    )
+    default_locale = models.CharField(max_length=16, default="en")
+    supported_locales_json = models.JSONField(default=list, blank=True)
     status = models.CharField(
         max_length=32,
         choices=VerificationPolicyStatus.choices,
@@ -79,6 +88,19 @@ class VerificationPolicy(PublicIdModel, BaseModel):
             "name": self.name,
             "description": self.description,
             "version": self.version,
+            "default_locale": self.default_locale,
+            "supported_locales": self.supported_locales_json or [self.default_locale],
+            "consent": (
+                {
+                    "template_id": self.consent_template.public_id,
+                    "name": self.consent_template.name,
+                    "version": self.consent_template.version,
+                    "language": self.consent_template.language,
+                    "content": self.consent_template.content,
+                }
+                if self.consent_template_id
+                else None
+            ),
             "status": self.status,
             "required_document_types": self.required_document_types,
             "required_liveness_level": self.required_liveness_level,
