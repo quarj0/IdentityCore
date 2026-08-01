@@ -1,24 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { ExternalLink, LogOut, Settings } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { Button, Separator } from "@identitycore/ui";
-import type { AuthUser } from "@/lib/auth";
-import { endAuthSession } from "@/lib/logout";
+import { dashboardUrl } from "@/lib/dashboard-url";
 import type { NavGroup } from "./nav-data";
 
 interface MobileNavProps {
   groups: NavGroup[];
   onNavigate: () => void;
   activePath?: string;
-  user: AuthUser | null;
 }
 
 export function MobileNav({
   groups,
   onNavigate,
   activePath,
-  user,
 }: MobileNavProps) {
   return (
     <div
@@ -79,53 +76,19 @@ export function MobileNav({
 
         <Separator />
 
-        {user ? (
-          <div className="space-y-2 px-3">
-            <div className="rounded-xl border border-border bg-muted/40 px-3 py-2.5">
-              <p className="truncate text-sm font-semibold text-foreground">
-                {[user.first_name, user.last_name].filter(Boolean).join(" ") ||
-                  user.email}
-              </p>
-              <p className="truncate text-xs text-muted-foreground">
-                {user.email}
-              </p>
-            </div>
-            <Button asChild size="sm" className="w-full">
-              <Link href="/onboarding" onClick={onNavigate}>
-                <Settings className="h-4 w-4" />
-                Workspace setup
-              </Link>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={() => {
-                onNavigate();
-                void endAuthSession().finally(() =>
-                  window.location.assign("/"),
-                );
-              }}
-            >
-              <LogOut className="h-4 w-4" />
-              Sign out
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-2 px-3">
-            <Button asChild variant="outline" size="sm">
-              <Link href="/login" onClick={onNavigate}>
-                Sign in
-              </Link>
-            </Button>
+        <div className="grid grid-cols-2 gap-2 px-3">
+          <Button asChild variant="outline" size="sm">
+            <a href={dashboardUrl("/login")} onClick={onNavigate}>
+              Sign in
+            </a>
+          </Button>
 
-            <Button asChild size="sm">
-              <Link href="/register" onClick={onNavigate}>
-                Create workspace
-              </Link>
-            </Button>
-          </div>
-        )}
+          <Button asChild size="sm">
+            <a href={dashboardUrl("/register")} onClick={onNavigate}>
+              Create workspace
+            </a>
+          </Button>
+        </div>
       </nav>
     </div>
   );

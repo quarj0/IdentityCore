@@ -11,26 +11,27 @@ import {
   Send,
   Workflow,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 const services = [
-  ["Identity verification", Fingerprint],
-  ["Document intelligence", FileSearch],
-  ["Biometric matching", ScanFace],
-  ["Liveness checks", Radar],
-  ["Consent records", ClipboardCheck],
-  ["Audit trails", ScrollText],
-  ["Risk scoring", Activity],
-  ["Policy decisions", ListChecks],
-  ["Provider orchestration", GitBranch],
-  ["Workflow templates", Workflow],
-  ["Webhooks", Send],
-  ["Evidence reports", FileSearch],
-];
+  { name: "Identity verification", icon: Fingerprint },
+  { name: "Document intelligence", icon: FileSearch },
+  { name: "Biometric matching", icon: ScanFace },
+  { name: "Liveness checks", icon: Radar },
+  { name: "Consent records", icon: ClipboardCheck },
+  { name: "Audit trails", icon: ScrollText },
+  { name: "Risk scoring", icon: Activity },
+  { name: "Policy decisions", icon: ListChecks },
+  { name: "Provider orchestration", icon: GitBranch },
+  { name: "Workflow templates", icon: Workflow },
+  { name: "Webhooks", icon: Send },
+  { name: "Evidence reports", icon: FileSearch },
+] satisfies ReadonlyArray<{ name: string; icon: LucideIcon }>;
 
 export function ServiceGrid() {
   return (
     <div className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {services.map(([service, Icon]) => (
+      {services.map(({ name, icon: Icon }) => (
         <div
           key={name}
           className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"

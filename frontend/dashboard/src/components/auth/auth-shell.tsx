@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
-import { cn } from "@identitycore/ui";
-import { MarketingFooter } from "@/components/marketing/marketing-footer";
-import { MarketingHeader } from "@/components/marketing/marketing-header";
+import Link from "next/link";
+import { BrandMark, cn } from "@identitycore/ui";
 
 interface AuthShellProps {
   badge: string;
@@ -22,7 +21,16 @@ export function AuthShell({
 }: AuthShellProps) {
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <MarketingHeader />
+      <header className="border-b bg-background/95">
+        <div className="mx-auto flex h-16 w-full max-w-7xl items-center px-4 sm:px-6">
+          <Link
+            href={process.env.NEXT_PUBLIC_IDENTITYCORE_ORIGIN ?? "http://localhost:3001"}
+            aria-label="IdentityCore home"
+          >
+            <BrandMark subtitle="Workspace access" />
+          </Link>
+        </div>
+      </header>
 
       <main id="main-content" className="relative flex-1 overflow-hidden">
         <div className="absolute inset-x-0 top-0 -z-10 h-180 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]" />
@@ -73,7 +81,6 @@ export function AuthShell({
         </section>
       </main>
 
-      <MarketingFooter />
     </div>
   );
 }

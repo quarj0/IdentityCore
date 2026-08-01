@@ -1,5 +1,5 @@
-import { ApprovalStatusPage } from "@/features/operations/approval-status-page";
+import { OnboardingPageContent } from "@/components/onboarding/onboarding-page";
 
-export default function Page() {
-  return <ApprovalStatusPage />;
+export default function OnboardingPage() {
+  return <OnboardingPageContent />;
 }

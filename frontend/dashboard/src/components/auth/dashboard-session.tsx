@@ -19,7 +19,13 @@ export function DashboardSession({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const publicRoute = pathname === "/login";
+  const publicRoute =
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/forgot-password" ||
+    pathname === "/reset-password" ||
+    pathname === "/verify-email" ||
+    pathname.startsWith("/onboarding");
 
   useEffect(() => {
     backend
@@ -32,7 +38,6 @@ export function DashboardSession({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (ready && !user && !publicRoute) router.replace("/login");
-    if (ready && user && publicRoute) router.replace("/");
   }, [publicRoute, ready, router, user]);
 
   async function login(email: string, password: string) {

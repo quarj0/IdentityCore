@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Loader2, Rocket, ShieldCheck } from "lucide-react";
 import {
   Button,
@@ -21,8 +22,6 @@ export function ProductionApprovalPanel() {
   const [state, setState] = useState<OnboardingState | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const dashboardUrl =
-    process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3000";
 
   useEffect(() => {
     fetchCurrentOnboarding()
@@ -70,7 +69,7 @@ export function ProductionApprovalPanel() {
               your dashboard whenever you are ready.
             </p>
             <Button asChild className="mt-3">
-              <a href={dashboardUrl}>Continue to dashboard</a>
+              <Link href="/">Continue to dashboard</Link>
             </Button>
           </div>
           <div className="rounded-2xl bg-slate-50 p-4">

@@ -1,0 +1,59 @@
+name: Bug report
+description: Report a reproducible defect or security-safe regression.
+title: "[Bug]: "
+labels: ["type:bug", "status:triage"]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include credentials, identity documents, biometric data, or other personal data.
+  - type: input
+    id: backlog
+    attributes:
+      label: Backlog ID
+      description: Include the IC-### ID when this bug comes from the implementation backlog.
+      placeholder: IC-###
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened, and what should have happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Safe reproduction steps
+      description: Use synthetic data only and remove all tokens, secrets, and personal information.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact and scope
+      description: Identify affected service, role, tenant/environment boundary, and frequency.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized evidence
+      description: Add redacted logs, screenshots, correlation IDs, or failing test output.
+  - type: dropdown
+    id: security
+    attributes:
+      label: Security or privacy impact
+      options:
+        - None known
+        - Possible — needs private triage
+        - Confirmed — report privately instead of submitting this form
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Submission checks
+      options:
+        - label: I searched for an existing issue.
+          required: true
+        - label: I removed secrets, identity evidence, biometric data, and personal data.
+          required: true
