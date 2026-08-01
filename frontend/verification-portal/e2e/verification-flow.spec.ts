@@ -25,6 +25,26 @@ test("verification pages send hardened browser security headers", async ({
   expect(response.headers()["x-powered-by"]).toBeUndefined();
 });
 
+test("health and readiness endpoints expose safe orchestration state", async ({
+  request,
+}) => {
+  const health = await request.get("/api/health");
+  expect(health.status()).toBe(200);
+  expect(await health.json()).toEqual({
+    status: "ok",
+    service: "verification-portal",
+  });
+
+  const readiness = await request.get("/api/ready");
+  expect(readiness.status()).toBe(200);
+  expect(await readiness.json()).toEqual({
+    status: "ready",
+    service: "verification-portal",
+    version: "e2e",
+    checks: { runtime_configuration: "ok" },
+  });
+});
+
 test("BFF rejects cross-origin session exchange and unauthenticated proxy calls", async ({
   request,
 }) => {
@@ -33,6 +53,7 @@ test("BFF rejects cross-origin session exchange and unauthenticated proxy calls"
     data: { sessionId, sessionToken: "stolen-token" },
   });
   expect(exchange.status()).toBe(403);
+  expect(exchange.headers()["x-request-id"]).toMatch(/^[A-Za-z0-9-]+$/);
 
   const proxy = await request.post(
     `/api/verification/sessions/${sessionId}/consent`,
@@ -41,6 +62,16 @@ test("BFF rejects cross-origin session exchange and unauthenticated proxy calls"
     },
   );
   expect(proxy.status()).toBe(401);
+  expect(proxy.headers()["x-request-id"]).toBeTruthy();
+
+  const oversizedHandoff = await request.post("/api/verification/handoff", {
+    headers: { "X-Request-Id": "browser-test-request" },
+    data: { handoff: "x".repeat(9000) },
+  });
+  expect(oversizedHandoff.status()).toBe(413);
+  expect(oversizedHandoff.headers()["x-request-id"]).toBe(
+    "browser-test-request",
+  );
 });
 
 test("subject completes consent, document, selfie, liveness, and review routing", async ({
