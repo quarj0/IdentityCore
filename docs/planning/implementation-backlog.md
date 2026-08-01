@@ -18,6 +18,15 @@ exist.
 5. Close an issue only when its acceptance checks, automated tests, documentation, and
    security/privacy review (where applicable) are complete.
 
+The `Sync implementation backlog issues` GitHub Actions workflow creates these as real
+GitHub issues when this file reaches `main`. It can also be run manually. Synchronization
+is idempotent: the stable ID marker updates an existing generated issue rather than
+creating a duplicate. To preview locally, run:
+
+```bash
+python scripts/sync_github_issues.py
+```
+
 Suggested labels are `type:bug`, `type:feature`, `type:security`, `type:test`,
 `type:docs`, `area:backend`, `area:ai`, `area:frontend`, `area:platform`, `area:sdk`,
 and priorities `P0` through `P2`.
