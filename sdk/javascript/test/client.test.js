@@ -28,9 +28,11 @@ test("retries GET but not unsafe POST", async () => {
 
 test("async iterator follows pagination", async () => {
   let call = 0;
-  const client = new IdentityCoreClient({ apiOrigin: "https://api.example.test", clientId: "c", clientSecret: "s", fetch: async () => response(success({ results: [{ id: String(++call) }], pagination: { total_pages: 2 } })) });
+  const urls = [];
+  const client = new IdentityCoreClient({ apiOrigin: "https://api.example.test", clientId: "c", clientSecret: "s", fetch: async (url) => { urls.push(url); call += 1; return response(success({ results: [{ id: String(call) }], pagination: { next_cursor: call === 1 ? "next" : null } })); } });
   const ids = []; for await (const item of client.verifications.iterate()) ids.push(item.id);
   assert.deepEqual(ids, ["1", "2"]);
+  assert.match(urls[1], /cursor=next/);
 });
 
 test("verifies signatures over the raw payload", () => {
