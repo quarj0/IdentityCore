@@ -125,6 +125,34 @@ class GraphQLAPITests(APITestCase):
         self.assertIn("NG", country_map)
         self.assertIn("US", country_map)
 
+    def test_country_profiles_query_includes_document_capture_sides(self):
+        response = self.post_graphql(
+            """
+                query CountryProfiles {
+                  countryProfiles {
+                    code
+                    supportedDocumentTypes {
+                      documentType
+                      localName
+                      captureSides
+                    }
+                  }
+                }
+            """,
+            token="",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = response.json()
+        self.assertNotIn("errors", payload)
+        gh = next(item for item in payload["data"]["countryProfiles"] if item["code"] == "GH")
+        national_id = next(
+            item
+            for item in gh["supportedDocumentTypes"]
+            if item["documentType"] == "national_id"
+        )
+        self.assertEqual(national_id["captureSides"], ["front", "back"])
+
     def test_verifications_query_returns_tenant_scoped_dashboard_data(self):
         subject = VerificationSubject.objects.create(
             tenant=self.tenant,
