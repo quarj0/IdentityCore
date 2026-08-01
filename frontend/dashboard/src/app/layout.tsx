@@ -17,7 +17,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      data-scroll-smooth
+      className="h-full bg-white antialiased dark:bg-gray-900"
+    >
       <body>
         <a
           href="#main-content"
