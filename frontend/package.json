@@ -2,7 +2,7 @@
   "name": "identitycore",
   "private": true,
   "version": "0.0.0",
-  "packageManager": "pnpm@11.5.2",
+  "packageManager": "pnpm@11.18.0",
   "scripts": {
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -15,6 +15,6 @@
     "test:e2e:verify": "pnpm --filter verification-portal test:e2e"
   },
   "devDependencies": {
-    "prettier": "^3.6.2"
+    "prettier": "^3.9.6"
   }
 }
