@@ -127,7 +127,13 @@ function AuthenticatedActions({ user }: { user: AuthUser }) {
   return (
     <>
       <Button asChild size="sm" className="rounded-xl">
-        <Link href="/onboarding">Workspace setup</Link>
+        <a
+          href={
+            process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3000"
+          }
+        >
+          Open dashboard
+        </a>
       </Button>
 
       <DropdownMenu>
@@ -156,10 +162,15 @@ function AuthenticatedActions({ user }: { user: AuthUser }) {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
-            <Link href="/onboarding" className="flex items-center gap-2">
+            <a
+              href={
+                process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3000"
+              }
+              className="flex items-center gap-2"
+            >
               <Settings className="h-4 w-4 text-muted-foreground" />
-              Workspace setup
-            </Link>
+              Open dashboard
+            </a>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem

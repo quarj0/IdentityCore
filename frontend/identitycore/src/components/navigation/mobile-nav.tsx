@@ -91,10 +91,16 @@ export function MobileNav({
               </p>
             </div>
             <Button asChild size="sm" className="w-full">
-              <Link href="/onboarding" onClick={onNavigate}>
+              <a
+                href={
+                  process.env.NEXT_PUBLIC_DASHBOARD_URL ??
+                  "http://localhost:3000"
+                }
+                onClick={onNavigate}
+              >
                 <Settings className="h-4 w-4" />
-                Workspace setup
-              </Link>
+                Open dashboard
+              </a>
             </Button>
             <Button
               variant="outline"
