@@ -1,7 +1,6 @@
 from datetime import timedelta
 
 from django.conf import settings
-from django.core.paginator import Paginator
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
@@ -21,6 +20,12 @@ from apps.verifications.models import (
     VerificationStatus,
 )
 from apps.verifications.review_access import review_owner_for_metadata
+from common.pagination import paginate_results as _paginate_results
+
+
+def paginate_results(queryset, page: int, page_size: int):
+    """Compatibility wrapper for GraphQL callers using the former location."""
+    return _paginate_results(queryset, page, page_size)
 
 
 def get_request_tenant(request):
@@ -420,14 +425,3 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
         else:
             verification.save(update_fields=["status", "updated_at"])
         return decision_record
-
-
-def paginate_results(queryset, page: int, page_size: int):
-    paginator = Paginator(queryset, page_size)
-    page_obj = paginator.get_page(page)
-    return page_obj, {
-        "page": page_obj.number,
-        "page_size": page_size,
-        "total": paginator.count,
-        "total_pages": paginator.num_pages,
-    }
