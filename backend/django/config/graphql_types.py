@@ -596,6 +596,7 @@ class DocumentTypeNode:
 class SupportedDocumentTypeNode:
     document_type: str
     local_name: str
+    capture_sides: list[str]
 
 
 @strawberry.type

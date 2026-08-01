@@ -95,7 +95,7 @@ async function proxy(
         { status: 413, headers: responseHeaders(id) },
       );
     }
-    upstream = await fetch(`${apiUrl(path.join("/"))}${query}`, {
+    upstream = await fetch(`${apiUrl(`${path.join("/")}/`)}${query}`, {
       method: request.method,
       headers,
       body,
