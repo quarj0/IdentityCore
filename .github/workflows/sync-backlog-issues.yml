@@ -1,0 +1,28 @@
+name: Sync implementation backlog issues
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - docs/planning/implementation-backlog.md
+      - scripts/sync_github_issues.py
+      - .github/workflows/sync-backlog-issues.yml
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: sync-implementation-backlog-issues
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create or update backlog issues
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/sync_github_issues.py --apply

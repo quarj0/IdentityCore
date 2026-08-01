@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { ThemeProvider, Toaster } from "@identitycore/ui";
-import { SessionExpiryBoundary } from "@/components/auth/session-expiry-boundary";
 import "./globals.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3001";
@@ -72,9 +70,6 @@ export default function RootLayout({
           Skip to content
         </a>
         <ThemeProvider defaultTheme="light" storageKey="identitycore-web-theme">
-          <Suspense fallback={null}>
-            <SessionExpiryBoundary />
-          </Suspense>
           {children}
           <Toaster />
         </ThemeProvider>

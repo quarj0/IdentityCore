@@ -50,6 +50,29 @@ const nextConfig = (phase: string): NextConfig => {
     async headers() {
       return [{ source: "/(.*)", headers: securityHeaders }];
     },
+    async redirects() {
+      const dashboard = (
+        process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3000"
+      ).replace(/\/$/, "");
+      return [
+        "/login",
+        "/register",
+        "/forgot-password",
+        "/reset-password",
+        "/change-password",
+        "/verify-email",
+      ].map((source) => ({
+        source,
+        destination: `${dashboard}${source}`,
+        permanent: false,
+      })).concat([
+        {
+          source: "/onboarding/:path*",
+          destination: `${dashboard}/onboarding/:path*`,
+          permanent: false,
+        },
+      ]);
+    },
     turbopack: {
       root: path.join(__dirname, ".."),
     },

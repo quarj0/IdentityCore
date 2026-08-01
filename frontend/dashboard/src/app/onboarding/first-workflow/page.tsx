@@ -32,9 +32,6 @@ import {
   type WorkspaceProject,
 } from "@/lib/workflow-templates-api";
 
-const DASHBOARD_URL =
-  process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3000";
-
 export default function FirstWorkflowPage() {
   const [templates, setTemplates] = useState<WorkflowTemplate[]>([]);
   const [project, setProject] = useState<WorkspaceProject | null>(null);
@@ -343,7 +340,7 @@ function CreatedWorkflowCard({ workflow }: { workflow: InstantiatedWorkflow }) {
       </CardHeader>
       <CardContent>
         <Button asChild size="lg" className="rounded-xl">
-          <Link href={`${DASHBOARD_URL}/workflows/${workflow.id}`}>
+          <Link href={`/workflows/${workflow.id}`}>
             Configure workflow in dashboard <ArrowRight className="h-4 w-4" />
           </Link>
         </Button>
