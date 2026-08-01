@@ -1,3 +1,5 @@
+export * from "./models.js";
+
 export const VERSION: string;
 export class IdentityCoreError extends Error {}
 export class IdentityCoreConnectionError extends IdentityCoreError {}
