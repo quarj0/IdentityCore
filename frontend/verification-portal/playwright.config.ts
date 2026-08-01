@@ -38,7 +38,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "pnpm build && pnpm start:standalone",
+    command:
+      "API_ORIGIN=https://api.example.test DEPLOYMENT_VERSION=e2e pnpm build && API_ORIGIN=https://api.example.test DEPLOYMENT_VERSION=e2e pnpm start:standalone",
     url: "http://127.0.0.1:3002",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

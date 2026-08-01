@@ -1,30 +1,36 @@
-import type { LucideIcon } from "lucide-react";
-import { Boxes } from "lucide-react";
+import {
+  Activity,
+  ClipboardCheck,
+  FileSearch,
+  Fingerprint,
+  GitBranch,
+  ListChecks,
+  Radar,
+  ScanFace,
+  ScrollText,
+  Send,
+  Workflow,
+} from "lucide-react";
 
-type Service = {
-  name: string;
-  icon: LucideIcon;
-};
-
-const services: Service[] = [
-  { name: "Identity verification", icon: Boxes },
-  { name: "Document intelligence", icon: Boxes },
-  { name: "Biometric matching", icon: Boxes },
-  { name: "Liveness checks", icon: Boxes },
-  { name: "Consent records", icon: Boxes },
-  { name: "Audit trails", icon: Boxes },
-  { name: "Risk scoring", icon: Boxes },
-  { name: "Policy decisions", icon: Boxes },
-  { name: "Provider orchestration", icon: Boxes },
-  { name: "Workflow templates", icon: Boxes },
-  { name: "Webhooks", icon: Boxes },
-  { name: "Evidence reports", icon: Boxes },
+const services = [
+  ["Identity verification", Fingerprint],
+  ["Document intelligence", FileSearch],
+  ["Biometric matching", ScanFace],
+  ["Liveness checks", Radar],
+  ["Consent records", ClipboardCheck],
+  ["Audit trails", ScrollText],
+  ["Risk scoring", Activity],
+  ["Policy decisions", ListChecks],
+  ["Provider orchestration", GitBranch],
+  ["Workflow templates", Workflow],
+  ["Webhooks", Send],
+  ["Evidence reports", FileSearch],
 ];
 
 export function ServiceGrid() {
   return (
     <div className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {services.map(({ name, icon: Icon }) => (
+      {services.map(([service, Icon]) => (
         <div
           key={name}
           className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"

@@ -48,6 +48,8 @@ jobs:
         working-directory: frontend
       - run: pnpm --filter verification-portal test:e2e
         working-directory: frontend
+      - run: docker build -f verification-portal/Dockerfile -t identitycore/verification-portal:ci .
+        working-directory: frontend
 
 
   sdks:

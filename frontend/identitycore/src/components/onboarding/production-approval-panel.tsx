@@ -54,23 +54,23 @@ export function ProductionApprovalPanel() {
       <Card className="rounded-3xl border-slate-200 bg-white p-2 shadow-sm">
         <CardHeader>
           <Rocket className="mb-4 h-7 w-7 text-blue-600" />
-          <CardTitle>Production approval status</CardTitle>
+          <CardTitle>Production access review</CardTitle>
           <CardDescription className="leading-7">
-            The onboarding workflow is currently `
-            {state?.platformReviewStatus ?? "not_started"}`. Tenant users do not
-            submit a separate production request in the current API; the
-            platform review begins after administrator identity submission.
+            Your onboarding review is currently <strong>
+              {state?.platformReviewStatus ?? "not started"}
+            </strong>. Platform review begins once an organization administrator
+            submits their identity details.
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-4">
           <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
             <p className="text-sm text-blue-900">
-              Your review continues in the background. Continue when you are
-              ready; this page will not redirect you automatically.
+              Your review is continuing in the background. You can continue to
+              your dashboard whenever you are ready.
             </p>
             <Button asChild className="mt-3">
-              <a href={dashboardUrl}>Go to dashboard now</a>
+              <a href={dashboardUrl}>Continue to dashboard</a>
             </Button>
           </div>
           <div className="rounded-2xl bg-slate-50 p-4">
