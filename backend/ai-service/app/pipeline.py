@@ -849,6 +849,12 @@ def run_with_mode(
     settings = get_settings()
     if settings.real_mode_enabled:
         try:
+            integrity_errors = settings.model_asset_integrity_errors()
+            if integrity_errors:
+                raise RuntimeError(
+                    "Model asset integrity validation failed: "
+                    + ", ".join(integrity_errors)
+                )
             result = real_callable()
             return {"status": status, "engine": "real", **result}
         except Exception as exc:
