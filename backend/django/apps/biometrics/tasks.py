@@ -12,7 +12,7 @@ from apps.biometrics.models import (
     SelfieCaptureStatus,
 )
 from apps.notifications.services import queue_verification_status_notifications
-from apps.providers.ai_service import run_face_compare, run_liveness_check
+from apps.providers.adapters import run_face_compare, run_liveness_check
 from apps.providers.models import ProviderCheckStatus
 from apps.risk.services import run_verification_risk_and_decision
 from apps.uploads.services import promote_upload_to_media_by_storage_key
