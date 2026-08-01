@@ -320,6 +320,71 @@ class VerificationWorkflowTests(APITestCase):
                 self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
                 self.assertEqual(response.data["error"]["code"], "validation_error")
 
+        for query in ("?limit=0", "?limit=101", "?limit=many", "?cursor=invalid"):
+            with self.subTest(query=query):
+                response = self.client.get(
+                    reverse("verification-list-create") + query,
+                    **self.auth_headers(),
+                )
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_cursor_traversal_is_stable_during_concurrent_inserts(self):
+        def create_verification(name):
+            return Verification.objects.create(
+                tenant=self.tenant,
+                organization=self.organization,
+                verification_subject=self.tenant.verification_subjects.create(
+                    full_name=name
+                ),
+                purpose="Cursor traversal",
+                expires_at=timezone.now() + timedelta(hours=1),
+                status=VerificationStatus.PENDING_CONSENT,
+            )
+
+        older = create_verification("Older")
+        newest = create_verification("Newest")
+        first = self.client.get(
+            reverse("verification-list-create") + "?limit=1",
+            **self.auth_headers(),
+        )
+        cursor = first.data["data"]["pagination"]["next_cursor"]
+        inserted = create_verification("Inserted concurrently")
+
+        second = self.client.get(
+            reverse("verification-list-create") + f"?limit=1&cursor={cursor}",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(first.data["data"]["results"][0]["id"], newest.public_id)
+        self.assertEqual(second.data["data"]["results"][0]["id"], older.public_id)
+        self.assertNotEqual(second.data["data"]["results"][0]["id"], inserted.public_id)
+
+    def test_cursor_cannot_be_reused_with_different_filters(self):
+        for name in ("First", "Second"):
+            Verification.objects.create(
+                tenant=self.tenant,
+                organization=self.organization,
+                verification_subject=self.tenant.verification_subjects.create(
+                    full_name=name
+                ),
+                purpose="Cursor filters",
+                expires_at=timezone.now() + timedelta(hours=1),
+                status=VerificationStatus.PENDING_CONSENT,
+            )
+        first = self.client.get(
+            reverse("verification-list-create") + "?limit=1",
+            **self.auth_headers(),
+        )
+        cursor = first.data["data"]["pagination"]["next_cursor"]
+
+        response = self.client.get(
+            reverse("verification-list-create")
+            + f"?limit=1&status=verified&cursor={cursor}",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_list_rejects_out_of_range_pages_instead_of_repeating_last_page(self):
         response = self.client.get(
             reverse("verification-list-create") + "?page=2",

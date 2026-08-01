@@ -91,11 +91,15 @@ public final class IdentityCoreClient {
             Map<String,Object> q = new LinkedHashMap<>(); q.put("status",status); q.put("external_reference",externalReference); q.put("page",page); q.put("page_size",pageSize);
             return request("GET", "/verifications/" + query(q), null, null);
         }
+        public JsonNode listCursor(String status, String externalReference, String cursor, Integer limit) {
+            Map<String,Object> q = new LinkedHashMap<>(); q.put("status",status); q.put("external_reference",externalReference); q.put("cursor",cursor); q.put("limit",limit);
+            return request("GET", "/verifications/" + query(q), null, null);
+        }
         public Iterable<JsonNode> iterate(String status, String externalReference, int pageSize) {
-            return () -> new java.util.Iterator<>() { int page=1,index=0,totalPages=1; JsonNode items=json.createArrayNode();
+            return () -> new java.util.Iterator<>() { String cursor=""; int index=0; boolean finished=false; JsonNode items=json.createArrayNode();
                 public boolean hasNext() { loadIfNeeded(); return index < items.size(); }
                 public JsonNode next() { loadIfNeeded(); if(index>=items.size()) throw new java.util.NoSuchElementException(); return items.get(index++); }
-                private void loadIfNeeded() { while(index>=items.size() && page<=totalPages){ JsonNode result=list(status,externalReference,page,pageSize); items=result.path("results"); index=0; totalPages=result.path("pagination").path("total_pages").asInt(page); page++; if(items.size()>0)return; } }
+                private void loadIfNeeded() { while(index>=items.size() && !finished){ JsonNode result=listCursor(status,externalReference,cursor,pageSize); items=result.path("results"); index=0; cursor=result.path("pagination").path("next_cursor").asText(""); finished=cursor.isBlank(); if(items.size()>0)return; } }
             };
         }
         public JsonNode retrieve(String id) { return request("GET", "/verifications/" + segment(id), null, null); }
