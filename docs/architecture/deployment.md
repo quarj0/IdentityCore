@@ -914,7 +914,11 @@ Development example:
 
 For production, replace the development origins with the exact HTTPS verification portal origin, for example `https://verify.example.com`. Do not use `*` for identity-evidence uploads and do not add dashboard, marketing, or preview origins unless they actually host the verification portal.
 
-The Django API must separately allow the portal origin through `DJANGO_CORS_ALLOWED_ORIGINS`, and the portal must address Django through `NEXT_PUBLIC_API_ORIGIN`. Browser-visible configuration must never use Docker-only hostnames such as `django` or `ai-service`.
+The portal BFF addresses Django through the server-only `API_ORIGIN`; browser code
+must not call Django directly or receive this origin as public configuration.
+Consequently Django does not need a verification-portal CORS exception. The
+server-side origin may use an internal service name when the production network
+and TLS trust configuration support it, while all subject-facing links and
+object-storage CORS entries must use the public HTTPS portal origin.
 
 If direct R2 upload is blocked by a browser or a transient CORS deployment mismatch, the portal falls back to the authenticated same-origin Django transfer endpoint. That fallback is resilience only; a correctly configured R2 CORS policy remains the normal production path.
-

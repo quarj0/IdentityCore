@@ -3,15 +3,18 @@ import {
   SESSION_COOKIE,
   SESSION_ID_COOKIE,
   apiUrl,
+  requestId,
   requestIsSameOrigin,
+  responseHeaders,
   sessionCookieOptions,
 } from "@/lib/bff-session";
 
 export async function POST(request: Request) {
+  const id = requestId(request);
   if (!requestIsSameOrigin(request)) {
     return NextResponse.json(
       { error: "Cross-origin session exchange denied." },
-      { status: 403 },
+      { status: 403, headers: responseHeaders(id) },
     );
   }
   const body = (await request.json().catch(() => null)) as {
@@ -20,12 +23,13 @@ export async function POST(request: Request) {
   } | null;
   if (
     !body?.sessionId ||
+    !/^[A-Za-z0-9_-]{1,128}$/.test(body.sessionId) ||
     !body.sessionToken ||
     body.sessionToken.length > 4096
   ) {
     return NextResponse.json(
       { error: "Invalid verification credential." },
-      { status: 400 },
+      { status: 400, headers: responseHeaders(id) },
     );
   }
   const controller = new AbortController();
@@ -40,6 +44,7 @@ export async function POST(request: Request) {
           Authorization: `Bearer ${body.sessionToken}`,
           "X-Session-Id": body.sessionId,
           "Accept-Language": request.headers.get("accept-language") ?? "en",
+          "X-Request-Id": id,
         },
         cache: "no-store",
         signal: controller.signal,
@@ -48,7 +53,7 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json(
       { error: "Verification service unavailable." },
-      { status: 502 },
+      { status: 502, headers: responseHeaders(id) },
     );
   } finally {
     clearTimeout(timeout);
@@ -56,23 +61,30 @@ export async function POST(request: Request) {
   if (!upstream.ok) {
     return NextResponse.json(
       { error: "Invalid or expired verification credential." },
-      { status: 401 },
+      { status: 401, headers: responseHeaders(id) },
     );
   }
-  const response = NextResponse.json({ success: true });
+  const response = NextResponse.json(
+    { success: true },
+    { headers: responseHeaders(id) },
+  );
   response.cookies.set(SESSION_COOKIE, body.sessionToken, sessionCookieOptions);
   response.cookies.set(SESSION_ID_COOKIE, body.sessionId, sessionCookieOptions);
   return response;
 }
 
 export async function DELETE(request: Request) {
+  const id = requestId(request);
   if (!requestIsSameOrigin(request)) {
     return NextResponse.json(
       { error: "Cross-origin request denied." },
-      { status: 403 },
+      { status: 403, headers: responseHeaders(id) },
     );
   }
-  const response = NextResponse.json({ success: true });
+  const response = NextResponse.json(
+    { success: true },
+    { headers: responseHeaders(id) },
+  );
   response.cookies.set(SESSION_COOKIE, "", {
     ...sessionCookieOptions,
     maxAge: 0,
