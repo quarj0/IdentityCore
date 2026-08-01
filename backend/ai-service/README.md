@@ -20,6 +20,13 @@ when downloads are intended:
 docker compose --profile model-bootstrap run --rm ai-model-bootstrap
 ```
 
+The bootstrap command writes `AI_MODEL_ROOT/manifest.json` with the SHA-256 digest of
+every model artifact. `AI_MODEL_MANIFEST` may point to a different manifest. In `real`
+mode, readiness returns `503` and processing fails closed when the manifest is missing,
+invalid, or lists a missing/altered file. Re-run the bootstrap command only after
+obtaining trusted replacement assets; inspect the new inventory before restarting the
+service. `hybrid` is intended for non-production use because it permits mock fallback.
+
 Storage and encryption variables are shared with Django and documented in
 [`.env.example`](../../.env.example). Never expose this port publicly or log media,
 extracted identity attributes, embeddings, or the shared token.
