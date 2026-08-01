@@ -165,30 +165,6 @@ class VerificationSessionPortalTests(APITestCase):
                         {"side": "single", "label": "Photo page", "required": True}
                     ],
                 },
-                {
-                    "document_type": "driver_license",
-                    "label": "Driver License",
-                    "capture_requirements": [
-                        {"side": "front", "label": "Front", "required": True},
-                        {"side": "back", "label": "Back", "required": True},
-                    ],
-                },
-                {
-                    "document_type": "health_id",
-                    "label": "Health ID",
-                    "capture_requirements": [
-                        {"side": "front", "label": "Front", "required": True},
-                        {"side": "back", "label": "Back", "required": True},
-                    ],
-                },
-                {
-                    "document_type": "voter_id",
-                    "label": "Voter ID",
-                    "capture_requirements": [
-                        {"side": "front", "label": "Front", "required": True},
-                        {"side": "back", "label": "Back", "required": True},
-                    ],
-                },
             ],
         )
 
