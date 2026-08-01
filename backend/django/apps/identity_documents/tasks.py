@@ -7,12 +7,12 @@ from django.utils import timezone
 from apps.audit.services import record_audit_event
 from apps.document_captures.models import DocumentCaptureStatus
 from apps.identity_documents.models import IdentityDocument, IdentityDocumentStatus
-from apps.providers.ai_service import (
-    AIServiceUnavailable,
+from apps.providers.adapters import (
     run_document_classification,
     run_document_ocr,
     run_document_quality,
 )
+from apps.providers.ai_service import AIServiceUnavailable
 from apps.providers.models import ProviderCheckStatus, ProviderCheckType
 from apps.uploads.services import promote_upload_to_media_by_storage_key
 from apps.verifications.models import VerificationStatus
@@ -107,7 +107,9 @@ def _latest_provider_check_for_document(
 )
 def process_identity_document_task(identity_document_id: str) -> str:
     identity_document = (
-        IdentityDocument.objects.select_related("verification", "verification_subject", "tenant")
+        IdentityDocument.objects.select_related(
+            "verification", "verification_subject", "tenant"
+        )
         .prefetch_related("captures")
         .get(public_id=identity_document_id)
     )
@@ -148,7 +150,9 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 document_storage_key=capture.storage_key,
                 document_storage_bucket=temp_bucket,
             )
-            capture.quality_score = Decimal(str(quality_result.get("quality_score", "0")))
+            capture.quality_score = Decimal(
+                str(quality_result.get("quality_score", "0"))
+            )
             capture.status = (
                 DocumentCaptureStatus.REJECTED
                 if _quality_result_requires_rejection(quality_result)
@@ -166,7 +170,10 @@ def process_identity_document_task(identity_document_id: str) -> str:
                     "model_version": quality_result.get("model_version", ""),
                 }
             )
-            if lowest_quality_score is None or capture.quality_score < lowest_quality_score:
+            if (
+                lowest_quality_score is None
+                or capture.quality_score < lowest_quality_score
+            ):
                 lowest_quality_score = capture.quality_score
             if quality_result.get("issues"):
                 if _quality_result_requires_rejection(quality_result):
@@ -316,7 +323,9 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 else IdentityDocumentStatus.PROCESSED
             )
         )
-        identity_document.save(update_fields=["extracted_data_json", "status", "updated_at"])
+        identity_document.save(
+            update_fields=["extracted_data_json", "status", "updated_at"]
+        )
 
         # A document review signal is not a final verification decision. Continue
         # collecting selfie, liveness, and face-match evidence so a reviewer has
@@ -324,7 +333,8 @@ def process_identity_document_task(identity_document_id: str) -> str:
         # result and applies manual-review routing after biometrics finish.
         verification.status = (
             VerificationStatus.AWAITING_SELFIE
-            if identity_document.status in {
+            if identity_document.status
+            in {
                 IdentityDocumentStatus.PROCESSED,
                 IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
             }
@@ -470,7 +480,13 @@ def process_identity_document_task(identity_document_id: str) -> str:
             provider_check.error_message = str(exc)
             provider_check.completed_at = now
             provider_check.save(
-                update_fields=["status", "error_code", "error_message", "completed_at", "updated_at"]
+                update_fields=[
+                    "status",
+                    "error_code",
+                    "error_message",
+                    "completed_at",
+                    "updated_at",
+                ]
             )
         record_audit_event(
             tenant=verification.tenant,

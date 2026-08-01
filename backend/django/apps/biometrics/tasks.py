@@ -12,7 +12,7 @@ from apps.biometrics.models import (
     SelfieCaptureStatus,
 )
 from apps.notifications.services import queue_verification_status_notifications
-from apps.providers.ai_service import run_face_compare, run_liveness_check
+from apps.providers.adapters import run_face_compare, run_liveness_check
 from apps.providers.models import ProviderCheckStatus
 from apps.risk.services import run_verification_risk_and_decision
 from apps.uploads.services import promote_upload_to_media_by_storage_key
@@ -127,7 +127,9 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             source_document_capture = (
                 face_match.document_capture
                 if face_match.document_capture_id
-                else face_match.identity_document.captures.order_by("created_at").first()
+                else face_match.identity_document.captures.order_by(
+                    "created_at"
+                ).first()
             )
             document_storage_key = source_document_capture.storage_key
             processing_stage = "face_match"
@@ -140,7 +142,8 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                 selfie_mime_type=selfie_capture.mime_type,
                 document_storage_bucket=(
                     media_bucket
-                    if source_document_capture and source_document_capture.status != "uploaded"
+                    if source_document_capture
+                    and source_document_capture.status != "uploaded"
                     else temp_bucket
                 ),
             )
@@ -228,11 +231,13 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             admin_identity = dict(
                 onboarding.get("administrator_identity_verification") or {}
             )
-            admin_identity.update({
-                "verification_id": verification.public_id,
-                "status": decision_record.decision,
-                "completed_at": timezone.now().isoformat(),
-            })
+            admin_identity.update(
+                {
+                    "verification_id": verification.public_id,
+                    "status": decision_record.decision,
+                    "completed_at": timezone.now().isoformat(),
+                }
+            )
             onboarding["administrator_identity_verification"] = admin_identity
             settings_json["onboarding"] = onboarding
             organization.settings_json = settings_json
@@ -274,10 +279,7 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
         return verification.status
     except Exception as exc:
         now = timezone.now()
-        if (
-            processing_stage == "liveness"
-            and liveness_provider_check is not None
-        ):
+        if processing_stage == "liveness" and liveness_provider_check is not None:
             liveness_provider_check.status = ProviderCheckStatus.FAILED
             liveness_provider_check.error_code = "provider_unavailable"
             liveness_provider_check.error_message = str(exc)
@@ -291,10 +293,7 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                     "updated_at",
                 ]
             )
-        if (
-            processing_stage == "face_match"
-            and face_provider_check is not None
-        ):
+        if processing_stage == "face_match" and face_provider_check is not None:
             face_provider_check.status = ProviderCheckStatus.FAILED
             face_provider_check.error_code = "provider_unavailable"
             face_provider_check.error_message = str(exc)
