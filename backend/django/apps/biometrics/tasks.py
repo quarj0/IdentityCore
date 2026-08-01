@@ -79,9 +79,39 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                 else None
             ),
         )
+        metrics = liveness_result.get("metrics") or {}
+        face_count = metrics.get("face_count")
+        detection_confidence = metrics.get("avg_detection_confidence")
+        model_name = liveness_result.get("model_name")
+        model_version = liveness_result.get("model_version")
+        if (
+            isinstance(face_count, bool)
+            or not isinstance(face_count, int)
+            or face_count < 0
+            or detection_confidence is None
+            or not model_name
+            or not model_version
+        ):
+            raise ValueError("Liveness provider omitted required face detection evidence.")
+
+        selfie_capture.face_count = face_count
+        selfie_capture.face_detection_confidence = Decimal(
+            str(detection_confidence)
+        )
+        selfie_capture.face_detection_model_name = model_name
+        selfie_capture.face_detection_model_version = model_version
+        selfie_capture.save(
+            update_fields=[
+                "face_count",
+                "face_detection_confidence",
+                "face_detection_model_name",
+                "face_detection_model_version",
+                "updated_at",
+            ]
+        )
         liveness_check.status = (
             LivenessCheckStatus.PASSED
-            if liveness_result.get("passed")
+            if liveness_result.get("passed") and face_count == 1
             else LivenessCheckStatus.FAILED
         )
         liveness_check.score = Decimal(str(liveness_result.get("score", "0")))
