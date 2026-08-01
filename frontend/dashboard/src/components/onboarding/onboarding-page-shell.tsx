@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import {
   Badge,
+  BrandMark,
   Button,
   Card,
   CardContent,
@@ -10,8 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@identitycore/ui";
-import { MarketingHeader } from "@/components/marketing/marketing-header";
-import { MarketingFooter } from "../marketing/marketing-footer";
 import {
   onboardingSteps,
   getOnboardingStepIndex,
@@ -47,7 +46,13 @@ export function OnboardingPageShell({
   return (
     <div className="min-h-screen bg-background text-foreground">
       <OnboardingAccessGuard pathname={pathname} />
-      <MarketingHeader />
+      <header className="border-b bg-background/95">
+        <div className="mx-auto flex h-16 w-full max-w-7xl items-center px-4 sm:px-6">
+          <Link href="/" aria-label="IdentityCore dashboard home">
+            <BrandMark subtitle="Workspace setup" />
+          </Link>
+        </div>
+      </header>
 
       <main id="main-content" className="relative overflow-hidden">
         <div className="absolute inset-x-0 top-0 -z-10 h-[560px] bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]" />
@@ -142,7 +147,6 @@ export function OnboardingPageShell({
         </section>
       </main>
 
-      <MarketingFooter />
     </div>
   );
 }
