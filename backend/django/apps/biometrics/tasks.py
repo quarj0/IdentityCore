@@ -37,6 +37,15 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
         "verification", "selfie_capture", "tenant", "challenge"
     ).get(public_id=liveness_check_id)
     verification = liveness_check.verification
+
+    # Celery may deliver the same message more than once.  A completed biometric
+    # check is immutable: rerunning the providers would create a second decision,
+    # audit trail, webhook, and notification for the same submitted evidence.
+    # Error outcomes are terminal too and intentionally remain available for
+    # manual review rather than being silently retried.
+    if liveness_check.status != LivenessCheckStatus.INCONCLUSIVE:
+        return verification.status
+
     selfie_capture = liveness_check.selfie_capture
     face_match = (
         verification.face_matches.filter(selfie_capture=selfie_capture)
@@ -127,7 +136,9 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             source_document_capture = (
                 face_match.document_capture
                 if face_match.document_capture_id
-                else face_match.identity_document.captures.order_by("created_at").first()
+                else face_match.identity_document.captures.order_by(
+                    "created_at"
+                ).first()
             )
             document_storage_key = source_document_capture.storage_key
             processing_stage = "face_match"
@@ -140,7 +151,8 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                 selfie_mime_type=selfie_capture.mime_type,
                 document_storage_bucket=(
                     media_bucket
-                    if source_document_capture and source_document_capture.status != "uploaded"
+                    if source_document_capture
+                    and source_document_capture.status != "uploaded"
                     else temp_bucket
                 ),
             )
@@ -228,11 +240,13 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             admin_identity = dict(
                 onboarding.get("administrator_identity_verification") or {}
             )
-            admin_identity.update({
-                "verification_id": verification.public_id,
-                "status": decision_record.decision,
-                "completed_at": timezone.now().isoformat(),
-            })
+            admin_identity.update(
+                {
+                    "verification_id": verification.public_id,
+                    "status": decision_record.decision,
+                    "completed_at": timezone.now().isoformat(),
+                }
+            )
             onboarding["administrator_identity_verification"] = admin_identity
             settings_json["onboarding"] = onboarding
             organization.settings_json = settings_json
@@ -274,10 +288,7 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
         return verification.status
     except Exception as exc:
         now = timezone.now()
-        if (
-            processing_stage == "liveness"
-            and liveness_provider_check is not None
-        ):
+        if processing_stage == "liveness" and liveness_provider_check is not None:
             liveness_provider_check.status = ProviderCheckStatus.FAILED
             liveness_provider_check.error_code = "provider_unavailable"
             liveness_provider_check.error_message = str(exc)
@@ -291,10 +302,7 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                     "updated_at",
                 ]
             )
-        if (
-            processing_stage == "face_match"
-            and face_provider_check is not None
-        ):
+        if processing_stage == "face_match" and face_provider_check is not None:
             face_provider_check.status = ProviderCheckStatus.FAILED
             face_provider_check.error_code = "provider_unavailable"
             face_provider_check.error_message = str(exc)
