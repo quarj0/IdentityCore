@@ -9,10 +9,14 @@ import {
   Database,
   GitBranch,
   KeyRound,
-  Layers3,
   LockKeyhole,
   Network,
+  ScanFace,
+  ScanLine,
+  ScrollText,
+  SlidersHorizontal,
   Shield,
+  UserRoundCheck,
   Workflow,
 } from "lucide-react";
 import {
@@ -85,14 +89,14 @@ const providerRows = [
 ];
 
 const identityServices = [
-  "Identity verification",
-  "Document intelligence",
-  "Biometric matching",
-  "Liveness detection",
-  "Consent records",
-  "Audit trails",
-  "Risk scoring",
-  "Policy decisions",
+  { name: "Identity verification", icon: UserRoundCheck },
+  { name: "Document intelligence", icon: ScanLine },
+  { name: "Biometric matching", icon: ScanFace },
+  { name: "Liveness detection", icon: BrainCircuit },
+  { name: "Consent records", icon: ScrollText },
+  { name: "Audit trails", icon: GitBranch },
+  { name: "Risk scoring", icon: SlidersHorizontal },
+  { name: "Policy decisions", icon: Shield },
 ];
 
 const deploymentOptions = [
@@ -308,19 +312,19 @@ export default function LandingPage() {
           <SectionHeader
             eyebrow="Identity services"
             title="Verification is one service. The platform is the foundation."
-            description="IdentityCore starts with verification and expands into the reusable trust services organizations need to run modern digital identity operations."
+            description="Start with verification and add the reusable trust services your organization needs to operate digital identity with confidence."
           />
 
           <div className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {identityServices.map((service) => (
+            {identityServices.map(({ name, icon: Icon }) => (
               <div
-                key={service}
+                key={name}
                 className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
-                  <Layers3 className="h-4 w-4" />
+                  <Icon className="h-4 w-4" />
                 </div>
-                <span className="text-sm font-medium">{service}</span>
+                <span className="text-sm font-medium">{name}</span>
               </div>
             ))}
           </div>
