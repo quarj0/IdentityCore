@@ -7,9 +7,10 @@ and desktop-to-mobile handoff. It runs on port `3002` locally.
 ## Local development
 
 ```bash
-pnpm install
-cp .env.example .env.local
-pnpm dev
+cd frontend
+corepack pnpm install --frozen-lockfile
+cp verification-portal/.env.example verification-portal/.env.local
+pnpm dev:verify
 ```
 
 The Django API must be available at the server-only `API_ORIGIN`.
@@ -25,7 +26,7 @@ the portal BFF.
 | Variable                             | Purpose                                                   |
 | ------------------------------------ | --------------------------------------------------------- |
 | `API_ORIGIN`                         | Required server-only Django API origin used by the BFF.   |
-| `DEPLOYMENT_VERSION`                 | Release identifier returned by the readiness endpoint.   |
+| `DEPLOYMENT_VERSION`                 | Release identifier returned by the readiness endpoint.    |
 | `NEXT_PUBLIC_ONBOARDING_RETURN_URL`  | Optional safe fallback after completion.                  |
 | `NEXT_PUBLIC_ALLOWED_RETURN_ORIGINS` | Comma-separated allowlist of organization return origins. |
 
@@ -59,10 +60,10 @@ partial video is never submitted as complete evidence.
 ## Checks
 
 ```bash
-pnpm lint
-pnpm build
-pnpm exec playwright install chromium webkit
-pnpm test:e2e
+pnpm --filter verification-portal lint
+pnpm --filter verification-portal build
+pnpm test:e2e:verify:install
+pnpm test:e2e:verify
 ```
 
 The browser matrix runs desktop Chromium and WebKit plus Pixel and iPhone device

@@ -12,6 +12,9 @@ NEXT_PUBLIC_API_ORIGIN=http://localhost:8000
 NEXT_PUBLIC_IDENTITYCORE_ORIGIN=http://localhost:3001
 ```
 
+From `frontend/`, run `corepack pnpm install --frozen-lockfile` and then
+`pnpm dev:dashboard`; open `http://localhost:3000`.
+
 The public IdentityCore frontend sends all account actions to this application. Use
 `pnpm --filter dashboard lint`, `pnpm --filter dashboard test`, and
 `pnpm --filter dashboard build` for validation. Development servers are started only
