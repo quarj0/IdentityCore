@@ -1,4 +1,5 @@
 from datetime import timedelta
+from decimal import Decimal
 from unittest.mock import patch
 
 from django.test import TestCase
@@ -160,6 +161,10 @@ class BiometricsTaskTests(TestCase):
             "passed": True,
             "model_name": "mock-liveness",
             "model_version": "v1",
+            "metrics": {
+                "face_count": 1,
+                "avg_detection_confidence": 0.97,
+            },
         }
         mock_face.return_value = {
             "status": "completed",
@@ -183,6 +188,14 @@ class BiometricsTaskTests(TestCase):
         self.assertEqual(self.liveness_check.status, "passed")
         self.assertEqual(self.face_match.status, "matched")
         self.assertEqual(self.selfie_capture.status, "validated")
+        self.assertEqual(self.selfie_capture.face_count, 1)
+        self.assertEqual(
+            self.selfie_capture.face_detection_confidence, Decimal("0.9700")
+        )
+        self.assertEqual(
+            self.selfie_capture.face_detection_model_name, "mock-liveness"
+        )
+        self.assertEqual(self.selfie_capture.face_detection_model_version, "v1")
         self.assertEqual(self.selfie_upload.status, UploadStatus.PROMOTED)
         self.assertTrue(
             RiskAssessment.objects.filter(verification=self.verification).exists()
@@ -194,9 +207,29 @@ class BiometricsTaskTests(TestCase):
             Notification.objects.filter(template_code="verification.verified").exists()
         )
         self.assertEqual(mock_liveness.call_args.kwargs["selfie_storage_bucket"], "")
-        self.assertEqual(mock_liveness.call_args.kwargs["selfie_mime_type"], "image/jpeg")
+        self.assertEqual(
+            mock_liveness.call_args.kwargs["selfie_mime_type"], "image/jpeg"
+        )
         self.assertEqual(mock_face.call_args.kwargs["selfie_storage_bucket"], "")
         self.assertEqual(mock_face.call_args.kwargs["selfie_mime_type"], "image/jpeg")
+
+        mock_liveness.reset_mock()
+        mock_face.reset_mock()
+        decision_count = VerificationDecision.objects.filter(
+            verification=self.verification
+        ).count()
+
+        retry_result = process_verification_biometrics_task(
+            self.liveness_check.public_id
+        )
+
+        self.assertEqual(retry_result, VerificationStatus.VERIFIED)
+        mock_liveness.assert_not_called()
+        mock_face.assert_not_called()
+        self.assertEqual(
+            VerificationDecision.objects.filter(verification=self.verification).count(),
+            decision_count,
+        )
 
     @patch("apps.biometrics.tasks.queue_verification_status_notifications")
     @patch("apps.biometrics.tasks.queue_webhook_events")
@@ -264,6 +297,10 @@ class BiometricsTaskTests(TestCase):
             "passed": False,
             "model_name": "mediapipe-liveness",
             "model_version": "v1",
+            "metrics": {
+                "face_count": 0,
+                "avg_detection_confidence": 0.0,
+            },
         }
         mock_face.return_value = {
             "status": "completed",
@@ -278,6 +315,11 @@ class BiometricsTaskTests(TestCase):
         result = process_verification_biometrics_task(self.liveness_check.public_id)
 
         self.assertEqual(result, VerificationStatus.REJECTED)
+        self.selfie_capture.refresh_from_db()
+        self.assertEqual(self.selfie_capture.face_count, 0)
+        self.assertEqual(
+            self.selfie_capture.face_detection_model_name, "mediapipe-liveness"
+        )
         mock_queue_webhooks.assert_called_once_with(
             tenant=self.tenant,
             event_type="verification.rejected",
@@ -308,6 +350,10 @@ class BiometricsTaskTests(TestCase):
             "passed": True,
             "model_name": "active-liveness",
             "model_version": "v1",
+            "metrics": {
+                "face_count": 1,
+                "avg_detection_confidence": 0.97,
+            },
         }
         mock_face.side_effect = RuntimeError("face comparison unavailable")
 

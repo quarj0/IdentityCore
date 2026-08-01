@@ -37,7 +37,11 @@ from apps.verifications.serializers import (
     serialize_verification,
     serialize_verification_summary,
 )
-from common.pagination import paginate_results, pagination_params
+from common.pagination import (
+    paginate_cursor_results,
+    paginate_results,
+    pagination_params,
+)
 from apps.verifications.models import (
     Verification,
     VerificationSession,
@@ -132,14 +136,15 @@ class VerificationListCreateView(VerificationAccessMixin, APIView):
                 created_at__date__lte=date_filters["created_to"]
             )
 
-        page, page_size = pagination_params(request.query_params)
-        page_obj, pagination = paginate_results(verifications, page, page_size)
+        if "page" in request.query_params or "page_size" in request.query_params:
+            page, page_size = pagination_params(request.query_params)
+            page_obj, pagination = paginate_results(verifications, page, page_size)
+            results = page_obj.object_list
+        else:
+            results, pagination = paginate_cursor_results(verifications, request)
         return success_response(
             {
-                "results": [
-                    serialize_verification_summary(item)
-                    for item in page_obj.object_list
-                ],
+                "results": [serialize_verification_summary(item) for item in results],
                 "pagination": pagination,
             },
             request=request,

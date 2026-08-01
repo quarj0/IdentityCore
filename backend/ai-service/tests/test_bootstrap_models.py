@@ -1,3 +1,4 @@
+import json
 from types import SimpleNamespace
 
 from app import bootstrap_models
@@ -33,3 +34,6 @@ def test_bootstrap_creates_paddle_directories_before_initialization(
     bootstrap_models.main()
 
     assert (tmp_path / "manifest.json").exists()
+    bootstrap_models.main()
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    assert "manifest.json" not in {entry["path"] for entry in manifest["files"]}

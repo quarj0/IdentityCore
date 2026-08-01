@@ -102,3 +102,64 @@ jobs:
         working-directory: sdk/dotnet
       - run: dotnet pack src/IdentityCore/IdentityCore.csproj --configuration Release --no-restore
         working-directory: sdk/dotnet
+
+  sdk-live-python:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --project backend --group django --frozen
+      - run: scripts/start_sdk_compat_backend.sh
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: PYTHONPATH=sdk/python python -m unittest discover -s sdk/python/tests -p 'test_live_compatibility.py'
+
+  sdk-live-javascript:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --project backend --group django --frozen
+      - run: scripts/start_sdk_compat_backend.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: node --test test/live-compatibility.test.js
+        working-directory: sdk/javascript
+
+  sdk-live-java:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java-version: [17, 21]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --project backend --group django --frozen
+      - run: scripts/start_sdk_compat_backend.sh
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java-version }}
+      - run: mvn --batch-mode -Dtest=LiveCompatibilityTest test
+        working-directory: sdk/java
+
+  sdk-live-dotnet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --project backend --group django --frozen
+      - run: scripts/start_sdk_compat_backend.sh
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - run: dotnet test IdentityCore.sln --configuration Release --filter FullyQualifiedName~LiveCompatibilityTests
+        working-directory: sdk/dotnet

@@ -7,12 +7,12 @@ from django.utils import timezone
 from apps.audit.services import record_audit_event
 from apps.document_captures.models import DocumentCaptureStatus
 from apps.identity_documents.models import IdentityDocument, IdentityDocumentStatus
-from apps.providers.ai_service import (
-    AIServiceUnavailable,
+from apps.providers.adapters import (
     run_document_classification,
     run_document_ocr,
     run_document_quality,
 )
+from apps.providers.ai_service import AIServiceUnavailable
 from apps.providers.models import ProviderCheckStatus, ProviderCheckType
 from apps.providers.services import create_provider_check, invoke_provider_check
 from apps.uploads.services import promote_upload_to_media_by_storage_key
