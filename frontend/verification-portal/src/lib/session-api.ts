@@ -1,13 +1,24 @@
 "use client";
 
-const API_ORIGIN = process.env.NEXT_PUBLIC_API_ORIGIN ?? "http://localhost:8000";
-const API_BASE = `${API_ORIGIN.replace(/\/$/, "")}/api/v1`;
-const TOKEN_KEY_PREFIX = "identitycore.verification.";
+const API_BASE = "/api/verification";
 const REQUEST_TIMEOUT_MS = 30_000;
 
 export interface SessionCredentials {
   sessionId: string;
-  sessionToken: string;
+}
+
+export type DocumentCaptureSide = "front" | "back" | "single";
+
+export interface DocumentCaptureRequirement {
+  side: DocumentCaptureSide;
+  label: string;
+  required: boolean;
+}
+
+export interface AvailableDocument {
+  document_type: string;
+  label: string;
+  capture_requirements: DocumentCaptureRequirement[];
 }
 
 export interface VerificationSession {
@@ -18,22 +29,31 @@ export interface VerificationSession {
   purpose: string;
   redirect_url: string;
   required_steps: string[];
+  workflow: {
+    steps: string[];
+    liveness_mode: "passive" | "active";
+  };
+  locale: string;
+  supported_locales: string[];
+  direction: "ltr" | "rtl";
+  consent: {
+    template_id: string;
+    version: number;
+    locale: string;
+    content: string;
+    content_hash: string;
+  };
   document: {
     country_code: string;
     document_type: string;
     label: string;
+    capture_requirements: DocumentCaptureRequirement[];
   };
-  available_documents?: Array<{
-    document_type: string;
-    label: string;
-  }>;
+  available_documents?: AvailableDocument[];
   available_countries?: Array<{
     country_code: string;
     country_name: string;
-    documents: Array<{
-      document_type: string;
-      label: string;
-    }>;
+    documents: AvailableDocument[];
   }>;
   expires_at: string;
 }
@@ -63,13 +83,18 @@ async function request<T>(
 ) {
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
-  headers.set("Authorization", `Bearer ${credentials.sessionToken}`);
-  headers.set("X-Session-Id", credentials.sessionId);
-  if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
+  if (
+    init.body &&
+    !(init.body instanceof FormData) &&
+    !headers.has("Content-Type")
+  ) {
     headers.set("Content-Type", "application/json");
   }
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeout = window.setTimeout(
+    () => controller.abort(),
+    REQUEST_TIMEOUT_MS,
+  );
   let response: Response;
   try {
     response = await fetch(`${API_BASE}${path}`, {
@@ -80,7 +105,9 @@ async function request<T>(
     });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error("The request took too long. Check your connection and try again.");
+      throw new Error(
+        "The request took too long. Check your connection and try again.",
+      );
     }
     throw error;
   } finally {
@@ -91,12 +118,18 @@ async function request<T>(
   try {
     payload = JSON.parse(body) as ApiEnvelope<T>;
   } catch {
-    throw new Error("The verification service is temporarily unavailable. Please try again shortly.");
+    throw new Error(
+      "The verification service is temporarily unavailable. Please try again shortly.",
+    );
   }
   if (!response.ok || !payload.success || !payload.data) {
-    const message = payload.error?.message ?? "Verification request failed. Please try again.";
+    const message =
+      payload.error?.message ??
+      "Verification request failed. Please try again.";
     throw new Error(
-      /unexpected token|invalidtag|not valid json|json\.parse|syntaxerror/i.test(message)
+      /unexpected token|invalidtag|not valid json|json\.parse|syntaxerror/i.test(
+        message,
+      )
         ? "The verification service is temporarily unavailable. Please try again shortly."
         : message,
     );
@@ -104,24 +137,34 @@ async function request<T>(
   return payload.data;
 }
 
-export function consumeSessionCredentials(sessionId: string) {
+export async function consumeSessionCredentials(sessionId: string) {
   const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
   const fragmentToken = hash.get("token");
-  const storageKey = `${TOKEN_KEY_PREFIX}${sessionId}`;
   if (fragmentToken) {
-    window.sessionStorage.setItem(storageKey, fragmentToken);
     window.history.replaceState(null, "", window.location.pathname);
+    const response = await fetch(`${API_BASE}/session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId, sessionToken: fragmentToken }),
+    });
+    if (!response.ok)
+      throw new Error(
+        "The secure verification credential could not be accepted.",
+      );
   }
-  const sessionToken = fragmentToken ?? window.sessionStorage.getItem(storageKey);
-  return sessionToken ? { sessionId, sessionToken } : null;
+  return { sessionId };
 }
 
 export function clearSessionCredentials(sessionId: string) {
-  window.sessionStorage.removeItem(`${TOKEN_KEY_PREFIX}${sessionId}`);
+  void sessionId;
+  void fetch(`${API_BASE}/session`, { method: "DELETE", keepalive: true });
 }
 
 export function fetchVerificationSession(credentials: SessionCredentials) {
-  return request<VerificationSession>(credentials, `/sessions/${credentials.sessionId}`);
+  return request<VerificationSession>(
+    credentials,
+    `/sessions/${credentials.sessionId}`,
+  );
 }
 
 export function fetchVerificationStatus(credentials: SessionCredentials) {
@@ -140,7 +183,7 @@ export function createMobileHandoff(credentials: SessionCredentials) {
 }
 
 export async function redeemMobileHandoff(handoff: string) {
-  const response = await fetch(`${API_BASE}/sessions/mobile-handoff/redeem`, {
+  const response = await fetch(`${API_BASE}/handoff`, {
     method: "POST",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify({ handoff }),
@@ -148,24 +191,38 @@ export async function redeemMobileHandoff(handoff: string) {
   const body = await response.text();
   let payload: ApiEnvelope<{
     session_id: string;
-    session_token: string;
     verification_id: string;
   }>;
-  try { payload = JSON.parse(body) as typeof payload; }
-  catch { throw new Error("The mobile handoff could not be opened. Please scan a new code."); }
+  try {
+    payload = JSON.parse(body) as typeof payload;
+  } catch {
+    throw new Error(
+      "The mobile handoff could not be opened. Please scan a new code.",
+    );
+  }
   if (!response.ok || !payload.success || !payload.data) {
-    throw new Error(payload.error?.message ?? "This mobile handoff link is no longer valid.");
+    throw new Error(
+      payload.error?.message ?? "This mobile handoff link is no longer valid.",
+    );
   }
   return {
     sessionId: payload.data.session_id,
-    sessionToken: payload.data.session_token,
   };
 }
 
-export function acceptConsent(credentials: SessionCredentials) {
+export function acceptConsent(
+  credentials: SessionCredentials,
+  consent: VerificationSession["consent"],
+) {
   return request(credentials, `/sessions/${credentials.sessionId}/consent`, {
     method: "POST",
-    body: JSON.stringify({ accepted: true }),
+    body: JSON.stringify({
+      accepted: true,
+      template_id: consent.template_id,
+      version: consent.version,
+      locale: consent.locale,
+      content_hash: consent.content_hash,
+    }),
   });
 }
 
@@ -179,23 +236,19 @@ export async function createUpload(
     upload_url: string;
     upload_headers: Record<string, string>;
     upload_transfer_path: string;
-  }>(
-    credentials,
-    "/uploads/",
-    {
-      method: "POST",
-      body: JSON.stringify({
-        purpose,
-        mime_type: file.type,
-        file_size_bytes: file.size,
-      }),
-    },
-  );
+  }>(credentials, "/uploads/", {
+    method: "POST",
+    body: JSON.stringify({
+      purpose,
+      mime_type: file.type,
+      file_size_bytes: file.size,
+    }),
+  });
   const uploadUrl = upload.upload_url.trim();
   const isDirectObjectStorageUpload = (() => {
     if (!uploadUrl) return false;
     try {
-      return new URL(uploadUrl).origin !== new URL(API_ORIGIN).origin;
+      return new URL(uploadUrl).origin !== window.location.origin;
     } catch {
       return false;
     }
@@ -212,7 +265,10 @@ export async function createUpload(
 
   if (isDirectObjectStorageUpload) {
     const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const timeout = window.setTimeout(
+      () => controller.abort(),
+      REQUEST_TIMEOUT_MS,
+    );
     try {
       const response = await fetch(uploadUrl, {
         method: "PUT",
@@ -243,19 +299,30 @@ export async function createUpload(
 
 export function submitDocument(
   credentials: SessionCredentials,
-  input: { documentType: string; countryCode: string; uploadId: string },
+  input: {
+    documentType: string;
+    countryCode: string;
+    captures: Array<{ side: DocumentCaptureSide; uploadId: string }>;
+  },
 ) {
   return request(credentials, `/sessions/${credentials.sessionId}/documents`, {
     method: "POST",
     body: JSON.stringify({
       document_type: input.documentType,
       country_code: input.countryCode,
-      captures: [{ side: "front", upload_id: input.uploadId }],
+      captures: input.captures.map((capture) => ({
+        side: capture.side,
+        upload_id: capture.uploadId,
+      })),
     }),
   });
 }
 
-export function submitSelfie(credentials: SessionCredentials, uploadId: string, captureType: "image" | "video" = "image") {
+export function submitSelfie(
+  credentials: SessionCredentials,
+  uploadId: string,
+  captureType: "image" | "video" = "image",
+) {
   return request<{ selfie_capture_id: string }>(
     credentials,
     `/sessions/${credentials.sessionId}/selfies`,
@@ -282,9 +349,12 @@ export function submitLiveness(
 }
 
 export function createLivenessChallenge(credentials: SessionCredentials) {
-  return request<{ challenge_id: string; actions: string[]; expires_at: string }>(
-    credentials,
-    `/sessions/${credentials.sessionId}/liveness/challenge`,
-    { method: "POST", body: "{}" },
-  );
+  return request<{
+    challenge_id: string;
+    actions: string[];
+    expires_at: string;
+  }>(credentials, `/sessions/${credentials.sessionId}/liveness/challenge`, {
+    method: "POST",
+    body: "{}",
+  });
 }

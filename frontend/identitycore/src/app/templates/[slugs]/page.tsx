@@ -91,7 +91,9 @@ export default async function TemplateDetailPage({
 
               <div className="mt-10 flex flex-wrap gap-3">
                 <Button asChild size="lg" className="rounded-xl">
-                  <a href={`${DASHBOARD_URL}/workflows?template=${template.slug}`}>
+                  <a
+                    href={`${DASHBOARD_URL}/workflows?template=${template.slug}`}
+                  >
                     Use this template
                     <ArrowRight className="h-4 w-4" />
                   </a>

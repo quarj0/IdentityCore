@@ -21,6 +21,7 @@ class FaceCompareRequest(BaseModel):
     selfie_storage_key: str
     document_storage_key: str
     selfie_storage_bucket: str | None = None
+    selfie_mime_type: str | None = None
     document_storage_bucket: str | None = None
     threshold: float = Field(ge=0.0, le=1.0)
 
@@ -29,6 +30,7 @@ class LivenessCheckRequest(BaseModel):
     verification_id: str
     selfie_storage_key: str
     selfie_storage_bucket: str | None = None
+    selfie_mime_type: str | None = None
     liveness_type: str
     challenge_actions: list[str] = Field(default_factory=list)
 

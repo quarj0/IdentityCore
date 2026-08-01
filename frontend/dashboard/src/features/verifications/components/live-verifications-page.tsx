@@ -3,14 +3,29 @@
 import Link from "next/link";
 import { SubmitEvent, useEffect, useMemo, useState } from "react";
 import { Copy, FileCheck2, Loader2, RefreshCw } from "lucide-react";
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label } from "@identitycore/ui";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Input,
+  Label,
+} from "@identitycore/ui";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeading } from "@/components/shared/page-heading";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { dashboardApi, Organization, Policy, VerificationSummary } from "@/lib/dashboard-api";
+import {
+  dashboardApi,
+  Organization,
+  Policy,
+  VerificationSummary,
+} from "@/lib/dashboard-api";
 
 function messageOf(error: unknown) {
-  return error instanceof Error ? error.message : "Something went wrong. Please try again.";
+  return error instanceof Error
+    ? error.message
+    : "Something went wrong. Please try again.";
 }
 
 export function LiveVerificationsPage() {
@@ -47,7 +62,11 @@ export function LiveVerificationsPage() {
   }
 
   useEffect(() => {
-    Promise.all([dashboardApi.verifications(), dashboardApi.policies(), dashboardApi.organization()])
+    Promise.all([
+      dashboardApi.verifications(),
+      dashboardApi.policies(),
+      dashboardApi.organization(),
+    ])
       .then(([page, templates, org]) => {
         setItems(page.results);
         setPolicies(templates);
@@ -95,13 +114,24 @@ export function LiveVerificationsPage() {
         title="Verifications"
         description="Create hosted verification links, track progress, and resend fresh links when needed."
         action={
-          <Button variant="outline" className="rounded-xl" onClick={() => void load()}>
+          <Button
+            variant="outline"
+            className="rounded-xl"
+            onClick={() => void load()}
+          >
             <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
         }
       />
-      {organization?.sandbox_usage.pending_approval ? <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900"><strong>Sandbox usage:</strong> {organization.sandbox_usage.monthly_verifications} of {organization.sandbox_usage.monthly_verification_limit} verifications used this month.</div> : null}
+      {organization?.sandbox_usage.pending_approval ? (
+        <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">
+          <strong>Sandbox usage:</strong>{" "}
+          {organization.sandbox_usage.monthly_verifications} of{" "}
+          {organization.sandbox_usage.monthly_verification_limit} verifications
+          used this month.
+        </div>
+      ) : null}
 
       {error ? (
         <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -112,7 +142,12 @@ export function LiveVerificationsPage() {
       {hostedLink ? (
         <Card className="rounded-2xl border-blue-100 bg-blue-50 shadow-none">
           <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_auto] md:items-center">
-            <Input readOnly value={hostedLink} className="bg-white" aria-label="Hosted verification link" />
+            <Input
+              readOnly
+              value={hostedLink}
+              className="bg-white"
+              aria-label="Hosted verification link"
+            />
             <Button onClick={copyLink} className="rounded-xl">
               <Copy className="h-4 w-4" />
               {copied ? "Copied" : "Copy link"}
@@ -137,11 +172,20 @@ export function LiveVerificationsPage() {
             </div>
             <div>
               <Label htmlFor="purpose">Purpose</Label>
-              <Input id="purpose" name="purpose" required placeholder="Customer onboarding" />
+              <Input
+                id="purpose"
+                name="purpose"
+                required
+                placeholder="Customer onboarding"
+              />
             </div>
             <div>
               <Label htmlFor="external_reference">External reference</Label>
-              <Input id="external_reference" name="external_reference" placeholder="Optional customer ID" />
+              <Input
+                id="external_reference"
+                name="external_reference"
+                placeholder="Optional customer ID"
+              />
             </div>
             <div className="md:col-span-2">
               <Label htmlFor="policy_id">Template</Label>
@@ -165,7 +209,18 @@ export function LiveVerificationsPage() {
               ) : null}
             </div>
             <div className="md:col-span-2">
-              <Button disabled={creating || activePolicies.length === 0 || Boolean(organization?.sandbox_usage.monthly_verification_limit && organization.sandbox_usage.monthly_verifications >= organization.sandbox_usage.monthly_verification_limit)} className="rounded-xl">
+              <Button
+                disabled={
+                  creating ||
+                  activePolicies.length === 0 ||
+                  Boolean(
+                    organization?.sandbox_usage.monthly_verification_limit &&
+                    organization.sandbox_usage.monthly_verifications >=
+                      organization.sandbox_usage.monthly_verification_limit,
+                  )
+                }
+                className="rounded-xl"
+              >
                 {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 Create and email link
               </Button>
@@ -198,17 +253,28 @@ export function LiveVerificationsPage() {
               {items.map((item) => (
                 <tr key={item.id} className="border-t border-slate-200">
                   <td className="px-5 py-4">
-                    <Link href={`/verifications/${item.id}`} className="font-medium text-slate-950 hover:text-blue-700">
+                    <Link
+                      href={`/verifications/${item.id}`}
+                      className="font-medium text-slate-950 hover:text-blue-700"
+                    >
                       {item.subject.full_name || item.subject.email || item.id}
                     </Link>
-                    <p className="mt-1 text-xs text-slate-500">{item.subject.email}</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {item.subject.email}
+                    </p>
                   </td>
                   <td className="px-5 py-4 text-slate-700">
-                    {item.policy.name ? `${item.policy.name} v${item.policy.version ?? "-"}` : "No template"}
+                    {item.policy.name
+                      ? `${item.policy.name} v${item.policy.version ?? "-"}`
+                      : "No template"}
                   </td>
                   <td className="px-5 py-4 text-slate-700">{item.purpose}</td>
-                  <td className="px-5 py-4"><StatusBadge status={item.status} /></td>
-                  <td className="px-5 py-4 text-slate-500">{new Date(item.created_at).toLocaleString()}</td>
+                  <td className="px-5 py-4">
+                    <StatusBadge status={item.status} />
+                  </td>
+                  <td className="px-5 py-4 text-slate-500">
+                    {new Date(item.created_at).toLocaleString()}
+                  </td>
                 </tr>
               ))}
             </tbody>

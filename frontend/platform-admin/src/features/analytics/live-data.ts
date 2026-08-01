@@ -31,13 +31,16 @@ type AnalyticsResponse = {
 };
 
 function tone(status: string): AdminRecord["statusTone"] {
-  if (status === "live" || status === "enabled" || status === "active") return "success";
+  if (status === "live" || status === "enabled" || status === "active")
+    return "success";
   if (status === "watch" || status === "draft") return "warning";
   if (status === "disabled" || status === "archived") return "neutral";
   return "info";
 }
 
-export function analyticsRecordToAdminRecord(dashboard: AnalyticsDashboard): AdminRecord {
+export function analyticsRecordToAdminRecord(
+  dashboard: AnalyticsDashboard,
+): AdminRecord {
   return {
     id: dashboard.id,
     title: dashboard.title,
@@ -105,7 +108,9 @@ export async function fetchAnalyticsRecord(dashboardId: string) {
   return data.platformAnalyticsDashboard;
 }
 
-export function buildAnalyticsConfig(records: AdminRecord[]): AdminModuleConfig {
+export function buildAnalyticsConfig(
+  records: AdminRecord[],
+): AdminModuleConfig {
   return {
     moduleLabel: "Analytics",
     listTitle: "Analytics",
@@ -119,7 +124,11 @@ export function buildAnalyticsConfig(records: AdminRecord[]): AdminModuleConfig 
     records,
     getRecord: (id) => records.find((record) => record.id === id),
     getMetrics: (record): AdminDetailMetric[] => [
-      { label: "Primary metric", value: record.primaryMeta, helper: "main KPI" },
+      {
+        label: "Primary metric",
+        value: record.primaryMeta,
+        helper: "main KPI",
+      },
       { label: "Change", value: record.secondaryMeta, helper: "trend" },
       { label: "Period", value: record.tertiaryMeta, helper: "window" },
       { label: "Owner", value: record.owner, helper: "team" },

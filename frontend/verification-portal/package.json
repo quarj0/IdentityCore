@@ -1,32 +1,36 @@
 {
   "name": "verification-portal",
   "version": "0.1.0",
+  "type": "module",
   "private": true,
   "scripts": {
     "dev": "next dev --port 3002",
     "build": "next build",
     "start": "next start --port 3002",
+    "start:standalone": "rm -rf .next/standalone/verification-portal/.next/static .next/standalone/verification-portal/public && cp -R .next/static .next/standalone/verification-portal/.next/static && cp -R public .next/standalone/verification-portal/public && PORT=3002 HOSTNAME=127.0.0.1 node .next/standalone/verification-portal/server.js",
     "lint": "eslint",
+    "test:e2e:install": "playwright install chromium webkit",
     "test:e2e": "playwright test"
   },
   "dependencies": {
     "@identitycore/api-client": "workspace:*",
     "@identitycore/ui": "workspace:*",
     "lucide-react": "latest",
-    "next": "16.2.11",
+    "next": "16.2.12",
     "qrcode.react": "^4.2.0",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
-    "@playwright/test": "1.61.1",
+    "@playwright/test": "1.62.0",
     "@tailwindcss/postcss": "^4.3.3",
-    "@types/node": "^20.19.43",
+    "@types/node": "^26.1.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "eslint": "^9.39.5",
-    "eslint-config-next": "16.2.10",
+    "axe-core": "4.12.1",
+    "eslint": "^9.39.2",
+    "eslint-config-next": "16.2.12",
     "tailwindcss": "^4.3.3",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   }
 }

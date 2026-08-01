@@ -86,7 +86,8 @@ class VerificationWorkflowTests(APITestCase):
         return {
             "HTTP_X_CLIENT_ID": self.api_client.client_id,
             "HTTP_AUTHORIZATION": f"Bearer {self.raw_secret}",
-            "HTTP_IDEMPOTENCY_KEY": idempotency_key or f"test-{self._idempotency_sequence}",
+            "HTTP_IDEMPOTENCY_KEY": idempotency_key
+            or f"test-{self._idempotency_sequence}",
         }
 
     def authenticate_dashboard_user(self):
@@ -296,13 +297,67 @@ class VerificationWorkflowTests(APITestCase):
         self.authenticate_dashboard_user()
         list_response = self.client.get(reverse("verification-list-create"))
         detail_response = self.client.get(
-            reverse("verification-detail", kwargs={"verification_id": verification.public_id})
+            reverse(
+                "verification-detail",
+                kwargs={"verification_id": verification.public_id},
+            )
         )
 
         self.assertEqual(list_response.status_code, status.HTTP_200_OK)
         self.assertEqual(detail_response.status_code, status.HTTP_200_OK)
-        self.assertEqual(list_response.data["data"]["results"][0]["id"], verification.public_id)
+        self.assertEqual(
+            list_response.data["data"]["results"][0]["id"], verification.public_id
+        )
         self.assertEqual(detail_response.data["data"]["id"], verification.public_id)
+
+    def test_list_rejects_invalid_and_unbounded_pagination(self):
+        for query in ("?page=zero", "?page=0", "?page_size=0", "?page_size=101"):
+            with self.subTest(query=query):
+                response = self.client.get(
+                    reverse("verification-list-create") + query,
+                    **self.auth_headers(),
+                )
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertEqual(response.data["error"]["code"], "validation_error")
+
+    def test_list_rejects_out_of_range_pages_instead_of_repeating_last_page(self):
+        response = self.client.get(
+            reverse("verification-list-create") + "?page=2",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("out of range", response.data["error"]["message"])
+
+    def test_list_filters_by_created_date_and_validates_date_range(self):
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.tenant.verification_subjects.create(
+                full_name="Date Filter Subject"
+            ),
+            purpose="Date filtering",
+            expires_at=timezone.now() + timedelta(hours=1),
+            status=VerificationStatus.PENDING_CONSENT,
+        )
+        today = timezone.localdate().isoformat()
+
+        response = self.client.get(
+            reverse("verification-list-create")
+            + f"?created_from={today}&created_to={today}",
+            **self.auth_headers(),
+        )
+        invalid_response = self.client.get(
+            reverse("verification-list-create")
+            + "?created_from=2026-02-02&created_to=2026-02-01",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data["data"]["results"][0]["id"], verification.public_id
+        )
+        self.assertEqual(invalid_response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_detail_requires_read_scope(self):
         self.api_client.scopes_json = ["verifications:create"]
@@ -414,7 +469,10 @@ class VerificationWorkflowTests(APITestCase):
 
         self.authenticate_dashboard_user()
         response = self.client.post(
-            reverse("verification-resend-link", kwargs={"verification_id": verification.public_id}),
+            reverse(
+                "verification-resend-link",
+                kwargs={"verification_id": verification.public_id},
+            ),
             {"channel": "email"},
             format="json",
         )
@@ -728,7 +786,12 @@ class VerificationWorkflowTests(APITestCase):
             response.data["data"]["document_classification"]["issues"],
             ["document_type_mismatch"],
         )
-        self.assertEqual(identity_document.extracted_data_json["document_classification"]["workflow_action"], "continue_with_review")
+        self.assertEqual(
+            identity_document.extracted_data_json["document_classification"][
+                "workflow_action"
+            ],
+            "continue_with_review",
+        )
 
     @override_settings(
         OBJECT_STORAGE_EVIDENCE_BUCKET="identitycore-evidence",
@@ -833,7 +896,10 @@ class VerificationWorkflowTests(APITestCase):
 
         self.authenticate_dashboard_user()
         response = self.client.get(
-            reverse("verification-evidence-report", kwargs={"verification_id": verification.public_id})
+            reverse(
+                "verification-evidence-report",
+                kwargs={"verification_id": verification.public_id},
+            )
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -1141,7 +1207,6 @@ class VerificationOperationsTaskTests(TestCase):
         )
 
         self.assertEqual(cleanup_retained_media_task(limit=10), 0)
-
 
 
 class ManualReviewOwnershipTests(APITestCase):

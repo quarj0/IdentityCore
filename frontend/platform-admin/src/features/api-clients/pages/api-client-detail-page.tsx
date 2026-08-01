@@ -15,7 +15,9 @@ type ApiClientDetailPageProps = {
 };
 
 export function ApiClientDetailPage({ clientId }: ApiClientDetailPageProps) {
-  const [config, setConfig] = useState<ReturnType<typeof buildApiClientConfig> | null>(null);
+  const [config, setConfig] = useState<ReturnType<
+    typeof buildApiClientConfig
+  > | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {

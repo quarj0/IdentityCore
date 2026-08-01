@@ -14,8 +14,9 @@ type AdminDetailPageProps = {
 };
 
 export function AdminDetailPage({ userId }: AdminDetailPageProps) {
-  const [config, setConfig] =
-    useState<ReturnType<typeof buildPlatformAdminConfig> | null>(null);
+  const [config, setConfig] = useState<ReturnType<
+    typeof buildPlatformAdminConfig
+  > | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
   const [adminName, setAdminName] = useState("");
   const [adminStatus, setAdminStatus] = useState("");
@@ -28,7 +29,9 @@ export function AdminDetailPage({ userId }: AdminDetailPageProps) {
       if (!active || !user) return;
 
       setConfig(buildPlatformAdminConfig([adminUserToAdminRecord(user)]));
-      setAdminName([user.firstName, user.lastName].filter(Boolean).join(" ") || user.email);
+      setAdminName(
+        [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email,
+      );
       setAdminStatus(user.status);
     }
 

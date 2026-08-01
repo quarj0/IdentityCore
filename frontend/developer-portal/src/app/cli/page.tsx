@@ -52,7 +52,9 @@ identitycore webhooks listen`}
         <ul className="mt-4 list-disc space-y-3 pl-5 text-sm leading-7 text-slate-600">
           <li>Generate the CLI from the OpenAPI contract where practical.</li>
           <li>Keep authentication and environment selection explicit.</li>
-          <li>Use the same backend test fixtures as the portal and SDK docs.</li>
+          <li>
+            Use the same backend test fixtures as the portal and SDK docs.
+          </li>
         </ul>
       </section>
     </DocsLayout>

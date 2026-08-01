@@ -56,7 +56,11 @@ export function BillingDetailPage({ billingId }: BillingDetailPageProps) {
   if (error) {
     return (
       <>
-        <PageHeader eyebrow="Billing" title="Billing record" description="Live billing data." />
+        <PageHeader
+          eyebrow="Billing"
+          title="Billing record"
+          description="Live billing data."
+        />
         <EmptyState title="Billing record unavailable" description={error} />
       </>
     );

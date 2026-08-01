@@ -12,7 +12,9 @@ function getVerificationPortalOrigin() {
     );
   }
   if (process.env.NODE_ENV === "production" && url.protocol !== "https:") {
-    throw new Error("NEXT_PUBLIC_VERIFICATION_URL must use HTTPS in production.");
+    throw new Error(
+      "NEXT_PUBLIC_VERIFICATION_URL must use HTTPS in production.",
+    );
   }
 
   return url.origin;

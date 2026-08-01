@@ -14,7 +14,13 @@ import {
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
-import { Button, Card, CardContent, CardHeader, CardTitle } from "@identitycore/ui";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@identitycore/ui";
 
 import {
   acceptConsent,
@@ -29,10 +35,16 @@ import {
   submitDocument,
   submitLiveness,
   submitSelfie,
+  type DocumentCaptureSide,
   type SessionCredentials,
   type VerificationSession,
   type VerificationStatus,
 } from "@/lib/session-api";
+import {
+  resolveOrganizationLogoUrl,
+  resolveReturnUrl,
+} from "@/lib/safe-navigation";
+import { translate } from "@/lib/i18n";
 
 import { CameraCapture } from "./camera-capture";
 import { LiveLivenessCapture } from "./live-liveness-capture";
@@ -54,12 +66,27 @@ export function LiveVerificationFlow({
   sessionId: string;
   handoff?: string;
 }) {
-  const [credentials, setCredentials] = useState<SessionCredentials | null>(null);
+  const [credentials, setCredentials] = useState<SessionCredentials | null>(
+    null,
+  );
   const [session, setSession] = useState<VerificationSession | null>(null);
   const [status, setStatus] = useState<VerificationStatus | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [activeLivenessFile, setActiveLivenessFile] = useState<File | null>(null);
-  const [livenessChallenge, setLivenessChallenge] = useState<{ challenge_id: string; actions: string[] } | null>(null);
+  const [documentFiles, setDocumentFiles] = useState<
+    Partial<Record<DocumentCaptureSide, File>>
+  >({});
+  const [documentUploadIds, setDocumentUploadIds] = useState<
+    Partial<Record<DocumentCaptureSide, string>>
+  >({});
+  const [activeDocumentSide, setActiveDocumentSide] =
+    useState<DocumentCaptureSide>("front");
+  const [activeLivenessFile, setActiveLivenessFile] = useState<File | null>(
+    null,
+  );
+  const [livenessChallenge, setLivenessChallenge] = useState<{
+    challenge_id: string;
+    actions: string[];
+  } | null>(null);
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
   const [selectedDocumentType, setSelectedDocumentType] = useState("");
   const [consented, setConsented] = useState(false);
@@ -82,6 +109,8 @@ export function LiveVerificationFlow({
       fetchVerificationStatus(nextCredentials),
     ]);
     setSession(nextSession);
+    document.documentElement.lang = nextSession.locale;
+    document.documentElement.dir = nextSession.direction;
     setSelectedCountryCode(
       (current) => current || nextSession.document.country_code,
     );
@@ -107,7 +136,7 @@ export function LiveVerificationFlow({
             );
           }
         } else {
-          nextCredentials = consumeSessionCredentials(sessionId);
+          nextCredentials = await consumeSessionCredentials(sessionId);
         }
 
         if (!nextCredentials) {
@@ -132,6 +161,11 @@ export function LiveVerificationFlow({
       cancelled = true;
     };
   }, [handoff, load, sessionId]);
+
+  useEffect(() => {
+    if (!session?.locale) return;
+    document.documentElement.lang = session.locale;
+  }, [session?.locale]);
 
   useEffect(() => {
     if (!credentials || !status || !PROCESSING_STEPS.has(status.current_step)) {
@@ -185,6 +219,8 @@ export function LiveVerificationFlow({
       await action();
       const nextStatus = await load(credentials);
       setFile(null);
+      setDocumentFiles({});
+      setDocumentUploadIds({});
       if (feedback) {
         const remainedOnStep =
           previousStep && nextStatus.current_step === previousStep;
@@ -231,6 +267,30 @@ export function LiveVerificationFlow({
     setFile(nextFile);
   }
 
+  function selectDocumentEvidence(side: DocumentCaptureSide, nextFile: File) {
+    const supportedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+    if (!supportedTypes.has(nextFile.type.toLowerCase())) {
+      setError("Choose a JPEG, PNG, or WebP image.");
+      return;
+    }
+    if (nextFile.size > MAX_IMAGE_BYTES) {
+      setError("The image must be 10 MB or smaller.");
+      return;
+    }
+    if (nextFile.size === 0) {
+      setError("The selected image is empty. Choose another image.");
+      return;
+    }
+    setError(null);
+    setNotice(null);
+    setDocumentFiles((current) => ({ ...current, [side]: nextFile }));
+    setDocumentUploadIds((current) => {
+      const next = { ...current };
+      delete next[side];
+      return next;
+    });
+  }
+
   async function startMobileHandoff() {
     if (!credentials || handoffBusy) return;
     setHandoffBusy(true);
@@ -269,19 +329,17 @@ export function LiveVerificationFlow({
   }
 
   const step = status.current_step;
-  const availableCountries =
-    session.available_countries?.length
-      ? session.available_countries
-      : [
-          {
-            country_code: session.document.country_code,
-            country_name: session.document.country_code,
-            documents:
-              session.available_documents?.length
-                ? session.available_documents
-                : [session.document],
-          },
-        ];
+  const availableCountries = session.available_countries?.length
+    ? session.available_countries
+    : [
+        {
+          country_code: session.document.country_code,
+          country_name: session.document.country_code,
+          documents: session.available_documents?.length
+            ? session.available_documents
+            : [session.document],
+        },
+      ];
   const selectedCountry =
     availableCountries.find(
       (country) => country.country_code === selectedCountryCode,
@@ -291,25 +349,48 @@ export function LiveVerificationFlow({
     availableDocuments.find(
       (document) => document.document_type === selectedDocumentType,
     ) ?? session.document;
+  const captureRequirements = selectedDocument.capture_requirements?.length
+    ? selectedDocument.capture_requirements
+    : [{ side: "front" as const, label: "Front", required: true }];
+  const activeCaptureRequirement =
+    captureRequirements.find(
+      (requirement) => requirement.side === activeDocumentSide,
+    ) ?? captureRequirements[0];
+  const requiredCaptureRequirements = captureRequirements.filter(
+    (requirement) => requirement.required,
+  );
+  const allRequiredDocumentSidesCaptured = requiredCaptureRequirements.every(
+    (requirement) => Boolean(documentFiles[requirement.side]),
+  );
+  const nextMissingCapture = requiredCaptureRequirements.find(
+    (requirement) => !documentFiles[requirement.side],
+  );
+  const activeDocumentFile = documentFiles[activeCaptureRequirement.side];
   const finish = () => {
     clearSessionCredentials(credentials.sessionId);
-    const returnUrl =
-      session.redirect_url ||
-      process.env.NEXT_PUBLIC_ONBOARDING_RETURN_URL ||
-      "http://localhost:3001/onboarding";
+    const returnUrl = resolveReturnUrl({
+      requestedUrl: session.redirect_url,
+      fallbackUrl: process.env.NEXT_PUBLIC_ONBOARDING_RETURN_URL,
+      portalOrigin: window.location.origin,
+    });
     window.location.assign(returnUrl);
   };
 
   return (
     <VerificationFrame
       organizationName={session.organization.name}
-      organizationLogoUrl={session.organization.logo_url}
+      organizationLogoUrl={resolveOrganizationLogoUrl(
+        session.organization.logo_url,
+      )}
       purpose={session.purpose}
       currentStep={step}
       reference={status.verification_id}
     >
       {error ? (
-        <div role="alert" className="mb-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div
+          role="alert"
+          className="mb-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
           <strong className="block font-semibold">We could not continue</strong>
           <span className="mt-1 block">{error}</span>
         </div>
@@ -333,21 +414,43 @@ export function LiveVerificationFlow({
       {step === "consent" ? (
         <StepCard
           eyebrow="Step 1 of 5"
-          title="Review and give consent"
-          description="Understand what will be processed before you continue. You remain in control of whether to proceed."
+          title={translate(session.locale, "consentTitle")}
+          description={translate(session.locale, "consentDescription")}
         >
           <div className="grid gap-3 sm:grid-cols-3">
             {[
-              [FileText, "Identity document", "Used to read and validate identity details"],
-              [ScanFace, "Live selfie", "Compared with the portrait on your document"],
-              [ShieldCheck, "Security signals", "Used for liveness, fraud risk, and audit"],
+              [
+                FileText,
+                "Identity document",
+                "Used to read and validate identity details",
+              ],
+              [
+                ScanFace,
+                "Live selfie",
+                "Compared with the portrait on your document",
+              ],
+              [
+                ShieldCheck,
+                "Security signals",
+                "Used for liveness, fraud risk, and audit",
+              ],
             ].map(([Icon, title, detail]) => {
               const ItemIcon = Icon as typeof FileText;
               return (
-                <div key={String(title)} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                  <ItemIcon className="h-5 w-5 text-blue-600" aria-hidden="true" />
-                  <p className="mt-3 text-sm font-semibold text-slate-900">{String(title)}</p>
-                  <p className="mt-1 text-xs leading-5 text-slate-500">{String(detail)}</p>
+                <div
+                  key={String(title)}
+                  className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4"
+                >
+                  <ItemIcon
+                    className="h-5 w-5 text-blue-600"
+                    aria-hidden="true"
+                  />
+                  <p className="mt-3 text-sm font-semibold text-slate-900">
+                    {String(title)}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    {String(detail)}
+                  </p>
                 </div>
               );
             })}
@@ -360,9 +463,14 @@ export function LiveVerificationFlow({
               className="mt-1 h-4 w-4 rounded border-slate-300 accent-blue-600"
             />
             <span className="text-sm leading-6 text-slate-600">
-              I consent to {session.organization.name} using IdentityCore to
-              process my document, selfie, biometric evidence, and security
-              metadata for <strong className="font-medium text-slate-900">{session.purpose}</strong>.
+              <span className="whitespace-pre-line">
+                {session.consent.content}
+              </span>
+              <span className="sr-only">
+                Consent template version {session.consent.version}. Consent
+                template version{" "}
+                {session.consent.version ?? "organization default"}.
+              </span>
             </span>
           </label>
           <div className="flex items-center justify-between gap-4 border-t border-slate-100 pt-5">
@@ -372,10 +480,16 @@ export function LiveVerificationFlow({
             </p>
             <Button
               disabled={!consented || busy}
-              onClick={() => run(() => acceptConsent(credentials))}
+              onClick={() =>
+                run(() => acceptConsent(credentials, session.consent))
+              }
             >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-              Accept and continue
+              {busy ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="h-4 w-4" />
+              )}
+              {translate(session.locale, "accept")}
             </Button>
           </div>
         </StepCard>
@@ -385,7 +499,11 @@ export function LiveVerificationFlow({
         <StepCard
           eyebrow="Step 2 of 5"
           title={`Capture your ${selectedDocument.label}`}
-          description="Choose the identity document you want to use, then capture the original physical document with all four edges visible."
+          description={
+            captureRequirements.length > 1
+              ? "Choose the identity document you want to use, then capture the original physical document with all four edges visible."
+              : "Choose the identity document you want to use, then capture its photo page with all four edges visible."
+          }
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block space-y-2">
@@ -402,7 +520,12 @@ export function LiveVerificationFlow({
                   setSelectedDocumentType(
                     nextCountry?.documents[0]?.document_type ?? "",
                   );
-                  setFile(null);
+                  setDocumentFiles({});
+                  setDocumentUploadIds({});
+                  setActiveDocumentSide(
+                    nextCountry?.documents[0]?.capture_requirements[0]?.side ??
+                      "front",
+                  );
                   setError(null);
                   setNotice(null);
                 }}
@@ -410,7 +533,10 @@ export function LiveVerificationFlow({
                 className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               >
                 {availableCountries.map((country) => (
-                  <option key={country.country_code} value={country.country_code}>
+                  <option
+                    key={country.country_code}
+                    value={country.country_code}
+                  >
                     {country.country_name}
                   </option>
                 ))}
@@ -421,58 +547,149 @@ export function LiveVerificationFlow({
                 Document type
               </span>
               <select
-              value={selectedDocumentType}
-              onChange={(event) => {
-                setSelectedDocumentType(event.target.value);
-                setFile(null);
-                setError(null);
-                setNotice(null);
-              }}
-              disabled={busy}
-              className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            >
-              {availableDocuments.map((document) => (
-                <option
-                  key={document.document_type}
-                  value={document.document_type}
-                >
-                  {document.label}
-                </option>
-              ))}
+                value={selectedDocumentType}
+                onChange={(event) => {
+                  setSelectedDocumentType(event.target.value);
+                  const nextDocument = availableDocuments.find(
+                    (document) => document.document_type === event.target.value,
+                  );
+                  setDocumentFiles({});
+                  setDocumentUploadIds({});
+                  setActiveDocumentSide(
+                    nextDocument?.capture_requirements[0]?.side ?? "front",
+                  );
+                  setError(null);
+                  setNotice(null);
+                }}
+                disabled={busy}
+                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              >
+                {availableDocuments.map((document) => (
+                  <option
+                    key={document.document_type}
+                    value={document.document_type}
+                  >
+                    {document.label}
+                  </option>
+                ))}
               </select>
             </label>
           </div>
-          {file ? (
-            <EvidenceReview file={file} onRetake={() => setFile(null)} />
-          ) : (
-            <CameraCapture
-              facingMode="environment"
-              label={`${selectedDocument.label} camera`}
-              onCapture={selectEvidence}
-            />
-          )}
-          <div className="flex justify-end border-t border-slate-100 pt-5">
-            <Button
-              disabled={!file || busy}
-              onClick={() =>
-                run(async () => {
-                  if (!file) return;
-                  const uploadId = await createUpload(
-                    credentials,
-                    "document_capture",
-                    file,
-                  );
-                  await submitDocument(credentials, {
-                    documentType: selectedDocument.document_type,
-                    countryCode: selectedCountry.country_code,
-                    uploadId,
+          <div className="grid gap-3 sm:grid-cols-2">
+            {captureRequirements.map((requirement) => (
+              <button
+                key={requirement.side}
+                type="button"
+                onClick={() => setActiveDocumentSide(requirement.side)}
+                disabled={busy}
+                aria-pressed={
+                  requirement.side === activeCaptureRequirement.side
+                }
+                className={`rounded-2xl border px-4 py-3 text-left transition ${
+                  requirement.side === activeCaptureRequirement.side
+                    ? "border-blue-500 bg-blue-50 ring-2 ring-blue-100"
+                    : "border-slate-200 bg-white hover:border-blue-300"
+                }`}
+              >
+                <span className="block text-sm font-semibold text-slate-900">
+                  {requirement.label}
+                </span>
+                <span className="mt-1 block text-xs text-slate-500">
+                  {documentFiles[requirement.side]
+                    ? "Captured — select to review"
+                    : "Not captured"}
+                </span>
+              </button>
+            ))}
+          </div>
+          <div>
+            <p className="mb-3 text-sm font-semibold text-slate-900">
+              Capture {activeCaptureRequirement.label.toLowerCase()}
+            </p>
+            {activeDocumentFile ? (
+              <EvidenceReview
+                file={activeDocumentFile}
+                onRetake={() => {
+                  setDocumentFiles((current) => {
+                    const next = { ...current };
+                    delete next[activeCaptureRequirement.side];
+                    return next;
                   });
-                }, {
-                  title: "Document received",
-                  message:
-                    "Your document was uploaded successfully and is now being checked. Keep this page open while processing completes.",
-                  busyMessage: "Uploading and submitting your document…",
-                })
+                  setDocumentUploadIds((current) => {
+                    const next = { ...current };
+                    delete next[activeCaptureRequirement.side];
+                    return next;
+                  });
+                }}
+              />
+            ) : (
+              <CameraCapture
+                facingMode="environment"
+                label={`${selectedDocument.label} ${activeCaptureRequirement.label} camera`}
+                onCapture={(nextFile) =>
+                  selectDocumentEvidence(
+                    activeCaptureRequirement.side,
+                    nextFile,
+                  )
+                }
+              />
+            )}
+          </div>
+          <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
+            {activeDocumentFile && nextMissingCapture ? (
+              <Button
+                variant="outline"
+                disabled={busy}
+                onClick={() => setActiveDocumentSide(nextMissingCapture.side)}
+              >
+                Capture {nextMissingCapture.label.toLowerCase()}
+              </Button>
+            ) : null}
+            <Button
+              disabled={!allRequiredDocumentSidesCaptured || busy}
+              onClick={() =>
+                run(
+                  async () => {
+                    if (!allRequiredDocumentSidesCaptured) return;
+                    const captures: Array<{
+                      side: DocumentCaptureSide;
+                      uploadId: string;
+                    }> = [];
+                    for (const [
+                      index,
+                      requirement,
+                    ] of requiredCaptureRequirements.entries()) {
+                      setBusyMessage(
+                        `Uploading ${requirement.label.toLowerCase()} (${index + 1} of ${requiredCaptureRequirements.length})…`,
+                      );
+                      let uploadId = documentUploadIds[requirement.side];
+                      if (!uploadId) {
+                        uploadId = await createUpload(
+                          credentials,
+                          "document_capture",
+                          documentFiles[requirement.side]!,
+                        );
+                        setDocumentUploadIds((current) => ({
+                          ...current,
+                          [requirement.side]: uploadId,
+                        }));
+                      }
+                      captures.push({ side: requirement.side, uploadId });
+                    }
+                    setBusyMessage("Submitting your document securely…");
+                    await submitDocument(credentials, {
+                      documentType: selectedDocument.document_type,
+                      countryCode: selectedCountry.country_code,
+                      captures,
+                    });
+                  },
+                  {
+                    title: "Document received",
+                    message:
+                      "Your document was uploaded successfully and is now being checked. Keep this page open while processing completes.",
+                    busyMessage: "Uploading and submitting your document…",
+                  },
+                )
               }
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -490,7 +707,12 @@ export function LiveVerificationFlow({
         >
           <ProcessingPanel
             title="Document processing in progress"
-            items={["Capture quality", "Document type", "OCR evidence", "Review signals"]}
+            items={[
+              "Capture quality",
+              "Document type",
+              "OCR evidence",
+              "Review signals",
+            ]}
           />
         </StepCard>
       ) : null}
@@ -514,20 +736,23 @@ export function LiveVerificationFlow({
             <Button
               disabled={!file || busy}
               onClick={() =>
-                run(async () => {
-                  if (!file) return;
-                  const uploadId = await createUpload(
-                    credentials,
-                    "selfie_capture",
-                    file,
-                  );
-                  await submitSelfie(credentials, uploadId);
-                }, {
-                  title: "Selfie received",
-                  message:
-                    "Your selfie was uploaded successfully. Continue to the presence check.",
-                  busyMessage: "Uploading and submitting your selfie…",
-                })
+                run(
+                  async () => {
+                    if (!file) return;
+                    const uploadId = await createUpload(
+                      credentials,
+                      "selfie_capture",
+                      file,
+                    );
+                    await submitSelfie(credentials, uploadId);
+                  },
+                  {
+                    title: "Selfie received",
+                    message:
+                      "Your selfie was uploaded successfully. Continue to the presence check.",
+                    busyMessage: "Uploading and submitting your selfie…",
+                  },
+                )
               }
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -540,34 +765,129 @@ export function LiveVerificationFlow({
       {step === "liveness_check" ? (
         <StepCard
           eyebrow="Step 4 of 5"
-          title="Complete a live camera check"
-          description="Follow a short, server-issued movement sequence while your camera records. A photo, uploaded video, or presence-only check cannot complete this step."
+          title={translate(session.locale, "livenessTitle")}
+          description={translate(
+            session.locale,
+            session.workflow.liveness_mode === "active"
+              ? "activeDescription"
+              : "passiveDescription",
+          )}
         >
           <div className="rounded-3xl border border-blue-100 bg-blue-50/60 p-6 text-center">
             <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white text-blue-700 shadow-sm">
               <ScanFace className="h-8 w-8" aria-hidden="true" />
             </span>
-            <h3 className="mt-4 text-base font-semibold text-slate-950">Prove you are present, live</h3>
+            <h3 className="mt-4 text-base font-semibold text-slate-950">
+              Prove you are present, live
+            </h3>
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-              Your challenge is single-use, randomized, and recorded directly from this device in one short video.
+              Your challenge is single-use, randomized, and recorded directly
+              from this device in one short video.
             </p>
-            {!livenessChallenge ? (
+            {session.workflow.liveness_mode === "passive" ? (
               <div className="mt-5 flex justify-center">
-                <Button disabled={busy} onClick={() => run(async () => setLivenessChallenge(await createLivenessChallenge(credentials)), { title: "Live challenge ready", message: "Enable your camera and follow the on-screen instructions." })}>
-                  <ScanFace className="h-4 w-4" />Begin live camera check
+                <Button
+                  disabled={busy || !status.evidence.selfie_capture_id}
+                  onClick={() =>
+                    run(
+                      () =>
+                        submitLiveness(
+                          credentials,
+                          status.evidence.selfie_capture_id,
+                          { livenessType: "passive" },
+                        ),
+                      {
+                        title: "Presence check submitted",
+                        message: "Your live selfie is being checked.",
+                        busyMessage: "Checking your live selfie…",
+                      },
+                    )
+                  }
+                >
+                  <ScanFace className="h-4 w-4" />
+                  {translate(session.locale, "passiveSubmit")}
+                </Button>
+              </div>
+            ) : !livenessChallenge ? (
+              <div className="mt-5 flex justify-center">
+                <Button
+                  disabled={busy}
+                  onClick={() =>
+                    run(
+                      async () =>
+                        setLivenessChallenge(
+                          await createLivenessChallenge(credentials),
+                        ),
+                      {
+                        title: "Live challenge ready",
+                        message:
+                          "Enable your camera and follow the on-screen instructions.",
+                      },
+                    )
+                  }
+                >
+                  <ScanFace className="h-4 w-4" />
+                  Begin live camera check
                 </Button>
               </div>
             ) : (
               <div className="mt-5 space-y-4">
                 {activeLivenessFile ? (
                   <div className="space-y-3">
-                    <p className="text-sm font-medium text-emerald-700">Live recording ready to submit.</p>
+                    <p className="text-sm font-medium text-emerald-700">
+                      Live recording ready to submit.
+                    </p>
                     <div className="flex flex-wrap justify-center gap-3">
-                      <Button variant="outline" disabled={busy} onClick={() => setActiveLivenessFile(null)}>Record again</Button>
-                      <Button disabled={busy} onClick={() => run(async () => { const uploadId = await createUpload(credentials, "liveness_capture", activeLivenessFile); const capture = await submitSelfie(credentials, uploadId, "video"); await submitLiveness(credentials, capture.selfie_capture_id, { livenessType: "active", challengeId: livenessChallenge.challenge_id }); }, { title: "Live check submitted", message: "Your live video is being checked.", busyMessage: "Uploading and checking your live video…" })}>Submit live check</Button>
+                      <Button
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() => setActiveLivenessFile(null)}
+                      >
+                        Record again
+                      </Button>
+                      <Button
+                        disabled={busy}
+                        onClick={() =>
+                          run(
+                            async () => {
+                              const uploadId = await createUpload(
+                                credentials,
+                                "liveness_capture",
+                                activeLivenessFile,
+                              );
+                              const capture = await submitSelfie(
+                                credentials,
+                                uploadId,
+                                "video",
+                              );
+                              await submitLiveness(
+                                credentials,
+                                capture.selfie_capture_id,
+                                {
+                                  livenessType: "active",
+                                  challengeId: livenessChallenge.challenge_id,
+                                },
+                              );
+                            },
+                            {
+                              title: "Live check submitted",
+                              message: "Your live video is being checked.",
+                              busyMessage:
+                                "Uploading and checking your live video…",
+                            },
+                          )
+                        }
+                      >
+                        Submit live check
+                      </Button>
                     </div>
                   </div>
-                ) : <LiveLivenessCapture actions={livenessChallenge.actions} onCapture={setActiveLivenessFile} />}
+                ) : (
+                  <LiveLivenessCapture
+                    actions={livenessChallenge.actions}
+                    onCapture={setActiveLivenessFile}
+                  />
+                )}
               </div>
             )}
           </div>
@@ -582,7 +902,12 @@ export function LiveVerificationFlow({
         >
           <ProcessingPanel
             title="Secure decision processing"
-            items={["Liveness result", "Face comparison", "Risk rules", "Final decision"]}
+            items={[
+              "Liveness result",
+              "Face comparison",
+              "Risk rules",
+              "Final decision",
+            ]}
           />
         </StepCard>
       ) : null}
@@ -595,7 +920,11 @@ export function LiveVerificationFlow({
         />
       ) : null}
       {step === "failed" ? (
-        <TerminalPanel state="failed" message={status.message} onFinish={finish} />
+        <TerminalPanel
+          state="failed"
+          message={status.message}
+          onFinish={finish}
+        />
       ) : null}
       {step === "expired" ? (
         <TerminalPanel state="expired" message={status.message} />
@@ -605,7 +934,10 @@ export function LiveVerificationFlow({
       ) : null}
 
       {busy ? (
-        <p aria-live="polite" className="mt-4 flex items-center justify-end gap-2 text-xs text-slate-500">
+        <p
+          aria-live="polite"
+          className="mt-4 flex items-center justify-end gap-2 text-xs text-slate-500"
+        >
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
           {busyMessage}
         </p>
@@ -630,29 +962,49 @@ function MobileHandoff({
   onContinue: () => void;
 }) {
   return (
-    <main id="main-content" className="verification-page flex min-h-screen items-center px-4 py-10">
+    <main
+      id="main-content"
+      className="verification-page flex min-h-screen items-center px-4 py-10"
+    >
       <Card className="mx-auto w-full max-w-xl overflow-hidden rounded-4xl border-slate-200 bg-white shadow-2xl shadow-slate-300/40">
         <CardHeader className="border-b border-slate-100 px-6 py-7 sm:px-8">
           <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
             <Smartphone className="h-6 w-6" aria-hidden="true" />
           </span>
-          <CardTitle className="mt-4 text-2xl tracking-tight">Continue securely on your phone</CardTitle>
+          <CardTitle className="mt-4 text-2xl tracking-tight">
+            Continue securely on your phone
+          </CardTitle>
           <p className="text-sm leading-6 text-slate-500">
-            {organizationName} requested this verification. A phone camera usually gives clearer document and selfie captures.
+            {organizationName} requested this verification. A phone camera
+            usually gives clearer document and selfie captures.
           </p>
         </CardHeader>
         <CardContent className="space-y-5 px-6 py-7 sm:px-8">
-          {error ? <p role="alert" className="rounded-2xl bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
+          {error ? (
+            <p
+              role="alert"
+              className="rounded-2xl bg-red-50 p-3 text-sm text-red-700"
+            >
+              {error}
+            </p>
+          ) : null}
           {handoffUrl ? (
             <div className="space-y-4 text-center">
               <div className="mx-auto w-fit rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
                 <QRCodeSVG value={handoffUrl} size={220} level="M" />
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-800">Scan with your phone camera</p>
-                <p className="mt-1 text-xs leading-5 text-slate-500">The one-time code expires shortly and cannot be reused.</p>
+                <p className="text-sm font-medium text-slate-800">
+                  Scan with your phone camera
+                </p>
+                <p className="mt-1 text-xs leading-5 text-slate-500">
+                  The one-time code expires shortly and cannot be reused.
+                </p>
               </div>
-              <Button variant="outline" onClick={() => navigator.clipboard.writeText(handoffUrl)}>
+              <Button
+                variant="outline"
+                onClick={() => navigator.clipboard.writeText(handoffUrl)}
+              >
                 <Copy className="h-4 w-4" />
                 Copy mobile link
               </Button>
@@ -663,7 +1015,11 @@ function MobileHandoff({
             </div>
           ) : (
             <Button className="w-full" onClick={onCreate} disabled={busy}>
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Smartphone className="h-4 w-4" />}
+              {busy ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Smartphone className="h-4 w-4" />
+              )}
               Show secure QR code
             </Button>
           )}
@@ -680,20 +1036,29 @@ function MobileHandoff({
   );
 }
 
-function OpeningState({
-  title,
-  message,
-}: {
-  title: string;
-  message?: string;
-}) {
+function OpeningState({ title, message }: { title: string; message?: string }) {
   return (
-    <main id="main-content" className="verification-page flex min-h-screen items-center px-4 py-10">
+    <main
+      id="main-content"
+      className="verification-page flex min-h-screen items-center px-4 py-10"
+    >
       <Card className="mx-auto w-full max-w-md rounded-4xl border-slate-200 bg-white shadow-xl shadow-slate-200/50">
         <CardContent className="flex min-h-64 flex-col items-center justify-center gap-3 p-8 text-center">
-          {!message ? <Loader2 className="h-7 w-7 animate-spin text-blue-600" /> : <ShieldCheck className="h-8 w-8 text-slate-400" />}
-          <h1 className="text-xl font-semibold tracking-tight text-slate-950">{title}</h1>
-          {message ? <p className="text-sm leading-6 text-slate-500">{message}</p> : <p className="text-sm text-slate-500">Validating your one-time session credential…</p>}
+          {!message ? (
+            <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
+          ) : (
+            <ShieldCheck className="h-8 w-8 text-slate-400" />
+          )}
+          <h1 className="text-xl font-semibold tracking-tight text-slate-950">
+            {title}
+          </h1>
+          {message ? (
+            <p className="text-sm leading-6 text-slate-500">{message}</p>
+          ) : (
+            <p className="text-sm text-slate-500">
+              Validating your one-time session credential…
+            </p>
+          )}
         </CardContent>
       </Card>
     </main>
@@ -702,7 +1067,9 @@ function OpeningState({
 
 function messageOf(error: unknown) {
   const message = error instanceof Error ? error.message : "";
-  return /unexpected token|invalidtag|not valid json|json\.parse|syntaxerror|failed to fetch|networkerror/i.test(message)
+  return /unexpected token|invalidtag|not valid json|json\.parse|syntaxerror|failed to fetch|networkerror/i.test(
+    message,
+  )
     ? "The verification service is temporarily unavailable. Check your connection and try again."
     : message || "Something went wrong. Please try again.";
 }

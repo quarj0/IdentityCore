@@ -43,7 +43,9 @@ type InvitePlatformAdminResponse = {
   };
 };
 
-type DeactivatePlatformAdminResponse = { deactivatePlatformAdmin: PlatformAdmin };
+type DeactivatePlatformAdminResponse = {
+  deactivatePlatformAdmin: PlatformAdmin;
+};
 
 function tone(status: string): AdminRecord["statusTone"] {
   if (status === "active") return "success";
@@ -53,7 +55,10 @@ function tone(status: string): AdminRecord["statusTone"] {
 }
 
 function toRecord(user: PlatformAdmin): AdminRecord {
-  const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
+  const fullName = [user.firstName, user.lastName]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
   return {
     id: user.publicId,
     title: fullName || user.email,
@@ -64,7 +69,9 @@ function toRecord(user: PlatformAdmin): AdminRecord {
     secondaryMeta: user.roles[0] ?? "Admin",
     tertiaryMeta: user.mfaEnabled ? "MFA enabled" : "MFA disabled",
     owner: user.tenantStatus ?? "Platform",
-    updatedAt: formatDateTime(user.updatedAt ?? user.lastLoginAt ?? user.createdAt ?? undefined),
+    updatedAt: formatDateTime(
+      user.updatedAt ?? user.lastLoginAt ?? user.createdAt ?? undefined,
+    ),
     href: `/users/${user.publicId}`,
   };
 }
@@ -156,7 +163,9 @@ export async function deactivatePlatformAdmin(userId: string, reason: string) {
   return data.deactivatePlatformAdmin;
 }
 
-export function buildPlatformAdminConfig(records: AdminRecord[]): AdminModuleConfig {
+export function buildPlatformAdminConfig(
+  records: AdminRecord[],
+): AdminModuleConfig {
   return {
     moduleLabel: "Platform access",
     listTitle: "Platform admins",
@@ -178,7 +187,8 @@ export function buildPlatformAdminConfig(records: AdminRecord[]): AdminModuleCon
     getSections: (record): AdminDetailSection[] => [
       {
         title: "Admin profile",
-        description: "Identity and access details for the platform admin account.",
+        description:
+          "Identity and access details for the platform admin account.",
         items: [
           { label: "Name", value: record.title },
           { label: "Email", value: record.subtitle },

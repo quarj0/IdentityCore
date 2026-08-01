@@ -54,9 +54,7 @@ type PublicDocsEnvelope = {
   data: PublicApiDocsOverview;
 };
 
-export async function fetchPublicApiDocsOverview(): Promise<
-  PublicApiDocsOverview | null
-> {
+export async function fetchPublicApiDocsOverview(): Promise<PublicApiDocsOverview | null> {
   try {
     const response = await fetch(`${PUBLIC_API_ORIGIN}/api/v1/docs/overview`, {
       cache: "no-store",

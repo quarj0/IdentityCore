@@ -42,24 +42,24 @@ This table is the source of truth for interpreting the sections below. “Implem
 means the code path exists; it does not mean the path has completed production browser,
 security, accessibility, and operational certification.
 
-| Capability | Status | What remains |
-| --- | --- | --- |
-| Public pages and responsive design foundation | Implemented | Final content/legal approval, localization, analytics/privacy decisions, and visual regression. |
-| Registration and organization workspace creation | Implemented | Browser tests, duplicate/partial-registration recovery, accepted legal-version records, and abuse controls. |
-| Email verification and password recovery | Implemented | Delivery state, resend cooldowns, expired-link recovery tests, and support references. |
-| Login, refresh-cookie rotation, password change, and session-expiry recovery | Implemented | MFA is a separate account-security feature when enabled by backend policy. |
-| Server-backed logout | Implemented | Automated desktop/mobile tests and operational monitoring. |
-| Organization profile and evidence submission | Implemented | Unified upload contract, checksums, interruption/cancellation behavior, and end-to-end tests. |
-| Administrator verification launch | Implemented | Cross-application completion contract and failure/expiry browser tests. |
-| Camera, active liveness, and mobile handoff | Implemented in `verification-portal` | Device/browser, security, accessibility, and provider-backed production certification; do not rebuild it here. |
-| Published workflow-template catalog | Implemented | Seed/author approved production templates and add contract/E2E coverage. |
-| Idempotent first-workflow creation | Implemented | End-to-end onboarding test and authoritative onboarding completion action. |
-| Backend template-instantiation tests | Implemented | Keep them in the backend CI suite. |
-| Authoritative onboarding navigation | Implemented | The server-authored `currentStep` limits future-step access; richer allowed-action/blocker payloads remain an API enhancement. |
-| SEO, discovery metadata, and indexing controls | Implemented | Supply approved production origin/indexing environment values and monitor indexing after release. |
-| Generated REST/GraphQL clients | Deferred hardening | Generate types from schemas and enforce drift checks in CI before broad external API evolution. |
-| IdentityCore-web automated tests | Started | Safe return-route unit tests exist; add component, Playwright, accessibility, and visual suites when browser infrastructure is available. |
-| Production release certification | Not complete | Security headers/deployment validation, observability, legal approval, browser matrix, runbooks, and release promotion. |
+| Capability                                                                   | Status                               | What remains                                                                                                                              |
+| ---------------------------------------------------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Public pages and responsive design foundation                                | Implemented                          | Final content/legal approval, localization, analytics/privacy decisions, and visual regression.                                           |
+| Registration and organization workspace creation                             | Implemented                          | Browser tests, duplicate/partial-registration recovery, accepted legal-version records, and abuse controls.                               |
+| Email verification and password recovery                                     | Implemented                          | Delivery state, resend cooldowns, expired-link recovery tests, and support references.                                                    |
+| Login, refresh-cookie rotation, password change, and session-expiry recovery | Implemented                          | MFA is a separate account-security feature when enabled by backend policy.                                                                |
+| Server-backed logout                                                         | Implemented                          | Automated desktop/mobile tests and operational monitoring.                                                                                |
+| Organization profile and evidence submission                                 | Implemented                          | Unified upload contract, checksums, interruption/cancellation behavior, and end-to-end tests.                                             |
+| Administrator verification launch                                            | Implemented                          | Cross-application completion contract and failure/expiry browser tests.                                                                   |
+| Camera, active liveness, and mobile handoff                                  | Implemented in `verification-portal` | Device/browser, security, accessibility, and provider-backed production certification; do not rebuild it here.                            |
+| Published workflow-template catalog                                          | Implemented                          | Seed/author approved production templates and add contract/E2E coverage.                                                                  |
+| Idempotent first-workflow creation                                           | Implemented                          | End-to-end onboarding test and authoritative onboarding completion action.                                                                |
+| Backend template-instantiation tests                                         | Implemented                          | Keep them in the backend CI suite.                                                                                                        |
+| Authoritative onboarding navigation                                          | Implemented                          | The server-authored `currentStep` limits future-step access; richer allowed-action/blocker payloads remain an API enhancement.            |
+| SEO, discovery metadata, and indexing controls                               | Implemented                          | Supply approved production origin/indexing environment values and monitor indexing after release.                                         |
+| Generated REST/GraphQL clients                                               | Deferred hardening                   | Generate types from schemas and enforce drift checks in CI before broad external API evolution.                                           |
+| IdentityCore-web automated tests                                             | Started                              | Safe return-route unit tests exist; add component, Playwright, accessibility, and visual suites when browser infrastructure is available. |
+| Production release certification                                             | Not complete                         | Security headers/deployment validation, observability, legal approval, browser matrix, runbooks, and release promotion.                   |
 
 ## P0: complete the real user journeys
 

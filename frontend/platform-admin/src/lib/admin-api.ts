@@ -1,6 +1,9 @@
 "use client";
 
-import { createIdentityCoreClient, IdentityCoreApiError } from "@identitycore/api-client";
+import {
+  createIdentityCoreClient,
+  IdentityCoreApiError,
+} from "@identitycore/api-client";
 import { getAccessToken, setAccessToken } from "@/lib/auth";
 import { getBackendOrigin, getGraphqlApiUrl } from "@/lib/config";
 
@@ -74,10 +77,7 @@ async function refreshAccessToken() {
   return client.restoreSession();
 }
 
-export async function restRequest<T>(
-  path: string,
-  init: RequestInit = {},
-) {
+export async function restRequest<T>(path: string, init: RequestInit = {}) {
   return client.rest<T>(path, init);
 }
 

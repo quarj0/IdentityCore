@@ -48,8 +48,15 @@ export function SecurityListPage() {
   if (error) {
     return (
       <>
-        <PageHeader eyebrow="Security" title="Security" description="Live security cases." />
-        <EmptyState title="Unable to load security records" description={error} />
+        <PageHeader
+          eyebrow="Security"
+          title="Security"
+          description="Live security cases."
+        />
+        <EmptyState
+          title="Unable to load security records"
+          description={error}
+        />
       </>
     );
   }

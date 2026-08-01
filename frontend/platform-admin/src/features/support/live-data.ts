@@ -119,8 +119,16 @@ export function buildSupportConfig(records: AdminRecord[]): AdminModuleConfig {
     records,
     getRecord: (id) => records.find((record) => record.id === id),
     getMetrics: (record): AdminDetailMetric[] => [
-      { label: "Priority", value: record.primaryMeta, helper: "support priority" },
-      { label: "Organization", value: record.secondaryMeta, helper: "customer" },
+      {
+        label: "Priority",
+        value: record.primaryMeta,
+        helper: "support priority",
+      },
+      {
+        label: "Organization",
+        value: record.secondaryMeta,
+        helper: "customer",
+      },
       { label: "Area", value: record.tertiaryMeta, helper: "issue type" },
       { label: "Owner", value: record.owner, helper: "assigned team" },
     ],

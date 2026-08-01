@@ -9,7 +9,9 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { dashboardApi, ManualReviewSummary } from "@/lib/dashboard-api";
 
 function messageOf(error: unknown) {
-  return error instanceof Error ? error.message : "Something went wrong. Please try again.";
+  return error instanceof Error
+    ? error.message
+    : "Something went wrong. Please try again.";
 }
 
 export function LiveReviewList() {
@@ -18,7 +20,8 @@ export function LiveReviewList() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    dashboardApi.manualReviews()
+    dashboardApi
+      .manualReviews()
       .then((page) => setItems(page.results))
       .catch((caught) => setError(messageOf(caught)))
       .finally(() => setLoading(false));
@@ -31,7 +34,11 @@ export function LiveReviewList() {
         description="Review evidence summaries and record auditable verification decisions."
       />
 
-      {error ? <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
+      {error ? (
+        <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      ) : null}
 
       {loading ? (
         <p className="text-sm text-slate-500">Loading manual-review queue...</p>
@@ -52,10 +59,13 @@ export function LiveReviewList() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="font-medium text-slate-950">
-                    {item.subject?.full_name || item.subject?.email || item.verification_id}
+                    {item.subject?.full_name ||
+                      item.subject?.email ||
+                      item.verification_id}
                   </p>
                   <p className="mt-1 text-sm text-slate-500">
-                    {item.purpose} · {new Date(item.created_at).toLocaleString()}
+                    {item.purpose} ·{" "}
+                    {new Date(item.created_at).toLocaleString()}
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">

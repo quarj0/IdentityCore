@@ -47,8 +47,9 @@ export function ApiReferenceOverview({
       {},
     ),
   );
-  const methodCount = new Set(activeEndpoints.map((endpoint) => endpoint.method))
-    .size;
+  const methodCount = new Set(
+    activeEndpoints.map((endpoint) => endpoint.method),
+  ).size;
   return (
     <>
       <section className="grid gap-4 md:grid-cols-3">
@@ -97,7 +98,9 @@ export function ApiReferenceOverview({
       {groupedEndpoints.map(([category, categoryEndpoints]) => (
         <section key={category}>
           <div className="mb-4">
-            <h2 className="text-2xl font-semibold tracking-tight">{category}</h2>
+            <h2 className="text-2xl font-semibold tracking-tight">
+              {category}
+            </h2>
             <p className="mt-2 text-sm leading-7 text-slate-600">
               Reference routes and examples for {category.toLowerCase()}.
             </p>

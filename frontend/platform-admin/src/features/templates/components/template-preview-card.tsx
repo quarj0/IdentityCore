@@ -27,7 +27,8 @@ export function TemplatePreviewCard({ template }: TemplatePreviewCardProps) {
                 Step {index + 1}: {check}
               </p>
               <p className="mt-1 text-sm text-slate-600">
-                This check is enforced when organizations use this official template.
+                This check is enforced when organizations use this official
+                template.
               </p>
             </div>
           </div>

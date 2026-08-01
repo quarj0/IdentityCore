@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import { DashboardFrame } from "@/components/layout/dashboard-frame";
 import { DashboardSession } from "@/components/auth/dashboard-session";
 import { Toaster } from "@identitycore/ui";
+import { SessionExpiryBoundary } from "@/components/auth/session-expiry-boundary";
 
 export const metadata: Metadata = {
   title: "IdentityCore Dashboard",
@@ -15,7 +17,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      data-scroll-smooth
+      className="h-full bg-white antialiased dark:bg-gray-900"
+    >
       <body>
         <a
           href="#main-content"
@@ -24,7 +30,12 @@ export default function RootLayout({
           Skip to content
         </a>
 
-        <DashboardSession><DashboardFrame>{children}</DashboardFrame></DashboardSession>
+        <DashboardSession>
+          <Suspense fallback={null}>
+            <SessionExpiryBoundary />
+          </Suspense>
+          <DashboardFrame>{children}</DashboardFrame>
+        </DashboardSession>
         <Toaster />
       </body>
     </html>

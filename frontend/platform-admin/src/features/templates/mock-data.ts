@@ -33,7 +33,12 @@ export const globalTemplates: GlobalTemplate[] = [
     status: "published",
     version: "v1.4.2",
     countries: ["Ghana"],
-    requiredChecks: ["Document OCR", "Face match", "Liveness", "Expiry validation"],
+    requiredChecks: [
+      "Document OCR",
+      "Face match",
+      "Liveness",
+      "Expiry validation",
+    ],
     usageCount: 48210,
     clonedByOrganizations: 84,
     lastUpdatedAt: "2026-07-06",
@@ -49,7 +54,12 @@ export const globalTemplates: GlobalTemplate[] = [
     status: "published",
     version: "v2.1.0",
     countries: ["Ghana", "Nigeria", "Kenya"],
-    requiredChecks: ["Government ID", "Address evidence", "Risk scoring", "Watchlist"],
+    requiredChecks: [
+      "Government ID",
+      "Address evidence",
+      "Risk scoring",
+      "Watchlist",
+    ],
     usageCount: 67240,
     clonedByOrganizations: 132,
     lastUpdatedAt: "2026-07-02",
@@ -111,7 +121,8 @@ export const templateVersions = [
     version: "v1.4.2",
     status: "Current",
     publishedAt: "2026-07-06",
-    notes: "Improved Ghana Card expiry validation and OCR confidence thresholds.",
+    notes:
+      "Improved Ghana Card expiry validation and OCR confidence thresholds.",
   },
   {
     version: "v1.4.1",

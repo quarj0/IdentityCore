@@ -47,7 +47,9 @@ type WorkflowResponse = {
   platformWorkflowVersions: WorkflowVersionRecord[];
 };
 
-function toWorkflowRecord(workflow: WorkflowResponse["platformWorkflows"][number]): WorkflowRecord {
+function toWorkflowRecord(
+  workflow: WorkflowResponse["platformWorkflows"][number],
+): WorkflowRecord {
   return {
     ...workflow,
     version: workflow.currentVersion,
@@ -126,7 +128,9 @@ export async function fetchWorkflowRecord(workflowId: string) {
   );
 
   return {
-    workflow: data.platformWorkflow ? toWorkflowRecord(data.platformWorkflow) : null,
+    workflow: data.platformWorkflow
+      ? toWorkflowRecord(data.platformWorkflow)
+      : null,
     versions: data.platformWorkflowVersions,
   };
 }
@@ -176,18 +180,28 @@ export function normalizeWorkflowUsage(workflow: WorkflowRecord) {
     .map((item) => {
       if (!item || typeof item !== "object") return null;
       const value = item as Record<string, unknown>;
-      const organization = typeof value.organization === "string" ? value.organization : "";
+      const organization =
+        typeof value.organization === "string" ? value.organization : "";
       if (!organization) return null;
       return {
         organization,
-        environment: typeof value.environment === "string" ? value.environment : "Production",
+        environment:
+          typeof value.environment === "string"
+            ? value.environment
+            : "Production",
         runs: typeof value.runs === "number" ? value.runs : 0,
       };
     })
-    .filter(Boolean) as Array<{ organization: string; environment: string; runs: number }>;
+    .filter(Boolean) as Array<{
+    organization: string;
+    environment: string;
+    runs: number;
+  }>;
 }
 
-export function normalizeWorkflowVersionHistory(versions: WorkflowVersionRecord[]) {
+export function normalizeWorkflowVersionHistory(
+  versions: WorkflowVersionRecord[],
+) {
   return versions.map((version) => ({
     ...version,
     date: formatDateTime(version.publishedAt),
@@ -197,24 +211,50 @@ export function normalizeWorkflowVersionHistory(versions: WorkflowVersionRecord[
 }
 
 const workflowFields = `id name description status projectName steps settings currentVersion createdByEmail createdAt updatedAt`;
-async function runWorkflowMutation(mutation: string, variables: Record<string, unknown>) {
-  return graphqlRequest<{ workflow: WorkflowRecord }>(mutation, variables).then((data) => data.workflow);
+async function runWorkflowMutation(
+  mutation: string,
+  variables: Record<string, unknown>,
+) {
+  return graphqlRequest<{ workflow: WorkflowRecord }>(mutation, variables).then(
+    (data) => data.workflow,
+  );
 }
 export const cloneWorkflow = (workflowId: string, name: string) =>
-  runWorkflowMutation(`mutation CloneWorkflow($workflowId: String!, $name: String!) { workflow: clonePlatformWorkflow(workflowId: $workflowId, name: $name) { ${workflowFields} } }`, { workflowId, name });
+  runWorkflowMutation(
+    `mutation CloneWorkflow($workflowId: String!, $name: String!) { workflow: clonePlatformWorkflow(workflowId: $workflowId, name: $name) { ${workflowFields} } }`,
+    { workflowId, name },
+  );
 export const publishWorkflow = (workflowId: string) =>
-  graphqlRequest(`mutation PublishWorkflow($workflowId: String!) { publishPlatformWorkflow(workflowId: $workflowId) { id version } }`, { workflowId });
+  graphqlRequest(
+    `mutation PublishWorkflow($workflowId: String!) { publishPlatformWorkflow(workflowId: $workflowId) { id version } }`,
+    { workflowId },
+  );
 export const archiveWorkflow = (workflowId: string) =>
-  runWorkflowMutation(`mutation ArchiveWorkflow($workflowId: String!) { workflow: archivePlatformWorkflow(workflowId: $workflowId) { ${workflowFields} } }`, { workflowId });
+  runWorkflowMutation(
+    `mutation ArchiveWorkflow($workflowId: String!) { workflow: archivePlatformWorkflow(workflowId: $workflowId) { ${workflowFields} } }`,
+    { workflowId },
+  );
 
-export async function createWorkflow(input: { tenantId: string; projectId: string; name: string; description: string }) {
+export async function createWorkflow(input: {
+  tenantId: string;
+  projectId: string;
+  name: string;
+  description: string;
+}) {
   const data = await graphqlRequest<{ workflow: WorkflowRecord }>(
     `mutation CreateWorkflow($tenantId: String!, $projectId: String!, $name: String!, $description: String!) {
       workflow: createPlatformWorkflow(tenantId: $tenantId, projectId: $projectId, name: $name, description: $description) { ${workflowFields} }
-    }`, input,
+    }`,
+    input,
   );
   return data.workflow;
 }
 
-export const updateWorkflow = (workflowId: string, input: { name: string; description: string }) =>
-  runWorkflowMutation(`mutation UpdateWorkflow($workflowId: String!, $name: String!, $description: String!) { workflow: updatePlatformWorkflow(workflowId: $workflowId, name: $name, description: $description) { ${workflowFields} } }`, { workflowId, ...input });
+export const updateWorkflow = (
+  workflowId: string,
+  input: { name: string; description: string },
+) =>
+  runWorkflowMutation(
+    `mutation UpdateWorkflow($workflowId: String!, $name: String!, $description: String!) { workflow: updatePlatformWorkflow(workflowId: $workflowId, name: $name, description: $description) { ${workflowFields} } }`,
+    { workflowId, ...input },
+  );

@@ -22,7 +22,11 @@ type DisableAdminDialogProps = {
   onDeactivated: () => void;
 };
 
-export function DisableAdminDialog({ adminName, userId, onDeactivated }: DisableAdminDialogProps) {
+export function DisableAdminDialog({
+  adminName,
+  userId,
+  onDeactivated,
+}: DisableAdminDialogProps) {
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -35,8 +39,14 @@ export function DisableAdminDialog({ adminName, userId, onDeactivated }: Disable
       setMessage("Platform admin access has been revoked.");
       onDeactivated();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to disable this account.");
-    } finally { setSubmitting(false); }
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to disable this account.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -69,11 +79,19 @@ export function DisableAdminDialog({ adminName, userId, onDeactivated }: Disable
 
         <DialogFooter>
           <Button variant="outline">Cancel</Button>
-          <Button variant="destructive" disabled={!reason.trim() || submitting} onClick={submit}>
+          <Button
+            variant="destructive"
+            disabled={!reason.trim() || submitting}
+            onClick={submit}
+          >
             {submitting ? "Disabling…" : "Disable admin"}
           </Button>
         </DialogFooter>
-        {message ? <p className="text-sm text-slate-600" role="status">{message}</p> : null}
+        {message ? (
+          <p className="text-sm text-slate-600" role="status">
+            {message}
+          </p>
+        ) : null}
       </DialogContent>
     </Dialog>
   );

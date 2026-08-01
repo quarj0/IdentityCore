@@ -24,8 +24,15 @@ export function DashboardTopbar() {
         <div className="ml-auto flex items-center gap-3">
           <ProjectSwitcher />
 
-          <Button variant="ghost" size="icon" aria-label="Notifications" asChild>
-            <Link href="/notifications"><Bell className="h-4 w-4" aria-hidden="true" /></Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Notifications"
+            asChild
+          >
+            <Link href="/notifications">
+              <Bell className="h-4 w-4" aria-hidden="true" />
+            </Link>
           </Button>
 
           <UserMenu />

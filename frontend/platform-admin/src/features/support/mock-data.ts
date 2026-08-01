@@ -1,10 +1,14 @@
-import type { AdminModuleConfig, AdminRecord } from "@/components/admin-module/admin-module-types";
+import type {
+  AdminModuleConfig,
+  AdminRecord,
+} from "@/components/admin-module/admin-module-types";
 
 export const supportRecords: AdminRecord[] = [
   {
     id: "ticket_1842",
     title: "Webhook verification result missing",
-    subtitle: "Ghana FinTrust Bank reports delayed webhook response for completed verification.",
+    subtitle:
+      "Ghana FinTrust Bank reports delayed webhook response for completed verification.",
     status: "Open",
     statusTone: "warning",
     primaryMeta: "High priority",
@@ -30,7 +34,8 @@ export const supportRecords: AdminRecord[] = [
   {
     id: "ticket_1844",
     title: "Verification lookup request",
-    subtitle: "Support needs to inspect a verification status across provider events.",
+    subtitle:
+      "Support needs to inspect a verification status across provider events.",
     status: "Resolved",
     statusTone: "success",
     primaryMeta: "Low priority",
@@ -55,7 +60,11 @@ export const supportConfig: AdminModuleConfig = {
   records: supportRecords,
   getRecord: (id) => supportRecords.find((record) => record.id === id),
   getMetrics: (record) => [
-    { label: "Priority", value: record.primaryMeta, helper: "support priority" },
+    {
+      label: "Priority",
+      value: record.primaryMeta,
+      helper: "support priority",
+    },
     { label: "Organization", value: record.secondaryMeta, helper: "customer" },
     { label: "Area", value: record.tertiaryMeta, helper: "issue type" },
     { label: "Owner", value: record.owner, helper: "assigned team" },
@@ -75,8 +84,16 @@ export const supportConfig: AdminModuleConfig = {
       title: "Support tools",
       description: "Safe operational tools available to support.",
       items: [
-        { label: "Verification lookup", value: "Search by verification ID, organization, applicant reference or webhook event." },
-        { label: "Impersonation", value: "Requires reason, time limit and audit logging before opening organization workspace." },
+        {
+          label: "Verification lookup",
+          value:
+            "Search by verification ID, organization, applicant reference or webhook event.",
+        },
+        {
+          label: "Impersonation",
+          value:
+            "Requires reason, time limit and audit logging before opening organization workspace.",
+        },
       ],
     },
   ],

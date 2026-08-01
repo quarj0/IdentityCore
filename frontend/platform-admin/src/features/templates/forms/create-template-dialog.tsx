@@ -22,7 +22,11 @@ import {
   Textarea,
 } from "@identitycore/ui";
 
-export function CreateTemplateDialog({ onCreated }: { onCreated?: () => void }) {
+export function CreateTemplateDialog({
+  onCreated,
+}: {
+  onCreated?: () => void;
+}) {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
@@ -30,12 +34,22 @@ export function CreateTemplateDialog({ onCreated }: { onCreated?: () => void }) 
   const [error, setError] = useState<string | null>(null);
 
   async function submit() {
-    setSubmitting(true); setError(null);
+    setSubmitting(true);
+    setError(null);
     try {
-      await createTemplate({ name, description, category: category.replace(/-/g, "_") });
+      await createTemplate({
+        name,
+        description,
+        category: category.replace(/-/g, "_"),
+      });
       onCreated?.();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to create template."); }
-    finally { setSubmitting(false); }
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Unable to create template.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -51,7 +65,8 @@ export function CreateTemplateDialog({ onCreated }: { onCreated?: () => void }) 
         <DialogHeader>
           <DialogTitle>Create global template</DialogTitle>
           <DialogDescription>
-            Create an official IdentityCore template for organizations to use or clone.
+            Create an official IdentityCore template for organizations to use or
+            clone.
           </DialogDescription>
         </DialogHeader>
 
@@ -78,7 +93,9 @@ export function CreateTemplateDialog({ onCreated }: { onCreated?: () => void }) 
                 <SelectItem value="employment">Employment</SelectItem>
                 <SelectItem value="education">Education</SelectItem>
                 <SelectItem value="healthcare">Healthcare</SelectItem>
-                <SelectItem value="age-verification">Age Verification</SelectItem>
+                <SelectItem value="age-verification">
+                  Age Verification
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -94,10 +111,19 @@ export function CreateTemplateDialog({ onCreated }: { onCreated?: () => void }) 
           </div>
         </div>
 
-        {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
+        {error ? (
+          <p role="alert" className="text-sm text-red-700">
+            {error}
+          </p>
+        ) : null}
         <DialogFooter>
           <Button variant="outline">Cancel</Button>
-          <Button onClick={submit} disabled={submitting || !name.trim() || !category || !description.trim()}>
+          <Button
+            onClick={submit}
+            disabled={
+              submitting || !name.trim() || !category || !description.trim()
+            }
+          >
             {submitting ? "Creating…" : "Create draft"}
           </Button>
         </DialogFooter>

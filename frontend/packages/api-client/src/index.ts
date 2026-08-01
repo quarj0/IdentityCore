@@ -16,7 +16,9 @@ export class IdentityCoreApiError extends Error {
     public readonly code = "request_failed",
     public readonly status = 500,
     public readonly requestId = "",
-  ) { super(message); }
+  ) {
+    super(message);
+  }
 }
 
 export function createIdentityCoreClient({
@@ -46,11 +48,18 @@ export function createIdentityCoreClient({
   function refreshAccessToken() {
     if (!refreshInFlight) {
       refreshInFlight = fetch(`${origin}/api/v1/auth/refresh`, {
-        method: "POST", credentials: "include",
+        method: "POST",
+        credentials: "include",
         headers: authHeaders(),
-      }).then((response) => parse<{ tokens: { access: string } }>(response))
-        .then((data) => { setAccessToken(data.tokens.access); return data; })
-        .finally(() => { refreshInFlight = null; });
+      })
+        .then((response) => parse<{ tokens: { access: string } }>(response))
+        .then((data) => {
+          setAccessToken(data.tokens.access);
+          return data;
+        })
+        .finally(() => {
+          refreshInFlight = null;
+        });
     }
     return refreshInFlight;
   }
@@ -69,9 +78,12 @@ export function createIdentityCoreClient({
     }
     if (!response.ok || !payload.success) {
       const failure = payload as ApiFailure;
-      const rawMessage = failure.error?.message ?? "Request failed. Please try again.";
+      const rawMessage =
+        failure.error?.message ?? "Request failed. Please try again.";
       throw new IdentityCoreApiError(
-        /unexpected token|invalidtag|not valid json|json\.parse|syntaxerror/i.test(rawMessage)
+        /unexpected token|invalidtag|not valid json|json\.parse|syntaxerror/i.test(
+          rawMessage,
+        )
           ? "The service is temporarily unavailable. Please try again shortly."
           : rawMessage,
         failure.error?.code,
@@ -86,12 +98,22 @@ export function createIdentityCoreClient({
     const headers = new Headers(init.headers);
     headers.set("Accept", "application/json");
     if (sessionScope) headers.set("X-IdentityCore-Session-Scope", sessionScope);
-    if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+    if (init.body && !headers.has("Content-Type"))
+      headers.set("Content-Type", "application/json");
     const token = getAccessToken();
     if (token) headers.set("Authorization", `Bearer ${token}`);
-    const send = () => fetch(`${origin}/api/v1${path}`, { ...init, headers, credentials: "include" });
+    const send = () =>
+      fetch(`${origin}/api/v1${path}`, {
+        ...init,
+        headers,
+        credentials: "include",
+      });
     let response = await send();
-    if (response.status === 401 && path !== "/auth/refresh" && path !== "/auth/login") {
+    if (
+      response.status === 401 &&
+      path !== "/auth/refresh" &&
+      path !== "/auth/login"
+    ) {
       try {
         const refreshed = await refreshAccessToken();
         headers.set("Authorization", `Bearer ${refreshed.tokens.access}`);
@@ -104,10 +126,13 @@ export function createIdentityCoreClient({
   }
 
   async function login(email: string, password: string) {
-    const data = await rest<{ tokens: { access: string }; user: unknown }>("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
+    const data = await rest<{ tokens: { access: string }; user: unknown }>(
+      "/auth/login",
+      {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      },
+    );
     setAccessToken(data.tokens.access);
     return data;
   }

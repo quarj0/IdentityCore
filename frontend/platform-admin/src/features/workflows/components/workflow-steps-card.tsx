@@ -18,7 +18,8 @@ export function WorkflowStepsCard({ workflow }: WorkflowStepsCardProps) {
             className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
           >
             <p className="text-sm font-semibold text-slate-950">
-              {index + 1}. {typeof step === "string" ? step : JSON.stringify(step)}
+              {index + 1}.{" "}
+              {typeof step === "string" ? step : JSON.stringify(step)}
             </p>
           </li>
         ))}

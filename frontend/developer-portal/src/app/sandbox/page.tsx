@@ -100,8 +100,8 @@ POST /api/v1/projects/
       <section className="rounded-3xl border border-slate-200 bg-white p-6">
         <h2 className="text-xl font-semibold">Routes safe for test runs</h2>
         <p className="mt-3 text-sm leading-7 text-slate-600">
-          Use these routes when you want to exercise the product without touching
-          real customer verification data.
+          Use these routes when you want to exercise the product without
+          touching real customer verification data.
         </p>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -120,10 +120,20 @@ POST /api/v1/projects/
         <h2 className="text-xl font-semibold">Typical test flow</h2>
         <ol className="mt-4 list-decimal space-y-3 pl-5 text-sm leading-7 text-slate-600">
           <li>Create or choose a sandbox project.</li>
-          <li>Mint a sandbox API client with `verifications:read` and `verifications:create`.</li>
-          <li>Create a verification and use the hosted link to complete the flow.</li>
-          <li>Inspect webhook delivery, manual review, and evidence-report routes.</li>
-          <li>Upload supporting documents through the organization verification form.</li>
+          <li>
+            Mint a sandbox API client with `verifications:read` and
+            `verifications:create`.
+          </li>
+          <li>
+            Create a verification and use the hosted link to complete the flow.
+          </li>
+          <li>
+            Inspect webhook delivery, manual review, and evidence-report routes.
+          </li>
+          <li>
+            Upload supporting documents through the organization verification
+            form.
+          </li>
         </ol>
       </section>
     </DocsLayout>

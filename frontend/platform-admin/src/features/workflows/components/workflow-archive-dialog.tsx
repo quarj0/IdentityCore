@@ -22,11 +22,28 @@ type WorkflowArchiveDialogProps = {
   onComplete?: () => void;
 };
 
-export function WorkflowArchiveDialog({ workflowName, workflowId, onComplete }: WorkflowArchiveDialogProps) {
+export function WorkflowArchiveDialog({
+  workflowName,
+  workflowId,
+  onComplete,
+}: WorkflowArchiveDialogProps) {
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const submit = async () => { setSubmitting(true); setError(null); try { await archiveWorkflow(workflowId); onComplete?.(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to archive workflow."); } finally { setSubmitting(false); } };
+  const submit = async () => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      await archiveWorkflow(workflowId);
+      onComplete?.();
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Unable to archive workflow.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <Dialog>
@@ -41,7 +58,8 @@ export function WorkflowArchiveDialog({ workflowName, workflowId, onComplete }: 
         <DialogHeader>
           <DialogTitle>Archive {workflowName}?</DialogTitle>
           <DialogDescription>
-            Archived workflows remain visible in history but cannot be used for new organization workflows.
+            Archived workflows remain visible in history but cannot be used for
+            new organization workflows.
           </DialogDescription>
         </DialogHeader>
 
@@ -55,10 +73,20 @@ export function WorkflowArchiveDialog({ workflowName, workflowId, onComplete }: 
           />
         </div>
 
-        {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
+        {error ? (
+          <p role="alert" className="text-sm text-red-700">
+            {error}
+          </p>
+        ) : null}
         <DialogFooter>
           <Button variant="outline">Cancel</Button>
-          <Button variant="destructive" onClick={submit} disabled={submitting || !reason.trim()}>{submitting ? "Archiving…" : "Archive workflow"}</Button>
+          <Button
+            variant="destructive"
+            onClick={submit}
+            disabled={submitting || !reason.trim()}
+          >
+            {submitting ? "Archiving…" : "Archive workflow"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

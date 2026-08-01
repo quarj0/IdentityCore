@@ -68,6 +68,9 @@ class VerificationPolicyNode:
     project_id: str | None
     name: str
     description: str
+    consent_template_id: str | None
+    default_locale: str
+    supported_locales: list[str]
     version: int
     status: str
     required_document_types: list[str]
@@ -593,6 +596,7 @@ class DocumentTypeNode:
 class SupportedDocumentTypeNode:
     document_type: str
     local_name: str
+    capture_sides: list[str]
 
 
 @strawberry.type

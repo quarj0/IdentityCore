@@ -35,7 +35,9 @@ export function UsersListPage() {
     () => ({
       ...createAdminListConfig(buildPlatformAdminConfig(records)),
       headerActions: (
-        <InviteAdminDialog onInvited={() => setRefreshToken((value) => value + 1)} />
+        <InviteAdminDialog
+          onInvited={() => setRefreshToken((value) => value + 1)}
+        />
       ),
     }),
     [records],

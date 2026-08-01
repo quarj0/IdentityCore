@@ -10,10 +10,7 @@ import {
   Network,
   Workflow,
 } from "lucide-react";
-import {
-  Badge,
-  Button,
-} from "@identitycore/ui";
+import { Badge, Button } from "@identitycore/ui";
 import { FeatureCard } from "@/components/marketing/feature-card";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
@@ -212,8 +209,8 @@ export function PlatformPageContent() {
 
             <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
               IdentityCore is designed to support hosted SaaS first, while
-              keeping the architecture ready for private, hybrid, and
-              on-premise deployments.
+              keeping the architecture ready for private, hybrid, and on-premise
+              deployments.
             </p>
           </div>
 

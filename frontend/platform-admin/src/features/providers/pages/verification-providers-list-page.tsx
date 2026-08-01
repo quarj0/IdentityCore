@@ -82,7 +82,10 @@ export function VerificationProvidersListPage() {
           title="Verification Providers"
           description="Manage provider registry entries used by the platform-admin operations console."
         />
-        <EmptyState title="Unable to load verification providers" description={error} />
+        <EmptyState
+          title="Unable to load verification providers"
+          description={error}
+        />
       </>
     );
   }

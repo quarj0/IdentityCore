@@ -5,6 +5,13 @@ on:
   pull_request:
 
 jobs:
+  documentation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate records-of-processing inventory
+        run: python scripts/check_processing_inventory.py
+
   backend:
     runs-on: ubuntu-latest
     steps:
@@ -44,9 +51,11 @@ jobs:
         working-directory: frontend
       - run: pnpm --filter @identitycore/api-client exec tsc -p tsconfig.json
         working-directory: frontend
-      - run: pnpm --filter verification-portal exec playwright install --with-deps chromium
+      - run: pnpm --filter verification-portal exec playwright install --with-deps chromium webkit
         working-directory: frontend
       - run: pnpm --filter verification-portal test:e2e
+        working-directory: frontend
+      - run: docker build -f verification-portal/Dockerfile -t identitycore/verification-portal:ci .
         working-directory: frontend
 
 

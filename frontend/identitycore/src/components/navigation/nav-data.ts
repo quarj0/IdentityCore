@@ -3,7 +3,7 @@ import {
   Building2,
   Code2,
   Contact,
-//   FileText,
+  //   FileText,
   FlaskConical,
   Layers3,
   LockKeyhole,
@@ -79,7 +79,8 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         href: "/verification",
         label: "Sandbox verification",
-        description: "Complete the live document, selfie, liveness, and result flow.",
+        description:
+          "Complete the live document, selfie, liveness, and result flow.",
         icon: FlaskConical,
       },
     ],
@@ -116,12 +117,12 @@ export const NAV_GROUPS: NavGroup[] = [
         description: "How IdentityCore protects sensitive identity data.",
         icon: LockKeyhole,
       },
-    //   {
-    //     href: "/pricing",
-    //     label: "Pricing",
-    //     description: "Plans for sandbox, SaaS, and enterprise deployments.",
-    //     icon: FileText,
-    //   },
+      //   {
+      //     href: "/pricing",
+      //     label: "Pricing",
+      //     description: "Plans for sandbox, SaaS, and enterprise deployments.",
+      //     icon: FileText,
+      //   },
       {
         href: "/contact",
         label: "Contact",

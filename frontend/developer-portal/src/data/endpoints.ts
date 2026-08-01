@@ -25,7 +25,8 @@ export const endpoints: EndpointDefinition[] = [
     method: "GET",
     path: "/api/v1/health",
     title: "Health check",
-    description: "Checks that the API is up and reports the active service version.",
+    description:
+      "Checks that the API is up and reports the active service version.",
     category: "Core",
     request: `GET /api/v1/health`,
     response: `{
@@ -64,7 +65,8 @@ health = response.json()`,
     method: "GET",
     path: "/api/v1/policies/",
     title: "List verification policies",
-    description: "Returns the active verification policies available to the current tenant.",
+    description:
+      "Returns the active verification policies available to the current tenant.",
     category: "Policies",
     request: `GET /api/v1/policies/`,
     response: `{
@@ -121,7 +123,8 @@ policies = response.json()`,
     method: "GET",
     path: "/api/v1/policies/{policy_id}",
     title: "Retrieve verification policy",
-    description: "Returns a single active policy template by public identifier.",
+    description:
+      "Returns a single active policy template by public identifier.",
     category: "Policies",
     request: `GET /api/v1/policies/pol_01JABC...`,
     response: `{
@@ -176,7 +179,8 @@ policy = response.json()`,
     method: "GET",
     path: "/api/v1/verifications/",
     title: "List verifications",
-    description: "Lists verifications for the current tenant, including status and policy links.",
+    description:
+      "Lists verifications for the current tenant, including status and policy links.",
     category: "Verifications",
     request: `GET /api/v1/verifications/`,
     response: `{
@@ -240,7 +244,8 @@ verifications = response.json()`,
     method: "POST",
     path: "/api/v1/verifications/",
     title: "Create verification",
-    description: "Creates a hosted verification from a policy and subject payload.",
+    description:
+      "Creates a hosted verification from a policy and subject payload.",
     category: "Verifications",
     request: `{
   "purpose": "Customer onboarding",
@@ -345,7 +350,8 @@ verification = response.json()`,
     method: "GET",
     path: "/api/v1/verifications/{verification_id}",
     title: "Retrieve verification",
-    description: "Returns the verification summary and the linked policy and subject details.",
+    description:
+      "Returns the verification summary and the linked policy and subject details.",
     category: "Verifications",
     request: `GET /api/v1/verifications/ver_01JABC...`,
     response: `{
@@ -402,7 +408,8 @@ verification = response.json()`,
     method: "POST",
     path: "/api/v1/verifications/{verification_id}/cancel",
     title: "Cancel verification",
-    description: "Cancels an active verification and marks linked sessions revoked.",
+    description:
+      "Cancels an active verification and marks linked sessions revoked.",
     category: "Verifications",
     request: `{
   "reason": "Customer asked to stop the process"
@@ -466,7 +473,8 @@ cancelled_verification = response.json()`,
     method: "POST",
     path: "/api/v1/verifications/{verification_id}/resend-link",
     title: "Resend verification link",
-    description: "Issues a fresh hosted link when a customer needs a new access window.",
+    description:
+      "Issues a fresh hosted link when a customer needs a new access window.",
     category: "Verifications",
     request: `{
   "channel": "email"
@@ -534,7 +542,8 @@ refreshed_link = response.json()`,
     method: "GET",
     path: "/api/v1/verifications/{verification_id}/evidence-report",
     title: "Get evidence report",
-    description: "Returns the report and download URLs for a completed verification.",
+    description:
+      "Returns the report and download URLs for a completed verification.",
     category: "Verifications",
     request: `GET /api/v1/verifications/ver_01JABC.../evidence-report`,
     response: `{

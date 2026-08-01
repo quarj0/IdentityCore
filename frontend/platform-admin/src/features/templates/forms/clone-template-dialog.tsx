@@ -22,11 +22,28 @@ type CloneTemplateDialogProps = {
   onComplete?: () => void;
 };
 
-export function CloneTemplateDialog({ templateName, templateId, onComplete }: CloneTemplateDialogProps) {
+export function CloneTemplateDialog({
+  templateName,
+  templateId,
+  onComplete,
+}: CloneTemplateDialogProps) {
   const [name, setName] = useState(`${templateName} Copy`);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const submit = async () => { setSubmitting(true); setError(null); try { await cloneTemplate(templateId, name); onComplete?.(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to clone template."); } finally { setSubmitting(false); } };
+  const submit = async () => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      await cloneTemplate(templateId, name);
+      onComplete?.();
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Unable to clone template.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <Dialog>
@@ -41,7 +58,8 @@ export function CloneTemplateDialog({ templateName, templateId, onComplete }: Cl
         <DialogHeader>
           <DialogTitle>Clone template</DialogTitle>
           <DialogDescription>
-            Create a new draft from {templateName}. The cloned template can be edited before publishing.
+            Create a new draft from {templateName}. The cloned template can be
+            edited before publishing.
           </DialogDescription>
         </DialogHeader>
 
@@ -54,10 +72,16 @@ export function CloneTemplateDialog({ templateName, templateId, onComplete }: Cl
           />
         </div>
 
-        {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
+        {error ? (
+          <p role="alert" className="text-sm text-red-700">
+            {error}
+          </p>
+        ) : null}
         <DialogFooter>
           <Button variant="outline">Cancel</Button>
-          <Button onClick={submit} disabled={submitting || !name.trim()}>{submitting ? "Cloning…" : "Clone template"}</Button>
+          <Button onClick={submit} disabled={submitting || !name.trim()}>
+            {submitting ? "Cloning…" : "Clone template"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

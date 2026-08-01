@@ -37,7 +37,9 @@ function tone(status: string): AdminRecord["statusTone"] {
   return "info";
 }
 
-export function securityRecordToAdminRecord(caseItem: SecurityCase): AdminRecord {
+export function securityRecordToAdminRecord(
+  caseItem: SecurityCase,
+): AdminRecord {
   return {
     id: caseItem.id,
     title: caseItem.title,

@@ -13,12 +13,13 @@ import { useDashboardSession } from "@/components/auth/dashboard-session";
 
 export function UserMenu() {
   const { logout, user } = useDashboardSession();
-  const initials = (user?.full_name || user?.email || "User")
-    .split(/\s|@/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("") || "U";
+  const initials =
+    (user?.full_name || user?.email || "User")
+      .split(/\s|@/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "U";
 
   return (
     <DropdownMenu>
@@ -43,7 +44,9 @@ export function UserMenu() {
         <DropdownMenuItem asChild>
           <Link href="/billing">Billing</Link>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => void logout()}>Sign out</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => void logout()}>
+          Sign out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

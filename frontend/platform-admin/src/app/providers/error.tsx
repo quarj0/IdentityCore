@@ -11,7 +11,10 @@ export default function ProvidersError({ error, reset }: ProvidersErrorProps) {
   return (
     <ErrorState
       title="Unable to load verification providers"
-      description={error.message || "Something went wrong while loading verification providers."}
+      description={
+        error.message ||
+        "Something went wrong while loading verification providers."
+      }
       actionLabel="Try again"
       onAction={reset}
     />

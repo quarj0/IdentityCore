@@ -5,10 +5,15 @@ import { EmptyState } from "@/components/feedback/empty-state";
 import { AdminListPage } from "@/components/admin-module/admin-list-page";
 import { createAdminListConfig } from "@/components/admin-module/admin-module-types";
 import { PageHeader } from "@/components/shared/page-header";
-import { buildAuditConfig, fetchAuditRecords } from "@/features/audit/live-data";
+import {
+  buildAuditConfig,
+  fetchAuditRecords,
+} from "@/features/audit/live-data";
 
 export function AuditListPage() {
-  const [records, setRecords] = useState<ReturnType<typeof buildAuditConfig>["records"]>([]);
+  const [records, setRecords] = useState<
+    ReturnType<typeof buildAuditConfig>["records"]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,10 +64,7 @@ export function AuditListPage() {
 
   if (error && records.length === 0) {
     return (
-      <EmptyState
-        title="Unable to load audit events"
-        description={error}
-      />
+      <EmptyState title="Unable to load audit events" description={error} />
     );
   }
 

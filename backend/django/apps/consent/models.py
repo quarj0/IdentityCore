@@ -74,6 +74,8 @@ class ConsentRecord(PublicIdModel, BaseModel):
         blank=True,
     )
     consent_text_snapshot = models.TextField()
+    consent_locale = models.CharField(max_length=16, default="en")
+    consent_content_hash = models.CharField(max_length=64, blank=True)
     accepted = models.BooleanField(default=True)
     accepted_at = models.DateTimeField(db_index=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)

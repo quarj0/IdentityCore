@@ -18,6 +18,7 @@ export function CameraCapture({
 }: CameraCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const stoppingCameraRef = useRef(false);
   const [starting, setStarting] = useState(false);
   const [active, setActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,13 +30,24 @@ export function CameraCapture({
   );
 
   function stopCamera() {
+    stoppingCameraRef.current = true;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
     setActive(false);
+    stoppingCameraRef.current = false;
   }
 
-  useEffect(() => stopCamera, []);
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && streamRef.current) stopCamera();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      stopCamera();
+    };
+  }, []);
 
   async function startCamera() {
     if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
@@ -58,9 +70,20 @@ export function CameraCapture({
         },
       });
       streamRef.current = stream;
+      stream.getVideoTracks()[0]?.addEventListener(
+        "ended",
+        () => {
+          if (stoppingCameraRef.current) return;
+          stopCamera();
+          setError(
+            "The camera is no longer available. Enable it and try again.",
+          );
+        },
+        { once: true },
+      );
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        void videoRef.current.play().catch(() => undefined);
       }
       setActive(true);
     } catch (caught) {
@@ -86,7 +109,9 @@ export function CameraCapture({
     canvas.height = video.videoHeight;
     const context = canvas.getContext("2d");
     if (!context) {
-      setError("Your browser could not capture this image. Upload one instead.");
+      setError(
+        "Your browser could not capture this image. Upload one instead.",
+      );
       return;
     }
     context.drawImage(video, 0, 0);
@@ -123,9 +148,12 @@ export function CameraCapture({
             <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/10">
               <Camera className="h-6 w-6" aria-hidden="true" />
             </span>
-            <p className="mt-4 text-sm font-medium text-white">Camera preview</p>
+            <p className="mt-4 text-sm font-medium text-white">
+              Camera preview
+            </p>
             <p className="mt-1 max-w-xs text-xs leading-5 text-slate-400">
-              Allow camera access when prompted. Nothing is submitted until you review the image.
+              Allow camera access when prompted. Nothing is submitted until you
+              review the image.
             </p>
           </div>
         ) : facingMode === "environment" ? (
@@ -146,13 +174,17 @@ export function CameraCapture({
         >
           <strong className="font-semibold">HTTP testing mode:</strong> live
           camera access is disabled by the browser on this address. File upload
-          still works—choose <strong className="font-semibold">Upload image</strong>{" "}
-          below—or open the portal through HTTPS or localhost.
+          still works—choose{" "}
+          <strong className="font-semibold">Upload image</strong> below—or open
+          the portal through HTTPS or localhost.
         </div>
       ) : null}
 
       {error ? (
-        <p role="alert" className="border-t border-white/10 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+        <p
+          role="alert"
+          className="border-t border-white/10 bg-amber-400/10 px-4 py-3 text-sm text-amber-200"
+        >
           {error}
         </p>
       ) : null}
@@ -165,7 +197,11 @@ export function CameraCapture({
             disabled={starting || !cameraAvailable}
             className="flex-1"
           >
-            {starting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+            {starting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Camera className="h-4 w-4" />
+            )}
             {starting ? "Starting camera…" : "Use camera"}
           </Button>
         ) : (
@@ -200,7 +236,13 @@ export function CameraCapture({
             <ImagePlus className="h-3.5 w-3.5" aria-hidden="true" />
             Check focus and lighting before capture
           </p>
-          <Button type="button" size="sm" variant="ghost" onClick={startCamera} className="text-white hover:bg-white/10 hover:text-white">
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={startCamera}
+            className="text-white hover:bg-white/10 hover:text-white"
+          >
             <RefreshCw className="h-3.5 w-3.5" />
             Restart
           </Button>

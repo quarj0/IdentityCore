@@ -22,7 +22,7 @@ export function ThemeToggle({ className, variant = "icon" }: ThemeToggleProps) {
         "h-9 w-9",
         variant === "sidebar" &&
           "text-sidebar-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-        className
+        className,
       )}
       aria-label={`Switch to ${nextTheme} theme`}
       onClick={() => setTheme(nextTheme)}
