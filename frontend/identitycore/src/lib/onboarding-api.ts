@@ -311,6 +311,7 @@ export async function login(email: string, password: string) {
     {
       method: "POST",
       body: JSON.stringify({ email, password }),
+      headers: { "X-IdentityCore-Session-Scope": "dashboard" },
     },
     { useAuth: false },
   );

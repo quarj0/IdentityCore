@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Loader2, Mail } from "lucide-react";
 import {
@@ -19,12 +19,12 @@ import { PasswordInput } from "@/components/auth/password-input";
 import { InlineStatus } from "@/components/feedback/inline-status";
 import { saveAuthSession } from "@/lib/auth";
 import { getErrorMessage } from "@/lib/api-client";
-import { getSafeReturnTo } from "@/lib/auth-routing";
-import { fetchCurrentOnboarding, login } from "@/lib/onboarding-api";
-import { getOnboardingRoute } from "@/lib/onboarding-state";
+import { login } from "@/lib/onboarding-api";
+
+const dashboardUrl =
+  process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3000";
 
 export function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,10 +42,7 @@ export function LoginForm() {
         accessToken: payload.tokens.access,
         user: payload.user,
       });
-      const onboarding = await fetchCurrentOnboarding();
-      const returnTo = getSafeReturnTo(searchParams.get("returnTo"));
-      router.push(returnTo ?? getOnboardingRoute(onboarding));
-      router.refresh();
+      window.location.assign(dashboardUrl);
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
     } finally {
