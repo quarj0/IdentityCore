@@ -2,6 +2,7 @@
   "name": "identitycore",
   "private": true,
   "version": "0.0.0",
+  "packageManager": "pnpm@11.5.2",
   "scripts": {
     "format": "prettier --write .",
     "format:check": "prettier --check .",

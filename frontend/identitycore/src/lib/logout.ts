@@ -7,7 +7,11 @@ export async function endAuthSession() {
   try {
     await restRequest<{ logged_out: boolean }>(
       "/auth/logout",
-      { method: "POST", body: "{}" },
+      {
+        method: "POST",
+        body: "{}",
+        headers: { "X-IdentityCore-Session-Scope": "dashboard" },
+      },
       { useAuth: false },
     );
   } finally {
