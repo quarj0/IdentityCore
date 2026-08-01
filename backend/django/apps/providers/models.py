@@ -101,7 +101,10 @@ class ProviderAssignmentStatus(models.TextChoices):
 
 class ProviderAssignmentKey(models.TextChoices):
     DOCUMENT_OCR = ProviderCheckType.DOCUMENT_OCR, "Document OCR"
-    DOCUMENT_CLASSIFICATION = ProviderCheckType.DOCUMENT_CLASSIFICATION, "Document Classification"
+    DOCUMENT_CLASSIFICATION = (
+        ProviderCheckType.DOCUMENT_CLASSIFICATION,
+        "Document Classification",
+    )
     DOCUMENT_QUALITY = ProviderCheckType.DOCUMENT_QUALITY, "Document Quality"
     FACE_MATCH = ProviderCheckType.FACE_MATCH, "Face Match"
     LIVENESS = ProviderCheckType.LIVENESS, "Liveness"
@@ -177,11 +180,12 @@ class ProviderAssignment(PublicIdModel, BaseModel):
                     "provider": f"{self.assignment_key} requires provider types: {', '.join(sorted(allowed_types))}."
                 }
             )
-        if self.status == ProviderAssignmentStatus.ACTIVE and self.provider.status != ProviderStatus.ACTIVE:
+        if (
+            self.status == ProviderAssignmentStatus.ACTIVE
+            and self.provider.status != ProviderStatus.ACTIVE
+        ):
             raise ValidationError(
-                {
-                    "provider": "Active assignments require an active provider."
-                }
+                {"provider": "Active assignments require an active provider."}
             )
 
     def save(self, *args, **kwargs):
@@ -241,6 +245,7 @@ class ProviderCheck(PublicIdModel, BaseModel):
     error_message = models.TextField(blank=True)
     started_at = models.DateTimeField()
     completed_at = models.DateTimeField(null=True, blank=True)
+    duration_ms = models.PositiveBigIntegerField(null=True, blank=True)
 
     class Meta:
         ordering = ["-started_at"]
@@ -263,7 +268,10 @@ class ProviderCheck(PublicIdModel, BaseModel):
                     "tenant": "Provider checks must belong to the same tenant as the verification."
                 }
             )
-        if self.status in TERMINAL_PROVIDER_CHECK_STATUSES and self.completed_at is None:
+        if (
+            self.status in TERMINAL_PROVIDER_CHECK_STATUSES
+            and self.completed_at is None
+        ):
             raise ValidationError(
                 {
                     "completed_at": "Terminal provider checks must include a completion timestamp."

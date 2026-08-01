@@ -14,6 +14,7 @@ from apps.providers.ai_service import (
     run_document_quality,
 )
 from apps.providers.models import ProviderCheckStatus, ProviderCheckType
+from apps.providers.services import create_provider_check, invoke_provider_check
 from apps.uploads.services import promote_upload_to_media_by_storage_key
 from apps.verifications.models import VerificationStatus
 from common.storage import get_object_storage_temp_bucket_name
@@ -107,7 +108,9 @@ def _latest_provider_check_for_document(
 )
 def process_identity_document_task(identity_document_id: str) -> str:
     identity_document = (
-        IdentityDocument.objects.select_related("verification", "verification_subject", "tenant")
+        IdentityDocument.objects.select_related(
+            "verification", "verification_subject", "tenant"
+        )
         .prefetch_related("captures")
         .get(public_id=identity_document_id)
     )
@@ -134,6 +137,24 @@ def process_identity_document_task(identity_document_id: str) -> str:
         identity_document_id=identity_document.public_id,
         check_type=ProviderCheckType.DOCUMENT_QUALITY,
     )
+    provider_checks = {
+        ProviderCheckType.DOCUMENT_OCR: ocr_provider_check,
+        ProviderCheckType.DOCUMENT_CLASSIFICATION: classification_provider_check,
+        ProviderCheckType.DOCUMENT_QUALITY: quality_provider_check,
+    }
+    for check_type, check in provider_checks.items():
+        if check is None:
+            provider_checks[check_type] = create_provider_check(
+                verification=verification,
+                check_type=check_type,
+                status=ProviderCheckStatus.PENDING,
+                request_metadata={"identity_document_id": identity_document.public_id},
+            )
+    ocr_provider_check = provider_checks[ProviderCheckType.DOCUMENT_OCR]
+    classification_provider_check = provider_checks[
+        ProviderCheckType.DOCUMENT_CLASSIFICATION
+    ]
+    quality_provider_check = provider_checks[ProviderCheckType.DOCUMENT_QUALITY]
 
     latest_quality_status = DocumentCaptureStatus.VALIDATED
     lowest_quality_score: Decimal | None = None
@@ -143,12 +164,22 @@ def process_identity_document_task(identity_document_id: str) -> str:
 
     try:
         for capture in captures:
-            quality_result = run_document_quality(
-                verification_id=verification.public_id,
-                document_storage_key=capture.storage_key,
-                document_storage_bucket=temp_bucket,
+            quality_result = invoke_provider_check(
+                provider_check=quality_provider_check,
+                operation=run_document_quality,
+                operation_kwargs={
+                    "verification_id": verification.public_id,
+                    "document_storage_key": capture.storage_key,
+                    "document_storage_bucket": temp_bucket,
+                },
+                request_metadata={
+                    "identity_document_id": identity_document.public_id,
+                    "capture_id": capture.public_id,
+                },
             )
-            capture.quality_score = Decimal(str(quality_result.get("quality_score", "0")))
+            capture.quality_score = Decimal(
+                str(quality_result.get("quality_score", "0"))
+            )
             capture.status = (
                 DocumentCaptureStatus.REJECTED
                 if _quality_result_requires_rejection(quality_result)
@@ -166,7 +197,10 @@ def process_identity_document_task(identity_document_id: str) -> str:
                     "model_version": quality_result.get("model_version", ""),
                 }
             )
-            if lowest_quality_score is None or capture.quality_score < lowest_quality_score:
+            if (
+                lowest_quality_score is None
+                or capture.quality_score < lowest_quality_score
+            ):
                 lowest_quality_score = capture.quality_score
             if quality_result.get("issues"):
                 if _quality_result_requires_rejection(quality_result):
@@ -214,12 +248,17 @@ def process_identity_document_task(identity_document_id: str) -> str:
         manual_review_required = False
 
         try:
-            classification_result = run_document_classification(
-                verification_id=verification.public_id,
-                document_storage_key=primary_capture.storage_key,
-                document_type=identity_document.document_type_id,
-                country_code=identity_document.country_profile_id,
-                document_storage_bucket=temp_bucket,
+            classification_result = invoke_provider_check(
+                provider_check=classification_provider_check,
+                operation=run_document_classification,
+                operation_kwargs={
+                    "verification_id": verification.public_id,
+                    "document_storage_key": primary_capture.storage_key,
+                    "document_type": identity_document.document_type_id,
+                    "country_code": identity_document.country_profile_id,
+                    "document_storage_bucket": temp_bucket,
+                },
+                request_metadata={"identity_document_id": identity_document.public_id},
             )
         except AIServiceUnavailable as exc:
             manual_review_required = True
@@ -243,12 +282,17 @@ def process_identity_document_task(identity_document_id: str) -> str:
             manual_review_required = True
 
         try:
-            ocr_result = run_document_ocr(
-                verification_id=verification.public_id,
-                document_storage_key=primary_capture.storage_key,
-                document_type=identity_document.document_type_id,
-                country_code=identity_document.country_profile_id,
-                document_storage_bucket=temp_bucket,
+            ocr_result = invoke_provider_check(
+                provider_check=ocr_provider_check,
+                operation=run_document_ocr,
+                operation_kwargs={
+                    "verification_id": verification.public_id,
+                    "document_storage_key": primary_capture.storage_key,
+                    "document_type": identity_document.document_type_id,
+                    "country_code": identity_document.country_profile_id,
+                    "document_storage_bucket": temp_bucket,
+                },
+                request_metadata={"identity_document_id": identity_document.public_id},
             )
         except AIServiceUnavailable as exc:
             manual_review_required = True
@@ -316,7 +360,9 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 else IdentityDocumentStatus.PROCESSED
             )
         )
-        identity_document.save(update_fields=["extracted_data_json", "status", "updated_at"])
+        identity_document.save(
+            update_fields=["extracted_data_json", "status", "updated_at"]
+        )
 
         # A document review signal is not a final verification decision. Continue
         # collecting selfie, liveness, and face-match evidence so a reviewer has
@@ -324,7 +370,8 @@ def process_identity_document_task(identity_document_id: str) -> str:
         # result and applies manual-review routing after biometrics finish.
         verification.status = (
             VerificationStatus.AWAITING_SELFIE
-            if identity_document.status in {
+            if identity_document.status
+            in {
                 IdentityDocumentStatus.PROCESSED,
                 IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
             }
@@ -470,7 +517,13 @@ def process_identity_document_task(identity_document_id: str) -> str:
             provider_check.error_message = str(exc)
             provider_check.completed_at = now
             provider_check.save(
-                update_fields=["status", "error_code", "error_message", "completed_at", "updated_at"]
+                update_fields=[
+                    "status",
+                    "error_code",
+                    "error_message",
+                    "completed_at",
+                    "updated_at",
+                ]
             )
         record_audit_event(
             tenant=verification.tenant,
