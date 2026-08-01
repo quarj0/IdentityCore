@@ -389,6 +389,7 @@ def run_liveness_pipeline(
         "metrics": {
             "asset_kind": asset.kind,
             "frame_count": len(asset.frames),
+            "face_count": max_face_count,
             "face_presence_ratio": face_presence_ratio,
             "avg_detection_confidence": avg_detection_confidence,
             "movement_score": movement_score,
@@ -707,7 +708,12 @@ def build_mock_liveness(
         "confidence_level": "high" if passed else "medium",
         "liveness_type": liveness_type,
         "challenge_passed": passed if challenge_actions else True,
-        "metrics": {"challenge_actions": challenge_actions, "detected_actions": challenge_actions},
+        "metrics": {
+            "challenge_actions": challenge_actions,
+            "detected_actions": challenge_actions,
+            "face_count": 1,
+            "avg_detection_confidence": 0.97,
+        },
         "model_name": "mock-liveness",
         "model_version": "v1",
     }
