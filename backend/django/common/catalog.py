@@ -21,21 +21,6 @@ COUNTRY_PROFILES = [
                 "local_name": "Passport",
                 "capture_sides": ["single"],
             },
-            {
-                "document_type": "driver_license",
-                "local_name": "Driver License",
-                "capture_sides": ["front", "back"],
-            },
-            {
-                "document_type": "health_id",
-                "local_name": "Health ID",
-                "capture_sides": ["front", "back"],
-            },
-            {
-                "document_type": "voter_id",
-                "local_name": "Voter ID",
-                "capture_sides": ["front", "back"],
-            },
         ],
     },
     {
