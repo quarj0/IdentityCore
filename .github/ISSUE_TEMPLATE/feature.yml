@@ -1,0 +1,55 @@
+name: Feature or improvement
+description: Propose one independently deliverable product or engineering outcome.
+title: "[Feature]: "
+labels: ["type:feature", "status:triage"]
+body:
+  - type: input
+    id: backlog
+    attributes:
+      label: Backlog ID
+      description: Use the stable ID from docs/planning/implementation-backlog.md when applicable.
+      placeholder: IC-###
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and user outcome
+      description: Describe the problem, affected user, and measurable outcome rather than only a solution.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Proposed scope
+      description: State what this issue will and will not deliver.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance checks
+      description: Provide observable, testable completion criteria, including failure paths.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and rollout
+      description: List prerequisite IDs, migrations, compatibility constraints, flags, and rollback needs.
+  - type: textarea
+    id: security
+    attributes:
+      label: Security, privacy, and tenant-isolation considerations
+      description: Explain sensitive data, authorization, retention, abuse cases, and safe failure behavior.
+    validations:
+      required: true
+  - type: checkboxes
+    id: done
+    attributes:
+      label: Definition of done
+      options:
+        - label: Automated tests are planned.
+          required: true
+        - label: Documentation and observability impacts are identified.
+          required: true
+        - label: I searched for an existing issue.
+          required: true
