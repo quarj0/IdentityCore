@@ -7,6 +7,7 @@ import {
   setAccessToken,
 } from "@/lib/auth";
 import { getGraphqlApiUrl, getRestApiBaseUrl } from "@/lib/config";
+import { addDashboardSessionScope } from "@/lib/session-scope";
 
 interface ApiSuccess<T> {
   success: true;
@@ -57,7 +58,7 @@ function buildHeaders(
   token?: string | null,
   body?: BodyInit | null,
 ) {
-  const headers = new Headers(init);
+  const headers = addDashboardSessionScope(new Headers(init));
   headers.set("Accept", "application/json");
 
   if (!(body instanceof FormData) && !headers.has("Content-Type")) {
@@ -137,10 +138,7 @@ async function refreshAccessToken() {
     refreshInFlight = fetchWithTimeout(`${getRestApiBaseUrl()}/auth/refresh`, {
       method: "POST",
       credentials: "include",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
+      headers: buildHeaders(),
     })
       .then((response) => parseJson<{ tokens: { access: string } }>(response))
       .then((data) => {
