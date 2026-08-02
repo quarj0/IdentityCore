@@ -42,12 +42,12 @@ export const endpoints: EndpointDefinition[] = [
       {
         label: "cURL",
         language: "bash",
-        code: `curl https://api.identitycore.dev/api/v1/health`,
+        code: `curl https://api.identitycore.com/api/v1/health`,
       },
       {
         label: "TypeScript",
         language: "ts",
-        code: `const response = await fetch("https://api.identitycore.dev/api/v1/health");
+        code: `const response = await fetch("https://api.identitycore.com/api/v1/health");
 const health = await response.json();`,
       },
       {
@@ -55,7 +55,7 @@ const health = await response.json();`,
         language: "python",
         code: `import requests
 
-response = requests.get("https://api.identitycore.dev/api/v1/health")
+response = requests.get("https://api.identitycore.com/api/v1/health")
 health = response.json()`,
       },
     ],
@@ -86,13 +86,13 @@ health = response.json()`,
       {
         label: "cURL",
         language: "bash",
-        code: `curl https://api.identitycore.dev/api/v1/policies/ \\
+        code: `curl https://api.identitycore.com/api/v1/policies/ \\
 ${apiClientHeaders}`,
       },
       {
         label: "TypeScript",
         language: "ts",
-        code: `const response = await fetch("https://api.identitycore.dev/api/v1/policies/", {
+        code: `const response = await fetch("https://api.identitycore.com/api/v1/policies/", {
   headers: {
     Authorization: \`Bearer \${process.env.IDENTITYCORE_API_KEY}\`,
     "X-Client-Id": process.env.IDENTITYCORE_CLIENT_ID ?? "",
@@ -107,7 +107,7 @@ const policies = await response.json();`,
         code: `import requests
 
 response = requests.get(
-    "https://api.identitycore.dev/api/v1/policies/",
+    "https://api.identitycore.com/api/v1/policies/",
     headers={
         "Authorization": f"Bearer {IDENTITYCORE_API_KEY}",
         "X-Client-Id": IDENTITYCORE_CLIENT_ID,
@@ -142,13 +142,13 @@ policies = response.json()`,
       {
         label: "cURL",
         language: "bash",
-        code: `curl https://api.identitycore.dev/api/v1/policies/pol_01JABC... \\
+        code: `curl https://api.identitycore.com/api/v1/policies/pol_01JABC... \\
 ${apiClientHeaders}`,
       },
       {
         label: "TypeScript",
         language: "ts",
-        code: `const response = await fetch("https://api.identitycore.dev/api/v1/policies/pol_01JABC...", {
+        code: `const response = await fetch("https://api.identitycore.com/api/v1/policies/pol_01JABC...", {
   headers: {
     Authorization: \`Bearer \${process.env.IDENTITYCORE_API_KEY}\`,
     "X-Client-Id": process.env.IDENTITYCORE_CLIENT_ID ?? "",
@@ -163,7 +163,7 @@ const policy = await response.json();`,
         code: `import requests
 
 response = requests.get(
-    "https://api.identitycore.dev/api/v1/policies/pol_01JABC...",
+    "https://api.identitycore.com/api/v1/policies/pol_01JABC...",
     headers={
         "Authorization": f"Bearer {IDENTITYCORE_API_KEY}",
         "X-Client-Id": IDENTITYCORE_CLIENT_ID,
@@ -206,13 +206,13 @@ policy = response.json()`,
       {
         label: "cURL",
         language: "bash",
-        code: `curl https://api.identitycore.dev/api/v1/verifications/ \\
+        code: `curl https://api.identitycore.com/api/v1/verifications/ \\
 ${apiClientHeaders}`,
       },
       {
         label: "TypeScript",
         language: "ts",
-        code: `const response = await fetch("https://api.identitycore.dev/api/v1/verifications/", {
+        code: `const response = await fetch("https://api.identitycore.com/api/v1/verifications/", {
   headers: {
     Authorization: \`Bearer \${process.env.IDENTITYCORE_API_KEY}\`,
     "X-Client-Id": process.env.IDENTITYCORE_CLIENT_ID ?? "",
@@ -227,7 +227,7 @@ const verifications = await response.json();`,
         code: `import requests
 
 response = requests.get(
-    "https://api.identitycore.dev/api/v1/verifications/",
+    "https://api.identitycore.com/api/v1/verifications/",
     headers={
         "Authorization": f"Bearer {IDENTITYCORE_API_KEY}",
         "X-Client-Id": IDENTITYCORE_CLIENT_ID,
@@ -263,7 +263,7 @@ verifications = response.json()`,
   "data": {
     "id": "ver_01JABC...",
     "status": "pending_consent",
-    "verification_url": "https://verify.identitycore.dev/.../ver_01JABC...",
+    "verification_url": "https://verify.identitycore.com/.../ver_01JABC...",
     "session_id": "ses_01JABC...",
     "session_token": "sess_token_01JABC...",
     "expires_at": "2026-07-12T16:00:00Z"
@@ -274,7 +274,7 @@ verifications = response.json()`,
       {
         label: "cURL",
         language: "bash",
-        code: `curl -X POST https://api.identitycore.dev/api/v1/verifications/ \\
+        code: `curl -X POST https://api.identitycore.com/api/v1/verifications/ \\
 ${apiClientHeaders} \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -293,7 +293,7 @@ ${apiClientHeaders} \\
       {
         label: "TypeScript",
         language: "ts",
-        code: `const response = await fetch("https://api.identitycore.dev/api/v1/verifications/", {
+        code: `const response = await fetch("https://api.identitycore.com/api/v1/verifications/", {
   method: "POST",
   headers: {
     Authorization: \`Bearer \${process.env.IDENTITYCORE_API_KEY}\`,
@@ -322,7 +322,7 @@ const verification = await response.json();`,
         code: `import requests
 
 response = requests.post(
-    "https://api.identitycore.dev/api/v1/verifications/",
+    "https://api.identitycore.com/api/v1/verifications/",
     headers={
         "Authorization": f"Bearer {IDENTITYCORE_API_KEY}",
         "X-Client-Id": IDENTITYCORE_CLIENT_ID,
@@ -367,14 +367,14 @@ verification = response.json()`,
       {
         label: "cURL",
         language: "bash",
-        code: `curl https://api.identitycore.dev/api/v1/verifications/ver_01JABC... \\
+        code: `curl https://api.identitycore.com/api/v1/verifications/ver_01JABC... \\
 ${apiClientHeaders}`,
       },
       {
         label: "TypeScript",
         language: "ts",
         code: `const response = await fetch(
-  "https://api.identitycore.dev/api/v1/verifications/ver_01JABC...",
+  "https://api.identitycore.com/api/v1/verifications/ver_01JABC...",
   {
     headers: {
       Authorization: \`Bearer \${process.env.IDENTITYCORE_API_KEY}\`,
@@ -391,7 +391,7 @@ const verification = await response.json();`,
         code: `import requests
 
 response = requests.get(
-    "https://api.identitycore.dev/api/v1/verifications/ver_01JABC...",
+    "https://api.identitycore.com/api/v1/verifications/ver_01JABC...",
     headers={
         "Authorization": f"Bearer {IDENTITYCORE_API_KEY}",
         "X-Client-Id": IDENTITYCORE_CLIENT_ID,
@@ -425,7 +425,7 @@ verification = response.json()`,
       {
         label: "cURL",
         language: "bash",
-        code: `curl -X POST https://api.identitycore.dev/api/v1/verifications/ver_01JABC.../cancel \\
+        code: `curl -X POST https://api.identitycore.com/api/v1/verifications/ver_01JABC.../cancel \\
 ${apiClientHeaders} \\
   -H "Content-Type: application/json" \\
   -d '{"reason":"Customer asked to stop the process"}'`,
@@ -434,7 +434,7 @@ ${apiClientHeaders} \\
         label: "TypeScript",
         language: "ts",
         code: `const response = await fetch(
-  "https://api.identitycore.dev/api/v1/verifications/ver_01JABC.../cancel",
+  "https://api.identitycore.com/api/v1/verifications/ver_01JABC.../cancel",
   {
     method: "POST",
     headers: {
@@ -454,7 +454,7 @@ const cancelledVerification = await response.json();`,
         code: `import requests
 
 response = requests.post(
-    "https://api.identitycore.dev/api/v1/verifications/ver_01JABC.../cancel",
+    "https://api.identitycore.com/api/v1/verifications/ver_01JABC.../cancel",
     headers={
         "Authorization": f"Bearer {IDENTITYCORE_API_KEY}",
         "X-Client-Id": IDENTITYCORE_CLIENT_ID,
@@ -482,7 +482,7 @@ cancelled_verification = response.json()`,
   "success": true,
   "data": {
     "sent": true,
-    "verification_url": "https://verify.identitycore.dev/.../ver_01JABC...",
+    "verification_url": "https://verify.identitycore.com/.../ver_01JABC...",
     "session_id": "ses_01JABC...",
     "session_token": "sess_token_01JABC...",
     "expires_at": "2026-07-12T16:30:00Z",
@@ -494,7 +494,7 @@ cancelled_verification = response.json()`,
       {
         label: "cURL",
         language: "bash",
-        code: `curl -X POST https://api.identitycore.dev/api/v1/verifications/ver_01JABC.../resend-link \\
+        code: `curl -X POST https://api.identitycore.com/api/v1/verifications/ver_01JABC.../resend-link \\
 ${apiClientHeaders} \\
   -H "Content-Type: application/json" \\
   -d '{"channel":"email"}'`,
@@ -503,7 +503,7 @@ ${apiClientHeaders} \\
         label: "TypeScript",
         language: "ts",
         code: `const response = await fetch(
-  "https://api.identitycore.dev/api/v1/verifications/ver_01JABC.../resend-link",
+  "https://api.identitycore.com/api/v1/verifications/ver_01JABC.../resend-link",
   {
     method: "POST",
     headers: {
@@ -523,7 +523,7 @@ const refreshedLink = await response.json();`,
         code: `import requests
 
 response = requests.post(
-    "https://api.identitycore.dev/api/v1/verifications/ver_01JABC.../resend-link",
+    "https://api.identitycore.com/api/v1/verifications/ver_01JABC.../resend-link",
     headers={
         "Authorization": f"Bearer {IDENTITYCORE_API_KEY}",
         "X-Client-Id": IDENTITYCORE_CLIENT_ID,
@@ -550,9 +550,9 @@ refreshed_link = response.json()`,
   "data": {
     "verification_id": "ver_01JABC...",
     "storage_key": "tenants/ten_01JABC/verifications/ver_01JABC/report.json",
-    "download_url": "https://files.identitycore.dev/...",
+    "download_url": "https://files.identitycore.com/...",
     "pdf_storage_key": "tenants/ten_01JABC/verifications/ver_01JABC/report.pdf",
-    "pdf_download_url": "https://files.identitycore.dev/..."
+    "pdf_download_url": "https://files.identitycore.com/..."
   },
   "request_id": "req_01JABC..."
 }`,
@@ -560,14 +560,14 @@ refreshed_link = response.json()`,
       {
         label: "cURL",
         language: "bash",
-        code: `curl https://api.identitycore.dev/api/v1/verifications/ver_01JABC.../evidence-report \\
+        code: `curl https://api.identitycore.com/api/v1/verifications/ver_01JABC.../evidence-report \\
 ${apiClientHeaders}`,
       },
       {
         label: "TypeScript",
         language: "ts",
         code: `const response = await fetch(
-  "https://api.identitycore.dev/api/v1/verifications/ver_01JABC.../evidence-report",
+  "https://api.identitycore.com/api/v1/verifications/ver_01JABC.../evidence-report",
   {
     headers: {
       Authorization: \`Bearer \${process.env.IDENTITYCORE_API_KEY}\`,
@@ -584,7 +584,7 @@ const evidenceReport = await response.json();`,
         code: `import requests
 
 response = requests.get(
-    "https://api.identitycore.dev/api/v1/verifications/ver_01JABC.../evidence-report",
+    "https://api.identitycore.com/api/v1/verifications/ver_01JABC.../evidence-report",
     headers={
         "Authorization": f"Bearer {IDENTITYCORE_API_KEY}",
         "X-Client-Id": IDENTITYCORE_CLIENT_ID,

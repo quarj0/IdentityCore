@@ -3,7 +3,7 @@ function trimTrailingSlash(value: string) {
 }
 
 const marketingSiteUrl = trimTrailingSlash(
-  process.env.NEXT_PUBLIC_MARKETING_URL || "https://identitycore.dev",
+  process.env.NEXT_PUBLIC_MARKETING_URL || "https://identitycore.com",
 );
 
 export const siteConfig = {

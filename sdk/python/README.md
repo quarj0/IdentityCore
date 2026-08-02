@@ -30,6 +30,23 @@ print(verification["verification_url"])
 
 GET requests retry transient failures automatically. Verification creation is idempotent and safely retried; cancellation and link resend are not retried automatically.
 
+## CLI
+
+Install the SDK and save a server-side API client configuration:
+
+```sh
+pip install identitycore
+identitycore login --api-origin https://api.identitycore.com \
+  --client-id cli_...
+identitycore policies list
+identitycore verifications create --purpose "Customer onboarding" \
+  --policy-id pol_... --full-name "Kwame Mensah" --email kwame@example.com
+```
+
+The configuration file is written with owner-only permissions. Environment
+variables (`IDENTITYCORE_API_ORIGIN`, `IDENTITYCORE_CLIENT_ID`, and
+`IDENTITYCORE_CLIENT_SECRET`) can be used in CI instead of `login`.
+
 ## Pagination and webhooks
 
 ```python

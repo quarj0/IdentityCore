@@ -21,7 +21,9 @@ function toReferenceEndpoints(
   return overview.resources.map((resource) => ({
     slug: resource.slug,
     method: resource.method,
-    path: resource.path,
+    path: resource.path.startsWith("/api/")
+      ? resource.path
+      : `/api/v1${resource.path.startsWith("/") ? resource.path : `/${resource.path}`}`,
     title: resource.name,
     description: resource.description,
     category: resource.category,

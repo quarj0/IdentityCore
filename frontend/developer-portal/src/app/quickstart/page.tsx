@@ -11,7 +11,7 @@ export default function QuickstartPage() {
       <CodeBlock
         title="Create a verification"
         language="bash"
-        code={`curl -X POST https://api.identitycore.dev/api/v1/verifications/ \\
+        code={`curl -X POST https://api.identitycore.com/api/v1/verifications/ \\
   -H "Authorization: Bearer sk_test_xxx" \\
   -H "X-Client-Id: api_client_id" \\
   -H "Content-Type: application/json" \\

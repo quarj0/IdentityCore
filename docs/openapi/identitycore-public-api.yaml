@@ -65,6 +65,39 @@ components:
           $ref: "#/components/schemas/Error"
         request_id:
           type: string
+    WorkflowSummary:
+      type: object
+      required: [id, project_id, name, status, steps, settings, current_version]
+      properties:
+        id:
+          type: string
+        project_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        steps:
+          type: array
+          items:
+            type: string
+        settings:
+          type: object
+          additionalProperties: true
+        current_version:
+          type: integer
+        source_template_id:
+          type: [string, 'null']
+        source_template_version:
+          type: [string, 'null']
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
     Policy:
       type: object
       required:
@@ -1241,6 +1274,105 @@ paths:
           $ref: "#/components/responses/PermissionDenied"
         "404":
           $ref: "#/components/responses/NotFound"
+  /organization/me/verification-documents/{document_id}/content/:
+    put:
+      summary: Transfer supporting document bytes.
+      description: Upload the PDF bytes for an initiated organization supporting document.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      parameters:
+        - name: document_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: Content-Type
+          in: header
+          required: true
+          schema:
+            const: application/pdf
+      requestBody:
+        required: true
+        content:
+          application/pdf:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "200":
+          description: Supporting document bytes stored.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: object
+                    properties:
+                      document_id:
+                        type: string
+                      status:
+                        const: stored
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "415":
+          description: The uploaded document is not a PDF.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /organization/me/suspend:
+    post:
+      summary: Suspend the current workspace.
+      description: Requires the exact organization name as confirmation and disables active workspace credentials and sessions.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confirmation]
+              properties:
+                confirmation:
+                  type: string
+      responses:
+        "200":
+          description: Workspace suspended.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: object
+                    required: [suspended]
+                    properties:
+                      suspended:
+                        const: true
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
   /projects/:
     get:
       summary: List projects.
@@ -1410,6 +1542,80 @@ paths:
           $ref: "#/components/responses/PermissionDenied"
         "404":
           $ref: "#/components/responses/NotFound"
+  /projects/{project_id}/workflows:instantiate:
+    post:
+      summary: Instantiate a workflow template in a project.
+      description: Creates an idempotent workflow from a published template. Production projects require an approved organization.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            maxLength: 255
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [template_id, template_version]
+              properties:
+                template_id:
+                  type: string
+                template_version:
+                  type: string
+                name:
+                  type: string
+      responses:
+        "201":
+          description: Workflow instantiated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/WorkflowSummary"
+                  request_id:
+                    type: string
+        "200":
+          description: Existing idempotent workflow returned.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/WorkflowSummary"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Idempotency key conflicts with a previous request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /api-clients/:
     get:
       summary: List API clients.

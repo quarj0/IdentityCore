@@ -5,15 +5,15 @@ import { DocsLayout } from "@/components/docs/docs-layout";
 export default function CliPage() {
   return (
     <DocsLayout
-      title="CLI roadmap"
-      description="The command line workflow is not shipped yet, so this page documents the intended shape rather than pretending the tool already exists."
+      title="CLI"
+      description="Use the official Python SDK CLI for repeatable, server-side API workflows and automation."
     >
       <section className="rounded-3xl border border-slate-200 bg-white p-6">
-        <h2 className="text-xl font-semibold">What to use today</h2>
+        <h2 className="text-xl font-semibold">Install and authenticate</h2>
         <p className="mt-3 text-sm leading-7 text-slate-600">
-          For now, use the API reference, the OpenAPI spec, and the SDKs to
-          exercise the public API. That keeps testing grounded in the same
-          contract that the backend publishes.
+          The CLI is distributed with the Python SDK. Keep credentials on a
+          trusted server or CI runner; never embed client secrets in browser or
+          mobile applications.
         </p>
 
         <div className="mt-5 flex flex-wrap gap-3">
@@ -39,22 +39,37 @@ export default function CliPage() {
       </section>
 
       <CodeBlock
-        title="Planned CLI surface"
+        title="Install and use the CLI"
         language="bash"
-        code={`identitycore login
+        code={`pip install identitycore
+
+identitycore login \\
+  --api-origin https://api.identitycore.com \\
+  --client-id cli_...
+
 identitycore policies list
-identitycore verifications create customer-onboarding
-identitycore webhooks listen`}
+identitycore verifications list
+identitycore verifications create \\
+  --purpose "Customer onboarding" \\
+  --policy-id pol_... \\
+  --full-name "Amina Mensah" \\
+  --email amina@example.com`}
       />
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6">
-        <h2 className="text-xl font-semibold">How we should build it later</h2>
+        <h2 className="text-xl font-semibold">Available commands</h2>
         <ul className="mt-4 list-disc space-y-3 pl-5 text-sm leading-7 text-slate-600">
-          <li>Generate the CLI from the OpenAPI contract where practical.</li>
-          <li>Keep authentication and environment selection explicit.</li>
           <li>
-            Use the same backend test fixtures as the portal and SDK docs.
+            <code>health</code> checks API availability.
           </li>
+          <li>
+            <code>policies list|get</code> reads active verification policies.
+          </li>
+          <li>
+            <code>verifications list|get|create|cancel</code> manages hosted
+            verification flows.
+          </li>
+          <li>Use environment variables for non-interactive CI jobs.</li>
         </ul>
       </section>
     </DocsLayout>
