@@ -33,3 +33,20 @@ textarea {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Keep the contract explorer aligned with the portal instead of Swagger's defaults. */
+.api-explorer .swagger-ui { color: #334155; font-family: inherit; padding: 1rem; }
+.api-explorer .swagger-ui .topbar,
+.api-explorer .swagger-ui .information-container .link,
+.api-explorer .swagger-ui .scheme-container .servers-title { display: none; }
+.api-explorer .swagger-ui .info { margin: 1rem 0 2rem; }
+.api-explorer .swagger-ui .info .title,
+.api-explorer .swagger-ui .opblock-tag,
+.api-explorer .swagger-ui .opblock-summary-description,
+.api-explorer .swagger-ui button,
+.api-explorer .swagger-ui select,
+.api-explorer .swagger-ui input,
+.api-explorer .swagger-ui textarea { font-family: inherit; }
+.api-explorer .swagger-ui .scheme-container { box-shadow: none; margin: 0 0 1.5rem; padding: 1rem; }
+.api-explorer .swagger-ui .opblock { border-radius: 0.75rem; box-shadow: none; }
+.api-explorer .swagger-ui .btn.authorize { border-color: #2563eb; color: #2563eb; }

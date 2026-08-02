@@ -75,9 +75,7 @@ POST /api/v1/projects/
       <section className="rounded-3xl border border-slate-200 bg-white p-6">
         <h2 className="text-xl font-semibold">Mint a sandbox API client</h2>
         <p className="mt-3 text-sm leading-7 text-slate-600">
-          Most portals issue a dedicated sandbox API client, and this codebase
-          does the same. Pending workspaces can create one sandbox test key and
-          use it for verification testing without production permissions.
+          Create a dedicated sandbox API client for isolated testing. Pending workspaces can create one sandbox test key for verification testing without production permissions.
         </p>
 
         <CodeBlock
@@ -94,9 +92,7 @@ POST /api/v1/projects/
         />
 
         <p className="mt-4 text-sm leading-7 text-slate-600">
-          The backend enforces the sandbox limit and scope trimming for pending
-          workspaces, so the portal can safely show this as the default testing
-          path.
+          Sandbox limits and reduced scopes are enforced automatically for pending workspaces.
         </p>
       </section>
 
