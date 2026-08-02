@@ -3,10 +3,7 @@ import { CodeBlock } from "@/components/docs/code-block";
 import { DocsLayout } from "@/components/docs/docs-layout";
 import { LanguageExamples } from "@/components/docs/language-examples";
 import { endpoints } from "@/data/endpoints";
-import {
-  buildPublicApiUrl,
-  fetchPublicApiDocsOverview,
-} from "@/lib/public-api-docs";
+import { fetchPublicApiDocsOverview } from "@/lib/public-api-docs";
 
 export function generateStaticParams() {
   return endpoints.map((endpoint) => ({
@@ -107,17 +104,15 @@ export default async function ApiDetailPage({
           Contract reference
         </h2>
         <p className="mt-3 text-sm leading-7 text-amber-900">
-          This route is published in the canonical OpenAPI contract. Use the
-          contract for the exact request schema, response fields, authentication
-          requirements, and available operations.
+          Review this operation in the interactive API reference for its request
+          schema, response variants, authentication requirements, and a request
+          console preloaded from the canonical contract.
         </p>
         <a
-          href={buildPublicApiUrl(
-            overview?.spec_url ?? "/api/v1/docs/openapi.yaml",
-          )}
+          href="/openapi"
           className="mt-5 inline-flex rounded-xl bg-amber-900 px-4 py-2 text-sm font-medium text-white hover:bg-amber-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-900"
         >
-          Open the OpenAPI contract
+          Open interactive reference
         </a>
       </section>
     </DocsLayout>

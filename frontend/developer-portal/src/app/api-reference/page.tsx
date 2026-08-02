@@ -11,14 +11,13 @@ export default async function ApiReferencePage() {
   return (
     <DocsLayout
       title="API reference"
-      description="Core REST endpoints for policies, verifications, evidence reports, and integration workflows."
+      description="Browse documented IdentityCore operations with request examples, response payloads, authentication requirements, and links to the interactive request console."
     >
       {overview?.spec_url ? (
         <section className="rounded-3xl border border-slate-200 bg-white p-6">
           <h2 className="text-xl font-semibold">Machine-readable contract</h2>
           <p className="mt-3 text-sm leading-7 text-slate-600">
-            The OpenAPI spec powers SDK generation, contract tests, and future
-            interactive docs.
+            The OpenAPI contract powers this reference, the interactive request console, SDK generation, and contract tests.
           </p>
           <div className="mt-5">
             <a
