@@ -117,6 +117,12 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: PYTHONPATH=sdk/python python -m unittest discover -s sdk/python/tests -p 'test_live_compatibility.py'
+      - name: Stop compatibility backend
+        if: always()
+        run: |
+          if [ -n "${IDENTITYCORE_COMPAT_SERVER_PID:-}" ]; then
+            kill -- "-${IDENTITYCORE_COMPAT_SERVER_PID}" 2>/dev/null || kill "${IDENTITYCORE_COMPAT_SERVER_PID}" 2>/dev/null || true
+          fi
 
   sdk-live-javascript:
     runs-on: ubuntu-latest
@@ -133,6 +139,12 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: node --test test/live-compatibility.test.js
         working-directory: sdk/javascript
+      - name: Stop compatibility backend
+        if: always()
+        run: |
+          if [ -n "${IDENTITYCORE_COMPAT_SERVER_PID:-}" ]; then
+            kill -- "-${IDENTITYCORE_COMPAT_SERVER_PID}" 2>/dev/null || kill "${IDENTITYCORE_COMPAT_SERVER_PID}" 2>/dev/null || true
+          fi
 
   sdk-live-java:
     runs-on: ubuntu-latest
@@ -150,6 +162,12 @@ jobs:
           java-version: ${{ matrix.java-version }}
       - run: mvn --batch-mode -Dtest=LiveCompatibilityTest test
         working-directory: sdk/java
+      - name: Stop compatibility backend
+        if: always()
+        run: |
+          if [ -n "${IDENTITYCORE_COMPAT_SERVER_PID:-}" ]; then
+            kill -- "-${IDENTITYCORE_COMPAT_SERVER_PID}" 2>/dev/null || kill "${IDENTITYCORE_COMPAT_SERVER_PID}" 2>/dev/null || true
+          fi
 
   sdk-live-dotnet:
     runs-on: ubuntu-latest
@@ -163,3 +181,9 @@ jobs:
           dotnet-version: "8.0.x"
       - run: dotnet test IdentityCore.sln --configuration Release --filter FullyQualifiedName~LiveCompatibilityTests
         working-directory: sdk/dotnet
+      - name: Stop compatibility backend
+        if: always()
+        run: |
+          if [ -n "${IDENTITYCORE_COMPAT_SERVER_PID:-}" ]; then
+            kill -- "-${IDENTITYCORE_COMPAT_SERVER_PID}" 2>/dev/null || kill "${IDENTITYCORE_COMPAT_SERVER_PID}" 2>/dev/null || true
+          fi
