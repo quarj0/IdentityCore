@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.urls import reverse
+from django.test import override_settings
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -14,6 +15,8 @@ from apps.accounts.verification import (
     issue_and_queue_email_verification,
     verify_email_token,
 )
+from apps.accounts.mfa import totp
+from apps.audit.models import AuditEvent
 from apps.notifications.models import Notification
 from apps.organizations.models import Organization
 from apps.tenants.models import Tenant
@@ -306,6 +309,148 @@ class AuthEndpointTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         emails = {item["email"] for item in response.data["data"]["results"]}
         self.assertEqual(emails, {"user@example.com", "reviewer@example.com"})
+
+
+class MFAEndpointTests(APITestCase):
+    def setUp(self):
+        organization = Organization.objects.create(
+            name="Privileged Org",
+            slug="privileged-org",
+            settings_json={"privileged_mfa_roles": ["Organization Administrator"]},
+        )
+        self.tenant = Tenant.objects.create(
+            organization=organization,
+            name="Privileged Tenant",
+            slug="privileged-tenant",
+            status="active",
+        )
+        role = Role.objects.create(
+            tenant=self.tenant,
+            name="Organization Administrator",
+            scope=RoleScope.TENANT,
+            status="active",
+        )
+        self.user = PlatformUser.objects.create_user(
+            email="privileged@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            tenant=self.tenant,
+        )
+        UserRole.objects.create(user=self.user, role=role, tenant=self.tenant)
+
+    def login(self):
+        return self.client.post(
+            reverse("auth-login"),
+            {"email": self.user.email, "password": "StrongPassword123!"},
+            format="json",
+        )
+
+    def enroll(self):
+        login = self.login()
+        token = login.data["data"]["mfa_token"]
+        enrollment = self.client.post(
+            reverse("auth-mfa-enroll"), {"mfa_token": token}, format="json"
+        )
+        secret = enrollment.data["data"]["secret"]
+        confirmed = self.client.post(
+            reverse("auth-mfa-enroll-confirm"),
+            {"mfa_token": token, "code": totp(secret)},
+            format="json",
+        )
+        return secret, confirmed
+
+    def test_privileged_login_cannot_bypass_enrollment(self):
+        response = self.login()
+
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertTrue(response.data["data"]["mfa_enrollment_required"])
+        self.assertNotIn("tokens", response.data["data"])
+        self.assertNotIn("identitycore_refresh", response.cookies)
+
+    @override_settings(ADMIN_MFA_REQUIRED_DEFAULT=True)
+    def test_platform_admin_cannot_bypass_enrollment(self):
+        platform_admin = PlatformUser.objects.create_user(
+            email="platform@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            is_platform_admin=True,
+        )
+        response = self.client.post(
+            reverse("auth-login"),
+            {"email": platform_admin.email, "password": "StrongPassword123!"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertTrue(response.data["data"]["mfa_enrollment_required"])
+        self.assertNotIn("tokens", response.data["data"])
+
+    def test_legacy_refresh_token_cannot_bypass_mfa_policy(self):
+        self.client.cookies["identitycore_refresh"] = str(
+            RefreshToken.for_user(self.user)
+        )
+        response = self.client.post(reverse("auth-refresh"), {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.cookies["identitycore_refresh"].value, "")
+
+    def test_enrollment_challenge_recovery_and_replay_protection(self):
+        secret, confirmed = self.enroll()
+        self.assertEqual(confirmed.status_code, status.HTTP_200_OK)
+        self.assertIn("access", confirmed.data["data"]["tokens"])
+        recovery = confirmed.data["data"]["recovery_codes"][0]
+        self.assertEqual(len(confirmed.data["data"]["recovery_codes"]), 10)
+
+        login = self.login()
+        self.assertFalse(login.data["data"]["mfa_enrollment_required"])
+        challenged = self.client.post(
+            reverse("auth-mfa-challenge"),
+            {"mfa_token": login.data["data"]["mfa_token"], "code": totp(secret)},
+            format="json",
+        )
+        self.assertEqual(challenged.status_code, status.HTTP_200_OK)
+        challenge_replay = self.client.post(
+            reverse("auth-mfa-challenge"),
+            {"mfa_token": login.data["data"]["mfa_token"], "code": totp(secret)},
+            format="json",
+        )
+        self.assertEqual(challenge_replay.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        login = self.login()
+        recovered = self.client.post(
+            reverse("auth-mfa-challenge"),
+            {"mfa_token": login.data["data"]["mfa_token"], "code": recovery},
+            format="json",
+        )
+        self.assertEqual(recovered.status_code, status.HTTP_200_OK)
+        replay = self.client.post(
+            reverse("auth-mfa-challenge"),
+            {"mfa_token": login.data["data"]["mfa_token"], "code": recovery},
+            format="json",
+        )
+        self.assertEqual(replay.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertTrue(
+            AuditEvent.objects.filter(action="user.mfa_challenge_failed").exists()
+        )
+
+    def test_authenticated_reset_requires_password_and_second_factor(self):
+        secret, confirmed = self.enroll()
+        access = confirmed.data["data"]["tokens"]["access"]
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
+        rejected = self.client.post(
+            reverse("auth-mfa-reset"),
+            {"password": "wrong", "code": totp(secret)},
+            format="json",
+        )
+        self.assertEqual(rejected.status_code, status.HTTP_401_UNAUTHORIZED)
+        response = self.client.post(
+            reverse("auth-mfa-reset"),
+            {"password": "StrongPassword123!", "code": totp(secret)},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.mfa_enabled)
+        self.assertTrue(AuditEvent.objects.filter(action="user.mfa_reset").exists())
 
 
 class EmailVerificationTests(APITestCase):
