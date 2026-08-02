@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
@@ -54,7 +55,7 @@ class AuditEventDetailView(APIView):
     def get(self, request, event_id):
         return success_response(
             serialize_audit_event(
-                request.user.tenant.audit_events.get(public_id=event_id)
+                get_object_or_404(request.user.tenant.audit_events, public_id=event_id)
             ),
             request=request,
         )

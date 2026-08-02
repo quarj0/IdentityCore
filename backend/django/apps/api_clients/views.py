@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -52,7 +53,7 @@ class APIClientDetailView(APIView):
     permission_classes = [IsAuthenticated, IsTenantUser]
 
     def obj(self, request, client_id):
-        return request.user.tenant.api_clients.get(public_id=client_id)
+        return get_object_or_404(request.user.tenant.api_clients, public_id=client_id)
 
     def get(self, request, client_id):
         return success_response(
