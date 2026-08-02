@@ -102,6 +102,33 @@ class GraphQLAPITests(APITestCase):
             status="uploaded",
         )
 
+    def create_other_tenant_verification(self, **overrides):
+        organization = Organization.objects.create(
+            name="Beta GraphQL", slug="beta-graphql"
+        )
+        tenant = Tenant.objects.create(
+            organization=organization,
+            name="Beta GraphQL Tenant",
+            slug="beta-graphql-tenant",
+            status="active",
+        )
+        subject = VerificationSubject.objects.create(
+            tenant=tenant,
+            full_name="Cross Tenant Subject",
+            email="private@beta.example",
+        )
+        values = {
+            "tenant": tenant,
+            "organization": organization,
+            "verification_subject": subject,
+            "purpose": "Cross tenant verification",
+            "external_reference": "shared-reference",
+            "status": VerificationStatus.MANUAL_REVIEW_REQUIRED,
+            "expires_at": timezone.now() + timedelta(hours=1),
+        }
+        values.update(overrides)
+        return Verification.objects.create(**values)
+
     def test_countries_query_returns_full_public_catalog(self):
         response = self.post_graphql(
             """
@@ -124,6 +151,34 @@ class GraphQLAPITests(APITestCase):
         self.assertEqual(country_map["GH"], "Ghana")
         self.assertIn("NG", country_map)
         self.assertIn("US", country_map)
+
+    def test_country_profiles_query_includes_document_capture_sides(self):
+        response = self.post_graphql(
+            """
+                query CountryProfiles {
+                  countryProfiles {
+                    code
+                    supportedDocumentTypes {
+                      documentType
+                      localName
+                      captureSides
+                    }
+                  }
+                }
+            """,
+            token="",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = response.json()
+        self.assertNotIn("errors", payload)
+        gh = next(item for item in payload["data"]["countryProfiles"] if item["code"] == "GH")
+        national_id = next(
+            item
+            for item in gh["supportedDocumentTypes"]
+            if item["documentType"] == "national_id"
+        )
+        self.assertEqual(national_id["captureSides"], ["front", "back"])
 
     def test_verifications_query_returns_tenant_scoped_dashboard_data(self):
         subject = VerificationSubject.objects.create(
@@ -171,6 +226,117 @@ class GraphQLAPITests(APITestCase):
         )
         self.assertEqual(
             payload["data"]["verifications"][0]["riskAssessment"]["riskLevel"], "high"
+        )
+
+    def test_verification_list_and_filters_do_not_disclose_another_tenant(self):
+        own_subject = VerificationSubject.objects.create(
+            tenant=self.tenant, full_name="Own Tenant Subject"
+        )
+        own_verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=own_subject,
+            purpose="Own verification",
+            external_reference="shared-reference",
+            status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+        other_verification = self.create_other_tenant_verification()
+
+        response = self.post_graphql(
+            """
+                query TenantVerificationFilter($reference: String!) {
+                  verifications(
+                    status: "manual_review_required"
+                    externalReference: $reference
+                  ) {
+                    id
+                    verificationSubject { fullName }
+                  }
+                }
+            """,
+            {"reference": "shared-reference"},
+        )
+
+        payload = response.json()
+        self.assertNotIn("errors", payload)
+        self.assertEqual(
+            payload["data"]["verifications"],
+            [{
+                "id": own_verification.public_id,
+                "verificationSubject": {"fullName": "Own Tenant Subject"},
+            }],
+        )
+        self.assertNotContains(response, other_verification.public_id)
+        self.assertNotContains(response, "Cross Tenant Subject")
+
+    def test_verification_node_lookup_does_not_disclose_another_tenant(self):
+        other_verification = self.create_other_tenant_verification()
+
+        response = self.post_graphql(
+            """
+                query TenantVerificationNode($id: String!) {
+                  verification(verificationId: $id) {
+                    id
+                    verificationSubject { fullName }
+                  }
+                }
+            """,
+            {"id": other_verification.public_id},
+        )
+
+        payload = response.json()
+        self.assertNotIn("errors", payload)
+        self.assertIsNone(payload["data"]["verification"])
+
+    def test_manual_decision_mutation_cannot_update_another_tenant(self):
+        other_verification = self.create_other_tenant_verification()
+
+        response = self.post_graphql(
+            """
+                mutation CrossTenantDecision($id: String!) {
+                  recordManualDecision(
+                    verificationId: $id
+                    decision: "verified"
+                    reasonCode: "evidence_confirmed"
+                  ) { verificationId }
+                }
+            """,
+            {"id": other_verification.public_id},
+        )
+
+        self.assertIn("errors", response.json())
+        other_verification.refresh_from_db()
+        self.assertEqual(
+            other_verification.status, VerificationStatus.MANUAL_REVIEW_REQUIRED
+        )
+
+    def test_administrator_onboarding_does_not_resume_another_tenant_verification(self):
+        other_verification = self.create_other_tenant_verification(
+            created_by=self.user,
+            purpose="Administrator identity onboarding",
+            status=VerificationStatus.IN_PROGRESS,
+        )
+
+        response = self.post_graphql(
+            """
+                mutation TenantBoundAdministratorVerification {
+                  createAdministratorOnboardingVerification {
+                    verificationId
+                    action
+                  }
+                }
+            """
+        )
+
+        payload = response.json()["data"][
+            "createAdministratorOnboardingVerification"
+        ]
+        self.assertEqual(payload["action"], "initial")
+        self.assertNotEqual(payload["verificationId"], other_verification.public_id)
+        self.assertEqual(
+            Verification.objects.get(public_id=payload["verificationId"]).tenant,
+            self.tenant,
         )
 
     def test_create_administrator_onboarding_verification_is_server_linked(self):

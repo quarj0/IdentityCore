@@ -7,7 +7,10 @@ import { downloadCsv } from "@/lib/export-csv";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { CreateTemplateDialog } from "@/features/templates/forms/create-template-dialog";
-import { fetchTemplateRecords, type TemplateRecord } from "@/features/templates/live-data";
+import {
+  fetchTemplateRecords,
+  type TemplateRecord,
+} from "@/features/templates/live-data";
 import { TemplatesTable } from "@/features/templates/tables/templates-table";
 
 export function TemplatesListPage() {
@@ -17,8 +20,19 @@ export function TemplatesListPage() {
   const [error, setError] = useState<string | null>(null);
 
   const loadTemplates = async () => {
-    setLoading(true); setError(null);
-    try { setTemplates(await fetchTemplateRecords()); } catch (loadError) { setError(loadError instanceof Error ? loadError.message : "Unable to load templates."); } finally { setLoading(false); }
+    setLoading(true);
+    setError(null);
+    try {
+      setTemplates(await fetchTemplateRecords());
+    } catch (loadError) {
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Unable to load templates.",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -55,15 +69,15 @@ export function TemplatesListPage() {
     if (!normalizedQuery) return templates;
 
     return templates.filter((template) =>
-        [
-          template.name,
-          template.description,
-          template.category,
-          template.status,
-          template.version,
-          template.riskLevel,
-          template.countries.join(" "),
-        ]
+      [
+        template.name,
+        template.description,
+        template.category,
+        template.status,
+        template.version,
+        template.riskLevel,
+        template.countries.join(" "),
+      ]
         .join(" ")
         .toLowerCase()
         .includes(normalizedQuery),
@@ -78,7 +92,22 @@ export function TemplatesListPage() {
         description="Manage official IdentityCore templates used by organizations for verification, compliance and identity workflows."
         actions={
           <>
-            <Button variant="outline" onClick={() => downloadCsv("templates.csv", templates.map((template) => ({ id: template.id, name: template.name, status: template.status, description: template.description })))}>Export</Button>
+            <Button
+              variant="outline"
+              onClick={() =>
+                downloadCsv(
+                  "templates.csv",
+                  templates.map((template) => ({
+                    id: template.id,
+                    name: template.name,
+                    status: template.status,
+                    description: template.description,
+                  })),
+                )
+              }
+            >
+              Export
+            </Button>
             <CreateTemplateDialog onCreated={loadTemplates} />
           </>
         }
@@ -99,7 +128,6 @@ export function TemplatesListPage() {
               aria-label="Search templates"
             />
           </div>
-
         </div>
       </section>
 

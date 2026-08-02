@@ -6,7 +6,9 @@ type WorkflowBuilderPreviewProps = {
   workflow: WorkflowRecord;
 };
 
-export function WorkflowBuilderPreview({ workflow }: WorkflowBuilderPreviewProps) {
+export function WorkflowBuilderPreview({
+  workflow,
+}: WorkflowBuilderPreviewProps) {
   return (
     <SectionCard
       title="Builder preview"
@@ -24,10 +26,12 @@ export function WorkflowBuilderPreview({ workflow }: WorkflowBuilderPreviewProps
 
             <div>
               <p className="text-sm font-semibold text-slate-950">
-                Step {index + 1}: {typeof step === "string" ? step : JSON.stringify(step)}
+                Step {index + 1}:{" "}
+                {typeof step === "string" ? step : JSON.stringify(step)}
               </p>
               <p className="mt-1 text-sm text-slate-600">
-                This step is included when an organization uses or clones the workflow.
+                This step is included when an organization uses or clones the
+                workflow.
               </p>
             </div>
           </div>

@@ -1,0 +1,86 @@
+import type { ReactNode } from "react";
+import Link from "next/link";
+import { BrandMark, cn } from "@identitycore/ui";
+
+interface AuthShellProps {
+  badge: string;
+  title: string;
+  description: string;
+  children: ReactNode;
+  layout?: "split" | "stacked";
+  sectionClassName?: string;
+}
+
+export function AuthShell({
+  badge,
+  title,
+  description,
+  children,
+  layout = "split",
+  sectionClassName,
+}: AuthShellProps) {
+  return (
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <header className="border-b bg-background/95">
+        <div className="mx-auto flex h-16 w-full max-w-7xl items-center px-4 sm:px-6">
+          <Link
+            href={process.env.NEXT_PUBLIC_IDENTITYCORE_ORIGIN ?? "http://localhost:3001"}
+            aria-label="IdentityCore home"
+          >
+            <BrandMark subtitle="Workspace access" />
+          </Link>
+        </div>
+      </header>
+
+      <main id="main-content" className="relative flex-1 overflow-hidden">
+        <div className="absolute inset-x-0 top-0 -z-10 h-180 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]" />
+
+        <section
+          className={cn(
+            "mx-auto flex min-h-full w-full max-w-7xl px-4 py-16 sm:px-6 lg:py-24",
+            sectionClassName,
+          )}
+        >
+          {layout === "split" ? (
+            <div className="grid w-full gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+              <div>
+                <p className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700 ring-1 ring-slate-200">
+                  {badge}
+                </p>
+
+                <h1 className="mt-6 max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl lg:leading-[0.98]">
+                  {title}
+                </h1>
+
+                <p className="mt-6 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">
+                  {description}
+                </p>
+              </div>
+
+              {children}
+            </div>
+          ) : (
+            <div className="w-full">
+              <div className="max-w-3xl">
+                <p className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700 ring-1 ring-slate-200">
+                  {badge}
+                </p>
+
+                <h1 className="mt-6 max-w-5xl text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl lg:leading-[0.98]">
+                  {title}
+                </h1>
+
+                <p className="mt-6 max-w-3xl text-base leading-8 text-muted-foreground sm:text-lg">
+                  {description}
+                </p>
+              </div>
+
+              <div className="mt-12">{children}</div>
+            </div>
+          )}
+        </section>
+      </main>
+
+    </div>
+  );
+}

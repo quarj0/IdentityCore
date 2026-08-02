@@ -1,10 +1,14 @@
-import type { AdminModuleConfig, AdminRecord } from "@/components/admin-module/admin-module-types";
+import type {
+  AdminModuleConfig,
+  AdminRecord,
+} from "@/components/admin-module/admin-module-types";
 
 export const featureFlagRecords: AdminRecord[] = [
   {
     id: "flag_passive_liveness",
     title: "Passive Liveness Beta",
-    subtitle: "Gradual rollout for passive liveness checks in verification workflows.",
+    subtitle:
+      "Gradual rollout for passive liveness checks in verification workflows.",
     status: "Enabled",
     statusTone: "success",
     primaryMeta: "35% rollout",
@@ -17,7 +21,8 @@ export const featureFlagRecords: AdminRecord[] = [
   {
     id: "flag_new_review_console",
     title: "New Review Console",
-    subtitle: "Improved reviewer workspace with quality checklist and evidence panel.",
+    subtitle:
+      "Improved reviewer workspace with quality checklist and evidence panel.",
     status: "Enabled",
     statusTone: "success",
     primaryMeta: "80% rollout",
@@ -68,15 +73,27 @@ export const featureFlagsConfig: AdminModuleConfig = {
         { label: "Status", value: record.status },
         { label: "Rollout", value: record.primaryMeta },
         { label: "Audience", value: record.tertiaryMeta },
-        { label: "Rollback", value: "One-click rollback should disable the flag and notify audit/security channels." },
+        {
+          label: "Rollback",
+          value:
+            "One-click rollback should disable the flag and notify audit/security channels.",
+        },
       ],
     },
     {
       title: "Safety checks",
       description: "Controls required before expanding rollout.",
       items: [
-        { label: "Monitoring", value: "Track errors, latency, user impact and support tickets after rollout changes." },
-        { label: "Approval", value: "Production rollout above 50% requires product and engineering approval." },
+        {
+          label: "Monitoring",
+          value:
+            "Track errors, latency, user impact and support tickets after rollout changes.",
+        },
+        {
+          label: "Approval",
+          value:
+            "Production rollout above 50% requires product and engineering approval.",
+        },
       ],
     },
   ],

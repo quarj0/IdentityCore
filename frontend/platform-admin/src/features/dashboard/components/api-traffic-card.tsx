@@ -4,22 +4,22 @@ const apiTraffic = [
   {
     label: "Public API",
     value: "18.4M",
-    width: "82%",
+    widthClass: "w-[82%]",
   },
   {
     label: "Verification API",
     value: "11.7M",
-    width: "64%",
+    widthClass: "w-[64%]",
   },
   {
     label: "Webhook delivery",
     value: "5.8M",
-    width: "41%",
+    widthClass: "w-[41%]",
   },
   {
     label: "Admin API",
     value: "2.3M",
-    width: "22%",
+    widthClass: "w-[22%]",
   },
 ];
 
@@ -39,8 +39,7 @@ export function ApiTrafficCard() {
 
             <div className="mt-2 h-2 rounded-full bg-slate-100">
               <div
-                className="h-2 rounded-full bg-cyan-500"
-                style={{ width: item.width }}
+                className={`h-2 rounded-full bg-cyan-500 ${item.widthClass}`}
               />
             </div>
           </div>

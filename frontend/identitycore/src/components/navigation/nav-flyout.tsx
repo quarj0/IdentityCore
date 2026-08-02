@@ -24,7 +24,9 @@ export function NavFlyout({ group, activePath }: NavFlyoutProps) {
       onKeyDown={(event) => {
         if (event.key === "Escape") {
           setIsOpen(false);
-          event.currentTarget.querySelector<HTMLButtonElement>("button")?.focus();
+          event.currentTarget
+            .querySelector<HTMLButtonElement>("button")
+            ?.focus();
         }
       }}
     >

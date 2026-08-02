@@ -1,7 +1,8 @@
 @import "@identitycore/ui/styles/globals.css";
 
 :root {
-  --font-brand-sans: "Avenir Next", Avenir, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-brand-sans:
+    "Avenir Next", Avenir, "Segoe UI", Helvetica, Arial, sans-serif;
   --font-brand-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 

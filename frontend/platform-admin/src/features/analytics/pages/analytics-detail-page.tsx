@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/feedback/empty-state";
@@ -46,12 +46,19 @@ export function AnalyticsDetailPage({ analyticsId }: AnalyticsDetailPageProps) {
     };
   }, [analyticsId]);
 
-  const config = useMemo(() => buildAnalyticsConfig(record ? [record] : []), [record]);
+  const config = useMemo(
+    () => buildAnalyticsConfig(record ? [record] : []),
+    [record],
+  );
 
   if (error) {
     return (
       <>
-        <PageHeader eyebrow="Analytics" title="Analytics record" description="Live analytics data." />
+        <PageHeader
+          eyebrow="Analytics"
+          title="Analytics record"
+          description="Live analytics data."
+        />
         <EmptyState title="Analytics record unavailable" description={error} />
       </>
     );

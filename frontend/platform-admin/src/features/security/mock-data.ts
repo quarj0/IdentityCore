@@ -1,10 +1,14 @@
-import type { AdminModuleConfig, AdminRecord } from "@/components/admin-module/admin-module-types";
+import type {
+  AdminModuleConfig,
+  AdminRecord,
+} from "@/components/admin-module/admin-module-types";
 
 export const securityRecords: AdminRecord[] = [
   {
     id: "sec_suspicious_login",
     title: "Suspicious admin login",
-    subtitle: "Unusual location and impossible travel signal for platform admin account.",
+    subtitle:
+      "Unusual location and impossible travel signal for platform admin account.",
     status: "Investigating",
     statusTone: "warning",
     primaryMeta: "High risk",
@@ -17,7 +21,8 @@ export const securityRecords: AdminRecord[] = [
   {
     id: "sec_api_abuse",
     title: "API abuse detection",
-    subtitle: "One organization exceeded expected request pattern for document OCR endpoint.",
+    subtitle:
+      "One organization exceeded expected request pattern for document OCR endpoint.",
     status: "Blocked",
     statusTone: "danger",
     primaryMeta: "Critical",
@@ -30,7 +35,8 @@ export const securityRecords: AdminRecord[] = [
   {
     id: "sec_blocked_ip",
     title: "Blocked IP campaign",
-    subtitle: "Repeated credential stuffing attempts blocked at edge and application layers.",
+    subtitle:
+      "Repeated credential stuffing attempts blocked at edge and application layers.",
     status: "Contained",
     statusTone: "success",
     primaryMeta: "Medium risk",
@@ -68,15 +74,26 @@ export const securityConfig: AdminModuleConfig = {
         { label: "Summary", value: record.subtitle },
         { label: "Status", value: record.status },
         { label: "Signal", value: record.tertiaryMeta },
-        { label: "Detection", value: "Detected by platform security rules and anomaly scoring." },
+        {
+          label: "Detection",
+          value: "Detected by platform security rules and anomaly scoring.",
+        },
       ],
     },
     {
       title: "Controls",
       description: "Security controls applied or available.",
       items: [
-        { label: "Rate limiting", value: "Adaptive rate limiting can be applied per organization, endpoint, token or IP." },
-        { label: "Blocking", value: "Blocked IPs and suspicious sessions are added to the platform security audit trail." },
+        {
+          label: "Rate limiting",
+          value:
+            "Adaptive rate limiting can be applied per organization, endpoint, token or IP.",
+        },
+        {
+          label: "Blocking",
+          value:
+            "Blocked IPs and suspicious sessions are added to the platform security audit trail.",
+        },
       ],
     },
   ],

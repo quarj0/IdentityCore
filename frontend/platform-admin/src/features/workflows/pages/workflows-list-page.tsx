@@ -19,7 +19,19 @@ export function WorkflowsListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const reload = async () => { setLoading(true); setError(null); try { setWorkflows(await fetchWorkflowRecords()); } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to load workflows."); } finally { setLoading(false); } };
+  const reload = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setWorkflows(await fetchWorkflowRecords());
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Unable to load workflows.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -68,7 +80,9 @@ export function WorkflowsListPage() {
         workflow.createdByEmail,
         workflow.updatedAt,
         workflow.steps
-          .map((step) => (typeof step === "string" ? step : JSON.stringify(step)))
+          .map((step) =>
+            typeof step === "string" ? step : JSON.stringify(step),
+          )
           .join(" "),
       ]
         .join(" ")
@@ -85,7 +99,22 @@ export function WorkflowsListPage() {
         description="Manage official IdentityCore workflow blueprints that combine templates, provider routing, policies, risk checks and manual review."
         actions={
           <>
-            <Button variant="outline" onClick={() => downloadCsv("workflows.csv", workflows.map((workflow) => ({ id: workflow.id, name: workflow.name, status: workflow.status, description: workflow.description })))}>Export</Button>
+            <Button
+              variant="outline"
+              onClick={() =>
+                downloadCsv(
+                  "workflows.csv",
+                  workflows.map((workflow) => ({
+                    id: workflow.id,
+                    name: workflow.name,
+                    status: workflow.status,
+                    description: workflow.description,
+                  })),
+                )
+              }
+            >
+              Export
+            </Button>
             <CreateWorkflowDialog onCreated={reload} />
           </>
         }
@@ -106,7 +135,6 @@ export function WorkflowsListPage() {
               aria-label="Search workflows"
             />
           </div>
-
         </div>
       </section>
 

@@ -241,6 +241,7 @@ Model asset behavior:
 - If `INSIGHTFACE_ALLOW_DOWNLOAD=1`, InsightFace may download missing model assets at runtime into its configured cache/model location.
 - If `PADDLE_OCR_ALLOW_DOWNLOAD=1`, PaddleOCR may download missing OCR model assets at runtime.
 - If those flags are `0`, the AI service expects the model files to already exist under `AI_MODEL_ROOT`.
+- The bootstrap job records every artifact and its SHA-256 digest in `AI_MODEL_ROOT/manifest.json` (or the path configured by `AI_MODEL_MANIFEST`). Real mode is not ready and will not process requests if that inventory is missing, malformed, or does not match the files on disk.
 - For predictable production deployments, prefer preloading models and keeping both download flags disabled.
 
 Real-mode prerequisites:
@@ -279,6 +280,7 @@ Operational note:
 - `/v1/health` only reports service identity and runtime mode
 - `/v1/ready` validates whether the configured mode can actually run
 - In `hybrid` mode the readiness status may be `degraded` while remaining serviceable because mock fallback is still available
+- Treat `hybrid` and `mock` as non-production modes. Recovery from an integrity failure requires replacing the affected asset from a trusted source, rerunning `ai-model-bootstrap` to produce a reviewed manifest, and restarting the AI service; do not edit checksums to bless an unexplained change.
 
 Deployment:
 
@@ -914,7 +916,11 @@ Development example:
 
 For production, replace the development origins with the exact HTTPS verification portal origin, for example `https://verify.example.com`. Do not use `*` for identity-evidence uploads and do not add dashboard, marketing, or preview origins unless they actually host the verification portal.
 
-The Django API must separately allow the portal origin through `DJANGO_CORS_ALLOWED_ORIGINS`, and the portal must address Django through `NEXT_PUBLIC_API_ORIGIN`. Browser-visible configuration must never use Docker-only hostnames such as `django` or `ai-service`.
+The portal BFF addresses Django through the server-only `API_ORIGIN`; browser code
+must not call Django directly or receive this origin as public configuration.
+Consequently Django does not need a verification-portal CORS exception. The
+server-side origin may use an internal service name when the production network
+and TLS trust configuration support it, while all subject-facing links and
+object-storage CORS entries must use the public HTTPS portal origin.
 
 If direct R2 upload is blocked by a browser or a transient CORS deployment mismatch, the portal falls back to the authenticated same-origin Django transfer endpoint. That fallback is resilience only; a correctly configured R2 CORS policy remains the normal production path.
-

@@ -1,17 +1,20 @@
+from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from apps.audit.serializers import serialize_audit_event
 from common.permissions import IsTenantUser
 from common.responses import success_response
-from apps.verifications.serializers import paginate_results
+from common.pagination import paginate_results, pagination_params
 
 
 class AuditEventListView(APIView):
     permission_classes = [IsAuthenticated, IsTenantUser]
 
     def get(self, request):
-        queryset = request.user.tenant.audit_events.exclude(action="graphql.query").order_by("-created_at")
+        queryset = request.user.tenant.audit_events.exclude(
+            action="graphql.query"
+        ).order_by("-created_at", "-pk")
 
         actor_type = request.query_params.get("actor_type")
         action = request.query_params.get("action")
@@ -33,8 +36,7 @@ class AuditEventListView(APIView):
         if created_to:
             queryset = queryset.filter(created_at__date__lte=created_to)
 
-        page = int(request.query_params.get("page", 1))
-        page_size = int(request.query_params.get("page_size", 20))
+        page, page_size = pagination_params(request.query_params)
         page_obj, pagination = paginate_results(queryset, page, page_size)
         return success_response(
             {
@@ -53,7 +55,7 @@ class AuditEventDetailView(APIView):
     def get(self, request, event_id):
         return success_response(
             serialize_audit_event(
-                request.user.tenant.audit_events.get(public_id=event_id)
+                get_object_or_404(request.user.tenant.audit_events, public_id=event_id)
             ),
             request=request,
         )

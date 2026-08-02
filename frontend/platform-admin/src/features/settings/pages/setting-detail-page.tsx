@@ -13,7 +13,9 @@ type SettingDetailPageProps = {
 };
 
 export function SettingDetailPage({ settingId }: SettingDetailPageProps) {
-  const [config, setConfig] = useState<ReturnType<typeof buildSettingsConfig> | null>(null);
+  const [config, setConfig] = useState<ReturnType<
+    typeof buildSettingsConfig
+  > | null>(null);
 
   useEffect(() => {
     let active = true;

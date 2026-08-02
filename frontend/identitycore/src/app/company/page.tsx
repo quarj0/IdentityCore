@@ -1,9 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Globe2, Landmark, Shield, Workflow } from "lucide-react";
-import {
-  Badge,
-  Button,
-} from "@identitycore/ui";
+import { Badge, Button } from "@identitycore/ui";
 import { MarketingCTA } from "@/components/marketing/cta-section";
 import { FeatureCard } from "@/components/marketing/feature-card";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";

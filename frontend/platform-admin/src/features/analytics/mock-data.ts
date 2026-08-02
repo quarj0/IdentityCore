@@ -1,10 +1,14 @@
-import type { AdminModuleConfig, AdminRecord } from "@/components/admin-module/admin-module-types";
+import type {
+  AdminModuleConfig,
+  AdminRecord,
+} from "@/components/admin-module/admin-module-types";
 
 export const analyticsRecords: AdminRecord[] = [
   {
     id: "analytics_volume",
     title: "Verification Volume",
-    subtitle: "Global verification activity across organizations, countries and workflows.",
+    subtitle:
+      "Global verification activity across organizations, countries and workflows.",
     status: "Live",
     statusTone: "success",
     primaryMeta: "482,910 verifications",
@@ -17,7 +21,8 @@ export const analyticsRecords: AdminRecord[] = [
   {
     id: "analytics_failures",
     title: "Failure Reasons",
-    subtitle: "OCR failures, face mismatch, liveness failures, document quality and policy declines.",
+    subtitle:
+      "OCR failures, face mismatch, liveness failures, document quality and policy declines.",
     status: "Live",
     statusTone: "success",
     primaryMeta: "6.4% failure rate",
@@ -30,7 +35,8 @@ export const analyticsRecords: AdminRecord[] = [
   {
     id: "analytics_costs",
     title: "AI Cost Analytics",
-    subtitle: "AI spend across OCR, face matching, liveness and third-party providers.",
+    subtitle:
+      "AI spend across OCR, face matching, liveness and third-party providers.",
     status: "Watch",
     statusTone: "warning",
     primaryMeta: "$14,180 spend",
@@ -65,9 +71,19 @@ export const analyticsConfig: AdminModuleConfig = {
       title: "Dashboard breakdown",
       description: "Production-ready analytics sections for this dashboard.",
       items: [
-        { label: "Chart", value: "Time-series chart with comparison to previous period." },
-        { label: "Segmentation", value: "Break down by organization, country, workflow, template and provider." },
-        { label: "Export", value: "CSV and audit-friendly export for platform analysis." },
+        {
+          label: "Chart",
+          value: "Time-series chart with comparison to previous period.",
+        },
+        {
+          label: "Segmentation",
+          value:
+            "Break down by organization, country, workflow, template and provider.",
+        },
+        {
+          label: "Export",
+          value: "CSV and audit-friendly export for platform analysis.",
+        },
       ],
     },
     {
@@ -75,7 +91,11 @@ export const analyticsConfig: AdminModuleConfig = {
       description: "Operational signals derived from this dashboard.",
       items: [
         { label: "Trend", value: record.secondaryMeta },
-        { label: "Recommended action", value: "Review top changes and compare against incidents, provider health and organization usage." },
+        {
+          label: "Recommended action",
+          value:
+            "Review top changes and compare against incidents, provider health and organization usage.",
+        },
       ],
     },
   ],

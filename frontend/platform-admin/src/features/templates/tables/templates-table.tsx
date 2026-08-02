@@ -14,14 +14,30 @@ export function TemplatesTable({ templates }: TemplatesTableProps) {
         <table className="w-full min-w-[1050px] text-left text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
-              <th scope="col" className="px-5 py-4 font-medium">Template</th>
-              <th scope="col" className="px-5 py-4 font-medium">Status</th>
-              <th scope="col" className="px-5 py-4 font-medium">Category</th>
-              <th scope="col" className="px-5 py-4 font-medium">Version</th>
-              <th scope="col" className="px-5 py-4 font-medium">Countries</th>
-              <th scope="col" className="px-5 py-4 font-medium">Usage</th>
-              <th scope="col" className="px-5 py-4 font-medium">Risk</th>
-              <th scope="col" className="px-5 py-4 text-right font-medium">Actions</th>
+              <th scope="col" className="px-5 py-4 font-medium">
+                Template
+              </th>
+              <th scope="col" className="px-5 py-4 font-medium">
+                Status
+              </th>
+              <th scope="col" className="px-5 py-4 font-medium">
+                Category
+              </th>
+              <th scope="col" className="px-5 py-4 font-medium">
+                Version
+              </th>
+              <th scope="col" className="px-5 py-4 font-medium">
+                Countries
+              </th>
+              <th scope="col" className="px-5 py-4 font-medium">
+                Usage
+              </th>
+              <th scope="col" className="px-5 py-4 font-medium">
+                Risk
+              </th>
+              <th scope="col" className="px-5 py-4 text-right font-medium">
+                Actions
+              </th>
             </tr>
           </thead>
 
@@ -44,7 +60,9 @@ export function TemplatesTable({ templates }: TemplatesTableProps) {
                   <TemplateStatusPill status={template.status} />
                 </td>
 
-                <td className="px-5 py-4 text-slate-700">{template.category}</td>
+                <td className="px-5 py-4 text-slate-700">
+                  {template.category}
+                </td>
                 <td className="px-5 py-4 text-slate-700">{template.version}</td>
                 <td className="px-5 py-4 text-slate-700">
                   {template.countries.join(", ")}
@@ -52,7 +70,9 @@ export function TemplatesTable({ templates }: TemplatesTableProps) {
                 <td className="px-5 py-4 text-slate-700">
                   {template.usageCount.toLocaleString()}
                 </td>
-                <td className="px-5 py-4 text-slate-700">{template.riskLevel}</td>
+                <td className="px-5 py-4 text-slate-700">
+                  {template.riskLevel}
+                </td>
 
                 <td className="px-5 py-4 text-right">
                   <Button asChild variant="outline" size="sm">

@@ -1,1 +1,4 @@
-import {notFound} from "next/navigation"; export default function BillingLayout(){notFound()}
+import { notFound } from "next/navigation";
+export default function BillingLayout() {
+  notFound();
+}

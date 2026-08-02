@@ -54,12 +54,7 @@ export function TemplateDetailPage({ templateId }: TemplateDetailPageProps) {
   }, [templateId, reloadKey]);
 
   if (error) {
-    return (
-      <EmptyState
-        title="Unable to load template"
-        description={error}
-      />
-    );
+    return <EmptyState title="Unable to load template" description={error} />;
   }
 
   if (loading && !template) {
@@ -83,7 +78,10 @@ export function TemplateDetailPage({ templateId }: TemplateDetailPageProps) {
 
   return (
     <div className="space-y-6 bg-white text-slate-950">
-      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-500">
+      <nav
+        aria-label="Breadcrumb"
+        className="flex items-center gap-2 text-sm text-slate-500"
+      >
         <Link
           href="/templates"
           className="outline-none hover:text-blue-700 focus-visible:ring-2 focus-visible:ring-blue-500"
@@ -94,7 +92,10 @@ export function TemplateDetailPage({ templateId }: TemplateDetailPageProps) {
         <span className="text-slate-700">{template.name}</span>
       </nav>
 
-      <TemplateHeader template={template} onChanged={() => setReloadKey((key) => key + 1)} />
+      <TemplateHeader
+        template={template}
+        onChanged={() => setReloadKey((key) => key + 1)}
+      />
 
       <div className="grid gap-4 xl:grid-cols-3">
         <div className="space-y-4 xl:col-span-2">

@@ -72,19 +72,19 @@ class _VerificationsClient:
             "metadata": metadata or {},
         }, idempotency_key=idempotency_key or f"ik_{uuid.uuid4().hex}")
 
-    def list(self, *, status: str = "", external_reference: str = "", page: int | None = None, page_size: int | None = None) -> dict[str, Any]:
-        query = _query({"status": status, "external_reference": external_reference, "page": page, "page_size": page_size})
+    def list(self, *, status: str = "", external_reference: str = "", cursor: str = "", limit: int | None = None, page: int | None = None, page_size: int | None = None) -> dict[str, Any]:
+        query = _query({"status": status, "external_reference": external_reference, "cursor": cursor, "limit": limit, "page": page, "page_size": page_size})
         return self.client.request("GET", f"/verifications/{query}")
 
     def iter(self, *, status: str = "", external_reference: str = "", page_size: int = 100) -> Iterator[dict[str, Any]]:
-        page = 1
+        cursor = ""
         while True:
-            response = self.list(status=status, external_reference=external_reference, page=page, page_size=page_size)
+            response = self.list(status=status, external_reference=external_reference, cursor=cursor, limit=page_size)
             yield from response.get("results", [])
             pagination = response.get("pagination", {})
-            if page >= int(pagination.get("total_pages", page)):
+            cursor = pagination.get("next_cursor") or ""
+            if not cursor:
                 return
-            page += 1
 
     def retrieve(self, verification_id: str) -> dict[str, Any]:
         return self.client.request("GET", f"/verifications/{_path_segment(verification_id)}")

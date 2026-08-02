@@ -28,7 +28,11 @@ function isAllowedReturnUrl(value: string, portalOrigin: string) {
     if (url.protocol !== "https:" && !isLocalDevelopmentUrl) return false;
 
     const allowedOrigins = configuredReturnOrigins();
-    return url.origin === portalOrigin || allowedOrigins.has(url.origin) || isLocalDevelopmentUrl;
+    return (
+      url.origin === portalOrigin ||
+      allowedOrigins.has(url.origin) ||
+      isLocalDevelopmentUrl
+    );
   } catch {
     return false;
   }

@@ -113,7 +113,11 @@ export function buildTenantConfig(records: AdminRecord[]): AdminModuleConfig {
     records,
     getRecord: (id) => records.find((record) => record.id === id),
     getMetrics: (record): AdminDetailMetric[] => [
-      { label: "Organization", value: record.primaryMeta, helper: "parent organization" },
+      {
+        label: "Organization",
+        value: record.primaryMeta,
+        helper: "parent organization",
+      },
       { label: "Status", value: record.status, helper: "tenant state" },
       { label: "Settings", value: record.tertiaryMeta, helper: "config keys" },
       { label: "Updated", value: record.updatedAt, helper: "backend" },

@@ -13,7 +13,9 @@ type TenantDetailPageProps = {
 };
 
 export function TenantDetailPage({ tenantId }: TenantDetailPageProps) {
-  const [config, setConfig] = useState<ReturnType<typeof buildTenantConfig> | null>(null);
+  const [config, setConfig] = useState<ReturnType<
+    typeof buildTenantConfig
+  > | null>(null);
 
   useEffect(() => {
     let active = true;

@@ -165,30 +165,6 @@ class VerificationSessionPortalTests(APITestCase):
                         {"side": "single", "label": "Photo page", "required": True}
                     ],
                 },
-                {
-                    "document_type": "driver_license",
-                    "label": "Driver License",
-                    "capture_requirements": [
-                        {"side": "front", "label": "Front", "required": True},
-                        {"side": "back", "label": "Back", "required": True},
-                    ],
-                },
-                {
-                    "document_type": "health_id",
-                    "label": "Health ID",
-                    "capture_requirements": [
-                        {"side": "front", "label": "Front", "required": True},
-                        {"side": "back", "label": "Back", "required": True},
-                    ],
-                },
-                {
-                    "document_type": "voter_id",
-                    "label": "Voter ID",
-                    "capture_requirements": [
-                        {"side": "front", "label": "Front", "required": True},
-                        {"side": "back", "label": "Back", "required": True},
-                    ],
-                },
             ],
         )
 
@@ -1112,6 +1088,10 @@ class VerificationSessionPortalTests(APITestCase):
             "confidence_level": "high",
             "model_name": "mediapipe-liveness",
             "model_version": "v1",
+            "metrics": {
+                "face_count": 1,
+                "avg_detection_confidence": 0.98,
+            },
         }
         mock_face.return_value = {
             "status": "completed",

@@ -19,10 +19,17 @@ export function DashboardSession({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const publicRoute = pathname === "/login";
+  const publicRoute =
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/forgot-password" ||
+    pathname === "/reset-password" ||
+    pathname === "/verify-email" ||
+    pathname.startsWith("/onboarding");
 
   useEffect(() => {
-    backend.restoreSession()
+    backend
+      .restoreSession()
       .then(() => backend.me<DashboardUser>())
       .then((payload) => setUser(payload.user))
       .catch(() => setUser(null))
@@ -31,7 +38,6 @@ export function DashboardSession({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (ready && !user && !publicRoute) router.replace("/login");
-    if (ready && user && publicRoute) router.replace("/");
   }, [publicRoute, ready, router, user]);
 
   async function login(email: string, password: string) {
@@ -47,10 +53,18 @@ export function DashboardSession({ children }: { children: React.ReactNode }) {
   }
 
   if (!ready && !publicRoute) {
-    return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
   }
 
-  return <SessionContext.Provider value={{ user, login, logout }}>{children}</SessionContext.Provider>;
+  return (
+    <SessionContext.Provider value={{ user, login, logout }}>
+      {children}
+    </SessionContext.Provider>
+  );
 }
 
 export function useDashboardSession() {

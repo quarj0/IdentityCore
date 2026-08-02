@@ -8,7 +8,12 @@ import { MetricCard } from "@/components/shared/metric-card";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { fetchOrganizationReviewQueue } from "@/features/review/review-api";
 import { fetchPlatformDashboardSummary } from "@/features/dashboard/live-data";
-import { AlertTriangle, RefreshCcw, ShieldCheck, FileCheck2 } from "lucide-react";
+import {
+  AlertTriangle,
+  RefreshCcw,
+  ShieldCheck,
+  FileCheck2,
+} from "lucide-react";
 
 function statusLabel(status: string) {
   return status.replace(/_/g, " ");
@@ -62,11 +67,14 @@ export function PlatformDashboardPage() {
         setQueued(queue.length);
         setNeedsInformation(
           queue.filter(
-            (item) => item.organizationVerificationReviewStatus === "needs_information",
+            (item) =>
+              item.organizationVerificationReviewStatus === "needs_information",
           ).length,
         );
         setChangedAfterApproval(
-          queue.filter((item) => item.organizationVerificationChangedAfterApproval).length,
+          queue.filter(
+            (item) => item.organizationVerificationChangedAfterApproval,
+          ).length,
         );
         const latest = queue[0];
         setLatestReview(
@@ -208,9 +216,13 @@ export function PlatformDashboardPage() {
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-sm font-medium text-slate-500">Latest review item</p>
+            <p className="text-sm font-medium text-slate-500">
+              Latest review item
+            </p>
             <h2 className="mt-1 text-2xl font-semibold text-slate-950">
-              {latestReview ? latestReview.organizationName : "No queued reviews"}
+              {latestReview
+                ? latestReview.organizationName
+                : "No queued reviews"}
             </h2>
             <p className="mt-2 text-sm text-slate-600">
               {latestReview
@@ -226,7 +238,9 @@ export function PlatformDashboardPage() {
 
         {latestReview ? (
           <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">Review note</p>
+            <p className="text-xs uppercase tracking-wide text-slate-500">
+              Review note
+            </p>
             <p className="mt-2 text-sm leading-6 text-slate-700">
               {latestReview.note || "No reviewer note captured yet."}
             </p>

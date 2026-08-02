@@ -189,6 +189,36 @@ fallback chains, tenant-owned storage, or customer-managed encryption keys.
 See the [product alignment and gap assessment](docs/architecture/product-alignment.md)
 for a capability-by-capability statement of what exists and what remains.
 
+### Production startup configuration
+
+Local development uses the clearly marked sample values in `.env.example`. Before
+starting Django with `DJANGO_SETTINGS_MODULE=config.settings.production`, provide:
+
+- independent, randomly generated `DJANGO_SECRET_KEY` (at least 50 characters) and
+  `JWT_SIGNING_KEY` (at least 64 characters);
+- a random `AI_SERVICE_SHARED_TOKEN` (at least 32 characters);
+- explicit `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_HOST`, and a non-default random
+  `POSTGRES_PASSWORD` (at least 16 characters); and
+- production hostnames in `DJANGO_ALLOWED_HOSTS`, with `DJANGO_DEBUG` disabled.
+
+Production settings validate these requirements during import and stop startup with
+configuration variable names—not secret values—when configuration is missing or unsafe.
+For example, generate secrets with `python -c "import secrets; print(secrets.token_urlsafe(64))"`.
+
+### Running all tests
+
+After installing the repository's Python, Node/pnpm, Playwright, Java, and .NET
+dependencies, run every backend, AI, frontend, and SDK test suite from the repository
+root with:
+
+```bash
+make test-all
+```
+
+The command prints a named heading and pass/fail result for each suite and stops at the
+first failure. Use the component-specific commands in `.github/workflows/ci.yml` when
+installing dependencies or troubleshooting an individual suite.
+
 ---
 
 ## Development Roadmap

@@ -25,6 +25,8 @@ celerybeat-schedule
 node_modules/
 .next/
 out/
+test-results/
+playwright-report/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -53,3 +55,4 @@ Thumbs.db
 #Miscelaneous
 celerybeat-schedule
 *.sqlite3
+*.db

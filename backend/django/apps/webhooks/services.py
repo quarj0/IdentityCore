@@ -12,16 +12,39 @@ from django.utils import timezone
 from apps.audit.services import record_audit_event
 from apps.webhooks.models import (
     WebhookDeliveryAttempt,
-    WebhookEndpoint,
     WebhookEndpointStatus,
     WebhookEvent,
     WebhookEventStatus,
 )
 
 
-def queue_webhook_events(*, tenant, event_type: str, payload: dict) -> list[WebhookEvent]:
+def queue_webhook_events(
+    *, tenant, event_type: str, payload: dict
+) -> list[WebhookEvent]:
     queued = []
-    for endpoint in tenant.webhook_endpoints.filter(status="active"):
+    endpoints = tenant.webhook_endpoints.filter(status="active")
+    verification_id = payload.get("verification_id")
+    if verification_id:
+        from apps.verifications.models import Verification
+
+        verification = (
+            Verification.objects.select_related("project")
+            .filter(tenant=tenant, public_id=verification_id)
+            .first()
+        )
+        if verification is not None:
+            environment = (
+                verification.project.environment
+                if verification.project is not None
+                else "sandbox"
+            )
+            environment_filter = Q(project__environment=environment)
+            if environment == "sandbox":
+                environment_filter |= Q(project__isnull=True)
+            endpoints = endpoints.filter(environment_filter)
+        else:
+            endpoints = endpoints.none()
+    for endpoint in endpoints:
         if event_type not in endpoint.events:
             continue
         event_payload = {
@@ -53,8 +76,12 @@ def _build_signature(signing_key: str, timestamp: str, payload_bytes: bytes) -> 
     return f"sha256={digest}"
 
 
-def _send_webhook_request(*, webhook_event: WebhookEvent, payload_bytes: bytes, timestamp: str):
-    signature = _build_signature(webhook_event.webhook_endpoint.signing_key, timestamp, payload_bytes)
+def _send_webhook_request(
+    *, webhook_event: WebhookEvent, payload_bytes: bytes, timestamp: str
+):
+    signature = _build_signature(
+        webhook_event.webhook_endpoint.signing_key, timestamp, payload_bytes
+    )
     http_request = request.Request(
         webhook_event.webhook_endpoint.url,
         data=payload_bytes,
@@ -69,13 +96,21 @@ def _send_webhook_request(*, webhook_event: WebhookEvent, payload_bytes: bytes, 
         method="POST",
     )
     started_at = time.monotonic()
-    with request.urlopen(http_request, timeout=settings.WEBHOOK_DELIVERY_TIMEOUT_SECONDS) as response:
+    with request.urlopen(
+        http_request, timeout=settings.WEBHOOK_DELIVERY_TIMEOUT_SECONDS
+    ) as response:
         duration_ms = int((time.monotonic() - started_at) * 1000)
-        return response.status, response.read().decode("utf-8", errors="replace"), duration_ms
+        return (
+            response.status,
+            response.read().decode("utf-8", errors="replace"),
+            duration_ms,
+        )
 
 
 def _calculate_next_retry(*, attempt_count: int):
-    delay_seconds = settings.WEBHOOK_RETRY_BASE_SECONDS * (2 ** max(attempt_count - 1, 0))
+    delay_seconds = settings.WEBHOOK_RETRY_BASE_SECONDS * (
+        2 ** max(attempt_count - 1, 0)
+    )
     return timezone.now() + timedelta(seconds=delay_seconds)
 
 
@@ -97,7 +132,10 @@ def _record_delivery_attempt(
 
 
 def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
-    if webhook_event.status in {WebhookEventStatus.DELIVERED, WebhookEventStatus.CANCELLED}:
+    if webhook_event.status in {
+        WebhookEventStatus.DELIVERED,
+        WebhookEventStatus.CANCELLED,
+    }:
         return webhook_event
 
     if webhook_event.webhook_endpoint.status != WebhookEndpointStatus.ACTIVE:
@@ -111,7 +149,15 @@ def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
         webhook_event.attempt_count += 1
         webhook_event.last_attempt_at = timezone.now()
         webhook_event.next_retry_at = None
-        webhook_event.save(update_fields=["status", "attempt_count", "last_attempt_at", "next_retry_at", "updated_at"])
+        webhook_event.save(
+            update_fields=[
+                "status",
+                "attempt_count",
+                "last_attempt_at",
+                "next_retry_at",
+                "updated_at",
+            ]
+        )
         _record_delivery_attempt(
             webhook_event=webhook_event,
             status_code=None,
@@ -122,7 +168,10 @@ def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
             action="webhook.delivery_failed",
             target_type="webhook_event",
             target_id=webhook_event.public_id,
-            metadata={"event_type": webhook_event.event_type, "reason": "missing_signing_key"},
+            metadata={
+                "event_type": webhook_event.event_type,
+                "reason": "missing_signing_key",
+            },
         )
         return webhook_event
 
@@ -140,7 +189,13 @@ def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
             webhook_event.status = WebhookEventStatus.DELIVERED
             webhook_event.next_retry_at = None
             webhook_event.save(
-                update_fields=["status", "attempt_count", "last_attempt_at", "next_retry_at", "updated_at"]
+                update_fields=[
+                    "status",
+                    "attempt_count",
+                    "last_attempt_at",
+                    "next_retry_at",
+                    "updated_at",
+                ]
             )
             _record_delivery_attempt(
                 webhook_event=webhook_event,
@@ -153,7 +208,10 @@ def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
                 action="webhook.delivered",
                 target_type="webhook_event",
                 target_id=webhook_event.public_id,
-                metadata={"event_type": webhook_event.event_type, "status_code": status_code},
+                metadata={
+                    "event_type": webhook_event.event_type,
+                    "status_code": status_code,
+                },
             )
             return webhook_event
 
@@ -189,17 +247,32 @@ def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
             action="webhook.delivery_failed",
             target_type="webhook_event",
             target_id=webhook_event.public_id,
-            metadata={"event_type": webhook_event.event_type, "attempt_count": webhook_event.attempt_count},
+            metadata={
+                "event_type": webhook_event.event_type,
+                "attempt_count": webhook_event.attempt_count,
+            },
         )
     else:
         webhook_event.status = WebhookEventStatus.PENDING
-        webhook_event.next_retry_at = _calculate_next_retry(attempt_count=webhook_event.attempt_count)
-    webhook_event.save(update_fields=["status", "attempt_count", "last_attempt_at", "next_retry_at", "updated_at"])
+        webhook_event.next_retry_at = _calculate_next_retry(
+            attempt_count=webhook_event.attempt_count
+        )
+    webhook_event.save(
+        update_fields=[
+            "status",
+            "attempt_count",
+            "last_attempt_at",
+            "next_retry_at",
+            "updated_at",
+        ]
+    )
     return webhook_event
 
 
 def deliver_webhook_event_by_id(webhook_event_id: str) -> WebhookEvent:
-    webhook_event = WebhookEvent.objects.select_related("webhook_endpoint", "tenant").get(public_id=webhook_event_id)
+    webhook_event = WebhookEvent.objects.select_related(
+        "webhook_endpoint", "tenant"
+    ).get(public_id=webhook_event_id)
     return deliver_webhook_event(webhook_event)
 
 

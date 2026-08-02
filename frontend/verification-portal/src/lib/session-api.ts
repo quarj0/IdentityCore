@@ -83,11 +83,18 @@ async function request<T>(
 ) {
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
-  if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
+  if (
+    init.body &&
+    !(init.body instanceof FormData) &&
+    !headers.has("Content-Type")
+  ) {
     headers.set("Content-Type", "application/json");
   }
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeout = window.setTimeout(
+    () => controller.abort(),
+    REQUEST_TIMEOUT_MS,
+  );
   let response: Response;
   try {
     response = await fetch(`${API_BASE}${path}`, {
@@ -98,7 +105,9 @@ async function request<T>(
     });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error("The request took too long. Check your connection and try again.");
+      throw new Error(
+        "The request took too long. Check your connection and try again.",
+      );
     }
     throw error;
   } finally {
@@ -109,12 +118,18 @@ async function request<T>(
   try {
     payload = JSON.parse(body) as ApiEnvelope<T>;
   } catch {
-    throw new Error("The verification service is temporarily unavailable. Please try again shortly.");
+    throw new Error(
+      "The verification service is temporarily unavailable. Please try again shortly.",
+    );
   }
   if (!response.ok || !payload.success || !payload.data) {
-    const message = payload.error?.message ?? "Verification request failed. Please try again.";
+    const message =
+      payload.error?.message ??
+      "Verification request failed. Please try again.";
     throw new Error(
-      /unexpected token|invalidtag|not valid json|json\.parse|syntaxerror/i.test(message)
+      /unexpected token|invalidtag|not valid json|json\.parse|syntaxerror/i.test(
+        message,
+      )
         ? "The verification service is temporarily unavailable. Please try again shortly."
         : message,
     );
@@ -132,7 +147,10 @@ export async function consumeSessionCredentials(sessionId: string) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sessionId, sessionToken: fragmentToken }),
     });
-    if (!response.ok) throw new Error("The secure verification credential could not be accepted.");
+    if (!response.ok)
+      throw new Error(
+        "The secure verification credential could not be accepted.",
+      );
   }
   return { sessionId };
 }
@@ -143,7 +161,10 @@ export function clearSessionCredentials(sessionId: string) {
 }
 
 export function fetchVerificationSession(credentials: SessionCredentials) {
-  return request<VerificationSession>(credentials, `/sessions/${credentials.sessionId}`);
+  return request<VerificationSession>(
+    credentials,
+    `/sessions/${credentials.sessionId}`,
+  );
 }
 
 export function fetchVerificationStatus(credentials: SessionCredentials) {
@@ -172,10 +193,17 @@ export async function redeemMobileHandoff(handoff: string) {
     session_id: string;
     verification_id: string;
   }>;
-  try { payload = JSON.parse(body) as typeof payload; }
-  catch { throw new Error("The mobile handoff could not be opened. Please scan a new code."); }
+  try {
+    payload = JSON.parse(body) as typeof payload;
+  } catch {
+    throw new Error(
+      "The mobile handoff could not be opened. Please scan a new code.",
+    );
+  }
   if (!response.ok || !payload.success || !payload.data) {
-    throw new Error(payload.error?.message ?? "This mobile handoff link is no longer valid.");
+    throw new Error(
+      payload.error?.message ?? "This mobile handoff link is no longer valid.",
+    );
   }
   return {
     sessionId: payload.data.session_id,
@@ -208,18 +236,14 @@ export async function createUpload(
     upload_url: string;
     upload_headers: Record<string, string>;
     upload_transfer_path: string;
-  }>(
-    credentials,
-    "/uploads/",
-    {
-      method: "POST",
-      body: JSON.stringify({
-        purpose,
-        mime_type: file.type,
-        file_size_bytes: file.size,
-      }),
-    },
-  );
+  }>(credentials, "/uploads/", {
+    method: "POST",
+    body: JSON.stringify({
+      purpose,
+      mime_type: file.type,
+      file_size_bytes: file.size,
+    }),
+  });
   const uploadUrl = upload.upload_url.trim();
   const isDirectObjectStorageUpload = (() => {
     if (!uploadUrl) return false;
@@ -241,7 +265,10 @@ export async function createUpload(
 
   if (isDirectObjectStorageUpload) {
     const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const timeout = window.setTimeout(
+      () => controller.abort(),
+      REQUEST_TIMEOUT_MS,
+    );
     try {
       const response = await fetch(uploadUrl, {
         method: "PUT",
@@ -291,7 +318,11 @@ export function submitDocument(
   });
 }
 
-export function submitSelfie(credentials: SessionCredentials, uploadId: string, captureType: "image" | "video" = "image") {
+export function submitSelfie(
+  credentials: SessionCredentials,
+  uploadId: string,
+  captureType: "image" | "video" = "image",
+) {
   return request<{ selfie_capture_id: string }>(
     credentials,
     `/sessions/${credentials.sessionId}/selfies`,
@@ -318,9 +349,12 @@ export function submitLiveness(
 }
 
 export function createLivenessChallenge(credentials: SessionCredentials) {
-  return request<{ challenge_id: string; actions: string[]; expires_at: string }>(
-    credentials,
-    `/sessions/${credentials.sessionId}/liveness/challenge`,
-    { method: "POST", body: "{}" },
-  );
+  return request<{
+    challenge_id: string;
+    actions: string[];
+    expires_at: string;
+  }>(credentials, `/sessions/${credentials.sessionId}/liveness/challenge`, {
+    method: "POST",
+    body: "{}",
+  });
 }

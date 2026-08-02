@@ -41,7 +41,9 @@ export function InviteAdminDialog({ onInvited }: InviteAdminDialogProps) {
       setRole("");
       onInvited();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to send invitation.");
+      setMessage(
+        error instanceof Error ? error.message : "Unable to send invitation.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -95,12 +97,19 @@ export function InviteAdminDialog({ onInvited }: InviteAdminDialogProps) {
               </SelectContent>
             </Select>
           </div>
-          {message ? <p className="text-sm text-slate-600" role="status">{message}</p> : null}
+          {message ? (
+            <p className="text-sm text-slate-600" role="status">
+              {message}
+            </p>
+          ) : null}
         </div>
 
         <DialogFooter>
           <Button variant="outline">Cancel</Button>
-          <Button disabled={!email.trim() || !role || isSubmitting} onClick={submit}>
+          <Button
+            disabled={!email.trim() || !role || isSubmitting}
+            onClick={submit}
+          >
             {isSubmitting ? "Sending…" : "Send invite"}
           </Button>
         </DialogFooter>

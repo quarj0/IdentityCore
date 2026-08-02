@@ -46,12 +46,19 @@ export function FeatureFlagDetailPage({ flagId }: FeatureFlagDetailPageProps) {
     };
   }, [flagId]);
 
-  const config = useMemo(() => buildFeatureFlagConfig(record ? [record] : []), [record]);
+  const config = useMemo(
+    () => buildFeatureFlagConfig(record ? [record] : []),
+    [record],
+  );
 
   if (error) {
     return (
       <>
-        <PageHeader eyebrow="Feature flags" title="Feature flag" description="Live release control data." />
+        <PageHeader
+          eyebrow="Feature flags"
+          title="Feature flag"
+          description="Live release control data."
+        />
         <EmptyState title="Feature flag unavailable" description={error} />
       </>
     );

@@ -10,7 +10,9 @@ import {
 } from "@/features/api-clients/live-data";
 
 export function ApiClientsListPage() {
-  const [records, setRecords] = useState<ReturnType<typeof buildApiClientConfig>["records"]>([]);
+  const [records, setRecords] = useState<
+    ReturnType<typeof buildApiClientConfig>["records"]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,7 +62,9 @@ export function ApiClientsListPage() {
   }
 
   if (error && records.length === 0) {
-    return <EmptyState title="Unable to load API clients" description={error} />;
+    return (
+      <EmptyState title="Unable to load API clients" description={error} />
+    );
   }
 
   return <AdminListPage config={buildApiClientConfig(records)} />;

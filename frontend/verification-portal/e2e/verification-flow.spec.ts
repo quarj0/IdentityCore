@@ -2,16 +2,29 @@ import { expect, test, type Route } from "@playwright/test";
 
 const sessionId = "ses_browser_test";
 const verificationId = "ver_browser_test";
+const consentContent =
+  "I consent to identity verification for customer onboarding.";
 const image = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
   "base64",
 );
 
-test("verification pages send hardened browser security headers", async ({ request }) => {
+test("verification pages send hardened browser security headers", async ({
+  request,
+}) => {
   const response = await request.get("/");
 
   expect(response.headers()["cache-control"]).toContain("no-store");
-  expect(response.headers()["content-security-policy"]).toContain("frame-ancestors 'none'");
+  const csp = response.headers()["content-security-policy"];
+  expect(csp).toContain("frame-ancestors 'none'");
+  expect(csp).toMatch(
+    /script-src 'self' 'nonce-[a-f0-9]{32}' 'strict-dynamic'/,
+  );
+  expect(csp).toMatch(/style-src 'self' 'nonce-[a-f0-9]{32}'/);
+  expect(csp).toContain("style-src-attr 'none'");
+  expect(csp).toContain("report-uri /api/security/csp-report");
+  expect(csp).not.toContain("'unsafe-inline'");
+  expect(csp).not.toContain("'unsafe-eval'");
   expect(response.headers()["permissions-policy"]).toContain("camera=(self)");
   expect(response.headers()["referrer-policy"]).toBe("no-referrer");
   expect(response.headers()["x-content-type-options"]).toBe("nosniff");
@@ -19,23 +32,61 @@ test("verification pages send hardened browser security headers", async ({ reque
   expect(response.headers()["x-powered-by"]).toBeUndefined();
 });
 
-test("BFF rejects cross-origin session exchange and unauthenticated proxy calls", async ({ request }) => {
+test("health and readiness endpoints expose safe orchestration state", async ({
+  request,
+}) => {
+  const health = await request.get("/api/health");
+  expect(health.status()).toBe(200);
+  expect(await health.json()).toEqual({
+    status: "ok",
+    service: "verification-portal",
+  });
+
+  const readiness = await request.get("/api/ready");
+  expect(readiness.status()).toBe(200);
+  expect(await readiness.json()).toEqual({
+    status: "ready",
+    service: "verification-portal",
+    version: "e2e",
+    checks: { runtime_configuration: "ok" },
+  });
+});
+
+test("BFF rejects cross-origin session exchange and unauthenticated proxy calls", async ({
+  request,
+}) => {
   const exchange = await request.post("/api/verification/session", {
     headers: { Origin: "https://attacker.example" },
     data: { sessionId, sessionToken: "stolen-token" },
   });
   expect(exchange.status()).toBe(403);
+  expect(exchange.headers()["x-request-id"]).toMatch(/^[A-Za-z0-9-]+$/);
 
-  const proxy = await request.post(`/api/verification/sessions/${sessionId}/consent`, {
-    data: { accepted: true },
-  });
+  const proxy = await request.post(
+    `/api/verification/sessions/${sessionId}/consent`,
+    {
+      data: { accepted: true },
+    },
+  );
   expect(proxy.status()).toBe(401);
+  expect(proxy.headers()["x-request-id"]).toBeTruthy();
+
+  const oversizedHandoff = await request.post("/api/verification/handoff", {
+    headers: { "X-Request-Id": "browser-test-request" },
+    data: { handoff: "x".repeat(9000) },
+  });
+  expect(oversizedHandoff.status()).toBe(413);
+  expect(oversizedHandoff.headers()["x-request-id"]).toBe(
+    "browser-test-request",
+  );
 });
 
 test("subject completes consent, document, selfie, liveness, and review routing", async ({
   isMobile,
   page,
 }) => {
+  test.slow();
+
   let step = "consent";
   let uploadNumber = 0;
   let uploadCreateRequests = 0;
@@ -47,18 +98,26 @@ test("subject completes consent, document, selfie, liveness, and review routing"
 
   await page.addInitScript(() => {
     class MockMediaRecorder {
-      static isTypeSupported() { return true; }
+      static isTypeSupported() {
+        return true;
+      }
       state = "inactive";
       ondataavailable: ((event: { data: Blob }) => void) | null = null;
       onstop: (() => void) | null = null;
-      start() { this.state = "recording"; }
+      start() {
+        this.state = "recording";
+      }
       stop() {
         this.state = "inactive";
-        this.ondataavailable?.({ data: new Blob(["live-video"], { type: "video/webm" }) });
+        this.ondataavailable?.({
+          data: new Blob(["live-video"], { type: "video/webm" }),
+        });
         this.onstop?.();
       }
     }
-    Object.defineProperty(window, "MediaRecorder", { value: MockMediaRecorder });
+    Object.defineProperty(window, "MediaRecorder", {
+      value: MockMediaRecorder,
+    });
     Object.defineProperty(navigator, "mediaDevices", {
       value: { getUserMedia: async () => new MediaStream() },
     });
@@ -66,15 +125,21 @@ test("subject completes consent, document, selfie, liveness, and review routing"
 
   await page.route("**/api/verification/**", async (route) => {
     const request = route.request();
-    const url = new URL(request.url());
-    const path = apiPath(url);
+    const path = new URL(request.url()).pathname;
     const method = request.method();
 
     if (path === "/api/verification/session" && method === "POST") {
-      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ success: true }) });
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ success: true }),
+      });
     }
 
-    if (path === `/api/verification/sessions/${sessionId}` && method === "GET") {
+    if (
+      path === `/api/verification/sessions/${sessionId}` &&
+      method === "GET"
+    ) {
       return json(route, {
         session_id: sessionId,
         verification_id: verificationId,
@@ -87,11 +152,25 @@ test("subject completes consent, document, selfie, liveness, and review routing"
           "selfie_capture",
           "liveness_check",
         ],
-        workflow: { steps: ["consent", "document_capture", "selfie_capture", "liveness_check"], liveness_mode: "active" },
+        workflow: {
+          steps: [
+            "consent",
+            "document_capture",
+            "selfie_capture",
+            "liveness_check",
+          ],
+          liveness_mode: "active",
+        },
         locale: "en",
         supported_locales: ["en"],
         direction: "ltr",
-        consent: { template_id: "ctm_test", version: 3, locale: "en", content: "I consent to identity verification for customer onboarding.", content_hash: "a".repeat(64) },
+        consent: {
+          template_id: "ctm_test",
+          version: 3,
+          locale: "en",
+          content: consentContent,
+          content_hash: "a".repeat(64),
+        },
         document: {
           country_code: "GH",
           document_type: "national_id",
@@ -111,8 +190,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     ) {
       return json(route, {
         verification_id: verificationId,
-        status:
-          step === "completed" ? "manual_review_required" : "in_progress",
+        status: step === "completed" ? "manual_review_required" : "in_progress",
         current_step: step,
         message:
           step === "completed"
@@ -121,10 +199,13 @@ test("subject completes consent, document, selfie, liveness, and review routing"
         evidence: {
           identity_document_id:
             step === "consent" || step === "document_capture" ? "" : "doc_1",
-          selfie_capture_id:
-            ["liveness_check", "processing", "completed"].includes(step)
-              ? "sel_1"
-              : "",
+          selfie_capture_id: [
+            "liveness_check",
+            "processing",
+            "completed",
+          ].includes(step)
+            ? "sel_1"
+            : "",
           liveness_check_id: step === "completed" ? "liv_1" : "",
         },
       });
@@ -154,7 +235,9 @@ test("subject completes consent, document, selfie, liveness, and review routing"
           contentType: "application/json",
           body: JSON.stringify({
             success: false,
-            error: { message: "The upload service is temporarily unavailable." },
+            error: {
+              message: "The upload service is temporarily unavailable.",
+            },
           }),
         });
       }
@@ -171,7 +254,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
       );
     }
 
-    if (/\/api\/v1\/uploads\/upl_\d+\/transfer$/.test(path)) {
+    if (/\/api\/verification\/uploads\/upl_\d+\/transfer$/.test(path)) {
       return json(route, { upload_id: `upl_${uploadNumber}` });
     }
 
@@ -228,24 +311,36 @@ test("subject completes consent, document, selfie, liveness, and review routing"
 
   await page.goto(`/verify/${sessionId}#token=browser-secret`);
   if (!isMobile) {
-    await page.getByRole("button", { name: "Continue on this computer" }).click();
+    await page
+      .getByRole("button", { name: "Continue on this computer" })
+      .click();
   }
 
-  await expect(page.getByRole("heading", { name: "Review and give consent" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Review and give consent" }),
+  ).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
-  await expect(page.getByText("I consent to Example Bank processing my identity evidence.")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Review and give consent" })).toBeFocused();
+  await expect(page.getByText(consentContent)).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Review and give consent" }),
+  ).toBeFocused();
   await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "Accept and continue" }).click();
 
-  await expect(page.getByRole("heading", { name: "Capture your National ID" })).toBeVisible();
-  await page.locator('input[type="file"]').setInputFiles({
+  await expect(
+    page.getByRole("heading", { name: "Capture your National ID" }),
+  ).toBeVisible();
+  await page.getByLabel("Upload image").setInputFiles({
     name: "ghana-card-front.png",
     mimeType: "image/png",
     buffer: image,
   });
-  await page.getByRole("button", { name: "Capture back" }).click();
-  await page.locator('input[type="file"]').setInputFiles({
+  const backCapture = page.getByRole("button", {
+    name: "Back Not captured",
+  });
+  await backCapture.click();
+  await expect(backCapture).toHaveAttribute("aria-pressed", "true");
+  await page.getByLabel("Upload image").setInputFiles({
     name: "ghana-card-back.png",
     mimeType: "image/png",
     buffer: image,
@@ -253,22 +348,22 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   await page.getByRole("button", { name: "Submit document" }).click();
   await expect(
     page.getByRole("alert").filter({ hasText: "We could not continue" }),
-  ).toContainText(
-    "The upload service is temporarily unavailable.",
-  );
+  ).toContainText("The upload service is temporarily unavailable.");
   await page.getByRole("button", { name: "Submit document" }).click();
 
   await expect(page.getByText("Document received")).toBeVisible();
   await expect(
     page.getByText("Your document was uploaded successfully"),
   ).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Take a live selfie" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Take a live selfie" }),
+  ).toBeVisible();
   expect(documentPayload.captures).toEqual([
     { side: "front", upload_id: "upl_1" },
     { side: "back", upload_id: "upl_2" },
   ]);
   expect(uploadCreateRequests).toBe(3);
-  await page.locator('input[type="file"]').setInputFiles({
+  await page.getByLabel("Upload image").setInputFiles({
     name: "selfie.png",
     mimeType: "image/png",
     buffer: image,
@@ -276,15 +371,22 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   await page.getByRole("button", { name: "Submit selfie" }).click();
 
   await expect(page.getByText("Selfie received")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Complete a live camera check" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Complete a live camera check" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Begin live camera check" }).click();
   await page.getByRole("button", { name: "Enable camera" }).click();
   await page.getByRole("button", { name: "Start live challenge" }).click();
-  await expect(page.getByRole("button", { name: "Submit live check" })).toBeVisible({ timeout: 10_000 });
+  await page.getByRole("button", { name: "Finish recording" }).click();
+  await expect(
+    page.getByRole("button", { name: "Submit live check" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Submit live check" }).click();
   expect(livenessUploadMimeType).toBe("video/mp4");
 
-  await expect(page.getByRole("heading", { name: "Submitted for review" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Submitted for review" }),
+  ).toBeVisible();
   await expect(page.getByText("requires additional review")).toBeVisible();
   await expect(page).toHaveURL(`/verify/${sessionId}`);
 });
@@ -295,8 +397,8 @@ test("expired sessions render a safe terminal state", async ({
 }) => {
   await page.route("**/api/verification/**", async (route) => {
     const request = route.request();
-    const path = apiPath(new URL(request.url()));
-    if (path === "/api/v1/session" && request.method() === "POST") {
+    const path = new URL(request.url()).pathname;
+    if (path === "/api/verification/session" && request.method() === "POST") {
       return json(route, {});
     }
     if (path.endsWith("/status")) {
@@ -323,7 +425,13 @@ test("expired sessions render a safe terminal state", async ({
       locale: "en",
       supported_locales: ["en"],
       direction: "ltr",
-      consent: { template_id: "ctm_test", version: 1, locale: "en", content: "Consent text", content_hash: "b".repeat(64) },
+      consent: {
+        template_id: "ctm_test",
+        version: 1,
+        locale: "en",
+        content: "Consent text",
+        content_hash: "b".repeat(64),
+      },
       document: {
         country_code: "GH",
         document_type: "national_id",
@@ -339,9 +447,13 @@ test("expired sessions render a safe terminal state", async ({
 
   await page.goto(`/verify/${sessionId}#token=expired-secret`);
   if (!isMobile) {
-    await page.getByRole("button", { name: "Continue on this computer" }).click();
+    await page
+      .getByRole("button", { name: "Continue on this computer" })
+      .click();
   }
-  await expect(page.getByRole("heading", { name: "This session has expired" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "This session has expired" }),
+  ).toBeVisible();
 });
 
 function json(route: Route, data: unknown, status = 200) {
@@ -350,8 +462,4 @@ function json(route: Route, data: unknown, status = 200) {
     contentType: "application/json",
     body: JSON.stringify({ success: true, data }),
   });
-}
-
-function apiPath(url: URL) {
-  return url.pathname.replace(/^\/api\/verification/, "/api/v1");
 }

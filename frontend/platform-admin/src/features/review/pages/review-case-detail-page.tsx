@@ -188,11 +188,16 @@ export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
     );
   }
 
-  const supportingDocuments = normalizeSupportingDocuments(item.supportingDocuments);
+  const supportingDocuments = normalizeSupportingDocuments(
+    item.supportingDocuments,
+  );
 
   return (
     <div className="space-y-6 bg-white text-slate-950">
-      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-500">
+      <nav
+        aria-label="Breadcrumb"
+        className="flex items-center gap-2 text-sm text-slate-500"
+      >
         <Link
           href="/review"
           className="inline-flex items-center gap-1 outline-none hover:text-blue-700 focus-visible:ring-2 focus-visible:ring-blue-500"
@@ -222,7 +227,9 @@ export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-slate-500">Review status</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500">
+            Review status
+          </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <StatusPill tone={reviewPillTone}>
               {statusLabel(item.organizationVerificationReviewStatus)}
@@ -234,13 +241,21 @@ export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-slate-500">Organization</p>
-          <p className="mt-2 text-lg font-semibold text-slate-950">{item.organizationStatus}</p>
-          <p className="mt-1 text-sm text-slate-500">Tenant: {item.tenantStatus}</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500">
+            Organization
+          </p>
+          <p className="mt-2 text-lg font-semibold text-slate-950">
+            {item.organizationStatus}
+          </p>
+          <p className="mt-1 text-sm text-slate-500">
+            Tenant: {item.tenantStatus}
+          </p>
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-slate-500">Submitted</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500">
+            Submitted
+          </p>
           <p className="mt-2 text-lg font-semibold text-slate-950">
             {formatDateTime(item.organizationVerificationSubmittedAt)}
           </p>
@@ -250,7 +265,9 @@ export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-slate-500">Priority</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500">
+            Priority
+          </p>
           <p className="mt-2 text-lg font-semibold text-slate-950">
             {item.reviewPriority ?? "normal"}
           </p>
@@ -298,7 +315,9 @@ export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
                 </p>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:col-span-2">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Official website</p>
+                <p className="text-xs uppercase tracking-wide text-slate-500">
+                  Official website
+                </p>
                 <p className="mt-2 text-sm font-medium text-slate-950">
                   {item.officialWebsite || item.website || "Not provided"}
                 </p>
@@ -317,17 +336,25 @@ export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
                         <FileText className="size-5" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-slate-950">{document.filename}</p>
+                        <p className="text-sm font-medium text-slate-950">
+                          {document.filename}
+                        </p>
                         <p className="mt-1 text-xs text-slate-500">
                           {document.status}
-                          {document.file_size_bytes ? ` · ${document.file_size_bytes} bytes` : ""}
+                          {document.file_size_bytes
+                            ? ` · ${document.file_size_bytes} bytes`
+                            : ""}
                         </p>
                       </div>
                     </div>
 
                     {document.download_url ? (
                       <Button asChild variant="outline" size="sm">
-                        <a href={document.download_url} target="_blank" rel="noreferrer">
+                        <a
+                          href={document.download_url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
                           Open file
                         </a>
                       </Button>
@@ -389,29 +416,42 @@ export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
           >
             <dl className="space-y-4 text-sm">
               <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-500">Current step</dt>
-                <dd className="mt-1 font-medium text-slate-950">{item.currentStep}</dd>
+                <dt className="text-xs uppercase tracking-wide text-slate-500">
+                  Current step
+                </dt>
+                <dd className="mt-1 font-medium text-slate-950">
+                  {item.currentStep}
+                </dd>
               </div>
               <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-500">Editable</dt>
+                <dt className="text-xs uppercase tracking-wide text-slate-500">
+                  Editable
+                </dt>
                 <dd className="mt-1 font-medium text-slate-950">
                   {item.organizationVerificationEditable ? "Yes" : "Locked"}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-500">Platform review</dt>
+                <dt className="text-xs uppercase tracking-wide text-slate-500">
+                  Platform review
+                </dt>
                 <dd className="mt-1 font-medium text-slate-950">
                   {statusLabel(item.platformReviewStatus)}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-500">Platform review note</dt>
+                <dt className="text-xs uppercase tracking-wide text-slate-500">
+                  Platform review note
+                </dt>
                 <dd className="mt-1 leading-6 text-slate-700">
-                  {item.platformReviewNote || "No platform review note recorded yet."}
+                  {item.platformReviewNote ||
+                    "No platform review note recorded yet."}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-500">Platform reviewed at</dt>
+                <dt className="text-xs uppercase tracking-wide text-slate-500">
+                  Platform reviewed at
+                </dt>
                 <dd className="mt-1 font-medium text-slate-950">
                   {formatDateTime(item.platformReviewedAt)}
                 </dd>

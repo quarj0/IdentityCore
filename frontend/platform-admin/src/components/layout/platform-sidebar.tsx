@@ -11,14 +11,19 @@ type PlatformSidebarProps = {
   onNavigate?: () => void;
 };
 
-export function PlatformSidebar({ mobile = false, onNavigate }: PlatformSidebarProps) {
+export function PlatformSidebar({
+  mobile = false,
+  onNavigate,
+}: PlatformSidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className={cn(
-      "fixed inset-y-0 left-0 z-40 w-72 overflow-y-auto border-r border-slate-200 bg-white/95 px-4 py-5 backdrop-blur",
-      mobile ? "block lg:hidden" : "hidden lg:block",
-    )}>
+    <aside
+      className={cn(
+        "fixed inset-y-0 left-0 z-40 w-72 overflow-y-auto border-r border-slate-200 bg-white/95 px-4 py-5 backdrop-blur",
+        mobile ? "block lg:hidden" : "hidden lg:block",
+      )}
+    >
       <Link href="/" className="flex items-center gap-3 px-2">
         <div className="flex size-10 items-center justify-center rounded-2xl bg-cyan-400/10 text-orange-500 ring-1 ring-orange-300/30">
           <ShieldCheck className="size-5" aria-hidden="true" />

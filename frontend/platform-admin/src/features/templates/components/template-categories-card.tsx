@@ -5,7 +5,9 @@ type TemplateCategoriesCardProps = {
   template: TemplateRecord;
 };
 
-export function TemplateCategoriesCard({ template }: TemplateCategoriesCardProps) {
+export function TemplateCategoriesCard({
+  template,
+}: TemplateCategoriesCardProps) {
   return (
     <SectionCard
       title="Coverage"

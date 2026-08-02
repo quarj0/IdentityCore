@@ -11,7 +11,10 @@ export default function ReviewError({ error, reset }: ReviewErrorProps) {
   return (
     <ErrorState
       title="Unable to load review queue"
-      description={error.message || "Something went wrong while loading manual review cases."}
+      description={
+        error.message ||
+        "Something went wrong while loading manual review cases."
+      }
       actionLabel="Try again"
       onAction={reset}
     />
