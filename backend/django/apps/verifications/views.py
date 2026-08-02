@@ -5,6 +5,7 @@ import json
 from django.conf import settings
 from django.db import transaction
 from django.http import HttpResponse
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -77,6 +78,17 @@ class VerificationAccessMixin:
         if not hasattr(request, "tenant") or request.tenant is None:
             request.tenant = self._get_tenant(request)
 
+    def _scope_to_client_environment(self, request, queryset):
+        """Keep machine credentials inside the environment they were issued for."""
+        if not self._is_api_client_request(request):
+            return queryset
+        project = request.api_client.project
+        environment = project.environment if project is not None else "sandbox"
+        environment_filter = Q(project__environment=environment)
+        if environment == "sandbox":
+            environment_filter |= Q(project__isnull=True)
+        return queryset.filter(environment_filter)
+
     def get_permissions(self):
         if self._is_api_client_request(self.request):
             return [HasAPIClientScopes()]
@@ -99,6 +111,7 @@ class VerificationListCreateView(VerificationAccessMixin, APIView):
             .verifications.select_related("verification_subject")
             .order_by("-created_at", "-pk")
         )
+        verifications = self._scope_to_client_environment(request, verifications)
 
         status_value = request.query_params.get("status")
         external_reference = request.query_params.get("external_reference")
@@ -259,7 +272,9 @@ class VerificationDetailView(VerificationAccessMixin, APIView):
 
     def get(self, request, verification_id: str):
         verification = get_object_or_404(
-            Verification.objects.select_related("verification_subject"),
+            self._scope_to_client_environment(
+                request, Verification.objects.select_related("verification_subject")
+            ),
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
@@ -274,7 +289,7 @@ class VerificationCancelView(VerificationAccessMixin, APIView):
 
     def post(self, request, verification_id: str):
         verification = get_object_or_404(
-            Verification,
+            self._scope_to_client_environment(request, Verification.objects.all()),
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
@@ -321,7 +336,10 @@ class VerificationResendLinkView(VerificationAccessMixin, APIView):
 
     def post(self, request, verification_id: str):
         verification = get_object_or_404(
-            Verification.objects.select_related("verification_subject", "tenant"),
+            self._scope_to_client_environment(
+                request,
+                Verification.objects.select_related("verification_subject", "tenant"),
+            ),
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
@@ -379,7 +397,12 @@ class VerificationEvidenceReportView(VerificationAccessMixin, APIView):
 
     def get(self, request, verification_id: str):
         verification = get_object_or_404(
-            Verification.objects.select_related("verification_subject", "organization"),
+            self._scope_to_client_environment(
+                request,
+                Verification.objects.select_related(
+                    "verification_subject", "organization"
+                ),
+            ),
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
@@ -412,7 +435,12 @@ class VerificationEvidenceReportDownloadView(VerificationAccessMixin, APIView):
 
     def get(self, request, verification_id: str):
         verification = get_object_or_404(
-            Verification.objects.select_related("verification_subject", "organization"),
+            self._scope_to_client_environment(
+                request,
+                Verification.objects.select_related(
+                    "verification_subject", "organization"
+                ),
+            ),
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
@@ -431,7 +459,12 @@ class VerificationEvidenceReportPDFDownloadView(VerificationAccessMixin, APIView
 
     def get(self, request, verification_id: str):
         verification = get_object_or_404(
-            Verification.objects.select_related("verification_subject", "organization"),
+            self._scope_to_client_environment(
+                request,
+                Verification.objects.select_related(
+                    "verification_subject", "organization"
+                ),
+            ),
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
