@@ -1,12 +1,12 @@
 from django.contrib.auth import authenticate
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
-from rest_framework_simplejwt.serializers import TokenRefreshSerializer
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
 
 from apps.accounts.models import PlatformUser
 from apps.accounts.mfa import is_mfa_required
 from apps.tenants.models import Tenant
+from apps.accounts.sessions import issue_refresh_token, rotate_refresh_token
 
 
 def serialize_user(user: PlatformUser) -> dict:

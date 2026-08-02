@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from pathlib import Path
 from decouple import config
 
@@ -67,9 +68,7 @@ DEFAULT_CORS_ALLOW_HEADERS = [
     "X-IdentityCore-Session-Scope",
 ]
 CORS_ALLOW_HEADERS = list(
-    dict.fromkeys(
-        DEFAULT_CORS_ALLOW_HEADERS + env_list("DJANGO_CORS_ALLOW_HEADERS")
-    )
+    dict.fromkeys(DEFAULT_CORS_ALLOW_HEADERS + env_list("DJANGO_CORS_ALLOW_HEADERS"))
 )
 CORS_ALLOW_METHODS = env_list(
     "DJANGO_CORS_ALLOW_METHODS",
@@ -390,6 +389,8 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
     "SIGNING_KEY": env_one_of("JWT_SIGNING_KEY", ["DJANGO_SECRET_KEY"], SECRET_KEY),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
 }

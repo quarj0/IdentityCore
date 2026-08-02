@@ -8,7 +8,7 @@ from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.access_control.models import Role, RoleScope, UserRole
-from apps.accounts.models import EmailVerificationToken
+from apps.accounts.models import EmailVerificationToken, RefreshTokenSession
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.accounts.verification import (
     build_email_verification_url,
@@ -166,6 +166,43 @@ class AuthEndpointTests(APITestCase):
             response.cookies["identitycore_refresh"].value,
             first_cookie,
         )
+
+    def test_refresh_token_reuse_revokes_the_rotated_token_family(self):
+        login_response = self.client.post(
+            reverse("auth-login"),
+            {"email": "user@example.com", "password": "StrongPassword123!"},
+            format="json",
+        )
+        original = login_response.cookies["identitycore_refresh"].value
+        rotated_response = self.client.post(reverse("auth-refresh"), {}, format="json")
+        rotated = rotated_response.cookies["identitycore_refresh"].value
+
+        self.client.cookies["identitycore_refresh"] = original
+        replay = self.client.post(reverse("auth-refresh"), {}, format="json")
+        self.assertEqual(replay.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        self.client.cookies["identitycore_refresh"] = rotated
+        family_after_replay = self.client.post(
+            reverse("auth-refresh"), {}, format="json"
+        )
+        self.assertEqual(family_after_replay.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertFalse(
+            RefreshTokenSession.objects.filter(revoked_at__isnull=True).exists()
+        )
+
+    def test_logout_revokes_the_entire_refresh_token_family(self):
+        self.client.post(
+            reverse("auth-login"),
+            {"email": "user@example.com", "password": "StrongPassword123!"},
+            format="json",
+        )
+        rotated_response = self.client.post(reverse("auth-refresh"), {}, format="json")
+        rotated = rotated_response.cookies["identitycore_refresh"].value
+        self.client.post(reverse("auth-logout"), {}, format="json")
+
+        self.client.cookies["identitycore_refresh"] = rotated
+        response = self.client.post(reverse("auth-refresh"), {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_refresh_sessions_are_isolated_by_first_party_app(self):
         dashboard_login = self.client.post(

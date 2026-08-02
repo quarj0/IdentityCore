@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
@@ -35,7 +36,9 @@ class VerificationSubjectDetailView(APIView):
     permission_classes = [IsAuthenticated, IsTenantUser]
 
     def get(self, request, subject_id):
-        subject = request.user.tenant.verification_subjects.get(public_id=subject_id)
+        subject = get_object_or_404(
+            request.user.tenant.verification_subjects, public_id=subject_id
+        )
         payload = serialize_verification_subject(subject)
         payload["verifications"] = [
             {

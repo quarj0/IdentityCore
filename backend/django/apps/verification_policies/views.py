@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.permissions import BasePermission
@@ -39,6 +40,16 @@ class VerificationPolicyAccessMixin:
             return request.tenant
         return request.user.tenant
 
+    def _scope_to_client_environment(self, request, queryset):
+        if not self._is_api_client_request(request):
+            return queryset
+        project = request.api_client.project
+        environment = project.environment if project is not None else "sandbox"
+        environment_filter = Q(project__environment=environment)
+        if environment == "sandbox":
+            environment_filter |= Q(project__isnull=True)
+        return queryset.filter(environment_filter)
+
     def get_permissions(self):
         if self._is_api_client_request(self.request):
             if self.request.method != "GET":
@@ -54,6 +65,7 @@ class VerificationPolicyListCreateView(VerificationPolicyAccessMixin, APIView):
         policies = self._get_tenant(request).verification_policies.order_by(
             "name", "-version"
         )
+        policies = self._scope_to_client_environment(request, policies)
         if self._is_api_client_request(request):
             policies = policies.filter(status="active")
         return success_response(
@@ -68,9 +80,13 @@ class VerificationPolicyListCreateView(VerificationPolicyAccessMixin, APIView):
         serializer.is_valid(raise_exception=True)
         policy = serializer.save()
         record_audit_event(
-            tenant=request.user.tenant, actor=request.user, request=request,
-            action="verification_policy.created", target_type="verification_policy",
-            target_id=policy.public_id, metadata={"version": policy.version},
+            tenant=request.user.tenant,
+            actor=request.user,
+            request=request,
+            action="verification_policy.created",
+            target_type="verification_policy",
+            target_id=policy.public_id,
+            metadata={"version": policy.version},
         )
         return success_response(
             {
@@ -88,11 +104,10 @@ class VerificationPolicyDetailView(VerificationPolicyAccessMixin, APIView):
 
     def get_object(self, request, policy_id):
         queryset = self._get_tenant(request).verification_policies
+        queryset = self._scope_to_client_environment(request, queryset)
         if self._is_api_client_request(request):
             queryset = queryset.filter(status="active")
-        return get_object_or_404(
-            queryset, public_id=policy_id
-        )
+        return get_object_or_404(queryset, public_id=policy_id)
 
     def get(self, request, policy_id):
         return success_response(
@@ -122,7 +137,11 @@ class VerificationPolicyDetailView(VerificationPolicyAccessMixin, APIView):
 class VerificationPolicyCloneView(VerificationPolicyDetailView):
     def post(self, request, policy_id):
         source = self.get_object(request, policy_id)
-        latest = source.tenant.verification_policies.filter(name=source.name).order_by("-version").first()
+        latest = (
+            source.tenant.verification_policies.filter(name=source.name)
+            .order_by("-version")
+            .first()
+        )
         clone = VerificationPolicy.objects.create(
             tenant=source.tenant,
             name=source.name,
@@ -142,11 +161,19 @@ class VerificationPolicyCloneView(VerificationPolicyDetailView):
             created_by=request.user,
         )
         record_audit_event(
-            tenant=source.tenant, actor=request.user, request=request,
-            action="verification_policy.cloned", target_type="verification_policy",
-            target_id=clone.public_id, metadata={"source_id": source.public_id},
+            tenant=source.tenant,
+            actor=request.user,
+            request=request,
+            action="verification_policy.cloned",
+            target_type="verification_policy",
+            target_id=clone.public_id,
+            metadata={"source_id": source.public_id},
         )
-        return success_response(serialize_verification_policy(clone), request=request, status=status.HTTP_201_CREATED)
+        return success_response(
+            serialize_verification_policy(clone),
+            request=request,
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class VerificationPolicyActivateView(VerificationPolicyDetailView):
@@ -155,14 +182,21 @@ class VerificationPolicyActivateView(VerificationPolicyDetailView):
         policy = self.get_object(request, policy_id)
         if policy.status != "draft":
             from rest_framework.exceptions import ValidationError
+
             raise ValidationError({"status": "Only draft templates can be activated."})
-        policy.tenant.verification_policies.filter(name=policy.name, status="active").update(status="archived")
+        policy.tenant.verification_policies.filter(
+            name=policy.name, status="active"
+        ).update(status="archived")
         policy.status = "active"
         policy.save(update_fields=["status", "updated_at"])
         record_audit_event(
-            tenant=policy.tenant, actor=request.user, request=request,
-            action="verification_policy.activated", target_type="verification_policy",
-            target_id=policy.public_id, metadata={"version": policy.version},
+            tenant=policy.tenant,
+            actor=request.user,
+            request=request,
+            action="verification_policy.activated",
+            target_type="verification_policy",
+            target_id=policy.public_id,
+            metadata={"version": policy.version},
         )
         return success_response(serialize_verification_policy(policy), request=request)
 
@@ -171,12 +205,18 @@ class VerificationPolicyArchiveView(VerificationPolicyDetailView):
     def post(self, request, policy_id):
         policy = self.get_object(request, policy_id)
         if policy.status == "archived":
-            return success_response(serialize_verification_policy(policy), request=request)
+            return success_response(
+                serialize_verification_policy(policy), request=request
+            )
         policy.status = "archived"
         policy.save(update_fields=["status", "updated_at"])
         record_audit_event(
-            tenant=policy.tenant, actor=request.user, request=request,
-            action="verification_policy.archived", target_type="verification_policy",
-            target_id=policy.public_id, metadata={"version": policy.version},
+            tenant=policy.tenant,
+            actor=request.user,
+            request=request,
+            action="verification_policy.archived",
+            target_type="verification_policy",
+            target_id=policy.public_id,
+            metadata={"version": policy.version},
         )
         return success_response(serialize_verification_policy(policy), request=request)

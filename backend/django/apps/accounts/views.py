@@ -1,6 +1,7 @@
 import hashlib
 import secrets
 from datetime import timedelta
+from django.conf import settings
 from django.utils import timezone
 from django.conf import settings
 from django.contrib.auth import authenticate
@@ -8,7 +9,6 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.exceptions import AuthenticationFailed
-from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from rest_framework.views import APIView
 
 from apps.audit.services import record_audit_event
@@ -250,8 +250,8 @@ class LogoutView(APIView):
         raw_token = request.COOKIES.get(cookie_name, "")
         if raw_token:
             try:
-                RefreshToken(raw_token).blacklist()
-            except TokenError:
+                revoke_refresh_token(raw_token)
+            except Exception:
                 pass
         response = success_response(
             {"logged_out": True}, request=request, status=status.HTTP_200_OK
