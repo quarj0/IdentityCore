@@ -8,14 +8,14 @@ jobs:
   documentation:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Validate records-of-processing inventory
         run: python scripts/check_processing_inventory.py
 
   backend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --project backend --group django --group dev --frozen
       - run: DJANGO_SETTINGS_MODULE=config.settings.testing uv run --project backend python backend/django/manage.py test apps config
@@ -23,7 +23,7 @@ jobs:
   ai-service:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --project backend --group ai-service --group dev --frozen
       - name: Normalize OpenCV runtime
@@ -34,11 +34,11 @@ jobs:
   frontend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
         with:
           version: 11.5.2
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
@@ -62,11 +62,11 @@ jobs:
   sdks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - run: python -m unittest discover -s sdk/python/tests
@@ -79,8 +79,8 @@ jobs:
   java-sdk:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -92,8 +92,8 @@ jobs:
   dotnet-sdk:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "8.0.x"
       - run: dotnet restore IdentityCore.sln
@@ -109,14 +109,20 @@ jobs:
       matrix:
         python-version: ["3.9", "3.12"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --project backend --group django --frozen
       - run: scripts/start_sdk_compat_backend.sh
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - run: PYTHONPATH=sdk/python python -m unittest discover -s sdk/python/tests -p 'test_live_compatibility.py'
+      - name: Stop compatibility backend
+        if: always()
+        run: |
+          if [ -n "${IDENTITYCORE_COMPAT_SERVER_PID:-}" ]; then
+            kill -- "-${IDENTITYCORE_COMPAT_SERVER_PID}" 2>/dev/null || kill "${IDENTITYCORE_COMPAT_SERVER_PID}" 2>/dev/null || true
+          fi
 
   sdk-live-javascript:
     runs-on: ubuntu-latest
@@ -124,15 +130,21 @@ jobs:
       matrix:
         node-version: [18, 22]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --project backend --group django --frozen
       - run: scripts/start_sdk_compat_backend.sh
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node-version }}
       - run: node --test test/live-compatibility.test.js
         working-directory: sdk/javascript
+      - name: Stop compatibility backend
+        if: always()
+        run: |
+          if [ -n "${IDENTITYCORE_COMPAT_SERVER_PID:-}" ]; then
+            kill -- "-${IDENTITYCORE_COMPAT_SERVER_PID}" 2>/dev/null || kill "${IDENTITYCORE_COMPAT_SERVER_PID}" 2>/dev/null || true
+          fi
 
   sdk-live-java:
     runs-on: ubuntu-latest
@@ -140,26 +152,38 @@ jobs:
       matrix:
         java-version: [17, 21]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --project backend --group django --frozen
       - run: scripts/start_sdk_compat_backend.sh
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: ${{ matrix.java-version }}
       - run: mvn --batch-mode -Dtest=LiveCompatibilityTest test
         working-directory: sdk/java
+      - name: Stop compatibility backend
+        if: always()
+        run: |
+          if [ -n "${IDENTITYCORE_COMPAT_SERVER_PID:-}" ]; then
+            kill -- "-${IDENTITYCORE_COMPAT_SERVER_PID}" 2>/dev/null || kill "${IDENTITYCORE_COMPAT_SERVER_PID}" 2>/dev/null || true
+          fi
 
   sdk-live-dotnet:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --project backend --group django --frozen
       - run: scripts/start_sdk_compat_backend.sh
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "8.0.x"
       - run: dotnet test IdentityCore.sln --configuration Release --filter FullyQualifiedName~LiveCompatibilityTests
         working-directory: sdk/dotnet
+      - name: Stop compatibility backend
+        if: always()
+        run: |
+          if [ -n "${IDENTITYCORE_COMPAT_SERVER_PID:-}" ]; then
+            kill -- "-${IDENTITYCORE_COMPAT_SERVER_PID}" 2>/dev/null || kill "${IDENTITYCORE_COMPAT_SERVER_PID}" 2>/dev/null || true
+          fi

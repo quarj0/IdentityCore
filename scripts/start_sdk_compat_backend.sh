@@ -6,7 +6,14 @@ export DJANGO_SETTINGS_MODULE=config.settings.testing
 rm -f "$root/backend/django/test.sqlite3"
 uv run --project "$root/backend" python "$root/backend/django/manage.py" migrate --noinput
 fixture="$(uv run --project "$root/backend" python "$root/scripts/seed_sdk_compatibility.py")"
-uv run --project "$root/backend" python "$root/backend/django/manage.py" runserver 127.0.0.1:8765 --noreload >"${RUNNER_TEMP:-/tmp}/identitycore-sdk-backend.log" 2>&1 &
+setsid uv run --project "$root/backend" python "$root/backend/django/manage.py" runserver 127.0.0.1:8765 --noreload >"${RUNNER_TEMP:-/tmp}/identitycore-sdk-backend.log" 2>&1 &
+server_pid=$!
+
+if [[ -n "${GITHUB_ENV:-}" ]]; then
+  echo "IDENTITYCORE_COMPAT_SERVER_PID=$server_pid" >> "$GITHUB_ENV"
+else
+  echo "IDENTITYCORE_COMPAT_SERVER_PID=$server_pid"
+fi
 
 for _ in {1..30}; do
   if curl --silent --fail http://127.0.0.1:8765/api/v1/health >/dev/null; then break; fi
