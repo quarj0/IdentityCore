@@ -16,7 +16,7 @@ from common.responses import success_json_response
 
 def healthcheck(request):
     return success_json_response(
-        {"status": "ok", "service": "django", "version": "1.0.0"},
+        {"status": "ok", "service": "identitycore-api", "version": "1.0.0"},
         request=request,
     )
 

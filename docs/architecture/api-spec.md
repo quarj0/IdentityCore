@@ -252,7 +252,7 @@ Response:
   "success": true,
   "data": {
     "status": "ok",
-    "service": "django",
+    "service": "identitycore-api",
     "version": "1.0.0"
   },
   "request_id": "req_01JABC..."

@@ -33,7 +33,7 @@ export const endpoints: EndpointDefinition[] = [
   "success": true,
   "data": {
     "status": "ok",
-    "service": "django",
+    "service": "identitycore",
     "version": "0.1.0"
   },
   "request_id": "req_01JABC..."
