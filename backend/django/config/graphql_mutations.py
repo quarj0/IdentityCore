@@ -13,7 +13,6 @@ from rest_framework.exceptions import (
     AuthenticationFailed,
     ValidationError as DRFValidationError,
 )
-from rest_framework_simplejwt.tokens import RefreshToken
 from strawberry.types import Info
 
 from apps.access_control.models import Role, RoleScope, UserRole
@@ -24,6 +23,7 @@ from apps.accounts.passwords import (
     reset_password_with_token,
     change_password as perform_password_change,
 )
+from apps.accounts.sessions import issue_refresh_token
 from apps.accounts.serializers import LoginSerializer, serialize_user
 from apps.accounts.verification import (
     build_email_verification_url,
@@ -729,7 +729,7 @@ class Mutation:
         invitation.status = PlatformAdminInvitationStatus.ACCEPTED
         invitation.accepted_at = timezone.now()
         invitation.save(update_fields=["status", "accepted_at", "updated_at"])
-        refresh = RefreshToken.for_user(user)
+        refresh = issue_refresh_token(user)
         if getattr(user, "tenant_id", None) is not None:
             record_audit_event(
                 tenant=user.tenant,

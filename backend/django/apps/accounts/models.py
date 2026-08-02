@@ -1,5 +1,7 @@
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.exceptions import ValidationError
+import uuid
+
 from django.db import models
 from django.db.models import Q
 
@@ -73,6 +75,26 @@ class PlatformUser(PublicIdModel, BaseModel, AbstractBaseUser, PermissionsMixin)
 
     def __str__(self) -> str:
         return self.email
+
+
+class RefreshTokenSession(BaseModel):
+    """Server-side state used to make refresh-token rotation replay safe."""
+
+    user = models.ForeignKey(
+        PlatformUser, on_delete=models.CASCADE, related_name="refresh_token_sessions"
+    )
+    jti = models.CharField(max_length=255, unique=True)
+    family_id = models.UUIDField(default=uuid.uuid4, db_index=True)
+    consumed_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(
+                fields=["family_id", "revoked_at"],
+                name="accounts_re_family__673676_idx",
+            )
+        ]
 
 
 class EmailVerificationToken(PublicIdModel, BaseModel):
