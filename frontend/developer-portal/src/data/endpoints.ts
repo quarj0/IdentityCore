@@ -26,14 +26,14 @@ export const endpoints: EndpointDefinition[] = [
     path: "/api/v1/health",
     title: "Health check",
     description:
-      "Checks that the API is up and reports the active service version.",
+      "Checks that the Identitycore is up and reports the active service version.",
     category: "Core",
     request: `GET /api/v1/health`,
     response: `{
   "success": true,
   "data": {
     "status": "ok",
-    "service": "django",
+    "service": "identitycore",
     "version": "0.1.0"
   },
   "request_id": "req_01JABC..."

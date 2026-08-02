@@ -4,6 +4,14 @@ from rest_framework.test import APITestCase
 
 
 class CatalogEndpointTests(APITestCase):
+    def test_health_identifies_the_public_api_service(self):
+        response = self.client.get("/api/v1/health")
+        payload = response.json()
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(payload["success"])
+        self.assertEqual(payload["data"]["service"], "identitycore-api")
+
     def test_countries_returns_full_public_catalog(self):
         response = self.client.get(reverse("country-list"))
 
