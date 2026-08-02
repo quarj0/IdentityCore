@@ -22,7 +22,11 @@ from apps.providers.models import (
     ProviderCheckType,
     ProviderType,
 )
-from apps.providers.services import create_provider_check
+from apps.providers.services import (
+    create_provider_check,
+    invoke_provider_check,
+    redact_provider_metadata,
+)
 from apps.tenants.models import Tenant
 from apps.verification_subjects.models import VerificationSubject
 from apps.verifications.models import Verification, VerificationStatus
@@ -170,6 +174,67 @@ class ProviderModelTests(TestCase):
         )
 
         self.assertEqual(check.provider_id, tenant_provider.id)
+
+    def test_orchestrator_records_normalized_success_duration_and_redacted_metadata(
+        self,
+    ):
+        check = create_provider_check(
+            verification=self.verification,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+            status=ProviderCheckStatus.PENDING,
+        )
+
+        result = invoke_provider_check(
+            provider_check=check,
+            operation=lambda **kwargs: {
+                "status": "completed",
+                "confidence_score": 0.91,
+                "model_name": "test-model",
+            },
+            operation_kwargs={"api_key": "never-record-this"},
+            request_metadata={"capture_id": "cap_123", "api_key": "secret"},
+        )
+
+        check.refresh_from_db()
+        self.assertEqual(result["confidence_score"], 0.91)
+        self.assertEqual(check.status, ProviderCheckStatus.COMPLETED)
+        self.assertIsNotNone(check.duration_ms)
+        self.assertEqual(check.request_metadata_json["api_key"], "[REDACTED]")
+        self.assertEqual(check.response_metadata_json["model_name"], "test-model")
+        self.assertNotIn("confidence_score", check.response_metadata_json)
+
+    def test_orchestrator_normalizes_timeout_before_reraising(self):
+        check = create_provider_check(
+            verification=self.verification,
+            check_type=ProviderCheckType.DOCUMENT_QUALITY,
+            status=ProviderCheckStatus.PENDING,
+        )
+
+        with self.assertRaises(AIServiceUnavailable):
+            invoke_provider_check(
+                provider_check=check,
+                operation=Mock(
+                    side_effect=AIServiceUnavailable(
+                        error_code="provider_timeout",
+                        provider_check_status="timeout",
+                    )
+                ),
+                operation_kwargs={},
+            )
+
+        check.refresh_from_db()
+        self.assertEqual(check.status, ProviderCheckStatus.TIMEOUT)
+        self.assertEqual(
+            check.normalized_result_json["error"]["code"], "provider_timeout"
+        )
+        self.assertTrue(check.normalized_result_json["error"]["retryable"])
+        self.assertIsNotNone(check.duration_ms)
+
+    def test_redaction_is_recursive(self):
+        self.assertEqual(
+            redact_provider_metadata({"nested": [{"token": "secret"}]}),
+            {"nested": [{"token": "[REDACTED]"}]},
+        )
 
 
 class AIServiceClientTests(TestCase):
