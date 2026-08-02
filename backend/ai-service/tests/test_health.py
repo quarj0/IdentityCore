@@ -1,4 +1,6 @@
 import asyncio
+import hashlib
+import json
 import sys
 from types import SimpleNamespace
 
@@ -325,6 +327,28 @@ def test_real_mode_requires_storage_and_models(tmp_path):
 
     assert any(item.startswith("models.insightface:") for item in missing)
     assert any(item.startswith("models.paddleocr.det:") for item in missing)
+    assert any(item.startswith("models.manifest_missing:") for item in missing)
+
+
+def test_model_manifest_detects_missing_and_altered_assets(tmp_path):
+    asset = tmp_path / "insightface" / "models" / "buffalo_l" / "model.onnx"
+    asset.parent.mkdir(parents=True)
+    asset.write_bytes(b"trusted-model")
+    (tmp_path / "manifest.json").write_text(json.dumps({"files": [{
+        "path": str(asset.relative_to(tmp_path)),
+        "sha256": hashlib.sha256(asset.read_bytes()).hexdigest(),
+    }]}))
+    settings = Settings(AI_MODEL_ROOT=tmp_path)
+    assert settings.model_asset_integrity_errors() == []
+
+    asset.write_bytes(b"tampered-model")
+    assert settings.model_asset_integrity_errors() == [
+        "models.asset_checksum_mismatch:insightface/models/buffalo_l/model.onnx"
+    ]
+    asset.unlink()
+    assert settings.model_asset_integrity_errors() == [
+        "models.asset_missing:insightface/models/buffalo_l/model.onnx"
+    ]
 
 
 def test_real_mode_accepts_r2_storage_aliases():
@@ -338,7 +362,9 @@ def test_real_mode_accepts_r2_storage_aliases():
         PADDLE_OCR_ALLOW_DOWNLOAD=True,
     )
 
-    assert settings.real_inference_missing_requirements() == []
+    assert settings.real_inference_missing_requirements() == [
+        "models.manifest_missing:/opt/identitycore/models/manifest.json"
+    ]
 
 
 def test_hybrid_mode_is_degraded_but_ready_when_real_requirements_are_missing(monkeypatch):

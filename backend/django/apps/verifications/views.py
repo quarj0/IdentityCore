@@ -3,14 +3,16 @@ import hashlib
 import json
 
 from django.conf import settings
-from django.http import HttpResponse
 from django.db import transaction
+from django.http import HttpResponse
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from rest_framework import status
 from rest_framework.exceptions import APIException, ValidationError
-from rest_framework.settings import api_settings
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.settings import api_settings
 from rest_framework.views import APIView
 
 from apps.audit.services import record_audit_event
@@ -32,10 +34,14 @@ from apps.verifications.serializers import (
     VerificationCancelSerializer,
     VerificationCreateSerializer,
     VerificationResendLinkSerializer,
-    paginate_results,
     serialize_manual_review_summary,
     serialize_verification,
     serialize_verification_summary,
+)
+from common.pagination import (
+    paginate_cursor_results,
+    paginate_results,
+    pagination_params,
 )
 from apps.verifications.models import (
     Verification,
@@ -76,6 +82,17 @@ class VerificationAccessMixin:
         if not hasattr(request, "tenant") or request.tenant is None:
             request.tenant = self._get_tenant(request)
 
+    def _scope_to_client_environment(self, request, queryset):
+        """Keep machine credentials inside the environment they were issued for."""
+        if not self._is_api_client_request(request):
+            return queryset
+        project = request.api_client.project
+        environment = project.environment if project is not None else "sandbox"
+        environment_filter = Q(project__environment=environment)
+        if environment == "sandbox":
+            environment_filter |= Q(project__isnull=True)
+        return queryset.filter(environment_filter)
+
     def get_permissions(self):
         if self._is_api_client_request(self.request):
             return [HasAPIClientScopes()]
@@ -93,26 +110,54 @@ class VerificationListCreateView(VerificationAccessMixin, APIView):
         return super().get_permissions()
 
     def get(self, request):
-        verifications = self._get_tenant(request).verifications.select_related(
-            "verification_subject"
-        ).order_by("-created_at")
+        verifications = (
+            self._get_tenant(request)
+            .verifications.select_related("verification_subject")
+            .order_by("-created_at", "-pk")
+        )
+        verifications = self._scope_to_client_environment(request, verifications)
 
         status_value = request.query_params.get("status")
         external_reference = request.query_params.get("external_reference")
+        created_from = request.query_params.get("created_from")
+        created_to = request.query_params.get("created_to")
         if status_value:
             verifications = verifications.filter(status=status_value)
         if external_reference:
             verifications = verifications.filter(external_reference=external_reference)
+        date_filters = {}
+        for name, value in (("created_from", created_from), ("created_to", created_to)):
+            if not value:
+                continue
+            parsed = parse_date(value)
+            if parsed is None:
+                raise ValidationError(
+                    {name: "Must be a valid date in YYYY-MM-DD format."}
+                )
+            date_filters[name] = parsed
+        if date_filters.get("created_from") and date_filters.get("created_to"):
+            if date_filters["created_from"] > date_filters["created_to"]:
+                raise ValidationError(
+                    {"created_to": "Must be on or after created_from."}
+                )
+        if "created_from" in date_filters:
+            verifications = verifications.filter(
+                created_at__date__gte=date_filters["created_from"]
+            )
+        if "created_to" in date_filters:
+            verifications = verifications.filter(
+                created_at__date__lte=date_filters["created_to"]
+            )
 
-        page = int(request.query_params.get("page", 1))
-        page_size = int(request.query_params.get("page_size", 20))
-        page_obj, pagination = paginate_results(verifications, page, page_size)
+        if "page" in request.query_params or "page_size" in request.query_params:
+            page, page_size = pagination_params(request.query_params)
+            page_obj, pagination = paginate_results(verifications, page, page_size)
+            results = page_obj.object_list
+        else:
+            results, pagination = paginate_cursor_results(verifications, request)
         return success_response(
             {
-                "results": [
-                    serialize_verification_summary(item)
-                    for item in page_obj.object_list
-                ],
+                "results": [serialize_verification_summary(item) for item in results],
                 "pagination": pagination,
             },
             request=request,
@@ -126,15 +171,22 @@ class VerificationListCreateView(VerificationAccessMixin, APIView):
             idempotency_key = request.headers.get("Idempotency-Key", "").strip()
             if not idempotency_key:
                 raise ValidationError(
-                    {"idempotency_key": "Idempotency-Key is required for verification creation."}
+                    {
+                        "idempotency_key": "Idempotency-Key is required for verification creation."
+                    }
                 )
             request_hash = hashlib.sha256(
-                json.dumps(request.data, sort_keys=True, separators=(",", ":")).encode("utf-8")
+                json.dumps(request.data, sort_keys=True, separators=(",", ":")).encode(
+                    "utf-8"
+                )
             ).hexdigest()
             existing_record = APIIdempotencyRecord.objects.filter(
                 api_client=request.api_client, key=idempotency_key
             ).first()
-            if existing_record is not None and existing_record.expires_at <= timezone.now():
+            if (
+                existing_record is not None
+                and existing_record.expires_at <= timezone.now()
+            ):
                 existing_record.delete()
             idempotency_record, idempotency_created = (
                 APIIdempotencyRecord.objects.get_or_create(
@@ -157,14 +209,20 @@ class VerificationListCreateView(VerificationAccessMixin, APIView):
                     return success_response(
                         idempotency_record.response_data_json,
                         request=request,
-                        status=idempotency_record.response_status or status.HTTP_201_CREATED,
+                        status=idempotency_record.response_status
+                        or status.HTTP_201_CREATED,
                     )
         tenant = self._get_tenant(request)
         if tenant.organization.status != "active":
-            month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            month_start = timezone.now().replace(
+                day=1, hour=0, minute=0, second=0, microsecond=0
+            )
             if tenant.verifications.filter(created_at__gte=month_start).count() >= 25:
                 from rest_framework.exceptions import Throttled
-                raise Throttled(detail="The pending-workspace sandbox limit is 25 verification requests per month.")
+
+                raise Throttled(
+                    detail="The pending-workspace sandbox limit is 25 verification requests per month."
+                )
         serializer = VerificationCreateSerializer(
             data=request.data, context={"request": request}
         )
@@ -219,7 +277,9 @@ class VerificationDetailView(VerificationAccessMixin, APIView):
 
     def get(self, request, verification_id: str):
         verification = get_object_or_404(
-            Verification.objects.select_related("verification_subject"),
+            self._scope_to_client_environment(
+                request, Verification.objects.select_related("verification_subject")
+            ),
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
@@ -234,7 +294,7 @@ class VerificationCancelView(VerificationAccessMixin, APIView):
 
     def post(self, request, verification_id: str):
         verification = get_object_or_404(
-            Verification,
+            self._scope_to_client_environment(request, Verification.objects.all()),
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
@@ -281,7 +341,10 @@ class VerificationResendLinkView(VerificationAccessMixin, APIView):
 
     def post(self, request, verification_id: str):
         verification = get_object_or_404(
-            Verification.objects.select_related("verification_subject", "tenant"),
+            self._scope_to_client_environment(
+                request,
+                Verification.objects.select_related("verification_subject", "tenant"),
+            ),
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
@@ -293,7 +356,9 @@ class VerificationResendLinkView(VerificationAccessMixin, APIView):
         session = VerificationSession(
             verification=verification,
             tenant=verification.tenant,
-            expires_at=max(verification.expires_at, timezone.now() + timedelta(minutes=10)),
+            expires_at=max(
+                verification.expires_at, timezone.now() + timedelta(minutes=10)
+            ),
         )
         session.set_session_token(raw_session_token)
         session.save()
@@ -337,7 +402,12 @@ class VerificationEvidenceReportView(VerificationAccessMixin, APIView):
 
     def get(self, request, verification_id: str):
         verification = get_object_or_404(
-            Verification.objects.select_related("verification_subject", "organization"),
+            self._scope_to_client_environment(
+                request,
+                Verification.objects.select_related(
+                    "verification_subject", "organization"
+                ),
+            ),
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
@@ -370,7 +440,12 @@ class VerificationEvidenceReportDownloadView(VerificationAccessMixin, APIView):
 
     def get(self, request, verification_id: str):
         verification = get_object_or_404(
-            Verification.objects.select_related("verification_subject", "organization"),
+            self._scope_to_client_environment(
+                request,
+                Verification.objects.select_related(
+                    "verification_subject", "organization"
+                ),
+            ),
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
@@ -389,7 +464,12 @@ class VerificationEvidenceReportPDFDownloadView(VerificationAccessMixin, APIView
 
     def get(self, request, verification_id: str):
         verification = get_object_or_404(
-            Verification.objects.select_related("verification_subject", "organization"),
+            self._scope_to_client_environment(
+                request,
+                Verification.objects.select_related(
+                    "verification_subject", "organization"
+                ),
+            ),
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
@@ -407,11 +487,12 @@ class ManualReviewListView(APIView):
     permission_classes = [IsAuthenticated, IsManualReviewUser]
 
     def get(self, request):
-        verifications = manual_review_queryset_for_user(request.user).filter(
-            status=VerificationStatus.MANUAL_REVIEW_REQUIRED
-        ).order_by("-created_at")
-        page = int(request.query_params.get("page", 1))
-        page_size = int(request.query_params.get("page_size", 20))
+        verifications = (
+            manual_review_queryset_for_user(request.user)
+            .filter(status=VerificationStatus.MANUAL_REVIEW_REQUIRED)
+            .order_by("-created_at", "-pk")
+        )
+        page, page_size = pagination_params(request.query_params)
         page_obj, pagination = paginate_results(verifications, page, page_size)
         return success_response(
             {

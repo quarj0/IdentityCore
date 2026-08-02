@@ -499,7 +499,11 @@ export function LiveVerificationFlow({
         <StepCard
           eyebrow="Step 2 of 5"
           title={`Capture your ${selectedDocument.label}`}
-          description="Choose the identity document you want to use, then capture the original physical document with all four edges visible."
+          description={
+            captureRequirements.length > 1
+              ? "Choose the identity document you want to use, then capture the original physical document with all four edges visible."
+              : "Choose the identity document you want to use, then capture its photo page with all four edges visible."
+          }
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block space-y-2">

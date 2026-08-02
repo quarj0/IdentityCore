@@ -1,5 +1,10 @@
 # Verification portal production operations
 
+The repository-owned portal implementation is marked complete in
+`frontend/verification-portal/COMPLETION.md`. The gates in this document are
+deliberately deployment- and human-owned release evidence; they do not indicate
+unfinished frontend code.
+
 The verification portal is releasable only when every gate below has an owner,
 dated evidence, and approval. Repository tests are necessary but do not replace
 independent assessment or a physical-device pilot.

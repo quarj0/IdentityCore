@@ -7,13 +7,14 @@ and desktop-to-mobile handoff. It runs on port `3002` locally.
 ## Local development
 
 ```bash
-pnpm install
-cp .env.example .env.local
-pnpm dev
+cd frontend
+corepack pnpm install --frozen-lockfile
+cp verification-portal/.env.example verification-portal/.env.local
+pnpm dev:verify
 ```
 
-The Django API must be available at `API_ORIGIN` (the legacy
-`NEXT_PUBLIC_API_ORIGIN` is accepted as a fallback). Verification links
+The Django API must be available at the server-only `API_ORIGIN`.
+Browser-visible API origins are intentionally unsupported. Verification links
 have the form `/verify/{session_id}#token={session_token}`. The portal
 immediately exchanges the fragment for a same-origin, `HttpOnly`, `SameSite=Strict`
 cookie and removes it from browser history. Browser code never persists or sends
@@ -24,7 +25,8 @@ the portal BFF.
 
 | Variable                             | Purpose                                                   |
 | ------------------------------------ | --------------------------------------------------------- |
-| `API_ORIGIN`                         | Server-only Django API origin used by the BFF.            |
+| `API_ORIGIN`                         | Required server-only Django API origin used by the BFF.   |
+| `DEPLOYMENT_VERSION`                 | Release identifier returned by the readiness endpoint.    |
 | `NEXT_PUBLIC_ONBOARDING_RETURN_URL`  | Optional safe fallback after completion.                  |
 | `NEXT_PUBLIC_ALLOWED_RETURN_ORIGINS` | Comma-separated allowlist of organization return origins. |
 
@@ -40,7 +42,9 @@ clickjacking protection, a no-referrer policy, MIME-sniffing protection, and a
 Permissions Policy that limits camera access to this origin. Authenticated browser connections are restricted to the same-origin BFF.
 Organization logos are limited to HTTPS outside local development.
 
-TLS and `Strict-Transport-Security` must be enforced at the production ingress.
+Production refuses an absent, invalid, credential-bearing, path-bearing, or
+non-HTTPS `API_ORIGIN`. TLS and `Strict-Transport-Security` must be enforced at
+the production ingress.
 The browser does not require Django CORS access. Mutating BFF routes reject
 cross-origin requests in addition to the strict cookie policy.
 
@@ -56,10 +60,10 @@ partial video is never submitted as complete evidence.
 ## Checks
 
 ```bash
-pnpm lint
-pnpm build
-pnpm exec playwright install chromium webkit
-pnpm test:e2e
+pnpm --filter verification-portal lint
+pnpm --filter verification-portal build
+pnpm test:e2e:verify:install
+pnpm test:e2e:verify
 ```
 
 The browser matrix runs desktop Chromium and WebKit plus Pixel and iPhone device
@@ -91,4 +95,13 @@ Build the standalone non-root image with the frontend directory as context:
 docker build -f verification-portal/Dockerfile -t identitycore/verification-portal .
 ```
 
-The runtime exposes `/api/health` for orchestration liveness/readiness probes.
+The runtime exposes `/api/health` for process liveness and `/api/ready` for
+runtime-configuration readiness. Dependency availability is monitored separately
+so a provider or Django incident does not create a container restart loop.
+
+## Completion status
+
+The repository-owned implementation is complete. The remaining release gates
+require deployment owners, independent assessors, providers, or physical-device
+testers and are tracked separately in `COMPLETION.md`; they are not represented as
+unfinished portal code.

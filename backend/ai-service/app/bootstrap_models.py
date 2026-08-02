@@ -62,14 +62,17 @@ def main() -> None:
             "PaddleOCR bootstrap did not populate complete models: " + ", ".join(incomplete_directories)
         )
     files = []
+    manifest_path = getattr(
+        settings, "model_manifest_path", settings.ai_model_root / "manifest.json"
+    )
     for path in sorted(settings.ai_model_root.rglob("*")):
-        if path.is_file():
+        if path.is_file() and path != manifest_path:
             files.append({
                 "path": str(path.relative_to(settings.ai_model_root)),
                 "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
                 "bytes": path.stat().st_size,
             })
-    manifest_path = settings.ai_model_root / "manifest.json"
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(json.dumps({
         "insightface_model": settings.insightface_model_name,
         "paddle_models": {

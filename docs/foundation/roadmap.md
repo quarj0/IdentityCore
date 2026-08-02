@@ -1,5 +1,8 @@
 # Roadmap
 
+> For independently assignable work items, priorities, dependencies, and acceptance
+> checks, use the [implementation backlog](../planning/implementation-backlog.md).
+
 ## IdentityCore
 
 **Version:** 1.0

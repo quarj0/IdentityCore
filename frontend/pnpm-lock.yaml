@@ -12,7 +12,7 @@ importers:
   .:
     devDependencies:
       prettier:
-        specifier: ^3.6.2
+        specifier: ^3.9.6
         version: 3.9.6
 
   dashboard:
@@ -31,7 +31,7 @@ importers:
         version: 17.0.2
       lucide-react:
         specifier: latest
-        version: 1.27.0(react@19.2.8)
+        version: 1.28.0(react@19.2.8)
       next:
         specifier: 16.2.12
         version: 16.2.12(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.62.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -77,7 +77,7 @@ importers:
         version: link:../packages/ui
       lucide-react:
         specifier: latest
-        version: 1.27.0(react@19.2.8)
+        version: 1.28.0(react@19.2.8)
       next:
         specifier: 16.2.12
         version: 16.2.12(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.62.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -123,7 +123,7 @@ importers:
         version: link:../packages/ui
       lucide-react:
         specifier: latest
-        version: 1.27.0(react@19.2.8)
+        version: 1.28.0(react@19.2.8)
       next:
         specifier: 16.2.12
         version: 16.2.12(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.62.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -220,7 +220,7 @@ importers:
         version: 2.1.1
       lucide-react:
         specifier: latest
-        version: 1.27.0(react@19.2.4)
+        version: 1.28.0(react@19.2.4)
       react:
         specifier: '>=18'
         version: 19.2.4
@@ -260,7 +260,7 @@ importers:
         version: 17.0.2
       lucide-react:
         specifier: latest
-        version: 1.27.0(react@19.2.8)
+        version: 1.28.0(react@19.2.8)
       next:
         specifier: 16.2.12
         version: 16.2.12(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.62.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -306,7 +306,7 @@ importers:
         version: link:../packages/ui
       lucide-react:
         specifier: latest
-        version: 1.27.0(react@19.2.8)
+        version: 1.28.0(react@19.2.8)
       next:
         specifier: 16.2.12
         version: 16.2.12(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.62.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -2392,8 +2392,8 @@ packages:
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
 
-  lucide-react@1.27.0:
-    resolution: {integrity: sha512-rJicGl/3Fly/E0rOH1YmPZ6e49JCnKknh1ox1vpHnkfjujAkKA6sqUZvH3MTAaXXjgexyUwgNwTJzTtYuAFYJw==}
+  lucide-react@1.28.0:
+    resolution: {integrity: sha512-fARAFJULsGuDDydjp6+6blekG/sBIM29TerzLjc9bQUKAcEfrSc4ZQKb25KRz4OMKd87cZTb5dgq0w/T6KufVg==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
@@ -5071,11 +5071,11 @@ snapshots:
     dependencies:
       yallist: 3.1.1
 
-  lucide-react@1.27.0(react@19.2.4):
+  lucide-react@1.28.0(react@19.2.4):
     dependencies:
       react: 19.2.4
 
-  lucide-react@1.27.0(react@19.2.8):
+  lucide-react@1.28.0(react@19.2.8):
     dependencies:
       react: 19.2.8
 

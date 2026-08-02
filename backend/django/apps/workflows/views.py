@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -44,7 +45,9 @@ class WorkflowDetailView(APIView):
     permission_classes = [IsAuthenticated, IsTenantUser]
 
     def obj(self, r, i):
-        return r.user.tenant.workflows.select_related("project").get(public_id=i)
+        return get_object_or_404(
+            r.user.tenant.workflows.select_related("project"), public_id=i
+        )
 
     def get(self, r, workflow_id):
         return success_response(serialize_workflow(self.obj(r, workflow_id)), request=r)
@@ -68,7 +71,10 @@ class WorkflowActionView(WorkflowDetailView):
         elif action == "clone":
             if r.user.tenant.organization.status != "active":
                 from rest_framework.exceptions import ValidationError
-                raise ValidationError("Pending workspaces are limited to one draft sandbox workflow.")
+
+                raise ValidationError(
+                    "Pending workspaces are limited to one draft sandbox workflow."
+                )
             x.pk = None
             x.public_id = None
             x.name = f"{x.name} Copy"

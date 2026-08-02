@@ -13,7 +13,7 @@ from apps.verification_policies.serializers import serialize_verification_policy
 from apps.webhooks.models import WebhookEndpoint
 from apps.webhooks.serializers import serialize_webhook_endpoint
 from common.responses import success_response
-from apps.verifications.serializers import paginate_results
+from common.pagination import paginate_results, pagination_params
 
 
 class IsPlatformAdmin(BasePermission):
@@ -22,9 +22,7 @@ class IsPlatformAdmin(BasePermission):
     def has_permission(self, request, view):
         user = request.user
         return bool(
-            user
-            and user.is_authenticated
-            and getattr(user, "is_platform_admin", False)
+            user and user.is_authenticated and getattr(user, "is_platform_admin", False)
         )
 
 
@@ -55,12 +53,13 @@ class PlatformAuditEventListView(PlatformAdminBaseView):
         if created_to:
             queryset = queryset.filter(created_at__date__lte=created_to)
 
-        page = int(request.query_params.get("page", 1))
-        page_size = int(request.query_params.get("page_size", 20))
+        page, page_size = pagination_params(request.query_params)
         page_obj, pagination = paginate_results(queryset, page, page_size)
         return success_response(
             {
-                "results": [serialize_audit_event(event) for event in page_obj.object_list],
+                "results": [
+                    serialize_audit_event(event) for event in page_obj.object_list
+                ],
                 "pagination": pagination,
             },
             request=request,
@@ -70,9 +69,7 @@ class PlatformAuditEventListView(PlatformAdminBaseView):
 class PlatformAuditEventDetailView(PlatformAdminBaseView):
     def get(self, request, event_id):
         return success_response(
-            serialize_audit_event(
-                get_object_or_404(AuditEvent, public_id=event_id)
-            ),
+            serialize_audit_event(get_object_or_404(AuditEvent, public_id=event_id)),
             request=request,
         )
 
@@ -96,11 +93,10 @@ class PlatformProviderDetailView(PlatformAdminBaseView):
 
 class PlatformVerificationPolicyListView(PlatformAdminBaseView):
     def get(self, request):
-        queryset = VerificationPolicy.objects.select_related("tenant", "project").order_by(
-            "name", "-version"
-        )
-        page = int(request.query_params.get("page", 1))
-        page_size = int(request.query_params.get("page_size", 50))
+        queryset = VerificationPolicy.objects.select_related(
+            "tenant", "project"
+        ).order_by("name", "-version")
+        page, page_size = pagination_params(request.query_params, default_page_size=50)
         page_obj, pagination = paginate_results(queryset, page, page_size)
         return success_response(
             {
@@ -126,9 +122,10 @@ class PlatformVerificationPolicyDetailView(PlatformAdminBaseView):
 
 class PlatformAPIClientListView(PlatformAdminBaseView):
     def get(self, request):
-        queryset = APIClient.objects.select_related("tenant", "project").order_by("name")
-        page = int(request.query_params.get("page", 1))
-        page_size = int(request.query_params.get("page_size", 50))
+        queryset = APIClient.objects.select_related("tenant", "project").order_by(
+            "name"
+        )
+        page, page_size = pagination_params(request.query_params, default_page_size=50)
         page_obj, pagination = paginate_results(queryset, page, page_size)
         return success_response(
             {
@@ -154,8 +151,7 @@ class PlatformWebhookEndpointListView(PlatformAdminBaseView):
         queryset = WebhookEndpoint.objects.select_related("tenant", "project").order_by(
             "url"
         )
-        page = int(request.query_params.get("page", 1))
-        page_size = int(request.query_params.get("page_size", 50))
+        page, page_size = pagination_params(request.query_params, default_page_size=50)
         page_obj, pagination = paginate_results(queryset, page, page_size)
         return success_response(
             {
@@ -177,4 +173,3 @@ class PlatformWebhookEndpointDetailView(PlatformAdminBaseView):
             ),
             request=request,
         )
-

@@ -15,14 +15,41 @@ test("verification pages send hardened browser security headers", async ({
   const response = await request.get("/");
 
   expect(response.headers()["cache-control"]).toContain("no-store");
-  expect(response.headers()["content-security-policy"]).toContain(
-    "frame-ancestors 'none'",
+  const csp = response.headers()["content-security-policy"];
+  expect(csp).toContain("frame-ancestors 'none'");
+  expect(csp).toMatch(
+    /script-src 'self' 'nonce-[a-f0-9]{32}' 'strict-dynamic'/,
   );
+  expect(csp).toMatch(/style-src 'self' 'nonce-[a-f0-9]{32}'/);
+  expect(csp).toContain("style-src-attr 'none'");
+  expect(csp).toContain("report-uri /api/security/csp-report");
+  expect(csp).not.toContain("'unsafe-inline'");
+  expect(csp).not.toContain("'unsafe-eval'");
   expect(response.headers()["permissions-policy"]).toContain("camera=(self)");
   expect(response.headers()["referrer-policy"]).toBe("no-referrer");
   expect(response.headers()["x-content-type-options"]).toBe("nosniff");
   expect(response.headers()["x-frame-options"]).toBe("DENY");
   expect(response.headers()["x-powered-by"]).toBeUndefined();
+});
+
+test("health and readiness endpoints expose safe orchestration state", async ({
+  request,
+}) => {
+  const health = await request.get("/api/health");
+  expect(health.status()).toBe(200);
+  expect(await health.json()).toEqual({
+    status: "ok",
+    service: "verification-portal",
+  });
+
+  const readiness = await request.get("/api/ready");
+  expect(readiness.status()).toBe(200);
+  expect(await readiness.json()).toEqual({
+    status: "ready",
+    service: "verification-portal",
+    version: "e2e",
+    checks: { runtime_configuration: "ok" },
+  });
 });
 
 test("BFF rejects cross-origin session exchange and unauthenticated proxy calls", async ({
@@ -33,6 +60,7 @@ test("BFF rejects cross-origin session exchange and unauthenticated proxy calls"
     data: { sessionId, sessionToken: "stolen-token" },
   });
   expect(exchange.status()).toBe(403);
+  expect(exchange.headers()["x-request-id"]).toMatch(/^[A-Za-z0-9-]+$/);
 
   const proxy = await request.post(
     `/api/verification/sessions/${sessionId}/consent`,
@@ -41,6 +69,16 @@ test("BFF rejects cross-origin session exchange and unauthenticated proxy calls"
     },
   );
   expect(proxy.status()).toBe(401);
+  expect(proxy.headers()["x-request-id"]).toBeTruthy();
+
+  const oversizedHandoff = await request.post("/api/verification/handoff", {
+    headers: { "X-Request-Id": "browser-test-request" },
+    data: { handoff: "x".repeat(9000) },
+  });
+  expect(oversizedHandoff.status()).toBe(413);
+  expect(oversizedHandoff.headers()["x-request-id"]).toBe(
+    "browser-test-request",
+  );
 });
 
 test("subject completes consent, document, selfie, liveness, and review routing", async ({
@@ -360,10 +398,7 @@ test("expired sessions render a safe terminal state", async ({
   await page.route("**/api/verification/**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
-    if (
-      path === "/api/verification/session" &&
-      request.method() === "POST"
-    ) {
+    if (path === "/api/verification/session" && request.method() === "POST") {
       return json(route, {});
     }
     if (path.endsWith("/status")) {

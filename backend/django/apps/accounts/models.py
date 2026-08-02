@@ -1,10 +1,13 @@
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.exceptions import ValidationError
+import uuid
+
 from django.db import models
 from django.db.models import Q
 
 from apps.accounts.managers import PlatformUserManager
 from apps.core.models import BaseModel, PublicIdModel
+from common.fields import EncryptedJSONField
 
 
 class PlatformUserStatus(models.TextChoices):
@@ -37,6 +40,11 @@ class PlatformUser(PublicIdModel, BaseModel, AbstractBaseUser, PermissionsMixin)
     )
     is_platform_admin = models.BooleanField(default=False)
     mfa_enabled = models.BooleanField(default=False)
+    mfa_config_json = EncryptedJSONField(
+        default=dict,
+        blank=True,
+        encryption_purpose="accounts.mfa_config",
+    )
     notification_preferences_json = models.JSONField(default=dict, blank=True)
     last_login_at = models.DateTimeField(null=True, blank=True)
     is_staff = models.BooleanField(default=False)
@@ -73,6 +81,26 @@ class PlatformUser(PublicIdModel, BaseModel, AbstractBaseUser, PermissionsMixin)
 
     def __str__(self) -> str:
         return self.email
+
+
+class RefreshTokenSession(BaseModel):
+    """Server-side state used to make refresh-token rotation replay safe."""
+
+    user = models.ForeignKey(
+        PlatformUser, on_delete=models.CASCADE, related_name="refresh_token_sessions"
+    )
+    jti = models.CharField(max_length=255, unique=True)
+    family_id = models.UUIDField(default=uuid.uuid4, db_index=True)
+    consumed_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(
+                fields=["family_id", "revoked_at"],
+                name="accounts_re_family__673676_idx",
+            )
+        ]
 
 
 class EmailVerificationToken(PublicIdModel, BaseModel):
@@ -129,6 +157,25 @@ class PasswordResetToken(PublicIdModel, BaseModel):
     def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
+
+
+class MFARecoveryCode(PublicIdModel, BaseModel):
+    """A single-use, hashed MFA recovery code."""
+
+    public_id_prefix = "mrc"
+    user = models.ForeignKey(
+        PlatformUser, on_delete=models.CASCADE, related_name="mfa_recovery_codes"
+    )
+    code_hash = models.CharField(max_length=64)
+    used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "code_hash"], name="accounts_mfa_recovery_code_unique"
+            )
+        ]
 
 
 class ContactInquiryStatus(models.TextChoices):
