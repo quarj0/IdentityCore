@@ -100,17 +100,18 @@ class _VerificationsClient:
 
 
 class IdentityCoreClient:
-    def __init__(self, *, api_origin: str, client_id: str, client_secret: str, timeout: float = 30, max_retries: int = 2, retry_backoff: float = 0.25, transport: Optional[Transport] = None, sleep: Callable[[float], None] = time.sleep) -> None:
+    def __init__(self, *, api_origin: str, client_id: str = "", client_secret: str = "", access_token: str = "", timeout: float = 30, max_retries: int = 2, retry_backoff: float = 0.25, transport: Optional[Transport] = None, sleep: Callable[[float], None] = time.sleep) -> None:
         parsed = urlparse(api_origin)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
             raise IdentityCoreError("api_origin must be an absolute HTTP(S) URL.")
-        if not client_id or not client_secret:
-            raise IdentityCoreError("client_id and client_secret are required.")
+        if not access_token and (not client_id or not client_secret):
+            raise IdentityCoreError("access_token or client_id and client_secret are required.")
         if timeout <= 0 or max_retries < 0 or retry_backoff < 0:
             raise IdentityCoreError("timeout must be positive and retry settings cannot be negative.")
         self.api_origin = api_origin.rstrip("/")
         self.client_id = client_id
         self.client_secret = client_secret
+        self.access_token = access_token
         self.timeout = timeout
         self.max_retries = max_retries
         self.retry_backoff = retry_backoff
@@ -127,11 +128,12 @@ class IdentityCoreClient:
         url = f"{self.api_origin}/api/v1{path}"
         request_headers = {
             "Accept": "application/json",
-            "X-Client-Id": self.client_id,
-            "Authorization": f"Bearer {self.client_secret}",
+            "Authorization": f"Bearer {self.access_token or self.client_secret}",
             "X-Request-Id": request_id or f"req_{uuid.uuid4().hex}",
             "User-Agent": f"identitycore-python/{__version__}",
         }
+        if self.client_id:
+            request_headers["X-Client-Id"] = self.client_id
         if headers:
             request_headers.update(headers)
         if idempotency_key:
@@ -160,6 +162,26 @@ class IdentityCoreClient:
                 continue
             return self._parse_response(status, response_body)
         raise IdentityCoreConnectionError("Could not connect to IdentityCore.")
+
+    def download(self, path: str) -> bytes:
+        """Download an authenticated binary response without JSON decoding."""
+        headers = {
+            "Accept": "application/pdf, application/zip, application/octet-stream",
+            "Authorization": f"Bearer {self.access_token or self.client_secret}",
+            "X-Request-Id": f"req_{uuid.uuid4().hex}",
+            "User-Agent": f"identitycore-python/{__version__}",
+        }
+        if self.client_id:
+            headers["X-Client-Id"] = self.client_id
+        try:
+            status, body = self.transport("GET", f"{self.api_origin}/api/v1{path}", headers, None, self.timeout)
+        except (socket.timeout, TimeoutError) as exc:
+            raise IdentityCoreTimeoutError("The request timed out. Please try again.") from exc
+        except (URLError, OSError) as exc:
+            raise IdentityCoreConnectionError("Could not connect to IdentityCore.") from exc
+        if status >= 400:
+            return self._parse_response(status, body)
+        return body
 
     def _parse_response(self, status: int, response_body: bytes) -> Any:
         try:
