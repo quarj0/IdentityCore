@@ -1,6 +1,6 @@
 # IdentityCore Implementation Backlog
 
-Last reviewed: 2026-08-01
+Last reviewed: 2026-08-02
 
 This is the ordered, issue-ready backlog for moving IdentityCore from its current
 working vertical slice to a production-capable identity infrastructure platform. Each
@@ -30,6 +30,19 @@ python scripts/sync_github_issues.py
 Suggested labels are `type:bug`, `type:feature`, `type:security`, `type:test`,
 `type:docs`, `area:backend`, `area:ai`, `area:frontend`, `area:platform`, `area:sdk`,
 and priorities `P0` through `P2`.
+
+## Recently completed items
+
+The following backlog items have passed their acceptance checks and are ready for their
+tracking issues to be closed. The implementation pull requests remain the source of the
+detailed verification evidence.
+
+| ID | Tracking issue | Implementation |
+| --- | --- | --- |
+| IC-011 | [#95](https://github.com/quarj0/IdentityCore/issues/95) | [#198](https://github.com/quarj0/IdentityCore/pull/198) |
+| IC-012 | [#96](https://github.com/quarj0/IdentityCore/issues/96) | [#199](https://github.com/quarj0/IdentityCore/pull/199) |
+| IC-013 | [#97](https://github.com/quarj0/IdentityCore/issues/97) | [#197](https://github.com/quarj0/IdentityCore/pull/197) |
+| IC-031 | [#115](https://github.com/quarj0/IdentityCore/issues/115) | [#201](https://github.com/quarj0/IdentityCore/pull/201) |
 
 ## Milestone 0 — Baseline and developer reliability
 
