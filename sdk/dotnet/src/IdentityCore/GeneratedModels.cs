@@ -158,14 +158,12 @@ public sealed record VerificationDetail
 
 public sealed record Pagination
 {
-    [JsonPropertyName("page")]
-    public int Page { get; init; }
-    [JsonPropertyName("page_size")]
-    public int PageSize { get; init; }
-    [JsonPropertyName("total")]
-    public int Total { get; init; }
-    [JsonPropertyName("total_pages")]
-    public int TotalPages { get; init; }
+    [JsonPropertyName("limit")]
+    public int Limit { get; init; }
+    [JsonPropertyName("next_cursor")]
+    public string? NextCursor { get; init; }
+    [JsonPropertyName("has_more")]
+    public bool HasMore { get; init; }
 }
 
 public sealed record EvidenceReport

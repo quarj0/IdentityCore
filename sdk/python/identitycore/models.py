@@ -97,10 +97,9 @@ class VerificationDetail(_VerificationDetailRequired, total=False):
     expires_at: str
 
 class _PaginationRequired(TypedDict):
-    page: int
-    page_size: int
-    total: int
-    total_pages: int
+    limit: int
+    next_cursor: Optional[str]
+    has_more: bool
 
 class Pagination(_PaginationRequired, total=False):
     pass

@@ -24,7 +24,7 @@ public final class GeneratedModels {
 
     public record VerificationDetail(@JsonProperty("id") String id, @JsonProperty("status") String status, @JsonProperty("purpose") String purpose, @JsonProperty("external_reference") String external_reference, @JsonProperty("subject") JsonNode subject, @JsonProperty("policy") JsonNode policy, @JsonProperty("created_at") String created_at, @JsonProperty("completed_at") String completed_at, @JsonProperty("verification_subject") JsonNode verification_subject, @JsonProperty("checks") JsonNode checks, @JsonProperty("risk_assessment") JsonNode risk_assessment, @JsonProperty("evidence_report") JsonNode evidence_report, @JsonProperty("decision") JsonNode decision, @JsonProperty("expires_at") String expires_at) {}
 
-    public record Pagination(@JsonProperty("page") Integer page, @JsonProperty("page_size") Integer page_size, @JsonProperty("total") Integer total, @JsonProperty("total_pages") Integer total_pages) {}
+    public record Pagination(@JsonProperty("limit") Integer limit, @JsonProperty("next_cursor") String next_cursor, @JsonProperty("has_more") Boolean has_more) {}
 
     public record EvidenceReport(@JsonProperty("verification_id") String verification_id, @JsonProperty("storage_key") String storage_key, @JsonProperty("download_url") String download_url, @JsonProperty("pdf_storage_key") String pdf_storage_key, @JsonProperty("pdf_download_url") String pdf_download_url) {}
 
