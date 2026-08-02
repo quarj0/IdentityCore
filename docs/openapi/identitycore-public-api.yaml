@@ -237,7 +237,7 @@ components:
             expires_at:
               type: string
               format: date-time
-    Pagination:
+    CursorPagination:
       type: object
       description: Cursor pagination metadata. Cursors are opaque and must be reused with the same filters.
       required: [limit, next_cursor, has_more]
@@ -250,6 +250,18 @@ components:
           type: [string, "null"]
         has_more:
           type: boolean
+    PagePagination:
+      type: object
+      required: [page, page_size, total, total_pages]
+      properties:
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
     EvidenceReport:
       type: object
       required: [verification_id, storage_key, download_url, pdf_storage_key, pdf_download_url]
@@ -764,7 +776,7 @@ paths:
                         items:
                           $ref: "#/components/schemas/VerificationSummary"
                       pagination:
-                        $ref: "#/components/schemas/Pagination"
+                        $ref: "#/components/schemas/CursorPagination"
                   request_id:
                     type: string
         "403":
@@ -1813,7 +1825,7 @@ paths:
                         items:
                           $ref: "#/components/schemas/ManualReviewSummary"
                       pagination:
-                        $ref: "#/components/schemas/Pagination"
+                        $ref: "#/components/schemas/PagePagination"
                   request_id:
                     type: string
         "401":

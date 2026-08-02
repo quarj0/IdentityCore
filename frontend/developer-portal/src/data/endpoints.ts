@@ -195,10 +195,9 @@ policy = response.json()`,
       }
     ],
     "pagination": {
-      "page": 1,
-      "page_size": 20,
-      "total": 1,
-      "total_pages": 1
+      "limit": 20,
+      "next_cursor": null,
+      "has_more": false
     }
   },
   "request_id": "req_01JABC..."

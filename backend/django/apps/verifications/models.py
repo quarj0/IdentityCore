@@ -105,6 +105,12 @@ class Verification(PublicIdModel, BaseModel):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=["tenant", "-created_at", "-id"],
+                name="verif_tenant_created_pk_idx",
+            ),
+        ]
 
     def __str__(self) -> str:
         return self.public_id

@@ -77,7 +77,9 @@ def _filter_fingerprint(query_params):
     return hashlib.sha256(encoded.encode()).hexdigest()
 
 
-def paginate_cursor_results(queryset, request, *, default_limit=DEFAULT_PAGE_SIZE):
+def paginate_cursor_results(
+    queryset, request, *, default_limit=DEFAULT_PAGE_SIZE, cursor_scope=""
+):
     """Return a stable, forward-only page ordered by ``-created_at, -pk``.
 
     The signed cursor also binds the active filters, preventing callers from
@@ -90,7 +92,11 @@ def paginate_cursor_results(queryset, request, *, default_limit=DEFAULT_PAGE_SIZ
             payload = signing.loads(cursor, salt=CURSOR_SALT)
             created_at = parse_datetime(payload["created_at"])
             pk = int(payload["pk"])
-            if payload.get("filters") != fingerprint or created_at is None:
+            if (
+                payload.get("filters") != fingerprint
+                or payload.get("scope") != cursor_scope
+                or created_at is None
+            ):
                 raise ValueError
         except (signing.BadSignature, KeyError, TypeError, ValueError) as exc:
             raise ValidationError({"cursor": "Invalid cursor."}) from exc
@@ -109,6 +115,7 @@ def paginate_cursor_results(queryset, request, *, default_limit=DEFAULT_PAGE_SIZ
                 "created_at": last.created_at.isoformat(),
                 "pk": last.pk,
                 "filters": fingerprint,
+                "scope": cursor_scope,
             },
             salt=CURSOR_SALT,
             compress=True,

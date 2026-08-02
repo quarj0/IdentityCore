@@ -96,12 +96,21 @@ class VerificationDetail(_VerificationDetailRequired, total=False):
     decision: Optional[dict[str, Any]]
     expires_at: str
 
-class _PaginationRequired(TypedDict):
+class _CursorPaginationRequired(TypedDict):
     limit: int
     next_cursor: Optional[str]
     has_more: bool
 
-class Pagination(_PaginationRequired, total=False):
+class CursorPagination(_CursorPaginationRequired, total=False):
+    pass
+
+class _PagePaginationRequired(TypedDict):
+    page: int
+    page_size: int
+    total: int
+    total_pages: int
+
+class PagePagination(_PagePaginationRequired, total=False):
     pass
 
 class _EvidenceReportRequired(TypedDict):

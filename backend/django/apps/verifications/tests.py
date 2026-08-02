@@ -21,6 +21,7 @@ from apps.document_captures.models import DocumentCapture, DocumentCaptureStatus
 from apps.identity_documents.models import IdentityDocument, IdentityDocumentStatus
 from apps.notifications.models import Notification
 from apps.organizations.models import Organization
+from apps.projects.models import Project, ProjectEnvironment
 from apps.risk.models import RiskAssessment
 from apps.tenants.models import Tenant
 from apps.verification_policies.models import VerificationPolicy
@@ -380,6 +381,41 @@ class VerificationWorkflowTests(APITestCase):
         response = self.client.get(
             reverse("verification-list-create")
             + f"?limit=1&status=verified&cursor={cursor}",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_cursor_cannot_cross_api_client_environment_scope(self):
+        for name in ("First", "Second"):
+            Verification.objects.create(
+                tenant=self.tenant,
+                organization=self.organization,
+                verification_subject=self.tenant.verification_subjects.create(
+                    full_name=name
+                ),
+                purpose="Cursor scope",
+                expires_at=timezone.now() + timedelta(hours=1),
+                status=VerificationStatus.PENDING_CONSENT,
+            )
+        first = self.client.get(
+            reverse("verification-list-create") + "?limit=1",
+            **self.auth_headers(),
+        )
+        cursor = first.data["data"]["pagination"]["next_cursor"]
+        production_project = Project.objects.create(
+            tenant=self.tenant,
+            name="Production",
+            slug="production",
+            environment=ProjectEnvironment.PRODUCTION,
+            created_by=self.user,
+        )
+        self.api_client.project = production_project
+        self.api_client.save(update_fields=["project", "updated_at"])
+
+        response = self.client.get(
+            reverse("verification-list-create")
+            + f"?limit=1&cursor={cursor}",
             **self.auth_headers(),
         )
 
