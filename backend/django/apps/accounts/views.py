@@ -1,12 +1,12 @@
 import hashlib
 import secrets
 from datetime import timedelta
+from django.conf import settings
 from django.utils import timezone
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.exceptions import AuthenticationFailed
-from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from rest_framework.views import APIView
 
 from apps.audit.services import record_audit_event
@@ -28,6 +28,7 @@ from apps.accounts.cookies import (
     require_trusted_cookie_origin,
     set_refresh_cookie,
 )
+from apps.accounts.sessions import revoke_refresh_token
 from common.responses import success_response
 
 
@@ -80,7 +81,9 @@ class RefreshView(APIView):
         except Exception as exc:
             # SimpleJWT raises TokenError directly for blacklisted tokens instead of
             # consistently converting it to a DRF authentication response.
-            auth_error = AuthenticationFailed("Your session has expired. Please sign in again.")
+            auth_error = AuthenticationFailed(
+                "Your session has expired. Please sign in again."
+            )
             auth_error.clear_refresh_cookie = True
             auth_error.refresh_cookie_name = cookie_name
             raise auth_error from exc
@@ -105,8 +108,8 @@ class LogoutView(APIView):
         raw_token = request.COOKIES.get(cookie_name, "")
         if raw_token:
             try:
-                RefreshToken(raw_token).blacklist()
-            except TokenError:
+                revoke_refresh_token(raw_token)
+            except Exception:
                 pass
         response = success_response(
             {"logged_out": True}, request=request, status=status.HTTP_200_OK
@@ -230,9 +233,7 @@ class TeamInvitationListCreateView(APIView):
                 request=request,
                 status=400,
             )
-        role = Role.objects.get(
-            tenant_id=tenant_id, public_id=role_id, status="active"
-        )
+        role = Role.objects.get(tenant_id=tenant_id, public_id=role_id, status="active")
         raw = secrets.token_urlsafe(32)
         invitation = TeamInvitation.objects.create(
             tenant_id=tenant_id,
