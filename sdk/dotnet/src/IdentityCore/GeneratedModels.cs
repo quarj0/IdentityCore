@@ -156,7 +156,7 @@ public sealed record VerificationDetail
     public string? ExpiresAt { get; init; }
 }
 
-public sealed record Pagination
+public sealed record CursorPagination
 {
     [JsonPropertyName("limit")]
     public int Limit { get; init; }
@@ -164,6 +164,18 @@ public sealed record Pagination
     public string? NextCursor { get; init; }
     [JsonPropertyName("has_more")]
     public bool HasMore { get; init; }
+}
+
+public sealed record PagePagination
+{
+    [JsonPropertyName("page")]
+    public int Page { get; init; }
+    [JsonPropertyName("page_size")]
+    public int PageSize { get; init; }
+    [JsonPropertyName("total")]
+    public int Total { get; init; }
+    [JsonPropertyName("total_pages")]
+    public int TotalPages { get; init; }
 }
 
 public sealed record EvidenceReport

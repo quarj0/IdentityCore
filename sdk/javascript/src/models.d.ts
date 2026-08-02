@@ -84,10 +84,17 @@ export interface VerificationDetail {
   expires_at?: string;
 }
 
-export interface Pagination {
+export interface CursorPagination {
   limit: number;
   next_cursor: string | null;
   has_more: boolean;
+}
+
+export interface PagePagination {
+  page: number;
+  page_size: number;
+  total: number;
+  total_pages: number;
 }
 
 export interface EvidenceReport {

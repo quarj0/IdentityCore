@@ -154,7 +154,13 @@ class VerificationListCreateView(VerificationAccessMixin, APIView):
             page_obj, pagination = paginate_results(verifications, page, page_size)
             results = page_obj.object_list
         else:
-            results, pagination = paginate_cursor_results(verifications, request)
+            scope = f"tenant:{self._get_tenant(request).pk}"
+            if self._is_api_client_request(request):
+                project = request.api_client.project
+                scope += f":environment:{project.environment if project else 'sandbox'}"
+            results, pagination = paginate_cursor_results(
+                verifications, request, cursor_scope=scope
+            )
         return success_response(
             {
                 "results": [serialize_verification_summary(item) for item in results],
