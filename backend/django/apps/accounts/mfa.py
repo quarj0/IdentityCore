@@ -10,6 +10,7 @@ import struct
 import time
 from urllib.parse import quote
 
+from django.conf import settings
 from django.core import signing
 from django.db import transaction
 from django.utils import timezone
@@ -23,7 +24,8 @@ MFA_TOKEN_MAX_AGE = 300
 
 def is_mfa_required(user: PlatformUser) -> bool:
     if user.is_platform_admin and get_platform_setting_value(
-        "security.admin_mfa_required"
+        "security.admin_mfa_required",
+        default=settings.ADMIN_MFA_REQUIRED_DEFAULT,
     ):
         return True
     if user.tenant_id is None:

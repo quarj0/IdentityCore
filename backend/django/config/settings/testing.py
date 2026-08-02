@@ -3,6 +3,9 @@ from .base import *  # noqa: F401,F403
 
 DEBUG = False
 SECRET_KEY = "test-secret-key-with-at-least-thirty-two-bytes"
+# Most legacy integration fixtures authenticate platform administrators directly.
+# Individual MFA tests explicitly enable the production default when exercising it.
+ADMIN_MFA_REQUIRED_DEFAULT = False
 SIMPLE_JWT["SIGNING_KEY"] = SECRET_KEY
 DATABASES = {
     "default": {

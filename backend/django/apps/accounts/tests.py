@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.urls import reverse
+from django.test import override_settings
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -328,6 +329,24 @@ class MFAEndpointTests(APITestCase):
         self.assertTrue(response.data["data"]["mfa_enrollment_required"])
         self.assertNotIn("tokens", response.data["data"])
         self.assertNotIn("identitycore_refresh", response.cookies)
+
+    @override_settings(ADMIN_MFA_REQUIRED_DEFAULT=True)
+    def test_platform_admin_cannot_bypass_enrollment(self):
+        platform_admin = PlatformUser.objects.create_user(
+            email="platform@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            is_platform_admin=True,
+        )
+        response = self.client.post(
+            reverse("auth-login"),
+            {"email": platform_admin.email, "password": "StrongPassword123!"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertTrue(response.data["data"]["mfa_enrollment_required"])
+        self.assertNotIn("tokens", response.data["data"])
 
     def test_legacy_refresh_token_cannot_bypass_mfa_policy(self):
         self.client.cookies["identitycore_refresh"] = str(

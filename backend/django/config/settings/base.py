@@ -48,6 +48,7 @@ SECRET_KEY = os.getenv(
     "DJANGO_SECRET_KEY", "unsafe-development-secret-key-for-identitycore"
 )
 DEBUG = env_bool("DJANGO_DEBUG", False)
+ADMIN_MFA_REQUIRED_DEFAULT = env_bool("ADMIN_MFA_REQUIRED_DEFAULT", True)
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,[::1]")
 CSRF_TRUSTED_ORIGINS = env_list(
     "DJANGO_CSRF_TRUSTED_ORIGINS", ",".join(LOCAL_FRONTEND_ORIGINS)
