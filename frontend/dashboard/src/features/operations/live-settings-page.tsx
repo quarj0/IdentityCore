@@ -5,14 +5,12 @@ import { useEffect, useState } from "react";
 import {
   ArrowUpRight,
   Building2,
-  CheckCircle2,
   Fingerprint,
   Globe2,
   ShieldCheck,
   UsersRound,
 } from "lucide-react";
 import {
-  Button,
   Card,
   CardContent,
   CardDescription,
@@ -206,30 +204,6 @@ export function LiveSettingsPage() {
               ))}
             </div>
           </section>
-
-          <Card className="rounded-2xl border-emerald-200 bg-emerald-50/60 shadow-none">
-            <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex gap-3">
-                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" />
-                <div>
-                  <p className="text-sm font-semibold text-emerald-950">
-                    Workspace is active
-                  </p>
-                  <p className="mt-1 text-sm text-emerald-800">
-                    Your organization and workspace are configured and available
-                    to your team.
-                  </p>
-                </div>
-              </div>
-              <Button
-                asChild
-                variant="outline"
-                className="border-emerald-300 bg-white text-emerald-900 hover:bg-emerald-100"
-              >
-                <Link href="/approval-status">View approval status</Link>
-              </Button>
-            </CardContent>
-          </Card>
         </>
       ) : null}
     </div>
