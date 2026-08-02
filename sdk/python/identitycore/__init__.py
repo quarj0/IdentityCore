@@ -6,6 +6,7 @@ from identitycore.errors import (
     IdentityCoreTimeoutError,
 )
 from identitycore.webhooks import verify_webhook_signature
+from . import models
 
 __all__ = [
     "IdentityCoreClient",
@@ -14,6 +15,6 @@ __all__ = [
     "IdentityCoreError",
     "IdentityCoreTimeoutError",
     "verify_webhook_signature",
+    "models",
     "__version__",
 ]
-

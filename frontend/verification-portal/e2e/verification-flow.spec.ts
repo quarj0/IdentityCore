@@ -15,9 +15,16 @@ test("verification pages send hardened browser security headers", async ({
   const response = await request.get("/");
 
   expect(response.headers()["cache-control"]).toContain("no-store");
-  expect(response.headers()["content-security-policy"]).toContain(
-    "frame-ancestors 'none'",
+  const csp = response.headers()["content-security-policy"];
+  expect(csp).toContain("frame-ancestors 'none'");
+  expect(csp).toMatch(
+    /script-src 'self' 'nonce-[a-f0-9]{32}' 'strict-dynamic'/,
   );
+  expect(csp).toMatch(/style-src 'self' 'nonce-[a-f0-9]{32}'/);
+  expect(csp).toContain("style-src-attr 'none'");
+  expect(csp).toContain("report-uri /api/security/csp-report");
+  expect(csp).not.toContain("'unsafe-inline'");
+  expect(csp).not.toContain("'unsafe-eval'");
   expect(response.headers()["permissions-policy"]).toContain("camera=(self)");
   expect(response.headers()["referrer-policy"]).toBe("no-referrer");
   expect(response.headers()["x-content-type-options"]).toBe("nosniff");
@@ -391,10 +398,7 @@ test("expired sessions render a safe terminal state", async ({
   await page.route("**/api/verification/**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
-    if (
-      path === "/api/verification/session" &&
-      request.method() === "POST"
-    ) {
+    if (path === "/api/verification/session" && request.method() === "POST") {
       return json(route, {});
     }
     if (path.endsWith("/status")) {

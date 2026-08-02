@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
@@ -43,7 +44,9 @@ class NotificationDetailView(APIView):
             )
         return success_response(
             serialize_notification(
-                Notification.objects.get(tenant_id=tenant_id, public_id=notification_id)
+                get_object_or_404(
+                    Notification, tenant_id=tenant_id, public_id=notification_id
+                )
             ),
             request=request,
         )

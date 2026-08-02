@@ -522,7 +522,8 @@ class Mutation:
 
         latest = (
             user.created_verifications.filter(
-                purpose="Administrator identity onboarding"
+                tenant=user.tenant,
+                purpose="Administrator identity onboarding",
             )
             .order_by("-created_at")
             .first()

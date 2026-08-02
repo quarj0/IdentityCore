@@ -1181,6 +1181,9 @@ file_size_bytes
 checksum_sha256
 quality_score
 face_count
+face_detection_confidence
+face_detection_model_name
+face_detection_model_version
 status
 captured_at
 created_at
@@ -1215,9 +1218,9 @@ index(status)
 index(captured_at)
 ```
 
-Implementation note:
-
-- The current session flow stores a default `face_count = 1` placeholder until AI-assisted face counting is connected.
+Face count, confidence, and model attribution are populated from AI-produced
+liveness evidence. Until that analysis completes, the fields remain unset; missing
+or malformed face analysis routes the verification to manual review.
 
 ---
 

@@ -13,6 +13,12 @@ from apps.providers.ai_service import (
     AIServiceUnavailable,
     run_document_quality,
 )
+from apps.providers.adapters import (
+    BUILT_IN_AI_SERVICE,
+    BuiltInAIServiceAdapter,
+    ProviderAdapterRegistry,
+    provider_adapter_registry,
+)
 from apps.organizations.models import Organization
 from apps.providers.models import (
     Provider,
@@ -295,3 +301,26 @@ class AIServiceClientTests(TestCase):
         self.assertEqual(str(exc.exception), AI_SERVICE_UNAVAILABLE_MESSAGE)
         self.assertEqual(exc.exception.error_code, "provider_timeout")
         self.assertEqual(exc.exception.provider_check_status, "timeout")
+
+
+class ProviderAdapterRegistryTests(TestCase):
+    def test_builtin_adapter_exposes_all_five_capabilities(self):
+        adapter = provider_adapter_registry.resolve(BUILT_IN_AI_SERVICE)
+
+        self.assertIsInstance(adapter, BuiltInAIServiceAdapter)
+        self.assertTrue(callable(adapter.document_quality))
+        self.assertTrue(callable(adapter.document_classification))
+        self.assertTrue(callable(adapter.document_ocr))
+        self.assertTrue(callable(adapter.liveness))
+        self.assertTrue(callable(adapter.face_compare))
+
+    def test_registry_resolves_custom_adapter_factory(self):
+        adapter = object()
+        registry = ProviderAdapterRegistry()
+        registry.register("custom", lambda: adapter)
+
+        self.assertIs(registry.resolve("custom"), adapter)
+
+    def test_registry_rejects_unknown_adapter(self):
+        with self.assertRaisesRegex(LookupError, "missing"):
+            ProviderAdapterRegistry().resolve("missing")
