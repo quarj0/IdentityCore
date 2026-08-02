@@ -2,6 +2,8 @@ import hashlib
 import secrets
 from datetime import timedelta
 from django.utils import timezone
+from django.conf import settings
+from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -28,6 +30,16 @@ from apps.accounts.cookies import (
     require_trusted_cookie_origin,
     set_refresh_cookie,
 )
+from apps.accounts.mfa import (
+    enable_mfa,
+    consume_mfa_token,
+    generate_secret,
+    issue_mfa_token,
+    provisioning_uri,
+    resolve_mfa_token,
+    verify_challenge,
+    verify_totp,
+)
 from common.responses import success_response
 
 
@@ -39,31 +51,162 @@ class LoginView(APIView):
         serializer = LoginSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
-        if user.tenant_id is not None:
+        if serializer.validated_data["mfa_required"]:
+            purpose = "challenge" if user.mfa_enabled else "enrollment"
+            return success_response(
+                {
+                    "mfa_required": True,
+                    "mfa_enrollment_required": not user.mfa_enabled,
+                    "mfa_token": issue_mfa_token(user, purpose=purpose),
+                },
+                request=request,
+                status=status.HTTP_202_ACCEPTED,
+            )
+        return complete_login(request, user)
+
+
+def complete_login(request, user, *, mfa_method: str | None = None):
+    refresh = RefreshToken.for_user(user)
+    refresh["mfa_verified"] = bool(mfa_method) or not user.mfa_enabled
+    now = timezone.now()
+    PlatformUser.objects.filter(pk=user.pk).update(last_login_at=now, updated_at=now)
+    user.last_login_at = now
+    user.updated_at = now
+    if user.tenant_id is not None:
+        record_audit_event(
+            tenant_id=user.tenant_id,
+            actor=user,
+            request=request,
+            action="user.login",
+            target_type="platform_user",
+            target_id=user.public_id,
+            metadata={"mfa_method": mfa_method} if mfa_method else {},
+            sensitive_metadata={"email": user.email},
+        )
+    response = success_response(
+        {
+            "tokens": {"access": str(refresh.access_token)},
+            "user": serialize_user(user),
+        },
+        request=request,
+        status=status.HTTP_200_OK,
+    )
+    set_refresh_cookie(
+        response,
+        str(refresh),
+        cookie_name=get_refresh_cookie_name(request),
+    )
+    return response
+
+
+def _mfa_user(request, purpose):
+    token = str(request.data.get("mfa_token", ""))
+    try:
+        return resolve_mfa_token(token, purpose=purpose)
+    except ValueError as exc:
+        raise AuthenticationFailed(str(exc)) from exc
+
+
+class MFAEnrollView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        user = _mfa_user(request, "enrollment")
+        secret = generate_secret()
+        user.mfa_config_json = {"pending_totp_secret": secret}
+        user.save(update_fields=["mfa_config_json", "updated_at"])
+        record_audit_event(
+            tenant_id=user.tenant_id,
+            actor=user,
+            request=request,
+            action="user.mfa_enrollment_started",
+            target_type="platform_user",
+            target_id=user.public_id,
+        )
+        return success_response(
+            {"secret": secret, "provisioning_uri": provisioning_uri(user, secret)},
+            request=request,
+        )
+
+
+class MFAEnrollConfirmView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        user = _mfa_user(request, "enrollment")
+        secret = user.mfa_config_json.get("pending_totp_secret", "")
+        if not secret or not verify_totp(secret, str(request.data.get("code", ""))):
+            raise AuthenticationFailed("Invalid authentication code.")
+        recovery_codes = enable_mfa(user, secret)
+        record_audit_event(
+            tenant_id=user.tenant_id,
+            actor=user,
+            request=request,
+            action="user.mfa_enabled",
+            target_type="platform_user",
+            target_id=user.public_id,
+        )
+        response = complete_login(request, user, mfa_method="totp")
+        response.data["data"]["recovery_codes"] = recovery_codes
+        return response
+
+
+class MFAChallengeView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        user = _mfa_user(request, "challenge")
+        token = str(request.data.get("mfa_token", ""))
+        method = verify_challenge(user, str(request.data.get("code", "")))
+        if method is None or not consume_mfa_token(user, token):
             record_audit_event(
                 tenant_id=user.tenant_id,
                 actor=user,
                 request=request,
-                action="user.login",
+                action="user.mfa_challenge_failed",
                 target_type="platform_user",
                 target_id=user.public_id,
-                metadata={"email": user.email},
-                sensitive_metadata={"email": user.email},
             )
-        response = success_response(
-            {
-                "tokens": {"access": serializer.validated_data["tokens"]["access"]},
-                "user": serialize_user(user),
-            },
+            raise AuthenticationFailed("Invalid authentication code.")
+        record_audit_event(
+            tenant_id=user.tenant_id,
+            actor=user,
             request=request,
-            status=status.HTTP_200_OK,
+            action="user.mfa_challenge_succeeded",
+            target_type="platform_user",
+            target_id=user.public_id,
+            metadata={"method": method},
         )
-        set_refresh_cookie(
-            response,
-            serializer.validated_data["tokens"]["refresh"],
-            cookie_name=get_refresh_cookie_name(request),
+        return complete_login(request, user, mfa_method=method)
+
+
+class MFAResetView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        password = str(request.data.get("password", ""))
+        code = str(request.data.get("code", ""))
+        if authenticate(request=request, email=user.email, password=password) != user:
+            raise AuthenticationFailed("Password confirmation failed.")
+        if not user.mfa_enabled or verify_challenge(user, code) is None:
+            raise AuthenticationFailed("Invalid authentication code.")
+        user.mfa_enabled = False
+        user.mfa_config_json = {}
+        user.save(update_fields=["mfa_enabled", "mfa_config_json", "updated_at"])
+        user.mfa_recovery_codes.all().delete()
+        record_audit_event(
+            tenant_id=user.tenant_id,
+            actor=user,
+            request=request,
+            action="user.mfa_reset",
+            target_type="platform_user",
+            target_id=user.public_id,
         )
-        return response
+        return success_response({"mfa_enabled": False}, request=request)
 
 
 class RefreshView(APIView):
@@ -80,7 +223,9 @@ class RefreshView(APIView):
         except Exception as exc:
             # SimpleJWT raises TokenError directly for blacklisted tokens instead of
             # consistently converting it to a DRF authentication response.
-            auth_error = AuthenticationFailed("Your session has expired. Please sign in again.")
+            auth_error = AuthenticationFailed(
+                "Your session has expired. Please sign in again."
+            )
             auth_error.clear_refresh_cookie = True
             auth_error.refresh_cookie_name = cookie_name
             raise auth_error from exc
@@ -230,9 +375,7 @@ class TeamInvitationListCreateView(APIView):
                 request=request,
                 status=400,
             )
-        role = Role.objects.get(
-            tenant_id=tenant_id, public_id=role_id, status="active"
-        )
+        role = Role.objects.get(tenant_id=tenant_id, public_id=role_id, status="active")
         raw = secrets.token_urlsafe(32)
         invitation = TeamInvitation.objects.create(
             tenant_id=tenant_id,

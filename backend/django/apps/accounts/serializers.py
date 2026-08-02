@@ -1,11 +1,11 @@
 from django.contrib.auth import authenticate
-from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.accounts.models import PlatformUser
+from apps.accounts.mfa import is_mfa_required
 from apps.tenants.models import Tenant
 
 
@@ -15,9 +15,11 @@ def serialize_user(user: PlatformUser) -> dict:
     tenant_name = None
     tenant_status = None
     if tenant_public_id is not None:
-        tenant_payload = Tenant.objects.filter(pk=tenant_public_id).values(
-            "public_id", "name", "status"
-        ).first()
+        tenant_payload = (
+            Tenant.objects.filter(pk=tenant_public_id)
+            .values("public_id", "name", "status")
+            .first()
+        )
         if tenant_payload is not None:
             tenant_public_id = tenant_payload["public_id"]
             tenant_name = tenant_payload["name"]
@@ -63,18 +65,20 @@ class LoginSerializer(serializers.Serializer):
         if not user.is_active:
             raise AuthenticationFailed(self.error_messages["account_inactive"])
 
-        refresh = RefreshToken.for_user(user)
-        now = timezone.now()
-        PlatformUser.objects.filter(pk=user.pk).update(last_login_at=now, updated_at=now)
-        user.last_login_at = now
-        user.updated_at = now
         attrs["user"] = user
-        attrs["tokens"] = {
-            "access": str(refresh.access_token),
-            "refresh": str(refresh),
-        }
+        attrs["mfa_required"] = is_mfa_required(user) or user.mfa_enabled
         return attrs
 
 
 class RefreshInputSerializer(TokenRefreshSerializer):
-    pass
+    def validate(self, attrs):
+        refresh = RefreshToken(attrs["refresh"])
+        try:
+            user = PlatformUser.objects.get(pk=refresh["user_id"])
+        except (KeyError, PlatformUser.DoesNotExist) as exc:
+            raise AuthenticationFailed("Your session has expired.") from exc
+        if (user.mfa_enabled or is_mfa_required(user)) and not refresh.get(
+            "mfa_verified", False
+        ):
+            raise AuthenticationFailed("Multi-factor authentication is required.")
+        return super().validate(attrs)
