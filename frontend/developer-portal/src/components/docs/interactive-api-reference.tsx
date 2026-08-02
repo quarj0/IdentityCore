@@ -1,7 +1,16 @@
 "use client";
 
-import SwaggerUI from "swagger-ui-react";
+import dynamic from "next/dynamic";
 import "swagger-ui-react/swagger-ui.css";
+
+const SwaggerUI = dynamic(() => import("swagger-ui-react"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex min-h-96 items-center justify-center p-8 text-sm text-slate-600">
+      Loading the interactive API reference…
+    </div>
+  ),
+});
 
 export function InteractiveApiReference() {
   return (
@@ -15,7 +24,7 @@ export function InteractiveApiReference() {
         persistAuthorization
         tryItOutEnabled
         defaultModelsExpandDepth={1}
-        requestInterceptor={(request) => {
+        requestInterceptor={(request: { headers: { [x: string]: string; }; }) => {
           request.headers["X-Request-Id"] ??= crypto.randomUUID();
           return request;
         }}
