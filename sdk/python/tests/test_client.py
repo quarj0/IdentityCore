@@ -65,10 +65,11 @@ class IdentityCoreClientTests(unittest.TestCase):
 
     def test_iterates_all_pages(self):
         client = self.make_client([
-            (200, envelope({"results": [{"id": "1"}], "pagination": {"total_pages": 2}})),
-            (200, envelope({"results": [{"id": "2"}], "pagination": {"total_pages": 2}})),
+            (200, envelope({"results": [{"id": "1"}], "pagination": {"next_cursor": "next"}})),
+            (200, envelope({"results": [{"id": "2"}], "pagination": {"next_cursor": None}})),
         ])
         self.assertEqual([x["id"] for x in client.verifications.iter()], ["1", "2"])
+        self.assertIn("cursor=next", self.transport.calls[1]["url"])
 
     def test_webhook_signature_and_tolerance(self):
         body, timestamp, key = b'{"id":"evt_1"}', "1000", "whsec_test"

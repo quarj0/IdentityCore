@@ -104,9 +104,10 @@ public sealed class IdentityCoreClient : IDisposable
     {
         public Task<JsonElement> CreateAsync(object input, string? idempotencyKey = null, CancellationToken token = default) => client.SendAsync(HttpMethod.Post, "/verifications/", input, idempotencyKey ?? "ik_" + Guid.NewGuid().ToString("N"), token);
         public Task<JsonElement> ListAsync(string? status = null, string? externalReference = null, int? page = null, int? pageSize = null, CancellationToken token = default) => client.SendAsync(HttpMethod.Get, "/verifications/" + Query(new() { ["status"] = status, ["external_reference"] = externalReference, ["page"] = page, ["page_size"] = pageSize }), cancellationToken: token);
+        public Task<JsonElement> ListCursorAsync(string? status = null, string? externalReference = null, string? cursor = null, int? limit = null, CancellationToken token = default) => client.SendAsync(HttpMethod.Get, "/verifications/" + Query(new() { ["status"] = status, ["external_reference"] = externalReference, ["cursor"] = cursor, ["limit"] = limit }), cancellationToken: token);
         public async IAsyncEnumerable<JsonElement> IterateAsync(string? status = null, string? externalReference = null, int pageSize = 100, [EnumeratorCancellation] CancellationToken token = default)
         {
-            for (var page=1;;page++) { var result=await ListAsync(status,externalReference,page,pageSize,token); foreach(var item in result.GetProperty("results").EnumerateArray()) yield return item.Clone(); if(page>=result.GetProperty("pagination").GetProperty("total_pages").GetInt32()) yield break; }
+            string? cursor=null; do { var result=await ListCursorAsync(status,externalReference,cursor,pageSize,token); foreach(var item in result.GetProperty("results").EnumerateArray()) yield return item.Clone(); cursor=result.GetProperty("pagination").GetProperty("next_cursor").GetString(); } while(!string.IsNullOrEmpty(cursor));
         }
         public Task<JsonElement> RetrieveAsync(string id, CancellationToken token = default) => client.SendAsync(HttpMethod.Get, "/verifications/" + Segment(id), cancellationToken: token);
         public Task<JsonElement> CancelAsync(string id, string reason = "", CancellationToken token = default) => client.SendAsync(HttpMethod.Post, "/verifications/" + Segment(id) + "/cancel", new { reason }, cancellationToken: token);

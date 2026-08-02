@@ -241,6 +241,7 @@ Model asset behavior:
 - If `INSIGHTFACE_ALLOW_DOWNLOAD=1`, InsightFace may download missing model assets at runtime into its configured cache/model location.
 - If `PADDLE_OCR_ALLOW_DOWNLOAD=1`, PaddleOCR may download missing OCR model assets at runtime.
 - If those flags are `0`, the AI service expects the model files to already exist under `AI_MODEL_ROOT`.
+- The bootstrap job records every artifact and its SHA-256 digest in `AI_MODEL_ROOT/manifest.json` (or the path configured by `AI_MODEL_MANIFEST`). Real mode is not ready and will not process requests if that inventory is missing, malformed, or does not match the files on disk.
 - For predictable production deployments, prefer preloading models and keeping both download flags disabled.
 
 Real-mode prerequisites:
@@ -279,6 +280,7 @@ Operational note:
 - `/v1/health` only reports service identity and runtime mode
 - `/v1/ready` validates whether the configured mode can actually run
 - In `hybrid` mode the readiness status may be `degraded` while remaining serviceable because mock fallback is still available
+- Treat `hybrid` and `mock` as non-production modes. Recovery from an integrity failure requires replacing the affected asset from a trusted source, rerunning `ai-model-bootstrap` to produce a reviewed manifest, and restarting the AI service; do not edit checksums to bless an unexplained change.
 
 Deployment:
 

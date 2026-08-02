@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 COMPOSE := docker compose
 
-.PHONY: up down ps logs logs-django logs-ai logs-worker logs-worker-ai logs-worker-retention logs-webhooks logs-notifications logs-beat shell shell-worker shell-worker-ai shell-worker-retention shell-worker-webhooks shell-worker-notifications migrate makemigrations createsuperuser test test-all lint ensure-env
+.PHONY: up down ps logs logs-django logs-ai logs-worker logs-worker-ai logs-worker-retention logs-webhooks logs-notifications logs-beat shell shell-worker shell-worker-ai shell-worker-retention shell-worker-webhooks shell-worker-notifications migrate makemigrations createsuperuser test test-all generate-sdk-models check-sdk-models lint ensure-env
 
 ensure-env:
 	@test -f .env || cp .env.example .env
@@ -77,6 +77,12 @@ test:
 # Run every component's unit/integration test suite with locally installed toolchains.
 test-all:
 	@./scripts/test_all.sh
+
+generate-sdk-models:
+	uv run --project backend python scripts/generate_sdk_models.py
+
+check-sdk-models:
+	uv run --project backend python scripts/generate_sdk_models.py --check
 
 lint:
 	$(COMPOSE) run --rm django ruff check .

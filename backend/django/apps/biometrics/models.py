@@ -43,7 +43,12 @@ class SelfieCapture(PublicIdModel, BaseModel):
     quality_score = models.DecimalField(
         max_digits=5, decimal_places=2, null=True, blank=True
     )
-    face_count = models.PositiveIntegerField(default=1)
+    face_count = models.PositiveIntegerField(null=True, blank=True)
+    face_detection_confidence = models.DecimalField(
+        max_digits=5, decimal_places=4, null=True, blank=True
+    )
+    face_detection_model_name = models.CharField(max_length=120, blank=True)
+    face_detection_model_version = models.CharField(max_length=64, blank=True)
     status = models.CharField(
         max_length=32,
         choices=SelfieCaptureStatus.choices,

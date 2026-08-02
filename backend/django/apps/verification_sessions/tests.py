@@ -1088,6 +1088,10 @@ class VerificationSessionPortalTests(APITestCase):
             "confidence_level": "high",
             "model_name": "mediapipe-liveness",
             "model_version": "v1",
+            "metrics": {
+                "face_count": 1,
+                "avg_detection_confidence": 0.98,
+            },
         }
         mock_face.return_value = {
             "status": "completed",

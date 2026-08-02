@@ -12,7 +12,7 @@ from apps.biometrics.models import (
     SelfieCaptureStatus,
 )
 from apps.notifications.services import queue_verification_status_notifications
-from apps.providers.ai_service import run_face_compare, run_liveness_check
+from apps.providers.adapters import run_face_compare, run_liveness_check
 from apps.providers.models import ProviderCheckStatus
 from apps.providers.services import invoke_provider_check
 from apps.risk.services import run_verification_risk_and_decision
@@ -38,6 +38,15 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
         "verification", "selfie_capture", "tenant", "challenge"
     ).get(public_id=liveness_check_id)
     verification = liveness_check.verification
+
+    # Celery may deliver the same message more than once.  A completed biometric
+    # check is immutable: rerunning the providers would create a second decision,
+    # audit trail, webhook, and notification for the same submitted evidence.
+    # Error outcomes are terminal too and intentionally remain available for
+    # manual review rather than being silently retried.
+    if liveness_check.status != LivenessCheckStatus.INCONCLUSIVE:
+        return verification.status
+
     selfie_capture = liveness_check.selfie_capture
     face_match = (
         verification.face_matches.filter(selfie_capture=selfie_capture)
@@ -76,9 +85,39 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             },
             request_metadata={"liveness_check_id": liveness_check.public_id},
         )
+        metrics = liveness_result.get("metrics") or {}
+        face_count = metrics.get("face_count")
+        detection_confidence = metrics.get("avg_detection_confidence")
+        model_name = liveness_result.get("model_name")
+        model_version = liveness_result.get("model_version")
+        if (
+            isinstance(face_count, bool)
+            or not isinstance(face_count, int)
+            or face_count < 0
+            or detection_confidence is None
+            or not model_name
+            or not model_version
+        ):
+            raise ValueError("Liveness provider omitted required face detection evidence.")
+
+        selfie_capture.face_count = face_count
+        selfie_capture.face_detection_confidence = Decimal(
+            str(detection_confidence)
+        )
+        selfie_capture.face_detection_model_name = model_name
+        selfie_capture.face_detection_model_version = model_version
+        selfie_capture.save(
+            update_fields=[
+                "face_count",
+                "face_detection_confidence",
+                "face_detection_model_name",
+                "face_detection_model_version",
+                "updated_at",
+            ]
+        )
         liveness_check.status = (
             LivenessCheckStatus.PASSED
-            if liveness_result.get("passed")
+            if liveness_result.get("passed") and face_count == 1
             else LivenessCheckStatus.FAILED
         )
         liveness_check.score = Decimal(str(liveness_result.get("score", "0")))
