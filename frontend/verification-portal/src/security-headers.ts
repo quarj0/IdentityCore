@@ -10,8 +10,10 @@ export function securityHeaders(nonce: string): Record<string, string> {
     "media-src 'self' blob:",
     "object-src 'none'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
-    "style-src 'self' 'unsafe-inline'",
+    `style-src 'self' 'nonce-${nonce}'`,
+    "style-src-attr 'none'",
     "worker-src 'self' blob:",
+    "report-uri /api/security/csp-report",
   ].join("; ");
 
   return {
