@@ -40,6 +40,7 @@ from apps.accounts.mfa import (
     verify_challenge,
     verify_totp,
 )
+from apps.accounts.sessions import issue_refresh_token, revoke_refresh_token
 from common.responses import success_response
 
 
@@ -66,7 +67,7 @@ class LoginView(APIView):
 
 
 def complete_login(request, user, *, mfa_method: str | None = None):
-    refresh = RefreshToken.for_user(user)
+    refresh = issue_refresh_token(user)
     refresh["mfa_verified"] = bool(mfa_method) or not user.mfa_enabled
     now = timezone.now()
     PlatformUser.objects.filter(pk=user.pk).update(last_login_at=now, updated_at=now)

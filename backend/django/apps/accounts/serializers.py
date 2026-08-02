@@ -70,15 +70,14 @@ class LoginSerializer(serializers.Serializer):
         return attrs
 
 
-class RefreshInputSerializer(TokenRefreshSerializer):
+class RefreshInputSerializer(serializers.Serializer):
+    refresh = serializers.CharField()
+
     def validate(self, attrs):
-        refresh = RefreshToken(attrs["refresh"])
         try:
-            user = PlatformUser.objects.get(pk=refresh["user_id"])
-        except (KeyError, PlatformUser.DoesNotExist) as exc:
-            raise AuthenticationFailed("Your session has expired.") from exc
-        if (user.mfa_enabled or is_mfa_required(user)) and not refresh.get(
-            "mfa_verified", False
-        ):
-            raise AuthenticationFailed("Multi-factor authentication is required.")
-        return super().validate(attrs)
+            access, refresh = rotate_refresh_token(attrs["refresh"])
+        except TokenError as exc:
+            raise serializers.ValidationError(
+                "Invalid or expired refresh token."
+            ) from exc
+        return {"access": access, "refresh": refresh}

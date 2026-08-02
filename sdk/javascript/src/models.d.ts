@@ -85,10 +85,9 @@ export interface VerificationDetail {
 }
 
 export interface Pagination {
-  page: number;
-  page_size: number;
-  total: number;
-  total_pages: number;
+  limit: number;
+  next_cursor: string | null;
+  has_more: boolean;
 }
 
 export interface EvidenceReport {
