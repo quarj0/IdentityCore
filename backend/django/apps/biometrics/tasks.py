@@ -14,6 +14,7 @@ from apps.biometrics.models import (
 from apps.notifications.services import queue_verification_status_notifications
 from apps.providers.adapters import run_face_compare, run_liveness_check
 from apps.providers.models import ProviderCheckStatus
+from apps.providers.services import invoke_provider_check
 from apps.risk.services import run_verification_risk_and_decision
 from apps.uploads.services import promote_upload_to_media_by_storage_key
 from apps.verifications.evidence import ensure_verification_evidence_report
@@ -67,17 +68,22 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
 
     processing_stage = "liveness"
     try:
-        liveness_result = run_liveness_check(
-            verification_id=verification.public_id,
-            selfie_storage_key=selfie_capture.storage_key,
-            liveness_type=liveness_check.liveness_type,
-            selfie_storage_bucket=temp_bucket,
-            selfie_mime_type=selfie_capture.mime_type,
-            challenge_actions=(
-                liveness_check.challenge.actions
-                if liveness_check.challenge_id
-                else None
-            ),
+        liveness_result = invoke_provider_check(
+            provider_check=liveness_provider_check,
+            operation=run_liveness_check,
+            operation_kwargs={
+                "verification_id": verification.public_id,
+                "selfie_storage_key": selfie_capture.storage_key,
+                "liveness_type": liveness_check.liveness_type,
+                "selfie_storage_bucket": temp_bucket,
+                "selfie_mime_type": selfie_capture.mime_type,
+                "challenge_actions": (
+                    liveness_check.challenge.actions
+                    if liveness_check.challenge_id
+                    else None
+                ),
+            },
+            request_metadata={"liveness_check_id": liveness_check.public_id},
         )
         metrics = liveness_result.get("metrics") or {}
         face_count = metrics.get("face_count")
@@ -172,19 +178,24 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             )
             document_storage_key = source_document_capture.storage_key
             processing_stage = "face_match"
-            face_result = run_face_compare(
-                verification_id=verification.public_id,
-                selfie_storage_key=selfie_capture.storage_key,
-                document_storage_key=document_storage_key,
-                threshold=threshold,
-                selfie_storage_bucket=temp_bucket,
-                selfie_mime_type=selfie_capture.mime_type,
-                document_storage_bucket=(
-                    media_bucket
-                    if source_document_capture
-                    and source_document_capture.status != "uploaded"
-                    else temp_bucket
-                ),
+            face_result = invoke_provider_check(
+                provider_check=face_provider_check,
+                operation=run_face_compare,
+                operation_kwargs={
+                    "verification_id": verification.public_id,
+                    "selfie_storage_key": selfie_capture.storage_key,
+                    "document_storage_key": document_storage_key,
+                    "threshold": threshold,
+                    "selfie_storage_bucket": temp_bucket,
+                    "selfie_mime_type": selfie_capture.mime_type,
+                    "document_storage_bucket": (
+                        media_bucket
+                        if source_document_capture
+                        and source_document_capture.status != "uploaded"
+                        else temp_bucket
+                    ),
+                },
+                request_metadata={"face_match_id": face_match.public_id},
             )
             face_match.status = (
                 FaceMatchStatus.MATCHED
