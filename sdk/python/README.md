@@ -47,6 +47,26 @@ The configuration file is written with owner-only permissions. Environment
 variables (`IDENTITYCORE_API_ORIGIN`, `IDENTITYCORE_CLIENT_ID`, and
 `IDENTITYCORE_CLIENT_SECRET`) can be used in CI instead of `login`.
 
+### Shell autocomplete
+
+Generate a dependency-free completion script once, then start a new shell. Tab
+completion includes commands, nested commands, and their options.
+
+```sh
+# Bash
+identitycore completion bash >> ~/.bashrc
+
+# Zsh
+identitycore completion zsh >> ~/.zshrc
+
+# Fish
+identitycore completion fish > ~/.config/fish/completions/identitycore.fish
+```
+
+For a temporary setup in Bash or Zsh, use
+`eval "$(identitycore completion bash)"` or
+`eval "$(identitycore completion zsh)"`, respectively.
+
 ## Pagination and webhooks
 
 ```python

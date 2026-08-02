@@ -10,8 +10,109 @@ import stat
 from pathlib import Path
 from typing import Any
 
-from identitycore.client import IdentityCoreClient
+from identitycore.client import IdentityCoreClient, __version__
 from identitycore.errors import IdentityCoreError
+
+
+class _HelpFormatter(argparse.RawDescriptionHelpFormatter):
+    """Keep examples readable and give option descriptions room to breathe."""
+
+    def __init__(self, prog: str) -> None:
+        super().__init__(prog, max_help_position=30, width=100)
+
+
+class _ArgumentParser(argparse.ArgumentParser):
+    """An ArgumentParser with the compact, uppercase sections common to Unix tools."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        kwargs.setdefault("formatter_class", _HelpFormatter)
+        super().__init__(*args, **kwargs)
+
+    def format_help(self) -> str:
+        help_text = super().format_help()
+        headings = {
+            "usage:": "USAGE:\n ",
+            "positional arguments:\n": "COMMANDS:\n",
+            "options:\n": "OPTIONS:\n",
+        }
+        for original, replacement in headings.items():
+            help_text = help_text.replace(original, replacement)
+        return help_text
+
+
+def _completion_script(shell: str) -> str:
+    """Return a dependency-free completion definition for a supported shell."""
+    if shell == "bash":
+        return r'''# bash completion for identitycore
+_identitycore_completion() {
+    local cur prev path
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    path=" ${COMP_WORDS[*]:1:COMP_CWORD-1} "
+
+    case "$prev" in
+        --api-origin|--client-id|--client-secret|--policy-id|--purpose|--full-name|--email|--project-id|--external-reference|--redirect-url|--idempotency-key|--reason)
+            return ;;
+    esac
+    case "$path" in
+        *" verifications create "*) opts="--purpose --policy-id --full-name --email --project-id --external-reference --redirect-url --idempotency-key --help" ;;
+        *" verifications cancel "*) opts="--reason --help" ;;
+        *" verifications "*) opts="list get cancel create --help" ;;
+        *" policies "*) opts="list get --help" ;;
+        *" login "*) opts="--api-origin --client-id --client-secret --help" ;;
+        *" completion "*) opts="bash zsh fish --help" ;;
+        *) opts="login health policies verifications completion --api-origin --client-id --client-secret --version --help" ;;
+    esac
+    COMPREPLY=( $(compgen -W "$opts" -- "$cur") )
+}
+complete -F _identitycore_completion identitycore'''
+    if shell == "zsh":
+        return r'''#compdef identitycore
+_identitycore() {
+  local -a commands
+  commands=(
+    'login:Store API credentials locally'
+    'health:Check API availability'
+    'policies:Manage verification policies'
+    'verifications:Manage verifications'
+    'completion:Generate shell completion setup'
+  )
+  _arguments -C \
+    '--api-origin[API origin]:origin' \
+    '--client-id[API client ID]:client id' \
+    '--client-secret[API client secret]:client secret' \
+    '--version[show version]' '*::arg:->args'
+  case $words[1] in
+    policies) _values 'policy command' list get ;;
+    verifications) _values 'verification command' list get cancel create ;;
+    completion) _values shell bash zsh fish ;;
+    *) _describe command commands ;;
+  esac
+}
+compdef _identitycore identitycore'''
+    return r'''# fish completion for identitycore
+complete -c identitycore -f
+complete -c identitycore -n '__fish_use_subcommand' -a 'login' -d 'Store API credentials locally'
+complete -c identitycore -n '__fish_use_subcommand' -a 'health' -d 'Check API availability'
+complete -c identitycore -n '__fish_use_subcommand' -a 'policies' -d 'Manage verification policies'
+complete -c identitycore -n '__fish_use_subcommand' -a 'verifications' -d 'Manage verifications'
+complete -c identitycore -n '__fish_use_subcommand' -a 'completion' -d 'Generate shell completion setup'
+complete -c identitycore -n '__fish_seen_subcommand_from policies' -a 'list get'
+complete -c identitycore -n '__fish_seen_subcommand_from verifications' -a 'list get cancel create'
+complete -c identitycore -n '__fish_seen_subcommand_from completion' -a 'bash zsh fish'
+complete -c identitycore -l api-origin -r -d 'API origin'
+complete -c identitycore -l client-id -r -d 'API client ID'
+complete -c identitycore -l client-secret -r -d 'API client secret'
+complete -c identitycore -n '__fish_seen_subcommand_from create' -l purpose -r -d 'Verification purpose'
+complete -c identitycore -n '__fish_seen_subcommand_from create' -l policy-id -r -d 'Policy ID'
+complete -c identitycore -n '__fish_seen_subcommand_from create' -l full-name -r -d 'Subject full name'
+complete -c identitycore -n '__fish_seen_subcommand_from create' -l email -r -d 'Subject email'
+complete -c identitycore -n '__fish_seen_subcommand_from create' -l project-id -r -d 'Project ID'
+complete -c identitycore -n '__fish_seen_subcommand_from create' -l external-reference -r -d 'External reference'
+complete -c identitycore -n '__fish_seen_subcommand_from create' -l redirect-url -r -d 'Completion redirect URL'
+complete -c identitycore -n '__fish_seen_subcommand_from create' -l idempotency-key -r -d 'Idempotency key'
+complete -c identitycore -n '__fish_seen_subcommand_from cancel' -l reason -r -d 'Cancellation reason' '''
 
 
 def _config_path() -> Path:
@@ -55,10 +156,23 @@ def _print(value: Any) -> None:
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="identitycore", description="IdentityCore API command line client")
+    parser = _ArgumentParser(
+        prog="identitycore",
+        description="IdentityCore API command line client\n\nSecurely manage policies and verifications from your terminal.",
+        epilog="""EXAMPLES:
+  identitycore login --api-origin https://api.identitycore.com --client-id cli_...
+  identitycore policies list
+  identitycore verifications get ver_...
+  identitycore completion bash >> ~/.bashrc
+
+Run 'identitycore COMMAND --help' for command-specific options.
+Documentation: https://docs.identitycore.com""",
+        formatter_class=_HelpFormatter,
+    )
     parser.add_argument("--api-origin", help="API origin, or IDENTITYCORE_API_ORIGIN")
     parser.add_argument("--client-id", help="API client ID, or IDENTITYCORE_CLIENT_ID")
     parser.add_argument("--client-secret", help="API client secret, or IDENTITYCORE_CLIENT_SECRET")
+    parser.add_argument("--version", action="version", version=f"IdentityCore CLI {__version__}")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     login = subparsers.add_parser("login", help="Store API credentials locally")
@@ -91,12 +205,18 @@ def _build_parser() -> argparse.ArgumentParser:
     verification_create.add_argument("--external-reference", default="")
     verification_create.add_argument("--redirect-url", default="")
     verification_create.add_argument("--idempotency-key", default="")
+    completion = subparsers.add_parser("completion", help="Generate shell completion setup")
+    completion.add_argument("shell", choices=("bash", "zsh", "fish"), help="Shell to generate completion for")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
+
+    if args.command == "completion":
+        print(_completion_script(args.shell))
+        return 0
 
     if args.command == "login":
         client_secret = args.client_secret or getpass.getpass("IdentityCore client secret: ")
