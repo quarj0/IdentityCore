@@ -19,6 +19,9 @@ const safeRoutes = [
   "/organization/me/verification-documents/{document_id}/",
   "/uploads/",
   "/uploads/{upload_id}/transfer",
+  "/organization/me/branding/assets/upload/",
+  "/organization/me/verification-documents/{document_id}/content/",
+  "/projects/{project_id}/workflows:instantiate",
   "/verifications/manual-reviews",
   "/verifications/manual-reviews/{verification_id}/decision",
 ];

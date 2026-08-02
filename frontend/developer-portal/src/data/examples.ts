@@ -15,7 +15,7 @@ export const examples: ExampleGroup[] = [
       {
         label: "cURL",
         language: "bash",
-        code: `curl -X POST https://api.identitycore.dev/api/v1/verifications/ \\
+        code: `curl -X POST https://api.identitycore.com/api/v1/verifications/ \\
   -H "Authorization: Bearer $IDENTITYCORE_API_KEY" \\
   -H "X-Client-Id: api_client_id" \\
   -H "Content-Type: application/json" \\
@@ -35,7 +35,7 @@ export const examples: ExampleGroup[] = [
       {
         label: "TypeScript",
         language: "ts",
-        code: `const response = await fetch("https://api.identitycore.dev/api/v1/verifications/", {
+        code: `const response = await fetch("https://api.identitycore.com/api/v1/verifications/", {
   method: "POST",
   headers: {
     Authorization: \`Bearer \${process.env.IDENTITYCORE_API_KEY}\`,
@@ -64,7 +64,7 @@ const verification = await response.json();`,
         code: `import requests
 
 response = requests.post(
-    "https://api.identitycore.dev/api/v1/verifications/",
+    "https://api.identitycore.com/api/v1/verifications/",
     headers={
         "Authorization": f"Bearer {IDENTITYCORE_API_KEY}",
         "X-Client-Id": IDENTITYCORE_CLIENT_ID,

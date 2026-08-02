@@ -22,10 +22,12 @@ classifiers = [
 Documentation = "https://docs.identitycore.com"
 Repository = "https://github.com/quarj0/IdentityCore"
 
+[project.scripts]
+identitycore = "identitycore.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["identitycore*"]
 
 [tool.setuptools.package-data]
 identitycore = ["py.typed"]
-

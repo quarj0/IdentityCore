@@ -111,7 +111,7 @@ export const docsNav: DocsNavGroup[] = [
       {
         href: "/cli",
         label: "CLI",
-        description: "Command line roadmap and future workflows",
+        description: "Scriptable Python SDK command line workflows",
         icon: TerminalSquare,
       },
     ],

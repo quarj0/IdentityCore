@@ -41,7 +41,24 @@ class CatalogEndpointTests(APITestCase):
         data = response.data["data"]
         self.assertEqual(data["api_version"], "1.0")
         self.assertEqual(data["base_urls"]["development"], "http://localhost:8000/api/v1")
+        # Verifications exposes separate list and create operations on one path.
+        self.assertEqual(len(data["resources"]), 33)
         self.assertIn("/verifications/", [item["path"] for item in data["resources"]])
+        documented_paths = {item["path"] for item in data["resources"]}
+        self.assertTrue(
+            {
+                "/uploads/",
+                "/organization/me/",
+                "/organization/me/verification-documents/{document_id}/content/",
+                "/organization/me/suspend",
+                "/projects/",
+                "/projects/{project_id}/workflows:instantiate",
+                "/api-clients/",
+                "/webhook-endpoints/",
+                "/verifications/manual-reviews",
+                "/verifications/{verification_id}/evidence-report/download.pdf",
+            }.issubset(documented_paths)
+        )
         sdk_status = {item["language"]: item["status"] for item in data["sdk_status"]}
         self.assertEqual(sdk_status["python"], "ready")
         self.assertEqual(sdk_status["javascript"], "ready")
@@ -58,5 +75,20 @@ class CatalogEndpointTests(APITestCase):
         self.assertIn("IdentityCore Public API", body)
         self.assertIn("/uploads/", body)
         self.assertIn("/organization/me/", body)
+        self.assertIn("/organization/me/verification-documents/{document_id}/content/", body)
+        self.assertIn("/organization/me/suspend", body)
+        self.assertIn("/projects/{project_id}/workflows:instantiate", body)
         self.assertIn("/api-clients/", body)
         self.assertIn("/verifications/manual-reviews", body)
+
+    def test_newly_documented_backend_routes_are_registered(self):
+        routes = [
+            ("post", "/api/v1/organization/me/suspend"),
+            ("put", "/api/v1/organization/me/verification-documents/doc_123/content/"),
+            ("post", "/api/v1/projects/prj_123/workflows:instantiate"),
+        ]
+
+        for method, path in routes:
+            with self.subTest(method=method, path=path):
+                response = getattr(self.client, method)(path, {}, format="json")
+                self.assertNotEqual(response.status_code, status.HTTP_404_NOT_FOUND)

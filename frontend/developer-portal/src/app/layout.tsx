@@ -5,6 +5,15 @@ import { DocsHeader } from "@/components/navigation/docs-header";
 export const metadata: Metadata = {
   title: "IdentityCore Developer Portal",
   description: "Developer documentation for IdentityCore APIs and workflows.",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_DEVELOPER_PORTAL_URL ??
+      "https://docs.identitycore.com",
+  ),
+  openGraph: {
+    title: "IdentityCore Developer Portal",
+    description: "Developer documentation for IdentityCore APIs and workflows.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
