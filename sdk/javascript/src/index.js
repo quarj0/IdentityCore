@@ -59,8 +59,8 @@ export class IdentityCoreClient {
     this.policies = { list: () => this.request("GET", "/policies/"), retrieve: (id) => this.request("GET", `/policies/${id}`) };
     this.verifications = {
       create: (input, options = {}) => this.request("POST", "/verifications/", { purpose: input.purpose, policy_id: input.policyId ?? input.policy_id, project_id: input.projectId ?? input.project_id ?? "", verification_subject: subjectToApi(input.verificationSubject ?? input.verification_subject), external_reference: input.externalReference ?? input.external_reference ?? "", redirect_url: input.redirectUrl ?? input.redirect_url ?? "", metadata: input.metadata ?? {} }, { ...options, idempotencyKey: options.idempotencyKey || `ik_${randomUUID().replaceAll("-", "")}` }),
-      list: ({ status = "", externalReference = "", page, pageSize } = {}) => this.request("GET", `/verifications/${compactQuery({ status, external_reference: externalReference, page, page_size: pageSize })}`),
-      iterate: async function* (options = {}) { let page = 1; do { const result = await this.list({ ...options, page }); for (const item of result.results ?? []) yield item; if (page >= Number(result.pagination?.total_pages ?? page)) return; page += 1; } while (true); },
+      list: ({ status = "", externalReference = "", cursor = "", limit, page, pageSize } = {}) => this.request("GET", `/verifications/${compactQuery({ status, external_reference: externalReference, cursor, limit, page, page_size: pageSize })}`),
+      iterate: async function* (options = {}) { let cursor = ""; do { const result = await this.list({ ...options, cursor, limit: options.limit ?? options.pageSize ?? 100, page: undefined, pageSize: undefined }); for (const item of result.results ?? []) yield item; cursor = result.pagination?.next_cursor ?? ""; if (!cursor) return; } while (true); },
       retrieve: (id) => this.request("GET", `/verifications/${id}`),
       cancel: (id, { reason = "" } = {}) => this.request("POST", `/verifications/${id}/cancel`, { reason }),
       resendLink: (id, { channel = "email" } = {}) => this.request("POST", `/verifications/${id}/resend-link`, { channel }),

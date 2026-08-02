@@ -1,12 +1,13 @@
 from datetime import timedelta
 
 from django.conf import settings
-from django.core.paginator import Paginator
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework import serializers
 
 from apps.accounts.models import PlatformUser
+from apps.audit.services import record_audit_event
 from apps.platform_settings.services import get_platform_setting_value
 from apps.verification_subjects.models import VerificationSubject
 from apps.verifications.evidence import (
@@ -21,6 +22,12 @@ from apps.verifications.models import (
     VerificationStatus,
 )
 from apps.verifications.review_access import review_owner_for_metadata
+from common.pagination import paginate_results as _paginate_results
+
+
+def paginate_results(queryset, page: int, page_size: int):
+    """Compatibility wrapper for GraphQL callers using the former location."""
+    return _paginate_results(queryset, page, page_size)
 
 
 def get_request_tenant(request):
@@ -44,7 +51,9 @@ def serialize_risk_assessment(verification: Verification) -> dict | None:
 
 
 def serialize_document_classification(verification: Verification) -> dict | None:
-    latest_identity_document = verification.identity_documents.order_by("-created_at").first()
+    latest_identity_document = verification.identity_documents.order_by(
+        "-created_at"
+    ).first()
     if latest_identity_document is None:
         return None
     classification = (latest_identity_document.extracted_data_json or {}).get(
@@ -75,7 +84,9 @@ def serialize_verification(verification: Verification, request=None) -> dict:
         else None
     )
     decision_record = getattr(verification, "decision_record", None)
-    latest_identity_document = verification.identity_documents.order_by("-created_at").first()
+    latest_identity_document = verification.identity_documents.order_by(
+        "-created_at"
+    ).first()
     return {
         "id": verification.public_id,
         "status": verification.status,
@@ -210,14 +221,43 @@ class VerificationCreateSerializer(serializers.Serializer):
                 {"policy_id": "Choose an active verification template."}
             )
         if policy_id:
-            policy = tenant.verification_policies.filter(
+            policies = tenant.verification_policies.filter(
                 public_id=policy_id, status="active"
-            ).first()
+            )
+            if is_api_client_request:
+                client_project = request.api_client.project
+                environment = (
+                    client_project.environment
+                    if client_project is not None
+                    else "sandbox"
+                )
+                environment_filter = Q(project__environment=environment)
+                if environment == "sandbox":
+                    environment_filter |= Q(project__isnull=True)
+                policies = policies.filter(environment_filter)
+            policy = policies.first()
             if policy is None:
+                if (
+                    is_api_client_request
+                    and tenant.verification_policies.filter(
+                        public_id=policy_id, status="active"
+                    ).exists()
+                ):
+                    record_audit_event(
+                        tenant=tenant,
+                        actor=request.api_client,
+                        request=request,
+                        action="environment_scope.denied",
+                        target_type="verification_policy",
+                        target_id=policy_id,
+                        metadata={"reason": "environment_mismatch"},
+                    )
                 raise serializers.ValidationError(
                     {"policy_id": "Choose an active verification template."}
                 )
             attrs["policy"] = policy
+        if is_api_client_request:
+            attrs["resolved_project"] = request.api_client.project
         return attrs
 
     def create(self, validated_data):
@@ -263,7 +303,8 @@ class VerificationCreateSerializer(serializers.Serializer):
             project=(
                 policy.project
                 if policy is not None
-                else tenant.projects.filter(
+                else validated_data.get("resolved_project")
+                or tenant.projects.filter(
                     public_id=validated_data.get("project_id")
                 ).first()
                 or tenant.projects.filter(is_default=True).first()
@@ -327,15 +368,21 @@ def serialize_manual_review_summary(verification: Verification) -> dict:
         "risk_level": (
             risk_assessment.risk_level if risk_assessment is not None else "medium"
         ),
-        "document_classification": {
-            "classification_status": document_classification.get("classification_status"),
-            "workflow_action": document_classification.get("workflow_action"),
-            "requires_manual_review": document_classification.get("requires_manual_review"),
-            "manual_review": document_classification.get("manual_review"),
-            "issues": document_classification.get("issues", []),
-        }
-        if document_classification
-        else None,
+        "document_classification": (
+            {
+                "classification_status": document_classification.get(
+                    "classification_status"
+                ),
+                "workflow_action": document_classification.get("workflow_action"),
+                "requires_manual_review": document_classification.get(
+                    "requires_manual_review"
+                ),
+                "manual_review": document_classification.get("manual_review"),
+                "issues": document_classification.get("issues", []),
+            }
+            if document_classification
+            else None
+        ),
         "created_at": verification.created_at.isoformat(),
     }
 
@@ -374,13 +421,13 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
             )
         if verification.status != VerificationStatus.MANUAL_REVIEW_REQUIRED:
             raise serializers.ValidationError(
-                {"decision": "Only a verification awaiting manual review can be decided."}
+                {
+                    "decision": "Only a verification awaiting manual review can be decided."
+                }
             )
 
         reviewer_email = (getattr(decided_by, "email", "") or "").strip().lower()
-        subject_email = (
-            verification.verification_subject.email or ""
-        ).strip().lower()
+        subject_email = (verification.verification_subject.email or "").strip().lower()
         if verification.created_by_id == getattr(decided_by, "pk", None) or (
             reviewer_email and reviewer_email == subject_email
         ):
@@ -398,9 +445,7 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
             reason_detail=self.validated_data["reason_detail"],
             evidence_summary_json={
                 "liveness_status": (
-                    verification.liveness_checks.order_by("-checked_at")
-                    .first()
-                    .status
+                    verification.liveness_checks.order_by("-checked_at").first().status
                     if verification.liveness_checks.exists()
                     else "pending"
                 ),
@@ -420,14 +465,3 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
         else:
             verification.save(update_fields=["status", "updated_at"])
         return decision_record
-
-
-def paginate_results(queryset, page: int, page_size: int):
-    paginator = Paginator(queryset, page_size)
-    page_obj = paginator.get_page(page)
-    return page_obj, {
-        "page": page_obj.number,
-        "page_size": page_size,
-        "total": paginator.count,
-        "total_pages": paginator.num_pages,
-    }

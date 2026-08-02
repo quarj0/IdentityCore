@@ -1,4 +1,10 @@
+import time
+from collections.abc import Callable, Mapping
+from typing import Any
+
 from django.utils import timezone
+
+from apps.providers.ai_service import AIServiceUnavailable
 
 from apps.providers.models import (
     Provider,
@@ -46,6 +52,142 @@ SYSTEM_PROVIDER_DEFAULTS = {
     },
 }
 
+SENSITIVE_METADATA_KEYS = frozenset(
+    {
+        "access_token",
+        "api_key",
+        "authorization",
+        "document_storage_key",
+        "password",
+        "secret",
+        "selfie_storage_key",
+        "token",
+    }
+)
+
+
+def redact_provider_metadata(value: Any) -> Any:
+    """Return telemetry-safe metadata without credentials or evidence locations."""
+    if isinstance(value, Mapping):
+        return {
+            str(key): (
+                "[REDACTED]"
+                if str(key).lower() in SENSITIVE_METADATA_KEYS
+                else redact_provider_metadata(item)
+            )
+            for key, item in value.items()
+        }
+    if isinstance(value, (list, tuple)):
+        return [redact_provider_metadata(item) for item in value]
+    return value
+
+
+def invoke_provider_check(
+    *,
+    provider_check: ProviderCheck,
+    operation: Callable[..., dict],
+    operation_kwargs: dict,
+    request_metadata: dict | None = None,
+    normalize: Callable[[dict], dict] | None = None,
+) -> dict:
+    """Resolve invocation bookkeeping through one normalized provider boundary.
+
+    Provider failures are re-raised so workflow-specific retry/review behavior remains
+    in the calling task, but the attempt is always completed and queryable first.
+    """
+    if provider_check is None:
+        raise ValueError("A provider check is required for every provider invocation.")
+    started_at = timezone.now()
+    started_clock = time.monotonic()
+    provider_check.status = ProviderCheckStatus.PROCESSING
+    provider_check.started_at = started_at
+    provider_check.completed_at = None
+    provider_check.request_metadata_json = redact_provider_metadata(
+        request_metadata or provider_check.request_metadata_json or {}
+    )
+    provider_check.save(
+        update_fields=[
+            "status",
+            "started_at",
+            "completed_at",
+            "request_metadata_json",
+            "updated_at",
+        ]
+    )
+
+    try:
+        result = operation(**operation_kwargs)
+        if not isinstance(result, dict):
+            raise TypeError("Provider operations must return a dictionary result.")
+        normalized = normalize(result) if normalize else result
+    except Exception as exc:
+        completed_at = timezone.now()
+        error_code = getattr(exc, "error_code", "provider_error")
+        status = getattr(exc, "provider_check_status", ProviderCheckStatus.FAILED)
+        if status not in {ProviderCheckStatus.FAILED, ProviderCheckStatus.TIMEOUT}:
+            status = ProviderCheckStatus.FAILED
+        provider_check.status = status
+        provider_check.completed_at = completed_at
+        provider_check.duration_ms = max(
+            0, round((time.monotonic() - started_clock) * 1000)
+        )
+        provider_check.error_code = error_code
+        provider_check.error_message = str(exc)
+        provider_check.response_metadata_json = {
+            "outcome": status,
+            "error_code": error_code,
+        }
+        provider_check.normalized_result_json = {
+            "status": status,
+            "error": {
+                "code": error_code,
+                "retryable": isinstance(exc, AIServiceUnavailable),
+            },
+        }
+        provider_check.save(
+            update_fields=[
+                "status",
+                "completed_at",
+                "duration_ms",
+                "error_code",
+                "error_message",
+                "response_metadata_json",
+                "normalized_result_json",
+                "updated_at",
+            ]
+        )
+        raise
+
+    provider_check.status = ProviderCheckStatus.COMPLETED
+    provider_check.completed_at = timezone.now()
+    provider_check.duration_ms = max(
+        0, round((time.monotonic() - started_clock) * 1000)
+    )
+    provider_check.error_code = ""
+    provider_check.error_message = ""
+    provider_check.response_metadata_json = redact_provider_metadata(
+        {
+            "outcome": ProviderCheckStatus.COMPLETED,
+            "model_name": result.get("model_name", ""),
+            "model_version": result.get("model_version", ""),
+            "engine": result.get("engine", ""),
+        }
+    )
+    provider_check.normalized_result_json = normalized
+    provider_check.save(
+        update_fields=[
+            "status",
+            "completed_at",
+            "duration_ms",
+            "error_code",
+            "error_message",
+            "response_metadata_json",
+            "normalized_result_json",
+            "updated_at",
+        ]
+    )
+    return normalized
+
 
 def get_or_create_system_provider(check_type: str) -> Provider:
     defaults = SYSTEM_PROVIDER_DEFAULTS[check_type]
@@ -60,7 +202,9 @@ def get_or_create_system_provider(check_type: str) -> Provider:
     return provider
 
 
-def get_tenant_provider_assignment(tenant, assignment_key: str) -> ProviderAssignment | None:
+def get_tenant_provider_assignment(
+    tenant, assignment_key: str
+) -> ProviderAssignment | None:
     return (
         ProviderAssignment.objects.select_related("provider")
         .filter(
@@ -79,7 +223,9 @@ def resolve_provider_for_check(*, tenant, check_type: str) -> Provider:
     return get_or_create_system_provider(check_type)
 
 
-def get_notification_provider_assignment(tenant, channel: str) -> ProviderAssignment | None:
+def get_notification_provider_assignment(
+    tenant, channel: str
+) -> ProviderAssignment | None:
     assignment_key = {
         "email": ProviderAssignmentKey.NOTIFICATION_EMAIL,
         "sms": ProviderAssignmentKey.NOTIFICATION_SMS,

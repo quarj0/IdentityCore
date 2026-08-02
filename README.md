@@ -205,6 +205,20 @@ Production settings validate these requirements during import and stop startup w
 configuration variable names—not secret values—when configuration is missing or unsafe.
 For example, generate secrets with `python -c "import secrets; print(secrets.token_urlsafe(64))"`.
 
+### Running all tests
+
+After installing the repository's Python, Node/pnpm, Playwright, Java, and .NET
+dependencies, run every backend, AI, frontend, and SDK test suite from the repository
+root with:
+
+```bash
+make test-all
+```
+
+The command prints a named heading and pass/fail result for each suite and stops at the
+first failure. Use the component-specific commands in `.github/workflows/ci.yml` when
+installing dependencies or troubleshooting an individual suite.
+
 ---
 
 ## Development Roadmap

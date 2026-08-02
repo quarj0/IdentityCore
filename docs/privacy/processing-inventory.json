@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "owners": {
+    "privacy": "Privacy lead",
+    "security": "Security lead",
+    "identity": "Identity domain owner",
+    "platform": "Platform engineering owner",
+    "support": "Support operations owner"
+  },
+  "activities": [
+    {
+      "id": "account-and-tenant-administration",
+      "fields": [
+        "name",
+        "email",
+        "phone number",
+        "password hash",
+        "MFA and recovery state",
+        "membership and role",
+        "IP address",
+        "user agent"
+      ],
+      "purpose": "Authenticate users, administer tenants, enforce access, and investigate security events.",
+      "locations": [
+        "backend/django/apps/accounts/models.py",
+        "backend/django/apps/organizations/models.py",
+        "backend/django/apps/access_control/models.py",
+        "backend/django/apps/security/models.py"
+      ],
+      "retention": "Account and membership lifetime, followed by the configured legal/security deletion period; short-lived tokens expire and are purged.",
+      "processors": [
+        "IdentityCore Django",
+        "PostgreSQL",
+        "configured email/SMS provider"
+      ],
+      "transfers": "Notification contact data is sent only to the tenant-configured notification provider; deployment owner records region and safeguards.",
+      "owners": ["identity", "security", "privacy"]
+    },
+    {
+      "id": "verification-subject-and-session",
+      "fields": [
+        "subject identifiers",
+        "name",
+        "date of birth",
+        "nationality",
+        "address",
+        "contact details",
+        "session token hash",
+        "workflow responses",
+        "decision and risk signals"
+      ],
+      "purpose": "Create and execute tenant-requested identity verification workflows.",
+      "locations": [
+        "backend/django/apps/verification_subjects/models.py",
+        "backend/django/apps/verification_sessions/models.py",
+        "backend/django/apps/verifications/models.py",
+        "backend/django/apps/risk/models.py"
+      ],
+      "retention": "Tenant policy controls the verification record; session credentials are short-lived; minimization and deletion jobs apply after the case retention window.",
+      "processors": [
+        "IdentityCore Django",
+        "PostgreSQL",
+        "tenant-selected verification providers"
+      ],
+      "transfers": "Only policy-required attributes/evidence are sent through enabled provider adapters; cross-border region and safeguards are deployment records.",
+      "owners": ["identity", "privacy"]
+    },
+    {
+      "id": "document-and-biometric-evidence",
+      "fields": [
+        "document images",
+        "document number and OCR attributes",
+        "portrait/selfie",
+        "liveness video",
+        "face embedding",
+        "match/liveness scores",
+        "quality and fraud signals"
+      ],
+      "purpose": "Assess document authenticity, extract asserted identity data, and produce biometric match/liveness evidence.",
+      "locations": [
+        "backend/django/apps/identity_documents/models.py",
+        "backend/django/apps/document_captures/models.py",
+        "backend/django/apps/biometrics/models.py",
+        "backend/django/apps/uploads/models.py",
+        "backend/ai-service/app"
+      ],
+      "retention": "Uploads begin in temporary storage, move to protected media/evidence storage when consumed, and are deleted by tenant policy; derived biometric data follows the shortest applicable media/biometric period.",
+      "processors": [
+        "IdentityCore Django",
+        "IdentityCore AI service",
+        "S3-compatible object storage",
+        "tenant-selected document/biometric providers"
+      ],
+      "transfers": "Media leaves the deployment only when the tenant policy selects an external provider; provider region, subprocessors, and transfer mechanism must be recorded before enablement.",
+      "owners": ["identity", "security", "privacy"]
+    },
+    {
+      "id": "consent-audit-and-compliance",
+      "fields": [
+        "consent artifact and acceptance",
+        "actor identity",
+        "IP address",
+        "user agent",
+        "event metadata",
+        "evidence bundle references"
+      ],
+      "purpose": "Demonstrate authorization, accountability, integrity, and compliance decisions.",
+      "locations": [
+        "backend/django/apps/consent/models.py",
+        "backend/django/apps/audit/models.py",
+        "backend/django/apps/incidents/models.py"
+      ],
+      "retention": "Immutable consent/audit evidence follows contractual and statutory schedules; access is restricted and deletion is documented where legally permitted.",
+      "processors": [
+        "IdentityCore Django",
+        "PostgreSQL",
+        "S3-compatible evidence storage"
+      ],
+      "transfers": "Exports are disclosed only to authorized tenant users, auditors, regulators, or incident responders using approved secure channels.",
+      "owners": ["privacy", "security"]
+    },
+    {
+      "id": "integrations-billing-and-support",
+      "fields": [
+        "API client identity and secret hash",
+        "webhook URL and delivery metadata",
+        "provider configuration secrets",
+        "billing usage",
+        "support requester/contact and ticket content"
+      ],
+      "purpose": "Operate customer integrations, provider routing, metering, delivery troubleshooting, and support.",
+      "locations": [
+        "backend/django/apps/api_clients/models.py",
+        "backend/django/apps/webhooks/models.py",
+        "backend/django/apps/providers/models.py",
+        "backend/django/apps/billing/models.py",
+        "backend/django/apps/support/models.py"
+      ],
+      "retention": "Credential material lasts until rotation/revocation; delivery and support metadata follows operational/contractual schedules; ticket attachments must not contain verification media unless explicitly approved.",
+      "processors": [
+        "IdentityCore Django",
+        "PostgreSQL",
+        "tenant endpoints",
+        "configured support and provider services"
+      ],
+      "transfers": "Webhook payloads and support/provider disclosures follow tenant configuration, data-minimization rules, and recorded destination safeguards.",
+      "owners": ["platform", "support", "security", "privacy"]
+    }
+  ]
+}

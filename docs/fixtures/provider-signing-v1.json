@@ -1,0 +1,19 @@
+{
+  "description": "Language-neutral IdentityCore provider HMAC-SHA256 fixture",
+  "method": "POST",
+  "path": "/v1/face/compare?version=1",
+  "timestamp": 1700000000,
+  "nonce": "01HF7YAT00EXAMPLE",
+  "key_id": "2026-01",
+  "secret": "fixture-secret",
+  "body": {
+    "message": "Olá",
+    "result": {
+      "score": 0.98,
+      "status": "passed"
+    }
+  },
+  "canonical_body": "{\"message\":\"Olá\",\"result\":{\"score\":0.98,\"status\":\"passed\"}}",
+  "canonical_message": "ic-provider-v1\nPOST\n/v1/face/compare?version=1\n1700000000\n01HF7YAT00EXAMPLE\ncb52f15387feda30015920bdff8727e946143f220d0a6e27bbf2a2f6dbb871fd",
+  "signature": "13584b25a847b637a6a05d3901c4bc6b8fb9cd47a2721b2d5e55b110ac39ecba"
+}

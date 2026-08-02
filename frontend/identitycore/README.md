@@ -12,6 +12,9 @@ NEXT_PUBLIC_VERIFICATION_URL=http://localhost:3002
 NEXT_PUBLIC_ALLOW_INDEXING=false
 ```
 
+From `frontend/`, run `corepack pnpm install --frozen-lockfile` and then
+`pnpm dev:web`; open `http://localhost:3001`.
+
 Use `pnpm --filter identitycore-web lint` and `pnpm --filter identitycore-web build` for validation.
 
 See [COMPLETION.md](COMPLETION.md) for the audited completion boundary, missing API

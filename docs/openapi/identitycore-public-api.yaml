@@ -239,16 +239,17 @@ components:
               format: date-time
     Pagination:
       type: object
-      required: [page, page_size, total, total_pages]
+      description: Cursor pagination metadata. Cursors are opaque and must be reused with the same filters.
+      required: [limit, next_cursor, has_more]
       properties:
-        page:
+        limit:
           type: integer
-        page_size:
-          type: integer
-        total:
-          type: integer
-        total_pages:
-          type: integer
+          minimum: 1
+          maximum: 100
+        next_cursor:
+          type: [string, "null"]
+        has_more:
+          type: boolean
     EvidenceReport:
       type: object
       required: [verification_id, storage_key, download_url, pdf_storage_key, pdf_download_url]
@@ -733,14 +734,18 @@ paths:
           in: query
           schema:
             type: string
-        - name: page
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: Opaque cursor returned by the previous page; reuse it with unchanged filters.
+        - name: limit
           in: query
           schema:
             type: integer
-        - name: page_size
-          in: query
-          schema:
-            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
       responses:
         "200":
           description: Verification page.
