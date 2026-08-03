@@ -138,6 +138,48 @@ class UploadCreateTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["upload_id"], upload_id)
         put_object_bytes.assert_called_once()
+        upload = Upload.objects.get(public_id=upload_id)
+        self.assertEqual(upload.status, UploadStatus.UPLOADED)
+        self.assertEqual(
+            upload.checksum_sha256,
+            "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        )
+
+        duplicate_response = self.client.post(
+            reverse("upload-transfer", kwargs={"upload_id": upload_id}),
+            {"file": SimpleUploadedFile("document.jpg", b"test", content_type="image/jpeg")},
+            format="multipart",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(duplicate_response.status_code, status.HTTP_200_OK)
+        put_object_bytes.assert_called_once()
+
+    @patch("apps.uploads.views.put_object_bytes")
+    def test_duplicate_transfer_with_different_content_is_rejected(self, put_object_bytes):
+        create_response = self.client.post(
+            reverse("upload-create"),
+            {"purpose": "document_capture", "mime_type": "image/jpeg", "file_size_bytes": 4},
+            format="json",
+            **self.auth_headers(),
+        )
+        upload_id = create_response.data["data"]["upload_id"]
+        self.client.post(
+            reverse("upload-transfer", kwargs={"upload_id": upload_id}),
+            {"file": SimpleUploadedFile("document.jpg", b"test", content_type="image/jpeg")},
+            format="multipart",
+            **self.auth_headers(),
+        )
+
+        response = self.client.post(
+            reverse("upload-transfer", kwargs={"upload_id": upload_id}),
+            {"file": SimpleUploadedFile("document.jpg", b"nope", content_type="image/jpeg")},
+            format="multipart",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        put_object_bytes.assert_called_once()
 
     def test_create_upload_requires_session_authentication(self):
         response = self.client.post(

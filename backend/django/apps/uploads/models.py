@@ -13,6 +13,7 @@ class UploadPurpose(models.TextChoices):
 
 class UploadStatus(models.TextChoices):
     INITIATED = "initiated", "Initiated"
+    UPLOADED = "uploaded", "Uploaded"
     CONSUMED = "consumed", "Consumed"
     PROMOTED = "promoted", "Promoted"
     EXPIRED = "expired", "Expired"

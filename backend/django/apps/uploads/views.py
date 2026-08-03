@@ -1,3 +1,7 @@
+import hashlib
+
+from django.db import transaction
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -41,14 +45,19 @@ class UploadTransferView(APIView):
         super().initial(request, *args, **kwargs)
         require_verification_session_action(request, self.required_session_action)
 
+    @transaction.atomic
     def post(self, request, upload_id: str):
-        upload = Upload.objects.filter(
-            public_id=upload_id,
-            tenant=request.tenant,
-            verification_session=request.verification_session,
-            status=UploadStatus.INITIATED,
-            deleted_at__isnull=True,
-        ).first()
+        upload = (
+            Upload.objects.select_for_update()
+            .filter(
+                public_id=upload_id,
+                tenant=request.tenant,
+                verification_session=request.verification_session,
+                status__in=[UploadStatus.INITIATED, UploadStatus.UPLOADED],
+                deleted_at__isnull=True,
+            )
+            .first()
+        )
         if upload is None:
             from rest_framework.exceptions import NotFound
 
@@ -59,7 +68,14 @@ class UploadTransferView(APIView):
             from rest_framework.exceptions import ValidationError
 
             raise ValidationError({"file": "Choose a file to upload."})
-        if uploaded_file.size != upload.file_size_bytes:
+        if upload.is_expired or upload.status == UploadStatus.EXPIRED:
+            from rest_framework.exceptions import ValidationError
+
+            raise ValidationError({"file": "This upload has expired."})
+
+        content = uploaded_file.read()
+        checksum_sha256 = hashlib.sha256(content).hexdigest()
+        if len(content) != upload.file_size_bytes:
             from rest_framework.exceptions import ValidationError
 
             raise ValidationError({"file": "The selected file changed. Please choose it again."})
@@ -68,10 +84,20 @@ class UploadTransferView(APIView):
 
             raise ValidationError({"file": "The selected file type does not match the upload."})
 
+        if upload.status == UploadStatus.UPLOADED:
+            if upload.checksum_sha256 != checksum_sha256:
+                from rest_framework.exceptions import ValidationError
+
+                raise ValidationError({"file": "This upload was already completed with different content."})
+            return success_response({"upload_id": upload.public_id}, request=request)
+
         put_object_bytes(
             bucket_name=get_object_storage_temp_bucket_name(),
             key=upload.storage_key,
-            content=uploaded_file.read(),
+            content=content,
             content_type=upload.mime_type,
         )
+        upload.status = UploadStatus.UPLOADED
+        upload.checksum_sha256 = checksum_sha256
+        upload.save(update_fields=["status", "checksum_sha256", "updated_at"])
         return success_response({"upload_id": upload.public_id}, request=request)
