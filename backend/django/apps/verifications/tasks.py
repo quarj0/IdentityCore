@@ -18,6 +18,7 @@ from apps.verifications.models import (
     VerificationSessionStatus,
     VerificationStatus,
 )
+from apps.verifications.transitions import transition_verification
 from apps.webhooks.services import queue_webhook_events
 
 EXPIRABLE_VERIFICATION_STATUSES = {
@@ -54,9 +55,13 @@ def expire_pending_verifications_task(limit: int = 100) -> int:
         .order_by("expires_at")[:limit]
     )
     for verification in verifications:
-        verification.status = VerificationStatus.EXPIRED
-        verification.completed_at = now
-        verification.save(update_fields=["status", "completed_at", "updated_at"])
+        verification, changed = transition_verification(
+            verification,
+            VerificationStatus.EXPIRED,
+            completed_at=now,
+        )
+        if not changed:
+            continue
         verification.sessions.filter(status__in=EXPIRABLE_SESSION_STATUSES).update(
             status=VerificationSessionStatus.EXPIRED,
             updated_at=now,

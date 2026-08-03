@@ -48,6 +48,7 @@ from apps.verifications.models import (
     VerificationSession,
     VerificationStatus,
 )
+from apps.verifications.transitions import transition_verification
 from apps.verifications.review_access import manual_review_queryset_for_user
 from common.authentication import APIClientAuthentication
 from common.permissions import HasAPIClientScopes, IsManualReviewUser, IsTenantUser
@@ -306,9 +307,13 @@ class VerificationCancelView(VerificationAccessMixin, APIView):
         )
         serializer = VerificationCancelSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        verification.status = VerificationStatus.CANCELLED
+        verification, _ = transition_verification(
+            verification,
+            VerificationStatus.CANCELLED,
+            completed_at=timezone.now(),
+        )
         verification.cancelled_at = timezone.now()
-        verification.save(update_fields=["status", "cancelled_at", "updated_at"])
+        verification.save(update_fields=["cancelled_at", "updated_at"])
         record_audit_event(
             tenant=self._get_tenant(request),
             actor=self._get_actor(request),

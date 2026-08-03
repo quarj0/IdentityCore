@@ -24,6 +24,7 @@ from apps.verifications.models import (
     VerificationDecisionType,
     VerificationStatus,
 )
+from apps.verifications.transitions import transition_verification
 from common.storage import (
     get_object_storage_media_bucket_name,
     get_object_storage_temp_bucket_name,
@@ -396,9 +397,11 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                 "decided_at": now,
             },
         )
-        verification.status = VerificationStatus.MANUAL_REVIEW_REQUIRED
-        verification.completed_at = None
-        verification.save(update_fields=["status", "completed_at", "updated_at"])
+        transition_verification(
+            verification,
+            VerificationStatus.MANUAL_REVIEW_REQUIRED,
+            clear_completed_at=True,
+        )
         try:
             ensure_verification_evidence_report(verification)
         except Exception:

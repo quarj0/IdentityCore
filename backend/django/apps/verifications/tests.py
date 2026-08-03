@@ -38,9 +38,78 @@ from apps.verifications.tasks import (
     cleanup_retained_media_task,
     expire_pending_verifications_task,
 )
+from apps.verifications.transitions import (
+    VerificationTransitionError,
+    transition_verification,
+)
 from apps.verification_subjects.models import VerificationSubject
 from apps.webhooks.models import WebhookEndpoint, WebhookEvent, WebhookEventStatus
 from common.crypto import encrypt_object_bytes
+
+
+class VerificationTransitionTests(TestCase):
+    def setUp(self):
+        organization = Organization.objects.create(name="Transitions", slug="transitions")
+        tenant = Tenant.objects.create(
+            organization=organization,
+            name="Transitions Tenant",
+            slug="transitions-tenant",
+            status="active",
+        )
+        subject = VerificationSubject.objects.create(
+            tenant=tenant,
+            full_name="Transition Subject",
+        )
+        self.verification = Verification.objects.create(
+            tenant=tenant,
+            organization=organization,
+            verification_subject=subject,
+            purpose="Transition test",
+            status=VerificationStatus.PENDING_CONSENT,
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+
+    def test_transition_table_applies_valid_change_and_is_idempotent(self):
+        transitioned, changed = transition_verification(
+            self.verification, VerificationStatus.IN_PROGRESS
+        )
+
+        self.assertTrue(changed)
+        self.assertEqual(transitioned.status, VerificationStatus.IN_PROGRESS)
+
+        repeated, changed = transition_verification(
+            self.verification, VerificationStatus.IN_PROGRESS
+        )
+
+        self.assertFalse(changed)
+        self.assertEqual(repeated.status, VerificationStatus.IN_PROGRESS)
+
+    def test_invalid_transition_is_rejected_without_mutating_status(self):
+        with self.assertRaises(VerificationTransitionError):
+            transition_verification(
+                self.verification, VerificationStatus.VERIFIED
+            )
+
+        self.verification.refresh_from_db()
+        self.assertEqual(
+            self.verification.status, VerificationStatus.PENDING_CONSENT
+        )
+
+    def test_terminal_transition_records_completion_and_rejects_later_change(self):
+        transition_verification(
+            self.verification, VerificationStatus.IN_PROGRESS
+        )
+        transitioned, changed = transition_verification(
+            self.verification,
+            VerificationStatus.CANCELLED,
+        )
+
+        self.assertTrue(changed)
+        self.assertIsNotNone(transitioned.completed_at)
+        with self.assertRaises(VerificationTransitionError):
+            transition_verification(
+                self.verification, VerificationStatus.IN_PROGRESS
+            )
 
 
 class VerificationWorkflowTests(APITestCase):
