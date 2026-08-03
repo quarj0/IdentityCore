@@ -532,6 +532,16 @@ class ManualReviewDecisionView(APIView):
         decision_record = serializer.save(
             verification=verification, decided_by=request.user
         )
+        if getattr(verification, "_review_assigned_now", False):
+            record_audit_event(
+                tenant=verification.tenant,
+                actor=request.user,
+                request=request,
+                action="verification.review_assigned",
+                target_type="verification",
+                target_id=verification.public_id,
+                metadata={"reviewer_id": request.user.public_id},
+            )
         record_audit_event(
             tenant=verification.tenant,
             actor=request.user,

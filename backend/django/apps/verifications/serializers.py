@@ -191,6 +191,11 @@ def serialize_verification_summary(verification: Verification) -> dict:
             "full_name": verification.verification_subject.full_name,
             "email": verification.verification_subject.email,
         },
+        "assigned_reviewer_id": (
+            verification.assigned_reviewer.public_id
+            if verification.assigned_reviewer_id
+            else None
+        ),
         "policy": {
             "id": verification.policy_public_id,
             "name": verification.policy_snapshot_json.get("name", ""),
@@ -451,6 +456,16 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
                 }
             )
 
+        if verification.assigned_reviewer_id not in {None, getattr(decided_by, "pk", None)}:
+            raise serializers.ValidationError(
+                {"decision": "This verification is assigned to another reviewer."}
+            )
+        assigned_now = verification.assigned_reviewer_id is None
+        if assigned_now:
+            verification.assigned_reviewer = decided_by
+            verification.assigned_at = timezone.now()
+            verification.save(update_fields=["assigned_reviewer", "assigned_at", "updated_at"])
+
         reviewer_email = (getattr(decided_by, "email", "") or "").strip().lower()
         subject_email = (verification.verification_subject.email or "").strip().lower()
         if verification.created_by_id == getattr(decided_by, "pk", None) or (
@@ -491,4 +506,5 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
             self.validated_data["decision"],
             completed_at=now,
         )
+        verification._review_assigned_now = assigned_now
         return decision_record

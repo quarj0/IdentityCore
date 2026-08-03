@@ -103,6 +103,14 @@ class Verification(PublicIdModel, BaseModel):
         default=VerificationReviewOwner.TENANT,
         db_index=True,
     )
+    assigned_reviewer = models.ForeignKey(
+        "accounts.PlatformUser",
+        on_delete=models.PROTECT,
+        related_name="assigned_verification_reviews",
+        null=True,
+        blank=True,
+    )
+    assigned_at = models.DateTimeField(null=True, blank=True)
     external_reference = models.CharField(max_length=255, blank=True, db_index=True)
     metadata_json = EncryptedJSONField(
         default=dict,
