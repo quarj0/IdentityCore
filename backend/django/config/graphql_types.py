@@ -96,6 +96,7 @@ class APIClientNode:
     allowed_networks: list[str]
     rate_limit_per_minute: int
     last_used_at: str | None
+    client_secret_overlap_expires_at: str | None
     created_at: str
     updated_at: str
 

@@ -21,6 +21,11 @@ def serialize_api_client(
         "last_used_at": (
             api_client.last_used_at.isoformat() if api_client.last_used_at else None
         ),
+        "client_secret_overlap_expires_at": (
+            api_client.previous_client_secret_expires_at.isoformat()
+            if api_client.previous_client_secret_expires_at
+            else None
+        ),
         "created_at": api_client.created_at.isoformat(),
         "updated_at": api_client.updated_at.isoformat(),
     }

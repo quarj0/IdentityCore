@@ -1076,6 +1076,17 @@ Rule:
 
 `client_secret` is shown only once.
 
+Rotation:
+
+- `POST /api-clients/{client_id}/rotate` returns the new `client_secret` once.
+- The previous secret remains valid for the configured
+  `API_CLIENT_ROTATION_OVERLAP_SECONDS` window (15 minutes by default), allowing
+  consumers to deploy the new credential without an authentication gap.
+- The response exposes `client_secret_overlap_expires_at` so operators know when
+  the previous credential will stop working.
+- Only password hashes are stored; neither the current nor previous raw secret is
+  persisted or logged. Rotation is recorded as an audit event.
+
 Implementation note:
 
 - `client_id` is a prefixed public identifier such as `cli_01J...`.

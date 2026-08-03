@@ -1,4 +1,8 @@
+from datetime import timedelta
+
+from django.conf import settings
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -79,7 +83,11 @@ class APIClientActionView(APIClientDetailView):
         secret = None
         if action == "rotate":
             secret = client.generate_client_secret()
-            client.set_client_secret(secret)
+            client.rotate_client_secret(
+                secret,
+                overlap_expires_at=timezone.now()
+                + timedelta(seconds=settings.API_CLIENT_ROTATION_OVERLAP_SECONDS),
+            )
             client.status = "active"
         elif action == "revoke":
             client.status = "revoked"
