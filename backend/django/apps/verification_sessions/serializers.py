@@ -32,6 +32,7 @@ from apps.verifications.models import (
     VerificationSessionStatus,
     VerificationStatus,
 )
+from apps.verifications.transitions import transition_verification
 from common.catalog import COUNTRY_PROFILES, DOCUMENT_TYPES
 
 
@@ -461,8 +462,7 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
         existing_record = verification.consent_records.order_by("-accepted_at").first()
         if existing_record:
             if verification.status == VerificationStatus.PENDING_CONSENT:
-                verification.status = VerificationStatus.IN_PROGRESS
-                verification.save(update_fields=["status", "updated_at"])
+                transition_verification(verification, VerificationStatus.IN_PROGRESS)
             return existing_record
 
         consent_snapshot = (verification.policy_snapshot_json or {}).get("consent") or {}
@@ -522,8 +522,7 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
         update_session_fields.extend(["ip_address", "user_agent", "device_fingerprint"])
         verification_session.save(update_fields=update_session_fields)
 
-        verification.status = VerificationStatus.IN_PROGRESS
-        verification.save(update_fields=["status", "updated_at"])
+        transition_verification(verification, VerificationStatus.IN_PROGRESS)
         return consent_record
 
 
@@ -734,8 +733,7 @@ class VerificationSessionDocumentSerializer(serializers.Serializer):
             },
         )
 
-        verification.status = VerificationStatus.AWAITING_DOCUMENT
-        verification.save(update_fields=["status", "updated_at"])
+        transition_verification(verification, VerificationStatus.AWAITING_DOCUMENT)
         verification_session.last_seen_at = now
         verification_session.save(update_fields=["last_seen_at", "updated_at"])
         return identity_document
@@ -805,8 +803,7 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
         )
         consume_upload(upload=upload)
 
-        verification.status = VerificationStatus.PROCESSING
-        verification.save(update_fields=["status", "updated_at"])
+        transition_verification(verification, VerificationStatus.PROCESSING)
         verification_session.last_seen_at = now
         verification_session.save(update_fields=["last_seen_at", "updated_at"])
         return selfie_capture
@@ -985,8 +982,7 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
             face_match.provider_check_id = face_match_provider_check.public_id
             face_match.save(update_fields=["provider_check_id", "updated_at"])
 
-        verification.status = VerificationStatus.PROCESSING
-        verification.save(update_fields=["status", "updated_at"])
+        transition_verification(verification, VerificationStatus.PROCESSING)
         verification_session.last_seen_at = now
         verification_session.save(update_fields=["last_seen_at", "updated_at"])
         return liveness_check

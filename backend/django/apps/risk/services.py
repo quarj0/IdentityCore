@@ -11,6 +11,7 @@ from apps.verifications.models import (
     VerificationDecisionType,
     VerificationStatus,
 )
+from apps.verifications.transitions import transition_verification
 
 
 def _get_policy_thresholds(verification) -> tuple[Decimal, Decimal]:
@@ -191,16 +192,7 @@ def apply_automatic_decision(
             "decided_at": now,
         },
     )
-    verification.status = decision
-    if decision in {
-        VerificationStatus.VERIFIED,
-        VerificationStatus.REJECTED,
-        VerificationStatus.FAILED,
-    }:
-        verification.completed_at = now
-        verification.save(update_fields=["status", "completed_at", "updated_at"])
-    else:
-        verification.save(update_fields=["status", "updated_at"])
+    transition_verification(verification, decision, completed_at=now)
     return decision_record
 
 

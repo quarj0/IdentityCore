@@ -21,6 +21,7 @@ from apps.verifications.models import (
     VerificationSession,
     VerificationStatus,
 )
+from apps.verifications.transitions import transition_verification
 from apps.verifications.review_access import review_owner_for_metadata
 from common.pagination import paginate_results as _paginate_results
 
@@ -458,10 +459,9 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
             decided_by=decided_by,
             decided_at=now,
         )
-        verification.status = self.validated_data["decision"]
-        if verification.status in terminal_statuses:
-            verification.completed_at = now
-            verification.save(update_fields=["status", "completed_at", "updated_at"])
-        else:
-            verification.save(update_fields=["status", "updated_at"])
+        transition_verification(
+            verification,
+            self.validated_data["decision"],
+            completed_at=now,
+        )
         return decision_record

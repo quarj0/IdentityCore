@@ -17,6 +17,7 @@ from apps.providers.models import ProviderCheckStatus, ProviderCheckType
 from apps.providers.services import create_provider_check, invoke_provider_check
 from apps.uploads.services import promote_upload_to_media_by_storage_key
 from apps.verifications.models import VerificationStatus
+from apps.verifications.transitions import transition_verification
 from common.storage import get_object_storage_temp_bucket_name
 
 logger = logging.getLogger(__name__)
@@ -368,16 +369,18 @@ def process_identity_document_task(identity_document_id: str) -> str:
         # collecting selfie, liveness, and face-match evidence so a reviewer has
         # the complete case. The risk engine consumes the persisted classification
         # result and applies manual-review routing after biometrics finish.
-        verification.status = (
-            VerificationStatus.AWAITING_SELFIE
-            if identity_document.status
-            in {
-                IdentityDocumentStatus.PROCESSED,
-                IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
-            }
-            else VerificationStatus.AWAITING_DOCUMENT
+        transition_verification(
+            verification,
+            (
+                VerificationStatus.AWAITING_SELFIE
+                if identity_document.status
+                in {
+                    IdentityDocumentStatus.PROCESSED,
+                    IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
+                }
+                else VerificationStatus.AWAITING_DOCUMENT
+            ),
         )
-        verification.save(update_fields=["status", "updated_at"])
 
         if classification_provider_check is not None:
             classification_provider_check.status = (
@@ -503,8 +506,7 @@ def process_identity_document_task(identity_document_id: str) -> str:
         internal_reason = getattr(exc, "reason", str(exc))
         identity_document.status = IdentityDocumentStatus.FAILED
         identity_document.save(update_fields=["status", "updated_at"])
-        verification.status = VerificationStatus.AWAITING_DOCUMENT
-        verification.save(update_fields=["status", "updated_at"])
+        transition_verification(verification, VerificationStatus.AWAITING_DOCUMENT)
         for provider_check in (
             quality_provider_check,
             classification_provider_check,
