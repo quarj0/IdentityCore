@@ -269,6 +269,8 @@ def serialize_verification_evidence_report(verification: Verification) -> dict:
                 "decision_type": decision_record.decision_type,
                 "reason_code": decision_record.reason_code,
                 "reason_detail": decision_record.reason_detail,
+                "contract_version": decision_record.contract_version,
+                "reason_codes": decision_record.reason_codes_json,
                 "decided_at": decision_record.decided_at.isoformat(),
             }
             if decision_record is not None

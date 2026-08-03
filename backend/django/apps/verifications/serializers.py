@@ -23,6 +23,10 @@ from apps.verifications.models import (
     VerificationStatus,
 )
 from apps.verifications.transitions import transition_verification
+from apps.verifications.decision_contract import (
+    DECISION_CONTRACT_VERSION,
+    build_decision_input_snapshot,
+)
 from apps.verifications.review_access import review_owner_for_metadata
 from common.pagination import paginate_results as _paginate_results
 
@@ -161,6 +165,8 @@ def serialize_verification(verification: Verification, request=None) -> dict:
                 "decision_type": decision_record.decision_type,
                 "reason_code": decision_record.reason_code,
                 "reason_detail": decision_record.reason_detail,
+                "contract_version": decision_record.contract_version,
+                "reason_codes": decision_record.reason_codes_json,
                 "decided_at": decision_record.decided_at.isoformat(),
             }
             if decision_record is not None
@@ -462,6 +468,9 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
             decision_type=VerificationDecisionType.MANUAL,
             reason_code=self.validated_data["reason_code"],
             reason_detail=self.validated_data["reason_detail"],
+            contract_version=DECISION_CONTRACT_VERSION,
+            reason_codes_json=[self.validated_data["reason_code"]],
+            input_snapshot_json=build_decision_input_snapshot(verification),
             evidence_summary_json={
                 "liveness_status": (
                     verification.liveness_checks.order_by("-checked_at").first().status
