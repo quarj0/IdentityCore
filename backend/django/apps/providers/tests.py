@@ -203,6 +203,8 @@ class ProviderModelTests(TestCase):
 
         check.refresh_from_db()
         self.assertEqual(result["confidence_score"], 0.91)
+        self.assertEqual(result["contract_version"], "1")
+        self.assertEqual(result["capability"], ProviderCheckType.DOCUMENT_OCR)
         self.assertEqual(check.status, ProviderCheckStatus.COMPLETED)
         self.assertIsNotNone(check.duration_ms)
         self.assertEqual(check.request_metadata_json["api_key"], "[REDACTED]")
@@ -234,6 +236,10 @@ class ProviderModelTests(TestCase):
             check.normalized_result_json["error"]["code"], "provider_timeout"
         )
         self.assertTrue(check.normalized_result_json["error"]["retryable"])
+        self.assertEqual(check.normalized_result_json["contract_version"], "1")
+        self.assertEqual(
+            check.normalized_result_json["capability"], ProviderCheckType.DOCUMENT_QUALITY
+        )
         self.assertIsNotNone(check.duration_ms)
 
     def test_redaction_is_recursive(self):

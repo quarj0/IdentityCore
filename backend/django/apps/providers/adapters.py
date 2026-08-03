@@ -6,23 +6,43 @@ allows a later provider integration to replace one capability at a time.
 """
 
 from collections.abc import Callable
-from typing import Protocol
+from typing import NotRequired, Protocol, TypedDict
 
 from apps.providers import ai_service
+
+
+PROVIDER_CONTRACT_VERSION = "1"
+
+
+class ProviderResult(TypedDict):
+    contract_version: str
+    capability: str
+    status: str
+    error: NotRequired[dict]
+
+
+def normalize_provider_result(capability: str, result: dict) -> dict:
+    if not isinstance(result, dict):
+        raise TypeError("Provider operations must return a dictionary result.")
+    normalized = dict(result)
+    normalized["contract_version"] = PROVIDER_CONTRACT_VERSION
+    normalized["capability"] = capability
+    normalized.setdefault("status", "completed")
+    return normalized
 
 
 class ProviderAdapter(Protocol):
     """The capabilities currently supplied by verification AI providers."""
 
-    def document_quality(self, **kwargs) -> dict: ...
+    def document_quality(self, **kwargs) -> ProviderResult: ...
 
-    def document_classification(self, **kwargs) -> dict: ...
+    def document_classification(self, **kwargs) -> ProviderResult: ...
 
-    def document_ocr(self, **kwargs) -> dict: ...
+    def document_ocr(self, **kwargs) -> ProviderResult: ...
 
-    def liveness(self, **kwargs) -> dict: ...
+    def liveness(self, **kwargs) -> ProviderResult: ...
 
-    def face_compare(self, **kwargs) -> dict: ...
+    def face_compare(self, **kwargs) -> ProviderResult: ...
 
 
 class BuiltInAIServiceAdapter:

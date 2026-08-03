@@ -5,6 +5,10 @@ from typing import Any
 from django.utils import timezone
 
 from apps.providers.ai_service import AIServiceUnavailable
+from apps.providers.adapters import (
+    PROVIDER_CONTRACT_VERSION,
+    normalize_provider_result,
+)
 
 from apps.providers.models import (
     Provider,
@@ -117,9 +121,8 @@ def invoke_provider_check(
 
     try:
         result = operation(**operation_kwargs)
-        if not isinstance(result, dict):
-            raise TypeError("Provider operations must return a dictionary result.")
         normalized = normalize(result) if normalize else result
+        normalized = normalize_provider_result(provider_check.check_type, normalized)
     except Exception as exc:
         completed_at = timezone.now()
         error_code = getattr(exc, "error_code", "provider_error")
@@ -138,6 +141,8 @@ def invoke_provider_check(
             "error_code": error_code,
         }
         provider_check.normalized_result_json = {
+            "contract_version": PROVIDER_CONTRACT_VERSION,
+            "capability": provider_check.check_type,
             "status": status,
             "error": {
                 "code": error_code,
