@@ -98,6 +98,11 @@ def serialize_verification(verification: Verification, request=None) -> dict:
             "name": verification.policy_snapshot_json.get("name", ""),
             "version": verification.policy_snapshot_json.get("version"),
         },
+        "workflow": {
+            "id": verification.workflow_snapshot_json.get("workflow_id"),
+            "version_id": verification.workflow_snapshot_json.get("id"),
+            "version": verification.workflow_snapshot_json.get("version"),
+        },
         "external_reference": verification.external_reference,
         "verification_subject": {
             "id": verification.verification_subject.public_id,
@@ -184,6 +189,11 @@ def serialize_verification_summary(verification: Verification) -> dict:
             "id": verification.policy_public_id,
             "name": verification.policy_snapshot_json.get("name", ""),
             "version": verification.policy_snapshot_json.get("version"),
+        },
+        "workflow": {
+            "id": verification.workflow_snapshot_json.get("workflow_id"),
+            "version_id": verification.workflow_snapshot_json.get("id"),
+            "version": verification.workflow_snapshot_json.get("version"),
         },
         "created_at": verification.created_at.isoformat(),
         "completed_at": (
@@ -296,10 +306,15 @@ class VerificationCreateSerializer(serializers.Serializer):
             )
             policy_public_id = policy.public_id
             policy_snapshot_json = policy.snapshot()
+            workflow_version = getattr(policy, "workflow_version", None)
+            workflow_snapshot_json = (
+                workflow_version.snapshot() if workflow_version is not None else {}
+            )
         else:
             expires_at = timezone.now() + timedelta(hours=24)
             policy_public_id = validated_data.get("policy_id", "")
             policy_snapshot_json = {}
+            workflow_snapshot_json = {}
         verification = Verification.objects.create(
             tenant=tenant,
             project=(
@@ -315,6 +330,7 @@ class VerificationCreateSerializer(serializers.Serializer):
             verification_subject=verification_subject,
             policy_public_id=policy_public_id,
             policy_snapshot_json=policy_snapshot_json,
+            workflow_snapshot_json=workflow_snapshot_json,
             purpose=validated_data["purpose"],
             external_reference=external_reference,
             metadata_json=validated_data.get("metadata", {}),

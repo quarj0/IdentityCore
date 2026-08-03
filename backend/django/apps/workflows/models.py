@@ -83,3 +83,14 @@ class WorkflowVersion(PublicIdModel):
                 fields=["workflow", "version"], name="workflow_version_uniq"
             )
         ]
+
+    def snapshot(self) -> dict:
+        return {
+            "id": self.public_id,
+            "workflow_id": self.workflow.public_id,
+            "workflow_name": self.workflow.name,
+            "version": self.version,
+            "steps": list(self.steps_json),
+            "settings": dict(self.settings_json),
+            "published_at": self.published_at.isoformat(),
+        }

@@ -85,6 +85,11 @@ class Verification(PublicIdModel, BaseModel):
         blank=True,
         encryption_purpose="verifications.policy_snapshot",
     )
+    workflow_snapshot_json = EncryptedJSONField(
+        default=dict,
+        blank=True,
+        encryption_purpose="verifications.workflow_snapshot",
+    )
     status = models.CharField(
         max_length=32,
         choices=VerificationStatus.choices,
