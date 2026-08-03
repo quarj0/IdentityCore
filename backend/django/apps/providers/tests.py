@@ -13,6 +13,7 @@ from apps.providers.ai_service import (
     AIServiceUnavailable,
     run_document_quality,
 )
+from apps.providers.http_adapter import SecureHTTPAdapterError, SecureHTTPProviderAdapter
 from apps.providers.adapters import (
     BUILT_IN_AI_SERVICE,
     BuiltInAIServiceAdapter,
@@ -330,3 +331,38 @@ class ProviderAdapterRegistryTests(TestCase):
     def test_registry_rejects_unknown_adapter(self):
         with self.assertRaisesRegex(LookupError, "missing"):
             ProviderAdapterRegistry().resolve("missing")
+
+
+class SecureHTTPProviderAdapterTests(TestCase):
+    def adapter(self):
+        return SecureHTTPProviderAdapter(
+            {"allowed_hosts": ["provider.example.com"], "timeout_seconds": 5}
+        )
+
+    @patch("apps.providers.http_adapter.socket.getaddrinfo", return_value=[(None, None, None, None, ("8.8.8.8", 0))])
+    @patch("apps.providers.http_adapter.request.build_opener")
+    def test_post_json_enforces_json_and_bounds_response(self, build_opener, getaddrinfo):
+        response = Mock()
+        response.headers.get_content_type.return_value = "application/json"
+        response.read.return_value = b'{"status":"ok"}'
+        response.__enter__ = Mock(return_value=response)
+        response.__exit__ = Mock(return_value=False)
+        build_opener.return_value.open.return_value = response
+
+        result = self.adapter().post_json(
+            url="https://provider.example.com/check", payload={"id": "ver_123"}
+        )
+
+        self.assertEqual(result, {"status": "ok"})
+        build_opener.return_value.open.assert_called_once()
+
+    def test_blocks_private_destinations_and_non_https_urls(self):
+        with self.assertRaisesRegex(SecureHTTPAdapterError, "HTTPS"):
+            self.adapter().post_json(url="http://provider.example.com/check", payload={})
+        with self.assertRaisesRegex(SecureHTTPAdapterError, "allowlisted"):
+            self.adapter().post_json(url="https://other.example.com/check", payload={})
+
+    @patch("apps.providers.http_adapter.socket.getaddrinfo", return_value=[(None, None, None, None, ("127.0.0.1", 0))])
+    def test_blocks_private_dns_resolution(self, getaddrinfo):
+        with self.assertRaisesRegex(SecureHTTPAdapterError, "private"):
+            self.adapter().post_json(url="https://provider.example.com/check", payload={})
