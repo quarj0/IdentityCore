@@ -110,8 +110,11 @@ class UploadCreateTests(APITestCase):
             ),
         )
 
+    @patch("apps.uploads.views.inspect_upload_content", return_value=(True, ""))
     @patch("apps.uploads.views.put_object_bytes")
-    def test_transfer_upload_proxies_file_to_private_storage(self, put_object_bytes):
+    def test_transfer_upload_proxies_file_to_private_storage(
+        self, put_object_bytes, inspect_upload_content
+    ):
         create_response = self.client.post(
             reverse("upload-create"),
             {
@@ -155,8 +158,11 @@ class UploadCreateTests(APITestCase):
         self.assertEqual(duplicate_response.status_code, status.HTTP_200_OK)
         put_object_bytes.assert_called_once()
 
+    @patch("apps.uploads.views.inspect_upload_content", return_value=(True, ""))
     @patch("apps.uploads.views.put_object_bytes")
-    def test_duplicate_transfer_with_different_content_is_rejected(self, put_object_bytes):
+    def test_duplicate_transfer_with_different_content_is_rejected(
+        self, put_object_bytes, inspect_upload_content
+    ):
         create_response = self.client.post(
             reverse("upload-create"),
             {"purpose": "document_capture", "mime_type": "image/jpeg", "file_size_bytes": 4},
@@ -180,6 +186,29 @@ class UploadCreateTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         put_object_bytes.assert_called_once()
+
+    @patch("apps.uploads.views.put_object_bytes")
+    def test_unrecognized_content_is_quarantined_before_processing(self, put_object_bytes):
+        create_response = self.client.post(
+            reverse("upload-create"),
+            {"purpose": "document_capture", "mime_type": "image/jpeg", "file_size_bytes": 4},
+            format="json",
+            **self.auth_headers(),
+        )
+        upload_id = create_response.data["data"]["upload_id"]
+
+        response = self.client.post(
+            reverse("upload-transfer", kwargs={"upload_id": upload_id}),
+            {"file": SimpleUploadedFile("document.jpg", b"test", content_type="image/jpeg")},
+            format="multipart",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        upload = Upload.objects.get(public_id=upload_id)
+        self.assertEqual(upload.status, UploadStatus.QUARANTINED)
+        self.assertEqual(upload.quarantine_reason, "image_content_unrecognized")
+        put_object_bytes.assert_not_called()
 
     def test_create_upload_requires_session_authentication(self):
         response = self.client.post(

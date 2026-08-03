@@ -17,7 +17,11 @@ def cleanup_expired_uploads_task(limit: int = 200) -> int:
     initiated_uploads = list(
         Upload.objects.select_related("tenant")
         .filter(
-            status__in=[UploadStatus.INITIATED, UploadStatus.UPLOADED],
+            status__in=[
+                UploadStatus.INITIATED,
+                UploadStatus.UPLOADED,
+                UploadStatus.QUARANTINED,
+            ],
             deleted_at__isnull=True,
             expires_at__lte=now,
         )

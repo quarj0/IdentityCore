@@ -14,6 +14,7 @@ class UploadPurpose(models.TextChoices):
 class UploadStatus(models.TextChoices):
     INITIATED = "initiated", "Initiated"
     UPLOADED = "uploaded", "Uploaded"
+    QUARANTINED = "quarantined", "Quarantined"
     CONSUMED = "consumed", "Consumed"
     PROMOTED = "promoted", "Promoted"
     EXPIRED = "expired", "Expired"
@@ -48,6 +49,7 @@ class Upload(PublicIdModel, BaseModel):
     mime_type = models.CharField(max_length=100)
     file_size_bytes = models.PositiveBigIntegerField()
     checksum_sha256 = models.CharField(max_length=64, blank=True)
+    quarantine_reason = models.CharField(max_length=128, blank=True)
     status = models.CharField(
         max_length=32,
         choices=UploadStatus.choices,
