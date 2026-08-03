@@ -7,7 +7,7 @@ from apps.organizations.models import Organization
 from apps.tenants.models import Tenant
 from apps.audit.models import AuditEvent
 from apps.identity_documents.models import IdentityDocument
-from apps.verification_subjects.models import VerificationSubject
+from apps.verification_subjects.models import VerificationSubject, VerificationSubjectExport
 from apps.verifications.models import RetentionLegalHold, Verification, VerificationStatus
 from apps.verification_subjects.services import request_subject_deletion
 from django.utils import timezone
@@ -131,3 +131,47 @@ class VerificationSubjectAPITests(APITestCase):
         self.assertEqual(response.data["data"]["status"], "deferred")
         subject.refresh_from_db()
         self.assertEqual(subject.full_name, "Held Subject")
+
+    def test_subject_export_requires_tenant_authorization_and_redacts_sensitive_data(self):
+        subject = VerificationSubject.objects.create(
+            tenant=self.tenant,
+            full_name="Kwame Mensah",
+            email="kwame@example.com",
+            metadata_json={"internal_note": "do not export"},
+        )
+        response = self.client.post(
+            f"/api/v1/subjects/{subject.public_id}",
+            {"action": "export"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        export_id = response.data["data"]["export_id"]
+        token = response.data["data"]["download_token"]
+        download = self.client.get(
+            f"/api/v1/subjects/exports/{export_id}", {"token": token}
+        )
+        self.assertEqual(download.status_code, status.HTTP_200_OK)
+        self.assertEqual(download.data["data"]["subject"]["email"], "kwame@example.com")
+        self.assertNotIn("internal_note", download.data["data"]["subject"]["metadata"])
+        self.assertIn("raw document/selfie media", download.data["data"]["redactions"])
+        self.assertTrue(
+            AuditEvent.objects.filter(action="privacy.subject_export_created").exists()
+        )
+        self.assertTrue(
+            AuditEvent.objects.filter(action="privacy.subject_export_downloaded").exists()
+        )
+
+    def test_subject_export_token_expires(self):
+        subject = VerificationSubject.objects.create(tenant=self.tenant, full_name="Expired")
+        export = VerificationSubjectExport.objects.create(
+            tenant=self.tenant,
+            subject=subject,
+            payload_json={"subject": {"id": subject.public_id}},
+            download_token_hash="not-a-valid-hash",
+            expires_at=timezone.now() - timedelta(minutes=1),
+        )
+        response = self.client.get(
+            f"/api/v1/subjects/exports/{export.public_id}", {"token": "anything"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
