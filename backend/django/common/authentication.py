@@ -106,3 +106,12 @@ class VerificationSessionAuthentication(BaseAuthentication):
         request.verification = verification_session.verification
         request.tenant = verification_session.tenant
         return (verification_session, raw_token)
+
+
+def require_verification_session_action(request, action: str) -> None:
+    """Enforce the action set bound to an authenticated subject session."""
+    verification_session = getattr(request, "verification_session", None)
+    if verification_session is None:
+        raise AuthenticationFailed("Verification session authentication is required.")
+    if action not in verification_session.allowed_actions:
+        raise AuthenticationFailed("This verification session cannot perform that action.")

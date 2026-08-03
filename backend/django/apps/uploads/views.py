@@ -4,7 +4,10 @@ from rest_framework.views import APIView
 
 from apps.uploads.serializers import UploadCreateSerializer
 from apps.uploads.models import Upload, UploadStatus
-from common.authentication import VerificationSessionAuthentication
+from common.authentication import (
+    VerificationSessionAuthentication,
+    require_verification_session_action,
+)
 from common.responses import success_response
 from common.storage import get_object_storage_temp_bucket_name, put_object_bytes
 
@@ -12,6 +15,11 @@ from common.storage import get_object_storage_temp_bucket_name, put_object_bytes
 class UploadCreateView(APIView):
     authentication_classes = [VerificationSessionAuthentication]
     permission_classes = [IsAuthenticated]
+    required_session_action = "upload:create"
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        require_verification_session_action(request, self.required_session_action)
 
     def post(self, request):
         serializer = UploadCreateSerializer(
@@ -27,6 +35,11 @@ class UploadCreateView(APIView):
 class UploadTransferView(APIView):
     authentication_classes = [VerificationSessionAuthentication]
     permission_classes = [IsAuthenticated]
+    required_session_action = "upload:transfer"
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        require_verification_session_action(request, self.required_session_action)
 
     def post(self, request, upload_id: str):
         upload = Upload.objects.filter(
