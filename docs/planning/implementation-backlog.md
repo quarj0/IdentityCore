@@ -31,6 +31,30 @@ Suggested labels are `type:bug`, `type:feature`, `type:security`, `type:test`,
 `type:docs`, `area:backend`, `area:ai`, `area:frontend`, `area:platform`, `area:sdk`,
 and priorities `P0` through `P2`.
 
+## Recently completed items
+
+The following backlog items have passed their acceptance checks and their tracking
+issues are closed. The implementation pull requests remain the source of detailed
+verification evidence.
+
+| ID | Tracking issue | Implementation |
+| --- | --- | --- |
+| IC-009 | [#93](https://github.com/quarj0/IdentityCore/issues/93) | [#196](https://github.com/quarj0/IdentityCore/pull/196) |
+| IC-010 | [#94](https://github.com/quarj0/IdentityCore/issues/94) | [#195](https://github.com/quarj0/IdentityCore/pull/195) |
+| IC-011 | [#95](https://github.com/quarj0/IdentityCore/issues/95) | [#198](https://github.com/quarj0/IdentityCore/pull/198) |
+| IC-012 | [#96](https://github.com/quarj0/IdentityCore/issues/96) | [#199](https://github.com/quarj0/IdentityCore/pull/199) |
+| IC-013 | [#97](https://github.com/quarj0/IdentityCore/issues/97) | [#197](https://github.com/quarj0/IdentityCore/pull/197) |
+| IC-030 | [#114](https://github.com/quarj0/IdentityCore/issues/114) | [#193](https://github.com/quarj0/IdentityCore/pull/193) |
+| IC-031 | [#115](https://github.com/quarj0/IdentityCore/issues/115) | [#194](https://github.com/quarj0/IdentityCore/pull/194) |
+| IC-033 | [#117](https://github.com/quarj0/IdentityCore/issues/117) | [#192](https://github.com/quarj0/IdentityCore/pull/192) |
+| IC-041 | [#125](https://github.com/quarj0/IdentityCore/issues/125) | [#187](https://github.com/quarj0/IdentityCore/pull/187) |
+| IC-042 | [#126](https://github.com/quarj0/IdentityCore/issues/126) | [#185](https://github.com/quarj0/IdentityCore/pull/185) |
+| IC-043 | [#127](https://github.com/quarj0/IdentityCore/issues/127) | [#191](https://github.com/quarj0/IdentityCore/pull/191) |
+| IC-074 | [#158](https://github.com/quarj0/IdentityCore/issues/158) | [#189](https://github.com/quarj0/IdentityCore/pull/189) |
+| IC-075 | [#159](https://github.com/quarj0/IdentityCore/issues/159) | [#186](https://github.com/quarj0/IdentityCore/pull/186) |
+| IC-076 | [#160](https://github.com/quarj0/IdentityCore/issues/160) | [#190](https://github.com/quarj0/IdentityCore/pull/190) |
+| IC-080 | [#164](https://github.com/quarj0/IdentityCore/issues/164) | [#188](https://github.com/quarj0/IdentityCore/pull/188) |
+
 ## Milestone 0 — Baseline and developer reliability
 
 | ID | Pri | Type | Issue-ready outcome | Acceptance checks | Depends on |
