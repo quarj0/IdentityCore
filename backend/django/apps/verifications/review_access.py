@@ -27,3 +27,12 @@ def manual_review_queryset_for_user(user) -> QuerySet[Verification]:
         tenant_id=user.tenant_id,
         review_owner=VerificationReviewOwner.TENANT,
     )
+
+
+def can_review_verification(user, verification: Verification) -> bool:
+    if is_platform_owned_review(verification):
+        return bool(getattr(user, "is_platform_admin", False))
+    return (
+        getattr(user, "tenant_id", None) == verification.tenant_id
+        and not getattr(user, "is_platform_admin", False)
+    )

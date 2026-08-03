@@ -900,12 +900,98 @@ class VerificationWorkflowTests(APITestCase):
         decision = VerificationDecision.objects.get(verification=verification)
         self.assertEqual(decision.decision_type, "manual")
         self.assertEqual(decision.reason_code, "evidence_confirmed")
+        verification.refresh_from_db()
+        self.assertEqual(verification.assigned_reviewer_id, self.user.id)
+        self.assertIsNotNone(verification.assigned_at)
         self.assertTrue(
             Notification.objects.filter(
                 tenant=self.tenant,
                 template_code="verification.verified",
             ).exists()
         )
+
+    def test_assigned_review_cannot_be_decided_by_another_reviewer(self):
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.tenant.verification_subjects.create(
+                full_name="Assigned Reviewer Case"
+            ),
+            purpose="Manual review case",
+            expires_at=self.tenant.created_at,
+            status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
+            assigned_reviewer=self.user,
+            assigned_at=timezone.now(),
+        )
+        other_reviewer = PlatformUser.objects.create_user(
+            email="other-reviewer@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            tenant=self.tenant,
+        )
+        self.client.force_authenticate(other_reviewer)
+
+        response = self.client.post(
+            reverse(
+                "manual-review-decision",
+                kwargs={"verification_id": verification.public_id},
+            ),
+            {
+                "decision": "verified",
+                "reason_code": "evidence_confirmed",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        verification.refresh_from_db()
+        self.assertEqual(verification.status, VerificationStatus.MANUAL_REVIEW_REQUIRED)
+
+    def test_high_risk_manual_decision_requires_independent_approval(self):
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.tenant.verification_subjects.create(
+                full_name="High Risk Case"
+            ),
+            purpose="High risk manual review",
+            expires_at=self.tenant.created_at,
+            status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
+        )
+        RiskAssessment.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            risk_score="85.00",
+            risk_level="high",
+            recommendation="manual_review",
+        )
+        checker = PlatformUser.objects.create_user(
+            email="checker@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            tenant=self.tenant,
+        )
+
+        self.client.force_authenticate(self.user)
+        proposal = self.client.post(
+            reverse("manual-review-decision", kwargs={"verification_id": verification.public_id}),
+            {"decision": "verified", "reason_code": "evidence_confirmed"},
+            format="json",
+        )
+        self.assertEqual(proposal.status_code, status.HTTP_202_ACCEPTED)
+        verification.refresh_from_db()
+        self.assertEqual(verification.status, VerificationStatus.MANUAL_REVIEW_REQUIRED)
+
+        # Authenticate as the independent checker for the approval step.
+        self.client.force_authenticate(checker)
+        approval = self.client.post(
+            reverse("manual-review-approval", kwargs={"verification_id": verification.public_id}),
+            {"decision": "verified"},
+            format="json",
+        )
+        self.assertEqual(approval.status_code, status.HTTP_200_OK)
+        verification.refresh_from_db()
+        self.assertEqual(verification.status, VerificationStatus.VERIFIED)
 
     def test_detail_includes_decision_when_present(self):
         verification = Verification.objects.create(
