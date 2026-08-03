@@ -179,6 +179,49 @@ class VerificationSessionPortalTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_session_token_is_bound_to_its_session_id(self):
+        other_session = VerificationSession(
+            verification=self.verification,
+            tenant=self.tenant,
+            expires_at=self.verification.expires_at,
+        )
+        other_session.set_session_token("other-session-token")
+        other_session.save()
+
+        response = self.client.get(
+            reverse(
+                "verification-session-detail",
+                kwargs={"session_id": other_session.public_id},
+            ),
+            **self.session_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_session_action_scope_blocks_unapproved_operations(self):
+        self.session.allowed_actions_json = ["session:read"]
+        self.session.save(update_fields=["allowed_actions_json", "updated_at"])
+
+        read_response = self.client.get(
+            reverse(
+                "verification-session-detail",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            **self.session_headers(),
+        )
+        consent_response = self.client.post(
+            reverse(
+                "verification-session-consent",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            {"accepted": True},
+            format="json",
+            **self.session_headers(),
+        )
+
+        self.assertEqual(read_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(consent_response.status_code, status.HTTP_401_UNAUTHORIZED)
+
     def test_session_uses_immutable_policy_consent_locale_and_documents(self):
         template = ConsentTemplate.objects.create(
             tenant=self.tenant,

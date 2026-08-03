@@ -30,6 +30,19 @@ class VerificationSessionStatus(models.TextChoices):
     REVOKED = "revoked", "Revoked"
 
 
+VERIFICATION_SESSION_ACTIONS = (
+    "session:read",
+    "consent:accept",
+    "document:capture",
+    "selfie:capture",
+    "liveness:challenge",
+    "liveness:submit",
+    "upload:create",
+    "upload:transfer",
+    "mobile_handoff:create",
+)
+
+
 class VerificationDecisionType(models.TextChoices):
     AUTOMATIC = "automatic", "Automatic"
     MANUAL = "manual", "Manual"
@@ -130,6 +143,7 @@ class VerificationSession(PublicIdModel):
         related_name="verification_sessions",
     )
     session_token_hash = models.CharField(max_length=255, unique=True)
+    allowed_actions_json = models.JSONField(default=list, blank=True)
     status = models.CharField(
         max_length=32,
         choices=VerificationSessionStatus.choices,
@@ -155,6 +169,10 @@ class VerificationSession(PublicIdModel):
 
     def set_session_token(self, raw_token: str) -> None:
         self.session_token_hash = make_password(raw_token)
+
+    @property
+    def allowed_actions(self) -> list[str]:
+        return list(self.allowed_actions_json or VERIFICATION_SESSION_ACTIONS)
 
     @property
     def is_authenticated(self) -> bool:

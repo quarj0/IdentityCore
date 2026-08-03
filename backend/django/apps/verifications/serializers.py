@@ -15,6 +15,7 @@ from apps.verifications.evidence import (
     build_verification_evidence_pdf_download_url,
 )
 from apps.verifications.models import (
+    VERIFICATION_SESSION_ACTIONS,
     Verification,
     VerificationDecision,
     VerificationDecisionType,
@@ -334,6 +335,7 @@ class VerificationCreateSerializer(serializers.Serializer):
             verification=verification,
             tenant=tenant,
             expires_at=expires_at,
+            allowed_actions_json=list(VERIFICATION_SESSION_ACTIONS),
         )
         session.set_session_token(raw_session_token)
         session.save()

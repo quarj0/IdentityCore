@@ -152,6 +152,23 @@ class UploadCreateTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_create_upload_requires_upload_action_scope(self):
+        self.session.allowed_actions_json = ["session:read"]
+        self.session.save(update_fields=["allowed_actions_json", "updated_at"])
+
+        response = self.client.post(
+            reverse("upload-create"),
+            {
+                "purpose": "document_capture",
+                "mime_type": "image/jpeg",
+                "file_size_bytes": 1024,
+            },
+            format="json",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
     def test_create_upload_rejects_unsupported_mime_type(self):
         response = self.client.post(
             reverse("upload-create"),

@@ -44,6 +44,7 @@ from common.pagination import (
     pagination_params,
 )
 from apps.verifications.models import (
+    VERIFICATION_SESSION_ACTIONS,
     Verification,
     VerificationSession,
     VerificationStatus,
@@ -370,6 +371,7 @@ class VerificationResendLinkView(VerificationAccessMixin, APIView):
             expires_at=max(
                 verification.expires_at, timezone.now() + timedelta(minutes=10)
             ),
+            allowed_actions_json=list(VERIFICATION_SESSION_ACTIONS),
         )
         session.set_session_token(raw_session_token)
         session.save()

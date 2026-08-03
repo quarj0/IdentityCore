@@ -23,16 +23,25 @@ from apps.verification_sessions.serializers import (
     serialize_verification_session_status,
 )
 from apps.verifications.models import (
+    VERIFICATION_SESSION_ACTIONS,
     VerificationMobileHandoff,
     VerificationSession,
     VerificationSessionStatus,
 )
-from common.authentication import VerificationSessionAuthentication
+from common.authentication import (
+    VerificationSessionAuthentication,
+    require_verification_session_action,
+)
 from common.responses import success_response
 
 
 class VerificationSessionBaseView(APIView):
     authentication_classes = [VerificationSessionAuthentication]
+    required_session_action = "session:read"
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        require_verification_session_action(request, self.required_session_action)
 
     def _touch_session(self, request) -> None:
         verification_session = request.verification_session
@@ -62,6 +71,8 @@ class VerificationSessionDetailView(VerificationSessionBaseView):
 
 
 class VerificationMobileHandoffCreateView(VerificationSessionBaseView):
+    required_session_action = "mobile_handoff:create"
+
     def post(self, request, session_id: str):
         self._touch_session(request)
         source_session = request.verification_session
@@ -130,6 +141,7 @@ class VerificationMobileHandoffRedeemView(APIView):
             verification=source.verification,
             tenant=source.tenant,
             expires_at=source.expires_at,
+            allowed_actions_json=list(VERIFICATION_SESSION_ACTIONS),
         )
         mobile_session.set_session_token(session_token)
         mobile_session.save()
@@ -156,6 +168,8 @@ class VerificationMobileHandoffRedeemView(APIView):
 
 
 class VerificationSessionConsentView(VerificationSessionBaseView):
+    required_session_action = "consent:accept"
+
     def post(self, request, session_id: str):
         self._touch_session(request)
         serializer = VerificationSessionConsentSerializer(data=request.data, context={"request": request})
@@ -190,6 +204,8 @@ class VerificationSessionConsentView(VerificationSessionBaseView):
 
 
 class VerificationSessionDocumentView(VerificationSessionBaseView):
+    required_session_action = "document:capture"
+
     @transaction.atomic
     def post(self, request, session_id: str):
         self._touch_session(request)
@@ -230,6 +246,8 @@ class VerificationSessionDocumentView(VerificationSessionBaseView):
 
 
 class VerificationSessionSelfieView(VerificationSessionBaseView):
+    required_session_action = "selfie:capture"
+
     def post(self, request, session_id: str):
         self._touch_session(request)
         serializer = VerificationSessionSelfieSerializer(data=request.data, context={"request": request})
@@ -265,6 +283,8 @@ class VerificationSessionSelfieView(VerificationSessionBaseView):
 
 
 class VerificationSessionLivenessView(VerificationSessionBaseView):
+    required_session_action = "liveness:submit"
+
     def post(self, request, session_id: str):
         self._touch_session(request)
         serializer = VerificationSessionLivenessSerializer(data=request.data, context={"request": request})
@@ -293,6 +313,8 @@ class VerificationSessionLivenessView(VerificationSessionBaseView):
 
 
 class VerificationSessionLivenessChallengeView(VerificationSessionBaseView):
+    required_session_action = "liveness:challenge"
+
     def post(self, request, session_id: str):
         self._touch_session(request)
         serializer = VerificationSessionLivenessChallengeSerializer(
@@ -320,6 +342,8 @@ class VerificationSessionLivenessChallengeView(VerificationSessionBaseView):
 
 
 class VerificationSessionStatusView(VerificationSessionBaseView):
+    required_session_action = "session:read"
+
     def get(self, request, session_id: str):
         self._touch_session(request)
         return success_response(

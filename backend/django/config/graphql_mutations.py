@@ -54,6 +54,7 @@ from apps.reviewers.models import PlatformAdminInvitation, PlatformAdminInvitati
 from apps.providers.models import Provider, ProviderAssignment
 from apps.providers.serializers import serialize_provider, serialize_provider_assignment
 from apps.verifications.models import (
+    VERIFICATION_SESSION_ACTIONS,
     VerificationSession,
     VerificationSessionStatus,
     VerificationStatus,
@@ -551,6 +552,7 @@ class Mutation:
                 verification=latest,
                 tenant=latest.tenant,
                 expires_at=latest.expires_at,
+                allowed_actions_json=list(VERIFICATION_SESSION_ACTIONS),
             )
             session.set_session_token(raw_token)
             session.save()
