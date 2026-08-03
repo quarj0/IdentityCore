@@ -270,6 +270,7 @@ class _APIClientSummaryRequired(TypedDict):
 class APIClientSummary(_APIClientSummaryRequired, total=False):
     project_id: Optional[str]
     last_used_at: Optional[str]
+    client_secret_overlap_expires_at: Optional[str]
 
 class _APIClientCreateRequestRequired(TypedDict):
     name: str
@@ -296,6 +297,7 @@ class _APIClientCreateResponseRequired(TypedDict):
 class APIClientCreateResponse(_APIClientCreateResponseRequired, total=False):
     project_id: Optional[str]
     last_used_at: Optional[str]
+    client_secret_overlap_expires_at: Optional[str]
 
 class _WebhookEndpointSummaryRequired(TypedDict):
     id: str

@@ -406,6 +406,8 @@ public sealed record APIClientSummary
     public int RateLimitPerMinute { get; init; }
     [JsonPropertyName("last_used_at")]
     public string? LastUsedAt { get; init; }
+    [JsonPropertyName("client_secret_overlap_expires_at")]
+    public string? ClientSecretOverlapExpiresAt { get; init; }
     [JsonPropertyName("created_at")]
     public string CreatedAt { get; init; }
     [JsonPropertyName("updated_at")]
@@ -448,6 +450,8 @@ public sealed record APIClientCreateResponse
     public int RateLimitPerMinute { get; init; }
     [JsonPropertyName("last_used_at")]
     public string? LastUsedAt { get; init; }
+    [JsonPropertyName("client_secret_overlap_expires_at")]
+    public string? ClientSecretOverlapExpiresAt { get; init; }
     [JsonPropertyName("created_at")]
     public string CreatedAt { get; init; }
     [JsonPropertyName("updated_at")]

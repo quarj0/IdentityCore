@@ -1,10 +1,16 @@
+from datetime import timedelta
+
 from django.urls import reverse
+from django.test import override_settings
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.test import APITestCase
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.test import APIRequestFactory, APITestCase
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.api_clients.models import APIClient, APIClientStatus
+from apps.audit.models import AuditEvent
+from common.authentication import APIClientAuthentication
 from apps.organizations.models import Organization, OrganizationStatus
 from apps.tenants.models import Tenant
 
@@ -98,6 +104,55 @@ class APIClientEndpointTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn("client_secret", response.data["data"])
         self.assertEqual(response.data["data"]["scopes"], ["verifications:create", "verifications:read"])
+
+    @override_settings(API_CLIENT_ROTATION_OVERLAP_SECONDS=60)
+    def test_rotate_keeps_old_secret_valid_only_during_overlap(self):
+        client = APIClient(
+            tenant=self.tenant,
+            created_by=self.user,
+            name="Rotating Backend",
+            scopes_json=["verifications:read"],
+        )
+        client.set_client_secret("old-secret")
+        client.save()
+
+        response = self.client.post(
+            reverse("api-client-action", kwargs={"client_id": client.public_id, "action": "rotate"}),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        rotated_secret = response.data["data"]["client_secret"]
+        self.assertNotEqual(rotated_secret, "old-secret")
+        self.assertIsNotNone(response.data["data"]["client_secret_overlap_expires_at"])
+
+        client.refresh_from_db()
+        self.assertTrue(client.verify_client_secret("old-secret"))
+        self.assertTrue(client.verify_client_secret(rotated_secret))
+        self.assertNotEqual(client.previous_client_secret_hash, "old-secret")
+        self.assertEqual(
+            AuditEvent.objects.filter(
+                action="api_client.rotate", target_id=client.public_id
+            ).count(),
+            1,
+        )
+
+        request = APIRequestFactory().get(
+            "/",
+            HTTP_X_CLIENT_ID=client.client_id,
+            HTTP_AUTHORIZATION="Bearer old-secret",
+        )
+        authenticated, authenticated_secret = APIClientAuthentication().authenticate(
+            request
+        )
+        self.assertEqual(authenticated, client)
+        self.assertEqual(authenticated_secret, "old-secret")
+
+        client.previous_client_secret_expires_at = timezone.now() - timedelta(seconds=1)
+        client.save(update_fields=["previous_client_secret_expires_at", "updated_at"])
+        with self.assertRaises(AuthenticationFailed):
+            APIClientAuthentication().authenticate(request)
+        self.assertTrue(client.verify_client_secret(rotated_secret))
 
     def test_list_api_clients_is_tenant_scoped(self):
         own_client = APIClient(

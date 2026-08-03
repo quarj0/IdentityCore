@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 
 from apps.core.models import BaseModel, PublicIdModel, generate_public_id
 from common.fields import EncryptedJSONField
@@ -34,6 +35,10 @@ class APIClient(PublicIdModel, BaseModel):
     name = models.CharField(max_length=255)
     client_id = models.CharField(max_length=64, unique=True, editable=False)
     client_secret_hash = models.CharField(max_length=255)
+    previous_client_secret_hash = models.CharField(
+        max_length=255, blank=True, default=""
+    )
+    previous_client_secret_expires_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(
         max_length=32,
         choices=APIClientStatus.choices,
@@ -89,8 +94,22 @@ class APIClient(PublicIdModel, BaseModel):
     def set_client_secret(self, raw_secret: str) -> None:
         self.client_secret_hash = make_password(raw_secret)
 
+    def rotate_client_secret(self, raw_secret: str, *, overlap_expires_at) -> None:
+        """Replace the secret while retaining its hash for a bounded overlap."""
+        self.previous_client_secret_hash = self.client_secret_hash
+        self.previous_client_secret_expires_at = overlap_expires_at
+        self.set_client_secret(raw_secret)
+
     def verify_client_secret(self, raw_secret: str) -> bool:
-        return check_password(raw_secret, self.client_secret_hash)
+        if check_password(raw_secret, self.client_secret_hash):
+            return True
+        if (
+            self.previous_client_secret_hash
+            and self.previous_client_secret_expires_at
+            and self.previous_client_secret_expires_at > timezone.now()
+        ):
+            return check_password(raw_secret, self.previous_client_secret_hash)
+        return False
 
     @classmethod
     def generate_client_secret(cls) -> str:

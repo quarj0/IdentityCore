@@ -225,6 +225,7 @@ export interface APIClientSummary {
   allowed_networks: Array<string>;
   rate_limit_per_minute: number;
   last_used_at?: string | null;
+  client_secret_overlap_expires_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -248,6 +249,7 @@ export interface APIClientCreateResponse {
   allowed_networks: Array<string>;
   rate_limit_per_minute: number;
   last_used_at?: string | null;
+  client_secret_overlap_expires_at?: string | null;
   created_at: string;
   updated_at: string;
   client_secret: string;
