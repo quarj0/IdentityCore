@@ -754,6 +754,59 @@ class VerificationWorkflowTests(APITestCase):
             verification.policy_snapshot_json["required_liveness_level"], "passive"
         )
 
+    def test_create_verification_copies_workflow_version_snapshot(self):
+        from apps.workflows.models import Workflow, WorkflowVersion
+
+        project = Project.objects.create(
+            tenant=self.tenant,
+            created_by=self.user,
+            name="Sandbox",
+            slug="sandbox",
+            is_default=True,
+        )
+
+        workflow = Workflow.objects.create(
+            tenant=self.tenant,
+            project=project,
+            name="Identity workflow",
+            steps_json=["consent", "document", "decision"],
+            settings_json={"required_document_types": ["passport"]},
+            current_version=1,
+            status="published",
+            created_by=self.user,
+        )
+        workflow_version = WorkflowVersion.objects.create(
+            workflow=workflow,
+            version=1,
+            steps_json=workflow.steps_json,
+            settings_json=workflow.settings_json,
+            policy=self.policy,
+            published_by=self.user,
+        )
+
+        response = self.client.post(
+            reverse("verification-list-create"),
+            {
+                "external_reference": "customer_workflow_snapshot",
+                "purpose": "Customer onboarding verification",
+                "policy_id": self.policy.public_id,
+                "verification_subject": {"full_name": "Kwame Mensah"},
+            },
+            format="json",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        verification = Verification.objects.get(public_id=response.data["data"]["id"])
+        self.assertEqual(verification.workflow_snapshot_json["id"], workflow_version.public_id)
+        self.assertEqual(verification.workflow_snapshot_json["version"], 1)
+        self.assertEqual(verification.workflow_snapshot_json["steps"], workflow.steps_json)
+
+        workflow.steps_json = ["consent", "selfie", "decision"]
+        workflow.save(update_fields=["steps_json", "updated_at"])
+        verification.refresh_from_db()
+        self.assertEqual(verification.workflow_snapshot_json["steps"], ["consent", "document", "decision"])
+
     def test_api_client_create_requires_active_policy(self):
         response = self.client.post(
             reverse("verification-list-create"),

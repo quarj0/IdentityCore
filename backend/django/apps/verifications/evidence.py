@@ -275,6 +275,7 @@ def serialize_verification_evidence_report(verification: Verification) -> dict:
             else None
         ),
         "policy_snapshot": verification.policy_snapshot_json,
+        "workflow_snapshot": verification.workflow_snapshot_json,
         "created_at": verification.created_at.isoformat(),
         "completed_at": verification.completed_at.isoformat() if verification.completed_at else None,
     }
