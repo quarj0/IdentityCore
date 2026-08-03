@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from celery import shared_task
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.audit.services import record_audit_event
@@ -14,6 +15,7 @@ from common.storage import (
 from apps.notifications.services import queue_verification_status_notifications
 from apps.verifications.models import (
     Verification,
+    RetentionLegalHold,
     VerificationSession,
     VerificationSessionStatus,
     VerificationStatus,
@@ -43,6 +45,14 @@ RETENTION_COMPLETED_VERIFICATION_STATUSES = {
     VerificationStatus.EXPIRED,
     VerificationStatus.FAILED,
 }
+
+
+def _has_active_retention_hold(verification: Verification, now) -> bool:
+    return RetentionLegalHold.objects.filter(
+        tenant_id=verification.tenant_id,
+        verification_id__in=[None, verification.id],
+        released_at__isnull=True,
+    ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now)).exists()
 
 
 @shared_task(queue="retention")
@@ -120,6 +130,15 @@ def cleanup_retained_media_task(limit: int = 100) -> int:
         .order_by("completed_at")[:limit]
     )
     for verification in verifications:
+        if _has_active_retention_hold(verification, now):
+            record_audit_event(
+                tenant=verification.tenant,
+                action="retention.media_deletion_deferred",
+                target_type="verification",
+                target_id=verification.public_id,
+                metadata={"reason": "legal_hold"},
+            )
+            continue
         retention_days = int(
             (verification.policy_snapshot_json or {}).get("media_retention_days", 30)
         )
@@ -134,26 +153,40 @@ def cleanup_retained_media_task(limit: int = 100) -> int:
             "captures"
         ):
             for capture in identity_document.captures.filter(deleted_at__isnull=True):
+                try:
+                    if media_bucket:
+                        delete_object(bucket_name=media_bucket, key=capture.storage_key)
+                except Exception:
+                    record_audit_event(
+                        tenant=verification.tenant,
+                        action="retention.media_deletion_failed",
+                        target_type="verification",
+                        target_id=verification.public_id,
+                        metadata={"media_type": "document_capture"},
+                    )
+                    continue
                 capture.status = DocumentCaptureStatus.DELETED
                 capture.deleted_at = now
                 capture.save(update_fields=["status", "deleted_at", "updated_at"])
                 media_deleted = True
-                if media_bucket:
-                    try:
-                        delete_object(bucket_name=media_bucket, key=capture.storage_key)
-                    except Exception:
-                        pass
 
         for selfie in verification.selfie_captures.filter(deleted_at__isnull=True):
+            try:
+                if media_bucket:
+                    delete_object(bucket_name=media_bucket, key=selfie.storage_key)
+            except Exception:
+                record_audit_event(
+                    tenant=verification.tenant,
+                    action="retention.media_deletion_failed",
+                    target_type="verification",
+                    target_id=verification.public_id,
+                    metadata={"media_type": "selfie_capture"},
+                )
+                continue
             selfie.status = SelfieCaptureStatus.DELETED
             selfie.deleted_at = now
             selfie.save(update_fields=["status", "deleted_at", "updated_at"])
             media_deleted = True
-            if media_bucket:
-                try:
-                    delete_object(bucket_name=media_bucket, key=selfie.storage_key)
-                except Exception:
-                    pass
 
         if not media_deleted:
             continue
