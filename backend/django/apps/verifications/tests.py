@@ -28,6 +28,7 @@ from apps.verification_policies.models import VerificationPolicy
 from apps.verifications.models import (
     Verification,
     VerificationDecision,
+    RetentionLegalHold,
     VerificationSession,
     VerificationSessionStatus,
     VerificationStatus,
@@ -1516,6 +1517,75 @@ class VerificationOperationsTaskTests(TestCase):
         )
 
         self.assertEqual(cleanup_retained_media_task(limit=10), 0)
+
+    def test_cleanup_retained_media_task_respects_active_legal_hold(self):
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.subject,
+            purpose="Held verification",
+            status=VerificationStatus.VERIFIED,
+            policy_snapshot_json={"media_retention_days": 30},
+            expires_at=timezone.now() - timedelta(days=31),
+            completed_at=timezone.now() - timedelta(days=31),
+        )
+        RetentionLegalHold.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            reason="Regulatory investigation",
+        )
+
+        self.assertEqual(cleanup_retained_media_task(limit=10), 0)
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                tenant=self.tenant,
+                action="retention.media_deletion_deferred",
+                target_id=verification.public_id,
+            ).exists()
+        )
+
+    @patch("apps.verifications.tasks.delete_object")
+    @patch("apps.verifications.tasks.get_object_storage_media_bucket_name", return_value="media")
+    def test_cleanup_retained_media_task_keeps_db_row_when_storage_delete_fails(
+        self, _bucket, delete_object
+    ):
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.subject,
+            purpose="Storage failure",
+            status=VerificationStatus.VERIFIED,
+            policy_snapshot_json={"media_retention_days": 30},
+            expires_at=timezone.now() - timedelta(days=31),
+            completed_at=timezone.now() - timedelta(days=31),
+        )
+        identity_document = IdentityDocument.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            verification_subject=self.subject,
+            document_type_id="passport",
+            country_profile_id="GH",
+            status="processed",
+        )
+        capture = DocumentCapture.objects.create(
+            tenant=self.tenant,
+            identity_document=identity_document,
+            side="front",
+            storage_key="uploads/documents/storage-failure",
+            captured_at=timezone.now() - timedelta(days=31),
+        )
+        delete_object.side_effect = RuntimeError("storage unavailable")
+
+        self.assertEqual(cleanup_retained_media_task(limit=10), 0)
+        capture.refresh_from_db()
+        self.assertIsNone(capture.deleted_at)
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                tenant=self.tenant,
+                action="retention.media_deletion_failed",
+                target_id=verification.public_id,
+            ).exists()
+        )
 
 
 class ManualReviewOwnershipTests(APITestCase):

@@ -2,6 +2,7 @@ import secrets
 
 from django.contrib.auth.hashers import check_password, make_password
 from django.db import models
+from django.utils import timezone
 
 from apps.core.models import BaseModel, PublicIdModel
 from common.fields import EncryptedJSONField
@@ -59,6 +60,37 @@ class VerificationApprovalStatus(models.TextChoices):
 class VerificationReviewOwner(models.TextChoices):
     TENANT = "tenant", "Tenant"
     PLATFORM = "platform", "Platform"
+
+
+class RetentionLegalHold(PublicIdModel, BaseModel):
+    """Prevents retention cleanup while a documented hold is active."""
+
+    public_id_prefix = "hold"
+
+    tenant = models.ForeignKey(
+        "tenants.Tenant",
+        on_delete=models.PROTECT,
+        related_name="retention_legal_holds",
+    )
+    verification = models.ForeignKey(
+        "verifications.Verification",
+        on_delete=models.PROTECT,
+        related_name="retention_legal_holds",
+        null=True,
+        blank=True,
+    )
+    reason = models.CharField(max_length=255)
+    expires_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    released_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    @property
+    def is_active(self) -> bool:
+        return self.released_at is None and (
+            self.expires_at is None or self.expires_at > timezone.now()
+        )
 
 
 class Verification(PublicIdModel, BaseModel):
