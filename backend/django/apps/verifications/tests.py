@@ -28,6 +28,7 @@ from apps.verification_policies.models import VerificationPolicy
 from apps.verifications.models import (
     Verification,
     VerificationDecision,
+    RetentionLegalHold,
     VerificationSession,
     VerificationSessionStatus,
     VerificationStatus,
@@ -947,6 +948,52 @@ class VerificationWorkflowTests(APITestCase):
         verification.refresh_from_db()
         self.assertEqual(verification.status, VerificationStatus.MANUAL_REVIEW_REQUIRED)
 
+    def test_high_risk_manual_decision_requires_independent_approval(self):
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.tenant.verification_subjects.create(
+                full_name="High Risk Case"
+            ),
+            purpose="High risk manual review",
+            expires_at=self.tenant.created_at,
+            status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
+        )
+        RiskAssessment.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            risk_score="85.00",
+            risk_level="high",
+            recommendation="manual_review",
+        )
+        checker = PlatformUser.objects.create_user(
+            email="checker@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            tenant=self.tenant,
+        )
+
+        self.client.force_authenticate(self.user)
+        proposal = self.client.post(
+            reverse("manual-review-decision", kwargs={"verification_id": verification.public_id}),
+            {"decision": "verified", "reason_code": "evidence_confirmed"},
+            format="json",
+        )
+        self.assertEqual(proposal.status_code, status.HTTP_202_ACCEPTED)
+        verification.refresh_from_db()
+        self.assertEqual(verification.status, VerificationStatus.MANUAL_REVIEW_REQUIRED)
+
+        # Authenticate as the independent checker for the approval step.
+        self.client.force_authenticate(checker)
+        approval = self.client.post(
+            reverse("manual-review-approval", kwargs={"verification_id": verification.public_id}),
+            {"decision": "verified"},
+            format="json",
+        )
+        self.assertEqual(approval.status_code, status.HTTP_200_OK)
+        verification.refresh_from_db()
+        self.assertEqual(verification.status, VerificationStatus.VERIFIED)
+
     def test_detail_includes_decision_when_present(self):
         verification = Verification.objects.create(
             tenant=self.tenant,
@@ -1470,6 +1517,75 @@ class VerificationOperationsTaskTests(TestCase):
         )
 
         self.assertEqual(cleanup_retained_media_task(limit=10), 0)
+
+    def test_cleanup_retained_media_task_respects_active_legal_hold(self):
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.subject,
+            purpose="Held verification",
+            status=VerificationStatus.VERIFIED,
+            policy_snapshot_json={"media_retention_days": 30},
+            expires_at=timezone.now() - timedelta(days=31),
+            completed_at=timezone.now() - timedelta(days=31),
+        )
+        RetentionLegalHold.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            reason="Regulatory investigation",
+        )
+
+        self.assertEqual(cleanup_retained_media_task(limit=10), 0)
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                tenant=self.tenant,
+                action="retention.media_deletion_deferred",
+                target_id=verification.public_id,
+            ).exists()
+        )
+
+    @patch("apps.verifications.tasks.delete_object")
+    @patch("apps.verifications.tasks.get_object_storage_media_bucket_name", return_value="media")
+    def test_cleanup_retained_media_task_keeps_db_row_when_storage_delete_fails(
+        self, _bucket, delete_object
+    ):
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.subject,
+            purpose="Storage failure",
+            status=VerificationStatus.VERIFIED,
+            policy_snapshot_json={"media_retention_days": 30},
+            expires_at=timezone.now() - timedelta(days=31),
+            completed_at=timezone.now() - timedelta(days=31),
+        )
+        identity_document = IdentityDocument.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            verification_subject=self.subject,
+            document_type_id="passport",
+            country_profile_id="GH",
+            status="processed",
+        )
+        capture = DocumentCapture.objects.create(
+            tenant=self.tenant,
+            identity_document=identity_document,
+            side="front",
+            storage_key="uploads/documents/storage-failure",
+            captured_at=timezone.now() - timedelta(days=31),
+        )
+        delete_object.side_effect = RuntimeError("storage unavailable")
+
+        self.assertEqual(cleanup_retained_media_task(limit=10), 0)
+        capture.refresh_from_db()
+        self.assertIsNone(capture.deleted_at)
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                tenant=self.tenant,
+                action="retention.media_deletion_failed",
+                target_id=verification.public_id,
+            ).exists()
+        )
 
 
 class ManualReviewOwnershipTests(APITestCase):

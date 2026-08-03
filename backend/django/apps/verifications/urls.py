@@ -2,6 +2,7 @@ from django.urls import path
 
 from apps.verifications.views import (
     ManualReviewDecisionView,
+    ManualReviewApprovalView,
     ManualReviewListView,
     VerificationCancelView,
     VerificationDetailView,
@@ -19,6 +20,11 @@ urlpatterns = [
         "manual-reviews/<str:verification_id>/decision",
         ManualReviewDecisionView.as_view(),
         name="manual-review-decision",
+    ),
+    path(
+        "manual-reviews/<str:verification_id>/approval",
+        ManualReviewApprovalView.as_view(),
+        name="manual-review-approval",
     ),
     path("", VerificationListCreateView.as_view(), name="verification-list-create"),
     path("<str:verification_id>", VerificationDetailView.as_view(), name="verification-detail"),

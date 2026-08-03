@@ -6,6 +6,33 @@ from apps.api_clients.models import APIClient
 from apps.audit.models import AuditActorType, AuditEvent
 
 
+def verify_audit_chain(*, tenant_id: int | str) -> tuple[bool, str]:
+    previous_hash = ""
+    for event in AuditEvent.objects.filter(tenant_id=tenant_id).order_by("id"):
+        payload = {
+            "tenant_id": event.tenant_id,
+            "actor_type": event.actor_type,
+            "actor_id": event.actor_id,
+            "action": event.action,
+            "target_type": event.target_type,
+            "target_id": event.target_id,
+            "ip_address": event.ip_address,
+            "user_agent": event.user_agent,
+            "device_fingerprint": event.device_fingerprint,
+            "metadata_json": event.metadata_json,
+            "sensitive_metadata_hash": event.sensitive_metadata_hash,
+            "previous_event_hash": event.previous_event_hash,
+            "created_at": event.created_at.isoformat(),
+        }
+        expected = hashlib.sha256(
+            json.dumps(payload, sort_keys=True, default=str, separators=(",", ":")).encode()
+        ).hexdigest()
+        if event.previous_event_hash != previous_hash or event.integrity_hash != expected:
+            return False, event.public_id
+        previous_hash = event.integrity_hash
+    return True, ""
+
+
 def infer_actor(actor) -> tuple[str, str]:
     if actor is None:
         return AuditActorType.SYSTEM, ""

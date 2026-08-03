@@ -19,6 +19,7 @@ from apps.verifications.models import (
     Verification,
     VerificationDecision,
     VerificationDecisionType,
+    VerificationApprovalStatus,
     VerificationSession,
     VerificationStatus,
 )
@@ -167,6 +168,7 @@ def serialize_verification(verification: Verification, request=None) -> dict:
                 "reason_detail": decision_record.reason_detail,
                 "contract_version": decision_record.contract_version,
                 "reason_codes": decision_record.reason_codes_json,
+                "approval_status": decision_record.approval_status,
                 "decided_at": decision_record.decided_at.isoformat(),
             }
             if decision_record is not None
@@ -476,16 +478,29 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
             )
 
         now = timezone.now()
+        risk_assessment = getattr(verification, "risk_assessment", None)
+        approval_required = bool(
+            (verification.policy_snapshot_json or {}).get("maker_checker_required")
+            or (
+                risk_assessment is not None
+                and risk_assessment.risk_level in {"high", "critical"}
+            )
+        )
         decision_record = VerificationDecision.objects.create(
             verification=verification,
             tenant=verification.tenant,
             decision=self.validated_data["decision"],
             decision_type=VerificationDecisionType.MANUAL,
             reason_code=self.validated_data["reason_code"],
-            reason_detail=self.validated_data["reason_detail"],
+            reason_detail=self.validated_data.get("reason_detail", ""),
             contract_version=DECISION_CONTRACT_VERSION,
             reason_codes_json=[self.validated_data["reason_code"]],
             input_snapshot_json=build_decision_input_snapshot(verification),
+            approval_status=(
+                VerificationApprovalStatus.PENDING
+                if approval_required
+                else VerificationApprovalStatus.NOT_REQUIRED
+            ),
             evidence_summary_json={
                 "liveness_status": (
                     verification.liveness_checks.order_by("-checked_at").first().status
@@ -501,10 +516,21 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
             decided_by=decided_by,
             decided_at=now,
         )
-        transition_verification(
-            verification,
-            self.validated_data["decision"],
-            completed_at=now,
-        )
+        if not approval_required:
+            transition_verification(
+                verification,
+                self.validated_data["decision"],
+                completed_at=now,
+            )
         verification._review_assigned_now = assigned_now
+        verification._approval_pending = approval_required
         return decision_record
+
+
+class ManualReviewApprovalSerializer(serializers.Serializer):
+    decision = serializers.ChoiceField(
+        choices=[
+            (VerificationStatus.VERIFIED, "Verified"),
+            (VerificationStatus.REJECTED, "Rejected"),
+        ]
+    )
