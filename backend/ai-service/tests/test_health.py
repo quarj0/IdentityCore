@@ -363,7 +363,8 @@ def test_real_mode_accepts_r2_storage_aliases():
     )
 
     assert settings.real_inference_missing_requirements() == [
-        "models.manifest_missing:/opt/identitycore/models/manifest.json"
+        "models.manifest_missing:/opt/identitycore/models/manifest.json",
+        "models.pad:/opt/identitycore/models/liveness/pad.onnx",
     ]
 
 

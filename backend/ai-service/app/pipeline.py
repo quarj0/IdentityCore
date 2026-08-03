@@ -313,6 +313,10 @@ def run_liveness_pipeline(
     media_mime_type: str | None = None,
 ) -> dict[str, Any]:
     settings = get_settings()
+    # Import lazily so mock-mode tests and deployments do not initialize ONNX
+    # before the real-mode asset checks have run.
+    from app.pad import run_pad_model
+
     asset = load_media_asset(
         storage_key,
         bucket_name=bucket_name,
@@ -331,6 +335,14 @@ def run_liveness_pipeline(
         ]
     )
     quality_metrics = _compute_image_quality_metrics(asset.primary_frame)
+    pad_result = run_pad_model(
+        asset.frames,
+        [
+            detections[0]["bbox"] if len(detections) == 1 else None
+            for detections in frame_detections
+        ],
+    )
+    pad_score = float(pad_result["pad_score"])
 
     movement_score = 0.0
     centers = [
@@ -348,14 +360,15 @@ def run_liveness_pipeline(
     challenge_actions = challenge_actions or []
 
     score_components = [
-        face_presence_ratio * 0.45,
-        avg_detection_confidence * 0.25,
-        quality_metrics["quality_score"] * 0.20,
-        movement_score * 0.10,
+        pad_score * 0.60,
+        face_presence_ratio * 0.15,
+        avg_detection_confidence * 0.10,
+        quality_metrics["quality_score"] * 0.10,
+        movement_score * 0.05,
     ]
     score = _clamp(sum(score_components))
     issues: list[str] = []
-    passed = score >= settings.liveness_min_score
+    passed = pad_score >= settings.pad_min_score and score >= settings.liveness_min_score
 
     if max_face_count == 0:
         issues.append("no_face_detected")
@@ -384,6 +397,7 @@ def run_liveness_pipeline(
     return {
         "passed": passed,
         "score": round(score, 4),
+        "pad_score": round(pad_score, 4),
         "confidence_level": _confidence_label(score),
         "issues": issues,
         "metrics": {
@@ -399,8 +413,8 @@ def run_liveness_pipeline(
         },
         "challenge_passed": not challenge_actions
         or all(action in detected_actions for action in challenge_actions),
-        "model_name": "mediapipe-liveness",
-        "model_version": "v1",
+        "model_name": pad_result["model_name"],
+        "model_version": pad_result["model_version"],
     }
 
 
@@ -707,6 +721,7 @@ def build_mock_liveness(
         "score": score,
         "confidence_level": "high" if passed else "medium",
         "liveness_type": liveness_type,
+        "pad_score": score,
         "challenge_passed": passed if challenge_actions else True,
         "metrics": {
             "challenge_actions": challenge_actions,

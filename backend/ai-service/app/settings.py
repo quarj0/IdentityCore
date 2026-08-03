@@ -92,6 +92,21 @@ class Settings(BaseSettings):
         default=225.0, alias="DOCUMENT_QUALITY_BRIGHT_THRESHOLD"
     )
     liveness_min_score: float = Field(default=0.65, alias="LIVENESS_MIN_SCORE")
+    pad_model_relative_path: str = Field(
+        default="liveness/pad.onnx", alias="PAD_MODEL_RELATIVE_PATH"
+    )
+    pad_model_name: str = Field(
+        default="MiniFASNetV2", alias="PAD_MODEL_NAME"
+    )
+    pad_model_version: str = Field(
+        default="2.7_80x80", alias="PAD_MODEL_VERSION"
+    )
+    pad_output_kind: str = Field(
+        default="logits", alias="PAD_OUTPUT_KIND"
+    )
+    pad_live_class_index: int = Field(default=0, alias="PAD_LIVE_CLASS_INDEX")
+    pad_crop_scale: float = Field(default=2.7, alias="PAD_CROP_SCALE")
+    pad_min_score: float = Field(default=0.80, alias="PAD_MIN_SCORE")
     active_liveness_motion_threshold: float = Field(
         default=0.02, alias="ACTIVE_LIVENESS_MOTION_THRESHOLD"
     )
@@ -190,6 +205,12 @@ class Settings(BaseSettings):
     @property
     def onnx_root_dir(self) -> Path:
         return self.ai_model_root / "onnx"
+
+    @property
+    def pad_model_path(self) -> Path:
+        path = (self.ai_model_root / self.pad_model_relative_path).resolve()
+        path.relative_to(self.ai_model_root.resolve())
+        return path
 
     @property
     def model_manifest_path(self) -> Path:
@@ -307,6 +328,14 @@ class Settings(BaseSettings):
             missing.append("object_storage.secret_access_key")
 
         missing.extend(self.model_asset_integrity_errors())
+
+        try:
+            pad_model_path = self.pad_model_path
+        except ValueError:
+            missing.append(f"models.pad_path_invalid:{self.pad_model_relative_path}")
+        else:
+            if not pad_model_path.is_file():
+                missing.append(f"models.pad:{pad_model_path}")
 
         if not self.insightface_allow_download and not self.insightface_model_dir.exists():
             missing.append(f"models.insightface:{self.insightface_model_dir}")
