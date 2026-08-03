@@ -8,6 +8,7 @@ from rest_framework.test import APITestCase
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.api_clients.models import APIClient
 from apps.audit.models import AuditEvent
+from apps.audit.services import verify_audit_chain
 from apps.organizations.models import Organization
 from apps.tenants.models import Tenant
 from apps.verification_policies.models import VerificationPolicy
@@ -172,3 +173,35 @@ class AuditEventTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data["data"]["results"]), 1)
+
+    def test_audit_events_form_a_tamper_evident_chain(self):
+        first = AuditEvent.objects.create(
+            tenant=self.tenant,
+            actor_type="system",
+            action="test.first",
+            target_type="test",
+            target_id="one",
+        )
+        second = AuditEvent.objects.create(
+            tenant=self.tenant,
+            actor_type="system",
+            action="test.second",
+            target_type="test",
+            target_id="two",
+        )
+
+        self.assertEqual(second.previous_event_hash, first.integrity_hash)
+        self.assertEqual(verify_audit_chain(tenant_id=self.tenant.pk), (True, ""))
+        AuditEvent.objects.filter(pk=first.pk).update(action="tampered")
+        self.assertEqual(verify_audit_chain(tenant_id=self.tenant.pk)[0], False)
+
+    def test_audit_events_cannot_be_updated_or_deleted(self):
+        event = AuditEvent.objects.create(
+            tenant=self.tenant,
+            actor_type="system",
+            action="test.immutable",
+            target_type="test",
+            target_id="one",
+        )
+        with self.assertRaises(Exception):
+            event.delete()
