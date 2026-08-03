@@ -2,7 +2,12 @@ packages:
   - "*"
   - "packages/*"
 allowBuilds:
+  '@scarf/scarf': set this to true or false
+  '@tree-sitter-grammars/tree-sitter-yaml': set this to true or false
+  core-js-pure: set this to true or false
   sharp: true
+  tree-sitter: set this to true or false
+  tree-sitter-json: set this to true or false
   unrs-resolver: true
 
 overrides:

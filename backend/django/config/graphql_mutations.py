@@ -1333,10 +1333,17 @@ class Mutation:
     ) -> ManualDecisionPayload:
         user = require_authenticated_user(info)
         request = info.context["request"]
-        verification = get_object_or_404(
-            manual_review_queryset_for_user(user),
-            public_id=verification_id,
+        # Resolve this explicitly so an out-of-scope verification produces a
+        # deliberate GraphQL error rather than leaking Django's Http404
+        # traceback into application/test logs. The tenant-scoped queryset
+        # preserves the non-disclosure guarantee.
+        verification = (
+            manual_review_queryset_for_user(user)
+            .filter(public_id=verification_id)
+            .first()
         )
+        if verification is None:
+            raise GraphQLError("Verification was not found or is unavailable.")
         serializer = ManualReviewDecisionSerializer(
             data={
                 "decision": decision,

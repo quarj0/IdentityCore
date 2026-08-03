@@ -24,6 +24,34 @@ public sealed record ErrorEnvelope
     public string RequestId { get; init; }
 }
 
+public sealed record WorkflowSummary
+{
+    [JsonPropertyName("id")]
+    public string Id { get; init; }
+    [JsonPropertyName("project_id")]
+    public string ProjectId { get; init; }
+    [JsonPropertyName("name")]
+    public string Name { get; init; }
+    [JsonPropertyName("description")]
+    public string? Description { get; init; }
+    [JsonPropertyName("status")]
+    public string Status { get; init; }
+    [JsonPropertyName("steps")]
+    public IReadOnlyList<string> Steps { get; init; }
+    [JsonPropertyName("settings")]
+    public JsonElement Settings { get; init; }
+    [JsonPropertyName("current_version")]
+    public int CurrentVersion { get; init; }
+    [JsonPropertyName("source_template_id")]
+    public string? SourceTemplateId { get; init; }
+    [JsonPropertyName("source_template_version")]
+    public string? SourceTemplateVersion { get; init; }
+    [JsonPropertyName("created_at")]
+    public string? CreatedAt { get; init; }
+    [JsonPropertyName("updated_at")]
+    public string? UpdatedAt { get; init; }
+}
+
 public sealed record Policy
 {
     [JsonPropertyName("id")]

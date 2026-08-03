@@ -12,6 +12,21 @@ export interface ErrorEnvelope {
   request_id: string;
 }
 
+export interface WorkflowSummary {
+  id: string;
+  project_id: string;
+  name: string;
+  description?: string;
+  status: string;
+  steps: Array<string>;
+  settings: Record<string, unknown>;
+  current_version: number;
+  source_template_id?: string | null;
+  source_template_version?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Policy {
   id: string;
   name: string;
