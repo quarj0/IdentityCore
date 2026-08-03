@@ -1,9 +1,12 @@
+import secrets
+from datetime import timedelta
+
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
 from apps.audit.services import record_audit_event
-from apps.verification_subjects.models import VerificationSubject
+from apps.verification_subjects.models import VerificationSubject, VerificationSubjectExport
 from apps.verifications.models import RetentionLegalHold
 
 
@@ -106,3 +109,90 @@ def request_subject_deletion(*, subject: VerificationSubject, actor=None, reques
             },
         )
         return report
+
+
+def create_subject_export(*, subject: VerificationSubject, actor=None, request=None) -> dict:
+    raw_token = secrets.token_urlsafe(32)
+    verifications = []
+    for verification in subject.verifications.order_by("created_at"):
+        verifications.append(
+            {
+                "id": verification.public_id,
+                "status": verification.status,
+                "purpose": verification.purpose,
+                "created_at": verification.created_at.isoformat(),
+                "completed_at": verification.completed_at.isoformat()
+                if verification.completed_at
+                else None,
+                "decision": (
+                    verification.decision_record.decision
+                    if hasattr(verification, "decision_record")
+                    else None
+                ),
+            }
+        )
+    payload = {
+        "subject": {
+            "id": subject.public_id,
+            "external_reference": subject.external_reference,
+            "full_name": subject.full_name,
+            "email": subject.email,
+            "phone_number": subject.phone_number,
+            "date_of_birth": subject.date_of_birth.isoformat()
+            if subject.date_of_birth
+            else None,
+            "metadata": {
+                key: value
+                for key, value in (subject.metadata_json or {}).items()
+                if not any(
+                    marker in key.lower() for marker in ("internal", "note", "secret")
+                )
+            },
+        },
+        "verifications": verifications,
+        "redactions": [
+            "document numbers and biometric templates",
+            "raw document/selfie media",
+            "provider credentials and internal notes",
+            "network and device fingerprints",
+        ],
+    }
+    export = VerificationSubjectExport(
+        tenant=subject.tenant,
+        subject=subject,
+        payload_json=payload,
+        expires_at=timezone.now() + timedelta(hours=1),
+    )
+    export.set_download_token(raw_token)
+    export.save()
+    record_audit_event(
+        tenant=subject.tenant,
+        actor=actor,
+        request=request,
+        action="privacy.subject_export_created",
+        target_type="verification_subject",
+        target_id=subject.public_id,
+        metadata={"export_id": export.public_id, "expires_at": export.expires_at.isoformat()},
+    )
+    return {
+        "export_id": export.public_id,
+        "download_token": raw_token,
+        "expires_at": export.expires_at.isoformat(),
+        "redactions": payload["redactions"],
+    }
+
+
+def download_subject_export(*, export: VerificationSubjectExport, raw_token: str, request=None) -> dict:
+    if export.is_expired or not export.matches_download_token(raw_token):
+        raise ValueError("Export token is invalid or expired.")
+    export.downloaded_at = timezone.now()
+    export.save(update_fields=["downloaded_at", "updated_at"])
+    record_audit_event(
+        tenant=export.tenant,
+        request=request,
+        action="privacy.subject_export_downloaded",
+        target_type="verification_subject",
+        target_id=export.subject.public_id,
+        metadata={"export_id": export.public_id},
+    )
+    return export.payload_json

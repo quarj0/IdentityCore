@@ -3,7 +3,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from apps.verification_subjects.serializers import serialize_verification_subject
-from apps.verification_subjects.services import request_subject_deletion
+from apps.verification_subjects.models import VerificationSubjectExport
+from apps.verification_subjects.services import (
+    create_subject_export,
+    download_subject_export,
+    request_subject_deletion,
+)
 from common.pagination import paginate_results, pagination_params
 from common.permissions import IsTenantUser
 from common.responses import error_response, success_response
@@ -53,7 +58,17 @@ class VerificationSubjectDetailView(APIView):
         return success_response(payload, request=request)
 
     def post(self, request, subject_id):
-        if request.data.get("action") != "delete" or request.data.get("confirm") is not True:
+        action = request.data.get("action")
+        if action == "export":
+            subject = get_object_or_404(
+                request.user.tenant.verification_subjects, public_id=subject_id
+            )
+            return success_response(
+                create_subject_export(subject=subject, actor=request.user, request=request),
+                request=request,
+                status=201,
+            )
+        if action != "delete" or request.data.get("confirm") is not True:
             return error_response(
                 "confirmation_required",
                 "Explicit deletion confirmation is required.",
@@ -67,3 +82,25 @@ class VerificationSubjectDetailView(APIView):
             request_subject_deletion(subject=subject, actor=request.user, request=request),
             request=request,
         )
+
+
+class VerificationSubjectExportDownloadView(APIView):
+    permission_classes = [IsAuthenticated, IsTenantUser]
+
+    def get(self, request, export_id):
+        export = get_object_or_404(
+            VerificationSubjectExport.objects.select_related("subject"),
+            tenant=request.user.tenant,
+            public_id=export_id,
+        )
+        token = request.query_params.get("token", "")
+        try:
+            payload = download_subject_export(export=export, raw_token=token, request=request)
+        except ValueError:
+            return error_response(
+                "export_unavailable",
+                "The export token is invalid or expired.",
+                request=request,
+                status=404,
+            )
+        return success_response(payload, request=request)
