@@ -23,6 +23,7 @@ django = [
     "httpx>=0.28.1",
     "orjson>=3.11.9",
     "phonenumbers>=9.0.34",
+    "pillow>=12.3.0",
     "psycopg[binary]>=3.3.4",
     "pytest>=9.0.3",
     "python-decouple>=3.8",
