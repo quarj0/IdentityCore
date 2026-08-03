@@ -2,12 +2,14 @@ packages:
   - "*"
   - "packages/*"
 allowBuilds:
-  '@scarf/scarf': set this to true or false
-  '@tree-sitter-grammars/tree-sitter-yaml': set this to true or false
-  core-js-pure: set this to true or false
+  # Scarf is optional telemetry and core-js-pure has no required native build.
+  '@scarf/scarf': false
+  core-js-pure: false
+  # Swagger's optional YAML/JSON parsers use these native grammars.
+  '@tree-sitter-grammars/tree-sitter-yaml': true
   sharp: true
-  tree-sitter: set this to true or false
-  tree-sitter-json: set this to true or false
+  tree-sitter: true
+  tree-sitter-json: true
   unrs-resolver: true
 
 overrides:
