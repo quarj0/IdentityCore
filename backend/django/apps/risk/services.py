@@ -12,6 +12,10 @@ from apps.verifications.models import (
     VerificationStatus,
 )
 from apps.verifications.transitions import transition_verification
+from apps.verifications.decision_contract import (
+    DECISION_CONTRACT_VERSION,
+    build_decision_input_snapshot,
+)
 
 
 def _get_policy_thresholds(verification) -> tuple[Decimal, Decimal]:
@@ -180,6 +184,11 @@ def apply_automatic_decision(
             "decision": decision,
             "decision_type": VerificationDecisionType.AUTOMATIC,
             "reason_code": reason_code_map[risk_assessment.recommendation],
+            "contract_version": DECISION_CONTRACT_VERSION,
+            "reason_codes_json": [reason_code_map[risk_assessment.recommendation]],
+            "input_snapshot_json": build_decision_input_snapshot(
+                verification, risk_assessment=risk_assessment
+            ),
             "reason_detail": detail_map[risk_assessment.recommendation],
             "evidence_summary_json": {
                 "risk_assessment_id": risk_assessment.public_id,

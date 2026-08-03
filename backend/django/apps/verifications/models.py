@@ -240,6 +240,13 @@ class VerificationDecision(PublicIdModel, BaseModel):
         choices=VerificationDecisionType.choices,
     )
     reason_code = models.CharField(max_length=120, blank=True)
+    contract_version = models.CharField(max_length=16, default="1")
+    reason_codes_json = models.JSONField(default=list, blank=True)
+    input_snapshot_json = EncryptedJSONField(
+        default=dict,
+        blank=True,
+        encryption_purpose="verifications.decision.input_snapshot",
+    )
     reason_detail = models.TextField(blank=True)
     evidence_summary_json = EncryptedJSONField(
         default=dict,

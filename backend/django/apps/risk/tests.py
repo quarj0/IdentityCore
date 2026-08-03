@@ -129,6 +129,9 @@ class RiskDecisionTests(TestCase):
 
         self.assertEqual(risk_assessment.risk_level, "low")
         self.assertEqual(decision_record.decision, VerificationStatus.VERIFIED)
+        self.assertEqual(decision_record.contract_version, "1")
+        self.assertEqual(decision_record.reason_codes_json, ["risk_rules_approved"])
+        self.assertIn("provider_checks", decision_record.input_snapshot_json)
         self.verification.refresh_from_db()
         self.assertEqual(self.verification.status, VerificationStatus.VERIFIED)
         self.assertIsNotNone(self.verification.completed_at)
