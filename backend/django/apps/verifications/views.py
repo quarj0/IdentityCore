@@ -34,6 +34,7 @@ from apps.verifications.serializers import (
     VerificationCancelSerializer,
     VerificationCreateSerializer,
     VerificationResendLinkSerializer,
+    ManualReviewApprovalSerializer,
     serialize_manual_review_summary,
     serialize_verification,
     serialize_verification_summary,
@@ -46,8 +47,10 @@ from common.pagination import (
 from apps.verifications.models import (
     VERIFICATION_SESSION_ACTIONS,
     Verification,
+    VerificationDecision,
     VerificationSession,
     VerificationStatus,
+    VerificationApprovalStatus,
 )
 from apps.verifications.transitions import transition_verification
 from apps.verifications.review_access import manual_review_queryset_for_user
@@ -532,6 +535,17 @@ class ManualReviewDecisionView(APIView):
         decision_record = serializer.save(
             verification=verification, decided_by=request.user
         )
+        if decision_record.approval_status == VerificationApprovalStatus.PENDING:
+            return success_response(
+                {
+                    "verification_id": verification.public_id,
+                    "decision": decision_record.decision,
+                    "approval_status": decision_record.approval_status,
+                    "approval_required": True,
+                },
+                request=request,
+                status=status.HTTP_202_ACCEPTED,
+            )
         if getattr(verification, "_review_assigned_now", False):
             record_audit_event(
                 tenant=verification.tenant,
@@ -587,4 +601,51 @@ class ManualReviewDecisionView(APIView):
             },
             request=request,
             status=status.HTTP_200_OK,
+        )
+
+
+class ManualReviewApprovalView(APIView):
+    permission_classes = [IsAuthenticated, IsManualReviewUser]
+
+    @transaction.atomic
+    def post(self, request, verification_id: str):
+        verification = get_object_or_404(
+            manual_review_queryset_for_user(request.user),
+            public_id=verification_id,
+        )
+        decision_record = get_object_or_404(
+            VerificationDecision.objects.select_for_update(), verification=verification
+        )
+        if decision_record.approval_status != VerificationApprovalStatus.PENDING:
+            raise ValidationError({"approval": "This decision is not awaiting approval."})
+        if decision_record.decided_by_id == request.user.id:
+            raise ValidationError({"approval": "The maker cannot approve their own decision."})
+        approval = ManualReviewApprovalSerializer(data=request.data)
+        approval.is_valid(raise_exception=True)
+        now = timezone.now()
+        decision_record.decision = approval.validated_data["decision"]
+        decision_record.approval_status = VerificationApprovalStatus.APPROVED
+        decision_record.approved_by = request.user
+        decision_record.approved_at = now
+        decision_record.save(
+            update_fields=["decision", "approval_status", "approved_by", "approved_at", "updated_at"]
+        )
+        transition_verification(verification, decision_record.decision, completed_at=now)
+        record_audit_event(
+            tenant=verification.tenant,
+            actor=request.user,
+            request=request,
+            action="verification.decision_approved",
+            target_type="verification",
+            target_id=verification.public_id,
+            metadata={"decision_id": decision_record.public_id},
+        )
+        ensure_verification_evidence_report(verification)
+        return success_response(
+            {
+                "verification_id": verification.public_id,
+                "decision": decision_record.decision,
+                "approval_status": decision_record.approval_status,
+            },
+            request=request,
         )

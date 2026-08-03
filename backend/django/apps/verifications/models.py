@@ -49,6 +49,13 @@ class VerificationDecisionType(models.TextChoices):
     SYSTEM = "system", "System"
 
 
+class VerificationApprovalStatus(models.TextChoices):
+    NOT_REQUIRED = "not_required", "Not Required"
+    PENDING = "pending", "Pending"
+    APPROVED = "approved", "Approved"
+    REJECTED = "rejected", "Rejected"
+
+
 class VerificationReviewOwner(models.TextChoices):
     TENANT = "tenant", "Tenant"
     PLATFORM = "platform", "Platform"
@@ -255,6 +262,20 @@ class VerificationDecision(PublicIdModel, BaseModel):
         blank=True,
         encryption_purpose="verifications.decision.input_snapshot",
     )
+    approval_status = models.CharField(
+        max_length=16,
+        choices=VerificationApprovalStatus.choices,
+        default=VerificationApprovalStatus.NOT_REQUIRED,
+        db_index=True,
+    )
+    approved_by = models.ForeignKey(
+        "accounts.PlatformUser",
+        on_delete=models.PROTECT,
+        related_name="approved_verification_decisions",
+        null=True,
+        blank=True,
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
     reason_detail = models.TextField(blank=True)
     evidence_summary_json = EncryptedJSONField(
         default=dict,
