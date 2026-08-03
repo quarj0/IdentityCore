@@ -9,6 +9,7 @@ def test_bootstrap_creates_paddle_directories_before_initialization(
 ):
     settings = SimpleNamespace(
         ai_model_root=tmp_path,
+        pad_model_path=tmp_path / "liveness" / "pad.onnx",
         paddle_text_detection_model_dir=tmp_path / "paddleocr" / "det",
         paddle_text_recognition_model_dir=tmp_path / "paddleocr" / "rec",
         insightface_model_name="buffalo_l",
@@ -17,6 +18,8 @@ def test_bootstrap_creates_paddle_directories_before_initialization(
     settings.paddle_model_is_complete = lambda path: (
         (path / "inference.yml").is_file() and (path / "inference.json").is_file()
     )
+    settings.pad_model_path.parent.mkdir(parents=True)
+    settings.pad_model_path.write_bytes(b"approved-test-pad-model")
 
     def initialize_paddle():
         for directory in (

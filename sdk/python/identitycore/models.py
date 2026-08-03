@@ -17,6 +17,22 @@ class _ErrorEnvelopeRequired(TypedDict):
 class ErrorEnvelope(_ErrorEnvelopeRequired, total=False):
     pass
 
+class _WorkflowSummaryRequired(TypedDict):
+    id: str
+    project_id: str
+    name: str
+    status: str
+    steps: list[str]
+    settings: dict[str, Any]
+    current_version: int
+
+class WorkflowSummary(_WorkflowSummaryRequired, total=False):
+    description: str
+    source_template_id: Optional[str]
+    source_template_version: Optional[str]
+    created_at: str
+    updated_at: str
+
 class _PolicyRequired(TypedDict):
     id: str
     name: str

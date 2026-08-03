@@ -12,7 +12,47 @@ docker compose run --rm ai-service pytest
 
 The service listens on `8001`. `AI_SERVICE_SHARED_TOKEN`, `AI_SERVICE_MODE`, and
 `AI_MODEL_ROOT` are required runtime settings. `INSIGHTFACE_MODEL_NAME`,
-`INSIGHTFACE_ALLOW_DOWNLOAD`, and `PADDLE_OCR_ALLOW_DOWNLOAD` control model loading.
+`INSIGHTFACE_ALLOW_DOWNLOAD`, `PADDLE_OCR_ALLOW_DOWNLOAD`, and the `PAD_*`
+settings control model loading. The PAD model is a separately approved ONNX
+asset at `AI_MODEL_ROOT/liveness/pad.onnx`; its SHA-256 digest must be included
+in the model manifest. Real mode refuses liveness processing when that asset is
+missing, invalid, or altered. Fetch the pinned initial candidate with:
+
+```bash
+python scripts/fetch_pad_model.py --model-root /opt/identitycore/models
+```
+
+When using Compose's model volume, fetch the asset before creating the manifest:
+
+```bash
+docker compose --profile model-bootstrap run --rm --entrypoint python \
+  ai-model-bootstrap /app/scripts/fetch_pad_model.py \
+  --model-root /opt/identitycore/models
+docker compose --profile model-bootstrap run --rm ai-model-bootstrap
+```
+
+The initial candidate is MiniFASNetV2 2.7_80x80 with a three-logit output
+(`live`, `print attack`, `replay attack`). It is a baseline candidate,
+not a production performance claim; it must pass our held-out Ghana/device PAD
+evaluation before pilot use.
+
+## Country and document coverage
+
+The PAD model is shared across countries. Document classification and capture
+requirements are country-specific:
+
+| Country | Enabled document coverage | Status |
+| --- | --- | --- |
+| Ghana (GH) | National ID, passport | Enabled |
+| Nigeria (NG) | Passport | Passport-only |
+| Senegal (SN) | Passport | Passport-only |
+| Togo (TG) | Passport | Passport-only |
+| Côte d’Ivoire (CI) | Passport | Passport-only |
+
+Other country/document combinations remain unsupported and must route to
+manual review. Adding a national ID requires an approved fixture set, document
+definition, capture-side rules, OCR/MRZ tests where applicable, and a country-
+specific evaluation report.
 Production images should preload models; bootstrap the named Compose volume explicitly
 when downloads are intended:
 

@@ -296,7 +296,7 @@ def test_real_document_quality_pipeline_detects_blur(monkeypatch):
 
     monkeypatch.setattr(
         "app.pipeline.fetch_object_bytes",
-        lambda storage_key: encoded.tobytes(),
+        lambda storage_key, bucket_name=None: encoded.tobytes(),
     )
 
     result = run_document_quality_pipeline("uploads/documents/doc_blurred.jpg")
@@ -351,7 +351,7 @@ def test_model_manifest_detects_missing_and_altered_assets(tmp_path):
     ]
 
 
-def test_real_mode_accepts_r2_storage_aliases():
+def test_real_mode_accepts_r2_storage_aliases(tmp_path):
     settings = Settings(
         AI_SERVICE_MODE="real",
         R2_MEDIA_BUCKET="identitycore-media",
@@ -360,10 +360,12 @@ def test_real_mode_accepts_r2_storage_aliases():
         R2_SECRET_ACCESS_KEY="secret",
         INSIGHTFACE_ALLOW_DOWNLOAD=True,
         PADDLE_OCR_ALLOW_DOWNLOAD=True,
+        AI_MODEL_ROOT=tmp_path,
     )
 
     assert settings.real_inference_missing_requirements() == [
-        "models.manifest_missing:/opt/identitycore/models/manifest.json"
+        f"models.manifest_missing:{tmp_path / 'manifest.json'}",
+        f"models.pad:{tmp_path / 'liveness' / 'pad.onnx'}",
     ]
 
 

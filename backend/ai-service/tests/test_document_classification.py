@@ -72,6 +72,27 @@ def test_classify_recognizes_ghana_national_id():
     assert result["recommendation"] == "continue"
 
 
+def test_classify_recognizes_enabled_west_african_passports():
+    line1, line2 = _build_valid_td3_mrz()
+    country_phrases = {
+        "NG": "Federal Republic of Nigeria",
+        "SN": "Republic of Senegal Passeport",
+        "TG": "Republic of Togo Passeport",
+        "CI": "Republic of Cote d Ivoire Passeport",
+    }
+
+    for country_code, phrase in country_phrases.items():
+        result = classify_document(
+            build_ocr_lines([phrase, line1, line2], [0.96, 0.98, 0.98]),
+            expected_document_type="passport",
+            country_code=country_code,
+        )
+
+        assert result["classification_status"] == "recognized"
+        assert result["predicted_country_code"] == country_code
+        assert result["matched_expected_document_type"] is True
+
+
 def test_classify_marks_mismatch_without_rejection():
     line1, line2 = _build_valid_td3_mrz()
     result = classify_document(

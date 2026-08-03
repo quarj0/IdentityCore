@@ -44,6 +44,11 @@ def _model_name(path: Path) -> str:
 def main() -> None:
     settings = get_settings()
     settings.ai_model_root.mkdir(parents=True, exist_ok=True)
+    if not settings.pad_model_path.is_file():
+        raise RuntimeError(
+            "PAD model is missing. Place the approved ONNX asset at "
+            f"{settings.pad_model_path} before bootstrapping production models."
+        )
     paddle_directories = (
         settings.paddle_text_detection_model_dir,
         settings.paddle_text_recognition_model_dir,
