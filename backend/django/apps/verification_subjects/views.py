@@ -3,9 +3,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from apps.verification_subjects.serializers import serialize_verification_subject
+from apps.verification_subjects.services import request_subject_deletion
 from common.pagination import paginate_results, pagination_params
 from common.permissions import IsTenantUser
-from common.responses import success_response
+from common.responses import error_response, success_response
 
 
 class VerificationSubjectListView(APIView):
@@ -50,3 +51,19 @@ class VerificationSubjectDetailView(APIView):
             for x in subject.verifications.all()[:20]
         ]
         return success_response(payload, request=request)
+
+    def post(self, request, subject_id):
+        if request.data.get("action") != "delete" or request.data.get("confirm") is not True:
+            return error_response(
+                "confirmation_required",
+                "Explicit deletion confirmation is required.",
+                request=request,
+                status=400,
+            )
+        subject = get_object_or_404(
+            request.user.tenant.verification_subjects, public_id=subject_id
+        )
+        return success_response(
+            request_subject_deletion(subject=subject, actor=request.user, request=request),
+            request=request,
+        )
