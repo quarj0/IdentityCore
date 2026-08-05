@@ -8,7 +8,7 @@
 
 ## Context
 
-IdentityCore is expected to evolve into a large identity verification platform supporting:
+IdentityCore is expected to evolve into a large identity infrastructure platform supporting identity verification workflows and related identity operations such as:
 
 - Multi-tenancy
 - AI-powered verification

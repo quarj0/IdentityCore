@@ -218,7 +218,7 @@ IdentityCore differentiates itself through:
 
 ## Infrastructure First
 
-IdentityCore is designed as infrastructure rather than a standalone verification product.
+IdentityCore is designed as infrastructure rather than a standalone provider solution.
 
 ---
 
@@ -352,7 +352,7 @@ The objective is to remain informed—not reactive.
 
 ## Guiding Principle
 
-IdentityCore does not aim to become a better copy of existing identity verification platforms.
+IdentityCore does not aim to become a better copy of existing identity verification solutions.
 
 It aims to become the trusted infrastructure upon which organizations build secure digital identity services.
 

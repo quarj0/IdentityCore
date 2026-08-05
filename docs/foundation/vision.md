@@ -2,7 +2,7 @@
 
 ## Vision statement
 
-IdentityCore is building the vendor-neutral identity infrastructure on which governments, businesses, institutions, and digital platforms can establish trust without being locked into one identity-verification vendor.
+IdentityCore is building the vendor-neutral identity infrastructure on which governments, businesses, institutions, and digital platforms can establish trust without being locked into a single identity verification provider.
 
 Identity verification is the first workload built on the platform. It proves the platform through real document, biometric, policy, evidence, review, privacy, and audit flows, but it is not the boundary of IdentityCore.
 
@@ -312,4 +312,4 @@ Important gaps remain in advanced routing, provider conformance, reusable claims
 
 IdentityCore begins with identity verification, but its destination is broader identity infrastructure.
 
-Its purpose is not to become another closed verification vendor. Its purpose is to provide the durable contracts—workflows, policies, providers, evidence, claims, decisions, privacy, and audit—through which organizations can build trusted digital services while retaining choice and control.
+Its purpose is not to become another closed provider implementation. Its purpose is to provide the durable contracts—workflows, policies, providers, evidence, claims, decisions, privacy, and audit—through which organizations can build trusted digital services while retaining choice and control.

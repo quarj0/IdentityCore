@@ -72,6 +72,8 @@ External Providers
 
 Every boundary requires authentication, validation, authorization, rate limiting, logging, or encryption depending on the data involved.
 
+IdentityCore is vendor-neutral identity infrastructure. Its primary platform boundary is the Provider Runtime and the workflow/policy execution plane, not any single provider implementation. The first implemented workload is identity verification, which exercises the platform's provider, evidence, decision, privacy, and audit primitives while preserving the ability to substitute managed, commercial, government, or customer-hosted providers.
+
 ---
 
 ## Threat Actors

@@ -2,21 +2,51 @@
 
 ## IdentityCore
 
-**Version:** 1.0
+**Version:** 2.0
 
 ---
 
-## Purpose
+### Purpose
 
-This document defines the frontend structure, user experience, and interface strategy for IdentityCore.
+This document defines the frontend architecture, user experience strategy, and application boundaries for IdentityCore.
 
-IdentityCore has multiple user-facing applications, each serving a different audience.
+IdentityCore is a **vendor-neutral identity infrastructure platform**.
+
+Identity verification is the first workload implemented on the platform—not the boundary of the platform.
+
+The frontend should expose IdentityCore in layers.
+
+New customers should be able to complete identity verification without understanding providers, OCR, workflows, policies, evidence, claims, or the Provider Runtime.
+
+Advanced customers should progressively discover and configure these capabilities as their requirements grow.
+
+This follows the same philosophy used by cloud platforms such as AWS:
+
+- Simple managed experiences first.
+- Infrastructure capabilities available when needed.
+- Progressive disclosure instead of exposing platform complexity immediately.
 
 ---
 
-## Frontend Applications
+### Frontend Philosophy
 
-IdentityCore will use separate frontend applications:
+The frontend should make sophisticated identity infrastructure feel simple.
+
+Different users should see different parts of the platform.
+
+A verification subject should never feel like they are interacting with infrastructure.
+
+An organization administrator should configure workflows without understanding implementation details.
+
+A developer should integrate with a clean API without needing to understand internal orchestration.
+
+A platform administrator should have complete operational visibility.
+
+The platform should reveal complexity only when it provides value.
+
+---
+
+### Frontend Applications
 
 ```text
 frontend/
@@ -28,412 +58,640 @@ frontend/
 └── platform-admin/
 ```
 
-### Public Website
-
-`frontend/identitycore` is the public website and landing experience for IdentityCore.
-
-Main features:
-
-- Product landing pages
-- Pricing and packaging pages
-- Trust, security, and compliance pages
-- Company and contact pages
-- Public onboarding entry points
-- Navigation into dashboard, verification, and developer experiences
-
-This frontend is separate from the product applications so marketing, trust messaging, and public discovery do not compete with authenticated workflows.
+Each application is responsible for a specific audience while sharing the same backend platform.
 
 ---
 
-## 1. Organization Dashboard
+### Platform Architecture
 
-The Organization Dashboard is used by customer organizations.
+```text
+Applications
 
-Primary users:
+├── Public Website
+├── Organization Dashboard
+├── Verification Portal
+├── Developer Portal
+└── Platform Admin
 
-- Organization Administrator
-- Verification Officer
-- Developer
-- Compliance Reviewer
+                │
+                ▼
 
-Main features:
+        IdentityCore Platform
 
-- Organization onboarding
-- Organization profile
-- Projects
-- Verification policies
-- Verification requests
-- Verification subjects
-- Manual review
-- API keys
+        Control Plane
+        Execution Plane
+        Provider Runtime
+        Workflow Engine
+        Policy Engine
+        Evidence
+        Claims
+        Audit
+
+                │
+                ▼
+
+Providers
+
+- IdentityCore Managed Providers
+- Commercial Providers
+- Government Registries
+- Customer-hosted Providers
+- Storage Providers
+- Risk Providers
+- KMS/HSM Providers
+```
+
+None of the frontend applications communicate directly with providers.
+
+All interaction occurs through IdentityCore APIs.
+
+---
+
+### Frontend Principles
+
+Every frontend should:
+
+- Hide unnecessary complexity
+- Feel trustworthy
+- Be fast
+- Be accessible
+- Be mobile-friendly
+- Be privacy-aware
+- Be security-conscious
+- Be consistent across products
+
+Users should not need to understand:
+
+- OCR
+- Face Matching
+- Liveness
+- Provider Routing
+- Claims
+- Evidence Lineage
+- AI Models
+
+unless they intentionally enter advanced configuration areas.
+
+---
+
+# Application Overview
+
+## 1. Public Website
+
+Application:
+
+```text
+frontend/identitycore
+```
+
+Audience:
+
+- Prospective customers
+- Developers
+- Partners
+- Procurement teams
+- Compliance teams
+
+Purpose:
+
+The public website explains IdentityCore and acts as the entry point into the platform.
+
+Primary features:
+
+- Product overview
+- Platform overview
+- Workloads
+- Pricing
+- Documentation entry
+- Security
+- Compliance
+- Company
+- Contact
+- Blog
+- Status
+
+The public website should clearly communicate:
+
+> IdentityCore is identity infrastructure.
+
+not simply:
+
+> Identity verification software.
+
+---
+
+### 2. Organization Dashboard
+
+Application:
+
+```text
+frontend/dashboard
+```
+
+Audience:
+
+- Organization Administrators
+- Developers
+- Compliance Officers
+- Operations Teams
+- Verification Teams
+
+Purpose:
+
+The dashboard is the organization's **Control Plane**.
+
+Identity verification is currently the primary workload available through the dashboard.
+
+Future workloads should appear naturally without redesigning the application.
+
+---
+
+## Dashboard Areas
+
+### Overview
+
+- Usage
+- Activity
+- Notifications
+- Health
+
+---
+
+### Workloads
+
+Current:
+
+- Identity Verification
+
+Future:
+
+- Age Verification
+- Organization Verification
+- Identity Resolution
+- Verified Claims
+- Credential Verification
+
+Selecting a workload changes the operational views while preserving the same platform concepts.
+
+---
+
+### Workflows
+
+Organizations should be able to:
+
+- View workflows
+- Version workflows
+- Activate workflows
+- Test workflows
+
+Version 1 focuses primarily on verification workflows.
+
+---
+
+### Policies
+
+Organizations should configure:
+
+- Verification Policies
+- Risk Policies
+- Manual Review Policies
+- Retention Policies
+- Privacy Policies
+
+Policies should remain understandable without exposing implementation complexity.
+
+---
+
+### Providers
+
+Organizations should manage:
+
+- Managed Providers
+- Customer-hosted Providers
+- Commercial Providers
+- Provider Assignments
+- Capability Routing
+- Health
+- Credentials
+- Test Connections
+
+Most organizations should never need to modify these.
+
+Defaults should work well.
+
+---
+
+### Evidence
+
+Organizations should view:
+
+- Verification Evidence
+- Document Evidence
+- Biometric Evidence
+- Audit Trail
+- Evidence Timeline
+
+Evidence should be human-readable.
+
+---
+
+### Manual Review
+
+Reviewers should:
+
+- Review evidence
+- Approve
+- Reject
+- Request additional evidence
+- Escalate
+- Record notes
+
+Maker-checker approval should appear when required.
+
+---
+
+### Developers
+
+Developers should manage:
+
+- API Keys
+- SDK Credentials
 - Webhooks
-- Audit logs
-- Reports
-- Team management
+- API Logs
+- Usage
+- Environments
+
+---
+
+### Organization
+
+- Projects
+- Environments
+- Team
+- Roles
+- Audit
 - Billing
 - Settings
 
 ---
 
-## 2. Verification Portal
+### 3. Verification Portal
 
-The Verification Portal is used by the Verification Subject.
+Application:
 
-This is the page opened from a verification link.
+```text
+frontend/verification-portal
+```
 
-Main steps:
+Audience:
 
-1. View organization requesting verification
-2. Review verification purpose
-3. Accept consent
-4. Upload identity document
-5. Capture selfie
-6. Complete liveness check
-7. Submit verification
-8. View completion status
+Verification Subjects.
 
-The Verification Portal should be simple, mobile-first, and distraction-free.
+Purpose:
 
-The Verification Subject should not see dashboard functionality.
+The Verification Portal is a workload-specific frontend for the identity verification workload.
 
----
+The subject should never feel like they are using enterprise software.
 
-## 3. Developer Portal
+Typical flow:
 
-The Developer Portal is for technical customers.
+1. Customer onboarding
+2. Organization Information
+3. Verification Purpose
+4. Consent
+5. Document Capture
+6. Selfie Capture
+7. Liveness
+8. Submission
+9. Status
 
-Main features:
+The interface should:
 
-- API documentation
-- Quick start guides
-- SDK examples
-- API key instructions
-- Webhook documentation
-- Testing tools
-- Sandbox information
-- Error code reference
+- explain what is required;
+- explain why it is required;
+- explain how the information will be used;
+- minimize cognitive load.
 
-The Developer Portal should feel similar to Stripe, Twilio, or Supabase documentation.
-
----
-
-## 4. Platform Admin Portal
-
-The Platform Admin Portal is used internally by IdentityCore administrators.
-
-Main features:
-
-- Review organization onboarding
-- Approve or reject organizations
-- Manage organization tiers
-- View all tenants
-- Monitor verification activity
-- Review abuse signals
-- Manage providers
-- Manage tenant-scoped provider assignments and BYO connectors
-- View platform audit logs
-- Manage system settings
-- Review no-code verification policy changes
-
-This portal is separate from customer dashboards.
+The portal should remain mobile-first.
 
 ---
 
-## Frontend Technology
+### 4. Developer Portal
 
-IdentityCore frontends will use:
+Application:
+
+```text
+frontend/developer-portal
+```
+
+Audience:
+
+Developers.
+
+Purpose:
+
+The Developer Portal is the primary developer experience for IdentityCore.
+
+It should feel similar to:
+
+- Stripe
+- Supabase
+- Twilio
+- Vercel
+
+Features:
+
+- API Reference
+- SDK Downloads
+- CLI
+- Quick Start
+- Authentication
+- Workflows
+- Policies
+- Verification Examples
+- Provider SDK
+- Webhooks
+- Sandbox
+- Changelog
+- Release Notes
+- Capability Reference
+- Error Reference
+
+Developers should understand:
+
+> Applications integrate with IdentityCore.
+
+not
+
+> Applications integrate with OCR.
+
+---
+
+### 5. Platform Admin
+
+Application:
+
+```text
+frontend/platform-admin
+```
+
+Audience:
+
+IdentityCore Operations.
+
+Purpose:
+
+The Platform Admin application manages the platform itself.
+
+Features:
+
+- Organizations
+- Projects
+- Platform Users
+- Managed Providers
+- Provider Registry
+- Provider Health
+- Provider Runtime
+- Capability Registry
+- Workflow Templates
+- Policy Templates
+- Platform Monitoring
+- Audit
+- Privacy Operations
+- Subject Exports
+- Deletion Requests
+- Billing
+- Feature Flags
+- API Versions
+- SDK Versions
+- Incident Management
+
+This application is intentionally separate from customer dashboards.
+
+---
+
+### API Strategy
+
+The frontend communicates only with IdentityCore.
+
+IdentityCore communicates with providers.
+
+---
+
+## Organization Dashboard
+
+GraphQL should be used for:
+
+- connected data
+- dashboards
+- administration
+- reporting
+- policy management
+
+---
+
+## Verification Portal
+
+REST should be used where appropriate for:
+
+- session retrieval
+- uploads
+- consent
+- submission
+- status
+
+The portal is intentionally optimized for SDK compatibility and public session flows.
+
+---
+
+## Developer Portal
+
+Primarily static documentation with authenticated developer tooling where appropriate.
+
+---
+
+## Platform Admin
+
+GraphQL for operational management.
+
+---
+
+### Design System
+
+IdentityCore should have one design system shared by every frontend.
+
+Technology:
 
 - Next.js
 - React
 - TypeScript
 - Tailwind CSS
-- shadcn/ui or similar component system
-- GraphQL for dashboard/admin data
-- REST for public verification flow where appropriate
+- shadcn/ui
+
+The design system should prioritize:
+
+- consistency
+- accessibility
+- composability
+- responsiveness
+- performance
 
 ---
 
-## API Usage
+### Theme Strategy
 
-### Dashboard
+Supported themes:
 
-The dashboard should use GraphQL.
-
-Examples:
-
-- Organization settings
-- Verification statistics
-- Policy builder
-- Manual review
-- API key management
-- Webhook management
-- Team management
-
-### Verification Portal
-
-The verification portal may use REST because the flow is simple, public, and session-token based.
-
-Examples:
-
-- Fetch session
-- Accept consent
-- Request upload URL
-- Submit document
-- Submit selfie
-- Submit liveness result
-- Check status
-
-### Developer Portal
-
-The developer portal may be mostly static content with selected authenticated dashboard features.
-
----
-
-## Design Principles
-
-IdentityCore UI should be:
-
-- Professional
-- Clean
-- Fast
-- Trustworthy
-- Accessible
-- Mobile-friendly
-- Minimal
-- Security-conscious
-
-The interface should not feel like Django Admin.
-
-It should feel closer to modern developer tools such as Stripe, Vercel, Linear, GitHub, and Supabase.
-
----
-
-## Theme Strategy
-
-IdentityCore should support both light mode and dark mode.
-
-However, light mode should be the default for Version 1.0.
-
-Reason:
-
-- Identity verification is a trust-sensitive workflow.
-- Many government, enterprise, and compliance users expect clear light interfaces.
-- Uploaded documents and selfies are easier to inspect against a neutral light background.
-- Light mode feels more formal for onboarding, compliance, and review tasks.
-
-Dark mode should be available as a user preference, not forced.
-
-Recommended modes:
-
-```text
-System default
-Light
-Dark
-```
+- System
+- Light
+- Dark
 
 Default:
 
-```text
-System default
-```
+System
 
-If system preference is unknown, use light mode.
+Fallback:
+
+Light
 
 ---
 
-## Visual Direction
+### Visual Direction
 
-The product should use:
+IdentityCore should look:
 
-- Neutral colors
-- Clear spacing
-- Strong typography
-- Minimal animations
-- Clear status badges
-- High contrast buttons
-- Simple cards
-- Professional tables
-- Clear error states
+- Professional
+- Modern
+- Calm
+- Trustworthy
 
 Avoid:
 
-- Overly playful colors
-- Heavy animations
-- Crowded dashboards
-- Complex gradients
-- Low contrast text
-- Dark-only design
+- excessive animations
+- playful enterprise UI
+- clutter
+- visual noise
 
-## Suggested Domain Split
+Use:
 
-Recommended routing:
-
-- `www.identitycore.com` or root domain -> `identitycore`
-- `app.identitycore.com` -> `dashboard`
-- `verify.identitycore.com` or `/verify` -> `verification-portal`
-- `docs.identitycore.com` -> `developer-portal`
-- `admin.identitycore.com` -> `platform-admin`
+- generous whitespace
+- clear typography
+- obvious status indicators
+- accessible colors
+- meaningful empty states
 
 ---
 
-## Dashboard Layout
+### No-Code Experience
 
-Recommended layout:
+IdentityCore should support organizations without engineering teams.
 
-```text
-Sidebar
-Top bar
-Main content area
-Contextual actions
-```
-
-Sidebar sections:
-
-```text
-Overview
-
-Verifications
-- Requests
-- Subjects
-- Manual Review
-- Policies
-
-Developers
-- API Keys
-- Webhooks
-- Logs
-
-Organization
-- Team
-- Audit Logs
-- Billing
-- Settings
-```
-
----
-
-## Verification Portal UX
-
-The Verification Portal should be step-based.
-
-Example:
-
-```text
-Step 1: Consent
-Step 2: Document
-Step 3: Selfie
-Step 4: Liveness
-Step 5: Complete
-```
-
-Each step should clearly explain:
-
-- What is needed
-- Why it is needed
-- How the data will be used
-- What happens next
-
----
-
-## No-Code Verification
-
-The dashboard shall support no-code verification workflows.
-
-Organization users should be able to:
+Organizations should be able to:
 
 - Create verification requests
-- Generate secure verification links
-- Copy links
-- Send links by email later
-- View results
-- Manually review cases
+- Generate secure links
+- Send links
+- Review results
+- Configure policies
 - Export reports
 
-This allows non-technical organizations to use IdentityCore without API integration.
+Future workloads should reuse the same experience.
 
 ---
 
-## Verification Policy Builder
+### Workflow & Policy Builder
 
-The dashboard shall provide a no-code policy builder.
+Version 1 emphasizes policy-driven verification.
 
-Users should be able to configure:
+Future versions may expose richer workflow composition.
 
-- Accepted document types
-- Required selfie
-- Required liveness
-- Face match threshold
-- Manual review threshold
-- Verification expiry
-- Retention period
-- Webhook events
+Organizations should eventually configure:
 
-The policy builder should write to the same backend Verification Policy system used by APIs.
+- workflow steps
+- provider selection
+- retries
+- fallback
+- Manual Review
+- notifications
+- retention
+- webhooks
 
-The full drag-and-drop workflow builder is out of scope for Version 1.0.
-
----
-
-## Accessibility
-
-Frontend applications should support:
-
-- Keyboard navigation
-- Clear labels
-- Good contrast
-- Mobile responsiveness
-- Helpful error messages
-- Screen reader-friendly forms where practical
+without writing code.
 
 ---
 
-## Security Requirements
+### Accessibility
+
+Every frontend should support:
+
+- keyboard navigation
+- screen readers
+- clear labels
+- high contrast
+- responsive layouts
+- meaningful validation
+- informative error states
+
+Accessibility is a platform requirement rather than an optional enhancement.
+
+---
+
+### Security Requirements
 
 Frontend applications must:
 
-- Never expose API secrets
-- Never store sensitive tokens insecurely
-- Never expose internal database IDs
-- Use secure session handling
-- Respect tenant boundaries
-- Avoid showing unnecessary personal data
-- Mask sensitive fields where appropriate
+- never expose API secrets;
+- never expose provider credentials;
+- use secure session handling;
+- respect tenant and environment isolation;
+- minimize displayed personal information;
+- mask sensitive fields where appropriate;
+- avoid exposing internal implementation details.
 
 ---
 
-## Version 1.0 Scope
+### Version 2 Platform Scope
 
-Version 1.0 frontend includes:
+Current primary workload:
 
+- Identity verification
+
+Current applications:
+
+- Public Website
 - Organization Dashboard
 - Verification Portal
-- Basic Developer Portal
-- Platform Admin Portal foundation
-- Light mode default
-- Dark mode support
-- No-code verification request creation
-- Verification policy builder
-- Manual review interface
-- API key management
-- Webhook management
+- Developer Portal
+- Platform Admin
 
-Version 1.0 excludes:
+Current platform capabilities include:
 
-- Advanced analytics dashboards
-- White-label custom domains
-- Full drag-and-drop workflow builder
-- Mobile app
-- Public marketplace
-- Advanced compliance exports
+- workflow execution
+- policy management
+- provider runtime
+- evidence
+- manual review
+- audit
+- APIs
+- SDKs
+
+Future platform capabilities may include:
+
+- verified claims
+- credential verification
+- age verification
+- organization verification
+- identity resolution
+- additional trust workloads
 
 ---
 
-## Final Frontend Principle
+### Final Principle
 
-IdentityCore's frontend should make complex identity infrastructure feel simple, safe, and trustworthy.
+IdentityCore should make identity infrastructure feel effortless.
 
-The user should not need to understand OCR, face matching, liveness, or AI models.
+A first-time customer should experience a simple identity verification workflow.
 
-They should understand one thing clearly:
+An advanced organization should discover a powerful identity infrastructure platform without needing to migrate to a different product.
 
-IdentityCore helps their organization verify identity securely.
+Complexity belongs inside the platform—not in front of the user.

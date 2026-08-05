@@ -12,6 +12,8 @@ This document defines the security architecture, principles, controls, and opera
 
 IdentityCore processes highly sensitive information, including personally identifiable information (PII), identity documents, biometric data, verification decisions, audit records, and API credentials.
 
+IdentityCore is vendor-neutral identity infrastructure. The security architecture protects the control plane, execution plane, provider runtime, evidence contracts, and the first implemented identity verification workload.
+
 Security is therefore treated as a core business requirement rather than an implementation detail.
 
 Every component of the platform must be designed with confidentiality, integrity, availability, accountability, and privacy as fundamental objectives.

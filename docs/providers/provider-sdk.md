@@ -11,7 +11,7 @@ The Provider SDK defines a stable integration boundary for any system that suppl
 A provider may be:
 
 - an IdentityCore Managed Provider;
-- a commercial identity verification vendor;
+- a commercial identity provider or verification service;
 - a government or authoritative registry;
 - a customer-hosted service;
 - a risk or fraud engine;

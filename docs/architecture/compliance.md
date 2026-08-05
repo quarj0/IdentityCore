@@ -10,6 +10,8 @@
 
 This document defines the governance, privacy, legal, regulatory, and operational compliance requirements for IdentityCore.
 
+IdentityCore is vendor-neutral identity infrastructure. It governs provider execution, evidence contracts, workflows, policies, decision recording, and the first implemented identity verification workload. Compliance requirements apply to all supported provider types and data flows, not just a single provider implementation.
+
 IdentityCore processes identity information, biometric evidence, personal information, audit records, and verification decisions. These categories of information are subject to legal, regulatory, contractual, and ethical obligations.
 
 Compliance is treated as a continuous business process rather than a one-time certification exercise.

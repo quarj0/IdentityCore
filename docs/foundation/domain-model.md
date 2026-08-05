@@ -20,7 +20,7 @@ IdentityCore uses domain-driven design principles. The platform architecture sho
 
 IdentityCore is an identity infrastructure platform.
 
-The platform does not simply process users, photos, or documents. It manages identity verification workflows involving organizations, verification subjects, documents, biometric evidence, consent, risk, decisions, and auditability.
+The platform does not simply process users, photos, or documents. It supports identity workloads such as verification, while managing organizations, verification subjects, documents, biometric evidence, consent, risk, decisions, and auditability.
 
 ---
 

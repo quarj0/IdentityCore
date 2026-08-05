@@ -25,7 +25,7 @@ This document guides product decisions rather than technical implementation.
 
 IdentityCore is an enterprise digital identity infrastructure platform.
 
-Version 1.0 delivers secure identity verification, but the platform is designed to become the trusted identity layer for governments, enterprises, and digital services.
+Version 1.0 delivers a secure identity verification workload, but the platform is designed to become the trusted identity layer for governments, enterprises, and digital services.
 
 IdentityCore is not simply another KYC product.
 
@@ -290,7 +290,7 @@ IdentityCore does not compete by offering more individual features.
 
 Instead, it competes by offering better infrastructure.
 
-Rather than becoming another verification vendor, IdentityCore aims to become the platform upon which verification systems are built.
+Instead of becoming a single provider, IdentityCore aims to become the platform upon which verification systems are built.
 
 ---
 
@@ -332,7 +332,7 @@ IdentityCore exists to establish trusted digital identity between organizations 
 
 ## Version 1
 
-Identity Verification Platform
+First identity verification workload
 
 Includes:
 
@@ -443,10 +443,8 @@ If the answer is no, the feature should be reconsidered.
 
 ## Strategic Statement
 
-IdentityCore begins as an identity verification platform.
+IdentityCore begins with an identity verification workload.
 
 It grows into the infrastructure that enables trusted digital identity across governments, enterprises, and digital services.
 
-We are not building another verification product.
-
-We are building the infrastructure for digital trust.
+We are building infrastructure for digital trust, not a single turnkey identity implementation.
