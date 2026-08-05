@@ -1,873 +1,347 @@
-# AI Design
-
-## IdentityCore
-
-**Version:** 1.0
-
----
+# IdentityCore Managed AI Providers
 
 ## Purpose
 
-This document defines the AI and computer vision design for IdentityCore Version 1.0.
+This document defines the AI and computer-vision provider implementations operated by IdentityCore.
 
-The AI system supports identity verification by processing document captures, selfie captures, liveness checks, face matching, quality analysis, and OCR.
+The FastAPI AI service is not a privileged architectural subsystem and does not define the platform boundary. It is a host for **IdentityCore Managed Providers** that implement selected capabilities behind the same Provider Runtime used by commercial, government, and customer-hosted providers.
 
-The AI system does not make final business decisions. It produces evidence, scores, confidence levels, and technical outputs that the main platform evaluates using Verification Policies.
+The canonical platform architecture is defined in [`ARCHITECTURE.md`](../../ARCHITECTURE.md). Provider execution is defined in [`provider-runtime.md`](provider-runtime.md), and provider-neutral capability contracts are defined in [`capability-model.md`](capability-model.md).
 
----
+## Core principle
 
-## AI Design Principle
+AI produces evidence, not final organizational decisions.
 
-AI in IdentityCore is an evidence engine, not the final authority.
+Managed AI Providers may answer technical questions such as:
 
-The AI system should answer questions such as:
+- Is a document capture usable?
+- Which supported document type best matches the observed evidence?
+- What text and structured fields can be extracted?
+- Is a usable face present?
+- How similar are two face representations?
+- Does a presentation appear bona fide or suspicious?
+- Which model, threshold, and confidence produced the result?
 
-- Is there a face in the selfie?
-- Is the document image clear?
-- Does the selfie match the document portrait?
-- Does the selfie appear to be live?
-- What can be extracted from the document?
-- What confidence score was produced?
+The Workflow, Policy, and Decision Engines determine what happens next. Uncertain, unsupported, unavailable, or contradictory results may trigger retry, fallback, additional evidence, Manual Review, or a fail-closed outcome.
 
-The Django backend decides whether a Verification is approved, rejected, or sent to manual review.
-
----
-
-## AI Service Architecture
-
-IdentityCore uses a separate internal FastAPI service for AI processing.
+## Architecture
 
 ```text
-Django Backend
-    |
-    v
-FastAPI AI Service
-    |
-    +--> Face Detection
-    +--> Face Matching
-    +--> Liveness Detection
-    +--> Document Quality
-    +--> OCR
-    +--> Model Registry
+Workflow Engine
+      |
+      v
+Provider Runtime
+      |
+      +--> IdentityCore Managed AI Provider
+      |       |
+      |       +--> Document quality
+      |       +--> Document classification
+      |       +--> OCR and field extraction
+      |       +--> Face detection and comparison
+      |       +--> Liveness / presentation attack detection
+      |       +--> Model registry and metadata
+      |
+      +--> Commercial provider
+      +--> Customer-hosted provider
+      +--> Government or authoritative provider
 ```
 
-The AI service is internal only.
+The Django backend must not depend directly on model libraries or provider-specific response shapes. It resolves and invokes capabilities through provider adapters, then stores normalized, versioned evidence.
 
-It must not be exposed publicly.
+## Current managed capabilities
 
----
+The current FastAPI service hosts implementations for:
 
-## AI Service Responsibilities
+- `document.quality`
+- `document.classification`
+- `document.ocr`
+- face detection used by biometric workflows
+- `biometric.face-match`
+- `biometric.liveness`
+- presentation attack detection where configured
+- model and runtime metadata reporting
 
-The AI service is responsible for:
+Capability availability depends on runtime mode, configured models, object storage, and deployment resources.
 
-- Face detection
-- Face alignment
-- Face embedding generation
-- Face comparison
-- Passive liveness detection
-- Active liveness challenge evaluation
-- Document image quality checks
-- OCR processing
-- Document classification
-- Model version reporting
-- Confidence scoring
+## Runtime modes
 
-The AI service is not responsible for:
+The service supports:
 
-- Tenant authorization
-- Final verification decisions
-- Consent validation
-- Audit ownership
-- Billing
-- Webhook delivery
-- Manual review decisions
+- `mock` — deterministic development responses without production model assets;
+- `hybrid` — real processing where configured, with controlled development fallbacks;
+- `real` — configured model and media-processing paths intended for production-like validation.
 
----
+The legacy `local` value is normalized to `mock` for backward compatibility.
 
-## AI Processing Flow
+Mock and hybrid modes are development tools. They must not be represented as production model assurance.
 
-```text
-Verification Subject submits document and selfie
-        |
-        v
-Django validates verification session and consent
-        |
-        v
-Django stores media in encrypted object storage
-        |
-        v
-Django creates background AI jobs
-        |
-        v
-FastAPI AI Service processes media
-        |
-        v
-AI Service returns technical results
-        |
-        v
-Django stores normalized results
-        |
-        v
-Decision Engine applies Verification Policy
-```
+## Invocation lifecycle
 
-Implementation note:
+A managed AI invocation follows the platform runtime:
 
-- The current Django implementation queues biometric processing onto a dedicated `ai_processing` Celery queue after liveness submission.
-- The current Django implementation also queues document OCR and document-quality processing onto the same `ai_processing` queue after document submission.
-- The internal FastAPI service now supports a real-processing path backed by OpenCV, MediaPipe, InsightFace, and PaddleOCR when object storage and local model assets are configured.
-- The same service still supports `mock` and `hybrid` runtime modes so local development can run without downloading model assets during bootstrap.
-- Supported `AI_SERVICE_MODE` values are `mock`, `hybrid`, and `real`. The legacy `local` value is normalized to `mock` for backward compatibility.
+1. The workflow identifies a required capability.
+2. The Provider Runtime resolves the provider assignment.
+3. A Provider Check is created or resumed idempotently.
+4. IdentityCore grants minimal, time-limited evidence access.
+5. The adapter invokes the managed provider.
+6. The provider validates media and executes the capability.
+7. The response is schema-validated and normalized.
+8. Provider, adapter, schema, and model versions are recorded.
+9. Sensitive request and response telemetry is redacted.
+10. The resulting evidence is consumed by workflow and policy evaluation.
 
----
+Managed providers must not bypass provider checks, evidence lineage, tenant scoping, or audit requirements.
 
-## Core AI Modules
+## Provider responsibilities
 
-## Face Detection
+Managed AI Providers are responsible for:
 
-Face Detection identifies whether an image contains a face.
+- media validation and safe decoding;
+- model execution;
+- technical scores and observations;
+- confidence and quality metadata;
+- model name and version;
+- processing timestamps and duration;
+- deterministic error codes;
+- safe handling of unsupported or inconclusive inputs;
+- avoiding raw media, embeddings, or sensitive text in logs.
 
-Inputs:
+They are not responsible for:
 
-- Selfie image
-- Document portrait image
+- tenant authorization;
+- consent validation;
+- final verification decisions;
+- business eligibility decisions;
+- retention policy ownership;
+- Manual Review outcomes;
+- webhook delivery;
+- provider routing outside their own invocation.
 
-Outputs:
+## Document quality
 
-- Face detected: true/false
-- Number of faces
-- Bounding box
-- Detection confidence
-- Model name
-- Model version
+Document quality evaluates whether a capture is suitable for downstream processing.
 
-Business rules:
+Potential signals include:
 
-- A selfie must contain exactly one clear face.
-- A document image should contain one usable portrait where applicable.
-- Multiple faces in a selfie should trigger rejection or manual review.
-- No detected face should trigger rejection or retry.
+- blur;
+- glare;
+- cropping;
+- low resolution;
+- poor lighting;
+- obstruction;
+- orientation;
+- missing corners;
+- unsupported format or unsafe content.
 
----
+A normalized result should include status, quality score, observed issues, model or algorithm version, and whether retry is recommended. Poor quality is evidence about usability, not proof of fraud.
 
-## Face Alignment
+## Document classification
 
-Face Alignment normalizes detected faces before embedding generation.
+Document classification estimates the supported document family and country from observable evidence.
 
-Purpose:
+The current implementation uses OCR line normalization, phrase matching, confidence, structural evidence, country definitions, and MRZ validation where applicable.
 
-- Improve face matching accuracy
-- Reduce pose-related errors
-- Standardize image input for models
+Classification statuses should distinguish:
 
-Outputs:
+- `recognized`
+- `unknown`
+- `unsupported`
+- `ambiguous`
+- `insufficient_evidence`
 
-- Aligned face image reference
-- Alignment confidence
-- Landmarks
-- Model version
+Low confidence, unsupported documents, or conflicting evidence should not be silently rejected as fraudulent. They should produce explicit evidence and an appropriate workflow action.
 
----
+Country support is additive and configuration-driven. Core platform logic must not hardcode Ghana-specific labels or require one country's document taxonomy.
 
-## Face Embedding
+## OCR and field extraction
 
-Face Embedding converts a face into a mathematical representation.
+OCR produces extracted text and candidate fields such as:
 
-Inputs:
+- name;
+- date of birth;
+- document number;
+- expiry date;
+- nationality;
+- issuing authority;
+- machine-readable zone fields.
 
-- Aligned selfie face
-- Aligned document face
+OCR output is unverified evidence. It may be wrong, incomplete, or inconsistent. The platform should preserve field-level confidence and provenance, normalize formats, compare corroborating evidence, and avoid exposing sensitive values unnecessarily.
 
-Outputs:
+## Face detection and alignment
 
-- Face embedding
-- Embedding model name
-- Embedding model version
-- Embedding quality score
+Face detection determines whether an image contains a usable face and may return bounding boxes, landmarks, pose, quality, and detection confidence.
+
+Face alignment prepares a detected face for comparison. Derived face representations are biometric data and must be protected, minimized, and deleted according to policy.
+
+Public APIs must not expose raw biometric templates.
+
+## Face comparison
+
+Face comparison estimates similarity between two face representations, commonly a selfie and document portrait.
+
+A normalized result should retain:
+
+- similarity score;
+- threshold used;
+- technical match outcome;
+- quality or confidence;
+- model and version;
+- processing timestamp;
+- failure or inconclusive reason.
+
+A technical `matched` result is not equivalent to a final `verified` decision. Face comparison must not be the sole basis for sensitive decisions.
+
+## Liveness and presentation attack detection
+
+Liveness evaluates whether evidence appears to come from a live, present person rather than a replay, print, screen, mask, injection, or generated presentation.
+
+IdentityCore may support:
+
+- passive analysis;
+- active challenges such as head movement or other prompts;
+- presentation attack detection models;
+- capture-provenance and device-integrity signals.
+
+Results should distinguish passed, failed, inconclusive, unsupported, and unavailable states. Accessibility, device quality, demographic performance, and attack-class coverage must be evaluated explicitly.
+
+## Model registry and reproducibility
+
+Every model-backed result should include, where applicable:
+
+- provider ID;
+- capability and schema version;
+- model name and version;
+- model artifact checksum or release identifier;
+- runtime mode;
+- threshold configuration version;
+- processing timestamp;
+- duration;
+- confidence and quality metadata.
+
+This information supports auditability, debugging, reproducibility, replacement, drift analysis, and incident response.
+
+## Thresholds
+
+Thresholds affecting workflow or decision behavior belong to versioned policy or provider configuration, not undocumented model code.
+
+The exact threshold used must be retained with the result. Different workflows may choose different risk tolerances, but thresholds require representative evaluation and change control.
+
+## Accuracy and claim discipline
+
+IdentityCore must not advertise a general accuracy percentage without a locked, representative, independently reviewable evaluation for the exact provider, model, configuration, country, document type, device conditions, and attack classes.
+
+Performance reporting should identify relevant metrics, including:
+
+- false acceptance and false rejection rates;
+- precision and recall;
+- calibration;
+- latency;
+- manual-review rate;
+- attack presentation classification error rate;
+- bona fide presentation classification error rate;
+- OCR field accuracy and character error rate;
+- classification accuracy by supported document family.
+
+A narrow, reproducible claim is preferable to a broad marketing number.
+
+## Bias and fairness
+
+Biometric and document models may perform differently across demographics, devices, lighting, geography, and document quality.
+
+Requirements include:
+
+- representative evaluation;
+- monitoring for false-positive and false-negative disparities;
+- avoidance of face matching as the sole decision factor;
+- Manual Review and retry paths;
+- accessible active-liveness alternatives;
+- documented supported populations and limitations;
+- lawful and ethical handling of evaluation attributes.
+
+## Security
+
+Managed AI processing must:
+
+- validate MIME type, extension, size, dimensions, and decoded content;
+- quarantine unsafe uploads;
+- protect against decompression bombs and malicious documents;
+- prevent path traversal and unrestricted network access;
+- use short-lived evidence access;
+- avoid logging raw media, document numbers, OCR text, or embeddings;
+- enforce internal authentication and provider message integrity;
+- apply timeout, response-size, and concurrency limits;
+- isolate model execution from the public API surface.
+
+## Data handling
+
+Managed providers should process media using temporary, least-privilege access.
 
 Rules:
 
-- Embeddings are biometric templates.
-- Embeddings must be encrypted if stored.
-- Embeddings must never be exposed through public APIs.
-- Embeddings should be deleted according to retention policy.
+- do not copy media unnecessarily;
+- do not retain temporary files beyond processing needs;
+- do not persist biometric templates unless explicitly required and governed;
+- store normalized evidence instead of unrestricted raw responses;
+- record retention class and deletion state;
+- respect legal holds and subject deletion workflows;
+- never include provider credentials or signed evidence URLs in telemetry.
 
----
+## Observability
 
-## Face Matching
+Safe operational telemetry may include:
 
-Face Matching compares two face embeddings.
+- request and correlation IDs;
+- provider check ID;
+- capability;
+- provider, adapter, model, and schema versions;
+- duration;
+- status and normalized error code;
+- retryability;
+- resource utilization without sensitive payloads.
 
-Typical comparison:
+## Failure semantics
 
-```text
-Selfie Capture face
-        vs
-Identity Document portrait face
-```
+Managed provider failures must map to platform-wide states such as:
 
-Outputs:
+- `timeout`
+- `unavailable`
+- `invalid_request`
+- `unsupported_input`
+- `malformed_response`
+- `inconclusive`
+- `provider_error`
+- `policy_blocked`
 
-- Match score
-- Threshold used
-- Match result
-- Confidence level
-- Model name
-- Model version
+The workflow determines whether to retry, choose another provider, request new evidence, enter Manual Review, or fail closed.
 
-Example result:
+## Deployment
 
-```json
-{
-  "match_score": 0.94,
-  "threshold_used": 0.85,
-  "matched": true,
-  "confidence_level": "high",
-  "model_name": "insightface",
-  "model_version": "v1"
-}
-```
+The FastAPI service should remain independently scalable and private. CPU execution should be supported where practical; GPU or dedicated inference nodes may be used where justified by model and latency requirements.
 
-Business rules:
+Production deployment requires explicit model assets, health/readiness checks, resource limits, monitoring, network controls, and representative validation. Merely setting `AI_SERVICE_MODE=real` does not establish production fitness.
 
-- Face match alone must not be the only basis for sensitive decisions.
-- Thresholds must be configurable by Verification Policy.
-- Low match scores may trigger rejection or manual review.
-- Borderline scores should trigger manual review.
+## Replacement and coexistence
 
----
+An organization may replace or supplement managed capabilities with:
 
-## Liveness Detection
+- commercial document or biometric providers;
+- customer-hosted models;
+- government registry evidence;
+- specialist authenticity or fraud providers.
 
-Liveness Detection determines whether the Verification Subject is physically present.
+The workflow contract and normalized evidence model should remain stable when providers change.
 
-IdentityCore should support two approaches:
+## Related documentation
 
-```text
-Passive Liveness
-Active Liveness
-```
+- [`ARCHITECTURE.md`](../../ARCHITECTURE.md)
+- [`provider-runtime.md`](provider-runtime.md)
+- [`capability-model.md`](capability-model.md)
+- [`evidence-model.md`](evidence-model.md)
+- [`managed-providers.md`](../providers/managed-providers.md)
+- [`provider-sdk.md`](../providers/provider-sdk.md)
 
----
+## Final principle
 
-## Passive Liveness
+IdentityCore may operate excellent AI capabilities, but the platform's strategic value is not tied to one OCR engine, face model, or liveness implementation.
 
-Passive liveness analyzes an image or video without requiring user action.
-
-Checks may include:
-
-- Screen replay detection
-- Printed photo detection
-- Texture analysis
-- Face depth cues
-- Lighting consistency
-- Spoof pattern detection
-
-Advantages:
-
-- Better user experience
-- Faster onboarding
-- Less friction
-
-Risks:
-
-- May be less reliable against advanced attacks
-- Requires strong model validation
-
----
-
-## Active Liveness
-
-Active liveness requires the Verification Subject to perform an action.
-
-Examples:
-
-- Blink
-- Turn head left/right
-- Smile
-- Read numbers aloud
-- Follow on-screen prompts
-
-Advantages:
-
-- Stronger against simple spoofing
-- Easier to explain during manual review
-
-Risks:
-
-- More friction
-- Accessibility concerns
-- Poor network/device quality issues
-
----
-
-## Liveness Output
-
-Example:
-
-```json
-{
-  "liveness_type": "passive",
-  "score": 0.92,
-  "passed": true,
-  "confidence_level": "high",
-  "failure_reason": null,
-  "model_name": "liveness-model",
-  "model_version": "v1"
-}
-```
-
-Business rules:
-
-- Failed liveness should normally block automatic approval.
-- Inconclusive liveness should trigger retry or manual review.
-- Liveness thresholds must be configurable.
-- Liveness evidence must follow retention policy.
-
----
-
-## Document Intelligence
-
-Document Intelligence processes Identity Documents.
-
-Modules include:
-
-- Document quality analysis
-- Document classification
-- OCR
-- MRZ extraction for passports
-- Field extraction
-- Tamper detection in future versions
-
----
-
-## Document Quality Analysis
-
-Checks whether a document capture is usable.
-
-Signals:
-
-- Blur
-- Glare
-- Cropping
-- Low resolution
-- Poor lighting
-- Obstruction
-- Wrong orientation
-- Missing corners
-
-Output:
-
-```json
-{
-  "quality_score": 0.88,
-  "usable": true,
-  "issues": []
-}
-```
-
-Business rules:
-
-- Poor quality should trigger retry.
-- Repeated poor-quality attempts may trigger manual review.
-- Quality results must be stored for auditability.
-
----
-
-## Document Classification
-
-Classifies the document type.
-
-Examples:
-
-- National ID
-- Passport
-- Driver License
-- Voter ID
-- Health ID
-
-Output:
-
-```json
-{
-  "classification_status": "recognized",
-  "predicted_document_type": "national_id",
-  "matched_expected_document_type": true,
-  "workflow_action": "continue",
-  "requires_manual_review": false,
-  "confidence_score": 0.93,
-  "evidence_score": 0.93,
-  "country_code": "GH"
-}
-```
-
-Business rules:
-
-- The AI service returns evidence-based classification outcomes, not final approval decisions.
-- `classification_status` distinguishes `recognized`, `unknown`, `unsupported`, `ambiguous`, and `insufficient_evidence`.
-- `matched_expected_document_type` is `true`, `false`, or `null` depending on whether the type was reliably established.
-- `workflow_action` tells orchestration whether verification may continue or should continue with review.
-- The classifier uses OCR line normalization, RapidFuzz-based phrase matching, OCR confidence, and structural evidence.
-- Passport classification uses visible wording plus MRZ evidence, not a filename hint.
-- Active country support is controlled by `DOCUMENT_CLASSIFICATION_ENABLED_COUNTRY_CODES`; global passport evidence remains available by default.
-- Low classification confidence should add manual-review evidence, not automatically reject the verification.
-
-### Document Classification Configuration
-
-The current implementation keeps the tunable knobs in the AI service settings layer:
-
-- `backend/ai-service/app/settings.py` exposes the document-classification thresholds and weights as environment-backed settings.
-- `backend/ai-service/app/document_classification/mrz.py` contains the MRZ checksum and structural validation logic.
-- `backend/ai-service/app/document_classification/definitions/` contains the verified document definitions and country-specific registry entries.
-
-Operational settings:
-
-- `DOCUMENT_CLASSIFICATION_ENABLED_COUNTRY_CODES`
-- `DOCUMENT_CLASSIFICATION_MINIMUM_CANDIDATE_EVIDENCE`
-- `DOCUMENT_CLASSIFICATION_MINIMUM_REQUIRED_GROUP_COVERAGE`
-- `DOCUMENT_CLASSIFICATION_MINIMUM_CLASSIFICATION_MARGIN`
-- `DOCUMENT_CLASSIFICATION_MINIMUM_AVERAGE_OCR_CONFIDENCE`
-- `DOCUMENT_CLASSIFICATION_REQUIRED_EVIDENCE_WEIGHT`
-- `DOCUMENT_CLASSIFICATION_OPTIONAL_EVIDENCE_WEIGHT`
-- `DOCUMENT_CLASSIFICATION_STRUCTURAL_EVIDENCE_WEIGHT`
-- `DOCUMENT_CLASSIFICATION_OCR_QUALITY_WEIGHT`
-- `DOCUMENT_CLASSIFICATION_NEGATIVE_EVIDENCE_WEIGHT`
-
-Country support is additive: if a country code is not enabled, the registry excludes that country-specific definition while leaving global passport evidence available.
-
----
-
-## OCR
-
-OCR extracts from document captures.
-
-Possible extracted fields:
-
-- Full name
-- Date of birth
-- Document number
-- Expiry date
-- Issuing authority
-- Nationality
-- Gender, where applicable
-
-Output:
-
-```json
-{
-  "confidence_score": 0.91,
-  "extracted_fields": {
-    "full_name": "Kwame Mensah",
-    "date_of_birth": "1998-01-01",
-    "document_number": "masked_or_hashed"
-  }
-}
-```
-
-Business rules:
-
-- OCR output must be treated as unverified evidence.
-- OCR output should be normalized by the Django backend.
-- Sensitive fields should be masked or hashed where possible.
-- OCR confidence should affect risk scoring.
-- PaddleOCR recognition confidence is preserved per OCR line for downstream classification evidence.
-
----
-
-## MRZ Extraction
-
-MRZ extraction applies mainly to passports.
-
-Version 1.0 may include basic MRZ reading if passport support is included.
-
-Extracted data may include:
-
-- Passport number
-- Date of birth
-- Expiry date
-- Nationality
-- Name
-- MRZ checksum validity
-
-Business rules:
-
-- MRZ checksum validation increases confidence.
-- Failed MRZ extraction does not automatically mean fraud.
-- Manual review may be required.
-- MRZ evidence is one input to passport classification, but a valid MRZ does not override other workflow policy checks.
-
----
-
-## Model Registry
-
-IdentityCore must track model versions.
-
-Each AI result should include:
-
-- Model name
-- Model version
-- Model type
-- Processing timestamp
-- Confidence score
-- Runtime environment
-
-Purpose:
-
-- Auditability
-- Debugging
-- Reproducibility
-- Model replacement
-- Performance monitoring
-
-Example:
-
-```json
-{
-  "model_name": "insightface",
-  "model_version": "buffalo_l_v1",
-  "model_type": "face_embedding",
-  "processed_at": "2026-07-04T10:03:00Z"
-}
-```
-
----
-
-## Confidence Levels
-
-Raw model scores should be converted into human-readable confidence levels.
-
-Example:
-
-```text
-0.90 - 1.00  high
-0.70 - 0.89  medium
-0.50 - 0.69  low
-0.00 - 0.49  very_low
-```
-
-Actual thresholds must be tested and configurable.
-
-Confidence levels should support, not replace, raw scores.
-
----
-
-## Decision Boundaries
-
-The AI service must not return:
-
-```text
-verified
-rejected
-manual_review_required
-```
-
-Those are business decisions.
-
-The AI service may return:
-
-```text
-matched
-not_matched
-passed
-failed
-inconclusive
-```
-
-The Django Decision Engine maps AI results to Verification Decisions.
-
----
-
-## Threshold Management
-
-Thresholds should be configured in Verification Policies.
-
-Examples:
-
-```text
-face_match_threshold = 0.85
-manual_review_threshold = 0.65
-liveness_threshold = 0.80
-document_quality_threshold = 0.75
-```
-
-Business rules:
-
-- Different organizations may use different thresholds.
-- Higher-risk workflows may require stricter thresholds.
-- Threshold changes must be versioned.
-- The threshold used must be recorded for every result.
-
----
-
-## Bias and Fairness
-
-IdentityCore must treat biometric AI bias as a serious risk.
-
-Requirements:
-
-- Evaluate model performance across diverse demographics.
-- Avoid relying on face matching alone.
-- Support manual review.
-- Track false positive and false negative rates.
-- Monitor performance by geography and document type where lawful and appropriate.
-
-The platform should avoid collecting sensitive demographic data unless legally justified and ethically necessary for model evaluation.
-
----
-
-## Accuracy Metrics
-
-AI performance should be measured using:
-
-- False Acceptance Rate
-- False Rejection Rate
-- Equal Error Rate
-- Precision
-- Recall
-- Confidence calibration
-- Processing latency
-- Manual review rate
-
-For OCR:
-
-- Field-level accuracy
-- Character error rate
-- Document classification accuracy
-
-For liveness:
-
-- Attack presentation classification error rate
-- Bona fide presentation classification error rate
-
----
-
-## Performance Targets
-
-Initial targets for Version 1.0:
-
-```text
-Face detection: < 1 second
-Face matching: < 3 seconds
-Liveness check: < 5 seconds
-Document quality check: < 2 seconds
-OCR: < 5 seconds
-```
-
-Targets may vary depending on hardware and media size.
-
----
-
-## Hardware Strategy
-
-Version 1.0 should support CPU-based inference where possible.
-
-Future versions may support:
-
-- GPU inference
-- Model quantization
-- ONNX Runtime optimization
-- Batch processing
-- Dedicated AI nodes
-
-For MVP, avoid requiring expensive GPU infrastructure unless necessary.
-
----
-
-## Model Selection
-
-Initial model candidates:
-
-```text
-Face Detection:
-MediaPipe, RetinaFace
-
-Face Embeddings / Matching:
-InsightFace, FaceNet
-
-Liveness:
-Open-source passive liveness models, MediaPipe-based active checks, commercial provider fallback
-
-OCR:
-PaddleOCR, Tesseract, EasyOCR
-
-Document Quality:
-OpenCV-based quality checks
-```
-
-Final model choices must be documented in ADRs.
-
----
-
-## Provider Fallback Strategy
-
-IdentityCore should support internal and external AI providers.
-
-Example:
-
-```text
-Primary: Internal AI Service
-Fallback: Third-party KYC provider
-```
-
-Provider fallback may be useful when:
-
-- Internal model fails
-- Accuracy is uncertain
-- Specific country document support is weak
-- Enterprise customer requires certified provider
-
-Provider usage must be auditable.
-
----
-
-## Data Handling
-
-AI processing should use temporary access to media.
-
-Rules:
-
-- Use signed internal URLs or secure object storage access.
-- Do not copy media unnecessarily.
-- Do not store temporary files permanently.
-- Delete temporary files after processing.
-- Never log raw media or biometric templates.
-- Record only required metadata and results.
-
----
-
-## AI Security
-
-AI-specific security requirements:
-
-- Validate input files.
-- Reject unsupported formats.
-- Enforce file size limits.
-- Protect against malicious files.
-- Isolate processing environment.
-- Prevent path traversal.
-- Prevent model endpoint abuse.
-- Rate limit AI requests.
-- Log processing errors safely.
-
----
-
-## AI Observability
-
-AI processing should log:
-
-- Request ID
-- Verification ID
-- Processing module
-- Model name
-- Model version
-- Duration
-- Status
-- Error code where applicable
-
-AI logs must not include raw biometric or document data.
-
----
-
-## AI Failure Handling
-
-AI failures should be handled safely.
-
-Examples:
-
-- OCR failure → retry or manual review
-- Face detection failure → retry capture
-- Liveness inconclusive → retry or manual review
-- Provider timeout → retry or mark provider unavailable
-- Model error → fail safely and notify system
-
-AI failure should not expose internal technical details to Verification Subjects.
-
----
-
-## Manual Review Support
-
-AI results should support human review.
-
-Manual reviewers may need:
-
-- Document quality issues
-- Extracted fields
-- Face match score
-- Liveness score
-- Risk signals
-- Evidence summary
-- Model version
-- Reason codes
-
-Manual review screens must avoid exposing unnecessary sensitive information.
-
----
-
-## Model Update Strategy
-
-Model updates must be controlled.
-
-Requirements:
-
-- Version every model.
-- Test before deployment.
-- Record old and new performance.
-- Support rollback.
-- Avoid silent model changes.
-- Record model version per verification result.
-
----
-
-## Future AI Capabilities
-
-Future versions may include:
-
-- Document forgery detection
-- Deepfake detection
-- Voice liveness
-- Fingerprint matching
-- Iris recognition
-- Duplicate identity detection
-- Face search across authorized datasets
-- Watchlist matching where legally permitted
-- Fraud pattern detection
-- Model drift detection
-- Automated document template learning
-
----
-
-## Version 1.0 AI Scope
-
-Version 1.0 includes:
-
-- Face detection
-- Face matching
-- Passive liveness
-- Basic active liveness
-- Document quality checks
-- OCR
-- Document classification
-- Model version tracking
-- Confidence scoring
-- Manual review support
-
-Version 1.0 excludes:
-
-- Government database lookup
-- Criminal watchlist matching
-- Mass face search
-- Fingerprint recognition
-- Iris recognition
-- Deepfake detection as a certified control
-- Fully autonomous high-impact decisions
-- Model training pipeline
-- Production-grade biometric search engine
-
----
-
-## Final AI Principle
-
-IdentityCore's AI must be accurate, explainable, auditable, replaceable, and privacy-preserving.
-
-The goal is not to replace human judgment or legal responsibility. The goal is to provide strong, measurable identity evidence that helps organizations make secure and responsible verification decisions.
+Managed AI Providers are replaceable participants in a governed identity execution plane. Evidence, policy, interoperability, privacy, and auditability remain the enduring platform contracts.
