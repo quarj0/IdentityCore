@@ -1,220 +1,178 @@
 # Product Alignment and Gap Assessment
 
-Last reviewed: 2026-07-26
+Last reviewed: 2026-08-05
 
 ## Executive answer
 
-IdentityCore's intended category is **identity infrastructure**, not merely identity
-verification software and not a single end-to-end verification vendor. Its closest
-conceptual analogy is a cloud platform for identification: it supplies a stable control
-plane and common platform primitives, while organizations compose managed services,
-specialist third-party providers, and customer-hosted systems.
+IdentityCore is a **vendor-neutral identity infrastructure platform**. Identity verification is the first implemented workload, not the architectural boundary of the product.
 
-Identity verification is the first workload and the current working vertical slice. It
-proves the infrastructure through a policy-driven workflow, but it must not become the
-architectural boundary of IdentityCore. The current repository is **directionally
-aligned**, but it is **not yet the complete infrastructure platform described by that
-vision**.
+The repository is now materially aligned with that direction. It contains working foundations for a Control Plane, workflow and policy versioning, a Provider Runtime, normalized provider results, evidence handling, Manual Review, privacy operations, audit integrity, APIs, SDKs, and hosted applications.
 
-The ordinary verification path is substantially represented. The reusable control plane
-and provider ecosystem are much earlier. Bring Your Own Provider (BYOP) is not an
-enterprise add-on: it is a defining platform capability that allows OCR, biometric,
-liveness, authenticity, registry, risk, storage, messaging, and other identity vendors
-to plug into IdentityCore. BYOP is currently a foundation rather than a complete
-orchestration system.
+IdentityCore is not yet a complete identity operating system or provider marketplace. Advanced routing, broad provider conformance, reusable claims, tenant-owned storage, customer-managed keys, and production certification remain incomplete.
 
 ## Platform definition
 
-IdentityCore should own the vendor-neutral infrastructure around identity operations,
-not insist on performing every operation itself.
+IdentityCore owns the vendor-neutral infrastructure around identity operations:
 
-### Control plane
+- tenant, project, and environment isolation;
+- APIs, SDKs, CLI, hosted journeys, and operator consoles;
+- workflow, policy, and decision execution;
+- provider registration, selection, invocation, and normalization;
+- evidence lineage and claims foundations;
+- Manual Review and maker-checker controls;
+- consent, retention, export, deletion, and legal-hold handling;
+- tamper-evident audit and signed result delivery.
 
-The control plane is where an organization configures and governs identity services:
+Providers may be IdentityCore-managed, commercial, government-operated, customer-hosted, or infrastructure services such as storage, KMS/HSM, risk, and messaging.
 
-- tenants, projects, environments, users, roles, and access policy;
-- identity workflows, templates, policies, provider routes, and version promotion;
-- provider onboarding, credentials, health, conformance, cost, and residency controls;
-- consent purposes, evidence handling, retention, encryption, and audit policy;
-- API clients, usage limits, observability, billing, and incident operations.
+## Current architecture
 
-### Identity data plane
+```text
+Applications, SDKs, CLI and hosted journeys
+                    |
+                    v
+           IdentityCore API Layer
+                    |
+       +------------+------------+
+       |                         |
+       v                         v
+ Control Plane             Execution Plane
 
-The data plane executes each identity operation through a consistent runtime:
-
-- accept a request or start a session;
-- collect only the consented evidence and claims required by policy;
-- select providers using tenant, environment, workflow, country, document, residency,
-  availability, performance, and cost rules;
-- issue minimal, time-limited access to the selected provider;
-- validate and normalize provider output into vendor-neutral evidence;
-- retry or fall back without changing the organization's integration contract;
-- apply policy, request human review where necessary, and return signed results;
-- preserve lineage, auditability, retention, and deletion across the full operation.
-
-### Provider ecosystem
-
-A provider is a replaceable capability behind an IdentityCore contract. It may be:
-
-- operated by IdentityCore;
-- operated by the customer in its own network;
-- supplied by an identity-verification company;
-- a specialist OCR, biometrics, liveness, authenticity, fraud, or watchlist vendor;
-- an authorized government, banking, educational, or professional registry;
-- storage, KMS/HSM, messaging, or other supporting infrastructure.
-
-This makes specialist and end-to-end identity companies potential ecosystem participants,
-not merely competitors. A provider may expose one capability or several, and an
-organization remains free to choose a different provider at every step.
-
-### Platform services beyond the first verification workload
-
-The shared primitives should support additional identification and digital-trust
-services without creating separate silos. Examples include reusable verified claims,
-selective age or eligibility assertions, registry-backed identity resolution,
-credential issuance and validation, step-up or repeat authentication, deduplication,
-account recovery, organizational identity, and program-specific eligibility workflows.
-These are platform directions, not claims that all such services are implemented today.
-
-IdentityCore should remain responsible for orchestration, governance, interoperability,
-and evidence lineage. The organization remains responsible for the business consequence
-of a result, while each provider remains responsible for the signal or infrastructure it
-supplies.
+ tenants/projects          workflow engine
+ environments              policy engine
+ users/API clients         provider runtime
+ workflows/policies        evidence
+ provider configuration    decisions
+ privacy rules             manual review
+                            audit/webhooks
+                    |
+                    v
+                 Providers
+```
 
 ## Capability assessment
 
-| Product capability | Current maturity | Repository evidence and limitation |
+| Capability | Current maturity | Current reality and limitation |
 | --- | --- | --- |
-| Identity control plane | Early foundation | Tenants, projects, environments, access control, APIs, configuration surfaces, audit, and usage concepts exist, but they are not yet a unified provider-neutral control plane. |
-| Provider marketplace/ecosystem | Early foundation | A provider registry and provider records exist. Provider discovery, capability manifests, conformance, commercial terms, residency metadata, certification, and organization self-service onboarding remain future work. |
-| Vendor-neutral data plane | Partial | Normalized provider-check evidence exists, but built-in execution paths still bypass a general orchestration runtime. |
-| Organization and tenant isolation | Implemented foundation | Organizations, tenants, projects, membership/access control, and tenant-scoped domain records exist. Production authorization and isolation still require security testing. |
-| Templates, policies, and workflows | Implemented foundation | Templates, verification policies, versioned workflows, policy snapshots, and workflow UI exist. The runtime remains more fixed than the fully configurable orchestration vision. |
-| Hosted applicant journey | Working vertical slice | Consent, country/document selection, upload/capture, selfie/liveness, mobile handoff, status, and completion views exist in the verification portal. |
-| Document processing | Working vertical slice | Quality, classification, OCR, country definition modules, normalized evidence, and manual-review routing are implemented. Authenticity/forensics coverage is not yet a broad vendor-grade engine. |
-| Biometrics | Working vertical slice | Selfie capture, active/passive liveness records, face comparison, thresholds, provider checks, and failure-to-review behavior exist. Production model validation and anti-spoof coverage remain deployment obligations. |
-| Risk and decisions | Working vertical slice | The service aggregates evidence into risk recommendations and automatic decisions, with human review for uncertainty. The built-in engine is presently rule-oriented rather than a general external risk-engine contract. |
-| Manual review | Implemented foundation | Reviewer assignment/access, evidence views, decisions, escalation, and audit records exist. Operational QA, maker-checker controls, and reviewer policy depth still need production hardening. |
-| Signed result delivery | Implemented foundation | Webhook endpoints, HMAC signatures, attempts, exponential retries, and audit events exist. External contract/versioning and end-to-end integration certification remain. |
-| Privacy, retention, and audit | Implemented foundation | Encrypted sensitive JSON, audit events, evidence reports, media retention cleanup, and access controls exist. A full compliance program, deletion/export workflows, residency guarantees, and formal assurance are not established merely by these models. |
-| Dashboards and developer surfaces | Broad UI foundation | Organization dashboard, verification portal, platform administration, public website, and developer portal are present. Some administration screens are read-oriented, scaffolded, or backed by mock/sample data. |
-| Country-aware support | Implemented foundation | Classification definitions include global documents, West African candidates, and Ghana. This is extensible, but it does not yet equal broad country/document production coverage. |
-| Sandbox and production separation | Partial | Projects/environments, credentials, examples, and configuration concepts exist. A fully certified sandbox simulator and production promotion/control plane are not complete. |
+| Identity Control Plane | Implemented foundation | Tenants, organizations, projects, environments, users, roles, API clients, workflows, policies, providers, audit, privacy, and administration surfaces exist. Promotion, provider self-service, and unified operational controls remain incomplete. |
+| Provider Runtime | Implemented foundation | Managed AI calls are routed through provider adapters and centralized invocation. Provider checks store normalized, versioned results, duration, status, errors, and redacted metadata. Advanced routing and fallback remain incomplete. |
+| Secure custom HTTP providers | Implemented foundation | The repository includes secure HTTP provider invocation, endpoint controls, signing, timestamps, nonces, replay resistance, idempotency concepts, and versioned capability contracts. Broader conformance tooling and organization-facing onboarding remain planned. |
+| Provider ecosystem | Early foundation | Provider records, assignments, adapters, and capability contracts exist. Discovery, certification, commercial metadata, residency declarations, pricing, and a provider marketplace remain future work. |
+| Workflow Engine | Implemented foundation | Versioned workflows, workflow summaries, execution state, immutable snapshots, and hosted verification journeys exist. General cross-workload branching and provider-route composition remain partial. |
+| Policy Engine | Implemented foundation | Verification policies, thresholds, required steps, retention settings, snapshots, and decision inputs exist. A generalized policy language and external policy-provider contract remain incomplete. |
+| Decision Engine | Implemented foundation | Automatic decisions, reasoned outcomes, immutable input snapshots, Manual Review, and maker-checker approval exist. Broader workload-neutral decision contracts remain under development. |
+| Evidence Model | Implemented foundation | Provider checks, document and biometric results, reports, model metadata, audit context, and decision snapshots provide a strong evidence foundation. A single generalized evidence resource and lineage API remain incomplete. |
+| Claims Engine | Partial | OCR fields, normalized provider results, policy evaluation, and decision snapshots supply claim-like data. Reusable claims, conflict resolution, selective disclosure, expiry, revocation, and cross-workload reuse are not complete. |
+| Identity verification workload | Working vertical slice | Consent, document selection and capture, OCR, quality, classification, selfie/liveness, face match, decisions, Manual Review, status, webhooks, and evidence access are represented. Production accuracy and country coverage remain deployment obligations. |
+| IdentityCore Managed Providers | Working foundation | FastAPI hosts managed OCR, document quality, classification, face comparison, liveness/PAD, and model reporting. These are provider implementations, not privileged core components. |
+| Manual Review | Implemented foundation | Reviewer scope, assignment, evidence access, decisions, escalation, maker-checker approval, state-transition controls, and audit records exist. Operational QA and workforce governance still require hardening. |
+| Privacy and retention | Implemented foundation | Encrypted fields, media cleanup, retention periods, legal holds, subject export, subject deletion/pseudonymization, and audit events exist. Complete deletion propagation and deployment-specific compliance assurance still require validation. |
+| Audit and compliance evidence | Implemented foundation | Audit events are append-only and hash-chained, with access controls and event recording across sensitive operations. External WORM storage, SIEM integration, and independent assurance remain future work. |
+| Tenant and environment isolation | Implemented foundation | REST and GraphQL regression tests, API environment scoping, tenant-owned resources, and credential isolation exist. Production penetration testing and database-level defense in depth remain required. |
+| Developer platform | Broad foundation | Public REST API, internal GraphQL, interactive OpenAPI explorer, Python/Java/.NET SDKs, Python CLI, examples, and developer portal are present. Contract completeness and release/version policy need continued work. |
+| Provider-neutral storage and keys | Planned | S3-compatible storage exists at deployment level. Tenant-selected storage providers, storage-reference-only evidence, per-tenant KMS/HSM, and customer-managed key lifecycle are not implemented end to end. |
+| Country and document coverage | Implemented foundation | Global and country-specific document definitions, West African candidates, Ghana support, MRZ checks, and configurable enablement exist. Broad certified coverage is not implied. |
+| Production readiness | Partial | MFA, token rotation, security headers, retention workers, audit integrity, idempotency, upload quarantine, webhooks, monitoring foundations, and tests exist. Pilot readiness still requires deployment validation, model evaluation, incident exercises, backups, load tests, and independent security review. |
 
-## BYOP: what is real today
+## Provider Runtime: what is real today
 
-The repository already establishes several correct seams:
+The following are implemented foundations:
 
-- Providers may be platform defaults or tenant-owned records.
-- Provider configuration is stored in an encrypted JSON field.
-- A tenant may assign one provider to OCR, classification, quality, face match,
-  liveness, identity lookup, risk, or a notification channel.
-- Provider checks retain the selected provider, status, timestamps, error information,
-  request/response metadata, and a normalized result.
-- Internal document and biometric calls are represented through provider-check records.
-- Notification delivery supports tenant selection and adapter-based extension.
-- Unknown or unavailable AI results are generally routed toward manual review rather
-  than silently approved or discarded.
+- adapter-backed provider capability execution;
+- IdentityCore Managed Providers using the adapter boundary;
+- centralized invocation through provider checks;
+- normalized and versioned provider results;
+- request/response metadata redaction;
+- duration and status tracking;
+- provider failure normalization;
+- secure custom HTTP invocation;
+- message signing, timestamps, nonces, and replay detection;
+- tenant provider assignments;
+- provider-aware document and biometric tasks;
+- Manual Review routing for unavailable or inconclusive evidence.
 
-These are useful architectural foundations, but they do not by themselves make the
-platform a general BYOP orchestrator or identity-infrastructure control plane.
+This corrects earlier documentation that said provider selection changed attribution while execution always bypassed a general runtime. That statement is no longer true.
 
-## BYOP: material gaps
+## Material gaps
 
-1. **Execution does not follow the selected provider for core AI checks.** Provider
-   resolution selects and records a tenant assignment, but document, liveness, and face
-   tasks still call the built-in AI-service client. A tenant OCR assignment therefore
-   changes attribution, not the executable adapter.
-2. **There is no generic custom HTTP provider contract.** Endpoint validation,
-   authentication modes, signed requests/responses, replay protection, response mapping,
-   schema/version negotiation, and per-capability adapters are not implemented as a
-   reusable runtime.
-3. **Assignments are one-per-tenant/per-capability.** There are no ordered provider
-   chains, conditional country/document routing rules, template-level overrides, retry
-   policies, circuit breakers, or a final manual fallback configuration.
-4. **Provider administration is incomplete.** The platform console can inspect provider
-   data, but organization administrators do not yet have the complete add, map, test,
-   sandbox, promote, rotate, and health-check workflow described in the vision.
-5. **Storage is deployment-wide, not tenant-routed.** S3-compatible storage is supported,
-   including separate bucket purposes and signed URLs, but there is no tenant-owned
-   object-storage provider assignment or storage-reference-only evidence model.
-6. **Customer-managed encryption keys are not implemented.** Application encryption is
-   valuable, but it is not BYOK/KMS/HSM integration with per-tenant and per-environment
-   key lifecycle controls.
-7. **Registry and external risk execution are not complete.** Types and assignment keys
-   exist, but an authoritative-registry connector framework and an external risk-engine
-   invocation/normalization path are not present end to end.
-8. **Authenticity is not a first-class provider capability.** Document checks currently
-   cover useful quality/classification/OCR signals, but the provider taxonomy lacks a
-   dedicated authenticity check and country-specific authenticity routing.
-9. **Operational controls need hardening.** Provider health metrics, redacted telemetry,
-   egress allowlists, secret rotation, data-processing declarations, residency controls,
-   and auditable fallback reasons need complete enforcement.
+### 1. Advanced provider routing
 
-## Recommended implementation order
+The platform still needs mature, versioned routes that can select providers by:
 
-### 1. Make provider selection executable
+- project and environment;
+- workflow and step;
+- country and document type;
+- residency and data-transfer policy;
+- cost and service tier;
+- provider health and latency;
+- ordered fallback chains;
+- final Manual Review or fail-closed action.
 
-Introduce a capability adapter interface and registry. Every processing task should ask
-an orchestrator to execute a capability; the orchestrator should resolve the provider,
-invoke its adapter, validate and normalize the result, and update the provider attempt.
-The built-in AI service should become one adapter, not a special hard-coded path.
+### 2. Provider onboarding and conformance
 
-The same orchestration API must be used for IdentityCore-managed, customer-hosted, and
-third-party providers. Otherwise BYOP will remain a label attached to built-in execution
-instead of a true platform boundary.
+The Provider SDK contract now has documentation, but the ecosystem still needs:
 
-### 2. Model routes, chains, and attempts
+- machine-readable manifests;
+- automated conformance suites;
+- test fixtures and certification levels;
+- organization-facing connection tests;
+- credential rotation and promotion workflows;
+- health, residency, retention, and commercial metadata.
 
-Add versioned, environment-scoped provider routes with conditions for country, document
-type, template/workflow, and capability. A route should contain ordered providers plus
-timeouts, retry policy, and a final action. Record each invocation separately so a check
-can show `internal OCR timed out -> default OCR succeeded -> normalized result`.
+### 3. Generalized evidence and claims APIs
 
-### 3. Ship a secure custom HTTP adapter
+Evidence exists across domain records, provider checks, reports, and decisions. The next stage is a unified evidence resource with explicit lineage and a claims lifecycle supporting provenance, conflict resolution, selective disclosure, expiry, revocation, and reuse.
 
-Define versioned request/response schemas, minimal evidence grants, short-lived signed
-URLs, HMAC or asymmetric signatures, timestamps/nonces, idempotency keys, strict timeout
-limits, response-size limits, confidence validation, and log redaction. Protect outbound
-requests against SSRF with approved destinations and network egress policy.
+### 4. Storage and key-provider neutrality
 
-### 4. Add organization-facing configuration and promotion
+Object storage is configurable per deployment, but not yet generally routed per tenant, project, environment, or workflow. KMS/HSM and customer-managed keys require first-class capability contracts and lifecycle controls.
 
-Build **Settings -> Providers** for create, credential setup, mapping, connection tests,
-sample cases, health, assignment, fallback configuration, and sandbox-to-production
-promotion. Production activation should require appropriate roles and fresh validation.
+### 5. External registry and risk providers
 
-### 5. Define the provider platform contract
+Provider types and capability direction exist, but production-ready registry, authenticity, watchlist, and external risk-provider integrations need complete contracts, authorization models, and conformance testing.
 
-Publish capability manifests and conformance requirements so both specialist providers
-and broader identity vendors can integrate without IdentityCore-specific code being
-added to every workflow. A manifest should describe supported capabilities, countries,
-documents, input/evidence requirements, output schema versions, deployment modes,
-residency, retention, health, pricing/metering dimensions, and certification status.
+### 6. Production assurance
 
-### 6. Extend capability coverage
+Repository implementation does not by itself establish regulatory compliance or production accuracy. Required work includes:
 
-Add first-class authenticity, registry, external risk, object storage, and key-management
-adapters. Storage and key management should be designed deliberately because they affect
-the location, accessibility, retention, and deletion of the platform's most sensitive
-evidence.
+- independent security testing;
+- provider and model evaluation;
+- representative liveness and biometric testing;
+- backup and restore exercises;
+- load and failure testing;
+- incident-response exercises;
+- deployment-specific residency and key-management validation;
+- operational Manual Review quality controls.
 
-### 7. Prove production behavior
+## Documents and terminology
 
-Add contract suites for adapters; end-to-end tests for timeout, malformed response,
-fallback, replay, tenant isolation, and manual-review outcomes; provider conformance
-fixtures; load/failure testing; security review; and documented operational runbooks.
+The following hierarchy should be used:
 
-## Product wording until then
+- [`ARCHITECTURE.md`](../../ARCHITECTURE.md) — canonical architectural vision.
+- [`provider-runtime.md`](provider-runtime.md) — provider execution boundary.
+- [`capability-model.md`](capability-model.md) — provider-neutral capability contracts.
+- [`evidence-model.md`](evidence-model.md) — evidence provenance and lifecycle.
+- [`claims-engine.md`](claims-engine.md) — claims direction and current maturity.
+- [`platform-roadmap.md`](../foundation/platform-roadmap.md) — capability-based roadmap.
+- [`managed-providers.md`](../providers/managed-providers.md) — IdentityCore-operated provider implementations.
+- [`provider-sdk.md`](../providers/provider-sdk.md) — provider integration contract.
 
-Accurate current wording is:
+Use **Execution Plane**, not “AI data plane,” for the general runtime. Use **IdentityCore Managed Provider**, not “internal AI component,” when describing OCR, face match, liveness, classification, or document quality as executable capabilities.
 
-> IdentityCore is building vendor-neutral identity infrastructure. Identity verification
-> is its first working workload. The platform already has tenant, workflow, evidence,
-> policy, audit, and provider foundations, while the general provider execution plane,
-> conditional routing, fallback chains, provider ecosystem, tenant-owned storage, and
-> customer-managed keys remain under development.
+## Accurate current positioning
 
-Avoid claiming that arbitrary OCR, liveness, face, registry, risk, storage, or key
-providers can already be connected safely in production until their execution paths and
-operational controls have been implemented and tested.
+> IdentityCore is building vendor-neutral identity infrastructure. Identity verification is its first working workload. The platform has implemented foundations for tenant and environment isolation, workflows, policies, provider execution, normalized evidence, decisions, Manual Review, privacy operations, audit integrity, APIs, SDKs, and managed providers. Advanced provider routing, broad conformance, reusable claims, tenant-owned storage, customer-managed keys, and production certification remain under development.
+
+## Product claim boundaries
+
+Do not claim that:
+
+- every provider can already be connected without engineering work;
+- every country or document is supported;
+- managed OCR, face, or liveness models are certified for all production uses;
+- IdentityCore provides a finished provider marketplace;
+- reusable verified claims are complete;
+- deployment configuration alone establishes legal compliance;
+- any general accuracy percentage applies across providers, documents, countries, devices, and attack classes.
+
+The platform should communicate direction boldly while describing implementation maturity precisely.

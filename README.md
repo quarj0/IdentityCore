@@ -1,301 +1,326 @@
 # IdentityCore
 
-> IdentityCore is an enterprise digital identity infrastructure platform. Version 1.0 delivers secure identity verification while establishing the foundation for trusted digital identity services across organizations and governments.
+> **Vendor-neutral identity infrastructure for building, orchestrating, and governing digital trust workloads.**
 
-IdentityCore is a multi-tenant **identity infrastructure and orchestration platform**.
-Organizations use its common control plane, APIs, workflows, evidence model, policy
-engine, audit trail, and provider ecosystem to build identification and digital-trust
-services. Document capture, biometric verification, liveness detection, and
-policy-driven decisions are the first workload running on that infrastructure; they are
-not the boundary of the product.
+IdentityCore provides a common platform for identity workflows, provider execution,
+evidence, claims, policy, decisions, human review, privacy controls, and audit.
 
-Like a cloud platform offers common infrastructure while customers choose managed or
-third-party services, IdentityCore is intended to let organizations compose
-IdentityCore-managed capabilities, their own internal systems, and specialist identity
-providers behind one stable contract. A document, biometric, registry, storage, risk,
-or notification vendor can therefore participate as a provider instead of being treated
-only as a competing end-to-end product.
+**Identity verification is the first workload built on the platform. It is not the
+platform boundary.**
 
-The platform is designed with security, privacy, auditability, and scalability as first-class principles. While the initial target market is Ghana, IdentityCore is built to support multiple countries through configurable Country Profiles, Verification Policies, and Provider Adapters rather than country-specific business logic.
+Organizations integrate with one stable IdentityCore contract and choose which providers
+execute each capability. A provider may be operated by IdentityCore, supplied by a
+commercial IDV vendor, exposed by an authorized registry, hosted by the customer, or
+provided by supporting infrastructure such as object storage, KMS/HSM, risk, or
+messaging systems.
 
----
+IdentityCore is designed to reduce integration fragmentation and provider lock-in while
+preserving tenant isolation, policy control, evidence lineage, and auditability.
 
-## Vision
+## What the platform provides
 
-To provide the trusted infrastructure on which organizations can build secure,
-privacy-preserving, interoperable, and auditable identification services.
+- **Provider Runtime** — resolves, invokes, secures, observes, and normalizes capability providers.
+- **Workflow Engine** — composes identity capabilities and human steps into versioned workloads.
+- **Policy Engine** — determines evidence requirements, thresholds, routing, and review rules.
+- **Evidence Model** — records source, provenance, confidence, version, integrity, and retention.
+- **Claims** — represents normalized and derived statements linked to supporting evidence.
+- **Decision Engine** — records policy-driven outcomes from immutable decision inputs.
+- **Manual Review** — supports governed reviewer assignment, escalation, and maker-checker controls.
+- **Audit and Compliance** — provides append-only, tamper-evident activity records and exports.
+- **Privacy Controls** — supports consent, retention, legal holds, subject export, and deletion.
+- **Multi-tenancy** — isolates organizations, projects, environments, users, data, and providers.
+- **APIs, SDKs, CLI, and Webhooks** — expose stable integration surfaces for applications and operators.
 
-IdentityCore's first complete service is identity verification, but its platform boundary
-is broader: reusable identity workflows, provider orchestration, evidence and claims,
-policy enforcement, consent, lifecycle controls, and digital-trust services for
-enterprises, financial institutions, educational institutions, healthcare providers,
-and governments.
+## Platform architecture
 
----
+```text
+Applications, SDKs, CLI, hosted journeys and operator consoles
+                              |
+                              v
+                     IdentityCore API Layer
+                              |
+             +----------------+----------------+
+             |                                 |
+             v                                 v
+       Control Plane                    Execution Plane
 
-## Core Principles
+  Tenants and projects             Workflow Engine
+  Environments                     Policy Engine
+  Users, roles and API clients     Provider Runtime
+  Workflow definitions             Evidence and Claims
+  Policy versions                  Decision Engine
+  Provider configuration           Manual Review
+  Privacy and retention            Audit and event delivery
+             |                                 |
+             +----------------+----------------+
+                              |
+                              v
+                           Providers
 
-- Security by Default
-- Privacy by Design
-- Multi-Tenant Architecture
-- AI as Evidence, Not Decision Maker
-- API-First Design
-- Auditability
-- Extensibility
-- Country-Agnostic Architecture
+  IdentityCore Managed Providers | Commercial IDV vendors
+  Government registries | Customer-hosted services
+  Risk | Storage | KMS/HSM | Messaging providers
+```
 
----
+Read the [canonical architecture](ARCHITECTURE.md) for the complete platform model.
 
-## Technology Stack
+## IdentityCore Managed Providers
 
-## Backend
+The FastAPI AI service hosts IdentityCore-managed implementations for selected
+capabilities such as document quality, document classification, OCR, face comparison,
+liveness, and presentation-attack detection.
 
-- Python
-- Django
+These are **Managed Providers**, not privileged architectural components. Core workflow
+and decision domains depend on provider and capability contracts rather than directly on
+PaddleOCR, InsightFace, OpenCV, MediaPipe, or any commercial vendor API.
+
+Customers should be able to replace a managed capability with a conforming commercial,
+government, or customer-hosted provider without changing their application integration.
+
+## First workload: identity verification
+
+The current working vertical slice composes platform primitives into a verification
+journey that includes:
+
+- verification subjects and secure sessions;
+- consent and purpose capture;
+- country and document selection;
+- document upload, validation, quality, classification, and OCR;
+- selfie capture, liveness/PAD, and face comparison;
+- versioned workflows, policy snapshots, and decision inputs;
+- retry, failure, and Manual Review paths;
+- reviewer assignment and maker-checker decisions;
+- signed webhooks and notifications;
+- evidence access, audit, retention, export, and deletion controls.
+
+The existence of this workload does not require future identity workloads to use document
+or biometric verification.
+
+## Current status
+
+IdentityCore is an actively developed, **pre-production identity infrastructure platform
+with a working identity-verification vertical slice**.
+
+Implemented foundations include:
+
+- tenant, project, and environment isolation;
+- REST APIs and internal GraphQL surfaces;
+- versioned workflows and verification policies;
+- provider registry, capability adapters, and provider assignments;
+- centralized provider invocation and normalized provider checks;
+- secure HTTP provider calls, message signing, nonce binding, and replay protection;
+- redacted provider telemetry, duration tracking, and versioned results;
+- immutable workflow and decision snapshots;
+- Manual Review assignment and maker-checker controls;
+- tamper-evident audit events;
+- retention deletion, legal holds, subject exports, and subject deletion;
+- Python, Java, and .NET SDKs and a Python CLI;
+- organization, developer, verification, marketing, and platform-admin frontends.
+
+Important work remains before broad production use, including richer conditional provider
+routes and ordered fallback chains, provider conformance tooling, organization-facing
+provider onboarding, tenant-routed storage and customer-managed keys, broader claims
+lifecycle support, formal assurance, production model validation, and operational
+hardening.
+
+See the [product alignment and gap assessment](docs/architecture/product-alignment.md)
+for capability-level maturity.
+
+## Repository structure
+
+```text
+backend/
+├── django/                  # Core control and execution plane
+└── ai-service/              # IdentityCore Managed AI Providers
+
+frontend/
+├── dashboard/               # Organization operations
+├── identitycore/            # Public/marketing application
+├── platform-admin/          # Platform administration
+├── verification-portal/     # Hosted subject journey
+└── developer-portal/        # API, SDK, CLI and integration docs
+
+sdk/
+├── python/
+├── java/
+└── dotnet/
+
+docs/
+├── foundation/
+├── architecture/
+├── decisions/
+├── planning/
+├── research/
+└── notes/
+
+infrastructure/
+├── docker/
+├── nginx/
+└── scripts/
+```
+
+## Technology stack
+
+### Core platform
+
+- Python and Django
 - Django REST Framework
-- GraphQL (Internal)
-- Celery
+- GraphQL for internal application surfaces
+- Celery and Redis
 - PostgreSQL
-- Redis
+- S3-compatible object storage
 
-## AI Service
+### Managed AI Providers
 
 - FastAPI
 - OpenCV
 - ONNX Runtime
 - InsightFace
 - PaddleOCR
-- MediaPipe (where applicable)
+- MediaPipe where applicable
 
-## Frontend
+### Frontend and developer tooling
 
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
+- Next.js, React, TypeScript, Tailwind CSS
+- Python, Java, and .NET SDKs
+- Python CLI
 
-## Infrastructure
+### Infrastructure
 
-- Docker
-- Docker Compose
-- GitHub Actions
+- Docker and Docker Compose
 - Nginx
-- Object Storage (S3-compatible)
+- GitHub Actions
 
----
+## Documentation map
 
-## Repository Structure
+### Start here
 
-```text
-identitycore/
+- [Canonical Architecture](ARCHITECTURE.md)
+- [Vision](docs/foundation/vision.md)
+- [Product Requirements](docs/foundation/product-requirements.md)
+- [Roadmap](docs/foundation/roadmap.md)
+- [Glossary](docs/foundation/glossary.md)
 
-backend/
-├── django/
-└── ai-service/
+### Platform architecture
 
-frontend/
-├── dashboard/
-├── identitycore/
-├── platform-admin/
-├── verification-portal/
-└── developer-portal/
+- [Current System Architecture](docs/architecture/architecture.md)
+- [Provider Runtime](docs/architecture/provider-runtime.md)
+- [Capability Model](docs/architecture/capability-model.md)
+- [Evidence Model](docs/architecture/evidence-model.md)
+- [Claims Engine](docs/architecture/claims-engine.md)
+- [Product Alignment and Gap Assessment](docs/architecture/product-alignment.md)
+- [Database Design](docs/architecture/database-design.md)
+- [API Specification](docs/architecture/api-spec.md)
 
-infrastructure/
-├── docker/
-├── nginx/
-└── scripts/
+### Trust, operations, and implementation
 
-docs/
-├── foundation/
-├── architecture/
-├── decisions/
-├── research/
-└── notes/
-```
+- [Security](docs/architecture/security.md)
+- [Threat Model](docs/architecture/threat-model.md)
+- [Compliance](docs/architecture/compliance.md)
+- [AI / Managed Provider Design](docs/architecture/ai-design.md)
+- [Deployment](docs/architecture/deployment.md)
+- [Testing Strategy](docs/architecture/testing-strategy.md)
+- [Coding Standards](docs/architecture/coding-standards.md)
+- [Architecture Decision Records](docs/decisions/)
+- [Implementation Backlog](docs/planning/implementation-backlog.md)
 
----
+Some filenames may evolve as the documentation is consolidated. The canonical
+architecture and ADRs determine architectural meaning; OpenAPI remains the source of
+truth for concrete public endpoints.
 
-## Project Documentation
-
-## Foundation
-
-- Vision
-- Product Requirements
-- Roadmap
-- Glossary
-
-## Architecture
-
-- Architecture
-- Database Design
-- API Specification
-- AI Design
-- Deployment
-- Security
-- Compliance
-- Threat Model
-- Coding Standards
-- Testing Strategy
-
-## Decisions
-
-Architecture Decision Records (ADRs) document significant technical decisions made throughout the project.
-
-## Research
-
-Technical investigations, comparisons, and experiments that inform architectural decisions.
-
-## Notes
-
-General ideas, future enhancements, lessons learned, and project observations.
-
----
-
-## Key Features
-
-Version 1.0 includes:
-
-- Multi-tenant architecture
-- Organization management
-- Platform Users and Role-Based Access Control
-- Verification Subjects
-- Verification Sessions
-- Consent management
-- Identity Document processing
-- Face detection
-- Face matching
-- Passive liveness detection
-- OCR
-- Verification Policies
-- Manual Review
-- Audit logging
-- Webhooks
-- REST API
-- Internal GraphQL API
-
----
-
-## Project Status
-
-Current phase: **working vertical slice, pre-production**.
-
-The repository now contains implemented Django, AI-service, and frontend foundations,
-including the core verification journey. It is not yet a production-complete version of
-the full product vision. In particular, Bring Your Own Provider currently has a provider
-registry, tenant assignments, normalized check records, and notification adapters, but
-does not yet provide general custom-provider execution, conditional routing, ordered
-fallback chains, tenant-owned storage, or customer-managed encryption keys.
-
-See the [product alignment and gap assessment](docs/architecture/product-alignment.md)
-for a capability-by-capability statement of what exists and what remains.
-
-### Production startup configuration
+## Production startup configuration
 
 Local development uses the clearly marked sample values in `.env.example`. Before
 starting Django with `DJANGO_SETTINGS_MODULE=config.settings.production`, provide:
 
-- independent, randomly generated `DJANGO_SECRET_KEY` (at least 50 characters) and
-  `JWT_SIGNING_KEY` (at least 64 characters);
-- a random `AI_SERVICE_SHARED_TOKEN` (at least 32 characters);
+- independent, randomly generated `DJANGO_SECRET_KEY` of at least 50 characters and
+  `JWT_SIGNING_KEY` of at least 64 characters;
+- a random `AI_SERVICE_SHARED_TOKEN` of at least 32 characters;
 - explicit `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_HOST`, and a non-default random
-  `POSTGRES_PASSWORD` (at least 16 characters); and
+  `POSTGRES_PASSWORD` of at least 16 characters; and
 - production hostnames in `DJANGO_ALLOWED_HOSTS`, with `DJANGO_DEBUG` disabled.
 
-Production settings validate these requirements during import and stop startup with
-configuration variable names—not secret values—when configuration is missing or unsafe.
-For example, generate secrets with `python -c "import secrets; print(secrets.token_urlsafe(64))"`.
+Production settings validate these requirements during import and stop startup when
+configuration is missing or unsafe. Errors name configuration variables, never secret
+values.
 
-### Running all tests
+Generate a secret with:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(64))"
+```
+
+## Running all tests
 
 After installing the repository's Python, Node/pnpm, Playwright, Java, and .NET
-dependencies, run every backend, AI, frontend, and SDK test suite from the repository
-root with:
+dependencies, run every backend, managed-provider, frontend, and SDK test suite from the
+repository root:
 
 ```bash
 make test-all
 ```
 
-The command prints a named heading and pass/fail result for each suite and stops at the
-first failure. Use the component-specific commands in `.github/workflows/ci.yml` when
-installing dependencies or troubleshooting an individual suite.
+The command prints each suite and stops at the first failure. Use the component-specific
+commands in `.github/workflows/ci.yml` to install dependencies or troubleshoot a single
+suite.
 
----
+## Roadmap direction
 
-## Development Roadmap
+Development is organized around platform capability maturity rather than treating AI or
+identity verification as the whole product:
 
-Implementation will follow this sequence:
+1. Harden the platform kernel, isolation, privacy, audit, and operational controls.
+2. Complete Provider Runtime routing, fallback, health, and conformance.
+3. Expand workflow, policy, decision, evidence, and claims capabilities.
+4. Improve SDKs, CLI, hosted journeys, and developer experience.
+5. Certify the identity-verification workload for supported countries and providers.
+6. Add provider ecosystem and organization self-service operations.
+7. Introduce future workloads using the same platform primitives.
 
-1. Repository and infrastructure
-2. Django foundation
-3. FastAPI AI service
-4. Database and background processing
-5. Identity domain
-6. Verification domain
-7. AI integration
-8. Frontend applications
-9. Production readiness
-10. Pilot deployment
+## Engineering principles
 
----
+- Business logic belongs in domain services.
+- Tenant and environment isolation are mandatory.
+- Public APIs expose prefixed public IDs, never internal database IDs.
+- Workloads depend on capability contracts, not provider-specific clients.
+- Provider output is evidence, not the final organizational decision.
+- Workflow, policy, provider, evidence, model, and decision versions remain auditable.
+- Unknown, unsupported, malformed, or inconclusive evidence fails safely or enters review.
+- Security, privacy, tests, migrations, and documentation are part of feature completion.
 
-## Engineering Principles
+## Security and responsible use
 
-IdentityCore follows these engineering principles:
+IdentityCore processes sensitive identity documents, personal information, biometric
+evidence, credentials, and audit records. Deployments must apply least privilege,
+defense in depth, secure secret management, encryption, monitoring, backups, retention,
+incident response, and jurisdiction-appropriate legal controls.
 
-- Business logic belongs in the service layer.
-- Tenant isolation is mandatory.
-- Public APIs expose Public IDs (prefixed ULIDs), never internal database IDs.
-- AI provides technical evidence only; business decisions are made by the Decision Engine.
-- Security, testing, and documentation are part of every feature—not afterthoughts.
-
----
-
-## Security
-
-IdentityCore handles highly sensitive information including identity documents and biometric data.
-
-Every component is designed around:
-
-- Zero Trust
-- Least Privilege
-- Defense in Depth
-- Encryption
-- Auditability
-- Secure Defaults
-
-Security is considered a core product feature.
-
----
+IdentityCore must not be used to justify unaudited, fully autonomous high-impact
+decisions. Organizations remain responsible for their legal basis, policies, provider
+selection, reviewer governance, and consequences of a decision.
 
 ## Contributing
 
-As the project grows, all contributions should:
+Contributions should:
 
-- Follow the Coding Standards.
-- Include appropriate tests.
-- Maintain tenant isolation.
-- Preserve API compatibility where applicable.
-- Update documentation when behavior changes.
-- Record major architectural decisions as ADRs.
+- begin on a feature branch and be submitted through a pull request;
+- read `ARCHITECTURE.md` and relevant ADRs before changing platform boundaries;
+- preserve tenant and environment isolation;
+- use capability/provider interfaces rather than introducing vendor coupling;
+- include appropriate tests and migrations;
+- update OpenAPI, SDKs, and documentation when contracts change;
+- add or supersede an ADR for significant architectural decisions;
+- avoid mixing unrelated changes in one pull request.
 
----
+See the repository contribution and coding-standard documents for component-specific
+commands and review expectations.
 
 ## License
 
-License information will be added before the first public release.
+License information will be added before the first formal public release.
 
----
+## Project statement
 
-## Contact
-
-IdentityCore is currently under active development.
-
-For questions, feature requests, or future collaboration, project contact information will be added when the platform enters its first public preview.
-
----
-
-## Final Statement
-
-IdentityCore is being built as long-term identity infrastructure rather than a single-purpose application.
-
-Every architectural decision aims to balance security, privacy, scalability, maintainability, and developer experience while enabling organizations to perform trustworthy identity verification across multiple jurisdictions.
+IdentityCore is building the infrastructure that allows organizations to compose,
+operate, and govern trusted identity capabilities without surrendering their architecture
+to one verification vendor.

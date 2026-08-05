@@ -1,265 +1,315 @@
-# IdentityCore
+# IdentityCore Vision
 
-**Version:** 1.0
+## Vision statement
 
----
+IdentityCore is building the vendor-neutral identity infrastructure on which governments, businesses, institutions, and digital platforms can establish trust without being locked into one identity-verification vendor.
 
-## Vision Statement
+Identity verification is the first workload built on the platform. It proves the platform through real document, biometric, policy, evidence, review, privacy, and audit flows, but it is not the boundary of IdentityCore.
 
-IdentityCore exists to build trusted digital identity infrastructure that enables governments, businesses, and institutions to establish, verify, and manage digital trust securely.
-
-Version 1.0 delivers a comprehensive identity verification platform, but IdentityCore is designed as the foundation for a broader ecosystem of digital identity and trust services.
-
-Rather than providing a single verification product, IdentityCore provides the infrastructure upon which organizations can build secure digital experiences, integrate trusted identity services, and retain full ownership of their identity data.
-
-Our long-term ambition is to become the trusted digital identity layer powering governments, enterprises, and digital services across Africa and, ultimately, other regions of the world.
-
----
+The long-term vision is for IdentityCore to become a trusted identity operating layer for Africa and other regions: a common platform through which organizations can compose managed capabilities, commercial providers, government registries, customer-hosted services, and supporting infrastructure behind stable APIs and governance controls.
 
 ## Mission
 
-To empower organizations with secure, privacy-first digital identity infrastructure that enables trusted verification, authentication, authorization, and identity-driven services while giving individuals greater confidence, transparency, and control over how their identities are used.
+To give organizations secure, privacy-preserving, interoperable, and auditable infrastructure for building identity and digital-trust services while giving individuals greater transparency and control over how their evidence and identity data are used.
+
+## The problem
+
+Digital identity is fragmented.
+
+Organizations frequently integrate separate products for:
 
----
+- document capture and verification;
+- OCR and field extraction;
+- face comparison and liveness;
+- government or authoritative registries;
+- fraud and risk signals;
+- consent and privacy operations;
+- Manual Review;
+- storage and encryption;
+- audit, compliance, and result delivery.
+
+Each product brings different APIs, data formats, evidence semantics, pricing, country support, operational behavior, and compliance boundaries. Replacing a provider can require rewriting applications and losing historical consistency.
+
+The result is vendor lock-in, duplicated integration work, weak evidence lineage, inconsistent decisions, poor portability, and limited organizational control.
+
+## The IdentityCore approach
 
-## Long-Term Vision
+IdentityCore provides common infrastructure around identity capabilities rather than insisting that every capability be implemented by IdentityCore itself.
+
+```text
+Applications, SDKs, CLI and hosted journeys
+                    |
+                    v
+           IdentityCore API Layer
+                    |
+       +------------+------------+
+       |                         |
+       v                         v
+ Control Plane             Execution Plane
 
-To become Africa's leading digital identity infrastructure platform by providing secure, interoperable, and intelligent identity services that connect governments, financial institutions, healthcare providers, educational institutions, enterprises, and digital platforms through a shared trust ecosystem.
+ tenants/projects          workflow engine
+ environments              policy engine
+ users/API clients         provider runtime
+ workflows/policies        evidence and claims
+ providers/privacy         decision engine
+ configuration             manual review/audit
+                    |
+                    v
+                 Providers
+```
 
-IdentityCore aims to become the foundational identity layer that organizations rely on whenever trust must be established between people, systems, and services.
+Providers may include:
 
----
+- IdentityCore Managed Providers;
+- commercial IDV vendors;
+- specialist OCR, biometric, authenticity, fraud, or risk vendors;
+- government and authoritative registries;
+- customer-hosted services;
+- storage providers;
+- KMS/HSM providers;
+- messaging and supporting infrastructure.
 
-## Problem Statement
+IdentityCore coordinates these capabilities through workflows, policies, evidence contracts, decisions, privacy controls, and audit records.
 
-Digital identity remains fragmented across organizations.
+## Identity Operating System
 
-Many institutions maintain isolated identity databases, manual verification workflows, disconnected systems, and inconsistent verification standards.
+The Identity Operating System concept describes IdentityCore's role as the reusable coordination layer for identity workloads.
 
-This fragmentation results in:
+Like an operating system separates applications from hardware-specific details, IdentityCore separates identity workloads from provider-specific APIs.
 
-- Identity fraud
-- Duplicate identities
-- Slow onboarding
-- Human error
-- Poor customer experience
-- High operational costs
-- Weak interoperability
-- Limited auditability
-- Vendor lock-in
-- Difficulty integrating national identity systems
+The platform supplies:
 
-Organizations often purchase multiple disconnected products for identity verification, biometric authentication, access management, document verification, and compliance instead of using a unified identity platform.
+- tenant, project, and environment isolation;
+- APIs, SDKs, CLI, webhooks, and hosted user journeys;
+- Workflow Engine;
+- Policy Engine;
+- Provider Runtime;
+- capability contracts;
+- evidence provenance and lineage;
+- claims foundations;
+- Decision Engine;
+- Manual Review and maker-checker controls;
+- consent, retention, export, deletion, and legal-hold controls;
+- tamper-evident audit and operational observability.
 
-IdentityCore addresses these challenges by providing a modular digital identity infrastructure platform that allows organizations to verify identities, integrate trusted identity services, enforce organizational policies, and maintain complete ownership of their data.
+A workload composes these primitives for a particular purpose.
 
----
+## Workload one: identity verification
 
-## Vision Scope
+Identity verification is the first working workload because it exercises the platform's hardest trust boundaries:
 
-IdentityCore is designed as a digital identity platform capable of supporting multiple identity and trust services.
+- obtaining consent;
+- collecting sensitive evidence;
+- selecting document and biometric capabilities;
+- invoking providers;
+- normalizing provider results;
+- applying policies;
+- making or reviewing decisions;
+- delivering signed outcomes;
+- retaining and deleting evidence responsibly;
+- preserving a complete audit trail.
 
-Version 1.0 focuses on Identity Verification.
+The verification workload currently includes foundations for document capture, quality, classification, OCR, face comparison, active and passive liveness, presentation attack detection, workflows, policies, Manual Review, privacy operations, webhooks, and SDK integration.
 
-Future platform capabilities include:
+IdentityCore should continue improving this workload without allowing verification-specific assumptions to become permanent platform constraints.
 
-### Identity Services
+## Platform capabilities
 
-- Identity Verification
-- Facial Recognition
-- Biometric Authentication
-- Passive Liveness Detection
-- Active Liveness Detection
-- Document Verification
-- Document Authenticity Analysis
-- Identity Credential Validation
+### Control Plane
 
-### Trust Services
+Organizations configure and govern identity services through:
 
-- Verification Policies
-- Risk Assessment
-- Fraud Detection
-- Decision Engine
-- Audit & Compliance
-- Consent Management
+- organizations and tenants;
+- projects and sandbox/production environments;
+- users, roles, MFA, API clients, and scopes;
+- versioned workflows, templates, and policies;
+- provider registration and assignments;
+- consent purposes;
+- retention and privacy rules;
+- audit, webhook, and operational configuration.
 
-### Enterprise Services
+### Execution Plane
 
-- Access Control
-- Employee Verification
-- Student Verification
-- Visitor Management
-- Customer KYC
-- Vendor Verification
+The Execution Plane:
 
-### Government Services
+- accepts an identity operation;
+- loads immutable workflow and policy versions;
+- determines required evidence and claims;
+- invokes capabilities through the Provider Runtime;
+- normalizes provider output;
+- applies policy and risk rules;
+- requests additional evidence or Manual Review;
+- persists decision inputs and outcomes;
+- emits audit events and signed result notifications.
 
-- National Identity Integration
-- Government Identity APIs
-- Citizen Verification
-- Digital Public Services
-- Cross-agency Identity Exchange
+### Provider Runtime
 
-### Platform Services
+The Provider Runtime allows replaceable capability providers to participate behind stable contracts.
 
-- Provider Integrations
-- Country Profiles
-- Identity Workflows
-- Enterprise APIs
-- SDKs
-- Webhooks
-- Analytics
-- Developer Platform
+It is responsible for selection, invocation, authentication, signing, idempotency, timeout handling, normalization, redaction, observability, and deterministic failure semantics.
 
-Organizations should be able to adopt only the capabilities they require while maintaining a consistent identity platform.
+IdentityCore Managed Providers use this boundary rather than bypassing it.
 
----
+### Evidence and claims
 
-## Core Principles
+Providers produce evidence. Evidence retains provenance, capability, provider, model, schema, confidence, timestamps, integrity, retention, and lineage.
 
-## Privacy by Design
+Claims are normalized statements derived from or supported by evidence and policy. A claim is not trusted merely because one provider returned it.
 
-Privacy is a foundational requirement rather than an afterthought.
+IdentityCore's evidence foundation is implemented across provider checks, document and biometric records, reports, decisions, and audit events. A generalized reusable Claims Engine remains an evolving platform capability.
 
-IdentityCore collects only the minimum information necessary for a specific purpose, supports explicit consent, and enables organizations to implement responsible identity verification practices.
+### Workflow, policy, and decisions
 
-Individuals should never lose confidence in how their personal or biometric information is collected, processed, stored, or deleted.
+Workflows define what must happen. Policies define what evidence is required and how it should be evaluated. The Decision Engine records the outcome and the versioned inputs used to reach it.
 
----
+Provider outputs are not final business decisions. Authorized organizations remain responsible for the consequences of the outcomes they use.
 
-## Security First
+### Manual Review
 
-Security is the foundation of digital trust.
+Manual Review is a first-class platform path for uncertainty, unsupported evidence, high-impact cases, and maker-checker governance.
 
-Every component of IdentityCore is designed around:
+Human decisions remain scoped, reasoned, auditable, and subject to policy and privacy controls.
 
-- Zero Trust principles
-- Encryption in transit and at rest
-- Strong authentication
-- Fine-grained authorization
-- Tenant isolation
-- Secure API design
-- Continuous monitoring
-- Comprehensive audit logging
+## Managed providers
 
-Security is considered a product feature rather than an operational concern.
+IdentityCore operates managed implementations for selected capabilities, currently including areas such as:
 
----
+- document quality;
+- document classification;
+- OCR and field extraction;
+- face detection and comparison;
+- liveness and presentation attack detection;
+- model metadata reporting.
 
-## Trust Through Transparency
+These managed services provide useful defaults and accelerate deployment. They do not receive privileged contracts and must be replaceable by other conforming providers.
 
-Trust requires explainability.
+IdentityCore's long-term value must not depend on one OCR engine, biometric model, or vendor.
 
-Every verification should produce an auditable record describing:
+## Future workloads
 
-- Who performed the verification
-- Why it occurred
-- Which policy was applied
-- Which evidence was evaluated
-- Which systems participated
-- The resulting decision
+The same platform primitives may support:
 
-IdentityCore favors explainable verification over opaque automation.
+- reusable verified claims;
+- selective age or eligibility assertions;
+- registry-backed identity resolution;
+- digital credential issuance and validation;
+- step-up identity checks;
+- repeat authentication and account recovery;
+- deduplication;
+- employee, student, vendor, and organizational identity;
+- healthcare, education, financial, and public-service workflows;
+- program-specific eligibility and trust processes.
 
----
+These are platform directions, not claims that every workload is implemented today.
 
-## AI as Evidence, Not Decision
+## Core principles
 
-Artificial Intelligence strengthens identity verification by providing technical evidence such as biometric similarity scores, document analysis, OCR confidence, and liveness assessment.
+### Vendor neutrality
 
-Final verification decisions remain the responsibility of configurable business policies and, where appropriate, authorized human reviewers.
+Applications should integrate with IdentityCore rather than depend directly on one provider's proprietary workflow and result format.
 
-AI supports trust—it does not replace it.
+### Privacy by design
 
----
+IdentityCore should collect only the evidence required for a declared purpose, use least-privilege access, apply retention and deletion controls, and make sensitive processing auditable.
 
-## Interoperability
+### Security first
 
-IdentityCore is designed to integrate with existing ecosystems rather than replace them.
+Tenant isolation, environment isolation, strong authentication, secure API credentials, signed messages, replay resistance, encryption, upload validation, and append-only audit are product requirements.
 
-The platform provides standardized APIs capable of connecting with:
+### Evidence before decisions
 
-- Government systems
-- National identity databases
-- Enterprise applications
-- Financial institutions
-- Healthcare platforms
-- Educational systems
-- Third-party providers
+AI, registries, risk systems, and human reviewers contribute evidence. Policies and authorized decision processes determine outcomes.
 
-IdentityCore should become an integration layer rather than another isolated identity system.
+### Interoperability
 
----
+IdentityCore should integrate with existing government, enterprise, financial, healthcare, education, and specialist provider ecosystems rather than attempt to replace every system.
 
-## Data Ownership
+### Data ownership and portability
 
-Organizations should retain ownership of their identity data.
+Organizations should retain meaningful control over their integrations, evidence lifecycle, provider choices, deployment boundaries, and future storage and key-management options.
 
-IdentityCore supports deployment models that allow customers to control:
+### Explainability and auditability
 
-- Infrastructure
-- Databases
-- Object storage
-- Encryption keys
-- Provider selection
+An identity outcome should be traceable to the workflow, policy, providers, evidence, claims, reviewer actions, decision inputs, and delivery events involved.
 
-IdentityCore avoids unnecessary vendor lock-in by separating business logic from infrastructure and provider implementations.
+### Country-agnostic core
 
----
+Country and document support should be additive through definitions, capabilities, providers, and policy—not hardcoded into core business logic.
 
-## Scalability
+### Honest maturity
 
-IdentityCore is built to scale from a single organization to nationwide deployments while maintaining security, availability, and operational simplicity.
+IdentityCore should distinguish implemented capabilities, foundations, partial functionality, planned work, and exploratory direction. Vision must not be presented as production completeness.
 
-The platform architecture should support SaaS, dedicated enterprise deployments, and government-hosted environments without fundamental redesign.
+## Target users
 
----
+IdentityCore is intended for organizations that need to establish trust while controlling their provider and infrastructure choices, including:
 
-## Modularity
+- government agencies and public-service platforms;
+- financial institutions and fintechs;
+- healthcare organizations;
+- educational institutions;
+- telecommunications companies;
+- employers and workforce platforms;
+- technology companies and SaaS providers;
+- enterprise software vendors;
+- event, marketplace, and mobility platforms;
+- identity, risk, registry, and infrastructure providers.
 
-Organizations should deploy only the capabilities they require.
+## Success measures
 
-IdentityCore is built as a collection of interoperable modules that can evolve independently while sharing a common identity foundation.
+IdentityCore will be successful when organizations can:
 
----
+- integrate once and change providers without redesigning their applications;
+- compose identity capabilities into governed workflows;
+- understand the evidence behind every decision;
+- operate across countries and document types without hardcoded core logic;
+- control retention, deletion, access, and audit;
+- deploy managed, commercial, government, or customer-hosted capabilities;
+- build multiple trust workloads on the same platform primitives.
 
-## Target Users
+Long-term success should be measured not only by verification volume, but by:
 
-IdentityCore is designed for organizations responsible for establishing digital trust, including:
+- the number of workloads built on IdentityCore;
+- the diversity of conforming providers;
+- provider portability;
+- evidence and claim reuse under policy;
+- reduction in integration duplication;
+- privacy and audit outcomes;
+- operational reliability and trust.
 
-- Government agencies
-- National identity authorities
-- Financial institutions
-- Healthcare providers
-- Educational institutions
-- Security organizations
-- Telecommunications companies
-- Employers
-- Event platforms
-- Technology companies
-- Digital service providers
-- Enterprise software vendors
+## Boundaries
 
----
+IdentityCore should not become:
 
-## Success Vision
+- a centralized citizen database;
+- a mass-surveillance platform;
+- an autonomous authority for high-impact decisions;
+- a system that exposes biometric templates publicly;
+- a platform that stores raw evidence indefinitely;
+- a product locked to one country, model, provider, or cloud;
+- a marketplace that claims providers are certified without conformance and assurance.
 
-IdentityCore will be considered successful when organizations can establish trusted digital identities within seconds using secure, privacy-preserving, explainable, and auditable workflows while retaining complete ownership of their identity infrastructure.
+## Current direction
 
-Long-term success will be measured not only by the number of verifications performed, but by the number of critical digital services built upon the IdentityCore platform.
+The current repository already contains meaningful foundations for the vision:
 
----
+- multi-tenancy and environment isolation;
+- versioned workflows and policies;
+- adapter-backed provider execution;
+- secure HTTP provider calls and signed messages;
+- normalized and versioned results;
+- document and biometric managed providers;
+- immutable decision snapshots;
+- Manual Review and maker-checker decisions;
+- subject export and deletion workflows;
+- legal holds and retention cleanup;
+- tamper-evident audit events;
+- REST, GraphQL, SDKs, CLI, developer portal, and hosted verification applications.
 
-## Future Outlook
+Important gaps remain in advanced routing, provider conformance, reusable claims, tenant-owned storage, KMS/HSM integration, broad country coverage, and production assurance.
 
-IdentityCore begins with identity verification.
+## Final statement
 
-Its destination is digital trust infrastructure.
+IdentityCore begins with identity verification, but its destination is broader identity infrastructure.
 
-As the platform evolves, it will support digital credentials, identity federation, secure access, government identity integrations, intelligent fraud prevention, digital wallets, enterprise identity services, and trusted digital ecosystems.
-
-Our goal is not simply to verify identities.
-
-Our goal is to provide the infrastructure that enables trusted digital interactions at national and global scale.
-
-IdentityCore is building the infrastructure for trust in the digital world.
+Its purpose is not to become another closed verification vendor. Its purpose is to provide the durable contracts—workflows, policies, providers, evidence, claims, decisions, privacy, and audit—through which organizations can build trusted digital services while retaining choice and control.
