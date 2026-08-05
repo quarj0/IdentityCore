@@ -23,7 +23,7 @@ IdentityCore must start small, secure, and useful.
 
 The first version should not attempt to become a government identity platform, national registry, or full biometric intelligence system.
 
-The platform should first prove that it can reliably verify a person's identity using document capture, selfie capture, liveness detection, face matching, consent, audit logs, and secure APIs.
+The platform should first prove that it can reliably support an identity verification workload using document capture, selfie capture, liveness detection, face matching, consent, audit logs, and secure APIs.
 
 ---
 
@@ -37,28 +37,28 @@ Define the product, architecture, and engineering rules before implementation be
 
 Deliverables:
 
-* Vision
-* Product Requirements Document
-* Domain Model
-* System Architecture
-* Database Design
-* API Specification
-* Security
-* Compliance
-* AI Design
-* Deployment
-* Threat Model
-* Coding Standards
-* Testing Strategy
-* Architecture Decision Records
+- Vision
+- Product Requirements Document
+- Domain Model
+- System Architecture
+- Database Design
+- API Specification
+- Security
+- Compliance
+- AI Design
+- Deployment
+- Threat Model
+- Coding Standards
+- Testing Strategy
+- Architecture Decision Records
 
 Success criteria:
 
-* Project scope is clear.
-* MVP boundaries are defined.
-* Core terminology is consistent.
-* Architecture supports future expansion.
-* Security and compliance expectations are documented.
+- Project scope is clear.
+- MVP boundaries are defined.
+- Core terminology is consistent.
+- Architecture supports future expansion.
+- Security and compliance expectations are documented.
 
 ---
 
@@ -70,34 +70,34 @@ Build the first working version of IdentityCore.
 
 Core features:
 
-* Django backend
-* FastAPI AI service
-* PostgreSQL database
-* Redis
-* Celery workers
-* Multi-tenant architecture
-* Platform Users
-* Organizations
-* Tenants
-* Roles and permissions
-* API Clients
-* Verification Policies
-* Verification Subjects
-* Verifications
-* Verification Sessions
-* Consent Records
-* Audit Events
-* Webhooks
+- Django backend
+- FastAPI AI service
+- PostgreSQL database
+- Redis
+- Celery workers
+- Multi-tenant architecture
+- Platform Users
+- Organizations
+- Tenants
+- Roles and permissions
+- API Clients
+- Verification Policies
+- Verification Subjects
+- Verifications
+- Verification Sessions
+- Consent Records
+- Audit Events
+- Webhooks
 
 Success criteria:
 
-* Organization can create an account.
-* Organization can generate API credentials.
-* Organization can create a Verification.
-* Verification Subject can open a secure Verification Session.
-* Consent can be captured.
-* Audit logs are generated.
-* Webhooks can be delivered.
+- Organization can create an account.
+- Organization can generate API credentials.
+- Organization can create a Verification.
+- Verification Subject can open a secure Verification Session.
+- Consent can be captured.
+- Audit logs are generated.
+- Webhooks can be delivered.
 
 ---
 
@@ -109,45 +109,45 @@ Deliver the first end-to-end verification workflow.
 
 Core features:
 
-* Document upload
-* Document type selection
-* Country Profile support
-* Document quality checks
-* OCR processing
-* Document fraud and tampering risk analysis
-* Selfie capture
-* Face detection
-* Face matching
-* Passive liveness check
-* Verification Decision Engine
-* Manual Review
-* Verification results API
+- Document upload
+- Document type selection
+- Country Profile support
+- Document quality checks
+- OCR processing
+- Document fraud and tampering risk analysis
+- Selfie capture
+- Face detection
+- Face matching
+- Passive liveness check
+- Verification Decision Engine
+- Manual Review
+- Verification results API
 
 Success criteria:
 
-* Verification Subject can complete a full verification.
-* Identity Document and Selfie Capture can be processed.
-* Face matching produces a score.
-* Liveness produces a score.
-* Verification Policy determines the outcome.
-* Manual Review handles uncertain cases.
-* Organization receives webhook result.
+- Verification Subject can complete a full verification.
+- Identity Document and Selfie Capture can be processed.
+- Face matching produces a score.
+- Liveness produces a score.
+- Verification Policy determines the outcome.
+- Manual Review handles uncertain cases.
+- Organization receives webhook result.
 
 ### Deferred Phase 2 Workstream: Document Fraud Analysis
 
-Document fraud analysis is part of IdentityCore's identity-verification service, but advanced detection will be implemented after the core end-to-end workflow is stable. It must produce explainable risk signals and manual-review evidence rather than act as an infallible automatic authenticity decision.
+Document fraud analysis is part of IdentityCore's verification service, but advanced detection will be implemented after the core end-to-end workflow is stable. It must produce explainable risk signals and manual-review evidence rather than act as an infallible automatic authenticity decision.
 
 Planned capabilities:
 
-* Deterministic MRZ and check-digit validation where supported.
-* Barcode, QR, printed-field, front/back, date, identifier, and issuer consistency checks.
-* Country- and document-specific structure validation, beginning with supported Ghana documents.
-* Image-forensics signals for text replacement, portrait replacement, splicing, copy-move, resampling, inconsistent compression, noise, illumination, and generated imagery.
-* Duplicate and velocity checks across document numbers, document images, portraits, devices, networks, and tenants.
-* Capture-integrity, replay, virtual-camera, emulator, and media-injection signals.
-* Suspicious-region localization and human-readable reasons for Manual Review.
-* Structured outcomes: `no_fraud_indicators`, `fraud_indicators_detected`, `manual_review_required`, and `analysis_unavailable`.
-* Versioned model, threshold, dataset, and evaluation metadata in evidence reports and audit records.
+- Deterministic MRZ and check-digit validation where supported.
+- Barcode, QR, printed-field, front/back, date, identifier, and issuer consistency checks.
+- Country- and document-specific structure validation, beginning with supported Ghana documents.
+- Image-forensics signals for text replacement, portrait replacement, splicing, copy-move, resampling, inconsistent compression, noise, illumination, and generated imagery.
+- Duplicate and velocity checks across document numbers, document images, portraits, devices, networks, and tenants.
+- Capture-integrity, replay, virtual-camera, emulator, and media-injection signals.
+- Suspicious-region localization and human-readable reasons for Manual Review.
+- Structured outcomes: `no_fraud_indicators`, `fraud_indicators_detected`, `manual_review_required`, and `analysis_unavailable`.
+- Versioned model, threshold, dataset, and evaluation metadata in evidence reports and audit records.
 
 Delivery sequence:
 
@@ -159,18 +159,18 @@ Delivery sequence:
 
 Product and accuracy constraints:
 
-* Fraud analysis is a risk signal, not a guarantee that a document is genuine or fraudulent.
-* IdentityCore must not advertise a general accuracy percentage such as “98% accurate” until it is supported by a locked, representative, independently reviewable evaluation for the exact production configuration.
-* Published performance claims must identify the supported country/document types, attack categories, model version, dataset size and date, fraud recall, precision, false-accept rate, false-reject rate, and manual-review rate.
-* A permitted claim must be narrowly qualified, for example: “Detected 98% of tested portrait-replacement attacks on supported Ghana Card captures at a stated false-positive rate using model version X and evaluation set Y.”
-* Uncertain, unsupported, low-quality, or out-of-distribution evidence must be routed to Manual Review rather than automatically approved.
+- Fraud analysis is a risk signal, not a guarantee that a document is genuine or fraudulent.
+- IdentityCore must not advertise a general accuracy percentage such as “98% accurate” until it is supported by a locked, representative, independently reviewable evaluation for the exact production configuration.
+- Published performance claims must identify the supported country/document types, attack categories, model version, dataset size and date, fraud recall, precision, false-accept rate, false-reject rate, and manual-review rate.
+- A permitted claim must be narrowly qualified, for example: “Detected 98% of tested portrait-replacement attacks on supported Ghana Card captures at a stated false-positive rate using model version X and evaluation set Y.”
+- Uncertain, unsupported, low-quality, or out-of-distribution evidence must be routed to Manual Review rather than automatically approved.
 
 Additional success criteria:
 
-* Fraud signals are persisted as evidence and consumed by the Verification Decision Engine.
-* Reviewers can see why evidence was flagged and inspect suspicious regions.
-* Thresholds are calibrated per supported document family and monitored for drift.
-* Evaluation reports are reproducible and prevent unsupported marketing claims.
+- Fraud signals are persisted as evidence and consumed by the Verification Decision Engine.
+- Reviewers can see why evidence was flagged and inspect suspicious regions.
+- Thresholds are calibrated per supported document family and monitored for drift.
+- Evaluation reports are reproducible and prevent unsupported marketing claims.
 
 ---
 
@@ -182,25 +182,25 @@ Make the platform usable for organizations and developers.
 
 Core features:
 
-* Organization Dashboard
-* Verification list
-* Verification details
-* Manual Review screen
-* API Client management
-* Webhook management
-* Verification Policy management
-* Basic reports
-* Developer documentation
-* API examples
-* Postman collection
+- Organization Dashboard
+- Verification list
+- Verification details
+- Manual Review screen
+- API Client management
+- Webhook management
+- Verification Policy management
+- Basic reports
+- Developer documentation
+- API examples
+- Postman collection
 
 Success criteria:
 
-* Organization Administrator can manage verification workflows.
-* Verification Officer can review cases.
-* Developer can integrate using REST APIs.
-* API Client can test webhooks.
-* Organization can view audit logs.
+- Organization Administrator can manage verification workflows.
+- Verification Officer can review cases.
+- Developer can integrate using REST APIs.
+- API Client can test webhooks.
+- Organization can view audit logs.
 
 ---
 
@@ -212,28 +212,28 @@ Prepare IdentityCore for real pilots.
 
 Core features:
 
-* Production deployment
-* Monitoring
-* Error tracking
-* Backup strategy
-* Retention cleanup
-* Security headers
-* Rate limiting
-* MFA
-* API key rotation
-* Signed webhooks
-* Idempotency
-* Audit hardening
-* Basic incident response process
+- Production deployment
+- Monitoring
+- Error tracking
+- Backup strategy
+- Retention cleanup
+- Security headers
+- Rate limiting
+- MFA
+- API key rotation
+- Signed webhooks
+- Idempotency
+- Audit hardening
+- Basic incident response process
 
 Success criteria:
 
-* Platform can safely support pilot organizations.
-* Sensitive media is protected.
-* Audit logs are reliable.
-* Backups are tested.
-* Webhook delivery is resilient.
-* Security controls are enabled.
+- Platform can safely support pilot organizations.
+- Sensitive media is protected.
+- Audit logs are reliable.
+- Backups are tested.
+- Webhook delivery is resilient.
+- Security controls are enabled.
 
 ---
 
@@ -245,32 +245,32 @@ Test IdentityCore with real organizations in controlled environments.
 
 Target pilot customers:
 
-* Schools
-* Universities
-* Hostels
-* Employers
-* Event organizers
-* Security companies
-* Training institutions
+- Schools
+- Universities
+- Hostels
+- Employers
+- Event organizers
+- Security companies
+- Training institutions
 
 Pilot features:
 
-* Tenant onboarding
-* Custom organization branding
-* Verification links
-* API integration
-* Manual review
-* Reports
-* Support process
+- Tenant onboarding
+- Custom organization branding
+- Verification links
+- API integration
+- Manual review
+- Reports
+- Support process
 
 Success criteria:
 
-* At least one organization completes real verification workflows.
-* Verification completion rate is measured.
-* Manual review rate is measured.
-* False rejection feedback is collected.
-* Product gaps are identified.
-* Security and operational issues are documented.
+- At least one organization completes real verification workflows.
+- Verification completion rate is measured.
+- Manual review rate is measured.
+- False rejection feedback is collected.
+- Product gaps are identified.
+- Security and operational issues are documented.
 
 ---
 
@@ -282,23 +282,23 @@ Expand document and identity verification coverage.
 
 Core features:
 
-* More Country Profiles
-* More local document mappings
-* Provider Adapter improvements
-* Optional third-party KYC provider integration
-* Passport support
-* Driver License support
-* Health ID support
-* Voter ID support
-* Better OCR templates
-* Provider fallback strategy
+- More Country Profiles
+- More local document mappings
+- Provider Adapter improvements
+- Optional third-party KYC provider integration
+- Passport support
+- Driver License support
+- Health ID support
+- Voter ID support
+- Better OCR templates
+- Provider fallback strategy
 
 Success criteria:
 
-* Platform supports multiple document types.
-* Platform can add a country without core code changes.
-* Provider adapters can be replaced or extended.
-* Country-specific logic remains outside the core platform.
+- Platform supports multiple document types.
+- Platform can add a country without core code changes.
+- Provider adapters can be replaced or extended.
+- Country-specific logic remains outside the core platform.
 
 ---
 
@@ -310,21 +310,21 @@ Improve fraud detection and decision support.
 
 Core features:
 
-* Duplicate verification detection
-* Device fingerprinting
-* Suspicious IP/network detection
-* Repeated failure detection
-* Risk scoring improvements
-* Manual review prioritization
-* Fraud reports
-* Provider risk signals
+- Duplicate verification detection
+- Device fingerprinting
+- Suspicious IP/network detection
+- Repeated failure detection
+- Risk scoring improvements
+- Manual review prioritization
+- Fraud reports
+- Provider risk signals
 
 Success criteria:
 
-* Risk scores are explainable.
-* High-risk cases are prioritized.
-* Fraud signals improve manual review quality.
-* Risk rules are configurable.
+- Risk scores are explainable.
+- High-risk cases are prioritized.
+- Fraud signals improve manual review quality.
+- Risk rules are configurable.
 
 ---
 
@@ -336,21 +336,21 @@ Support mobile-first and field-based verification workflows.
 
 Core features:
 
-* Flutter mobile app
-* Offline draft capture
-* Camera-guided document capture
-* Camera-guided selfie capture
-* Officer login
-* Device registration
-* Mobile audit logs
-* Secure sync
+- Flutter mobile app
+- Offline draft capture
+- Camera-guided document capture
+- Camera-guided selfie capture
+- Officer login
+- Device registration
+- Mobile audit logs
+- Secure sync
 
 Success criteria:
 
-* Field officers can perform verification from mobile devices.
-* Mobile sessions remain secure.
-* Offline capture does not bypass consent or audit requirements.
-* Device access can be revoked.
+- Field officers can perform verification from mobile devices.
+- Mobile sessions remain secure.
+- Offline capture does not bypass consent or audit requirements.
+- Device access can be revoked.
 
 ---
 
@@ -362,22 +362,22 @@ Prepare IdentityCore for larger regulated deployments.
 
 Core features:
 
-* Dedicated tenant deployments
-* Private cloud support
-* On-premise deployment option
-* SIEM integration
-* Advanced audit exports
-* Advanced RBAC/ABAC
-* SSO integration
-* Data residency controls
-* HSM support
-* Enterprise reporting
+- Dedicated tenant deployments
+- Private cloud support
+- On-premise deployment option
+- SIEM integration
+- Advanced audit exports
+- Advanced RBAC/ABAC
+- SSO integration
+- Data residency controls
+- HSM support
+- Enterprise reporting
 
 Success criteria:
 
-* Large institutions can deploy IdentityCore under stricter controls.
-* Government pilots can be discussed with a working platform.
-* Platform supports strong data isolation and audit requirements.
+- Large institutions can deploy IdentityCore under stricter controls.
+- Government pilots can be discussed with a working platform.
+- Platform supports strong data isolation and audit requirements.
 
 ---
 
@@ -389,21 +389,21 @@ Expand beyond identity verification into broader digital trust infrastructure.
 
 Potential features:
 
-* Digital credentials
-* Verified profiles
-* Secure access control
-* Reusable verification tokens
-* Organization trust scores
-* Digital signatures
-* Identity wallet integration
-* Consent dashboard
-* Trusted API marketplace
+- Digital credentials
+- Verified profiles
+- Secure access control
+- Reusable verification tokens
+- Organization trust scores
+- Digital signatures
+- Identity wallet integration
+- Consent dashboard
+- Trusted API marketplace
 
 Success criteria:
 
-* IdentityCore becomes more than verification.
-* Organizations can build trusted services on top of the platform.
-* Verification evidence can support future digital identity workflows.
+- IdentityCore becomes more than verification.
+- Organizations can build trusted services on top of the platform.
+- Verification evidence can support future digital identity workflows.
 
 ---
 
@@ -411,17 +411,17 @@ Success criteria:
 
 IdentityCore may eventually support:
 
-* Government identity integrations
-* Passport authority integrations
-* Transport authority integrations
-* Healthcare identity verification
-* Education identity verification
-* Secure citizen service access
-* Multi-biometric verification
-* Authorized face search
-* Disaster victim identification
-* Missing persons workflows
-* National digital trust infrastructure
+- Government identity integrations
+- Passport authority integrations
+- Transport authority integrations
+- Healthcare identity verification
+- Education identity verification
+- Secure citizen service access
+- Multi-biometric verification
+- Authorized face search
+- Disaster victim identification
+- Missing persons workflows
+- National digital trust infrastructure
 
 These are long-term possibilities, not Version 1.0 commitments.
 
@@ -431,20 +431,20 @@ These are long-term possibilities, not Version 1.0 commitments.
 
 Version 1.0 will not include:
 
-* Government database integrations
-* Criminal records
-* Immigration intelligence
-* Mass surveillance
-* Fingerprint recognition
-* Iris recognition
-* Digital identity wallet
-* National identity issuance
-* Centralized citizen database
-* Law enforcement watchlists
-* Fully autonomous high-impact decisions
-* Offline verification
-* Mobile app
-* Payment processing
+- Government database integrations
+- Criminal records
+- Immigration intelligence
+- Mass surveillance
+- Fingerprint recognition
+- Iris recognition
+- Digital identity wallet
+- National identity issuance
+- Centralized citizen database
+- Law enforcement watchlists
+- Fully autonomous high-impact decisions
+- Offline verification
+- Mobile app
+- Payment processing
 
 ---
 
@@ -454,11 +454,11 @@ Version 1.0 will not include:
 
 Includes:
 
-* Basic Django backend
-* Basic tenant model
-* Basic verification creation
-* Basic verification session
-* Basic audit events
+- Basic Django backend
+- Basic tenant model
+- Basic verification creation
+- Basic verification session
+- Basic audit events
 
 ---
 
@@ -466,11 +466,11 @@ Includes:
 
 Includes:
 
-* FastAPI AI service
-* Face detection
-* Face matching
-* Basic document quality check
-* Basic OCR
+- FastAPI AI service
+- Face detection
+- Face matching
+- Basic document quality check
+- Basic OCR
 
 ---
 
@@ -478,13 +478,13 @@ Includes:
 
 Includes:
 
-* Consent
-* Document upload
-* Selfie capture
-* Liveness
-* Face match
-* Decision engine
-* Webhook result
+- Consent
+- Document upload
+- Selfie capture
+- Liveness
+- Face match
+- Decision engine
+- Webhook result
 
 ---
 
@@ -492,11 +492,11 @@ Includes:
 
 Includes:
 
-* Organization dashboard
-* Manual review
-* API client management
-* Webhook management
-* Audit views
+- Organization dashboard
+- Manual review
+- API client management
+- Webhook management
+- Audit views
 
 ---
 
@@ -504,13 +504,13 @@ Includes:
 
 Includes:
 
-* Production deployment
-* Monitoring
-* Backups
-* MFA
-* Signed webhooks
-* Rate limiting
-* Pilot onboarding
+- Production deployment
+- Monitoring
+- Backups
+- MFA
+- Signed webhooks
+- Rate limiting
+- Pilot onboarding
 
 ---
 
@@ -518,13 +518,13 @@ Includes:
 
 Includes:
 
-* Stable REST API
-* Stable verification workflow
-* Tenant isolation
-* Audit logs
-* Security controls
-* Documentation
-* Pilot-ready operations
+- Stable REST API
+- Stable verification workflow
+- Tenant isolation
+- Audit logs
+- Security controls
+- Documentation
+- Pilot-ready operations
 
 ---
 
@@ -532,13 +532,13 @@ Includes:
 
 A feature may be added to the active roadmap only if it satisfies at least one of the following:
 
-* Improves identity verification accuracy.
-* Improves security.
-* Improves privacy.
-* Improves auditability.
-* Improves organization integration.
-* Improves Verification Subject experience.
-* Reduces operational risk.
+- Improves identity verification accuracy.
+- Improves security.
+- Improves privacy.
+- Improves auditability.
+- Improves organization integration.
+- Improves Verification Subject experience.
+- Reduces operational risk.
 
 Features that do not support these goals should be postponed.
 

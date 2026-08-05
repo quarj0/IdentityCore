@@ -1,275 +1,218 @@
 # Glossary
 
-## IdentityCore
-
-**Version:** 1.0
-
----
-
 ## Purpose
 
-This glossary defines the standard terminology used throughout IdentityCore.
+This glossary defines key terminology used across IdentityCore documentation and implementation.
 
-All documentation, source code, APIs, database models, user interfaces, and discussions should use these terms consistently.
-
-When introducing new concepts, this glossary should be updated before implementation.
+Terms are written to avoid circular definitions and to distinguish platform-level concepts from workload-specific capabilities.
 
 ---
 
-## A
+## Application
 
-## Access Token
+A customer-facing service, website, mobile app, or integration that interacts with IdentityCore through APIs, SDKs, CLI, or hosted journeys.
 
-A short-lived token issued after successful authentication and used to authorize API requests.
+## Workload
 
----
+A business-purpose composition of IdentityCore platform primitives such as workflows, policies, capabilities, evidence, claims, and decisions.
 
-## Actor
+Example: identity verification is the first workload built on the platform.
 
-Any entity performing an action within IdentityCore.
+## Identity Infrastructure
 
-Examples:
+Reusable software and operational capabilities that coordinate identity-related data, providers, evidence, privacy, and decision-making.
 
-- Platform User
-- Organization User
-- API Client
-- Verification Subject
-- Internal Service
+IdentityCore is vendor-neutral identity infrastructure.
 
----
+## Identity Operating System
 
-## API Client
+A conceptual layer that separates applications from provider-specific identity capabilities, offering stable orchestration, governance, and evidence services.
 
-A registered application that communicates with IdentityCore through the public REST API.
+## Control Plane
 
-Each API Client has:
+The configuration and governance layer that manages tenants, organizations, projects, environments, workflows, policies, providers, access, and operational settings.
 
-- Client ID
-- Client Secret
-- Scopes
-- Rate limits
-- Allowed networks
+## Execution Plane
 
----
+The runtime layer that executes workloads, invokes providers, normalizes evidence, evaluates policies, records decisions, and drives review and audit.
 
-## Audit Event
+## Provider
 
-An immutable record of a security-sensitive or business-critical action performed within the platform.
+A replaceable system or service that implements one or more capability contracts for IdentityCore.
 
-Examples:
+## IdentityCore Managed Provider
 
-- User login
-- Verification created
-- Manual decision recorded
-- API key generated
+A provider implementation operated by the IdentityCore deployment. It is a default provider implementation that is invoked through the same provider runtime boundary as external providers.
 
----
+## Commercial Provider
 
-## Authentication
+An external vendor that supplies one or more identity-related capabilities behind IdentityCore capability contracts.
 
-The process of verifying the identity of an Actor.
+## Customer-hosted Provider
 
----
+A provider implementation run inside the customer's own deployment, network, or controlled infrastructure.
 
-## Authorization
+## Government or Authoritative Provider
 
-The process of determining whether an authenticated Actor has permission to perform a specific action.
+A registry, issuer, or authoritative source operated by a government or trusted authority that supplies identity, credential, or eligibility evidence.
 
----
+## Provider Runtime
 
-## B
+The execution boundary that resolves, secures, invokes, and normalizes provider capability calls for IdentityCore.
 
-## Biometric Data
+## Provider Adapter
 
-Information derived from a person's biological characteristics for identity verification.
+A software layer that translates IdentityCore capability requests into provider-specific API or protocol interactions.
 
-Examples:
+## Provider Registry
 
-- Face image
-- Face embedding
-- Selfie capture
-- Liveness media
+The configured set of provider records and capability declarations available to IdentityCore for a tenant, project, or environment.
 
----
+## Provider Assignment
 
-## Biometric Template
+A binding that associates a capability with a selected provider for a supported scope.
 
-A mathematical representation of biometric features used for comparison.
+## Provider Route
 
-A biometric template is **not** the original image.
+An ordered or conditional mapping that decides which provider implementation should be selected for a capability based on workflow, policy, context, or operational rules.
 
----
+## Provider Check
 
-## Background Worker
+An auditable record of a provider invocation, including the selected provider, capability, capability contract version, status, timestamps, normalized result, and safe diagnostics.
 
-A service that processes asynchronous jobs outside the main request-response cycle.
+## Provider Attempt
 
-IdentityCore uses Celery workers for this purpose.
+An individual invocation or retry of a provider as part of a provider check lifecycle.
 
----
+## Capability
 
-## C
+A stable operation that IdentityCore requests from a provider, such as `document.ocr` or `biometric.liveness`.
 
-## Celery
+## Capability Contract
 
-The background task processing system used by IdentityCore.
+A versioned definition of a capability's inputs, outputs, evidence requirements, error semantics, and normalized result schema.
 
----
+## Capability Version
 
-## Consent
-
-A recorded agreement by the Verification Subject permitting identity verification for a defined purpose.
-
----
-
-## Consent Record
-
-A permanent record of consent containing:
-
-- Purpose
-- Organization
-- Policy version
-- Timestamp
-- Consent version
-- Verification Subject confirmation
-
----
-
-## Country Profile
-
-A configuration describing the identity documents, rules, and localization for a particular country.
-
-Example:
-
-Ghana
-
-Supported document types:
-
-- National ID
-- Passport
-- Driver License
-- Health ID
-
----
-
-## D
-
-## Decision Engine
-
-The business component responsible for producing the final Verification Decision using evidence and Verification Policies.
-
-The AI service never performs this responsibility.
-
----
-
-## Document Capture
-
-A digital image of one side of an Identity Document submitted during verification.
-
----
-
-## Document Classification
-
-The AI process that determines the generic type of an Identity Document.
-
-Examples:
-
-- National ID
-- Passport
-- Driver License
-
----
-
-## Document Quality Check
-
-An AI process that determines whether an uploaded document image is suitable for verification.
-
----
-
-## E
-
-## Embedding
-
-See **Biometric Template**.
-
----
+The version identifier of a capability contract.
 
 ## Evidence
 
-Technical information collected during verification.
+Technical information collected during a workload execution that records what was observed, supplied, or produced.
 
-Examples:
+## Raw Evidence
 
-- Face match score
-- OCR result
-- Liveness result
-- Document quality score
+Original or provider-native material such as uploaded media, provider payloads, or registry responses.
 
-Evidence supports decisions but is not itself a decision.
+## Normalized Evidence
+
+A stable IdentityCore representation derived from raw evidence and provider output.
+
+## Evidence Lineage
+
+The directed references that show how evidence records were derived from earlier evidence, provider checks, or workflows.
+
+## Evidence Grant
+
+A short-lived authorization or reference that allows a provider to access the evidence needed to perform a capability.
+
+## Claim
+
+A normalized statement about a subject, organization, credential, or relationship that is linked to supporting evidence and policy.
+
+## Extracted Claim
+
+A candidate statement derived from raw or submitted evidence, such as OCR text extracted from a document.
+
+## Provider-asserted Claim
+
+A statement returned directly by a provider, such as a registry match or issuer assertion.
+
+## Normalized Claim
+
+A claim mapped into a stable IdentityCore schema.
+
+## Derived Claim
+
+A claim calculated from other claims and policy context.
+
+## Policy-satisfied Claim
+
+A claim whose status indicates it satisfies a policy requirement for a workload.
+
+## Workflow
+
+A versioned definition of ordered and conditional capability and review steps for a workload.
+
+## Workflow Snapshot
+
+An immutable record of the workflow version and configuration used by a particular execution.
+
+## Policy
+
+A versioned set of rules, thresholds, and constraints used to evaluate evidence and claims.
+
+## Policy Snapshot
+
+An immutable copy of the policy configuration used by a particular execution.
+
+## Decision Engine
+
+The component responsible for recording outcomes based on evidence, claims, workflow state, and policy.
+
+## Decision Input Snapshot
+
+An immutable record of the evidence, claims, workflow, and policy inputs used to create a decision.
+
+## Manual Review
+
+A governed human review activity for cases that require human judgment, uncertainty handling, or exceptional decision escalation.
+
+## Maker-checker
+
+A separation of duties pattern in which one reviewer proposes a decision and another reviewer approves it.
+
+## Tenant
+
+A logical isolation boundary for organizations, data, providers, and configuration.
+
+## Organization
+
+A customer entity that owns tenants, users, API clients, workflows, policies, providers, and identity operations.
+
+## Project
+
+A grouping within a tenant, often representing sandbox or production scope.
+
+## Environment
+
+A scoped execution context such as sandbox or production with separate credentials, configuration, and data boundaries.
+
+## Subject
+
+An individual or entity whose identity is being verified or asserted.
+
+## Verification
+
+A completed or in-progress identity verification operation.
+
+## Verification Session
+
+A short-lived session used by a subject during a verification workflow.
+
+## IdentityCore SDK
+
+A customer-facing SDK for integrating applications with IdentityCore APIs, workflows, evidence, decisions, and webhooks.
+
+## Provider SDK
+
+An integration contract or library used by provider implementers to connect a provider to IdentityCore's runtime.
 
 ---
 
-## F
+## Note
 
-## Face Detection
-
-The AI process of locating one or more faces within an image.
-
----
-
-## Face Embedding
-
-See **Biometric Template**.
-
----
-
-## Face Match
-
-The AI process of comparing two biometric templates to determine similarity.
-
----
-
-## Face Match Score
-
-A numerical similarity score produced by the face matching model.
-
-Higher scores generally indicate greater similarity.
-
----
-
-## G
-
-## GraphQL
-
-The internal query language used for IdentityCore dashboards.
-
-GraphQL is not intended as the public integration API in Version 1.0.
-
----
-
-## H
-
-## Health Check
-
-An endpoint used to determine whether a service is operating correctly.
-
----
-
-## I
-
-## Identity Document
-
-An official document presented to prove identity.
-
-Examples include:
-
-- National ID
-- Passport
-- Driver License
-- Voter ID
-- Health ID
-
-Country-specific names are handled by Country Profiles.
+Terms should be updated as the platform evolves, but the distinction between platform infrastructure and workload-specific capabilities must remain clear.
 
 ---
 
@@ -324,8 +267,6 @@ An AI process that determines whether the Verification Subject is physically pre
 A confidence score produced by the liveness detection model.
 
 ---
-
-## M
 
 ## Manual Review
 

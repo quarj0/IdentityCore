@@ -19,7 +19,7 @@ Examples:
 - subject is over a configured age threshold;
 - document identifier matched an authorized registry;
 - organization is a member of an approved registry;
-- a required identity-verification policy was satisfied at a specific time.
+- a required verification policy was satisfied at a specific time.
 
 The Claims Engine turns evidence into governed, explainable statements that future
 workloads can reuse without treating provider output as unquestionable truth.

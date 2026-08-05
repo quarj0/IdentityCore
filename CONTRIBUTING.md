@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing to IdentityCore.
 
-IdentityCore is a security-first identity verification platform. Every contribution should prioritize security, privacy, maintainability, and reliability over speed or convenience.
+IdentityCore is a security-first vendor-neutral identity infrastructure platform. Every contribution should prioritize security, privacy, maintainability, and reliability over speed or convenience.
 
 Please read this guide before contributing.
 
@@ -283,4 +283,4 @@ A contribution is considered complete when:
 
 Thank you for contributing to IdentityCore.
 
-Every improvement—whether a new feature, a bug fix, better documentation, or a security enhancement—helps build a trustworthy identity verification platform that organizations can confidently rely on.
+Every improvement—whether a new feature, a bug fix, better documentation, or a security enhancement—helps build a trustworthy identity infrastructure platform that organizations can confidently rely on.

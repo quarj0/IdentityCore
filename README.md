@@ -5,8 +5,8 @@
 IdentityCore provides a common platform for identity workflows, provider execution,
 evidence, claims, policy, decisions, human review, privacy controls, and audit.
 
-**Identity verification is the first workload built on the platform. It is not the
-platform boundary.**
+**Identity verification is the first workload built on the platform, not the
+boundary of IdentityCore.**
 
 Organizations integrate with one stable IdentityCore contract and choose which providers
 execute each capability. A provider may be operated by IdentityCore, supplied by a
@@ -99,7 +99,7 @@ or biometric verification.
 ## Current status
 
 IdentityCore is an actively developed, **pre-production identity infrastructure platform
-with a working identity-verification vertical slice**.
+with a working identity verification vertical slice**.
 
 Implemented foundations include:
 
@@ -273,7 +273,7 @@ identity verification as the whole product:
 2. Complete Provider Runtime routing, fallback, health, and conformance.
 3. Expand workflow, policy, decision, evidence, and claims capabilities.
 4. Improve SDKs, CLI, hosted journeys, and developer experience.
-5. Certify the identity-verification workload for supported countries and providers.
+5. Certify the verification workload for supported countries and providers.
 6. Add provider ecosystem and organization self-service operations.
 7. Introduce future workloads using the same platform primitives.
 
@@ -323,4 +323,4 @@ License information will be added before the first formal public release.
 
 IdentityCore is building the infrastructure that allows organizations to compose,
 operate, and govern trusted identity capabilities without surrendering their architecture
-to one verification vendor.
+to a single provider.

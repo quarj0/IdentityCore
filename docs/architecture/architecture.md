@@ -1,223 +1,241 @@
 # System Architecture
 
-## IdentityCore
+> This document describes the current implementation architecture.
+> For the canonical platform architecture and long-term architectural model, see `/ARCHITECTURE.md`.
 
-**Version:** 1.0
+## Status
 
----
+This document describes the current repository implementation. It is not the full canonical architecture, which is documented in `/ARCHITECTURE.md`.
+
+IdentityCore is implemented as a modular vendor-neutral identity infrastructure platform. Identity verification is the first workload built on the platform. Applications, SDKs, CLI tooling, hosted journeys, and operator consoles integrate with IdentityCore rather than directly with OCR, liveness, face matching, registry, storage, or other provider services.
+
+The current repository contains:
+
+- a Django modular monolith for core control and execution domains;
+- a FastAPI service for IdentityCore Managed Providers;
+- Celery workers for asynchronous tasks;
+- Redis for queues, caching, and coordination;
+- PostgreSQL for tenant, workflow, provider, evidence, decision, audit, and subject data;
+- S3-compatible object storage for media, raw evidence artifacts, and provider assets;
+- frontend applications for hosted journeys, developer docs, organization dashboards, and platform administration;
+- Python, Java, and .NET SDKs plus a Python CLI;
+- public REST APIs and internal GraphQL boundaries.
 
 ## Purpose
 
-This document defines the technical architecture for IdentityCore Version 1.0.
+This document explains the current implementation architecture and how the repository realizes IdentityCore as a platform infrastructure implementation.
 
-IdentityCore is designed as a secure, multi-tenant identity verification platform that supports document capture, selfie capture, liveness detection, face matching, verification decisions, audit logging, REST APIs, GraphQL dashboards, webhooks, and future provider integrations.
+The emphasis is on the existing code structure, provider runtime behavior, provider execution path, and current workload composition. It does not redefine the canonical platform model in `/ARCHITECTURE.md`.
 
-The architecture must support a focused MVP while remaining flexible enough to evolve into a larger digital identity infrastructure platform.
+## Implementation structure
 
----
+IdentityCore is implemented in this repository as:
 
-## Architectural Philosophy
+- a modular Django monolith for control-plane and execution-plane domains;
+- a separate FastAPI Managed Provider host for selected internal capability implementations;
+- Celery workers for background processing and retries;
+- Redis for Celery broker, cache, and runtime coordination;
+- PostgreSQL for transactional state, evidence meta, audit, policies, providers, and configuration;
+- S3-compatible object storage for submitted media, evidence artifacts, and transient provider payloads;
+- frontend apps for verification journeys, developer portal, platform administration, and operator consoles;
+- SDKs and CLI tooling for application integration and operational automation.
 
-IdentityCore will begin as a modular monolith with clearly separated internal domains.
-
-This avoids unnecessary early microservice complexity while keeping the codebase ready for future service extraction.
-
-The platform should be designed so that major modules can later become independent services without rewriting the entire system.
-
----
-
-## High-Level Architecture
-
-```text
-Verification Subject
-        |
-        v
-Verification Web Portal
-        |
-        v
-IdentityCore API Gateway
-        |
-        v
-Core Platform Backend
-        |
-        +-------------------------------+
-        |                               |
-        v                               v
-Document Intelligence Service     Biometric Intelligence Service
-        |                               |
-        v                               v
-Object Storage                  Face Matching / Liveness
-        |
-        v
-Verification Decision Engine
-        |
-        v
-Audit & Webhook System
-        |
-        v
-Organization System / External Client
-```
-
----
-
-## Main Applications
-
-## Admin Dashboard
-
-Used by platform administrators to manage the IdentityCore platform.
-
-Responsibilities:
-
-- Manage organizations
-- View platform-wide audit logs
-- Manage provider configurations
-- Manage system settings and tenant provider assignments
-- Monitor system activity
-- Manage platform users
-- Review system health
-
----
-
-## Organization Dashboard
-
-Used by customer organizations.
-
-Responsibilities:
-
-- Manage organization users
-- Create verification requests
-- Configure verification policies
-- View verification results
-- Review manual verification cases
-- Manage API clients
-- View organization audit logs
-- Configure webhooks
-
----
-
-## Verification Portal
-
-Used by Verification Subjects.
-
-Responsibilities:
-
-- Open verification link
-- View verification purpose
-- Accept consent
-- Upload identity document
-- Capture selfie
-- Complete liveness check
-- View verification progress
-
----
-
-## Developer Portal
-
-Used by technical customers.
-
-Responsibilities:
-
-- View API documentation
-- Generate API keys
-- Configure webhooks
-- View API logs
-- Test verification endpoints
-
----
-
-## API Strategy
-
-IdentityCore uses both REST and GraphQL.
-
-## REST API
-
-REST will be used for external integrations.
-
-Examples:
+## Platform architecture
 
 ```text
-POST /api/v1/verifications
-GET  /api/v1/verifications/{verification_id}
-POST /api/v1/verifications/{verification_id}/cancel
-POST /api/v1/webhooks/test
-GET  /api/v1/document-types
-GET  /api/v1/country-profiles
+Applications and Portals
+        |
+        v
+IdentityCore APIs
+        |
+        +--> Control-plane domains
+        |
+        +--> Execution-plane domains
+                  |
+                  v
+           Provider Runtime
+                  |
+                  v
+               Providers
 ```
 
-REST is preferred for:
+### Control Plane
 
-- External developers
-- Organization integrations
-- API clients
-- Webhooks
-- File uploads
-- Public API documentation
+The Control Plane manages configuration and governance. It includes:
 
----
+- tenants, organizations, projects, environments;
+- users, roles, API clients, scopes, and authorization;
+- versioned workflows, templates, and policies;
+- provider records, capability declarations, assignments, and health metadata;
+- privacy, retention, legal-hold, and export settings;
+- audit policy, webhook configuration, and platform administration.
 
-## GraphQL API
+The current repository includes substantial foundations for tenant and environment isolation, workflows, policies, provider records, API clients, audit, privacy operations, dashboards, and admin tooling.
 
-GraphQL will be used mainly for internal dashboards.
+### Execution Plane
 
-GraphQL is preferred for:
+The Execution Plane processes workload operations. It includes:
 
-- Admin dashboard
-- Organization dashboard
-- Reporting views
-- Complex filtering
-- Flexible dashboard queries
+- workflow engine and workflow snapshots;
+- policy engine and policy snapshots;
+- provider runtime invocation;
+- evidence normalization and lineage;
+- decision engine and decision input snapshots;
+- Manual Review and maker-checker controls;
+- audit events, notifications, and webhooks.
 
-GraphQL should not replace the public REST API in Version 1.0.
+A current execution path typically:
 
----
+1. resolves tenant, project, environment, and subject context;
+2. loads immutable workflow and policy snapshots;
+3. determines required capabilities and evidence;
+4. resolves a provider assignment for each capability;
+5. grants only the evidence access needed for the invocation;
+6. invokes the provider through the Provider Runtime;
+7. validates, normalizes, versions, and persists the result as evidence;
+8. evaluates policy and decision rules;
+9. routes to retry, fallback, more evidence, or Manual Review;
+10. records decision inputs and outcomes;
+11. emits audit events, notifications, and signed webhooks;
+12. applies retention, export, and deletion controls.
 
-## Backend Architecture
+## Provider Runtime
 
-Version 1.0 will use Django as the main backend.
+The Provider Runtime is the current execution boundary between IdentityCore and capability providers. It is central to the implementation and is used for IdentityCore Managed Providers as well as external providers.
 
-The backend will be organized by domain modules.
+It is responsible for:
+
+- resolving the selected provider and provider adapter;
+- validating capability contracts and compatibility;
+- building minimal provider requests;
+- applying authentication, signing, timestamps, nonces, and idempotency;
+- enforcing endpoint allowlisting, timeout, response-size, and egress controls;
+- recording each provider check and attempt;
+- normalizing vendor-specific output into versioned IdentityCore evidence;
+- redacting sensitive telemetry;
+- returning deterministic success or failure semantics;
+- supporting retry, fallback, and Manual Review paths.
+
+The repository currently includes adapter-backed managed provider execution, centralized provider invocation, secure HTTP provider calls, message signing, timestamp and nonce validation, replay protection, normalized results, redacted telemetry, duration tracking, and versioned provider outcomes. More advanced conditional provider routes, ordered fallback chains, provider marketplace discovery, and full conformance tooling remain areas of ongoing development.
+
+See [Provider Runtime](provider-runtime.md).
+
+## FastAPI Managed Provider host
+
+The separate `backend/ai-service/` FastAPI service hosts selected IdentityCore Managed Providers such as document quality, document classification, OCR, face comparison, liveness, and presentation-attack detection.
+
+This service is the default host for managed provider implementations. It is not a privileged platform subsystem; it is one provider implementation behind the same runtime boundary used by commercial, government, or customer-hosted providers.
+
+Managed Providers must conform to the same capability, evidence, failure, versioning, and audit expectations as other providers.
+
+## Capability contracts and provider ecosystem
+
+A capability is a stable operation IdentityCore requests from a provider, such as `document.ocr`, `document.quality`, `biometric.face-match`, or `biometric.liveness`.
+
+Capabilities are implemented through versioned contracts. A provider may support one or more capability versions.
+
+The current implementation supports:
+
+- provider adapter registry and provider records;
+- capability contract versioning;
+- provider checks with capability, contract, provider, and adapter metadata;
+- secure HTTP provider integration;
+- signed provider requests;
+- timestamp and nonce validation;
+- replay protection;
+- normalized provider results;
+- redacted request/response metadata;
+- provider assignment foundations.
+
+Provider categories in the current repository include:
+
+- IdentityCore Managed Providers;
+- commercial verification and specialist capability providers;
+- government and authoritative registries;
+- customer-hosted provider services;
+- storage providers;
+- KMS/HSM and key management providers;
+- messaging and notification providers.
+
+Current runtime limitations include richer conditional provider routes, ordered fallback chains, provider health-based selection, and full provider manifest discovery.
+
+## Identity Verification Workload Flow
+
+> Identity Verification Workload Flow
+
+This flow describes the current verification workload as one implementation of the platform. It does not define the entire IdentityCore architecture.
 
 ```text
-backend/django/
-    identitycore/
-        apps/
-            accounts/
-            organizations/
-            tenants/
-            access_control/
-            verifications/
-            verification_sessions/
-            documents/
-            biometrics/
-            consent/
-            policies/
-            decisions/
-            risk/
-            providers/
-            platform_settings/
-            audit/
-            webhooks/
-            notifications/
-            uploads/
-            api_clients/
-            billing/
-            reporting/
+Verification request
+        |
+        v
+workflow and policy snapshot
+        |
+        v
+capability selection and provider assignment
+        |
+        v
+provider runtime invocation
+        |
+        v
+normalized evidence
+        |
+        v
+policy evaluation and decision input
+        |
+        v
+automatic decision or Manual Review
+        |
+        v
+audit, webhook, retention, and export
 ```
 
----
+## REST and GraphQL boundaries
 
-## Core Backend Modules
+The public integration surface is the REST API. Internal dashboards and developer/admin surfaces use GraphQL where appropriate.
 
-## Platform Settings Module
+The current implementation treats REST as the stable external contract and GraphQL as an internal application boundary.
 
-Responsible for system-level, auditable platform configuration.
+## Modular monolith and service extraction
 
-Responsibilities:
+The Django backend is organized as a modular monolith to minimize early service complexity while preserving clear domain boundaries.
 
-- Security defaults
-- MFA and session policy
-- Storage and upload defaults
-- Internal service endpoints
+The current repository supports service extraction through well-defined Django apps, provider adapters, and a separate managed provider host. It is designed to allow future decomposition without changing core workflow, policy, evidence, or provider-runtime semantics.
+
+## Background jobs and observability
+
+Celery workers process asynchronous and long-running tasks such as webhook delivery, retention cleanup, evidence processing, and review notifications.
+
+The current implementation includes observability foundations for provider invocation counts, latency, normalized status, route decisions, evidence creation, decision outcomes, webhook delivery, and deletion jobs. Logs and telemetry are redacted to avoid raw identity data, document images, biometric templates, provider secrets, or unrestricted provider payloads.
+
+## Storage and multi-tenancy
+
+Submitted media and raw evidence artifacts are stored in S3-compatible object storage. The implementation also uses PostgreSQL for metadata and Redis for runtime coordination.
+
+Tenant, organization, project, and environment isolation are implemented across API requests, workflow execution, provider configuration, evidence, decisions, Manual Review, and audit.
+
+Sandbox and production environments are separated to prevent sandbox credentials from accessing production providers or data.
+
+## Security and provider trust
+
+The implementation includes secure provider invocation controls, provider credential encryption, endpoint validation, timestamp and nonce checks, replay protection, signed messages, response validation, timeout enforcement, and schema validation.
+
+Provider trust boundaries are explicitly modeled, with managed-provider isolation and customer-hosted provider risk framed as part of the same runtime boundary.
+
+## Implementation maturity
+
+The current repository presents a working implementation foundation for vendor-neutral identity infrastructure. It includes:
+
+- tenant, project, and environment isolation;
+- provider runtime and managed provider host;
+- workflow and policy snapshots;
+- normalized evidence and provider checks;
+- decision recording and Manual Review;
+- audit events, retention, deletion, and export controls;
+- REST API, GraphQL surface, SDKs, CLI, and hosted applications.
+
+It does not claim complete production readiness for all provider types, country coverage, or regulatory regimes. Advanced provider routing, provider marketplace functionality, broad conformance tooling, reusable claims lifecycle, tenant-owned storage routing, and complete production assurance remain ongoing work.
+
 - Notification defaults
 - Feature flags and operational toggles
 - Revision history and reset-to-default behavior
