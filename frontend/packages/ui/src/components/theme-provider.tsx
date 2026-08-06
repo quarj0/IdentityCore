@@ -32,24 +32,35 @@ const ThemeProvider = ({
   storageKey = "identitycore-theme",
   ...props
 }: ThemeProviderProps) => {
-  const [theme, setTheme] = React.useState<Theme>(() => {
-    if (typeof window === "undefined") return defaultTheme;
-
-    const storedTheme = localStorage.getItem(storageKey);
-    return isTheme(storedTheme) ? storedTheme : defaultTheme;
-  });
+  const [theme, setTheme] = React.useState<Theme>(defaultTheme);
+  const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
+    setMounted(true);
+
+    const storedTheme = window.localStorage.getItem(storageKey);
+    const initialTheme = isTheme(storedTheme)
+      ? storedTheme
+      : window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : defaultTheme;
+
+    setTheme(initialTheme);
+  }, [defaultTheme, storageKey]);
+
+  React.useEffect(() => {
+    if (!mounted) return;
+
     const root = window.document.documentElement;
 
     root.classList.remove("light", "dark");
     root.classList.add(theme);
-  }, [theme]);
+  }, [mounted, theme]);
 
   const value = {
-    theme,
+    theme: mounted ? theme : defaultTheme,
     setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme);
+      window.localStorage.setItem(storageKey, theme);
       setTheme(theme);
     },
   };
