@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { ShieldCheck } from "lucide-react";
+import { ThemeToggle } from "@identitycore/ui";
 
 interface VerificationShellProps {
   children: ReactNode;
@@ -7,20 +8,21 @@ interface VerificationShellProps {
 
 export function VerificationShell({ children }: VerificationShellProps) {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-950">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex h-16 max-w-5xl items-center px-4 sm:px-6">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b border-border bg-card">
+        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-info text-info-foreground">
               <ShieldCheck className="h-5 w-5" aria-hidden="true" />
             </div>
             <div>
               <p className="text-sm font-semibold">IdentityCore Verify</p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 Secure verification session
               </p>
             </div>
           </div>
+          <ThemeToggle />
         </div>
       </header>
 

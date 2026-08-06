@@ -47,7 +47,7 @@ export function VerificationProgress({ currentStep }: { currentStep: string }) {
   return (
     <nav
       aria-label="Verification progress"
-      className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/50"
+      className="rounded-3xl border border-border bg-card p-5 shadow-sm"
     >
       <ol className="space-y-1">
         {STEPS.map((step, index) => {
@@ -57,8 +57,8 @@ export function VerificationProgress({ currentStep }: { currentStep: string }) {
             <li key={step.key} className="relative flex gap-3 pb-4 last:pb-0">
               {index < STEPS.length - 1 ? (
                 <span
-                  className={`absolute left-[0.6875rem] top-6 h-[calc(100%-0.5rem)] w-px ${
-                    complete ? "bg-blue-500" : "bg-slate-200"
+                  className={`absolute left-2.75 top-6 h-[calc(100%-0.5rem)] w-px ${
+                    complete ? "bg-info" : "bg-border"
                   }`}
                   aria-hidden="true"
                 />
@@ -66,10 +66,10 @@ export function VerificationProgress({ currentStep }: { currentStep: string }) {
               <span
                 className={`relative z-10 mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${
                   complete
-                    ? "border-blue-600 bg-blue-600 text-white"
+                    ? "border-info bg-info text-info-foreground"
                     : active
-                      ? "border-blue-600 bg-blue-50 text-blue-700 ring-4 ring-blue-50"
-                      : "border-slate-300 bg-white text-slate-300"
+                      ? "border-info bg-info/10 text-info ring-4 ring-info/10"
+                      : "border-border bg-card text-muted-foreground/50"
                 }`}
                 aria-hidden="true"
               >
@@ -81,7 +81,7 @@ export function VerificationProgress({ currentStep }: { currentStep: string }) {
               </span>
               <div>
                 <p
-                  className={`text-sm font-medium ${active ? "text-blue-700" : complete ? "text-slate-800" : "text-slate-400"}`}
+                  className={`text-sm font-medium ${active ? "text-info" : complete ? "text-foreground" : "text-muted-foreground/70"}`}
                 >
                   {step.label}
                   {active ? (
@@ -91,7 +91,7 @@ export function VerificationProgress({ currentStep }: { currentStep: string }) {
                     <span className="sr-only">, completed</span>
                   ) : null}
                 </p>
-                <p className="mt-0.5 text-xs leading-5 text-slate-400">
+                <p className="mt-0.5 text-xs leading-5 text-muted-foreground/70">
                   {step.description}
                 </p>
               </div>

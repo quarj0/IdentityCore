@@ -208,7 +208,7 @@ export function LiveLivenessCapture({
 
   const currentAction = actions[actionIndex];
   return (
-    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-950 shadow-inner">
+    <div className="overflow-hidden rounded-3xl border border-border bg-slate-950 shadow-inner">
       <div className="relative aspect-4/3 overflow-hidden bg-slate-900">
         <video
           ref={videoRef}
@@ -228,8 +228,8 @@ export function LiveLivenessCapture({
           </div>
         ) : null}
         {recording ? (
-          <div className="absolute inset-x-4 top-4 rounded-2xl bg-blue-700 px-4 py-3 text-center text-sm font-semibold text-white shadow-lg">
-            <span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-red-300" />
+          <div className="absolute inset-x-4 top-4 rounded-2xl bg-info px-4 py-3 text-center text-sm font-semibold text-info-foreground shadow-lg">
+            <span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-destructive" />
             {currentAction
               ? (ACTION_LABELS[currentAction] ?? currentAction)
               : "Hold still while we finish recording"}
@@ -242,7 +242,7 @@ export function LiveLivenessCapture({
       {error ? (
         <p
           role="alert"
-          className="border-t border-amber-300/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-100"
+          className="border-t border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning"
         >
           {error}
         </p>

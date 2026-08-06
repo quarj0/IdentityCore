@@ -134,9 +134,9 @@ unless they intentionally enter advanced configuration areas.
 
 ---
 
-# Application Overview
+## Application Overview
 
-## 1. Public Website
+### 1. Public Website
 
 Application:
 

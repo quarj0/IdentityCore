@@ -39,19 +39,19 @@ export function StepCard({
   }, [title]);
 
   return (
-    <Card className="overflow-hidden rounded-[2rem] border-slate-200 bg-white shadow-xl shadow-slate-200/40">
-      <CardHeader className="border-b border-slate-100 px-5 py-6 sm:px-8 sm:py-7">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">
+    <Card className="overflow-hidden rounded-4xl shadow-xl shadow-foreground/5">
+      <CardHeader className="border-b border-border px-5 py-6 sm:px-8 sm:py-7">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-info">
           {eyebrow}
         </p>
         <CardTitle
           data-step-heading
           tabIndex={-1}
-          className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 outline-none sm:text-3xl"
+          className="mt-2 text-2xl font-semibold tracking-tight outline-none sm:text-3xl"
         >
           {title}
         </CardTitle>
-        <p className="max-w-2xl text-sm leading-6 text-slate-500">
+        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
           {description}
         </p>
       </CardHeader>
@@ -78,9 +78,9 @@ export function EvidenceReview({
   }, [url]);
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-950">
+    <div className="overflow-hidden rounded-3xl border border-border bg-slate-950">
       {previewFailed ? (
-        <div className="flex min-h-72 flex-col items-center justify-center px-6 text-center text-amber-200">
+        <div className="flex min-h-72 flex-col items-center justify-center px-6 text-center text-warning">
           <AlertTriangle className="h-7 w-7" aria-hidden="true" />
           <p className="mt-3 text-sm">
             This image cannot be previewed. Retake or choose another file.
@@ -92,13 +92,13 @@ export function EvidenceReview({
           src={url}
           onError={() => setFailedUrl(url)}
           alt="Captured evidence preview"
-          className="max-h-[32rem] min-h-72 w-full object-contain"
+          className="max-h-128 min-h-72 w-full object-contain"
         />
       )}
       <div className="flex items-center justify-between gap-4 border-t border-white/10 px-4 py-3">
         <div className="min-w-0">
           <p className="truncate text-xs font-medium text-white">{file.name}</p>
-          <p className="mt-0.5 text-xs text-slate-400">
+          <p className="mt-0.5 text-xs text-muted-foreground/80">
             {formatBytes(file.size)}
           </p>
         </div>
@@ -125,14 +125,14 @@ export function ProcessingPanel({
   items: string[];
 }) {
   return (
-    <div className="rounded-3xl border border-blue-100 bg-blue-50/60 p-5">
+    <div className="rounded-3xl border border-info/20 bg-info/10 p-5">
       <div className="flex gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-info text-info-foreground">
           <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
         </span>
         <div>
-          <p className="text-sm font-semibold text-blue-950">{title}</p>
-          <p className="mt-1 text-xs leading-5 text-blue-900/65">
+          <p className="text-sm font-semibold text-foreground">{title}</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
             Keep this page open. This usually takes less than a minute.
           </p>
         </div>
@@ -141,9 +141,9 @@ export function ProcessingPanel({
         {items.map((item) => (
           <div
             key={item}
-            className="flex items-center gap-2 rounded-2xl bg-white/80 px-3 py-2.5 text-xs font-medium text-slate-600"
+            className="flex items-center gap-2 rounded-2xl bg-card/80 px-3 py-2.5 text-xs font-medium text-muted-foreground"
           >
-            <FileCheck2 className="h-4 w-4 text-blue-600" aria-hidden="true" />
+            <FileCheck2 className="h-4 w-4 text-info" aria-hidden="true" />
             {item}
           </div>
         ))}
@@ -166,35 +166,35 @@ export function TerminalPanel({
       icon: CheckCircle2,
       title: "Verification complete",
       detail: "Your identity evidence was verified successfully.",
-      tone: "border-emerald-100 bg-emerald-50 text-emerald-800",
+      tone: "border-success/20 bg-success/10 text-success",
     },
     review: {
       icon: Clock3,
       title: "Submitted for review",
       detail:
         "Your evidence was received securely. The requesting organization will review it.",
-      tone: "border-amber-100 bg-amber-50 text-amber-800",
+      tone: "border-warning/20 bg-warning/10 text-warning",
     },
     failed: {
       icon: XCircle,
       title: "Verification needs attention",
       detail:
         "We could not complete this verification with the submitted evidence.",
-      tone: "border-red-100 bg-red-50 text-red-800",
+      tone: "border-destructive/20 bg-destructive/10 text-destructive",
     },
     expired: {
       icon: ShieldAlert,
       title: "This session has expired",
       detail:
         "For your security, verification links are available only for a limited time.",
-      tone: "border-slate-200 bg-slate-50 text-slate-700",
+      tone: "border-border bg-muted text-muted-foreground",
     },
     cancelled: {
       icon: ShieldAlert,
       title: "Verification cancelled",
       detail:
         "The requesting organization cancelled this verification session.",
-      tone: "border-slate-200 bg-slate-50 text-slate-700",
+      tone: "border-border bg-muted text-muted-foreground",
     },
   }[state];
   const Icon = config.icon;
