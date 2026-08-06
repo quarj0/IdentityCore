@@ -232,7 +232,7 @@ export function CameraCapture({
 
       {active ? (
         <div className="flex items-center justify-between border-t border-white/10 px-4 py-3">
-          <p className="flex items-center gap-2 text-xs text-slate-400">
+          <p className="flex items-center gap-2 text-xs text-muted-foreground">
             <ImagePlus className="h-3.5 w-3.5" aria-hidden="true" />
             Check focus and lighting before capture
           </p>
