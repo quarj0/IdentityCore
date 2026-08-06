@@ -1,7 +1,7 @@
 @import "@identitycore/ui/styles/globals.css";
 
 :focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid hsl(var(--ring));
   outline-offset: 3px;
 }
 
@@ -11,8 +11,6 @@ html {
 
 body {
   min-width: 320px;
-  background: #f8fafc;
-  color: #0f172a;
   text-rendering: optimizeLegibility;
 }
 
@@ -20,15 +18,15 @@ body {
   background:
     radial-gradient(
       circle at 12% 8%,
-      rgb(219 234 254 / 0.7),
+      hsl(var(--info) / 0.12),
       transparent 28rem
     ),
     radial-gradient(
       circle at 92% 16%,
-      rgb(224 242 254 / 0.55),
+      hsl(var(--info) / 0.08),
       transparent 24rem
     ),
-    linear-gradient(180deg, #f8fbff 0%, #f8fafc 48%, #ffffff 100%);
+    hsl(var(--background));
 }
 
 button,

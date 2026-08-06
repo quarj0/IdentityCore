@@ -134,7 +134,7 @@ export function CameraCapture({
   }
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-950 shadow-inner">
+    <div className="overflow-hidden rounded-3xl border border-border bg-slate-950 shadow-inner">
       <div className="relative aspect-4/3 overflow-hidden bg-slate-900">
         <video
           ref={videoRef}
@@ -170,7 +170,7 @@ export function CameraCapture({
       {!cameraAvailable ? (
         <div
           role="status"
-          className="border-t border-amber-300/20 bg-amber-400/10 px-4 py-3 text-sm leading-6 text-amber-100"
+          className="border-t border-warning/20 bg-warning/10 px-4 py-3 text-sm leading-6 text-warning"
         >
           <strong className="font-semibold">HTTP testing mode:</strong> live
           camera access is disabled by the browser on this address. File upload
@@ -183,7 +183,7 @@ export function CameraCapture({
       {error ? (
         <p
           role="alert"
-          className="border-t border-white/10 bg-amber-400/10 px-4 py-3 text-sm text-amber-200"
+          className="border-t border-white/10 bg-warning/10 px-4 py-3 text-sm text-warning"
         >
           {error}
         </p>

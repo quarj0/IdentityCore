@@ -389,7 +389,7 @@ export function LiveVerificationFlow({
       {error ? (
         <div
           role="alert"
-          className="mb-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="mb-4 rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive"
         >
           <strong className="block font-semibold">We could not continue</strong>
           <span className="mt-1 block">{error}</span>
@@ -402,8 +402,8 @@ export function LiveVerificationFlow({
           aria-live="polite"
           className={`mb-4 rounded-2xl border px-4 py-3 text-sm ${
             notice.kind === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-              : "border-blue-200 bg-blue-50 text-blue-800"
+              ? "border-success/30 bg-success/10 text-success"
+              : "border-info/30 bg-info/10 text-info"
           }`}
         >
           <strong className="block font-semibold">{notice.title}</strong>
@@ -439,30 +439,27 @@ export function LiveVerificationFlow({
               return (
                 <div
                   key={String(title)}
-                  className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4"
+                  className="rounded-2xl border border-border bg-muted/70 p-4"
                 >
-                  <ItemIcon
-                    className="h-5 w-5 text-blue-600"
-                    aria-hidden="true"
-                  />
-                  <p className="mt-3 text-sm font-semibold text-slate-900">
+                  <ItemIcon className="h-5 w-5 text-info" aria-hidden="true" />
+                  <p className="mt-3 text-sm font-semibold text-foreground">
                     {String(title)}
                   </p>
-                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
                     {String(detail)}
                   </p>
                 </div>
               );
             })}
           </div>
-          <label className="flex cursor-pointer gap-3 rounded-2xl border border-slate-200 p-4 transition hover:border-blue-300 hover:bg-blue-50/30">
+          <label className="flex cursor-pointer gap-3 rounded-2xl border border-border p-4 transition hover:border-info/40 hover:bg-info/10">
             <input
               type="checkbox"
               checked={consented}
               onChange={(event) => setConsented(event.target.checked)}
-              className="mt-1 h-4 w-4 rounded border-slate-300 accent-blue-600"
+              className="mt-1 h-4 w-4 rounded border-border accent-info"
             />
-            <span className="text-sm leading-6 text-slate-600">
+            <span className="text-sm leading-6 text-muted-foreground">
               <span className="whitespace-pre-line">
                 {session.consent.content}
               </span>
@@ -473,8 +470,8 @@ export function LiveVerificationFlow({
               </span>
             </span>
           </label>
-          <div className="flex items-center justify-between gap-4 border-t border-slate-100 pt-5">
-            <p className="flex items-center gap-2 text-xs text-slate-400">
+          <div className="flex items-center justify-between gap-4 border-t border-border pt-5">
+            <p className="flex items-center gap-2 text-xs text-muted-foreground/70">
               <LockKeyhole className="h-3.5 w-3.5" aria-hidden="true" />
               Consent is recorded in the audit trail
             </p>
@@ -507,7 +504,7 @@ export function LiveVerificationFlow({
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block space-y-2">
-              <span className="text-sm font-medium text-slate-800">
+              <span className="text-sm font-medium text-foreground">
                 Issuing country
               </span>
               <select
@@ -530,7 +527,7 @@ export function LiveVerificationFlow({
                   setNotice(null);
                 }}
                 disabled={busy}
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="h-11 w-full rounded-xl border border-border bg-card px-3 text-sm text-foreground outline-none transition focus:border-info focus:ring-2 focus:ring-info/20"
               >
                 {availableCountries.map((country) => (
                   <option
@@ -543,7 +540,7 @@ export function LiveVerificationFlow({
               </select>
             </label>
             <label className="block space-y-2">
-              <span className="text-sm font-medium text-slate-800">
+              <span className="text-sm font-medium text-foreground">
                 Document type
               </span>
               <select
@@ -562,7 +559,7 @@ export function LiveVerificationFlow({
                   setNotice(null);
                 }}
                 disabled={busy}
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="h-11 w-full rounded-xl border border-border bg-card px-3 text-sm text-foreground outline-none transition focus:border-info focus:ring-2 focus:ring-info/20"
               >
                 {availableDocuments.map((document) => (
                   <option
@@ -587,14 +584,14 @@ export function LiveVerificationFlow({
                 }
                 className={`rounded-2xl border px-4 py-3 text-left transition ${
                   requirement.side === activeCaptureRequirement.side
-                    ? "border-blue-500 bg-blue-50 ring-2 ring-blue-100"
-                    : "border-slate-200 bg-white hover:border-blue-300"
+                    ? "border-info bg-info/10 ring-2 ring-info/20"
+                    : "border-border bg-card hover:border-info/40"
                 }`}
               >
-                <span className="block text-sm font-semibold text-slate-900">
+                <span className="block text-sm font-semibold text-foreground">
                   {requirement.label}
                 </span>
-                <span className="mt-1 block text-xs text-slate-500">
+                <span className="mt-1 block text-xs text-muted-foreground">
                   {documentFiles[requirement.side]
                     ? "Captured — select to review"
                     : "Not captured"}
@@ -603,7 +600,7 @@ export function LiveVerificationFlow({
             ))}
           </div>
           <div>
-            <p className="mb-3 text-sm font-semibold text-slate-900">
+            <p className="mb-3 text-sm font-semibold text-foreground">
               Capture {activeCaptureRequirement.label.toLowerCase()}
             </p>
             {activeDocumentFile ? (
@@ -635,7 +632,7 @@ export function LiveVerificationFlow({
               />
             )}
           </div>
-          <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
+          <div className="flex justify-end gap-3 border-t border-border pt-5">
             {activeDocumentFile && nextMissingCapture ? (
               <Button
                 variant="outline"
@@ -732,7 +729,7 @@ export function LiveVerificationFlow({
               onCapture={selectEvidence}
             />
           )}
-          <div className="flex justify-end border-t border-slate-100 pt-5">
+          <div className="flex justify-end border-t border-border pt-5">
             <Button
               disabled={!file || busy}
               onClick={() =>
@@ -773,14 +770,14 @@ export function LiveVerificationFlow({
               : "passiveDescription",
           )}
         >
-          <div className="rounded-3xl border border-blue-100 bg-blue-50/60 p-6 text-center">
-            <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white text-blue-700 shadow-sm">
+          <div className="rounded-3xl border border-info/20 bg-info/10 p-6 text-center">
+            <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-card text-info shadow-sm">
               <ScanFace className="h-8 w-8" aria-hidden="true" />
             </span>
-            <h3 className="mt-4 text-base font-semibold text-slate-950">
+            <h3 className="mt-4 text-base font-semibold text-foreground">
               Prove you are present, live
             </h3>
-            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
               Your challenge is single-use, randomized, and recorded directly
               from this device in one short video.
             </p>
@@ -834,7 +831,7 @@ export function LiveVerificationFlow({
               <div className="mt-5 space-y-4">
                 {activeLivenessFile ? (
                   <div className="space-y-3">
-                    <p className="text-sm font-medium text-emerald-700">
+                    <p className="text-sm font-medium text-success">
                       Live recording ready to submit.
                     </p>
                     <div className="flex flex-wrap justify-center gap-3">
@@ -936,7 +933,7 @@ export function LiveVerificationFlow({
       {busy ? (
         <p
           aria-live="polite"
-          className="mt-4 flex items-center justify-end gap-2 text-xs text-slate-500"
+          className="mt-4 flex items-center justify-end gap-2 text-xs text-muted-foreground"
         >
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
           {busyMessage}
@@ -966,15 +963,15 @@ function MobileHandoff({
       id="main-content"
       className="verification-page flex min-h-screen items-center px-4 py-10"
     >
-      <Card className="mx-auto w-full max-w-xl overflow-hidden rounded-4xl border-slate-200 bg-white shadow-2xl shadow-slate-300/40">
-        <CardHeader className="border-b border-slate-100 px-6 py-7 sm:px-8">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
+      <Card className="mx-auto w-full max-w-xl overflow-hidden rounded-4xl border-border bg-card shadow-2xl shadow-foreground/10">
+        <CardHeader className="border-b border-border px-6 py-7 sm:px-8">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-info/10 text-info">
             <Smartphone className="h-6 w-6" aria-hidden="true" />
           </span>
           <CardTitle className="mt-4 text-2xl tracking-tight">
             Continue securely on your phone
           </CardTitle>
-          <p className="text-sm leading-6 text-slate-500">
+          <p className="text-sm leading-6 text-muted-foreground">
             {organizationName} requested this verification. A phone camera
             usually gives clearer document and selfie captures.
           </p>
@@ -983,21 +980,21 @@ function MobileHandoff({
           {error ? (
             <p
               role="alert"
-              className="rounded-2xl bg-red-50 p-3 text-sm text-red-700"
+              className="rounded-2xl bg-destructive/10 p-3 text-sm text-destructive"
             >
               {error}
             </p>
           ) : null}
           {handoffUrl ? (
             <div className="space-y-4 text-center">
-              <div className="mx-auto w-fit rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="mx-auto w-fit rounded-3xl border border-border bg-card p-4 shadow-sm">
                 <QRCodeSVG value={handoffUrl} size={220} level="M" />
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-800">
+                <p className="text-sm font-medium text-foreground">
                   Scan with your phone camera
                 </p>
-                <p className="mt-1 text-xs leading-5 text-slate-500">
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
                   The one-time code expires shortly and cannot be reused.
                 </p>
               </div>
@@ -1008,7 +1005,7 @@ function MobileHandoff({
                 <Copy className="h-4 w-4" />
                 Copy mobile link
               </Button>
-              <p className="flex items-center justify-center gap-2 text-xs text-slate-400">
+              <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground/70">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 Waiting for completion on your phone
               </p>
@@ -1023,8 +1020,8 @@ function MobileHandoff({
               Show secure QR code
             </Button>
           )}
-          <div className="relative py-1 text-center text-xs text-slate-400 before:absolute before:left-0 before:right-0 before:top-1/2 before:h-px before:bg-slate-100">
-            <span className="relative bg-white px-3">or</span>
+          <div className="relative py-1 text-center text-xs text-muted-foreground/70 before:absolute before:left-0 before:right-0 before:top-1/2 before:h-px before:bg-border">
+            <span className="relative bg-card px-3">or</span>
           </div>
           <Button variant="outline" className="w-full" onClick={onContinue}>
             <Monitor className="h-4 w-4" />
@@ -1042,20 +1039,20 @@ function OpeningState({ title, message }: { title: string; message?: string }) {
       id="main-content"
       className="verification-page flex min-h-screen items-center px-4 py-10"
     >
-      <Card className="mx-auto w-full max-w-md rounded-4xl border-slate-200 bg-white shadow-xl shadow-slate-200/50">
+      <Card className="mx-auto w-full max-w-md rounded-4xl border-border bg-card shadow-xl shadow-foreground/5">
         <CardContent className="flex min-h-64 flex-col items-center justify-center gap-3 p-8 text-center">
           {!message ? (
-            <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
+            <Loader2 className="h-7 w-7 animate-spin text-info" />
           ) : (
-            <ShieldCheck className="h-8 w-8 text-slate-400" />
+            <ShieldCheck className="h-8 w-8 text-muted-foreground/70" />
           )}
-          <h1 className="text-xl font-semibold tracking-tight text-slate-950">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
             {title}
           </h1>
           {message ? (
-            <p className="text-sm leading-6 text-slate-500">{message}</p>
+            <p className="text-sm leading-6 text-muted-foreground">{message}</p>
           ) : (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-muted-foreground">
               Validating your one-time session credential…
             </p>
           )}
