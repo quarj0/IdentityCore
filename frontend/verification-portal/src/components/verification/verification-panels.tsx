@@ -39,7 +39,7 @@ export function StepCard({
   }, [title]);
 
   return (
-    <Card className="overflow-hidden rounded-[2rem] shadow-xl shadow-foreground/5">
+    <Card className="overflow-hidden rounded-4xl shadow-xl shadow-foreground/5">
       <CardHeader className="border-b border-border px-5 py-6 sm:px-8 sm:py-7">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-info">
           {eyebrow}
@@ -78,9 +78,9 @@ export function EvidenceReview({
   }, [url]);
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-950">
+    <div className="overflow-hidden rounded-3xl border border-border bg-slate-950">
       {previewFailed ? (
-        <div className="flex min-h-72 flex-col items-center justify-center px-6 text-center text-amber-200">
+        <div className="flex min-h-72 flex-col items-center justify-center px-6 text-center text-warning">
           <AlertTriangle className="h-7 w-7" aria-hidden="true" />
           <p className="mt-3 text-sm">
             This image cannot be previewed. Retake or choose another file.
@@ -92,13 +92,13 @@ export function EvidenceReview({
           src={url}
           onError={() => setFailedUrl(url)}
           alt="Captured evidence preview"
-          className="max-h-[32rem] min-h-72 w-full object-contain"
+          className="max-h-128 min-h-72 w-full object-contain"
         />
       )}
       <div className="flex items-center justify-between gap-4 border-t border-white/10 px-4 py-3">
         <div className="min-w-0">
           <p className="truncate text-xs font-medium text-white">{file.name}</p>
-          <p className="mt-0.5 text-xs text-slate-400">
+          <p className="mt-0.5 text-xs text-muted-foreground/80">
             {formatBytes(file.size)}
           </p>
         </div>

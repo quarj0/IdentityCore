@@ -57,7 +57,7 @@ export function VerificationProgress({ currentStep }: { currentStep: string }) {
             <li key={step.key} className="relative flex gap-3 pb-4 last:pb-0">
               {index < STEPS.length - 1 ? (
                 <span
-                  className={`absolute left-[0.6875rem] top-6 h-[calc(100%-0.5rem)] w-px ${
+                  className={`absolute left-2.75 top-6 h-[calc(100%-0.5rem)] w-px ${
                     complete ? "bg-info" : "bg-border"
                   }`}
                   aria-hidden="true"
