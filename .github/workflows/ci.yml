@@ -20,6 +20,38 @@ jobs:
       - run: uv sync --project backend --group django --group dev --frozen
       - run: DJANGO_SETTINGS_MODULE=config.settings.testing uv run --project backend python backend/django/manage.py test apps config
 
+  backend-migrations:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: identitycore_ci
+          POSTGRES_USER: identitycore_ci
+          POSTGRES_PASSWORD: identitycore_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U identitycore_ci -d identitycore_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.base
+      POSTGRES_DB: identitycore_ci
+      POSTGRES_USER: identitycore_ci
+      POSTGRES_PASSWORD: identitycore_ci
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: 5432
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --project backend --group django --frozen
+      - name: Reject model changes without migrations
+        run: uv run --project backend python backend/django/manage.py makemigrations --check --dry-run
+      - name: Apply migrations to an empty PostgreSQL database
+        run: uv run --project backend python backend/django/manage.py migrate --noinput
+
   ai-service:
     runs-on: ubuntu-latest
     steps:
