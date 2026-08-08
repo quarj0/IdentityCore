@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 COMPOSE := docker compose
 
-.PHONY: up down ps logs logs-django logs-ai logs-worker logs-worker-ai logs-worker-retention logs-webhooks logs-notifications logs-beat shell shell-worker shell-worker-ai shell-worker-retention shell-worker-webhooks shell-worker-notifications migrate makemigrations createsuperuser test test-all generate-sdk-models check-sdk-models lint ensure-env
+.PHONY: up down ps logs logs-django logs-ai logs-worker logs-worker-ai logs-worker-retention logs-webhooks logs-notifications logs-beat shell shell-worker shell-worker-ai shell-worker-retention shell-worker-webhooks shell-worker-notifications migrate makemigrations createsuperuser seed-local test test-all generate-sdk-models check-sdk-models lint ensure-env
 
 ensure-env:
 	@test -f .env || cp .env.example .env
@@ -69,6 +69,9 @@ makemigrations:
 
 createsuperuser:
 	$(COMPOSE) run --rm django python manage.py createsuperuser
+
+seed-local:
+	$(COMPOSE) run --rm -e DJANGO_SETTINGS_MODULE=config.settings.development django python manage.py seed_local
 
 test:
 	$(COMPOSE) run --rm -e DJANGO_SETTINGS_MODULE=config.settings.testing django python manage.py test

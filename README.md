@@ -250,6 +250,20 @@ Generate a secret with:
 python -c "import secrets; print(secrets.token_urlsafe(64))"
 ```
 
+## Local seed data
+
+After starting the local Compose dependencies and applying migrations, create a
+repeatable set of development tenants, users, policies, and verification states with:
+
+```bash
+make seed-local
+```
+
+The command is idempotent and prints the local dashboard credentials. It creates only
+synthetic records under `*.local.identitycore.test`, covers every verification status
+used by the UI, and refuses to run unless Django is using `DEBUG` development settings.
+Re-running it repairs the named fixtures without duplicating them.
+
 ## Running all tests
 
 After installing the repository's Python, Node/pnpm, Playwright, Java, and .NET
