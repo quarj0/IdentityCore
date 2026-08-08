@@ -16,7 +16,10 @@ ENV NODE_ENV=production
 ENV PORT=3002
 ENV HOSTNAME=0.0.0.0
 WORKDIR /app
-RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
+RUN rm -rf /usr/local/lib/node_modules/npm \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx \
+    && addgroup --system --gid 1001 nodejs \
+    && adduser --system --uid 1001 nextjs
 COPY --from=build --chown=nextjs:nodejs /app/verification-portal/.next/standalone ./
 COPY --from=build --chown=nextjs:nodejs /app/verification-portal/.next/static ./verification-portal/.next/static
 COPY --from=build --chown=nextjs:nodejs /app/verification-portal/public ./verification-portal/public

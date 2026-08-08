@@ -1,0 +1,125 @@
+name: Security
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 4 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  repository-scan:
+    name: Dependencies and secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Create results directory
+        run: mkdir -p security-results
+
+      - name: Record dependency findings
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          format: json
+          output: security-results/dependencies.json
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: 0
+
+      - name: Record secret findings
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: secret
+          format: json
+          output: security-results/secrets.json
+          exit-code: 0
+
+      - name: Upload repository scan artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: repository-security-findings
+          path: security-results
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Block high and critical dependency findings
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: 1
+
+      - name: Block detected secrets
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: secret
+          format: table
+          exit-code: 1
+
+  container-scan:
+    name: Container - ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: django
+            context: .
+            dockerfile: backend/django/Dockerfile
+          - name: managed-ai
+            context: .
+            dockerfile: backend/ai-service/Dockerfile
+          - name: verification-portal
+            context: frontend
+            dockerfile: frontend/verification-portal/Dockerfile
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build image
+        run: docker build --file "${{ matrix.dockerfile }}" --tag "identitycore/${{ matrix.name }}:security" "${{ matrix.context }}"
+
+      - name: Create results directory
+        run: mkdir -p security-results
+
+      - name: Record container findings
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          image-ref: identitycore/${{ matrix.name }}:security
+          format: json
+          output: security-results/${{ matrix.name }}.json
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: 0
+
+      - name: Upload container scan artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-security-${{ matrix.name }}
+          path: security-results/${{ matrix.name }}.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Block high and critical container findings
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          image-ref: identitycore/${{ matrix.name }}:security
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: 1
