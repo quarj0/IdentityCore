@@ -585,8 +585,14 @@ Required CI checks:
 - Type checks
 - Unit tests
 - Integration tests
+- Django model changes have matching migrations
+- All Django migrations apply to an empty PostgreSQL database
 - Security scans
 - Dependency scans
+
+The migration checks run in a dedicated CI job. `makemigrations --check --dry-run`
+rejects model changes without migration files, and `migrate --noinput` validates the
+complete migration graph against a fresh PostgreSQL service rather than SQLite.
 
 Recommended tools:
 
