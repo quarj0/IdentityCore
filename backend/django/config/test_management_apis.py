@@ -1,5 +1,6 @@
 import json
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.urls import reverse
 from django.utils import timezone
@@ -28,8 +29,10 @@ from apps.providers.models import (
     ProviderRoute,
     ProviderRouteEnvironment,
     ProviderRouteStep,
+    ProviderStatus,
     ProviderType,
 )
+from apps.providers.health import provider_health_scope
 from apps.providers.services import publish_provider_route
 from apps.projects.models import Project, ProjectEnvironment
 from apps.risk.models import RiskAssessment
@@ -347,6 +350,89 @@ class ManagementAPIEndpointTests(APITestCase):
             self.client.get(reverse("provider-health")).status_code,
             status.HTTP_400_BAD_REQUEST,
         )
+
+    def test_provider_filtered_health_keeps_full_capability_specific_route(self):
+        primary = Provider.objects.create(
+            name="Primary health provider",
+            code="primary-health-provider",
+            provider_type=ProviderType.DOCUMENT,
+        )
+        fallback = Provider.objects.create(
+            name="Fallback health provider",
+            code="fallback-health-provider",
+            provider_type=ProviderType.DOCUMENT,
+        )
+        now = timezone.now()
+        ProviderCheck.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            provider=primary,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+            status=ProviderCheckStatus.COMPLETED,
+            started_at=now,
+            completed_at=now,
+            duration_ms=10,
+        )
+        ProviderCheck.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            provider=primary,
+            check_type=ProviderCheckType.DOCUMENT_QUALITY,
+            status=ProviderCheckStatus.TIMEOUT,
+            error_code="provider_timeout",
+            started_at=now,
+            completed_at=now,
+            duration_ms=20,
+        )
+        route = ProviderRoute.objects.create(
+            tenant=self.tenant,
+            route_key="quality-health",
+            name="Quality health",
+            environment=ProviderRouteEnvironment.SANDBOX,
+            capability=ProviderCheckType.DOCUMENT_QUALITY,
+        )
+        primary_step = ProviderRouteStep.objects.create(
+            route=route, provider=primary, position=1
+        )
+        ProviderRouteStep.objects.create(route=route, provider=fallback, position=2)
+        publish_provider_route(route)
+        ProviderCircuitState.objects.create(
+            route_step=primary_step,
+            status=ProviderCircuitStatus.OPEN,
+            consecutive_failures=3,
+            retry_after=now - timedelta(seconds=1),
+        )
+
+        with patch(
+            "common.fields.EncryptedJSONField.from_db_value",
+            side_effect=AssertionError("health must not decrypt payload fields"),
+        ):
+            snapshot = provider_health_scope(
+                tenant=self.tenant,
+                environment="sandbox",
+                provider_id=primary.public_id,
+            )
+
+        self.assertEqual(len(snapshot["providers"]), 1)
+        self.assertEqual(len(snapshot["routes"]), 1)
+        self.assertEqual(len(snapshot["routes"][0]["steps"]), 2)
+        self.assertEqual(snapshot["routes"][0]["steps"][0]["health"], "unavailable")
+        self.assertEqual(
+            snapshot["routes"][0]["steps"][0]["circuit_status"], "half_open"
+        )
+        self.assertEqual(snapshot["routes"][0]["status"], "degraded")
+
+        fallback.status = ProviderStatus.DISABLED
+        fallback.save(update_fields=["status", "updated_at"])
+        circuit = primary_step.circuit_state
+        circuit.retry_after = now + timedelta(minutes=1)
+        circuit.save(update_fields=["retry_after", "updated_at"])
+        unavailable = provider_health_scope(
+            tenant=self.tenant,
+            environment="sandbox",
+            provider_id=primary.public_id,
+        )
+        self.assertEqual(unavailable["routes"][0]["status"], "unavailable")
         self.assertEqual(
             self.client.get(
                 reverse("provider-health"),

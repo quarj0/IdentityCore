@@ -8,14 +8,16 @@ from apps.document_captures.models import DocumentCapture
 from apps.identity_documents.models import IdentityDocument, IdentityDocumentStatus
 from apps.identity_documents.tasks import process_identity_document_task
 from apps.organizations.models import Organization
+from apps.providers.models import ProviderCheckStatus, ProviderCheckType
 from apps.providers.models import (
     Provider,
-    ProviderCheck,
-    ProviderCheckStatus,
-    ProviderCheckType,
+    ProviderRoute,
+    ProviderRouteEnvironment,
+    ProviderRouteStep,
     ProviderType,
 )
 from apps.providers.ai_service import AIServiceUnavailable
+from apps.providers.services import create_provider_check, publish_provider_route
 from apps.tenants.models import Tenant
 from apps.uploads.models import Upload, UploadPurpose, UploadStatus
 from apps.verification_subjects.models import VerificationSubject
@@ -76,28 +78,17 @@ class IdentityDocumentTaskTests(TestCase):
             expires_at=timezone.now() + timedelta(minutes=10),
             consumed_at=timezone.now(),
         )
-        self.provider = Provider.objects.create(
-            name="Internal OCR Engine",
-            code="internal-ocr-test",
-            provider_type=ProviderType.DOCUMENT,
-        )
-        ProviderCheck.objects.create(
-            tenant=self.tenant,
+        create_provider_check(
             verification=self.verification,
-            provider=self.provider,
-            check_type="document_ocr",
+            check_type=ProviderCheckType.DOCUMENT_OCR,
             status=ProviderCheckStatus.PENDING,
-            request_metadata_json={"identity_document_id": self.identity_document.public_id},
-            started_at=timezone.now(),
+            request_metadata={"identity_document_id": self.identity_document.public_id},
         )
-        ProviderCheck.objects.create(
-            tenant=self.tenant,
+        create_provider_check(
             verification=self.verification,
-            provider=self.provider,
             check_type=ProviderCheckType.DOCUMENT_CLASSIFICATION,
             status=ProviderCheckStatus.PENDING,
-            request_metadata_json={"identity_document_id": self.identity_document.public_id},
-            started_at=timezone.now(),
+            request_metadata={"identity_document_id": self.identity_document.public_id},
         )
 
     @patch("apps.identity_documents.tasks.run_document_classification")
@@ -106,7 +97,11 @@ class IdentityDocumentTaskTests(TestCase):
     def test_process_identity_document_task_marks_document_processed(
         self, mock_quality, mock_ocr, mock_classification
     ):
-        mock_quality.return_value = {"status": "completed", "quality_score": 0.88, "issues": []}
+        mock_quality.return_value = {
+            "status": "completed",
+            "quality_score": 0.88,
+            "issues": [],
+        }
         mock_classification.return_value = {
             "status": "completed",
             "classification_status": "recognized",
@@ -147,12 +142,16 @@ class IdentityDocumentTaskTests(TestCase):
         self.identity_document.refresh_from_db()
         self.capture.refresh_from_db()
         self.upload.refresh_from_db()
-        self.assertEqual(self.identity_document.status, IdentityDocumentStatus.PROCESSED)
+        self.assertEqual(
+            self.identity_document.status, IdentityDocumentStatus.PROCESSED
+        )
         self.verification.refresh_from_db()
         self.assertEqual(self.verification.status, VerificationStatus.AWAITING_SELFIE)
         self.assertEqual(self.capture.status, "validated")
         self.assertEqual(self.upload.status, UploadStatus.PROMOTED)
-        self.assertEqual(self.identity_document.extracted_data_json["full_name"], "Kwame Mensah")
+        self.assertEqual(
+            self.identity_document.extracted_data_json["full_name"], "Kwame Mensah"
+        )
         self.assertIn(
             "document_classification", self.identity_document.extracted_data_json
         )
@@ -166,7 +165,9 @@ class IdentityDocumentTaskTests(TestCase):
             check_type=ProviderCheckType.DOCUMENT_CLASSIFICATION
         )
         self.assertEqual(
-            classification_provider_check.normalized_result_json["classification_status"],
+            classification_provider_check.normalized_result_json[
+                "classification_status"
+            ],
             "recognized",
         )
         self.assertEqual(mock_quality.call_args.kwargs["document_storage_bucket"], "")
@@ -175,13 +176,90 @@ class IdentityDocumentTaskTests(TestCase):
         )
         self.assertEqual(mock_ocr.call_args.kwargs["document_storage_bucket"], "")
 
+    def test_document_pipeline_invokes_the_provider_selected_by_active_routes(self):
+        provider = Provider.objects.create(
+            tenant=self.tenant,
+            name="Routed document provider",
+            code="routed-document-provider",
+            provider_type=ProviderType.DOCUMENT,
+        )
+        for check_type in (
+            ProviderCheckType.DOCUMENT_QUALITY,
+            ProviderCheckType.DOCUMENT_CLASSIFICATION,
+            ProviderCheckType.DOCUMENT_OCR,
+        ):
+            route = ProviderRoute.objects.create(
+                tenant=self.tenant,
+                route_key=f"routed-{check_type}",
+                name=f"Routed {check_type}",
+                environment=ProviderRouteEnvironment.SANDBOX,
+                capability=check_type,
+            )
+            ProviderRouteStep.objects.create(route=route, provider=provider, position=1)
+            publish_provider_route(route)
+
+        adapter = type(
+            "RoutedDocumentAdapter",
+            (),
+            {
+                "document_quality": staticmethod(
+                    lambda **kwargs: {
+                        "status": "completed",
+                        "quality_score": 0.91,
+                        "issues": [],
+                    }
+                ),
+                "document_classification": staticmethod(
+                    lambda **kwargs: {
+                        "status": "completed",
+                        "classification_status": "recognized",
+                        "predicted_document_type": "national_id",
+                        "expected_document_type": "national_id",
+                        "matched_expected_document_type": True,
+                        "predicted_country_code": "GH",
+                        "confidence_score": 0.96,
+                        "evidence_score": 0.96,
+                        "classification_margin": 0.9,
+                        "workflow_action": "continue",
+                        "requires_manual_review": False,
+                        "manual_review": {"required": False, "reason_codes": []},
+                        "issues": [],
+                    }
+                ),
+                "document_ocr": staticmethod(
+                    lambda **kwargs: {
+                        "status": "completed",
+                        "confidence_score": 0.95,
+                        "extracted_fields": {"full_name": "Kwame Mensah"},
+                    }
+                ),
+            },
+        )()
+
+        with patch(
+            "apps.providers.services.provider_adapter_registry.resolve",
+            return_value=adapter,
+        ) as resolve_adapter:
+            result = process_identity_document_task(self.identity_document.public_id)
+
+        self.assertEqual(result, IdentityDocumentStatus.PROCESSED)
+        self.assertEqual(resolve_adapter.call_count, 3)
+        self.assertEqual(
+            provider.provider_checks.filter(execution_attempt__isnull=False).count(),
+            3,
+        )
+
     @patch("apps.identity_documents.tasks.run_document_classification")
     @patch("apps.identity_documents.tasks.run_document_ocr")
     @patch("apps.identity_documents.tasks.run_document_quality")
     def test_process_identity_document_task_routes_manual_review_signals(
         self, mock_quality, mock_ocr, mock_classification
     ):
-        mock_quality.return_value = {"status": "completed", "quality_score": 0.88, "issues": []}
+        mock_quality.return_value = {
+            "status": "completed",
+            "quality_score": 0.88,
+            "issues": [],
+        }
         mock_classification.return_value = {
             "status": "completed",
             "classification_status": "unknown",
@@ -241,7 +319,11 @@ class IdentityDocumentTaskTests(TestCase):
     def test_process_identity_document_task_keeps_processing_when_promotion_fails(
         self, mock_quality, mock_ocr, mock_classification, mock_promote
     ):
-        mock_quality.return_value = {"status": "completed", "quality_score": 0.88, "issues": []}
+        mock_quality.return_value = {
+            "status": "completed",
+            "quality_score": 0.88,
+            "issues": [],
+        }
         mock_classification.return_value = {
             "status": "completed",
             "classification_status": "recognized",
@@ -283,7 +365,9 @@ class IdentityDocumentTaskTests(TestCase):
         self.identity_document.refresh_from_db()
         self.verification.refresh_from_db()
         self.upload.refresh_from_db()
-        self.assertEqual(self.identity_document.status, IdentityDocumentStatus.PROCESSED)
+        self.assertEqual(
+            self.identity_document.status, IdentityDocumentStatus.PROCESSED
+        )
         self.assertEqual(self.verification.status, VerificationStatus.AWAITING_SELFIE)
         self.assertEqual(self.upload.status, UploadStatus.CONSUMED)
 
@@ -293,8 +377,14 @@ class IdentityDocumentTaskTests(TestCase):
     def test_process_identity_document_task_routes_provider_outage_to_manual_review(
         self, mock_quality, mock_classification, mock_ocr
     ):
-        mock_quality.return_value = {"status": "completed", "quality_score": 0.88, "issues": []}
-        mock_classification.side_effect = AIServiceUnavailable("classification unavailable")
+        mock_quality.return_value = {
+            "status": "completed",
+            "quality_score": 0.88,
+            "issues": [],
+        }
+        mock_classification.side_effect = AIServiceUnavailable(
+            "classification unavailable"
+        )
         mock_ocr.return_value = {
             "status": "completed",
             "confidence_score": 0.91,
@@ -316,7 +406,9 @@ class IdentityDocumentTaskTests(TestCase):
         classification_provider_check = self.verification.provider_checks.get(
             check_type=ProviderCheckType.DOCUMENT_CLASSIFICATION
         )
-        self.assertEqual(classification_provider_check.status, ProviderCheckStatus.FAILED)
+        self.assertEqual(
+            classification_provider_check.status, ProviderCheckStatus.FAILED
+        )
         self.assertIn(
             "document_classification_unavailable",
             classification_provider_check.response_metadata_json["issues"],
@@ -328,7 +420,11 @@ class IdentityDocumentTaskTests(TestCase):
     def test_process_identity_document_task_marks_document_rejected_when_quality_fails(
         self, mock_quality, mock_ocr, mock_classification
     ):
-        mock_quality.return_value = {"status": "completed", "quality_score": 0.42, "issues": ["blur_detected"]}
+        mock_quality.return_value = {
+            "status": "completed",
+            "quality_score": 0.42,
+            "issues": ["blur_detected"],
+        }
         mock_classification.return_value = {
             "status": "completed",
             "predicted_document_type": "national_id",

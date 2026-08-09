@@ -11,6 +11,7 @@ from django.utils import timezone
 from apps.providers.adapters import (
     PROVIDER_CONTRACT_VERSION,
     normalize_provider_result,
+    provider_adapter_registry,
 )
 
 from apps.providers.models import (
@@ -82,6 +83,14 @@ SENSITIVE_METADATA_KEYS = frozenset(
     }
 )
 
+PROVIDER_CAPABILITY_METHODS = {
+    ProviderCheckType.DOCUMENT_OCR: "document_ocr",
+    ProviderCheckType.DOCUMENT_CLASSIFICATION: "document_classification",
+    ProviderCheckType.DOCUMENT_QUALITY: "document_quality",
+    ProviderCheckType.FACE_MATCH: "face_compare",
+    ProviderCheckType.LIVENESS: "liveness",
+}
+
 
 @dataclass(frozen=True)
 class ProviderRouteResolution:
@@ -115,6 +124,8 @@ def publish_provider_route(route: ProviderRoute) -> ProviderRoute:
         locked = ProviderRoute.objects.select_for_update().get(pk=route.pk)
         if locked.status != ProviderRouteStatus.DRAFT:
             raise ValidationError("Only draft provider routes can be published.")
+        if locked.deleted_at is not None:
+            raise ValidationError("Deleted provider routes cannot be published.")
         steps = list(locked.steps.select_related("provider").order_by("position"))
         if not steps:
             raise ValidationError(
@@ -122,6 +133,12 @@ def publish_provider_route(route: ProviderRoute) -> ProviderRoute:
             )
         if any(step.provider.status != ProviderStatus.ACTIVE for step in steps):
             raise ValidationError("Every provider in a published route must be active.")
+        if any(step.deleted_at is not None for step in steps):
+            raise ValidationError("Deleted provider route steps cannot be published.")
+        for step in steps:
+            # Route conditions and capability can change while a step is still
+            # draft, so publication must revalidate the complete final graph.
+            step.full_clean()
         latest_version = (
             ProviderRoute.objects.filter(
                 tenant=locked.tenant,
@@ -250,7 +267,15 @@ def resolve_provider_chain_for_verification(
     *, verification, check_type: str, request_metadata: dict | None = None
 ) -> ProviderRouteResolution:
     metadata = request_metadata or {}
-    latest_document = verification.identity_documents.order_by("-created_at").first()
+    referenced_document = None
+    if metadata.get("identity_document_id"):
+        referenced_document = verification.identity_documents.filter(
+            public_id=metadata["identity_document_id"]
+        ).first()
+    selected_document = (
+        referenced_document
+        or verification.identity_documents.order_by("-created_at").first()
+    )
     return resolve_provider_chain(
         tenant=verification.tenant,
         environment=(
@@ -259,11 +284,11 @@ def resolve_provider_chain_for_verification(
         check_type=check_type,
         country_code=(
             metadata.get("country_code")
-            or (latest_document.country_profile_id if latest_document else "")
+            or (selected_document.country_profile_id if selected_document else "")
         ),
         document_type=(
             metadata.get("document_type")
-            or (latest_document.document_type_id if latest_document else "")
+            or (selected_document.document_type_id if selected_document else "")
         ),
         workflow_public_id=(
             metadata.get("workflow_id")
@@ -308,8 +333,10 @@ def invoke_provider_check(
     provider_check.status = ProviderCheckStatus.PROCESSING
     provider_check.started_at = started_at
     provider_check.completed_at = None
+    merged_request_metadata = dict(provider_check.request_metadata_json or {})
+    merged_request_metadata.update(request_metadata or {})
     provider_check.request_metadata_json = redact_provider_metadata(
-        request_metadata or provider_check.request_metadata_json or {}
+        merged_request_metadata
     )
     provider_check.save(
         update_fields=[
@@ -398,9 +425,29 @@ def invoke_provider_check(
     return normalized
 
 
-def _claim_circuit_probe(route_step: ProviderRouteStep | None) -> bool:
+def invoke_selected_provider_operation(
+    *,
+    provider: Provider,
+    check_type: str,
+    timeout_seconds: int,
+    operation_kwargs: dict,
+    built_in_operation: Callable[..., dict],
+) -> dict:
+    """Invoke the adapter belonging to the provider selected by the route."""
+    system_code = SYSTEM_PROVIDER_DEFAULTS.get(check_type, {}).get("code")
+    if provider.code == system_code:
+        return built_in_operation(**operation_kwargs)
+    adapter = provider_adapter_registry.resolve(provider.code)
+    method_name = PROVIDER_CAPABILITY_METHODS.get(check_type)
+    if method_name is None:
+        raise LookupError(f"No provider capability method exists for {check_type!r}.")
+    operation = getattr(adapter, method_name)
+    return operation(timeout_seconds=timeout_seconds, **operation_kwargs)
+
+
+def _claim_circuit_probe(route_step: ProviderRouteStep | None) -> str | None:
     if route_step is None:
-        return True
+        return "closed"
     now = timezone.now()
     with transaction.atomic():
         state, created = ProviderCircuitState.objects.get_or_create(
@@ -409,14 +456,23 @@ def _claim_circuit_probe(route_step: ProviderRouteStep | None) -> bool:
         if not created:
             state = ProviderCircuitState.objects.select_for_update().get(pk=state.pk)
         if state.status == ProviderCircuitStatus.CLOSED:
-            return True
+            return "closed"
         if state.status == ProviderCircuitStatus.HALF_OPEN:
-            return False
+            if state.retry_after is not None and state.retry_after <= now:
+                state.retry_after = now + timedelta(
+                    seconds=route_step.route.circuit_recovery_seconds
+                )
+                state.save(update_fields=["retry_after", "updated_at"])
+                return "probe"
+            return None
         if state.retry_after is not None and state.retry_after > now:
-            return False
+            return None
         state.status = ProviderCircuitStatus.HALF_OPEN
-        state.save(update_fields=["status", "updated_at"])
-        return True
+        state.retry_after = now + timedelta(
+            seconds=route_step.route.circuit_recovery_seconds
+        )
+        state.save(update_fields=["status", "retry_after", "updated_at"])
+        return "probe"
 
 
 def _record_circuit_outcome(
@@ -451,7 +507,7 @@ def _record_circuit_outcome(
                 state.retry_after = now + timedelta(
                     seconds=route_step.route.circuit_recovery_seconds
                 )
-        elif state.status == ProviderCircuitStatus.HALF_OPEN:
+        else:
             # A deterministic provider response proves transport recovery even when
             # the request itself is not retryable.
             state.status = ProviderCircuitStatus.CLOSED
@@ -506,6 +562,8 @@ def _apply_route_final_action(
     *, verification, route, check_type: str, attempts: list[ProviderExecutionAttempt]
 ) -> str:
     from apps.audit.services import record_audit_event
+    from apps.notifications.services import queue_verification_status_notifications
+    from apps.webhooks.services import queue_webhook_events
     from apps.verifications.models import (
         VerificationDecision,
         VerificationDecisionType,
@@ -568,6 +626,22 @@ def _apply_route_final_action(
             "attempt_count": len(attempts),
         },
     )
+    event_type = f"verification.{target_status}"
+    queue_webhook_events(
+        tenant=verification.tenant,
+        event_type=event_type,
+        payload={
+            "verification_id": verification.public_id,
+            "external_reference": verification.external_reference,
+            "status": verification.status,
+            "reason_code": "provider_route_exhausted",
+        },
+    )
+    queue_verification_status_notifications(
+        verification=verification,
+        decision=verification.status,
+        risk_level="high",
+    )
     return final_action
 
 
@@ -577,6 +651,7 @@ def execute_provider_route(
     check_type: str,
     operation: Callable[[Provider, int], dict],
     request_metadata: dict | None = None,
+    initial_provider_check: ProviderCheck | None = None,
 ) -> ProviderRouteExecutionResult:
     """Execute bounded attempts across one resolved provider chain.
 
@@ -598,10 +673,12 @@ def execute_provider_route(
     attempts: list[ProviderExecutionAttempt] = []
     execution_id = generate_public_id("pex")
     sequence = 0
+    last_exception: Exception | None = None
 
     for provider_index, provider in enumerate(resolution.providers):
         route_step = route_steps.get(provider.id)
-        if not _claim_circuit_probe(route_step):
+        circuit_claim = _claim_circuit_probe(route_step)
+        if not circuit_claim:
             sequence += 1
             now = timezone.now()
             skipped_check = ProviderCheck.objects.create(
@@ -652,15 +729,25 @@ def execute_provider_route(
                         "provider_route_step": route_step.position,
                     }
                 )
-            provider_check = ProviderCheck.objects.create(
-                tenant=verification.tenant,
-                verification=verification,
-                provider=provider,
-                check_type=check_type,
-                status=ProviderCheckStatus.PENDING,
-                request_metadata_json=redact_provider_metadata(check_metadata),
-                started_at=started_at,
+            use_initial_check = (
+                initial_provider_check is not None
+                and provider_index == 0
+                and provider_attempt == 1
+                and initial_provider_check.provider_id == provider.id
+                and not hasattr(initial_provider_check, "execution_attempt")
             )
+            if use_initial_check:
+                provider_check = initial_provider_check
+            else:
+                provider_check = ProviderCheck.objects.create(
+                    tenant=verification.tenant,
+                    verification=verification,
+                    provider=provider,
+                    check_type=check_type,
+                    status=ProviderCheckStatus.PENDING,
+                    request_metadata_json=redact_provider_metadata(check_metadata),
+                    started_at=started_at,
+                )
             try:
                 result = invoke_provider_check(
                     provider_check=provider_check,
@@ -669,9 +756,14 @@ def execute_provider_route(
                     request_metadata=check_metadata,
                 )
             except Exception as exc:
+                last_exception = exc
                 retryable = bool(getattr(exc, "retryable", False))
                 error_code = getattr(exc, "error_code", "provider_error")
-                has_retry = retryable and provider_attempt < max_attempts
+                has_retry = (
+                    retryable
+                    and circuit_claim != "probe"
+                    and provider_attempt < max_attempts
+                )
                 has_fallback = provider_index + 1 < len(resolution.providers)
                 fallback_reason = (
                     "retryable_error"
@@ -725,6 +817,8 @@ def execute_provider_route(
                     attempts=tuple(attempts),
                 )
 
+    if route is None and last_exception is not None:
+        raise last_exception
     final_action = _apply_route_final_action(
         verification=verification,
         route=route,
@@ -808,9 +902,10 @@ def create_provider_check(
     provider = resolution.providers[0]
     persisted_request_metadata = dict(request_metadata or {})
     if resolution.route is not None:
+        selected_step = resolution.route.steps.get(provider=provider)
         persisted_request_metadata["provider_route_id"] = resolution.route.public_id
         persisted_request_metadata["provider_route_version"] = resolution.route.version
-        persisted_request_metadata["provider_route_step"] = 1
+        persisted_request_metadata["provider_route_step"] = selected_step.position
     completed_at = now if status == ProviderCheckStatus.COMPLETED else None
     return ProviderCheck.objects.create(
         tenant=verification.tenant,

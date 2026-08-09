@@ -1,8 +1,8 @@
 import math
-import re
 from collections import Counter, defaultdict
 from datetime import timedelta
 
+from django.db.models import Prefetch, Q
 from django.utils import timezone
 
 from apps.providers.models import (
@@ -11,7 +11,9 @@ from apps.providers.models import (
     ProviderCircuitState,
     ProviderCircuitStatus,
     ProviderRoute,
+    ProviderRouteStep,
     ProviderRouteStatus,
+    ProviderStatus,
 )
 
 
@@ -20,7 +22,20 @@ TERMINAL_HEALTH_STATUSES = {
     ProviderCheckStatus.FAILED,
     ProviderCheckStatus.TIMEOUT,
 }
-SAFE_ERROR_CODE = re.compile(r"^provider_[a-z0-9_]{1,55}$")
+SAFE_ERROR_CODES = frozenset(
+    {
+        "provider_circuit_open",
+        "provider_contract_version_unsupported",
+        "provider_invalid_content_type",
+        "provider_invalid_json",
+        "provider_invalid_response",
+        "provider_network_error",
+        "provider_redirect_blocked",
+        "provider_response_too_large",
+        "provider_route_exhausted",
+        "provider_timeout",
+    }
+)
 
 
 def _percentile(values: list[int], percentile: float) -> int | None:
@@ -42,15 +57,14 @@ def _metric_status(*, total: int, availability: float, error_rate: float) -> str
 
 
 def _safe_error_code(value: str) -> str:
-    return value if SAFE_ERROR_CODE.fullmatch(value) else "provider_error"
-
-
-def _environment_for_check(check: ProviderCheck) -> str:
-    return (
-        check.verification.project.environment
-        if check.verification.project_id
-        else "sandbox"
-    )
+    if value in SAFE_ERROR_CODES:
+        return value
+    if (
+        value.startswith("provider_http_")
+        and value.removeprefix("provider_http_").isdigit()
+    ):
+        return value
+    return "provider_error"
 
 
 def _provider_metric(provider, checks: list[ProviderCheck]) -> dict:
@@ -99,43 +113,103 @@ def provider_health_scope(
 ) -> dict:
     """Return payload-free health metrics for one tenant and environment."""
     since = timezone.now() - timedelta(hours=window_hours)
-    checks = list(
-        ProviderCheck.objects.filter(
+    routes = list(
+        ProviderRoute.objects.filter(
             tenant=tenant,
-            started_at__gte=since,
+            environment=environment,
+            status=ProviderRouteStatus.ACTIVE,
         )
-        .select_related("provider", "verification", "verification__project")
+        .prefetch_related(
+            Prefetch(
+                "steps",
+                queryset=ProviderRouteStep.objects.select_related(
+                    "provider", "circuit_state"
+                ).only(
+                    "id",
+                    "route_id",
+                    "provider_id",
+                    "position",
+                    "provider__id",
+                    "provider__public_id",
+                    "provider__code",
+                    "provider__status",
+                    "circuit_state__id",
+                    "circuit_state__status",
+                    "circuit_state__retry_after",
+                ),
+            )
+        )
+        .order_by("capability", "priority", "route_key")
+    )
+    if provider_id:
+        routes = [
+            route
+            for route in routes
+            if any(step.provider.public_id == provider_id for step in route.steps.all())
+        ]
+    route_provider_ids = {
+        step.provider_id for route in routes for step in route.steps.all()
+    }
+    provider_filter_ids = set(route_provider_ids)
+    if provider_id:
+        selected_provider = (
+            ProviderCheck.objects.filter(tenant=tenant, provider__public_id=provider_id)
+            .values_list("provider_id", flat=True)
+            .first()
+        )
+        if selected_provider is not None:
+            provider_filter_ids.add(selected_provider)
+    checks_query = ProviderCheck.objects.filter(
+        tenant=tenant,
+        started_at__gte=since,
+    )
+    if environment == "sandbox":
+        checks_query = checks_query.filter(
+            Q(verification__project__environment="sandbox")
+            | Q(verification__project__isnull=True)
+        )
+    else:
+        checks_query = checks_query.filter(
+            verification__project__environment=environment
+        )
+    if provider_id:
+        checks_query = checks_query.filter(provider_id__in=provider_filter_ids)
+    checks = list(
+        checks_query.select_related("provider")
+        .only(
+            "id",
+            "provider_id",
+            "check_type",
+            "status",
+            "error_code",
+            "duration_ms",
+            "started_at",
+            "provider__public_id",
+            "provider__code",
+            "provider__name",
+            "provider__status",
+        )
         .order_by("started_at", "id")
     )
-    checks = [check for check in checks if _environment_for_check(check) == environment]
-    if provider_id:
-        checks = [check for check in checks if check.provider.public_id == provider_id]
 
     checks_by_provider = defaultdict(list)
+    checks_by_provider_capability = defaultdict(list)
     providers = {}
     for check in checks:
         checks_by_provider[check.provider_id].append(check)
+        checks_by_provider_capability[(check.provider_id, check.check_type)].append(
+            check
+        )
         providers[check.provider_id] = check.provider
     provider_metrics = {
         provider_pk: _provider_metric(provider, checks_by_provider[provider_pk])
         for provider_pk, provider in providers.items()
     }
 
-    routes = (
-        ProviderRoute.objects.filter(
-            tenant=tenant,
-            environment=environment,
-            status=ProviderRouteStatus.ACTIVE,
-        )
-        .prefetch_related("steps__provider", "steps__circuit_state")
-        .order_by("capability", "priority", "route_key")
-    )
     route_metrics = []
     for route in routes:
         steps = []
         for step in route.steps.all():
-            if provider_id and step.provider.public_id != provider_id:
-                continue
             try:
                 circuit = step.circuit_state
                 circuit_status = circuit.status
@@ -143,27 +217,39 @@ def provider_health_scope(
             except ProviderCircuitState.DoesNotExist:
                 circuit_status = ProviderCircuitStatus.CLOSED
                 retry_after = None
+            effective_circuit_status = circuit_status
+            if (
+                circuit_status == ProviderCircuitStatus.OPEN
+                and retry_after is not None
+                and retry_after <= timezone.now()
+            ):
+                effective_circuit_status = ProviderCircuitStatus.HALF_OPEN
+            capability_metric = _provider_metric(
+                step.provider,
+                checks_by_provider_capability[(step.provider_id, route.capability)],
+            )
+            step_health = capability_metric["status"]
+            if step.provider.status != ProviderStatus.ACTIVE:
+                step_health = "unavailable"
             steps.append(
                 {
                     "position": step.position,
                     "provider_id": step.provider.public_id,
                     "provider_code": step.provider.code,
-                    "circuit_status": circuit_status,
+                    "eligible": (
+                        step.provider.status == ProviderStatus.ACTIVE
+                        and effective_circuit_status != ProviderCircuitStatus.OPEN
+                    ),
+                    "circuit_status": effective_circuit_status,
                     "circuit_retry_after": (
                         retry_after.isoformat() if retry_after is not None else None
                     ),
-                    "health": provider_metrics.get(step.provider_id, {}).get(
-                        "status", "no_data"
-                    ),
+                    "health": step_health,
                 }
             )
-        if provider_id and not steps:
-            continue
         route_status = "no_data"
         if steps:
-            if all(
-                step["circuit_status"] == ProviderCircuitStatus.OPEN for step in steps
-            ):
+            if all(not step["eligible"] for step in steps):
                 route_status = "unavailable"
             elif any(
                 step["circuit_status"] != ProviderCircuitStatus.CLOSED
@@ -173,6 +259,8 @@ def provider_health_scope(
                 route_status = "degraded"
             elif any(step["health"] == "healthy" for step in steps):
                 route_status = "healthy"
+        for step in steps:
+            step.pop("eligible")
         route_metrics.append(
             {
                 "route_id": route.public_id,
@@ -192,7 +280,12 @@ def provider_health_scope(
             "window_started_at": since.isoformat(),
         },
         "providers": sorted(
-            provider_metrics.values(), key=lambda item: item["provider_code"]
+            (
+                metric
+                for metric in provider_metrics.values()
+                if not provider_id or metric["provider_id"] == provider_id
+            ),
+            key=lambda item: item["provider_code"],
         ),
         "routes": route_metrics,
     }
@@ -202,7 +295,7 @@ def grouped_platform_provider_health(
     *, provider_id: str, window_hours: int = 24
 ) -> list[dict]:
     """Return separately scoped groups for a platform-admin provider view."""
-    from apps.providers.models import Provider, ProviderRouteStep
+    from apps.providers.models import Provider
     from apps.tenants.models import Tenant
 
     provider = Provider.objects.filter(public_id=provider_id).first()

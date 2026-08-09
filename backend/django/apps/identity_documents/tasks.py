@@ -13,8 +13,17 @@ from apps.providers.adapters import (
     run_document_quality,
 )
 from apps.providers.ai_service import AIServiceUnavailable
-from apps.providers.models import ProviderCheckStatus, ProviderCheckType
-from apps.providers.services import create_provider_check, invoke_provider_check
+from apps.providers.models import (
+    ProviderCheckStatus,
+    ProviderCheckType,
+    ProviderRouteFinalAction,
+)
+from apps.providers.services import (
+    ProviderRouteExhausted,
+    create_provider_check,
+    execute_provider_route,
+    invoke_selected_provider_operation,
+)
 from apps.uploads.services import promote_upload_to_media_by_storage_key
 from apps.verifications.models import VerificationStatus
 from apps.verifications.models import ProcessingJobType
@@ -198,19 +207,29 @@ def process_identity_document_task(identity_document_id: str) -> str:
 
     try:
         for capture in captures:
-            quality_result = invoke_provider_check(
-                provider_check=quality_provider_check,
-                operation=run_document_quality,
-                operation_kwargs={
-                    "verification_id": verification.public_id,
-                    "document_storage_key": capture.storage_key,
-                    "document_storage_bucket": temp_bucket,
-                },
+            quality_operation_kwargs = {
+                "verification_id": verification.public_id,
+                "document_storage_key": capture.storage_key,
+                "document_storage_bucket": temp_bucket,
+            }
+            quality_execution = execute_provider_route(
+                verification=verification,
+                check_type=ProviderCheckType.DOCUMENT_QUALITY,
+                operation=lambda provider, timeout: invoke_selected_provider_operation(
+                    provider=provider,
+                    check_type=ProviderCheckType.DOCUMENT_QUALITY,
+                    timeout_seconds=timeout,
+                    operation_kwargs=quality_operation_kwargs,
+                    built_in_operation=run_document_quality,
+                ),
                 request_metadata={
                     "identity_document_id": identity_document.public_id,
                     "capture_id": capture.public_id,
                 },
+                initial_provider_check=quality_provider_check,
             )
+            quality_result = quality_execution.result
+            quality_provider_check = quality_execution.provider_check
             capture.quality_score = Decimal(
                 str(quality_result.get("quality_score", "0"))
             )
@@ -285,18 +304,28 @@ def process_identity_document_task(identity_document_id: str) -> str:
         manual_review_required = False
 
         try:
-            classification_result = invoke_provider_check(
-                provider_check=classification_provider_check,
-                operation=run_document_classification,
-                operation_kwargs={
-                    "verification_id": verification.public_id,
-                    "document_storage_key": primary_capture.storage_key,
-                    "document_type": identity_document.document_type_id,
-                    "country_code": identity_document.country_profile_id,
-                    "document_storage_bucket": temp_bucket,
-                },
+            classification_operation_kwargs = {
+                "verification_id": verification.public_id,
+                "document_storage_key": primary_capture.storage_key,
+                "document_type": identity_document.document_type_id,
+                "country_code": identity_document.country_profile_id,
+                "document_storage_bucket": temp_bucket,
+            }
+            classification_execution = execute_provider_route(
+                verification=verification,
+                check_type=ProviderCheckType.DOCUMENT_CLASSIFICATION,
+                operation=lambda provider, timeout: invoke_selected_provider_operation(
+                    provider=provider,
+                    check_type=ProviderCheckType.DOCUMENT_CLASSIFICATION,
+                    timeout_seconds=timeout,
+                    operation_kwargs=classification_operation_kwargs,
+                    built_in_operation=run_document_classification,
+                ),
                 request_metadata={"identity_document_id": identity_document.public_id},
+                initial_provider_check=classification_provider_check,
             )
+            classification_result = classification_execution.result
+            classification_provider_check = classification_execution.provider_check
         except AIServiceUnavailable as exc:
             manual_review_required = True
             classification_result = _manual_review_classification_result(
@@ -320,18 +349,28 @@ def process_identity_document_task(identity_document_id: str) -> str:
         heartbeat_processing_job(processing_job)
 
         try:
-            ocr_result = invoke_provider_check(
-                provider_check=ocr_provider_check,
-                operation=run_document_ocr,
-                operation_kwargs={
-                    "verification_id": verification.public_id,
-                    "document_storage_key": primary_capture.storage_key,
-                    "document_type": identity_document.document_type_id,
-                    "country_code": identity_document.country_profile_id,
-                    "document_storage_bucket": temp_bucket,
-                },
+            ocr_operation_kwargs = {
+                "verification_id": verification.public_id,
+                "document_storage_key": primary_capture.storage_key,
+                "document_type": identity_document.document_type_id,
+                "country_code": identity_document.country_profile_id,
+                "document_storage_bucket": temp_bucket,
+            }
+            ocr_execution = execute_provider_route(
+                verification=verification,
+                check_type=ProviderCheckType.DOCUMENT_OCR,
+                operation=lambda provider, timeout: invoke_selected_provider_operation(
+                    provider=provider,
+                    check_type=ProviderCheckType.DOCUMENT_OCR,
+                    timeout_seconds=timeout,
+                    operation_kwargs=ocr_operation_kwargs,
+                    built_in_operation=run_document_ocr,
+                ),
                 request_metadata={"identity_document_id": identity_document.public_id},
+                initial_provider_check=ocr_provider_check,
             )
+            ocr_result = ocr_execution.result
+            ocr_provider_check = ocr_execution.provider_check
         except AIServiceUnavailable as exc:
             manual_review_required = True
             ocr_result = {
@@ -526,6 +565,15 @@ def process_identity_document_task(identity_document_id: str) -> str:
                     "reason_codes": classification_result.get("issues", []),
                 },
             )
+        complete_processing_job(processing_job)
+        return identity_document.status
+    except ProviderRouteExhausted as exc:
+        identity_document.status = (
+            IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED
+            if exc.final_action == ProviderRouteFinalAction.MANUAL_REVIEW
+            else IdentityDocumentStatus.FAILED
+        )
+        identity_document.save(update_fields=["status", "updated_at"])
         complete_processing_job(processing_job)
         return identity_document.status
     except AIServiceUnavailable:

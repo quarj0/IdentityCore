@@ -21,8 +21,13 @@ from apps.providers.models import (
     Provider,
     ProviderCheck,
     ProviderCheckStatus,
+    ProviderCheckType,
+    ProviderRoute,
+    ProviderRouteEnvironment,
+    ProviderRouteStep,
     ProviderType,
 )
+from apps.providers.services import create_provider_check, publish_provider_route
 from apps.risk.models import RiskAssessment
 from apps.tenants.models import Tenant
 from apps.uploads.models import Upload, UploadPurpose, UploadStatus
@@ -101,21 +106,21 @@ class BiometricsTaskTests(TestCase):
             expires_at=timezone.now() + timedelta(minutes=10),
             consumed_at=timezone.now(),
         )
-        self.liveness_provider = Provider.objects.create(
-            name="Internal Liveness Engine",
-            code="internal-liveness-test",
-            provider_type=ProviderType.LIVENESS,
+        self.liveness_provider_check = create_provider_check(
+            verification=self.verification,
+            check_type=ProviderCheckType.LIVENESS,
+            status=ProviderCheckStatus.PENDING,
         )
-        self.face_provider = Provider.objects.create(
-            name="Internal Face Match Engine",
-            code="internal-face-match-test",
-            provider_type=ProviderType.BIOMETRIC,
+        self.face_provider_check = create_provider_check(
+            verification=self.verification,
+            check_type=ProviderCheckType.FACE_MATCH,
+            status=ProviderCheckStatus.PENDING,
         )
         self.liveness_check = LivenessCheck.objects.create(
             tenant=self.tenant,
             verification=self.verification,
             selfie_capture=self.selfie_capture,
-            provider_check_id="pck_liveness",
+            provider_check_id=self.liveness_provider_check.public_id,
             liveness_type="passive",
             status="inconclusive",
             checked_at=timezone.now(),
@@ -126,27 +131,9 @@ class BiometricsTaskTests(TestCase):
             selfie_capture=self.selfie_capture,
             identity_document=self.identity_document,
             document_capture=self.document_capture,
-            provider_check_id="pck_face",
+            provider_check_id=self.face_provider_check.public_id,
             status="inconclusive",
             matched_at=timezone.now(),
-        )
-        ProviderCheck.objects.create(
-            tenant=self.tenant,
-            verification=self.verification,
-            provider=self.liveness_provider,
-            check_type="liveness",
-            status=ProviderCheckStatus.PENDING,
-            public_id="pck_liveness",
-            started_at=timezone.now(),
-        )
-        ProviderCheck.objects.create(
-            tenant=self.tenant,
-            verification=self.verification,
-            provider=self.face_provider,
-            check_type="face_match",
-            status=ProviderCheckStatus.PENDING,
-            public_id="pck_face",
-            started_at=timezone.now(),
         )
 
     @patch("apps.biometrics.tasks.run_face_compare")
@@ -192,9 +179,7 @@ class BiometricsTaskTests(TestCase):
         self.assertEqual(
             self.selfie_capture.face_detection_confidence, Decimal("0.9700")
         )
-        self.assertEqual(
-            self.selfie_capture.face_detection_model_name, "mock-liveness"
-        )
+        self.assertEqual(self.selfie_capture.face_detection_model_name, "mock-liveness")
         self.assertEqual(self.selfie_capture.face_detection_model_version, "v1")
         self.assertEqual(self.selfie_upload.status, UploadStatus.PROMOTED)
         self.assertTrue(
@@ -229,6 +214,78 @@ class BiometricsTaskTests(TestCase):
         self.assertEqual(
             VerificationDecision.objects.filter(verification=self.verification).count(),
             decision_count,
+        )
+
+    def test_biometric_pipeline_invokes_the_provider_selected_by_active_routes(self):
+        provider = Provider.objects.create(
+            tenant=self.tenant,
+            name="Routed biometric provider",
+            code="routed-biometric-provider",
+            provider_type=ProviderType.BIOMETRIC,
+        )
+        for check_type in (ProviderCheckType.LIVENESS, ProviderCheckType.FACE_MATCH):
+            route = ProviderRoute.objects.create(
+                tenant=self.tenant,
+                route_key=f"routed-{check_type}",
+                name=f"Routed {check_type}",
+                environment=ProviderRouteEnvironment.SANDBOX,
+                capability=check_type,
+            )
+            ProviderRouteStep.objects.create(route=route, provider=provider, position=1)
+            publish_provider_route(route)
+        adapter = type(
+            "RoutedBiometricAdapter",
+            (),
+            {
+                "liveness": staticmethod(
+                    lambda **kwargs: {
+                        "status": "completed",
+                        "score": 0.94,
+                        "confidence_level": "high",
+                        "passed": True,
+                        "model_name": "routed-liveness",
+                        "model_version": "v1",
+                        "metrics": {
+                            "face_count": 1,
+                            "avg_detection_confidence": 0.97,
+                        },
+                    }
+                ),
+                "face_compare": staticmethod(
+                    lambda **kwargs: {
+                        "status": "completed",
+                        "match_score": 0.96,
+                        "confidence_level": "high",
+                        "matched": True,
+                        "threshold_used": 0.85,
+                        "model_name": "routed-face-match",
+                        "model_version": "v1",
+                    }
+                ),
+            },
+        )()
+
+        with patch(
+            "apps.providers.services.provider_adapter_registry.resolve",
+            return_value=adapter,
+        ) as resolve_adapter:
+            result = process_verification_biometrics_task(self.liveness_check.public_id)
+
+        self.assertEqual(result, VerificationStatus.VERIFIED)
+        self.assertEqual(resolve_adapter.call_count, 2)
+        self.liveness_check.refresh_from_db()
+        self.face_match.refresh_from_db()
+        self.assertEqual(
+            ProviderCheck.objects.get(
+                public_id=self.liveness_check.provider_check_id
+            ).provider,
+            provider,
+        )
+        self.assertEqual(
+            ProviderCheck.objects.get(
+                public_id=self.face_match.provider_check_id
+            ).provider,
+            provider,
         )
 
     @patch("apps.biometrics.tasks.queue_verification_status_notifications")
@@ -362,8 +419,12 @@ class BiometricsTaskTests(TestCase):
         self.assertEqual(result, VerificationStatus.MANUAL_REVIEW_REQUIRED)
         self.liveness_check.refresh_from_db()
         self.face_match.refresh_from_db()
-        liveness_provider_check = ProviderCheck.objects.get(public_id="pck_liveness")
-        face_provider_check = ProviderCheck.objects.get(public_id="pck_face")
+        liveness_provider_check = ProviderCheck.objects.get(
+            public_id=self.liveness_provider_check.public_id
+        )
+        face_provider_check = ProviderCheck.objects.get(
+            public_id=self.face_provider_check.public_id
+        )
         self.assertEqual(self.liveness_check.status, LivenessCheckStatus.PASSED)
         self.assertEqual(self.face_match.status, FaceMatchStatus.ERROR)
         self.assertEqual(liveness_provider_check.status, ProviderCheckStatus.COMPLETED)

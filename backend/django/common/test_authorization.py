@@ -201,6 +201,30 @@ class AuthorizationPolicyTests(TestCase):
             ).allowed
         )
 
+    def test_tenant_scoped_decisions_deny_supplied_unowned_objects(self):
+        unscoped = SimpleNamespace(tenant_id=None)
+        api_client = SimpleNamespace(
+            is_authenticated=True,
+            tenant_id=self.tenant.id,
+            scopes=["verifications:read"],
+        )
+
+        user_decision = decide_user_access(
+            self.user,
+            action=AuthorizationAction.TENANT_ACCESS,
+            tenant=unscoped,
+        )
+        client_decision = decide_api_client_access(
+            api_client,
+            required_scopes=("verifications:read",),
+            tenant=unscoped,
+        )
+
+        self.assertFalse(user_decision.allowed)
+        self.assertEqual(user_decision.reason, "tenant_context_required")
+        self.assertFalse(client_decision.allowed)
+        self.assertEqual(client_decision.reason, "tenant_context_required")
+
     def test_rest_and_graphql_use_the_same_rbac_decision(self):
         view = SimpleNamespace(required_permission_code=self.permission_code)
         request = SimpleNamespace(user=self.user)

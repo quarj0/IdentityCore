@@ -14,10 +14,19 @@ BLOCKED_HOSTNAMES = {"metadata.google.internal", "instance-data.ec2.internal"}
 class SecureHTTPAdapterError(RuntimeError):
     public_message = "Provider invocation failed."
 
-    def __init__(self, message: str, *, error_code: str, retryable: bool = False):
+    def __init__(
+        self,
+        message: str,
+        *,
+        error_code: str,
+        retryable: bool = False,
+        provider_check_status: str | None = None,
+    ):
         super().__init__(message)
         self.error_code = error_code
         self.retryable = retryable
+        if provider_check_status is not None:
+            self.provider_check_status = provider_check_status
 
 
 class _NoRedirectHandler(request.HTTPRedirectHandler):
@@ -75,7 +84,14 @@ class SecureHTTPProviderAdapter:
             MAX_TIMEOUT_SECONDS,
         )
         self.max_response_bytes = min(
-            max(1024, int(self.configuration.get("max_response_bytes", DEFAULT_MAX_RESPONSE_BYTES))),
+            max(
+                1024,
+                int(
+                    self.configuration.get(
+                        "max_response_bytes", DEFAULT_MAX_RESPONSE_BYTES
+                    )
+                ),
+            ),
             10 * DEFAULT_MAX_RESPONSE_BYTES,
         )
 
@@ -98,10 +114,15 @@ class SecureHTTPProviderAdapter:
             )
         _resolve_public_addresses(hostname)
 
-    def post_json(self, *, url: str, payload: dict, headers: dict | None = None) -> dict:
+    def post_json(
+        self, *, url: str, payload: dict, headers: dict | None = None
+    ) -> dict:
         self._validate_destination(url)
         body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
-        request_headers = {"Accept": "application/json", "Content-Type": "application/json"}
+        request_headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
         request_headers.update(headers or {})
         http_request = request.Request(
             url,
@@ -137,6 +158,7 @@ class SecureHTTPProviderAdapter:
                 "Provider request timed out.",
                 error_code="provider_timeout",
                 retryable=True,
+                provider_check_status="timeout",
             ) from exc
         except error.URLError as exc:
             raise SecureHTTPAdapterError(
@@ -147,7 +169,8 @@ class SecureHTTPProviderAdapter:
 
         if len(response_body) > self.max_response_bytes:
             raise SecureHTTPAdapterError(
-                "Provider response is too large.", error_code="provider_response_too_large"
+                "Provider response is too large.",
+                error_code="provider_response_too_large",
             )
         try:
             parsed = json.loads(response_body.decode("utf-8"))

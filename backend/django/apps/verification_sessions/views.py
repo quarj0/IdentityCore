@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
-from rest_framework.exceptions import NotFound, Throttled, ValidationError
+from rest_framework.exceptions import APIException, NotFound, Throttled, ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 
@@ -43,9 +43,17 @@ class VerificationSessionBaseView(APIView):
     required_session_action = "session:read"
 
     def initial(self, request, *args, **kwargs):
-        throttle = SensitivePublicRateThrottle()
-        if not throttle.allow_request(request, self):
-            raise Throttled(wait=throttle.wait())
+        # Authenticate first so valid session traffic uses the existing
+        # per-session controls instead of sharing a public IP bucket with every
+        # user behind the verification portal or ingress. Invalid and missing
+        # credentials are still bounded by the public anti-enumeration limit.
+        try:
+            self.perform_authentication(request)
+        except APIException:
+            throttle = SensitivePublicRateThrottle()
+            if not throttle.allow_request(request, self):
+                raise Throttled(wait=throttle.wait())
+            raise
         super().initial(request, *args, **kwargs)
         require_verification_session_action(request, self.required_session_action)
 

@@ -32,15 +32,35 @@ class ProjectSerializer(serializers.Serializer):
     def validate(self, attrs):
         tenant = self.context["request"].user.tenant
         if (
+            self.instance is not None
+            and "environment" in attrs
+            and attrs["environment"] != self.instance.environment
+            and self.instance.verifications.exists()
+        ):
+            raise serializers.ValidationError(
+                {
+                    "environment": (
+                        "A project environment cannot change after verification "
+                        "activity exists; create a separate project instead."
+                    )
+                }
+            )
+        if (
             attrs.get("environment") == ProjectEnvironment.PRODUCTION
             and tenant.organization.status != OrganizationStatus.ACTIVE
         ):
             raise serializers.ValidationError(
                 {"environment": "Production projects require an approved organization."}
             )
-        if self.instance is None and tenant.organization.status != OrganizationStatus.ACTIVE and tenant.projects.exists():
+        if (
+            self.instance is None
+            and tenant.organization.status != OrganizationStatus.ACTIVE
+            and tenant.projects.exists()
+        ):
             raise serializers.ValidationError(
-                {"environment": "Pending workspaces are limited to one sandbox project."}
+                {
+                    "environment": "Pending workspaces are limited to one sandbox project."
+                }
             )
         slug = attrs.get("slug") or slugify(attrs["name"])
         if (

@@ -122,7 +122,7 @@ class VerificationResultContractTests(TestCase):
                 "issues": ["document_blurry", "Sensitive Applicant Name"],
                 "extracted_fields": {"full_name": "Sensitive Applicant Name"},
             },
-            error_code="safe_error_code",
+            error_code="provider_timeout",
             started_at=now - timedelta(seconds=2),
             completed_at=now,
             duration_ms=2000,
@@ -190,7 +190,8 @@ class VerificationResultContractTests(TestCase):
                 "issues": ["document_blurry"],
             },
         )
-        self.assertEqual(check["error_code"], "safe_error_code")
+        self.assertEqual(check["status"], "validated")
+        self.assertEqual(check["error_code"], "provider_timeout")
         self.assertEqual(check["duration_ms"], 2000)
         self.assertEqual(
             set(result["timestamps"]),
@@ -213,6 +214,59 @@ class VerificationResultContractTests(TestCase):
             "extracted_fields",
         ):
             self.assertNotIn(forbidden, encoded)
+
+    def test_result_drops_token_shaped_uncontrolled_codes(self):
+        self.provider_check.normalized_result_json = {
+            "status": "completed",
+            "issues": ["GHA-SECRET-123", "s3://bucket/key", "username123"],
+        }
+        self.provider_check.error_code = "provider_customer_ghana_card_1234"
+        self.provider_check.save(
+            update_fields=["normalized_result_json", "error_code", "updated_at"]
+        )
+        decision = self.verification.decision_record
+        decision.reason_code = "GHA-SECRET-123"
+        decision.reason_codes_json = ["s3://bucket/key", "username123"]
+        decision.save(update_fields=["reason_code", "reason_codes_json", "updated_at"])
+
+        response = self.client.get(
+            reverse(
+                "verification-result",
+                kwargs={"verification_id": self.verification.public_id},
+            ),
+            **self.auth_headers(),
+        )
+
+        result = response.data["data"]
+        self.assertEqual(result["decision"]["reason_codes"], [])
+        self.assertNotIn("issues", result["check_provenance"][0]["evidence"])
+        self.assertIsNone(result["check_provenance"][0]["error_code"])
+
+    def test_result_falls_back_to_response_contract_and_maps_risk_score(self):
+        self.provider_check.normalized_result_json = {
+            "status": "completed",
+            "risk_score": 82.5,
+        }
+        self.provider_check.response_metadata_json = {"contract_version": "1"}
+        self.provider_check.save(
+            update_fields=[
+                "normalized_result_json",
+                "response_metadata_json",
+                "updated_at",
+            ]
+        )
+
+        response = self.client.get(
+            reverse(
+                "verification-result",
+                kwargs={"verification_id": self.verification.public_id},
+            ),
+            **self.auth_headers(),
+        )
+
+        check = response.data["data"]["check_provenance"][0]
+        self.assertEqual(check["capability_contract_version"], "1")
+        self.assertEqual(check["evidence"]["score"], 82.5)
 
     def test_result_preserves_tenant_and_environment_scope(self):
         sandbox_project = Project.objects.create(

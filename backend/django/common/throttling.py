@@ -42,7 +42,11 @@ class SensitivePublicRateThrottle(SimpleRateThrottle):
     scope = "sensitive_public"
 
     def get_cache_key(self, request, view):
+        # REMOTE_ADDR is supplied by the immediate peer. Unlike
+        # X-Forwarded-For, it cannot be rotated by an untrusted client when
+        # Django's trusted proxy count is not explicitly configured.
+        ident = request.META.get("REMOTE_ADDR") or "unknown"
         return self.cache_format % {
             "scope": self.scope,
-            "ident": self.get_ident(request),
+            "ident": ident,
         }
