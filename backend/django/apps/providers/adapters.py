@@ -12,6 +12,13 @@ from apps.providers import ai_service
 
 
 PROVIDER_CONTRACT_VERSION = "1"
+SUPPORTED_PROVIDER_STATUSES = {"completed", "failed", "inconclusive"}
+
+
+class ProviderContractError(ValueError):
+    public_message = "Provider returned an invalid contract response."
+    error_code = "provider_invalid_response"
+    retryable = False
 
 
 class ProviderResult(TypedDict):
@@ -23,11 +30,21 @@ class ProviderResult(TypedDict):
 
 def normalize_provider_result(capability: str, result: dict) -> dict:
     if not isinstance(result, dict):
-        raise TypeError("Provider operations must return a dictionary result.")
+        raise ProviderContractError("Provider operations must return an object result.")
+    supplied_version = result.get("contract_version")
+    if supplied_version is not None and supplied_version != PROVIDER_CONTRACT_VERSION:
+        error = ProviderContractError("Provider contract version is not supported.")
+        error.error_code = "provider_contract_version_unsupported"
+        raise error
     normalized = dict(result)
     normalized["contract_version"] = PROVIDER_CONTRACT_VERSION
     normalized["capability"] = capability
     normalized.setdefault("status", "completed")
+    if (
+        not isinstance(normalized["status"], str)
+        or normalized["status"] not in SUPPORTED_PROVIDER_STATUSES
+    ):
+        raise ProviderContractError("Provider response status is not supported.")
     return normalized
 
 

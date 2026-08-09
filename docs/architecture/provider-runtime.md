@@ -342,10 +342,15 @@ Implemented foundations include:
 - per-route timeouts, bounded retries, ordered fallback, circuit recovery, and terminal
   Manual Review or failure actions;
 - correlated attempt history with safe retry and fallback reasons.
+- published Provider Contract v1 fixtures and a local signed HTTP conformance runner for
+  success, malformed, timeout, replay, and version-negotiation behavior;
+- CI checks for the fixture runner and every built-in adapter capability's Contract v1
+  normalization boundary.
 
 Continued work includes:
 
-- provider manifests and automated conformance tooling;
+- provider manifests and broader capability, evidence, idempotency, retention, and
+  deletion conformance coverage;
 - organization self-service onboarding, testing, promotion, and credential rotation;
 - first-class storage and KMS/HSM provider routing;
 - broader registry and external risk adapters;

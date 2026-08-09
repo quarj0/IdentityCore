@@ -116,7 +116,7 @@ It is responsible for:
 - returning deterministic success or failure semantics;
 - supporting retry, fallback, and Manual Review paths.
 
-The repository currently includes adapter-backed managed provider execution, centralized provider invocation, secure HTTP provider calls, message signing, timestamp and nonce validation, replay protection, normalized results, redacted telemetry, duration tracking, and versioned provider outcomes. More advanced conditional provider routes, ordered fallback chains, provider marketplace discovery, and full conformance tooling remain areas of ongoing development.
+The repository currently includes adapter-backed managed provider execution, centralized provider invocation, secure HTTP provider calls, message signing, timestamp and nonce validation, replay protection, normalized results, redacted telemetry, duration tracking, versioned provider outcomes, conditional routes, ordered fallback, and an executable Contract v1 conformance baseline. Provider marketplace discovery and broader capability certification remain areas of ongoing development.
 
 See [Provider Runtime](provider-runtime.md).
 
@@ -234,7 +234,7 @@ The current repository presents a working implementation foundation for vendor-n
 - audit events, retention, deletion, and export controls;
 - REST API, GraphQL surface, SDKs, CLI, and hosted applications.
 
-It does not claim complete production readiness for all provider types, country coverage, or regulatory regimes. Advanced provider routing, provider marketplace functionality, broad conformance tooling, reusable claims lifecycle, tenant-owned storage routing, and complete production assurance remain ongoing work.
+It does not claim complete production readiness for all provider types, country coverage, or regulatory regimes. Cost-, residency-, and health-aware routing, provider marketplace functionality, broader conformance certification, reusable claims lifecycle, tenant-owned storage routing, and complete production assurance remain ongoing work.
 
 - Notification defaults
 - Feature flags and operational toggles

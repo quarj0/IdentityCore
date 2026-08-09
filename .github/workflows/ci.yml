@@ -18,10 +18,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - name: Run published provider conformance fixtures
+        run: python -m unittest discover -s provider-sdk/conformance/tests
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --project backend --group django --group dev --frozen
       - name: Run the complete Django backend test suite
         run: DJANGO_SETTINGS_MODULE=config.settings.testing uv run --project backend python backend/django/manage.py test apps common config
+      - name: Test built-in adapters against Provider Contract v1
+        run: DJANGO_SETTINGS_MODULE=config.settings.testing uv run --project backend python backend/django/manage.py test apps.providers.tests.ProviderAdapterRegistryTests
 
   backend-migrations:
     runs-on: ubuntu-latest

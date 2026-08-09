@@ -56,7 +56,7 @@ Applications, SDKs, CLI and hosted journeys
 | --------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Identity Control Plane            | Implemented foundation | Tenants, organizations, projects, environments, users, roles, API clients, workflows, policies, providers, audit, privacy, and administration surfaces exist. Promotion, provider self-service, and unified operational controls remain incomplete.                                                             |
 | Provider Runtime                  | Implemented foundation | Managed AI calls are routed through provider adapters and centralized invocation. Provider checks store normalized, versioned results, duration, status, errors, and redacted metadata. Advanced routing and fallback remain incomplete.                                                                        |
-| Secure custom HTTP providers      | Implemented foundation | The repository includes secure HTTP provider invocation, endpoint controls, signing, timestamps, nonces, replay resistance, idempotency concepts, and versioned capability contracts. Broader conformance tooling and organization-facing onboarding remain planned.                                            |
+| Secure custom HTTP providers      | Implemented foundation | The repository includes secure HTTP provider invocation, endpoint controls, signing, timestamps, nonces, replay resistance, idempotency concepts, versioned capability contracts, and a local Contract v1 conformance baseline. Broader certification and organization-facing onboarding remain planned.                         |
 | Provider ecosystem                | Early foundation       | Provider records, assignments, adapters, and capability contracts exist. Discovery, certification, commercial metadata, residency declarations, pricing, and a provider marketplace remain future work.                                                                                                         |
 | Workflow Engine                   | Implemented foundation | Versioned workflows, workflow summaries, execution state, immutable snapshots, and hosted verification journeys exist. General cross-workload branching and provider-route composition remain partial.                                                                                                          |
 | Policy Engine                     | Implemented foundation | Verification policies, thresholds, required steps, retention settings, snapshots, and decision inputs exist. A generalized policy language and external policy-provider contract remain incomplete.                                                                                                             |
@@ -113,7 +113,7 @@ The platform still needs mature, versioned routes that can select providers by:
 The Provider SDK contract now has documentation, but the ecosystem still needs:
 
 - machine-readable manifests;
-- automated conformance suites;
+- broader capability, evidence, idempotency, retention, and deletion conformance suites beyond the published Contract v1 protocol baseline;
 - test fixtures and certification levels;
 - organization-facing connection tests;
 - credential rotation and promotion workflows;
