@@ -20,9 +20,15 @@ from apps.uploads.services import promote_upload_to_media_by_storage_key
 from apps.verifications.evidence import ensure_verification_evidence_report
 from apps.webhooks.services import queue_webhook_events
 from apps.verifications.models import (
+    ProcessingJobType,
     VerificationDecision,
     VerificationDecisionType,
     VerificationStatus,
+)
+from apps.verifications.processing_jobs import (
+    acquire_processing_job,
+    complete_processing_job,
+    heartbeat_processing_job,
 )
 from apps.verifications.transitions import transition_verification
 from common.storage import (
@@ -49,6 +55,12 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
         resource=liveness_check,
     )
     verification = liveness_check.verification
+    processing_job = acquire_processing_job(
+        job_type=ProcessingJobType.BIOMETRICS,
+        resource=liveness_check,
+    )
+    if processing_job is None:
+        return verification.status
 
     # Celery may deliver the same message more than once.  A completed biometric
     # check is immutable: rerunning the providers would create a second decision,
@@ -56,6 +68,7 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
     # Error outcomes are terminal too and intentionally remain available for
     # manual review rather than being silently retried.
     if liveness_check.status != LivenessCheckStatus.INCONCLUSIVE:
+        complete_processing_job(processing_job)
         return verification.status
 
     selfie_capture = liveness_check.selfie_capture
@@ -151,6 +164,7 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                 "updated_at",
             ]
         )
+        heartbeat_processing_job(processing_job)
         if liveness_provider_check is not None:
             liveness_provider_check.status = ProviderCheckStatus.COMPLETED
             liveness_provider_check.completed_at = timezone.now()
@@ -233,6 +247,7 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                     "updated_at",
                 ]
             )
+            heartbeat_processing_job(processing_job)
             if face_provider_check is not None:
                 face_provider_check.status = ProviderCheckStatus.COMPLETED
                 face_provider_check.completed_at = timezone.now()
@@ -337,6 +352,7 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                 "Verification evidence report generation failed for %s.",
                 verification.public_id,
             )
+        complete_processing_job(processing_job)
         return verification.status
     except Exception as exc:
         now = timezone.now()
@@ -446,4 +462,5 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             decision=verification.status,
             risk_level="high",
         )
+        complete_processing_job(processing_job)
         return verification.status

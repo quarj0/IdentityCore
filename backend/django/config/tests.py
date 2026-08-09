@@ -13,6 +13,7 @@ from apps.verifications.tasks import (
     cleanup_expired_verification_sessions_task,
     cleanup_retained_media_task,
     expire_pending_verifications_task,
+    recover_stale_processing_jobs_task,
 )
 from apps.webhooks.tasks import (
     deliver_webhook_event_task,
@@ -34,6 +35,7 @@ class CeleryConfigurationTests(SimpleTestCase):
         )
         self.assertIn("cleanup-retained-media", settings.CELERY_BEAT_SCHEDULE)
         self.assertIn("cleanup-expired-uploads", settings.CELERY_BEAT_SCHEDULE)
+        self.assertIn("recover-stale-processing-jobs", settings.CELERY_BEAT_SCHEDULE)
         self.assertEqual(
             settings.CELERY_BEAT_SCHEDULE["process-pending-webhooks"]["task"],
             "apps.webhooks.tasks.process_pending_webhook_events_task",
@@ -59,6 +61,10 @@ class CeleryConfigurationTests(SimpleTestCase):
         self.assertEqual(
             settings.CELERY_BEAT_SCHEDULE["cleanup-expired-uploads"]["task"],
             "apps.uploads.tasks.cleanup_expired_uploads_task",
+        )
+        self.assertEqual(
+            settings.CELERY_BEAT_SCHEDULE["recover-stale-processing-jobs"]["task"],
+            "apps.verifications.tasks.recover_stale_processing_jobs_task",
         )
 
     def test_celery_routes_use_dedicated_lightweight_queues(self):
@@ -90,6 +96,12 @@ class CeleryConfigurationTests(SimpleTestCase):
         )
         self.assertEqual(
             settings.CELERY_TASK_ROUTES[cleanup_expired_uploads_task.name]["queue"],
+            "retention",
+        )
+        self.assertEqual(
+            settings.CELERY_TASK_ROUTES[recover_stale_processing_jobs_task.name][
+                "queue"
+            ],
             "retention",
         )
         self.assertEqual(

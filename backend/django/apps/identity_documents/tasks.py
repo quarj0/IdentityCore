@@ -17,6 +17,13 @@ from apps.providers.models import ProviderCheckStatus, ProviderCheckType
 from apps.providers.services import create_provider_check, invoke_provider_check
 from apps.uploads.services import promote_upload_to_media_by_storage_key
 from apps.verifications.models import VerificationStatus
+from apps.verifications.models import ProcessingJobType
+from apps.verifications.processing_jobs import (
+    acquire_processing_job,
+    complete_processing_job,
+    defer_processing_job,
+    heartbeat_processing_job,
+)
 from apps.verifications.transitions import transition_verification
 from common.authorization import ServicePrincipal, require_service_access
 from common.storage import get_object_storage_temp_bucket_name
@@ -127,10 +134,25 @@ def process_identity_document_task(identity_document_id: str) -> str:
         resource=identity_document,
     )
     verification = identity_document.verification
+    processing_job = acquire_processing_job(
+        job_type=ProcessingJobType.IDENTITY_DOCUMENT,
+        resource=identity_document,
+    )
+    if processing_job is None:
+        return identity_document.status
+    if identity_document.status in {
+        IdentityDocumentStatus.PROCESSED,
+        IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
+        IdentityDocumentStatus.REJECTED,
+        IdentityDocumentStatus.FAILED,
+    }:
+        complete_processing_job(processing_job)
+        return identity_document.status
     captures = list(identity_document.captures.order_by("created_at"))
     if not captures:
         identity_document.status = IdentityDocumentStatus.FAILED
         identity_document.save(update_fields=["status", "updated_at"])
+        complete_processing_job(processing_job)
         return identity_document.status
 
     now = timezone.now()
@@ -218,6 +240,7 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 if _quality_result_requires_rejection(quality_result):
                     latest_quality_status = DocumentCaptureStatus.REJECTED
                 issues_found.extend(quality_result["issues"])
+            heartbeat_processing_job(processing_job)
 
         if quality_provider_check is not None:
             quality_provider_check.status = ProviderCheckStatus.COMPLETED
@@ -290,11 +313,11 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 verification.public_id,
                 exc,
             )
-        if (
-            classification_result is not None
-            and _classification_requests_manual_review(classification_result)
+        if classification_result is not None and _classification_requests_manual_review(
+            classification_result
         ):
             manual_review_required = True
+        heartbeat_processing_job(processing_job)
 
         try:
             ocr_result = invoke_provider_check(
@@ -348,6 +371,7 @@ def process_identity_document_task(identity_document_id: str) -> str:
             or "document_media_missing" in set(ocr_result.get("issues") or [])
         ):
             manual_review_required = True
+        heartbeat_processing_job(processing_job)
 
         identity_document.extracted_data_json = {
             **ocr_result.get("extracted_fields", {}),
@@ -502,10 +526,12 @@ def process_identity_document_task(identity_document_id: str) -> str:
                     "reason_codes": classification_result.get("issues", []),
                 },
             )
+        complete_processing_job(processing_job)
         return identity_document.status
     except AIServiceUnavailable:
         # Infrastructure timeouts are retryable and are not evidence that the
         # submitted identity document is invalid.
+        defer_processing_job(processing_job, error_code="provider_unavailable")
         raise
     except Exception as exc:
         logger.exception(
@@ -554,4 +580,5 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 "error_class": exc.__class__.__name__,
             },
         )
+        complete_processing_job(processing_job)
         return identity_document.status

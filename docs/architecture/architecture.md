@@ -204,7 +204,7 @@ The current repository supports service extraction through well-defined Django a
 
 ## Background jobs and observability
 
-Celery workers process asynchronous and long-running tasks such as webhook delivery, retention cleanup, evidence processing, and review notifications.
+Celery workers process asynchronous and long-running tasks such as webhook delivery, retention cleanup, evidence processing, and review notifications. Identity document and biometric work uses database-backed jobs with leases, heartbeats, bounded attempts, and terminal Manual Review routing; the operational procedure is documented in [Processing job recovery](../operations/processing-job-recovery.md).
 
 The current implementation includes observability foundations for provider invocation counts, latency, normalized status, route decisions, evidence creation, decision outcomes, webhook delivery, and deletion jobs. Logs and telemetry are redacted to avoid raw identity data, document images, biometric templates, provider secrets, or unrestricted provider payloads.
 

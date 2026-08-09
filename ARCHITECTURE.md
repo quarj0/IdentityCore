@@ -275,6 +275,10 @@ IdentityCore currently uses:
 - Next.js applications for marketing, organization, developer, verification, and platform-administration experiences;
 - Python, JavaScript/TypeScript, Java, and .NET SDKs plus a Python CLI.
 
+Identity document and biometric workers use durable database-backed jobs with
+leases, heartbeats, bounded recovery attempts, and terminal Manual Review
+routing. See [Processing job recovery](docs/operations/processing-job-recovery.md).
+
 This modular-monolith architecture is intentional. Components should be extracted only where scaling, security, deployment ownership, or availability boundaries justify it.
 
 ## 18. Future workloads
