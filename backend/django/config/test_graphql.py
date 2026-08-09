@@ -15,7 +15,14 @@ from apps.analytics.models import AnalyticsDashboard
 from apps.billing.models import BillingRecord
 from apps.feature_flags.models import FeatureFlag
 from apps.incidents.models import Incident
-from apps.providers.models import Provider, ProviderStatus, ProviderType
+from apps.providers.models import (
+    Provider,
+    ProviderCheck,
+    ProviderCheckStatus,
+    ProviderCheckType,
+    ProviderStatus,
+    ProviderType,
+)
 from apps.organizations.models import Organization, OrganizationSupportingDocument
 from apps.risk.models import RiskAssessment
 from apps.security.models import SecurityCase
@@ -1560,6 +1567,61 @@ class PlatformAdminGraphQLTests(APITestCase):
         elif token:
             headers["HTTP_AUTHORIZATION"] = f"Bearer {token}"
         return self.client.post(self.graphql_url, data=json.dumps(payload), **headers)
+
+    def test_provider_health_is_available_only_to_platform_admins_as_scoped_json(self):
+        subject = VerificationSubject.objects.create(
+            tenant=self.tenant,
+            full_name="Health Subject",
+            email="health-private@example.com",
+        )
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=subject,
+            purpose="Provider health",
+            status=VerificationStatus.PROCESSING,
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+        ProviderCheck.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            provider=self.provider,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+            status=ProviderCheckStatus.COMPLETED,
+            response_metadata_json={"email": "health-private@example.com"},
+            started_at=timezone.now(),
+            completed_at=timezone.now(),
+            duration_ms=42,
+        )
+        query = """
+            query ProviderHealth($providerId: String!) {
+              platformProviderHealth(providerId: $providerId)
+            }
+        """
+
+        response = self.post_graphql(
+            query,
+            {"providerId": self.provider.public_id},
+            token=self.platform_access_token,
+        )
+        tenant_response = self.post_graphql(
+            query,
+            {"providerId": self.provider.public_id},
+            token=self.access_token,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        groups = response.json()["data"]["platformProviderHealth"]
+        self.assertEqual(len(groups), 1)
+        self.assertEqual(groups[0]["scope"]["tenant_id"], self.tenant.public_id)
+        self.assertEqual(groups[0]["scope"]["environment"], "sandbox")
+        self.assertEqual(groups[0]["providers"][0]["latency_ms"]["p95"], 42)
+        self.assertNotIn("health-private@example.com", json.dumps(groups))
+        self.assertIsNone(tenant_response.json()["data"])
+        self.assertIn(
+            "A platform administrator is required",
+            tenant_response.json()["errors"][0]["message"],
+        )
 
     def create_supporting_document(self, organization, tenant, user):
         return OrganizationSupportingDocument.objects.create(

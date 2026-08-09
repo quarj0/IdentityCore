@@ -157,7 +157,7 @@ Provider categories in the current repository include:
 - KMS/HSM and key management providers;
 - messaging and notification providers.
 
-Current runtime limitations include richer conditional provider routes, ordered fallback chains, provider health-based selection, and full provider manifest discovery.
+Current runtime limitations include cost-, residency-, and health-aware route selection, full provider manifest discovery, and provider self-service onboarding. Conditional routes, ordered fallback, bounded retries, circuit recovery, and scoped health inspection are implemented.
 
 ## Identity Verification Workload Flow
 

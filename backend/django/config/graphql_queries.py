@@ -24,6 +24,7 @@ from apps.platform_settings.serializers import (
     serialize_platform_setting,
     serialize_platform_setting_revision,
 )
+from apps.providers.health import grouped_platform_provider_health
 from apps.providers.models import Provider
 from apps.providers.models import ProviderAssignment
 from apps.providers.models import ProviderCheck
@@ -280,6 +281,21 @@ class Query:
             ProviderCheckNode(**serialize_provider_check(item))
             for item in page_obj.object_list
         ]
+
+    @strawberry.field
+    def platform_provider_health(
+        self,
+        info: Info,
+        provider_id: str,
+        window_hours: int = 24,
+    ) -> strawberry.scalars.JSON:
+        require_platform_admin(info)
+        if not 1 <= window_hours <= 720:
+            raise ValueError("Window hours must be between 1 and 720.")
+        return grouped_platform_provider_health(
+            provider_id=provider_id,
+            window_hours=window_hours,
+        )
 
     @strawberry.field
     def platform_provider(self, info: Info, provider_id: str) -> ProviderNode | None:

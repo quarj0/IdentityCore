@@ -30,6 +30,7 @@ export function AiProviderDetailPage({
         buildAiProviderConfig(
           [providerToAdminRecord(data.provider)],
           data.checks,
+          data.health,
         ),
       );
     }
