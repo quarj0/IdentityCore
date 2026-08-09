@@ -90,7 +90,6 @@ jobs:
       - run: docker build -f verification-portal/Dockerfile -t identitycore/verification-portal:ci .
         working-directory: frontend
 
-
   sdks:
     runs-on: ubuntu-latest
     steps:
@@ -160,7 +159,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18, 22]
+        node-version: [22, 24]
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
