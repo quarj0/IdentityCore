@@ -29,8 +29,13 @@ from common.storage import (
     get_object_storage_media_bucket_name,
     get_object_storage_temp_bucket_name,
 )
+from common.authorization import ServicePrincipal, require_service_access
 
 logger = logging.getLogger(__name__)
+
+BIOMETRICS_WORKER = ServicePrincipal(
+    name="biometrics-worker", allowed_actions=frozenset({"biometrics.process"})
+)
 
 
 @shared_task(queue="ai_processing")
@@ -38,6 +43,11 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
     liveness_check = LivenessCheck.objects.select_related(
         "verification", "selfie_capture", "tenant", "challenge"
     ).get(public_id=liveness_check_id)
+    require_service_access(
+        BIOMETRICS_WORKER,
+        action="biometrics.process",
+        resource=liveness_check,
+    )
     verification = liveness_check.verification
 
     # Celery may deliver the same message more than once.  A completed biometric
@@ -99,12 +109,12 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             or not model_name
             or not model_version
         ):
-            raise ValueError("Liveness provider omitted required face detection evidence.")
+            raise ValueError(
+                "Liveness provider omitted required face detection evidence."
+            )
 
         selfie_capture.face_count = face_count
-        selfie_capture.face_detection_confidence = Decimal(
-            str(detection_confidence)
-        )
+        selfie_capture.face_detection_confidence = Decimal(str(detection_confidence))
         selfie_capture.face_detection_model_name = model_name
         selfie_capture.face_detection_model_version = model_version
         selfie_capture.save(
