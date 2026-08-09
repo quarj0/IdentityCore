@@ -159,7 +159,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [22, 24]
+        node-version: [18, 24]
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
