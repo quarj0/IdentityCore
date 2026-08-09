@@ -176,13 +176,17 @@ export function buildAiProviderConfig(
     (total, snapshot) => total + snapshot.routes.length,
     0,
   );
-  const healthStatus = providerMetrics.some(
-    (metric) => metric.status === "unavailable",
-  )
+  const visibleStatuses = [
+    ...providerMetrics.map((metric) => metric.status),
+    ...health.flatMap((snapshot) =>
+      snapshot.routes.map((route) => route.status),
+    ),
+  ];
+  const healthStatus = visibleStatuses.some((status) => status === "unavailable")
     ? "Unavailable"
-    : providerMetrics.some((metric) => metric.status === "degraded")
+    : visibleStatuses.some((status) => status === "degraded")
       ? "Degraded"
-      : providerMetrics.some((metric) => metric.status === "healthy")
+      : visibleStatuses.some((status) => status === "healthy")
         ? "Healthy"
         : "No data";
 
@@ -264,7 +268,7 @@ export function buildAiProviderConfig(
         items: health.some((snapshot) => snapshot.routes.length)
           ? health.flatMap((snapshot) =>
               snapshot.routes.map((route) => ({
-                label: `${route.route_key} v${route.route_version} · ${snapshot.scope.environment}`,
+                label: `${snapshot.scope.tenant_id} · ${route.route_key} v${route.route_version} · ${snapshot.scope.environment}`,
                 value: `${route.status} · ${route.capability} · ${route.steps.map((step) => `${step.position}. ${step.provider_code} (${step.circuit_status})`).join(" → ")}`,
               })),
             )

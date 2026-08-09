@@ -69,6 +69,12 @@ def decide_user_access(
     user_tenant_id = getattr(user, "tenant_id", None)
     target_tenant_id = _tenant_id(tenant) if tenant is not None else None
 
+    # A supplied object without tenant ownership is not the same thing as a
+    # collection-level authorization check. Fail closed for platform/global or
+    # malformed objects passed to a tenant-scoped decision.
+    if tenant is not None and target_tenant_id is None:
+        return _deny("tenant_context_required")
+
     if action == AuthorizationAction.PLATFORM_ACCESS:
         return _allow() if is_platform_admin else _deny()
 
@@ -124,6 +130,8 @@ def decide_api_client_access(
     if api_client is None or not getattr(api_client, "is_authenticated", False):
         return _deny("authentication_required")
     target_tenant_id = _tenant_id(tenant) if tenant is not None else None
+    if tenant is not None and target_tenant_id is None:
+        return _deny("tenant_context_required")
     if target_tenant_id is not None and api_client.tenant_id != target_tenant_id:
         return _deny()
     if not set(required_scopes).issubset(set(api_client.scopes)):

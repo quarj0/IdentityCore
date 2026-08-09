@@ -357,6 +357,7 @@ class ProviderRoute(PublicIdModel, BaseModel):
                     "circuit_failure_threshold",
                     "circuit_recovery_seconds",
                     "final_action",
+                    "status",
                     "deleted_at",
                 )
                 if any(

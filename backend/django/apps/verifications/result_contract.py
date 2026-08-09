@@ -14,6 +14,68 @@ SAFE_EVIDENCE_FIELDS = (
     "threshold_used",
 )
 SAFE_PROVENANCE_TOKEN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:/+-]{0,119}$")
+SAFE_CHECK_STATUSES = frozenset(
+    {
+        "cancelled",
+        "completed",
+        "failed",
+        "inconclusive",
+        "matched",
+        "not_matched",
+        "passed",
+        "pending",
+        "processing",
+        "rejected",
+        "timeout",
+        "validated",
+    }
+)
+SAFE_ISSUE_CODES = frozenset(
+    {
+        "blur_detected",
+        "document_blurry",
+        "document_classification_unavailable",
+        "document_media_missing",
+        "document_ocr_unavailable",
+        "document_type_mismatch",
+        "document_type_not_determined",
+        "glare_detected",
+        "low_contrast",
+        "mrz_checksum_invalid",
+        "mrz_country_mismatch",
+    }
+)
+SAFE_DECISION_REASON_CODES = frozenset(
+    {
+        "biometric_provider_unavailable",
+        "evidence_confirmed",
+        "local_failed",
+        "local_manual_review_required",
+        "local_rejected",
+        "local_verified",
+        "manual_review_rejected",
+        "manual_review_verified",
+        "processing_retries_exhausted",
+        "provider_route_exhausted",
+        "risk_rules_approved",
+        "risk_rules_rejected",
+        "risk_rules_review",
+    }
+)
+SAFE_PROVIDER_ERROR_CODES = frozenset(
+    {
+        "provider_circuit_open",
+        "provider_contract_version_unsupported",
+        "provider_invalid_content_type",
+        "provider_invalid_json",
+        "provider_invalid_response",
+        "provider_network_error",
+        "provider_redirect_blocked",
+        "provider_response_too_large",
+        "provider_route_exhausted",
+        "provider_timeout",
+    }
+)
 
 
 def _safe_number(value: Any) -> int | float | None:
@@ -38,6 +100,9 @@ def _safe_evidence_summary(provider_check) -> dict:
         value = _safe_number(normalized.get(field, response.get(field)))
         if value is not None:
             summary[field] = value
+    risk_score = _safe_number(normalized.get("risk_score", response.get("risk_score")))
+    if "score" not in summary and risk_score is not None:
+        summary["score"] = risk_score
 
     confidence_level = _safe_token(
         normalized.get("confidence_level", response.get("confidence_level"))
@@ -57,7 +122,7 @@ def _safe_evidence_summary(provider_check) -> dict:
 
     issues = normalized.get("issues", response.get("issues"))
     if isinstance(issues, list):
-        safe_issues = [token for item in issues if (token := _safe_token(item))]
+        safe_issues = [item for item in issues if item in SAFE_ISSUE_CODES]
         if safe_issues:
             summary["issues"] = safe_issues
     return summary
@@ -65,11 +130,20 @@ def _safe_evidence_summary(provider_check) -> dict:
 
 def _serialize_check_provenance(provider_check) -> dict:
     normalized = provider_check.normalized_result_json or {}
-    contract_version = _safe_token(normalized.get("contract_version"))
+    response = provider_check.response_metadata_json or {}
+    contract_version = _safe_token(
+        normalized.get("contract_version", response.get("contract_version"))
+    )
+    normalized_status = normalized.get("status")
+    public_status = (
+        normalized_status
+        if normalized_status in SAFE_CHECK_STATUSES
+        else provider_check.status
+    )
     return {
         "check_id": provider_check.public_id,
         "capability": provider_check.check_type,
-        "status": provider_check.status,
+        "status": public_status,
         "provider": {
             "provider_id": provider_check.provider.public_id,
             "code": _safe_token(provider_check.provider.code) or "unavailable",
@@ -77,7 +151,15 @@ def _serialize_check_provenance(provider_check) -> dict:
         },
         "capability_contract_version": (contract_version),
         "evidence": _safe_evidence_summary(provider_check),
-        "error_code": _safe_token(provider_check.error_code),
+        "error_code": (
+            provider_check.error_code
+            if provider_check.error_code in SAFE_PROVIDER_ERROR_CODES
+            or (
+                provider_check.error_code.startswith("provider_http_")
+                and provider_check.error_code.removeprefix("provider_http_").isdigit()
+            )
+            else None
+        ),
         "started_at": provider_check.started_at.isoformat(),
         "completed_at": (
             provider_check.completed_at.isoformat()
@@ -94,11 +176,15 @@ def serialize_verification_result(verification: Verification) -> dict:
     reason_codes = []
     if decision is not None:
         reason_codes = [
-            safe_value
+            value
             for value in (decision.reason_codes_json or [])
-            if (safe_value := _safe_token(value)) is not None
+            if value in SAFE_DECISION_REASON_CODES
         ]
-        fallback_reason = _safe_token(decision.reason_code)
+        fallback_reason = (
+            decision.reason_code
+            if decision.reason_code in SAFE_DECISION_REASON_CODES
+            else None
+        )
         if not reason_codes and fallback_reason is not None:
             reason_codes = [fallback_reason]
 

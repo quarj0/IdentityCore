@@ -646,12 +646,16 @@ class ManualReviewApprovalView(APIView):
         approval.is_valid(raise_exception=True)
         now = timezone.now()
         decision_record.decision = approval.validated_data["decision"]
+        decision_record.reason_code = f"manual_review_{decision_record.decision}"
+        decision_record.reason_codes_json = [decision_record.reason_code]
         decision_record.approval_status = VerificationApprovalStatus.APPROVED
         decision_record.approved_by = request.user
         decision_record.approved_at = now
         decision_record.save(
             update_fields=[
                 "decision",
+                "reason_code",
+                "reason_codes_json",
                 "approval_status",
                 "approved_by",
                 "approved_at",

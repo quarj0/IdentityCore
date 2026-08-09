@@ -477,6 +477,35 @@ class ProviderRouteTests(TestCase):
         with self.assertRaisesRegex(ValidationError, "immutable"):
             first.save()
 
+        second.status = ProviderRouteStatus.DRAFT
+        with self.assertRaisesRegex(ValidationError, "immutable"):
+            second.save()
+
+    def test_publication_revalidates_and_rejects_deleted_configuration(self):
+        route = ProviderRoute.objects.create(
+            tenant=self.tenant,
+            route_key="invalid-draft",
+            name="Invalid draft",
+            environment=ProviderRouteEnvironment.SANDBOX,
+            capability=ProviderCheckType.DOCUMENT_OCR,
+        )
+        ProviderRouteStep.objects.create(
+            route=route,
+            provider=self.providers[0],
+            position=1,
+        )
+        route.capability = ProviderCheckType.LIVENESS
+        route.save()
+
+        with self.assertRaises(ValidationError):
+            publish_provider_route(route)
+
+        route.capability = ProviderCheckType.DOCUMENT_OCR
+        route.save()
+        route.soft_delete()
+        with self.assertRaisesRegex(ValidationError, "Deleted provider routes"):
+            publish_provider_route(route)
+
     def test_draft_cannot_bypass_publication_and_published_steps_cannot_move(self):
         route = ProviderRoute.objects.create(
             tenant=self.tenant,
@@ -546,6 +575,36 @@ class ProviderRouteTests(TestCase):
         )
         self.assertEqual(check.request_metadata_json["provider_route_version"], 1)
         self.assertEqual(check.request_metadata_json["provider_route_step"], 1)
+
+    def test_provider_check_records_actual_enabled_step_and_keeps_route_metadata(self):
+        selected = self.create_route(
+            route_key="disabled-first-step",
+            providers=[self.providers[0], self.providers[1]],
+        )
+        self.providers[0].status = ProviderStatus.DISABLED
+        self.providers[0].save(update_fields=["status", "updated_at"])
+        verification = self.create_processing_verification()
+
+        check = create_provider_check(
+            verification=verification,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+            status=ProviderCheckStatus.PENDING,
+        )
+        invoke_provider_check(
+            provider_check=check,
+            operation=lambda: {"status": "completed"},
+            operation_kwargs={},
+            request_metadata={"identity_document_id": "doc_example"},
+        )
+
+        self.assertEqual(check.provider, self.providers[1])
+        self.assertEqual(
+            check.request_metadata_json["provider_route_id"], selected.public_id
+        )
+        self.assertEqual(check.request_metadata_json["provider_route_step"], 2)
+        self.assertEqual(
+            check.request_metadata_json["identity_document_id"], "doc_example"
+        )
 
     def create_processing_verification(self):
         subject = VerificationSubject.objects.create(
@@ -671,6 +730,75 @@ class ProviderRouteTests(TestCase):
         circuit.refresh_from_db()
         self.assertEqual(recovered.provider_check.provider, self.providers[0])
         self.assertEqual(recovered_calls, [self.providers[0].public_id])
+        self.assertEqual(circuit.status, ProviderCircuitStatus.CLOSED)
+        self.assertEqual(circuit.consecutive_failures, 0)
+
+    def test_failed_half_open_probe_does_not_retry_and_stale_claim_recovers(self):
+        route = self.create_route(
+            route_key="half-open-route",
+            providers=[self.providers[0], self.providers[1]],
+            max_attempts_per_provider=3,
+            circuit_failure_threshold=1,
+            circuit_recovery_seconds=30,
+        )
+        step = route.steps.get(provider=self.providers[0])
+        ProviderCircuitState.objects.create(
+            route_step=step,
+            status=ProviderCircuitStatus.HALF_OPEN,
+            consecutive_failures=1,
+            retry_after=timezone.now() - timedelta(seconds=1),
+        )
+        verification = self.create_processing_verification()
+        calls = []
+
+        execution = execute_provider_route(
+            verification=verification,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+            operation=lambda provider, timeout: (
+                calls.append(provider.public_id)
+                or (
+                    (_ for _ in ()).throw(
+                        AIServiceUnavailable(error_code="provider_timeout")
+                    )
+                    if provider == self.providers[0]
+                    else {"status": "completed"}
+                )
+            ),
+        )
+
+        self.assertEqual(
+            calls, [self.providers[0].public_id, self.providers[1].public_id]
+        )
+        self.assertEqual(execution.provider_check.provider, self.providers[1])
+
+    def test_nonretryable_response_resets_closed_circuit_failure_streak(self):
+        route = self.create_route(
+            route_key="reset-streak-route",
+            providers=[self.providers[0]],
+            max_attempts_per_provider=1,
+            circuit_failure_threshold=3,
+            final_action=ProviderRouteFinalAction.FAIL,
+        )
+        step = route.steps.get(provider=self.providers[0])
+        circuit = ProviderCircuitState.objects.create(
+            route_step=step,
+            status=ProviderCircuitStatus.CLOSED,
+            consecutive_failures=1,
+        )
+        verification = self.create_processing_verification()
+
+        with self.assertRaises(ProviderRouteExhausted):
+            execute_provider_route(
+                verification=verification,
+                check_type=ProviderCheckType.DOCUMENT_OCR,
+                operation=lambda provider, timeout: (_ for _ in ()).throw(
+                    AIServiceUnavailable(
+                        error_code="provider_invalid_response", retryable=False
+                    )
+                ),
+            )
+
+        circuit.refresh_from_db()
         self.assertEqual(circuit.status, ProviderCircuitStatus.CLOSED)
         self.assertEqual(circuit.consecutive_failures, 0)
 
@@ -941,6 +1069,7 @@ class SecureHTTPProviderAdapterTests(TestCase):
 
         self.assertEqual(exc.exception.error_code, "provider_timeout")
         self.assertTrue(exc.exception.retryable)
+        self.assertEqual(exc.exception.provider_check_status, "timeout")
         self.assertEqual(exc.exception.public_message, "Provider invocation failed.")
 
     @patch(

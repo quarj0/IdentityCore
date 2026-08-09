@@ -88,6 +88,46 @@ class VerificationSessionPortalTests(APITestCase):
             "REMOTE_ADDR": "127.0.0.1",
         }
 
+    @patch(
+        "apps.verification_sessions.views.SensitivePublicRateThrottle.allow_request",
+        return_value=False,
+    )
+    def test_authenticated_session_traffic_does_not_use_public_ip_throttle(
+        self, allow_public_request
+    ):
+        response = self.client.get(
+            reverse(
+                "verification-session-detail",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            **self.session_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        allow_public_request.assert_not_called()
+
+    @patch(
+        "apps.verification_sessions.views.SensitivePublicRateThrottle.wait",
+        return_value=1,
+    )
+    @patch(
+        "apps.verification_sessions.views.SensitivePublicRateThrottle.allow_request",
+        return_value=False,
+    )
+    def test_missing_session_credentials_remain_publicly_throttled(
+        self, allow_public_request, _throttle_wait
+    ):
+        response = self.client.get(
+            reverse(
+                "verification-session-detail",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            REMOTE_ADDR="192.0.2.40",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        allow_public_request.assert_called_once()
+
     def create_upload(
         self, *, purpose: str, suffix: str, mime_type: str = "image/jpeg"
     ):

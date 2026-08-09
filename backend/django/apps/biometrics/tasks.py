@@ -13,8 +13,12 @@ from apps.biometrics.models import (
 )
 from apps.notifications.services import queue_verification_status_notifications
 from apps.providers.adapters import run_face_compare, run_liveness_check
-from apps.providers.models import ProviderCheckStatus
-from apps.providers.services import invoke_provider_check
+from apps.providers.models import ProviderCheckStatus, ProviderCheckType
+from apps.providers.services import (
+    ProviderRouteExhausted,
+    execute_provider_route,
+    invoke_selected_provider_operation,
+)
 from apps.risk.services import run_verification_risk_and_decision
 from apps.uploads.services import promote_upload_to_media_by_storage_key
 from apps.verifications.evidence import ensure_verification_evidence_report
@@ -92,23 +96,34 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
 
     processing_stage = "liveness"
     try:
-        liveness_result = invoke_provider_check(
-            provider_check=liveness_provider_check,
-            operation=run_liveness_check,
-            operation_kwargs={
-                "verification_id": verification.public_id,
-                "selfie_storage_key": selfie_capture.storage_key,
-                "liveness_type": liveness_check.liveness_type,
-                "selfie_storage_bucket": temp_bucket,
-                "selfie_mime_type": selfie_capture.mime_type,
-                "challenge_actions": (
-                    liveness_check.challenge.actions
-                    if liveness_check.challenge_id
-                    else None
-                ),
-            },
+        liveness_operation_kwargs = {
+            "verification_id": verification.public_id,
+            "selfie_storage_key": selfie_capture.storage_key,
+            "liveness_type": liveness_check.liveness_type,
+            "selfie_storage_bucket": temp_bucket,
+            "selfie_mime_type": selfie_capture.mime_type,
+            "challenge_actions": (
+                liveness_check.challenge.actions
+                if liveness_check.challenge_id
+                else None
+            ),
+        }
+        liveness_execution = execute_provider_route(
+            verification=verification,
+            check_type=ProviderCheckType.LIVENESS,
+            operation=lambda provider, timeout: invoke_selected_provider_operation(
+                provider=provider,
+                check_type=ProviderCheckType.LIVENESS,
+                timeout_seconds=timeout,
+                operation_kwargs=liveness_operation_kwargs,
+                built_in_operation=run_liveness_check,
+            ),
             request_metadata={"liveness_check_id": liveness_check.public_id},
+            initial_provider_check=liveness_provider_check,
         )
+        liveness_result = liveness_execution.result
+        liveness_provider_check = liveness_execution.provider_check
+        liveness_check.provider_check_id = liveness_provider_check.public_id
         metrics = liveness_result.get("metrics") or {}
         face_count = metrics.get("face_count")
         detection_confidence = metrics.get("avg_detection_confidence")
@@ -160,6 +175,7 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                 "model_name",
                 "model_version",
                 "failure_reason",
+                "provider_check_id",
                 "checked_at",
                 "updated_at",
             ]
@@ -203,25 +219,36 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             )
             document_storage_key = source_document_capture.storage_key
             processing_stage = "face_match"
-            face_result = invoke_provider_check(
-                provider_check=face_provider_check,
-                operation=run_face_compare,
-                operation_kwargs={
-                    "verification_id": verification.public_id,
-                    "selfie_storage_key": selfie_capture.storage_key,
-                    "document_storage_key": document_storage_key,
-                    "threshold": threshold,
-                    "selfie_storage_bucket": temp_bucket,
-                    "selfie_mime_type": selfie_capture.mime_type,
-                    "document_storage_bucket": (
-                        media_bucket
-                        if source_document_capture
-                        and source_document_capture.status != "uploaded"
-                        else temp_bucket
-                    ),
-                },
+            face_operation_kwargs = {
+                "verification_id": verification.public_id,
+                "selfie_storage_key": selfie_capture.storage_key,
+                "document_storage_key": document_storage_key,
+                "threshold": threshold,
+                "selfie_storage_bucket": temp_bucket,
+                "selfie_mime_type": selfie_capture.mime_type,
+                "document_storage_bucket": (
+                    media_bucket
+                    if source_document_capture
+                    and source_document_capture.status != "uploaded"
+                    else temp_bucket
+                ),
+            }
+            face_execution = execute_provider_route(
+                verification=verification,
+                check_type=ProviderCheckType.FACE_MATCH,
+                operation=lambda provider, timeout: invoke_selected_provider_operation(
+                    provider=provider,
+                    check_type=ProviderCheckType.FACE_MATCH,
+                    timeout_seconds=timeout,
+                    operation_kwargs=face_operation_kwargs,
+                    built_in_operation=run_face_compare,
+                ),
                 request_metadata={"face_match_id": face_match.public_id},
+                initial_provider_check=face_provider_check,
             )
+            face_result = face_execution.result
+            face_provider_check = face_execution.provider_check
+            face_match.provider_check_id = face_provider_check.public_id
             face_match.status = (
                 FaceMatchStatus.MATCHED
                 if face_result.get("matched")
@@ -243,6 +270,7 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                     "threshold_used",
                     "model_name",
                     "model_version",
+                    "provider_check_id",
                     "matched_at",
                     "updated_at",
                 ]
@@ -353,6 +381,27 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                 verification.public_id,
             )
         complete_processing_job(processing_job)
+        return verification.status
+    except ProviderRouteExhausted:
+        now = timezone.now()
+        if processing_stage == "liveness":
+            liveness_check.status = LivenessCheckStatus.ERROR
+            liveness_check.failure_reason = "provider_route_exhausted"
+            liveness_check.checked_at = now
+            liveness_check.save(
+                update_fields=[
+                    "status",
+                    "failure_reason",
+                    "checked_at",
+                    "updated_at",
+                ]
+            )
+        elif face_match is not None:
+            face_match.status = FaceMatchStatus.ERROR
+            face_match.matched_at = now
+            face_match.save(update_fields=["status", "matched_at", "updated_at"])
+        complete_processing_job(processing_job)
+        verification.refresh_from_db(fields=["status"])
         return verification.status
     except Exception as exc:
         now = timezone.now()

@@ -50,7 +50,9 @@ from common.crypto import encrypt_object_bytes
 
 class VerificationTransitionTests(TestCase):
     def setUp(self):
-        organization = Organization.objects.create(name="Transitions", slug="transitions")
+        organization = Organization.objects.create(
+            name="Transitions", slug="transitions"
+        )
         tenant = Tenant.objects.create(
             organization=organization,
             name="Transitions Tenant",
@@ -87,19 +89,13 @@ class VerificationTransitionTests(TestCase):
 
     def test_invalid_transition_is_rejected_without_mutating_status(self):
         with self.assertRaises(VerificationTransitionError):
-            transition_verification(
-                self.verification, VerificationStatus.VERIFIED
-            )
+            transition_verification(self.verification, VerificationStatus.VERIFIED)
 
         self.verification.refresh_from_db()
-        self.assertEqual(
-            self.verification.status, VerificationStatus.PENDING_CONSENT
-        )
+        self.assertEqual(self.verification.status, VerificationStatus.PENDING_CONSENT)
 
     def test_terminal_transition_records_completion_and_rejects_later_change(self):
-        transition_verification(
-            self.verification, VerificationStatus.IN_PROGRESS
-        )
+        transition_verification(self.verification, VerificationStatus.IN_PROGRESS)
         transitioned, changed = transition_verification(
             self.verification,
             VerificationStatus.CANCELLED,
@@ -108,9 +104,7 @@ class VerificationTransitionTests(TestCase):
         self.assertTrue(changed)
         self.assertIsNotNone(transitioned.completed_at)
         with self.assertRaises(VerificationTransitionError):
-            transition_verification(
-                self.verification, VerificationStatus.IN_PROGRESS
-            )
+            transition_verification(self.verification, VerificationStatus.IN_PROGRESS)
 
 
 class VerificationWorkflowTests(APITestCase):
@@ -484,8 +478,7 @@ class VerificationWorkflowTests(APITestCase):
         self.api_client.save(update_fields=["project", "updated_at"])
 
         response = self.client.get(
-            reverse("verification-list-create")
-            + f"?limit=1&cursor={cursor}",
+            reverse("verification-list-create") + f"?limit=1&cursor={cursor}",
             **self.auth_headers(),
         )
 
@@ -799,14 +792,21 @@ class VerificationWorkflowTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         verification = Verification.objects.get(public_id=response.data["data"]["id"])
-        self.assertEqual(verification.workflow_snapshot_json["id"], workflow_version.public_id)
+        self.assertEqual(
+            verification.workflow_snapshot_json["id"], workflow_version.public_id
+        )
         self.assertEqual(verification.workflow_snapshot_json["version"], 1)
-        self.assertEqual(verification.workflow_snapshot_json["steps"], workflow.steps_json)
+        self.assertEqual(
+            verification.workflow_snapshot_json["steps"], workflow.steps_json
+        )
 
         workflow.steps_json = ["consent", "selfie", "decision"]
         workflow.save(update_fields=["steps_json", "updated_at"])
         verification.refresh_from_db()
-        self.assertEqual(verification.workflow_snapshot_json["steps"], ["consent", "document", "decision"])
+        self.assertEqual(
+            verification.workflow_snapshot_json["steps"],
+            ["consent", "document", "decision"],
+        )
 
     def test_api_client_create_requires_active_policy(self):
         response = self.client.post(
@@ -975,8 +975,11 @@ class VerificationWorkflowTests(APITestCase):
 
         self.client.force_authenticate(self.user)
         proposal = self.client.post(
-            reverse("manual-review-decision", kwargs={"verification_id": verification.public_id}),
-            {"decision": "verified", "reason_code": "evidence_confirmed"},
+            reverse(
+                "manual-review-decision",
+                kwargs={"verification_id": verification.public_id},
+            ),
+            {"decision": "rejected", "reason_code": "evidence_confirmed"},
             format="json",
         )
         self.assertEqual(proposal.status_code, status.HTTP_202_ACCEPTED)
@@ -986,13 +989,19 @@ class VerificationWorkflowTests(APITestCase):
         # Authenticate as the independent checker for the approval step.
         self.client.force_authenticate(checker)
         approval = self.client.post(
-            reverse("manual-review-approval", kwargs={"verification_id": verification.public_id}),
+            reverse(
+                "manual-review-approval",
+                kwargs={"verification_id": verification.public_id},
+            ),
             {"decision": "verified"},
             format="json",
         )
         self.assertEqual(approval.status_code, status.HTTP_200_OK)
         verification.refresh_from_db()
         self.assertEqual(verification.status, VerificationStatus.VERIFIED)
+        decision = verification.decision_record
+        self.assertEqual(decision.reason_code, "manual_review_verified")
+        self.assertEqual(decision.reason_codes_json, ["manual_review_verified"])
 
     def test_detail_includes_decision_when_present(self):
         verification = Verification.objects.create(
@@ -1545,7 +1554,10 @@ class VerificationOperationsTaskTests(TestCase):
         )
 
     @patch("apps.verifications.tasks.delete_object")
-    @patch("apps.verifications.tasks.get_object_storage_media_bucket_name", return_value="media")
+    @patch(
+        "apps.verifications.tasks.get_object_storage_media_bucket_name",
+        return_value="media",
+    )
     def test_cleanup_retained_media_task_keeps_db_row_when_storage_delete_fails(
         self, _bucket, delete_object
     ):

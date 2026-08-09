@@ -206,6 +206,25 @@ class AntiEnumerationTests(APITestCase):
             [SensitivePublicRateThrottle],
         )
 
+    def test_public_throttle_ignores_untrusted_forwarded_address(self):
+        factory = APIRequestFactory()
+        first = factory.post(
+            "/api/v1/auth/login",
+            REMOTE_ADDR="192.0.2.10",
+            HTTP_X_FORWARDED_FOR="198.51.100.1",
+        )
+        second = factory.post(
+            "/api/v1/auth/login",
+            REMOTE_ADDR="192.0.2.10",
+            HTTP_X_FORWARDED_FOR="203.0.113.2",
+        )
+        throttle = SensitivePublicRateThrottle()
+
+        self.assertEqual(
+            throttle.get_cache_key(first, LoginView()),
+            throttle.get_cache_key(second, LoginView()),
+        )
+
     @patch.object(SensitivePublicRateThrottle, "get_rate", return_value="20/min")
     def test_known_and_unknown_login_attempts_reach_the_same_rate_limit(
         self, _mock_rate

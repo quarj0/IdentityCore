@@ -117,6 +117,14 @@ Every pull request should include:
 
 Keep pull requests focused. Avoid combining unrelated features into one pull request.
 
+Before a pull request is merged:
+
+- Read every review thread, including comments added after the first successful CI run.
+- Implement valid feedback and rerun the affected tests and checks.
+- If feedback is not applicable, reply with concrete repository evidence before resolving it.
+- Resolve a thread only after its change or evidence-backed disposition is recorded.
+- Refresh the review-thread list immediately before merge; do not merge with substantive feedback unresolved.
+
 ---
 
 ## Coding Standards
