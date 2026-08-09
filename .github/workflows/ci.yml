@@ -90,7 +90,6 @@ jobs:
       - run: docker build -f verification-portal/Dockerfile -t identitycore/verification-portal:ci .
         working-directory: frontend
 
-
   sdks:
     runs-on: ubuntu-latest
     steps:
