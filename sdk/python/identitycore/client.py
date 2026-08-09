@@ -89,6 +89,11 @@ class _VerificationsClient:
     def retrieve(self, verification_id: str) -> dict[str, Any]:
         return self.client.request("GET", f"/verifications/{_path_segment(verification_id)}")
 
+    def result(self, verification_id: str) -> dict[str, Any]:
+        return self.client.request(
+            "GET", f"/verifications/{_path_segment(verification_id)}/result"
+        )
+
     def cancel(self, verification_id: str, *, reason: str = "") -> dict[str, Any]:
         return self.client.request("POST", f"/verifications/{_path_segment(verification_id)}/cancel", {"reason": reason})
 

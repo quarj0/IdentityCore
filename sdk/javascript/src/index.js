@@ -62,6 +62,7 @@ export class IdentityCoreClient {
       list: ({ status = "", externalReference = "", cursor = "", limit, page, pageSize } = {}) => this.request("GET", `/verifications/${compactQuery({ status, external_reference: externalReference, cursor, limit, page, page_size: pageSize })}`),
       iterate: async function* (options = {}) { let cursor = ""; do { const result = await this.list({ ...options, cursor, limit: options.limit ?? options.pageSize ?? 100, page: undefined, pageSize: undefined }); for (const item of result.results ?? []) yield item; cursor = result.pagination?.next_cursor ?? ""; if (!cursor) return; } while (true); },
       retrieve: (id) => this.request("GET", `/verifications/${id}`),
+      result: (id) => this.request("GET", `/verifications/${encodeURIComponent(id)}/result`),
       cancel: (id, { reason = "" } = {}) => this.request("POST", `/verifications/${id}/cancel`, { reason }),
       resendLink: (id, { channel = "email" } = {}) => this.request("POST", `/verifications/${id}/resend-link`, { channel }),
       evidenceReport: (id) => this.request("GET", `/verifications/${id}/evidence-report`),

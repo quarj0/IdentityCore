@@ -23,4 +23,12 @@ class IdentityCoreClientTest {
             .transport((m,u,h,b,t)->{calls[0]++; return calls[0]==1?new IdentityCoreClient.RawResponse(503,"{\"success\":false,\"error\":{\"message\":\"down\"}}"):new IdentityCoreClient.RawResponse(200,"{\"success\":true,\"data\":[]}");}).build();
         assertTrue(client.policies.list().isArray()); assertEquals(2,calls[0]);
     }
+
+    @Test void retrievesVersionedVerificationResult() {
+        List<String> seen = new ArrayList<>();
+        IdentityCoreClient client=IdentityCoreClient.builder().apiOrigin("https://api.example.test").clientId("c").clientSecret("s")
+            .transport((m,u,h,b,t)->{seen.add(u.toString()); return new IdentityCoreClient.RawResponse(200,"{\"success\":true,\"data\":{\"schema_version\":\"1\"}}");}).build();
+        assertEquals("1", client.verifications.result("ver_1").path("schema_version").asText());
+        assertEquals("https://api.example.test/api/v1/verifications/ver_1/result", seen.get(0));
+    }
 }

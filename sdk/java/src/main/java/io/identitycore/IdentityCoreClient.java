@@ -103,6 +103,7 @@ public final class IdentityCoreClient {
             };
         }
         public JsonNode retrieve(String id) { return request("GET", "/verifications/" + segment(id), null, null); }
+        public JsonNode result(String id) { return request("GET", "/verifications/" + segment(id) + "/result", null, null); }
         public JsonNode cancel(String id, String reason) { ObjectNode body=json.createObjectNode().put("reason", reason == null ? "" : reason); return request("POST", "/verifications/"+segment(id)+"/cancel", body, null); }
         public JsonNode resendLink(String id) { ObjectNode body=json.createObjectNode().put("channel","email"); return request("POST", "/verifications/"+segment(id)+"/resend-link", body, null); }
         public JsonNode evidenceReport(String id) { return request("GET", "/verifications/"+segment(id)+"/evidence-report", null, null); }

@@ -110,6 +110,7 @@ public sealed class IdentityCoreClient : IDisposable
             string? cursor=null; do { var result=await ListCursorAsync(status,externalReference,cursor,pageSize,token); foreach(var item in result.GetProperty("results").EnumerateArray()) yield return item.Clone(); cursor=result.GetProperty("pagination").GetProperty("next_cursor").GetString(); } while(!string.IsNullOrEmpty(cursor));
         }
         public Task<JsonElement> RetrieveAsync(string id, CancellationToken token = default) => client.SendAsync(HttpMethod.Get, "/verifications/" + Segment(id), cancellationToken: token);
+        public Task<JsonElement> ResultAsync(string id, CancellationToken token = default) => client.SendAsync(HttpMethod.Get, "/verifications/" + Segment(id) + "/result", cancellationToken: token);
         public Task<JsonElement> CancelAsync(string id, string reason = "", CancellationToken token = default) => client.SendAsync(HttpMethod.Post, "/verifications/" + Segment(id) + "/cancel", new { reason }, cancellationToken: token);
         public Task<JsonElement> ResendLinkAsync(string id, CancellationToken token = default) => client.SendAsync(HttpMethod.Post, "/verifications/" + Segment(id) + "/resend-link", new { channel = "email" }, cancellationToken: token);
         public Task<JsonElement> EvidenceReportAsync(string id, CancellationToken token = default) => client.SendAsync(HttpMethod.Get, "/verifications/" + Segment(id) + "/evidence-report", cancellationToken: token);

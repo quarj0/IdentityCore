@@ -99,6 +99,17 @@ export interface VerificationDetail {
   expires_at?: string;
 }
 
+export interface VerificationResult {
+  schema_version: string;
+  verification_id: string;
+  status: string;
+  decision: Record<string, unknown> | null;
+  policy: Record<string, unknown>;
+  workflow: Record<string, unknown>;
+  check_provenance: Array<Record<string, unknown>>;
+  timestamps: Record<string, unknown>;
+}
+
 export interface CursorPagination {
   limit: number;
   next_cursor: string | null;

@@ -26,7 +26,15 @@ public sealed class IdentityCoreClientTests
         using var client=new IdentityCoreClient(new(){ApiOrigin=new Uri("https://api.example.test"),ClientId="c",ClientSecret="s",RetryBackoff=TimeSpan.Zero},http);
         Assert.Equal(JsonValueKind.Array,(await client.Policies.ListAsync()).ValueKind); Assert.Equal(2,calls);
     }
+    [Fact]
+    public async Task Retrieves_versioned_verification_result()
+    {
+        Uri? seen = null;
+        var http = new HttpClient(new Handler(request => { seen = request.RequestUri; return Response(HttpStatusCode.OK, "{\"success\":true,\"data\":{\"schema_version\":\"1\"}}"); }));
+        using var client = new IdentityCoreClient(new(){ApiOrigin=new Uri("https://api.example.test"),ClientId="c",ClientSecret="s"},http);
+        Assert.Equal("1", (await client.Verifications.ResultAsync("ver_1")).GetProperty("schema_version").GetString());
+        Assert.Equal("https://api.example.test/api/v1/verifications/ver_1/result", seen!.ToString());
+    }
     private static Task<HttpResponseMessage> Response(HttpStatusCode status,string body)=>Task.FromResult(new HttpResponseMessage(status){Content=new StringContent(body,Encoding.UTF8,"application/json")});
     private sealed class Handler(Func<HttpRequestMessage,Task<HttpResponseMessage>> send):HttpMessageHandler { protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken cancellationToken)=>send(request); }
 }
-

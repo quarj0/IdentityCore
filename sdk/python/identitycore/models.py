@@ -112,6 +112,19 @@ class VerificationDetail(_VerificationDetailRequired, total=False):
     decision: Optional[dict[str, Any]]
     expires_at: str
 
+class _VerificationResultRequired(TypedDict):
+    schema_version: str
+    verification_id: str
+    status: str
+    decision: Optional[dict[str, Any]]
+    policy: dict[str, Any]
+    workflow: dict[str, Any]
+    check_provenance: list[dict[str, Any]]
+    timestamps: dict[str, Any]
+
+class VerificationResult(_VerificationResultRequired, total=False):
+    pass
+
 class _CursorPaginationRequired(TypedDict):
     limit: int
     next_cursor: Optional[str]

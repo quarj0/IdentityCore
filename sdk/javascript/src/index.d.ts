@@ -1,4 +1,5 @@
 export * from "./models.js";
+import type { VerificationResult } from "./models.js";
 
 export const VERSION: string;
 export class IdentityCoreError extends Error {}
@@ -17,6 +18,7 @@ export class IdentityCoreClient {
     list(options?: { status?: string; externalReference?: string; cursor?: string; limit?: number; page?: number; pageSize?: number }): Promise<any>;
     iterate(options?: { status?: string; externalReference?: string; limit?: number; pageSize?: number }): AsyncIterable<Record<string, unknown>>;
     retrieve(id: string): Promise<Record<string, unknown>>;
+    result(id: string): Promise<VerificationResult>;
     cancel(id: string, options?: { reason?: string }): Promise<Record<string, unknown>>;
     resendLink(id: string, options?: { channel?: string }): Promise<Record<string, unknown>>;
     evidenceReport(id: string): Promise<Record<string, unknown>>;

@@ -25,6 +25,7 @@ verification = client.verifications.create(
     redirect_url="https://app.example.com/identity/complete",
     idempotency_key="customer_123-onboarding-v1",
 )
+result = client.verifications.result(verification["id"])
 print(verification["verification_url"])
 ```
 

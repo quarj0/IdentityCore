@@ -21,12 +21,16 @@ const verification = await client.verifications.create(
     purpose: "Customer onboarding",
     policyId: policy.id,
     projectId: "prj_...",
-    verificationSubject: { fullName: "Kwame Mensah", email: "kwame@example.com" },
+    verificationSubject: {
+      fullName: "Kwame Mensah",
+      email: "kwame@example.com",
+    },
     externalReference: "customer_123",
     redirectUrl: "https://app.example.com/identity/complete",
   },
   { idempotencyKey: "customer_123-onboarding-v1" },
 );
+const result = await client.verifications.result(verification.id);
 ```
 
 GET requests retry transient failures automatically. Verification creation is idempotent and safely retried; cancellation and link resend are not retried automatically.
@@ -36,7 +40,9 @@ GET requests retry transient failures automatically. Verification creation is id
 ```js
 import { verifyWebhookSignature } from "@identitycore/sdk";
 
-for await (const verification of client.verifications.iterate({ status: "verified" })) {
+for await (const verification of client.verifications.iterate({
+  status: "verified",
+})) {
   console.log(verification.id);
 }
 

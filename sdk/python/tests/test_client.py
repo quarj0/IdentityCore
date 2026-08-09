@@ -63,6 +63,15 @@ class IdentityCoreClientTests(unittest.TestCase):
             "https://api.example.test/api/v1/verifications/ver_1%2F..%2F..%2Fpolicies%3Finclude%3Dall/cancel",
         )
 
+    def test_retrieves_versioned_verification_result(self):
+        client = self.make_client([(200, envelope({"schema_version": "1"}))])
+
+        self.assertEqual(client.verifications.result("ver_1")["schema_version"], "1")
+        self.assertEqual(
+            self.transport.calls[0]["url"],
+            "https://api.example.test/api/v1/verifications/ver_1/result",
+        )
+
     def test_iterates_all_pages(self):
         client = self.make_client([
             (200, envelope({"results": [{"id": "1"}], "pagination": {"next_cursor": "next"}})),
