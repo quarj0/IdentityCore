@@ -42,6 +42,11 @@ class VerificationSessionBaseView(APIView):
     authentication_classes = [VerificationSessionAuthentication]
     required_session_action = "session:read"
 
+    def _enforce_public_throttle(self, request) -> None:
+        throttle = SensitivePublicRateThrottle()
+        if not throttle.allow_request(request, self):
+            raise Throttled(wait=throttle.wait())
+
     def initial(self, request, *args, **kwargs):
         # Authenticate first so valid session traffic uses the existing
         # per-session controls instead of sharing a public IP bucket with every
@@ -50,10 +55,10 @@ class VerificationSessionBaseView(APIView):
         try:
             self.perform_authentication(request)
         except APIException:
-            throttle = SensitivePublicRateThrottle()
-            if not throttle.allow_request(request, self):
-                raise Throttled(wait=throttle.wait())
+            self._enforce_public_throttle(request)
             raise
+        if getattr(request, "verification_session", None) is None:
+            self._enforce_public_throttle(request)
         super().initial(request, *args, **kwargs)
         require_verification_session_action(request, self.required_session_action)
 
