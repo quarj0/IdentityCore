@@ -386,6 +386,7 @@ REST_FRAMEWORK = {
         "api_client": "100/min",
         "verification_session": "30/min",
         "dashboard_user": "300/min",
+        "sensitive_public": "20/min",
     },
     "EXCEPTION_HANDLER": "common.exceptions.api_exception_handler",
 }

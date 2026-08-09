@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib.auth import authenticate
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
@@ -6,7 +8,9 @@ from rest_framework_simplejwt.exceptions import TokenError
 from apps.accounts.models import PlatformUser
 from apps.accounts.mfa import is_mfa_required
 from apps.tenants.models import Tenant
-from apps.accounts.sessions import issue_refresh_token, rotate_refresh_token
+from apps.accounts.sessions import rotate_refresh_token
+
+logger = logging.getLogger(__name__)
 
 
 def serialize_user(user: PlatformUser) -> dict:
@@ -60,6 +64,7 @@ class LoginSerializer(serializers.Serializer):
         user = authenticate(request=request, email=email, password=password)
 
         if user is None:
+            logger.info("Login rejected.", extra={"reason": "credentials_rejected"})
             raise AuthenticationFailed(self.error_messages["authentication_failed"])
 
         if not user.is_active:

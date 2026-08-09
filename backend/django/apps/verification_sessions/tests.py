@@ -8,7 +8,12 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
-from apps.biometrics.models import FaceMatch, LivenessChallenge, LivenessCheck, SelfieCapture
+from apps.biometrics.models import (
+    FaceMatch,
+    LivenessChallenge,
+    LivenessCheck,
+    SelfieCapture,
+)
 from apps.consent.models import ConsentRecord, ConsentTemplate, ConsentTemplateStatus
 from apps.document_captures.models import DocumentCapture
 from apps.identity_documents.models import IdentityDocument
@@ -179,6 +184,18 @@ class VerificationSessionPortalTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+        unknown_session_response = self.client.get(
+            reverse(
+                "verification-session-detail",
+                kwargs={"session_id": "ses_01AAAAAAAAAAAAAAAAAAAAAAAA"},
+            ),
+            **self.session_headers(token="wrong-token"),
+        )
+        self.assertEqual(
+            response.data["error"]["message"],
+            unknown_session_response.data["error"]["message"],
+        )
+
     def test_session_token_is_bound_to_its_session_id(self):
         other_session = VerificationSession(
             verification=self.verification,
@@ -261,7 +278,10 @@ class VerificationSessionPortalTests(APITestCase):
         self.assertEqual(response.data["data"]["locale"], "fr")
         self.assertEqual(response.data["data"]["consent"]["content"], frozen_content)
         self.assertEqual(
-            [item["document_type"] for item in response.data["data"]["available_documents"]],
+            [
+                item["document_type"]
+                for item in response.data["data"]["available_documents"]
+            ],
             ["passport"],
         )
 
@@ -316,7 +336,9 @@ class VerificationSessionPortalTests(APITestCase):
                 "template_id": ConsentTemplate.objects.get(language="en").public_id,
                 "version": 1,
                 "locale": "en",
-                "content_hash": hashlib.sha256(b"I consent to identity verification.").hexdigest(),
+                "content_hash": hashlib.sha256(
+                    b"I consent to identity verification."
+                ).hexdigest(),
             },
             format="json",
             **self.session_headers(),
@@ -692,9 +714,7 @@ class VerificationSessionPortalTests(APITestCase):
         )
         self.verification.status = VerificationStatus.PROCESSING
         self.verification.metadata_json = {"workflow": "administrator_onboarding"}
-        self.verification.save(
-            update_fields=["status", "metadata_json", "updated_at"]
-        )
+        self.verification.save(update_fields=["status", "metadata_json", "updated_at"])
 
         challenge = LivenessChallenge.objects.create(
             tenant=self.tenant,
@@ -792,9 +812,9 @@ class VerificationSessionPortalTests(APITestCase):
         self.assertEqual(self.organization.status, "pending_review")
         self.assertEqual(self.tenant.status, "pending_review")
         self.assertEqual(
-            self.organization.settings_json[
-                "onboarding"
-            ]["administrator_identity_verification"]["verification_id"],
+            self.organization.settings_json["onboarding"][
+                "administrator_identity_verification"
+            ]["verification_id"],
             self.verification.public_id,
         )
 
@@ -938,7 +958,9 @@ class VerificationSessionPortalTests(APITestCase):
     @patch("apps.biometrics.tasks.promote_upload_to_media_by_storage_key")
     @patch("apps.biometrics.tasks.run_face_compare")
     @patch("apps.biometrics.tasks.run_liveness_check")
-    @patch("apps.verification_sessions.views.process_verification_biometrics_task.delay")
+    @patch(
+        "apps.verification_sessions.views.process_verification_biometrics_task.delay"
+    )
     @patch("apps.identity_documents.tasks.promote_upload_to_media_by_storage_key")
     @patch("apps.identity_documents.tasks.run_document_ocr")
     @patch("apps.identity_documents.tasks.run_document_classification")
@@ -989,7 +1011,9 @@ class VerificationSessionPortalTests(APITestCase):
                 "template_id": ConsentTemplate.objects.get(language="en").public_id,
                 "version": 1,
                 "locale": "en",
-                "content_hash": hashlib.sha256(b"I consent to identity verification.").hexdigest(),
+                "content_hash": hashlib.sha256(
+                    b"I consent to identity verification."
+                ).hexdigest(),
             },
             format="json",
             **self.session_headers(),
@@ -1117,7 +1141,9 @@ class VerificationSessionPortalTests(APITestCase):
             ),
             {
                 "liveness_type": "active",
-                "selfie_capture_id": liveness_selfie_response.data["data"]["selfie_capture_id"],
+                "selfie_capture_id": liveness_selfie_response.data["data"][
+                    "selfie_capture_id"
+                ],
                 "challenge_id": challenge.public_id,
             },
             format="json",

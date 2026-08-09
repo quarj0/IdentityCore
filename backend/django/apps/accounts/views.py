@@ -1,9 +1,9 @@
 import hashlib
+import logging
 import secrets
 from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
-from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import status
@@ -42,11 +42,15 @@ from apps.accounts.mfa import (
 )
 from apps.accounts.sessions import issue_refresh_token, revoke_refresh_token
 from common.responses import success_response
+from common.throttling import SensitivePublicRateThrottle
+
+logger = logging.getLogger(__name__)
 
 
 class LoginView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
+    throttle_classes = [SensitivePublicRateThrottle]
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data, context={"request": request})
@@ -429,6 +433,7 @@ class TeamInvitationActionView(APIView):
 class TeamInvitationAcceptView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
+    throttle_classes = [SensitivePublicRateThrottle]
 
     def post(self, request):
         token = str(request.data.get("token", ""))
@@ -443,9 +448,18 @@ class TeamInvitationAcceptView(APIView):
             )
             .first()
         )
+        rejection_reason = None
         if not invitation:
+            rejection_reason = "invitation_not_found"
+        elif PlatformUser.objects.filter(email=invitation.email).exists():
+            rejection_reason = "account_already_exists"
+        if rejection_reason:
+            logger.info(
+                "Team invitation acceptance rejected.",
+                extra={"reason": rejection_reason},
+            )
             return success_response(
-                {"detail": "Invitation is invalid or expired."},
+                {"detail": "Invitation is invalid or cannot be accepted."},
                 request=request,
                 status=400,
             )

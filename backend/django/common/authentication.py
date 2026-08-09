@@ -1,3 +1,4 @@
+import logging
 from ipaddress import ip_address, ip_network
 
 from django.contrib.auth.hashers import check_password
@@ -7,6 +8,16 @@ from rest_framework.exceptions import AuthenticationFailed
 
 from apps.api_clients.models import APIClient, APIClientStatus
 from apps.verifications.models import VerificationSession, VerificationSessionStatus
+
+logger = logging.getLogger(__name__)
+VERIFICATION_SESSION_REJECTION = "Invalid or expired verification session credentials."
+
+
+def _verification_session_rejected(reason: str) -> AuthenticationFailed:
+    logger.info(
+        "Verification session authentication rejected.", extra={"reason": reason}
+    )
+    return AuthenticationFailed(VERIFICATION_SESSION_REJECTION)
 
 
 class APIClientAuthentication(BaseAuthentication):
@@ -71,7 +82,7 @@ class VerificationSessionAuthentication(BaseAuthentication):
         if not authorization and not session_id:
             return None
         if not authorization.startswith(f"{self.keyword} ") or not session_id:
-            raise AuthenticationFailed("Missing verification session credentials.")
+            raise _verification_session_rejected("credentials_missing")
 
         raw_token = authorization[len(self.keyword) + 1 :].strip()
         try:
@@ -82,25 +93,23 @@ class VerificationSessionAuthentication(BaseAuthentication):
                 "verification__verification_subject",
             ).get(public_id=session_id)
         except VerificationSession.DoesNotExist as exc:
-            raise AuthenticationFailed(
-                "Invalid verification session credentials."
-            ) from exc
+            raise _verification_session_rejected("session_not_found") from exc
 
         if not check_password(raw_token, verification_session.session_token_hash):
-            raise AuthenticationFailed("Invalid verification session credentials.")
+            raise _verification_session_rejected("token_mismatch")
 
         if verification_session.expires_at <= timezone.now():
             if verification_session.status != VerificationSessionStatus.EXPIRED:
                 verification_session.status = VerificationSessionStatus.EXPIRED
                 verification_session.save(update_fields=["status", "updated_at"])
-            raise AuthenticationFailed("Verification session has expired.")
+            raise _verification_session_rejected("session_expired")
 
         if verification_session.status in {
             VerificationSessionStatus.REVOKED,
             VerificationSessionStatus.COMPLETED,
             VerificationSessionStatus.EXPIRED,
         }:
-            raise AuthenticationFailed("Verification session is not active.")
+            raise _verification_session_rejected("session_inactive")
 
         request.verification_session = verification_session
         request.verification = verification_session.verification
@@ -114,4 +123,6 @@ def require_verification_session_action(request, action: str) -> None:
     if verification_session is None:
         raise AuthenticationFailed("Verification session authentication is required.")
     if action not in verification_session.allowed_actions:
-        raise AuthenticationFailed("This verification session cannot perform that action.")
+        raise AuthenticationFailed(
+            "This verification session cannot perform that action."
+        )

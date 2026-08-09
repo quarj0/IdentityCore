@@ -156,6 +156,21 @@ Passwords must:
 - Use strong password hashing.
 - Be resistant to brute-force attacks.
 
+### Enumeration Resistance
+
+Public authentication and recovery flows return equivalent results for known
+and unknown accounts. Password reset always acknowledges a syntactically valid
+request without exposing whether a notification was queued. Public invitation
+acceptance and verification-session authentication use one rejection message
+for invalid, expired, inactive, or already-consumed credentials.
+
+Login, anonymous GraphQL operations, public invitation acceptance, and
+verification-session lookup share an IP-based public-action rate limit. The key
+does not include a claimed email address, invitation token, organization, or
+session identifier, so choosing a known identifier does not change the limit.
+Internal logs retain reason codes for investigation but exclude the submitted
+identifier and credential.
+
 ---
 
 ## API Clients
