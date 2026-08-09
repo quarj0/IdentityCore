@@ -115,6 +115,17 @@ class ProviderAssignmentKey(models.TextChoices):
     NOTIFICATION_IN_APP = "notification_in_app", "Notification In-App"
 
 
+class ProviderRouteEnvironment(models.TextChoices):
+    SANDBOX = "sandbox", "Sandbox"
+    PRODUCTION = "production", "Production"
+
+
+class ProviderRouteStatus(models.TextChoices):
+    DRAFT = "draft", "Draft"
+    ACTIVE = "active", "Active"
+    RETIRED = "retired", "Retired"
+
+
 class ProviderAssignment(PublicIdModel, BaseModel):
     public_id_prefix = "pva"
 
@@ -194,6 +205,194 @@ class ProviderAssignment(PublicIdModel, BaseModel):
 
     def __str__(self) -> str:
         return f"{self.tenant_id}:{self.assignment_key}"
+
+
+class ProviderRoute(PublicIdModel, BaseModel):
+    """Immutable-on-publication provider selection rules for one environment."""
+
+    public_id_prefix = "pvr"
+
+    tenant = models.ForeignKey(
+        "tenants.Tenant",
+        on_delete=models.PROTECT,
+        related_name="provider_routes",
+    )
+    route_key = models.SlugField(max_length=120)
+    name = models.CharField(max_length=255)
+    version = models.PositiveIntegerField(default=1)
+    environment = models.CharField(
+        max_length=16,
+        choices=ProviderRouteEnvironment.choices,
+        db_index=True,
+    )
+    capability = models.CharField(
+        max_length=32,
+        choices=ProviderCheckType.choices,
+        db_index=True,
+    )
+    status = models.CharField(
+        max_length=16,
+        choices=ProviderRouteStatus.choices,
+        default=ProviderRouteStatus.DRAFT,
+        db_index=True,
+    )
+    priority = models.PositiveSmallIntegerField(default=100)
+    country_codes_json = models.JSONField(default=list, blank=True)
+    document_type_ids_json = models.JSONField(default=list, blank=True)
+    workflow_public_ids_json = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        ordering = [
+            "tenant_id",
+            "environment",
+            "capability",
+            "priority",
+            "route_key",
+            "-version",
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tenant", "route_key", "environment", "version"],
+                name="provider_route_scope_version_uniq",
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=["tenant", "environment", "capability", "status"],
+                name="provider_route_resolve_idx",
+            )
+        ]
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        for field_name in (
+            "country_codes_json",
+            "document_type_ids_json",
+            "workflow_public_ids_json",
+        ):
+            values = getattr(self, field_name)
+            if not isinstance(values, list) or any(
+                not isinstance(value, str) or not value.strip() for value in values
+            ):
+                errors[field_name] = (
+                    "Route conditions must be a list of non-empty strings."
+                )
+                continue
+            normalized = [value.strip() for value in values]
+            if field_name == "country_codes_json":
+                normalized = [value.upper() for value in normalized]
+            if len(normalized) != len(set(normalized)):
+                errors[field_name] = "Route conditions cannot contain duplicates."
+            else:
+                setattr(self, field_name, normalized)
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            existing = ProviderRoute.objects.filter(pk=self.pk).first()
+            if (
+                existing is not None
+                and existing.status == ProviderRouteStatus.DRAFT
+                and self.status != ProviderRouteStatus.DRAFT
+            ):
+                raise ValidationError(
+                    "Provider routes must be activated through the publication service."
+                )
+            if existing is not None and existing.status in {
+                ProviderRouteStatus.ACTIVE,
+                ProviderRouteStatus.RETIRED,
+            }:
+                immutable_fields = (
+                    "tenant_id",
+                    "route_key",
+                    "name",
+                    "version",
+                    "environment",
+                    "capability",
+                    "priority",
+                    "country_codes_json",
+                    "document_type_ids_json",
+                    "workflow_public_ids_json",
+                    "deleted_at",
+                )
+                if any(
+                    getattr(existing, field) != getattr(self, field)
+                    for field in immutable_fields
+                ):
+                    raise ValidationError(
+                        "Published provider route versions are immutable; create a new version."
+                    )
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+
+class ProviderRouteStep(PublicIdModel, BaseModel):
+    public_id_prefix = "prs"
+
+    route = models.ForeignKey(
+        ProviderRoute,
+        on_delete=models.CASCADE,
+        related_name="steps",
+    )
+    provider = models.ForeignKey(
+        Provider,
+        on_delete=models.PROTECT,
+        related_name="route_steps",
+    )
+    position = models.PositiveSmallIntegerField()
+
+    class Meta:
+        ordering = ["position", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["route", "position"],
+                name="provider_route_step_position_uniq",
+            ),
+            models.UniqueConstraint(
+                fields=["route", "provider"],
+                name="provider_route_step_provider_uniq",
+            ),
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.provider_id and self.route_id:
+            if self.provider.tenant_id not in {None, self.route.tenant_id}:
+                raise ValidationError(
+                    {
+                        "provider": "Route providers must be platform defaults or belong to the route tenant."
+                    }
+                )
+            allowed_types = CHECK_TYPE_PROVIDER_TYPES.get(self.route.capability, set())
+            if allowed_types and self.provider.provider_type not in allowed_types:
+                raise ValidationError(
+                    {
+                        "provider": "The provider type does not support this route capability."
+                    }
+                )
+
+    def save(self, *args, **kwargs):
+        existing = (
+            ProviderRouteStep.objects.select_related("route").filter(pk=self.pk).first()
+            if self.pk
+            else None
+        )
+        published_route = existing.route if existing is not None else self.route
+        if published_route.status in {
+            ProviderRouteStatus.ACTIVE,
+            ProviderRouteStatus.RETIRED,
+        }:
+            if existing is None or any(
+                getattr(existing, field) != getattr(self, field)
+                for field in ("route_id", "provider_id", "position", "deleted_at")
+            ):
+                raise ValidationError(
+                    "Published provider route steps are immutable; create a new route version."
+                )
+        self.full_clean()
+        return super().save(*args, **kwargs)
 
 
 class ProviderCheck(PublicIdModel, BaseModel):

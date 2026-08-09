@@ -107,8 +107,26 @@ Provider configuration is scoped to platform or tenant context and may include:
 - residency, retention, and data-processing metadata.
 
 A provider assignment associates a capability with a selected provider for an allowed
-scope. The current implementation includes provider records, tenant assignments, adapter
-resolution, and normalized provider checks. Rich route composition continues to evolve.
+scope. Assignments remain the compatibility fallback when no conditional route matches.
+
+The current implementation also includes tenant-owned, environment-scoped provider
+routes. Each immutable published route version declares one capability, optional country,
+document-type, and workflow conditions, and an ordered provider chain. Publishing a newer
+version retires the previous active version with the same route key. A provider check
+records the selected route public ID, version, and chain position in safe request metadata
+so later execution and audit work can explain the selection.
+
+Route selection is deterministic. Matching routes are ordered by:
+
+1. the number of configured condition dimensions, most specific first;
+2. numeric priority, lowest first;
+3. route key, lexicographically;
+4. version, highest first; and
+5. public ID as a final stable tie-breaker.
+
+An empty condition list is a wildcard for that dimension. Only active providers belonging
+to the tenant or defined as platform providers can be returned. If no published route
+matches, the runtime uses the active tenant assignment and then the managed system default.
 
 ## Invocation lifecycle
 
@@ -216,9 +234,12 @@ for:
 - provider health and circuit state;
 - whether retrying could duplicate a high-impact external action.
 
-The target architecture supports ordered and conditional provider routes. Documentation
-must not imply that every form of country-, document-, cost-, latency-, or residency-aware
-fallback is production-complete until the relevant route models and tests exist.
+The repository implements ordered routes conditioned on capability, country, document
+type, workflow, tenant, and sandbox or production environment. The route resolver returns
+the full eligible chain, while the current provider-check creation path selects and records
+its first step. Automated retry and fallback execution, attempt history, health-aware
+circuit breaking, and cost-, latency-, or residency-aware selection remain future runtime
+work and must not be described as production-complete.
 
 ## Tenant and environment isolation
 
