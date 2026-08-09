@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import secrets
 from datetime import timedelta
 from urllib.parse import urlencode
@@ -14,10 +15,13 @@ from django.utils import timezone
 from apps.accounts.models import PasswordResetToken, PlatformUser
 from apps.audit.services import record_audit_event
 from apps.notifications.models import NotificationChannel, NotificationRecipientType
-from apps.notifications.services import create_notification, enqueue_notification_delivery
-
+from apps.notifications.services import (
+    create_notification,
+    enqueue_notification_delivery,
+)
 
 PASSWORD_RESET_EXPIRY_HOURS = 2
+logger = logging.getLogger(__name__)
 
 
 def hash_password_reset_token(raw_token: str) -> str:
@@ -72,6 +76,10 @@ def request_password_reset(*, email: str, request=None) -> bool:
     normalized_email = PlatformUser.objects.normalize_email(email).strip().lower()
     user = PlatformUser.objects.filter(email=normalized_email).first()
     if user is None:
+        logger.info(
+            "Password reset request ignored.",
+            extra={"reason": "account_not_found"},
+        )
         return False
 
     _, raw_token = issue_password_reset_token(user=user)
@@ -94,7 +102,9 @@ def request_password_reset(*, email: str, request=None) -> bool:
 
 
 @transaction.atomic
-def reset_password_with_token(*, token: str, new_password: str, request=None) -> PlatformUser:
+def reset_password_with_token(
+    *, token: str, new_password: str, request=None
+) -> PlatformUser:
     token_hash = hash_password_reset_token(token)
     reset_token = (
         PasswordResetToken.objects.select_related("user")

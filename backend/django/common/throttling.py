@@ -34,3 +34,15 @@ class DashboardUserRateThrottle(SimpleRateThrottle):
         if not user or not getattr(user, "is_authenticated", False):
             return None
         return self.cache_format % {"scope": self.scope, "ident": user.public_id}
+
+
+class SensitivePublicRateThrottle(SimpleRateThrottle):
+    """Rate-limit public auth flows without keying on claimed identity."""
+
+    scope = "sensitive_public"
+
+    def get_cache_key(self, request, view):
+        return self.cache_format % {
+            "scope": self.scope,
+            "ident": self.get_ident(request),
+        }

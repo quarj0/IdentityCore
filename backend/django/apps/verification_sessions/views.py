@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import NotFound, Throttled, ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 
@@ -33,6 +33,7 @@ from common.authentication import (
     require_verification_session_action,
 )
 from common.responses import success_response
+from common.throttling import SensitivePublicRateThrottle
 
 
 class VerificationSessionBaseView(APIView):
@@ -40,18 +41,29 @@ class VerificationSessionBaseView(APIView):
     required_session_action = "session:read"
 
     def initial(self, request, *args, **kwargs):
+        throttle = SensitivePublicRateThrottle()
+        if not throttle.allow_request(request, self):
+            raise Throttled(wait=throttle.wait())
         super().initial(request, *args, **kwargs)
         require_verification_session_action(request, self.required_session_action)
 
     def _touch_session(self, request) -> None:
         verification_session = request.verification_session
         now = timezone.now()
-        update_fields = ["last_seen_at", "ip_address", "user_agent", "device_fingerprint", "updated_at"]
+        update_fields = [
+            "last_seen_at",
+            "ip_address",
+            "user_agent",
+            "device_fingerprint",
+            "updated_at",
+        ]
 
         verification_session.last_seen_at = now
         verification_session.ip_address = request.META.get("REMOTE_ADDR")
         verification_session.user_agent = request.headers.get("User-Agent", "")
-        verification_session.device_fingerprint = request.headers.get("X-Device-Fingerprint", "")
+        verification_session.device_fingerprint = request.headers.get(
+            "X-Device-Fingerprint", ""
+        )
         if verification_session.started_at is None:
             verification_session.started_at = now
             update_fields.append("started_at")
@@ -104,7 +116,10 @@ class VerificationMobileHandoffCreateView(VerificationSessionBaseView):
             action="verification.mobile_handoff_created",
             target_type="verification_session",
             target_id=source_session.public_id,
-            metadata={"handoff_id": handoff.public_id, "expires_at": expires_at.isoformat()},
+            metadata={
+                "handoff_id": handoff.public_id,
+                "expires_at": expires_at.isoformat(),
+            },
         )
         return success_response(
             {"handoff_url": handoff_url, "expires_at": expires_at.isoformat()},
@@ -131,7 +146,9 @@ class VerificationMobileHandoffRedeemView(APIView):
         if handoff is None or not handoff.matches_token(raw_token):
             raise NotFound("This mobile handoff link is invalid.")
         if handoff.redeemed_at is not None:
-            raise ValidationError({"handoff": "This mobile handoff link has already been used."})
+            raise ValidationError(
+                {"handoff": "This mobile handoff link has already been used."}
+            )
         if handoff.expires_at <= timezone.now():
             raise ValidationError({"handoff": "This mobile handoff link has expired."})
 
@@ -155,7 +172,10 @@ class VerificationMobileHandoffRedeemView(APIView):
             action="verification.mobile_handoff_redeemed",
             target_type="verification_session",
             target_id=mobile_session.public_id,
-            metadata={"handoff_id": handoff.public_id, "source_session_id": source.public_id},
+            metadata={
+                "handoff_id": handoff.public_id,
+                "source_session_id": source.public_id,
+            },
         )
         return success_response(
             {
@@ -172,7 +192,9 @@ class VerificationSessionConsentView(VerificationSessionBaseView):
 
     def post(self, request, session_id: str):
         self._touch_session(request)
-        serializer = VerificationSessionConsentSerializer(data=request.data, context={"request": request})
+        serializer = VerificationSessionConsentSerializer(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
         consent_record = serializer.save()
         verification = request.verification_session.verification
@@ -209,7 +231,9 @@ class VerificationSessionDocumentView(VerificationSessionBaseView):
     @transaction.atomic
     def post(self, request, session_id: str):
         self._touch_session(request)
-        serializer = VerificationSessionDocumentSerializer(data=request.data, context={"request": request})
+        serializer = VerificationSessionDocumentSerializer(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
         identity_document = serializer.save()
         verification = request.verification_session.verification
@@ -233,7 +257,9 @@ class VerificationSessionDocumentView(VerificationSessionBaseView):
                 },
             )
             transaction.on_commit(
-                lambda: process_identity_document_task.delay(identity_document.public_id)
+                lambda: process_identity_document_task.delay(
+                    identity_document.public_id
+                )
             )
         return success_response(
             {
@@ -250,7 +276,9 @@ class VerificationSessionSelfieView(VerificationSessionBaseView):
 
     def post(self, request, session_id: str):
         self._touch_session(request)
-        serializer = VerificationSessionSelfieSerializer(data=request.data, context={"request": request})
+        serializer = VerificationSessionSelfieSerializer(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
         selfie_capture = serializer.save()
         verification = request.verification_session.verification
@@ -287,14 +315,15 @@ class VerificationSessionLivenessView(VerificationSessionBaseView):
 
     def post(self, request, session_id: str):
         self._touch_session(request)
-        serializer = VerificationSessionLivenessSerializer(data=request.data, context={"request": request})
+        serializer = VerificationSessionLivenessSerializer(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
         liveness_check = serializer.save()
         verification = request.verification_session.verification
         if getattr(serializer, "created", True):
             if (
-                verification.metadata_json.get("workflow")
-                == "administrator_onboarding"
+                verification.metadata_json.get("workflow") == "administrator_onboarding"
                 and verification.created_by is not None
             ):
                 submit_administrator_identity_verification(
@@ -329,7 +358,10 @@ class VerificationSessionLivenessChallengeView(VerificationSessionBaseView):
             action="liveness.challenge_issued",
             target_type="verification_session",
             target_id=request.verification_session.public_id,
-            metadata={"challenge_id": challenge.public_id, "expires_at": challenge.expires_at.isoformat()},
+            metadata={
+                "challenge_id": challenge.public_id,
+                "expires_at": challenge.expires_at.isoformat(),
+            },
         )
         return success_response(
             {

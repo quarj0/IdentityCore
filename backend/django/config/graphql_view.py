@@ -7,7 +7,7 @@ from strawberry.django.views import GraphQLView
 
 from apps.audit.services import record_audit_event
 from common.responses import error_payload
-from common.throttling import DashboardUserRateThrottle
+from common.throttling import DashboardUserRateThrottle, SensitivePublicRateThrottle
 
 
 class AuthenticatedGraphQLView(GraphQLView):
@@ -28,6 +28,19 @@ class AuthenticatedGraphQLView(GraphQLView):
                     )
                 if authenticated is not None:
                     request.user, request.auth = authenticated
+        if request.method == "POST" and not getattr(
+            request.user, "is_authenticated", False
+        ):
+            throttle = SensitivePublicRateThrottle()
+            if not throttle.allow_request(request, self):
+                return JsonResponse(
+                    error_payload(
+                        "rate_limit_exceeded",
+                        "Request was throttled. Please try again later.",
+                        request=request,
+                    ),
+                    status=429,
+                )
         if request.method == "POST" and getattr(
             request.user, "is_authenticated", False
         ):

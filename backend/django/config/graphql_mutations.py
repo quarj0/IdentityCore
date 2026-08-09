@@ -712,10 +712,17 @@ class Mutation:
             )
             .first()
         )
+        rejection_reason = None
         if invitation is None:
-            raise GraphQLError("Invitation is invalid or expired.")
-        if PlatformUser.objects.filter(email=invitation.email).exists():
-            raise GraphQLError("An account already exists for this email address.")
+            rejection_reason = "invitation_not_found"
+        elif PlatformUser.objects.filter(email=invitation.email).exists():
+            rejection_reason = "account_already_exists"
+        if rejection_reason:
+            logger.info(
+                "Platform invitation acceptance rejected.",
+                extra={"reason": rejection_reason},
+            )
+            raise GraphQLError("Invitation is invalid or cannot be accepted.")
         try:
             validate_password(password)
         except ValidationError as exc:
@@ -1036,9 +1043,9 @@ class Mutation:
         email: str,
     ) -> PublicActionPayload:
         request = info.context["request"]
-        sent = request_password_reset(email=email, request=request)
+        request_password_reset(email=email, request=request)
         return PublicActionPayload(
-            ok=sent,
+            ok=True,
             message="If that email exists, a password reset link has been sent.",
             next_action="reset_password",
         )
