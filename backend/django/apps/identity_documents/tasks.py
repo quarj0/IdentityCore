@@ -18,9 +18,15 @@ from apps.providers.services import create_provider_check, invoke_provider_check
 from apps.uploads.services import promote_upload_to_media_by_storage_key
 from apps.verifications.models import VerificationStatus
 from apps.verifications.transitions import transition_verification
+from common.authorization import ServicePrincipal, require_service_access
 from common.storage import get_object_storage_temp_bucket_name
 
 logger = logging.getLogger(__name__)
+
+IDENTITY_DOCUMENT_WORKER = ServicePrincipal(
+    name="identity-document-worker",
+    allowed_actions=frozenset({"identity_document.process"}),
+)
 
 
 def _classification_requests_manual_review(result: dict) -> bool:
@@ -114,6 +120,11 @@ def process_identity_document_task(identity_document_id: str) -> str:
         )
         .prefetch_related("captures")
         .get(public_id=identity_document_id)
+    )
+    require_service_access(
+        IDENTITY_DOCUMENT_WORKER,
+        action="identity_document.process",
+        resource=identity_document,
     )
     verification = identity_document.verification
     captures = list(identity_document.captures.order_by("created_at"))
@@ -228,9 +239,11 @@ def process_identity_document_task(identity_document_id: str) -> str:
             }
             quality_provider_check.normalized_result_json = {
                 "status": latest_quality_status,
-                "quality_score": float(lowest_quality_score)
-                if lowest_quality_score is not None
-                else None,
+                "quality_score": (
+                    float(lowest_quality_score)
+                    if lowest_quality_score is not None
+                    else None
+                ),
                 "issues": issues_found,
             }
             quality_provider_check.save(
@@ -277,8 +290,9 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 verification.public_id,
                 exc,
             )
-        if classification_result is not None and _classification_requests_manual_review(
-            classification_result
+        if (
+            classification_result is not None
+            and _classification_requests_manual_review(classification_result)
         ):
             manual_review_required = True
 

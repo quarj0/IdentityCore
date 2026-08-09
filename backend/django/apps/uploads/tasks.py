@@ -9,10 +9,18 @@ from common.storage import (
     delete_object,
     get_object_storage_temp_bucket_name,
 )
+from common.authorization import ServicePrincipal, require_service_access
+
+UPLOAD_RETENTION_WORKER = ServicePrincipal(
+    name="upload-retention-worker",
+    allowed_actions=frozenset({"upload.cleanup"}),
+    allow_cross_tenant=True,
+)
 
 
 @shared_task(queue="retention")
 def cleanup_expired_uploads_task(limit: int = 200) -> int:
+    require_service_access(UPLOAD_RETENTION_WORKER, action="upload.cleanup")
     now = timezone.now()
     initiated_uploads = list(
         Upload.objects.select_related("tenant")

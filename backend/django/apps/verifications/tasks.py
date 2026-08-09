@@ -22,6 +22,19 @@ from apps.verifications.models import (
 )
 from apps.verifications.transitions import transition_verification
 from apps.webhooks.services import queue_webhook_events
+from common.authorization import ServicePrincipal, require_service_access
+
+VERIFICATION_MAINTENANCE_WORKER = ServicePrincipal(
+    name="verification-maintenance-worker",
+    allowed_actions=frozenset(
+        {
+            "verification.expire",
+            "verification.cleanup_sessions",
+            "verification.cleanup_media",
+        }
+    ),
+    allow_cross_tenant=True,
+)
 
 EXPIRABLE_VERIFICATION_STATUSES = {
     VerificationStatus.CREATED,
@@ -48,15 +61,22 @@ RETENTION_COMPLETED_VERIFICATION_STATUSES = {
 
 
 def _has_active_retention_hold(verification: Verification, now) -> bool:
-    return RetentionLegalHold.objects.filter(
-        tenant_id=verification.tenant_id,
-        verification_id__in=[None, verification.id],
-        released_at__isnull=True,
-    ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now)).exists()
+    return (
+        RetentionLegalHold.objects.filter(
+            tenant_id=verification.tenant_id,
+            verification_id__in=[None, verification.id],
+            released_at__isnull=True,
+        )
+        .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
+        .exists()
+    )
 
 
 @shared_task(queue="retention")
 def expire_pending_verifications_task(limit: int = 100) -> int:
+    require_service_access(
+        VERIFICATION_MAINTENANCE_WORKER, action="verification.expire"
+    )
     now = timezone.now()
     expired = 0
     verifications = (
@@ -103,6 +123,10 @@ def expire_pending_verifications_task(limit: int = 100) -> int:
 
 @shared_task(queue="retention")
 def cleanup_expired_verification_sessions_task(limit: int = 200) -> int:
+    require_service_access(
+        VERIFICATION_MAINTENANCE_WORKER,
+        action="verification.cleanup_sessions",
+    )
     now = timezone.now()
     updated = VerificationSession.objects.filter(
         status__in=EXPIRABLE_SESSION_STATUSES,
@@ -119,6 +143,10 @@ def cleanup_expired_verification_sessions_task(limit: int = 200) -> int:
 
 @shared_task(queue="retention")
 def cleanup_retained_media_task(limit: int = 100) -> int:
+    require_service_access(
+        VERIFICATION_MAINTENANCE_WORKER,
+        action="verification.cleanup_media",
+    )
     now = timezone.now()
     cleaned = 0
     verifications = (

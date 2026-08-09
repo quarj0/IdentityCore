@@ -1,7 +1,7 @@
 from django.db.models import QuerySet
 
 from apps.verifications.models import Verification, VerificationReviewOwner
-
+from common.authorization import AuthorizationAction, decide_user_access
 
 PLATFORM_REVIEW_WORKFLOWS = frozenset({"administrator_onboarding"})
 
@@ -19,9 +19,18 @@ def is_platform_owned_review(verification: Verification) -> bool:
 
 def manual_review_queryset_for_user(user) -> QuerySet[Verification]:
     queryset = Verification.objects.select_related("tenant", "verification_subject")
-    if getattr(user, "is_platform_admin", False):
+    if decide_user_access(
+        user,
+        action=AuthorizationAction.MANUAL_REVIEW,
+        review_owner=VerificationReviewOwner.PLATFORM,
+    ).allowed:
         return queryset.filter(review_owner=VerificationReviewOwner.PLATFORM)
-    if getattr(user, "tenant_id", None) is None:
+    if not decide_user_access(
+        user,
+        action=AuthorizationAction.MANUAL_REVIEW,
+        tenant=getattr(user, "tenant_id", None),
+        review_owner=VerificationReviewOwner.TENANT,
+    ).allowed:
         return queryset.none()
     return queryset.filter(
         tenant_id=user.tenant_id,
@@ -30,9 +39,9 @@ def manual_review_queryset_for_user(user) -> QuerySet[Verification]:
 
 
 def can_review_verification(user, verification: Verification) -> bool:
-    if is_platform_owned_review(verification):
-        return bool(getattr(user, "is_platform_admin", False))
-    return (
-        getattr(user, "tenant_id", None) == verification.tenant_id
-        and not getattr(user, "is_platform_admin", False)
-    )
+    return decide_user_access(
+        user,
+        action=AuthorizationAction.MANUAL_REVIEW,
+        tenant=verification.tenant_id,
+        review_owner=verification.review_owner,
+    ).allowed
