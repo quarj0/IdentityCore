@@ -127,7 +127,7 @@ It is responsible for:
 - exposing deterministic failure semantics to workflows;
 - supporting retry, fallback, and Manual Review policies.
 
-The repository now includes adapter-backed managed AI execution, centralized provider invocation, secure HTTP provider calls, provider message signing and replay resistance, redacted telemetry, duration tracking, and versioned capability results. More advanced conditional routes, ordered fallback chains, conformance tooling, and organization self-service provider onboarding remain areas of continued development.
+The repository now includes adapter-backed managed AI execution, centralized provider invocation, secure HTTP provider calls, provider message signing and replay resistance, redacted telemetry, duration tracking, versioned capability results, and immutable environment-scoped provider routes. Routes can match capability, country, document type, and workflow, and preserve an ordered provider chain with deterministic precedence. Automated fallback execution, circuit breakers, conformance tooling, and organization self-service provider onboarding remain areas of continued development.
 
 See [Provider Runtime](docs/architecture/provider-runtime.md).
 

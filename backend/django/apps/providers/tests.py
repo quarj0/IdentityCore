@@ -13,7 +13,10 @@ from apps.providers.ai_service import (
     AIServiceUnavailable,
     run_document_quality,
 )
-from apps.providers.http_adapter import SecureHTTPAdapterError, SecureHTTPProviderAdapter
+from apps.providers.http_adapter import (
+    SecureHTTPAdapterError,
+    SecureHTTPProviderAdapter,
+)
 from apps.providers.adapters import (
     BUILT_IN_AI_SERVICE,
     BuiltInAIServiceAdapter,
@@ -27,12 +30,19 @@ from apps.providers.models import (
     ProviderCheck,
     ProviderCheckStatus,
     ProviderCheckType,
+    ProviderRoute,
+    ProviderRouteEnvironment,
+    ProviderRouteStatus,
+    ProviderRouteStep,
+    ProviderStatus,
     ProviderType,
 )
 from apps.providers.services import (
     create_provider_check,
     invoke_provider_check,
+    publish_provider_route,
     redact_provider_metadata,
+    resolve_provider_chain,
 )
 from apps.tenants.models import Tenant
 from apps.verification_subjects.models import VerificationSubject
@@ -239,7 +249,8 @@ class ProviderModelTests(TestCase):
         self.assertTrue(check.normalized_result_json["error"]["retryable"])
         self.assertEqual(check.normalized_result_json["contract_version"], "1")
         self.assertEqual(
-            check.normalized_result_json["capability"], ProviderCheckType.DOCUMENT_QUALITY
+            check.normalized_result_json["capability"],
+            ProviderCheckType.DOCUMENT_QUALITY,
         )
         self.assertIsNotNone(check.duration_ms)
 
@@ -248,6 +259,281 @@ class ProviderModelTests(TestCase):
             redact_provider_metadata({"nested": [{"token": "secret"}]}),
             {"nested": [{"token": "[REDACTED]"}]},
         )
+
+
+class ProviderRouteTests(TestCase):
+    def setUp(self):
+        self.organization = Organization.objects.create(
+            name="Route Organization", slug="route-organization"
+        )
+        self.tenant = Tenant.objects.create(
+            organization=self.organization,
+            name="Route Tenant",
+            slug="route-tenant",
+            status="active",
+        )
+        self.providers = [
+            Provider.objects.create(
+                tenant=self.tenant,
+                name=f"Route Provider {index}",
+                code=f"route-provider-{index}",
+                provider_type=ProviderType.DOCUMENT,
+                status=ProviderStatus.ACTIVE,
+            )
+            for index in range(1, 4)
+        ]
+
+    def create_route(
+        self,
+        *,
+        route_key,
+        providers,
+        version=1,
+        environment=ProviderRouteEnvironment.SANDBOX,
+        capability=ProviderCheckType.DOCUMENT_OCR,
+        priority=100,
+        countries=None,
+        document_types=None,
+        workflows=None,
+    ):
+        route = ProviderRoute.objects.create(
+            tenant=self.tenant,
+            route_key=route_key,
+            name=route_key.replace("-", " ").title(),
+            version=version,
+            environment=environment,
+            capability=capability,
+            priority=priority,
+            country_codes_json=countries or [],
+            document_type_ids_json=document_types or [],
+            workflow_public_ids_json=workflows or [],
+        )
+        for position, provider in enumerate(providers, start=1):
+            ProviderRouteStep.objects.create(
+                route=route,
+                provider=provider,
+                position=position,
+            )
+        return publish_provider_route(route)
+
+    def test_resolution_applies_all_conditions_and_deterministic_specificity(self):
+        self.create_route(
+            route_key="wildcard",
+            providers=[self.providers[0]],
+            priority=1,
+        )
+        self.create_route(
+            route_key="ghana",
+            providers=[self.providers[1]],
+            countries=["gh"],
+        )
+        self.create_route(
+            route_key="ghana-national-id",
+            providers=[self.providers[1], self.providers[0]],
+            countries=["GH"],
+            document_types=["national_id"],
+        )
+        most_specific = self.create_route(
+            route_key="ghana-national-id-onboarding",
+            providers=[self.providers[2], self.providers[1]],
+            priority=500,
+            countries=["GH"],
+            document_types=["national_id"],
+            workflows=["wfl_onboarding"],
+        )
+
+        resolution = resolve_provider_chain(
+            tenant=self.tenant,
+            environment=ProviderRouteEnvironment.SANDBOX,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+            country_code="gh",
+            document_type="national_id",
+            workflow_public_id="wfl_onboarding",
+        )
+
+        self.assertEqual(resolution.route, most_specific)
+        self.assertEqual(resolution.providers, (self.providers[2], self.providers[1]))
+
+        document_resolution = resolve_provider_chain(
+            tenant=self.tenant,
+            environment=ProviderRouteEnvironment.SANDBOX,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+            country_code="GH",
+            document_type="national_id",
+            workflow_public_id="wfl_other",
+        )
+        self.assertEqual(document_resolution.route.route_key, "ghana-national-id")
+
+        country_resolution = resolve_provider_chain(
+            tenant=self.tenant,
+            environment=ProviderRouteEnvironment.SANDBOX,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+            country_code="GH",
+            document_type="passport",
+        )
+        self.assertEqual(country_resolution.route.route_key, "ghana")
+
+        wildcard_resolution = resolve_provider_chain(
+            tenant=self.tenant,
+            environment=ProviderRouteEnvironment.SANDBOX,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+            country_code="NG",
+        )
+        self.assertEqual(wildcard_resolution.route.route_key, "wildcard")
+
+    def test_ties_resolve_by_priority_then_route_key(self):
+        self.create_route(
+            route_key="zulu-route",
+            providers=[self.providers[0]],
+            priority=20,
+            countries=["GH"],
+        )
+        selected = self.create_route(
+            route_key="alpha-route",
+            providers=[self.providers[1]],
+            priority=10,
+            countries=["GH"],
+        )
+        self.create_route(
+            route_key="beta-route",
+            providers=[self.providers[2]],
+            priority=10,
+            countries=["GH"],
+        )
+
+        resolution = resolve_provider_chain(
+            tenant=self.tenant,
+            environment=ProviderRouteEnvironment.SANDBOX,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+            country_code="GH",
+        )
+
+        self.assertEqual(resolution.route, selected)
+
+    def test_routes_are_tenant_and_environment_scoped(self):
+        production = self.create_route(
+            route_key="production-only",
+            providers=[self.providers[0]],
+            environment=ProviderRouteEnvironment.PRODUCTION,
+        )
+        other_organization = Organization.objects.create(
+            name="Other Route Organization", slug="other-route-organization"
+        )
+        other_tenant = Tenant.objects.create(
+            organization=other_organization,
+            name="Other Route Tenant",
+            slug="other-route-tenant",
+            status="active",
+        )
+
+        production_resolution = resolve_provider_chain(
+            tenant=self.tenant,
+            environment=ProviderRouteEnvironment.PRODUCTION,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+        )
+        sandbox_resolution = resolve_provider_chain(
+            tenant=self.tenant,
+            environment=ProviderRouteEnvironment.SANDBOX,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+        )
+        foreign_resolution = resolve_provider_chain(
+            tenant=other_tenant,
+            environment=ProviderRouteEnvironment.PRODUCTION,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+        )
+
+        self.assertEqual(production_resolution.route, production)
+        self.assertIsNone(sandbox_resolution.route)
+        self.assertIsNone(foreign_resolution.route)
+        self.assertNotIn(self.providers[0], foreign_resolution.providers)
+
+    def test_publishing_new_version_retires_and_freezes_previous_version(self):
+        first = self.create_route(
+            route_key="versioned-route",
+            providers=[self.providers[0]],
+        )
+        second = self.create_route(
+            route_key="versioned-route",
+            providers=[self.providers[1]],
+            version=2,
+        )
+
+        first.refresh_from_db()
+        self.assertEqual(first.status, ProviderRouteStatus.RETIRED)
+        self.assertEqual(second.status, ProviderRouteStatus.ACTIVE)
+        first.priority = 1
+        with self.assertRaisesRegex(ValidationError, "immutable"):
+            first.save()
+
+    def test_draft_cannot_bypass_publication_and_published_steps_cannot_move(self):
+        route = ProviderRoute.objects.create(
+            tenant=self.tenant,
+            route_key="guarded-route",
+            name="Guarded route",
+            environment=ProviderRouteEnvironment.SANDBOX,
+            capability=ProviderCheckType.DOCUMENT_OCR,
+        )
+        step = ProviderRouteStep.objects.create(
+            route=route,
+            provider=self.providers[0],
+            position=1,
+        )
+        route.status = ProviderRouteStatus.ACTIVE
+        with self.assertRaisesRegex(ValidationError, "publication service"):
+            route.save()
+
+        published = publish_provider_route(ProviderRoute.objects.get(pk=route.pk))
+        replacement = ProviderRoute.objects.create(
+            tenant=self.tenant,
+            route_key="replacement-route",
+            name="Replacement route",
+            environment=ProviderRouteEnvironment.SANDBOX,
+            capability=ProviderCheckType.DOCUMENT_OCR,
+        )
+        step.route = replacement
+        with self.assertRaisesRegex(ValidationError, "immutable"):
+            step.save()
+        self.assertEqual(published.status, ProviderRouteStatus.ACTIVE)
+
+    def test_provider_check_records_selected_route_version(self):
+        selected = self.create_route(
+            route_key="verification-route",
+            providers=[self.providers[1], self.providers[0]],
+            countries=["GH"],
+            document_types=["national_id"],
+            workflows=["wfl_onboarding"],
+        )
+        subject = VerificationSubject.objects.create(
+            tenant=self.tenant,
+            full_name="Route Subject",
+        )
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=subject,
+            purpose="Route check",
+            workflow_snapshot_json={"workflow_id": "wfl_onboarding"},
+            expires_at=timezone.now(),
+        )
+        verification.identity_documents.create(
+            tenant=self.tenant,
+            verification_subject=subject,
+            document_type_id="national_id",
+            country_profile_id="GH",
+        )
+
+        check = create_provider_check(
+            verification=verification,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+            status=ProviderCheckStatus.PENDING,
+        )
+
+        self.assertEqual(check.provider, self.providers[1])
+        self.assertEqual(
+            check.request_metadata_json["provider_route_id"], selected.public_id
+        )
+        self.assertEqual(check.request_metadata_json["provider_route_version"], 1)
+        self.assertEqual(check.request_metadata_json["provider_route_step"], 1)
 
 
 class AIServiceClientTests(TestCase):
@@ -339,9 +625,14 @@ class SecureHTTPProviderAdapterTests(TestCase):
             {"allowed_hosts": ["provider.example.com"], "timeout_seconds": 5}
         )
 
-    @patch("apps.providers.http_adapter.socket.getaddrinfo", return_value=[(None, None, None, None, ("8.8.8.8", 0))])
+    @patch(
+        "apps.providers.http_adapter.socket.getaddrinfo",
+        return_value=[(None, None, None, None, ("8.8.8.8", 0))],
+    )
     @patch("apps.providers.http_adapter.request.build_opener")
-    def test_post_json_enforces_json_and_bounds_response(self, build_opener, getaddrinfo):
+    def test_post_json_enforces_json_and_bounds_response(
+        self, build_opener, getaddrinfo
+    ):
         response = Mock()
         response.headers.get_content_type.return_value = "application/json"
         response.read.return_value = b'{"status":"ok"}'
@@ -358,11 +649,18 @@ class SecureHTTPProviderAdapterTests(TestCase):
 
     def test_blocks_private_destinations_and_non_https_urls(self):
         with self.assertRaisesRegex(SecureHTTPAdapterError, "HTTPS"):
-            self.adapter().post_json(url="http://provider.example.com/check", payload={})
+            self.adapter().post_json(
+                url="http://provider.example.com/check", payload={}
+            )
         with self.assertRaisesRegex(SecureHTTPAdapterError, "allowlisted"):
             self.adapter().post_json(url="https://other.example.com/check", payload={})
 
-    @patch("apps.providers.http_adapter.socket.getaddrinfo", return_value=[(None, None, None, None, ("127.0.0.1", 0))])
+    @patch(
+        "apps.providers.http_adapter.socket.getaddrinfo",
+        return_value=[(None, None, None, None, ("127.0.0.1", 0))],
+    )
     def test_blocks_private_dns_resolution(self, getaddrinfo):
         with self.assertRaisesRegex(SecureHTTPAdapterError, "private"):
-            self.adapter().post_json(url="https://provider.example.com/check", payload={})
+            self.adapter().post_json(
+                url="https://provider.example.com/check", payload={}
+            )
