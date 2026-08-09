@@ -249,6 +249,26 @@ it. Exhausting the chain applies the route's explicit `manual_review` or `fail` 
 records only safe codes in decision and audit evidence. Cost-, latency-, and
 residency-aware selection remain future work.
 
+## Health telemetry
+
+The runtime exposes redacted health snapshots for one tenant, environment, and bounded
+time window. Each provider snapshot includes terminal attempt counts, availability and
+error-rate percentages, p50/p95/maximum latency, capability names, and controlled error
+codes. Active route snapshots include ordered provider steps and current circuit state so
+operators can diagnose routing without access to credentials or provider configuration.
+
+Tenant users request an explicit `sandbox` or `production` scope from
+`GET /api/v1/providers/health/`; the default window is 24 hours and the supported range is
+1 to 720 hours. Platform administrators can inspect the same data through
+`platformProviderHealth`, but results remain separate tenant/environment groups rather
+than a cross-tenant aggregate.
+
+Health responses never include request, response, or normalized provider payloads; error
+messages; configuration; credentials; subject fields; or evidence references. A check
+without a project is treated as sandbox data for compatibility with pre-project records.
+The current operational threshold marks a provider degraded when at least 5 percent of
+terminal attempts in the selected window fail, and unavailable when none succeed.
+
 ## Tenant and environment isolation
 
 Provider resolution, credentials, configuration, checks, evidence, and telemetry must be

@@ -40,6 +40,7 @@ def serialize_provider_check(provider_check: ProviderCheck) -> dict:
             if provider_check.completed_at
             else None
         ),
+        "duration_ms": provider_check.duration_ms,
         "execution_attempt": (
             {
                 "id": attempt.public_id,

@@ -1,3 +1,4 @@
+import json
 from datetime import timedelta
 
 from django.urls import reverse
@@ -22,8 +23,15 @@ from apps.providers.models import (
     ProviderCheck,
     ProviderCheckStatus,
     ProviderCheckType,
+    ProviderCircuitState,
+    ProviderCircuitStatus,
+    ProviderRoute,
+    ProviderRouteEnvironment,
+    ProviderRouteStep,
     ProviderType,
 )
+from apps.providers.services import publish_provider_route
+from apps.projects.models import Project, ProjectEnvironment
 from apps.risk.models import RiskAssessment
 from apps.tenants.models import Tenant
 from apps.verification_subjects.models import VerificationSubject
@@ -179,6 +187,173 @@ class ManagementAPIEndpointTests(APITestCase):
             provider.code,
         )
         self.assertEqual(risk_response.data["data"]["results"][0]["risk_level"], "low")
+
+    def test_provider_health_is_scoped_redacted_and_includes_route_circuit_state(self):
+        provider = Provider.objects.create(
+            name="Document Provider",
+            code="document-health-provider",
+            provider_type=ProviderType.DOCUMENT,
+            configuration_json={"api_key": "never-return-this-secret"},
+        )
+        now = timezone.now()
+        ProviderCheck.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            provider=provider,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+            status=ProviderCheckStatus.COMPLETED,
+            request_metadata_json={"subject_email": "private@example.com"},
+            response_metadata_json={"document_number": "GHA-PRIVATE-123"},
+            normalized_result_json={"full_name": "Private Person"},
+            started_at=now - timedelta(milliseconds=120),
+            completed_at=now,
+            duration_ms=120,
+        )
+        ProviderCheck.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            provider=provider,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+            status=ProviderCheckStatus.TIMEOUT,
+            error_code="private@example.com",
+            error_message="Private upstream response",
+            started_at=now - timedelta(milliseconds=450),
+            completed_at=now,
+            duration_ms=450,
+        )
+
+        production_project = Project.objects.create(
+            tenant=self.tenant,
+            name="Production",
+            slug="production-health",
+            environment=ProjectEnvironment.PRODUCTION,
+            created_by=self.user,
+        )
+        production_verification = Verification.objects.create(
+            tenant=self.tenant,
+            project=production_project,
+            organization=self.organization,
+            verification_subject=self.subject,
+            purpose="Production health isolation",
+            status=VerificationStatus.PROCESSING,
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+        ProviderCheck.objects.create(
+            tenant=self.tenant,
+            verification=production_verification,
+            provider=provider,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+            status=ProviderCheckStatus.COMPLETED,
+            started_at=now,
+            completed_at=now,
+            duration_ms=5,
+        )
+
+        other_organization = Organization.objects.create(
+            name="Other Health Organization",
+            slug="other-health-organization",
+        )
+        other_tenant = Tenant.objects.create(
+            organization=other_organization,
+            name="Other Health Tenant",
+            slug="other-health-tenant",
+            status="active",
+        )
+        other_subject = VerificationSubject.objects.create(
+            tenant=other_tenant,
+            full_name="Foreign Private Person",
+            email="foreign-private@example.com",
+        )
+        other_verification = Verification.objects.create(
+            tenant=other_tenant,
+            organization=other_organization,
+            verification_subject=other_subject,
+            purpose="Tenant health isolation",
+            status=VerificationStatus.PROCESSING,
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+        ProviderCheck.objects.create(
+            tenant=other_tenant,
+            verification=other_verification,
+            provider=provider,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+            status=ProviderCheckStatus.COMPLETED,
+            response_metadata_json={"email": "foreign-private@example.com"},
+            started_at=now,
+            completed_at=now,
+            duration_ms=1,
+        )
+
+        route = ProviderRoute.objects.create(
+            tenant=self.tenant,
+            route_key="document-health",
+            name="Document health",
+            environment=ProviderRouteEnvironment.SANDBOX,
+            capability=ProviderCheckType.DOCUMENT_OCR,
+        )
+        step = ProviderRouteStep.objects.create(
+            route=route,
+            provider=provider,
+            position=1,
+        )
+        publish_provider_route(route)
+        ProviderCircuitState.objects.create(
+            route_step=step,
+            status=ProviderCircuitStatus.OPEN,
+            consecutive_failures=3,
+            opened_at=now,
+            retry_after=now + timedelta(minutes=1),
+        )
+
+        response = self.client.get(
+            reverse("provider-health"),
+            {"environment": "sandbox", "window_hours": 24},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        health = response.data["data"]
+        self.assertEqual(health["scope"]["tenant_id"], self.tenant.public_id)
+        self.assertEqual(health["scope"]["environment"], "sandbox")
+        self.assertEqual(health["providers"][0]["total_attempts"], 2)
+        self.assertEqual(health["providers"][0]["availability_percent"], 50.0)
+        self.assertEqual(health["providers"][0]["latency_ms"]["p95"], 450)
+        self.assertEqual(
+            health["providers"][0]["error_codes"],
+            [{"code": "provider_error", "count": 1}],
+        )
+        self.assertEqual(health["routes"][0]["status"], "unavailable")
+        self.assertEqual(health["routes"][0]["steps"][0]["circuit_status"], "open")
+        serialized = json.dumps(health)
+        for private_value in (
+            "never-return-this-secret",
+            "private@example.com",
+            "GHA-PRIVATE-123",
+            "Private Person",
+            "Private upstream response",
+            "foreign-private@example.com",
+        ):
+            self.assertNotIn(private_value, serialized)
+        for private_key in (
+            "configuration",
+            "request_metadata",
+            "response_metadata",
+            "normalized_result",
+            "error_message",
+        ):
+            self.assertNotIn(private_key, serialized)
+
+    def test_provider_health_requires_a_valid_explicit_scope(self):
+        self.assertEqual(
+            self.client.get(reverse("provider-health")).status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertEqual(
+            self.client.get(
+                reverse("provider-health"),
+                {"environment": "sandbox", "window_hours": 0},
+            ).status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
 
     def test_media_download_url_endpoints_return_temporary_links(self):
         identity_document = IdentityDocument.objects.create(
