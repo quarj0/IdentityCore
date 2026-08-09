@@ -11,7 +11,6 @@ from common.storage import (
     build_signed_download_url,
     build_signed_upload_url,
     build_public_asset_url,
-    determine_storage_provider,
     get_object_bytes,
     get_object_storage_temp_bucket_name,
     move_object,
@@ -169,6 +168,7 @@ class StorageHelpersTests(TestCase):
         )
 
     @override_settings(
+        OBJECT_STORAGE_ENDPOINT_URL="https://example.r2.cloudflarestorage.com",
         OBJECT_STORAGE_ACCESS_KEY_ID="key",
         OBJECT_STORAGE_SECRET_ACCESS_KEY="secret",
         OBJECT_STORAGE_SERVER_SIDE_ENCRYPTION="AES256",
@@ -197,6 +197,7 @@ class StorageHelpersTests(TestCase):
         self.assertEqual(content_type, "application/json")
 
     @override_settings(
+        OBJECT_STORAGE_ENDPOINT_URL="https://example.r2.cloudflarestorage.com",
         OBJECT_STORAGE_ACCESS_KEY_ID="key",
         OBJECT_STORAGE_SECRET_ACCESS_KEY="secret",
     )

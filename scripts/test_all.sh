@@ -26,7 +26,7 @@ cd "$ROOT_DIR"
 run_suite "generated SDK model drift" uv run --project backend python scripts/generate_sdk_models.py --check
 
 run_suite "Django backend" env DJANGO_SETTINGS_MODULE=config.settings.testing \
-  uv run --project backend python backend/django/manage.py test apps config
+  uv run --project backend python backend/django/manage.py test apps common config
 run_suite "AI service" uv run --project backend pytest backend/ai-service/tests
 run_suite "frontend unit" pnpm --dir frontend --recursive --if-present test
 run_suite "verification portal end-to-end" \
