@@ -16,8 +16,9 @@ var verification = await client.Verifications.CreateAsync(new
     policy_id = "pol_...",
     verification_subject = new { full_name = "Kwame Mensah" },
 }, "customer-123-onboarding-v1");
+var result = await client.Verifications.ResultAsync(verification.GetProperty("id").GetString()!);
 ```
 
-The SDK provides policies, verification creation/list/detail/cancel/resend/evidence helpers, async pagination, safe retries, structured API errors, cancellation, timeouts, and constant-time webhook verification.
+The SDK provides policies, verification creation/list/detail/result/cancel/resend/evidence helpers, async pagination, safe retries, structured API errors, cancellation, timeouts, and constant-time webhook verification.
 
 Run `dotnet test IdentityCore.sln` and `dotnet pack src/IdentityCore/IdentityCore.csproj -c Release`.

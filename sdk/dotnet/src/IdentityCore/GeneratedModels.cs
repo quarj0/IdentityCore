@@ -184,6 +184,26 @@ public sealed record VerificationDetail
     public string? ExpiresAt { get; init; }
 }
 
+public sealed record VerificationResult
+{
+    [JsonPropertyName("schema_version")]
+    public string SchemaVersion { get; init; }
+    [JsonPropertyName("verification_id")]
+    public string VerificationId { get; init; }
+    [JsonPropertyName("status")]
+    public string Status { get; init; }
+    [JsonPropertyName("decision")]
+    public JsonElement? Decision { get; init; }
+    [JsonPropertyName("policy")]
+    public JsonElement Policy { get; init; }
+    [JsonPropertyName("workflow")]
+    public JsonElement Workflow { get; init; }
+    [JsonPropertyName("check_provenance")]
+    public IReadOnlyList<JsonElement> CheckProvenance { get; init; }
+    [JsonPropertyName("timestamps")]
+    public JsonElement Timestamps { get; init; }
+}
+
 public sealed record CursorPagination
 {
     [JsonPropertyName("limit")]

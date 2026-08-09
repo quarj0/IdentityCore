@@ -39,6 +39,7 @@ from apps.verifications.serializers import (
     serialize_verification,
     serialize_verification_summary,
 )
+from apps.verifications.result_contract import serialize_verification_result
 from common.pagination import (
     paginate_cursor_results,
     paginate_results,
@@ -105,7 +106,6 @@ class VerificationAccessMixin:
 
 
 class VerificationListCreateView(VerificationAccessMixin, APIView):
-
     def get_permissions(self):
         self.required_scopes = (
             ("verifications:read",)
@@ -296,6 +296,24 @@ class VerificationDetailView(VerificationAccessMixin, APIView):
         )
         return success_response(
             serialize_verification(verification, request=request),
+            request=request,
+        )
+
+
+class VerificationResultView(VerificationAccessMixin, APIView):
+    required_scopes = ("verifications:read",)
+
+    def get(self, request, verification_id: str):
+        verification = get_object_or_404(
+            self._scope_to_client_environment(
+                request,
+                Verification.objects.select_related("verification_subject"),
+            ),
+            tenant=self._get_tenant(request),
+            public_id=verification_id,
+        )
+        return success_response(
+            serialize_verification_result(verification),
             request=request,
         )
 
@@ -617,9 +635,13 @@ class ManualReviewApprovalView(APIView):
             VerificationDecision.objects.select_for_update(), verification=verification
         )
         if decision_record.approval_status != VerificationApprovalStatus.PENDING:
-            raise ValidationError({"approval": "This decision is not awaiting approval."})
+            raise ValidationError(
+                {"approval": "This decision is not awaiting approval."}
+            )
         if decision_record.decided_by_id == request.user.id:
-            raise ValidationError({"approval": "The maker cannot approve their own decision."})
+            raise ValidationError(
+                {"approval": "The maker cannot approve their own decision."}
+            )
         approval = ManualReviewApprovalSerializer(data=request.data)
         approval.is_valid(raise_exception=True)
         now = timezone.now()
@@ -628,9 +650,17 @@ class ManualReviewApprovalView(APIView):
         decision_record.approved_by = request.user
         decision_record.approved_at = now
         decision_record.save(
-            update_fields=["decision", "approval_status", "approved_by", "approved_at", "updated_at"]
+            update_fields=[
+                "decision",
+                "approval_status",
+                "approved_by",
+                "approved_at",
+                "updated_at",
+            ]
         )
-        transition_verification(verification, decision_record.decision, completed_at=now)
+        transition_verification(
+            verification, decision_record.decision, completed_at=now
+        )
         record_audit_event(
             tenant=verification.tenant,
             actor=request.user,

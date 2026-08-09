@@ -279,6 +279,11 @@ Identity document and biometric workers use durable database-backed jobs with
 leases, heartbeats, bounded recovery attempts, and terminal Manual Review
 routing. See [Processing job recovery](docs/operations/processing-job-recovery.md).
 
+Public consumers retrieve decisions through a dedicated versioned verification
+result contract. It exposes immutable policy/workflow versions and allowlisted
+check provenance without applicant fields, storage references, raw provider
+payloads, reviewer notes, or database primary keys.
+
 This modular-monolith architecture is intentional. Components should be extracted only where scaling, security, deployment ownership, or availability boundaries justify it.
 
 ## 18. Future workloads

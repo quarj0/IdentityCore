@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: IdentityCore Public API
-  version: 0.2.0
+  version: 0.3.0
   description: Public REST API surface plus workspace-authenticated portal routes used by IdentityCore SDKs and sandbox testing.
 servers:
   - url: https://api.identitycore.com/api/v1
@@ -89,9 +89,9 @@ components:
         current_version:
           type: integer
         source_template_id:
-          type: [string, 'null']
+          type: [string, "null"]
         source_template_version:
-          type: [string, 'null']
+          type: [string, "null"]
         created_at:
           type: string
           format: date-time
@@ -209,7 +209,8 @@ components:
           format: date-time
     VerificationSummary:
       type: object
-      required: [id, status, purpose, external_reference, subject, policy, created_at]
+      required:
+        [id, status, purpose, external_reference, subject, policy, created_at]
       properties:
         id:
           type: string
@@ -270,6 +271,164 @@ components:
             expires_at:
               type: string
               format: date-time
+    VerificationResult:
+      type: object
+      additionalProperties: false
+      required:
+        - schema_version
+        - verification_id
+        - status
+        - decision
+        - policy
+        - workflow
+        - check_provenance
+        - timestamps
+      properties:
+        schema_version:
+          type: string
+          const: "1"
+        verification_id:
+          type: string
+        status:
+          type: string
+        decision:
+          type: [object, "null"]
+          additionalProperties: false
+          required:
+            - outcome
+            - type
+            - reason_codes
+            - approval_status
+            - contract_version
+            - decided_at
+          properties:
+            outcome:
+              type: string
+            type:
+              type: string
+            reason_codes:
+              type: array
+              items:
+                type: string
+            approval_status:
+              type: string
+            contract_version:
+              type: string
+            decided_at:
+              type: string
+              format: date-time
+        policy:
+          type: object
+          additionalProperties: false
+          required: [policy_id, version]
+          properties:
+            policy_id:
+              type: [string, "null"]
+            version:
+              type: [integer, "null"]
+        workflow:
+          type: object
+          additionalProperties: false
+          required: [workflow_id, version_id, version]
+          properties:
+            workflow_id:
+              type: [string, "null"]
+            version_id:
+              type: [string, "null"]
+            version:
+              type: [integer, "null"]
+        check_provenance:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - check_id
+              - capability
+              - status
+              - provider
+              - capability_contract_version
+              - evidence
+              - error_code
+              - started_at
+              - completed_at
+              - duration_ms
+            properties:
+              check_id:
+                type: string
+              capability:
+                type: string
+              status:
+                type: string
+              provider:
+                type: object
+                additionalProperties: false
+                required: [provider_id, code, type]
+                properties:
+                  provider_id:
+                    type: string
+                  code:
+                    type: string
+                  type:
+                    type: string
+              capability_contract_version:
+                type: [string, "null"]
+              evidence:
+                type: object
+                additionalProperties: false
+                properties:
+                  confidence_level:
+                    type: string
+                  confidence_score:
+                    type: number
+                  score:
+                    type: number
+                  match_score:
+                    type: number
+                  quality_score:
+                    type: number
+                  threshold_used:
+                    type: number
+                  model:
+                    type: object
+                    additionalProperties: false
+                    required: [name, version]
+                    properties:
+                      name:
+                        type: string
+                      version:
+                        type: string
+                  issues:
+                    type: array
+                    items:
+                      type: string
+              error_code:
+                type: [string, "null"]
+              started_at:
+                type: string
+                format: date-time
+              completed_at:
+                type: [string, "null"]
+                format: date-time
+              duration_ms:
+                type: [integer, "null"]
+        timestamps:
+          type: object
+          additionalProperties: false
+          required: [created_at, updated_at, completed_at, expires_at]
+          properties:
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+            completed_at:
+              type: [string, "null"]
+              format: date-time
+            expires_at:
+              type: string
+              format: date-time
     CursorPagination:
       type: object
       description: Cursor pagination metadata. Cursors are opaque and must be reused with the same filters.
@@ -297,7 +456,14 @@ components:
           type: integer
     EvidenceReport:
       type: object
-      required: [verification_id, storage_key, download_url, pdf_storage_key, pdf_download_url]
+      required:
+        [
+          verification_id,
+          storage_key,
+          download_url,
+          pdf_storage_key,
+          pdf_download_url,
+        ]
       properties:
         verification_id:
           type: string
@@ -325,7 +491,14 @@ components:
           minimum: 1
     PortalUploadCreateResponse:
       type: object
-      required: [upload_id, upload_url, upload_headers, upload_transfer_path, expires_at]
+      required:
+        [
+          upload_id,
+          upload_url,
+          upload_headers,
+          upload_transfer_path,
+          expires_at,
+        ]
       properties:
         upload_id:
           type: string
@@ -423,7 +596,16 @@ components:
           minimum: 1
     OrganizationSupportingDocumentUploadResponse:
       type: object
-      required: [document_id, filename, file_size_bytes, status, storage_key, download_url, upload_url]
+      required:
+        [
+          document_id,
+          filename,
+          file_size_bytes,
+          status,
+          storage_key,
+          download_url,
+          upload_url,
+        ]
       properties:
         document_id:
           type: string
@@ -459,7 +641,18 @@ components:
           type: boolean
     ProjectSummary:
       type: object
-      required: [id, name, slug, environment, status, allowed_origins, is_default, created_at, updated_at]
+      required:
+        [
+          id,
+          name,
+          slug,
+          environment,
+          status,
+          allowed_origins,
+          is_default,
+          created_at,
+          updated_at,
+        ]
       properties:
         id:
           type: string
@@ -502,7 +695,19 @@ components:
             format: uri
     APIClientSummary:
       type: object
-      required: [public_id, tenant_public_id, name, client_id, status, scopes, allowed_networks, rate_limit_per_minute, created_at, updated_at]
+      required:
+        [
+          public_id,
+          tenant_public_id,
+          name,
+          client_id,
+          status,
+          scopes,
+          allowed_networks,
+          rate_limit_per_minute,
+          created_at,
+          updated_at,
+        ]
       properties:
         public_id:
           type: string
@@ -621,7 +826,8 @@ components:
           type: boolean
     ManualReviewSummary:
       type: object
-      required: [verification_id, status, purpose, subject, risk_level, created_at]
+      required:
+        [verification_id, status, purpose, subject, risk_level, created_at]
       properties:
         verification_id:
           type: string
@@ -875,6 +1081,34 @@ paths:
                     const: true
                   data:
                     $ref: "#/components/schemas/VerificationDetail"
+                  request_id:
+                    type: string
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /verifications/{verification_id}/result:
+    get:
+      summary: Retrieve the stable versioned verification result.
+      parameters:
+        - $ref: "#/components/parameters/ClientIdHeader"
+        - name: verification_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Versioned verification result with allowlisted evidence lineage.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationResult"
                   request_id:
                     type: string
         "403":

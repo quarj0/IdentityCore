@@ -6,7 +6,7 @@
 
 **Status:** Target API design. This document describes intended Version 1.0 behavior and
 is not the live endpoint contract. The concrete implemented public surface is
-`docs/openapi/identitycore-public-api.yaml` (currently version 0.2.0). IC-069 tracks
+`docs/openapi/identitycore-public-api.yaml` (currently version 0.3.0). IC-069 tracks
 contract parity and IC-070 tracks complete public idempotency enforcement.
 
 ---
@@ -547,6 +547,73 @@ Implementation note:
 
 - The current Django bootstrap creates provider-check records for liveness, face match, and risk evaluation.
 - Until external AI/provider integrations are connected, inconclusive bootstrap evidence is automatically routed into `manual_review_required` with a persisted automatic decision and risk assessment.
+
+---
+
+## GET /verifications/{verification_id}/result
+
+Returns the stable public verification-result contract. The response is scoped to
+the authenticated tenant and, for API clients, the credential's project
+environment.
+
+Required scope:
+
+```text
+verifications:read
+```
+
+Response fields:
+
+- `schema_version`, currently `1`;
+- the public verification ID and current status;
+- decision outcome, type, reason codes, approval status, decision-contract
+  version, and decision timestamp;
+- immutable policy and workflow public IDs and versions;
+- ordered check provenance containing public check/provider IDs, capability,
+  normalized status, provider code/type, capability-contract version, allowlisted
+  model/score evidence, safe error code, and processing timestamps;
+- verification lifecycle timestamps.
+
+The result contract intentionally excludes applicant attributes, reviewer notes,
+provider references, configuration, request metadata, raw or normalized provider
+payloads, extracted document fields, storage keys, and database primary keys.
+Callers must branch on `schema_version` before adopting a future incompatible
+version.
+
+Example:
+
+```json
+{
+  "success": true,
+  "data": {
+    "schema_version": "1",
+    "verification_id": "ver_01JABC...",
+    "status": "verified",
+    "decision": {
+      "outcome": "verified",
+      "type": "automatic",
+      "reason_codes": ["risk_rules_approved"],
+      "approval_status": "not_required",
+      "contract_version": "1",
+      "decided_at": "2026-07-04T10:03:00Z"
+    },
+    "policy": { "policy_id": "pol_01JABC...", "version": 7 },
+    "workflow": {
+      "workflow_id": "wfl_01JABC...",
+      "version_id": "wfv_01JABC...",
+      "version": 3
+    },
+    "check_provenance": [],
+    "timestamps": {
+      "created_at": "2026-07-04T10:00:00Z",
+      "updated_at": "2026-07-04T10:03:00Z",
+      "completed_at": "2026-07-04T10:03:00Z",
+      "expires_at": "2026-07-04T11:00:00Z"
+    }
+  },
+  "request_id": "req_01JABC..."
+}
+```
 
 ---
 

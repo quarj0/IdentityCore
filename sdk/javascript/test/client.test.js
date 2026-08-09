@@ -35,6 +35,13 @@ test("async iterator follows pagination", async () => {
   assert.match(urls[1], /cursor=next/);
 });
 
+test("retrieves the versioned verification result", async () => {
+  const urls = [];
+  const client = new IdentityCoreClient({ apiOrigin: "https://api.example.test", clientId: "c", clientSecret: "s", fetch: async (url) => { urls.push(url); return response(success({ schema_version: "1" })); } });
+  assert.equal((await client.verifications.result("ver_1")).schema_version, "1");
+  assert.equal(urls[0], "https://api.example.test/api/v1/verifications/ver_1/result");
+});
+
 test("verifies signatures over the raw payload", () => {
   const body = Buffer.from('{"id":"evt_1"}'); const timestamp = "1000"; const signingKey = "whsec_test";
   const signature = `sha256=${createHmac("sha256", signingKey).update(`${timestamp}.`).update(body).digest("hex")}`;

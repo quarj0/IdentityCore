@@ -48,9 +48,11 @@ class CatalogEndpointTests(APITestCase):
         self.assertTrue(response.data["success"])
         data = response.data["data"]
         self.assertEqual(data["api_version"], "1.0")
-        self.assertEqual(data["base_urls"]["development"], "http://localhost:8000/api/v1")
+        self.assertEqual(
+            data["base_urls"]["development"], "http://localhost:8000/api/v1"
+        )
         # Verifications exposes separate list and create operations on one path.
-        self.assertEqual(len(data["resources"]), 33)
+        self.assertEqual(len(data["resources"]), 34)
         self.assertIn("/verifications/", [item["path"] for item in data["resources"]])
         documented_paths = {item["path"] for item in data["resources"]}
         self.assertTrue(
@@ -64,6 +66,7 @@ class CatalogEndpointTests(APITestCase):
                 "/api-clients/",
                 "/webhook-endpoints/",
                 "/verifications/manual-reviews",
+                "/verifications/{verification_id}/result",
                 "/verifications/{verification_id}/evidence-report/download.pdf",
             }.issubset(documented_paths)
         )
@@ -83,11 +86,14 @@ class CatalogEndpointTests(APITestCase):
         self.assertIn("IdentityCore Public API", body)
         self.assertIn("/uploads/", body)
         self.assertIn("/organization/me/", body)
-        self.assertIn("/organization/me/verification-documents/{document_id}/content/", body)
+        self.assertIn(
+            "/organization/me/verification-documents/{document_id}/content/", body
+        )
         self.assertIn("/organization/me/suspend", body)
         self.assertIn("/projects/{project_id}/workflows:instantiate", body)
         self.assertIn("/api-clients/", body)
         self.assertIn("/verifications/manual-reviews", body)
+        self.assertIn("/verifications/{verification_id}/result", body)
 
     def test_newly_documented_backend_routes_are_registered(self):
         routes = [

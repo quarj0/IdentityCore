@@ -118,6 +118,14 @@ class PublicDocsOverviewView(APIView):
                         "description": "Retrieve verification status and evidence metadata.",
                     },
                     {
+                        "slug": "get-verification-result",
+                        "name": "Verification result",
+                        "method": "GET",
+                        "path": "/verifications/{verification_id}/result",
+                        "category": "Verifications",
+                        "description": "Retrieve the stable, versioned verification result and check provenance.",
+                    },
+                    {
                         "slug": "cancel-verification",
                         "name": "Verification cancel",
                         "method": "POST",
