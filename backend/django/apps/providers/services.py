@@ -1,13 +1,13 @@
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
-from apps.providers.ai_service import AIServiceUnavailable
 from apps.providers.adapters import (
     PROVIDER_CONTRACT_VERSION,
     normalize_provider_result,
@@ -15,17 +15,24 @@ from apps.providers.adapters import (
 
 from apps.providers.models import (
     Provider,
+    ProviderAttemptOutcome,
     ProviderCheck,
     ProviderCheckStatus,
     ProviderCheckType,
     ProviderAssignment,
     ProviderAssignmentKey,
     ProviderAssignmentStatus,
+    ProviderCircuitState,
+    ProviderCircuitStatus,
+    ProviderExecutionAttempt,
     ProviderRoute,
+    ProviderRouteFinalAction,
+    ProviderRouteStep,
     ProviderRouteStatus,
     ProviderStatus,
     ProviderType,
 )
+from apps.core.models import generate_public_id
 from apps.tenants.models import Tenant
 
 
@@ -80,6 +87,25 @@ SENSITIVE_METADATA_KEYS = frozenset(
 class ProviderRouteResolution:
     route: ProviderRoute | None
     providers: tuple[Provider, ...]
+
+
+@dataclass(frozen=True)
+class ProviderRouteExecutionResult:
+    result: dict
+    provider_check: ProviderCheck
+    attempts: tuple[ProviderExecutionAttempt, ...]
+
+
+class ProviderRouteExhausted(RuntimeError):
+    """Safe terminal signal after every eligible route provider is exhausted."""
+
+    error_code = "provider_route_exhausted"
+    retryable = False
+    public_message = "No provider could complete the requested capability."
+
+    def __init__(self, *, final_action: str):
+        super().__init__(self.public_message)
+        self.final_action = final_action
 
 
 def publish_provider_route(route: ProviderRoute) -> ProviderRoute:
@@ -311,7 +337,9 @@ def invoke_provider_check(
             0, round((time.monotonic() - started_clock) * 1000)
         )
         provider_check.error_code = error_code
-        provider_check.error_message = str(exc)
+        provider_check.error_message = getattr(
+            exc, "public_message", "Provider invocation failed."
+        )
         provider_check.response_metadata_json = {
             "outcome": status,
             "error_code": error_code,
@@ -322,7 +350,7 @@ def invoke_provider_check(
             "status": status,
             "error": {
                 "code": error_code,
-                "retryable": isinstance(exc, AIServiceUnavailable),
+                "retryable": bool(getattr(exc, "retryable", False)),
             },
         }
         provider_check.save(
@@ -368,6 +396,342 @@ def invoke_provider_check(
         ]
     )
     return normalized
+
+
+def _claim_circuit_probe(route_step: ProviderRouteStep | None) -> bool:
+    if route_step is None:
+        return True
+    now = timezone.now()
+    with transaction.atomic():
+        state, created = ProviderCircuitState.objects.get_or_create(
+            route_step=route_step
+        )
+        if not created:
+            state = ProviderCircuitState.objects.select_for_update().get(pk=state.pk)
+        if state.status == ProviderCircuitStatus.CLOSED:
+            return True
+        if state.status == ProviderCircuitStatus.HALF_OPEN:
+            return False
+        if state.retry_after is not None and state.retry_after > now:
+            return False
+        state.status = ProviderCircuitStatus.HALF_OPEN
+        state.save(update_fields=["status", "updated_at"])
+        return True
+
+
+def _record_circuit_outcome(
+    route_step: ProviderRouteStep | None,
+    *,
+    succeeded: bool,
+    retryable: bool,
+) -> None:
+    if route_step is None:
+        return
+    now = timezone.now()
+    with transaction.atomic():
+        state, created = ProviderCircuitState.objects.get_or_create(
+            route_step=route_step
+        )
+        if not created:
+            state = ProviderCircuitState.objects.select_for_update().get(pk=state.pk)
+        if succeeded:
+            state.status = ProviderCircuitStatus.CLOSED
+            state.consecutive_failures = 0
+            state.opened_at = None
+            state.retry_after = None
+        elif retryable:
+            state.consecutive_failures += 1
+            if (
+                state.status == ProviderCircuitStatus.HALF_OPEN
+                or state.consecutive_failures
+                >= route_step.route.circuit_failure_threshold
+            ):
+                state.status = ProviderCircuitStatus.OPEN
+                state.opened_at = now
+                state.retry_after = now + timedelta(
+                    seconds=route_step.route.circuit_recovery_seconds
+                )
+        elif state.status == ProviderCircuitStatus.HALF_OPEN:
+            # A deterministic provider response proves transport recovery even when
+            # the request itself is not retryable.
+            state.status = ProviderCircuitStatus.CLOSED
+            state.consecutive_failures = 0
+            state.opened_at = None
+            state.retry_after = None
+        state.save(
+            update_fields=[
+                "status",
+                "consecutive_failures",
+                "opened_at",
+                "retry_after",
+                "updated_at",
+            ]
+        )
+
+
+def _record_execution_attempt(
+    *,
+    provider_check: ProviderCheck,
+    execution_id: str,
+    route,
+    route_step,
+    sequence: int,
+    provider_attempt: int,
+    outcome: str,
+    error_code: str = "",
+    retryable: bool = False,
+    fallback_reason: str = "",
+    timeout_seconds: int,
+    started_at,
+) -> ProviderExecutionAttempt:
+    return ProviderExecutionAttempt.objects.create(
+        provider_check=provider_check,
+        execution_id=execution_id,
+        route=route,
+        route_step=route_step,
+        sequence=sequence,
+        provider_attempt=provider_attempt,
+        outcome=outcome,
+        error_code=error_code,
+        retryable=retryable,
+        fallback_reason=fallback_reason,
+        timeout_seconds=timeout_seconds,
+        started_at=started_at,
+        completed_at=timezone.now(),
+    )
+
+
+@transaction.atomic
+def _apply_route_final_action(
+    *, verification, route, check_type: str, attempts: list[ProviderExecutionAttempt]
+) -> str:
+    from apps.audit.services import record_audit_event
+    from apps.verifications.models import (
+        VerificationDecision,
+        VerificationDecisionType,
+        VerificationStatus,
+    )
+    from apps.verifications.transitions import transition_verification
+
+    final_action = (
+        route.final_action
+        if route is not None
+        else ProviderRouteFinalAction.MANUAL_REVIEW
+    )
+    target_status = (
+        VerificationStatus.MANUAL_REVIEW_REQUIRED
+        if final_action == ProviderRouteFinalAction.MANUAL_REVIEW
+        else VerificationStatus.FAILED
+    )
+    now = timezone.now()
+    transition_verification(
+        verification,
+        target_status,
+        completed_at=now if target_status == VerificationStatus.FAILED else None,
+        clear_completed_at=target_status == VerificationStatus.MANUAL_REVIEW_REQUIRED,
+    )
+    VerificationDecision.objects.update_or_create(
+        verification=verification,
+        defaults={
+            "tenant": verification.tenant,
+            "decision": target_status,
+            "decision_type": VerificationDecisionType.SYSTEM,
+            "reason_code": "provider_route_exhausted",
+            "reason_detail": (
+                "Automated providers could not complete the requested capability."
+            ),
+            "evidence_summary_json": {
+                "capability": check_type,
+                "provider_route_id": route.public_id if route is not None else "",
+                "provider_route_version": route.version if route is not None else None,
+                "attempt_count": len(attempts),
+                "error_codes": list(
+                    dict.fromkeys(
+                        attempt.error_code for attempt in attempts if attempt.error_code
+                    )
+                ),
+            },
+            "decided_by": None,
+            "decided_at": now,
+        },
+    )
+    record_audit_event(
+        tenant=verification.tenant,
+        actor=verification.verification_subject,
+        action=f"verification.{target_status}",
+        target_type="verification",
+        target_id=verification.public_id,
+        metadata={
+            "reason_code": "provider_route_exhausted",
+            "capability": check_type,
+            "provider_route_id": route.public_id if route is not None else "",
+            "attempt_count": len(attempts),
+        },
+    )
+    return final_action
+
+
+def execute_provider_route(
+    *,
+    verification,
+    check_type: str,
+    operation: Callable[[Provider, int], dict],
+    request_metadata: dict | None = None,
+) -> ProviderRouteExecutionResult:
+    """Execute bounded attempts across one resolved provider chain.
+
+    ``operation`` receives the selected provider and the route timeout. Adapters must
+    enforce that timeout at their I/O boundary.
+    """
+    resolution = resolve_provider_chain_for_verification(
+        verification=verification,
+        check_type=check_type,
+        request_metadata=request_metadata,
+    )
+    route = resolution.route
+    timeout_seconds = route.timeout_seconds if route is not None else 30
+    max_attempts = route.max_attempts_per_provider if route is not None else 1
+    route_steps = {
+        step.provider_id: step
+        for step in (route.steps.select_related("provider").all() if route else [])
+    }
+    attempts: list[ProviderExecutionAttempt] = []
+    execution_id = generate_public_id("pex")
+    sequence = 0
+
+    for provider_index, provider in enumerate(resolution.providers):
+        route_step = route_steps.get(provider.id)
+        if not _claim_circuit_probe(route_step):
+            sequence += 1
+            now = timezone.now()
+            skipped_check = ProviderCheck.objects.create(
+                tenant=verification.tenant,
+                verification=verification,
+                provider=provider,
+                check_type=check_type,
+                status=ProviderCheckStatus.CANCELLED,
+                request_metadata_json=redact_provider_metadata(request_metadata or {}),
+                error_code="provider_circuit_open",
+                error_message="Provider circuit is temporarily open.",
+                normalized_result_json={
+                    "contract_version": PROVIDER_CONTRACT_VERSION,
+                    "capability": check_type,
+                    "status": ProviderCheckStatus.CANCELLED,
+                    "error": {"code": "provider_circuit_open", "retryable": True},
+                },
+                started_at=now,
+                completed_at=now,
+            )
+            attempts.append(
+                _record_execution_attempt(
+                    provider_check=skipped_check,
+                    execution_id=execution_id,
+                    route=route,
+                    route_step=route_step,
+                    sequence=sequence,
+                    provider_attempt=0,
+                    outcome=ProviderAttemptOutcome.SKIPPED,
+                    error_code="provider_circuit_open",
+                    retryable=True,
+                    fallback_reason="circuit_open",
+                    timeout_seconds=timeout_seconds,
+                    started_at=now,
+                )
+            )
+            continue
+
+        for provider_attempt in range(1, max_attempts + 1):
+            sequence += 1
+            started_at = timezone.now()
+            check_metadata = dict(request_metadata or {})
+            if route is not None:
+                check_metadata.update(
+                    {
+                        "provider_route_id": route.public_id,
+                        "provider_route_version": route.version,
+                        "provider_route_step": route_step.position,
+                    }
+                )
+            provider_check = ProviderCheck.objects.create(
+                tenant=verification.tenant,
+                verification=verification,
+                provider=provider,
+                check_type=check_type,
+                status=ProviderCheckStatus.PENDING,
+                request_metadata_json=redact_provider_metadata(check_metadata),
+                started_at=started_at,
+            )
+            try:
+                result = invoke_provider_check(
+                    provider_check=provider_check,
+                    operation=lambda: operation(provider, timeout_seconds),
+                    operation_kwargs={},
+                    request_metadata=check_metadata,
+                )
+            except Exception as exc:
+                retryable = bool(getattr(exc, "retryable", False))
+                error_code = getattr(exc, "error_code", "provider_error")
+                has_retry = retryable and provider_attempt < max_attempts
+                has_fallback = provider_index + 1 < len(resolution.providers)
+                fallback_reason = (
+                    "retryable_error"
+                    if has_retry
+                    else "provider_fallback"
+                    if has_fallback
+                    else "route_exhausted"
+                )
+                attempt = _record_execution_attempt(
+                    provider_check=provider_check,
+                    execution_id=execution_id,
+                    route=route,
+                    route_step=route_step,
+                    sequence=sequence,
+                    provider_attempt=provider_attempt,
+                    outcome=(
+                        ProviderAttemptOutcome.TIMEOUT
+                        if provider_check.status == ProviderCheckStatus.TIMEOUT
+                        else ProviderAttemptOutcome.FAILED
+                    ),
+                    error_code=error_code,
+                    retryable=retryable,
+                    fallback_reason=fallback_reason,
+                    timeout_seconds=timeout_seconds,
+                    started_at=started_at,
+                )
+                attempts.append(attempt)
+                _record_circuit_outcome(
+                    route_step, succeeded=False, retryable=retryable
+                )
+                if has_retry:
+                    continue
+                break
+            else:
+                attempt = _record_execution_attempt(
+                    provider_check=provider_check,
+                    execution_id=execution_id,
+                    route=route,
+                    route_step=route_step,
+                    sequence=sequence,
+                    provider_attempt=provider_attempt,
+                    outcome=ProviderAttemptOutcome.SUCCEEDED,
+                    timeout_seconds=timeout_seconds,
+                    started_at=started_at,
+                )
+                attempts.append(attempt)
+                _record_circuit_outcome(route_step, succeeded=True, retryable=False)
+                return ProviderRouteExecutionResult(
+                    result=result,
+                    provider_check=provider_check,
+                    attempts=tuple(attempts),
+                )
+
+    final_action = _apply_route_final_action(
+        verification=verification,
+        route=route,
+        check_type=check_type,
+        attempts=attempts,
+    )
+    raise ProviderRouteExhausted(final_action=final_action)
 
 
 def get_or_create_system_provider(check_type: str) -> Provider:

@@ -17,6 +17,10 @@ def serialize_provider(provider: Provider) -> dict:
 
 
 def serialize_provider_check(provider_check: ProviderCheck) -> dict:
+    try:
+        attempt = provider_check.execution_attempt
+    except ProviderCheck.execution_attempt.RelatedObjectDoesNotExist:
+        attempt = None
     return {
         "id": provider_check.public_id,
         "verification_id": provider_check.verification.public_id,
@@ -34,6 +38,25 @@ def serialize_provider_check(provider_check: ProviderCheck) -> dict:
         "completed_at": (
             provider_check.completed_at.isoformat()
             if provider_check.completed_at
+            else None
+        ),
+        "execution_attempt": (
+            {
+                "id": attempt.public_id,
+                "execution_id": attempt.execution_id,
+                "sequence": attempt.sequence,
+                "provider_attempt": attempt.provider_attempt,
+                "outcome": attempt.outcome,
+                "error_code": attempt.error_code,
+                "retryable": attempt.retryable,
+                "fallback_reason": attempt.fallback_reason,
+                "timeout_seconds": attempt.timeout_seconds,
+                "route_id": attempt.route.public_id if attempt.route else None,
+                "route_step": (
+                    attempt.route_step.position if attempt.route_step else None
+                ),
+            }
+            if attempt is not None
             else None
         ),
     }

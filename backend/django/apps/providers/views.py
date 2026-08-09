@@ -23,7 +23,10 @@ class ProviderCheckListView(APIView):
 
     def get(self, request):
         provider_checks = request.user.tenant.provider_checks.select_related(
-            "verification", "provider"
+            "verification",
+            "provider",
+            "execution_attempt__route",
+            "execution_attempt__route_step",
         ).order_by("-started_at")
         verification_id = request.query_params.get("verification_id")
         if verification_id:

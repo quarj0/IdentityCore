@@ -126,6 +126,24 @@ class ProviderRouteStatus(models.TextChoices):
     RETIRED = "retired", "Retired"
 
 
+class ProviderRouteFinalAction(models.TextChoices):
+    MANUAL_REVIEW = "manual_review", "Manual Review"
+    FAIL = "fail", "Fail Verification"
+
+
+class ProviderCircuitStatus(models.TextChoices):
+    CLOSED = "closed", "Closed"
+    OPEN = "open", "Open"
+    HALF_OPEN = "half_open", "Half Open"
+
+
+class ProviderAttemptOutcome(models.TextChoices):
+    SUCCEEDED = "succeeded", "Succeeded"
+    FAILED = "failed", "Failed"
+    TIMEOUT = "timeout", "Timeout"
+    SKIPPED = "skipped", "Skipped"
+
+
 class ProviderAssignment(PublicIdModel, BaseModel):
     public_id_prefix = "pva"
 
@@ -240,6 +258,15 @@ class ProviderRoute(PublicIdModel, BaseModel):
     country_codes_json = models.JSONField(default=list, blank=True)
     document_type_ids_json = models.JSONField(default=list, blank=True)
     workflow_public_ids_json = models.JSONField(default=list, blank=True)
+    timeout_seconds = models.PositiveSmallIntegerField(default=30)
+    max_attempts_per_provider = models.PositiveSmallIntegerField(default=2)
+    circuit_failure_threshold = models.PositiveSmallIntegerField(default=3)
+    circuit_recovery_seconds = models.PositiveIntegerField(default=60)
+    final_action = models.CharField(
+        max_length=24,
+        choices=ProviderRouteFinalAction.choices,
+        default=ProviderRouteFinalAction.MANUAL_REVIEW,
+    )
 
     class Meta:
         ordering = [
@@ -266,6 +293,16 @@ class ProviderRoute(PublicIdModel, BaseModel):
     def clean(self):
         super().clean()
         errors = {}
+        bounded_fields = {
+            "timeout_seconds": (1, 300),
+            "max_attempts_per_provider": (1, 5),
+            "circuit_failure_threshold": (1, 20),
+            "circuit_recovery_seconds": (1, 86400),
+        }
+        for field_name, (minimum, maximum) in bounded_fields.items():
+            value = getattr(self, field_name)
+            if value is None or not minimum <= value <= maximum:
+                errors[field_name] = f"Value must be between {minimum} and {maximum}."
         for field_name in (
             "country_codes_json",
             "document_type_ids_json",
@@ -315,6 +352,11 @@ class ProviderRoute(PublicIdModel, BaseModel):
                     "country_codes_json",
                     "document_type_ids_json",
                     "workflow_public_ids_json",
+                    "timeout_seconds",
+                    "max_attempts_per_provider",
+                    "circuit_failure_threshold",
+                    "circuit_recovery_seconds",
+                    "final_action",
                     "deleted_at",
                 )
                 if any(
@@ -391,6 +433,98 @@ class ProviderRouteStep(PublicIdModel, BaseModel):
                 raise ValidationError(
                     "Published provider route steps are immutable; create a new route version."
                 )
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+
+class ProviderCircuitState(BaseModel):
+    route_step = models.OneToOneField(
+        ProviderRouteStep,
+        on_delete=models.CASCADE,
+        related_name="circuit_state",
+    )
+    status = models.CharField(
+        max_length=16,
+        choices=ProviderCircuitStatus.choices,
+        default=ProviderCircuitStatus.CLOSED,
+        db_index=True,
+    )
+    consecutive_failures = models.PositiveIntegerField(default=0)
+    opened_at = models.DateTimeField(null=True, blank=True)
+    retry_after = models.DateTimeField(null=True, blank=True, db_index=True)
+
+    class Meta:
+        ordering = ["route_step_id"]
+
+
+class ProviderExecutionAttempt(PublicIdModel, BaseModel):
+    """One safe, queryable explanation of a provider invocation or circuit skip."""
+
+    public_id_prefix = "pat"
+
+    execution_id = models.CharField(max_length=64, db_index=True)
+    provider_check = models.OneToOneField(
+        "ProviderCheck",
+        on_delete=models.PROTECT,
+        related_name="execution_attempt",
+    )
+    route = models.ForeignKey(
+        ProviderRoute,
+        on_delete=models.PROTECT,
+        related_name="execution_attempts",
+        null=True,
+        blank=True,
+    )
+    route_step = models.ForeignKey(
+        ProviderRouteStep,
+        on_delete=models.PROTECT,
+        related_name="execution_attempts",
+        null=True,
+        blank=True,
+    )
+    sequence = models.PositiveSmallIntegerField()
+    provider_attempt = models.PositiveSmallIntegerField()
+    outcome = models.CharField(max_length=16, choices=ProviderAttemptOutcome.choices)
+    error_code = models.CharField(max_length=120, blank=True)
+    retryable = models.BooleanField(default=False)
+    fallback_reason = models.CharField(max_length=120, blank=True)
+    timeout_seconds = models.PositiveSmallIntegerField()
+    started_at = models.DateTimeField()
+    completed_at = models.DateTimeField()
+
+    class Meta:
+        ordering = ["provider_check__verification_id", "sequence", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["execution_id", "sequence"],
+                name="provider_execution_sequence_uniq",
+            )
+        ]
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        if self.completed_at < self.started_at:
+            errors["completed_at"] = "Attempt completion cannot precede its start."
+        if self.route_step_id and not self.route_id:
+            errors["route_step"] = "A route step requires its provider route."
+        if self.route_id and self.provider_check.tenant_id != self.route.tenant_id:
+            errors["route"] = "Attempt routes must belong to the provider-check tenant."
+        if self.route_step_id and self.route_step.route_id != self.route_id:
+            errors["route_step"] = (
+                "Attempt route steps must belong to the selected route."
+            )
+        if (
+            self.route_step_id
+            and self.route_step.provider_id != self.provider_check.provider_id
+        ):
+            errors["provider_check"] = (
+                "Attempt provider checks must use the route-step provider."
+            )
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
 

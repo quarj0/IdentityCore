@@ -157,6 +157,7 @@ class ProviderCheckNode:
     error_message: str
     started_at: str
     completed_at: str | None
+    execution_attempt: strawberry.scalars.JSON | None
 
 
 @strawberry.type

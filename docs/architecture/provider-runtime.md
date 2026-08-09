@@ -235,11 +235,19 @@ for:
 - whether retrying could duplicate a high-impact external action.
 
 The repository implements ordered routes conditioned on capability, country, document
-type, workflow, tenant, and sandbox or production environment. The route resolver returns
-the full eligible chain, while the current provider-check creation path selects and records
-its first step. Automated retry and fallback execution, attempt history, health-aware
-circuit breaking, and cost-, latency-, or residency-aware selection remain future runtime
-work and must not be described as production-complete.
+type, workflow, tenant, and sandbox or production environment. Each route defines a
+bounded timeout, maximum attempts per provider, circuit threshold and recovery interval,
+and terminal action. The executor retries only errors explicitly marked retryable, then
+moves through the ordered provider chain. Every invocation and circuit skip creates a
+provider check plus a correlated safe attempt record containing the route step, sequence,
+outcome, safe error code, retryability, timeout, and fallback reason.
+
+Circuit state belongs to an immutable route step. Consecutive retryable failures open the
+circuit. Calls skip it until the recovery deadline, after which one caller atomically
+claims a half-open probe; success closes the circuit and another retryable failure reopens
+it. Exhausting the chain applies the route's explicit `manual_review` or `fail` action and
+records only safe codes in decision and audit evidence. Cost-, latency-, and
+residency-aware selection remain future work.
 
 ## Tenant and environment isolation
 
@@ -310,11 +318,13 @@ Implemented foundations include:
 - recursive telemetry redaction;
 - secure custom HTTP provider calls;
 - signed, timestamped, nonce-bound, replay-resistant provider messages.
+- immutable conditional routes and deterministic provider-chain selection;
+- per-route timeouts, bounded retries, ordered fallback, circuit recovery, and terminal
+  Manual Review or failure actions;
+- correlated attempt history with safe retry and fallback reasons.
 
 Continued work includes:
 
-- richer conditional provider routes;
-- ordered fallback chains and circuit-breaker policy;
 - provider manifests and automated conformance tooling;
 - organization self-service onboarding, testing, promotion, and credential rotation;
 - first-class storage and KMS/HSM provider routing;
@@ -328,4 +338,5 @@ Continued work includes:
 - [Evidence Model](evidence-model.md)
 - [Claims Engine](claims-engine.md)
 - [Provider Signing](provider-signing.md)
+- [Provider Route Resilience](../operations/provider-route-resilience.md)
 - [Product Alignment](product-alignment.md)
