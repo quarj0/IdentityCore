@@ -21,7 +21,9 @@ from apps.providers.http_adapter import (
 from apps.providers.adapters import (
     BUILT_IN_AI_SERVICE,
     BuiltInAIServiceAdapter,
+    ProviderContractError,
     ProviderAdapterRegistry,
+    normalize_provider_result,
     provider_adapter_registry,
 )
 from apps.organizations.models import Organization
@@ -842,6 +844,50 @@ class ProviderAdapterRegistryTests(TestCase):
     def test_registry_rejects_unknown_adapter(self):
         with self.assertRaisesRegex(LookupError, "missing"):
             ProviderAdapterRegistry().resolve("missing")
+
+    def test_builtin_contract_accepts_each_declared_capability(self):
+        capabilities = (
+            "document_quality",
+            "document_classification",
+            "document_ocr",
+            "liveness",
+            "face_compare",
+        )
+        adapter = provider_adapter_registry.resolve(BUILT_IN_AI_SERVICE)
+
+        for capability in capabilities:
+            with self.subTest(capability=capability):
+                self.assertTrue(callable(getattr(adapter, capability)))
+                result = normalize_provider_result(
+                    capability,
+                    {
+                        "contract_version": "1",
+                        "status": "completed",
+                        "outcome": "conformance_fixture_passed",
+                    },
+                )
+                self.assertEqual(result["contract_version"], "1")
+                self.assertEqual(result["capability"], capability)
+
+    def test_contract_rejects_malformed_and_unsupported_version_results(self):
+        invalid_results = (
+            [],
+            {"status": "unexpected"},
+            {"contract_version": "999", "status": "completed"},
+        )
+
+        for result in invalid_results:
+            with self.subTest(result=result), self.assertRaises(ProviderContractError):
+                normalize_provider_result("document_ocr", result)
+
+        with self.assertRaises(ProviderContractError) as caught:
+            normalize_provider_result(
+                "document_ocr",
+                {"contract_version": "999", "status": "completed"},
+            )
+        self.assertEqual(
+            caught.exception.error_code, "provider_contract_version_unsupported"
+        )
 
 
 class SecureHTTPProviderAdapterTests(TestCase):

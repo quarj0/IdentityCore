@@ -1,0 +1,91 @@
+{
+  "suite_version": "1",
+  "contract_version": "1",
+  "path": "/identitycore/conformance",
+  "cases": [
+    {
+      "id": "success",
+      "request": {
+        "contract_version": "1",
+        "invocation_id": "pinv_conformance_success",
+        "capability": "document.ocr",
+        "capability_version": "1.0",
+        "tenant_context": {
+          "project_id": "prj_conformance",
+          "environment": "sandbox"
+        },
+        "evidence": [],
+        "parameters": {
+          "fixture": "success"
+        }
+      },
+      "expected_status": [200],
+      "expected_outcome": "recognized"
+    },
+    {
+      "id": "malformed",
+      "raw_request": "{\"contract_version\":",
+      "expected_status": [400, 422],
+      "expected_error": "invalid_request"
+    },
+    {
+      "id": "replay",
+      "request": {
+        "contract_version": "1",
+        "invocation_id": "pinv_conformance_replay",
+        "capability": "document.ocr",
+        "capability_version": "1.0",
+        "tenant_context": {
+          "project_id": "prj_conformance",
+          "environment": "sandbox"
+        },
+        "evidence": [],
+        "parameters": {
+          "fixture": "replay"
+        }
+      },
+      "expected_status": [200],
+      "replay_status": [409],
+      "expected_error": "replay_rejected"
+    },
+    {
+      "id": "version_negotiation",
+      "request": {
+        "contract_version": "999",
+        "invocation_id": "pinv_conformance_version",
+        "capability": "document.ocr",
+        "capability_version": "1.0",
+        "tenant_context": {
+          "project_id": "prj_conformance",
+          "environment": "sandbox"
+        },
+        "evidence": [],
+        "parameters": {
+          "fixture": "version_negotiation"
+        }
+      },
+      "expected_status": [400, 422],
+      "expected_error": "unsupported_contract_version",
+      "expected_supported_version": "1"
+    },
+    {
+      "id": "timeout",
+      "request": {
+        "contract_version": "1",
+        "invocation_id": "pinv_conformance_timeout",
+        "capability": "document.ocr",
+        "capability_version": "1.0",
+        "tenant_context": {
+          "project_id": "prj_conformance",
+          "environment": "sandbox"
+        },
+        "evidence": [],
+        "parameters": {
+          "fixture": "timeout",
+          "delay_ms": 500
+        }
+      },
+      "expect_timeout": true
+    }
+  ]
+}

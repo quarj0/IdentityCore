@@ -300,6 +300,13 @@ Diagnostic metadata should be structured, bounded, and safe for tenant-scoped au
 
 A provider should pass a conformance suite before production activation.
 
+The repository publishes the Provider Contract v1 fixtures and dependency-free local
+runner in [`provider-sdk/conformance`](../../provider-sdk/conformance/README.md). The
+current executable baseline covers signed success, malformed JSON, a real client timeout,
+nonce replay rejection, and unsupported-version negotiation. CI runs the fixture runner
+and checks every built-in adapter capability against the same Contract v1 normalization
+rules.
+
 The suite should test:
 
 - capability manifest validity;
@@ -365,6 +372,6 @@ Before production activation, a provider author should be able to answer:
 
 ## 20. Current implementation note
 
-The repository already contains important Provider SDK foundations: adapter registration, centralized invocation, secure custom HTTP execution, message signing, replay prevention, redacted telemetry, versioned capability results, and provider-check persistence.
+The repository already contains important Provider SDK foundations: adapter registration, centralized invocation, secure custom HTTP execution, message signing, replay prevention, redacted telemetry, versioned capability results, provider-check persistence, and an executable Contract v1 conformance baseline.
 
-A complete published SDK package, machine-readable manifest, organization self-service onboarding flow, and full conformance harness remain work to complete before arbitrary providers should be advertised as plug-and-play production integrations.
+A packaged multi-language Provider SDK, machine-readable manifest, organization self-service onboarding flow, and broader capability/evidence/retention certification remain work to complete before arbitrary providers should be advertised as plug-and-play production integrations.
