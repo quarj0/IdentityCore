@@ -62,6 +62,18 @@ class VerificationReviewOwner(models.TextChoices):
     PLATFORM = "platform", "Platform"
 
 
+class ProcessingJobType(models.TextChoices):
+    IDENTITY_DOCUMENT = "identity_document", "Identity Document"
+    BIOMETRICS = "biometrics", "Biometrics"
+
+
+class ProcessingJobStatus(models.TextChoices):
+    QUEUED = "queued", "Queued"
+    PROCESSING = "processing", "Processing"
+    COMPLETED = "completed", "Completed"
+    EXHAUSTED = "exhausted", "Exhausted"
+
+
 class RetentionLegalHold(PublicIdModel, BaseModel):
     """Prevents retention cleanup while a documented hold is active."""
 
@@ -179,6 +191,56 @@ class Verification(PublicIdModel, BaseModel):
 
     def __str__(self) -> str:
         return self.public_id
+
+
+class ProcessingJob(PublicIdModel, BaseModel):
+    """Durable lease for recoverable verification processing work."""
+
+    public_id_prefix = "job"
+
+    tenant = models.ForeignKey(
+        "tenants.Tenant",
+        on_delete=models.PROTECT,
+        related_name="processing_jobs",
+    )
+    verification = models.ForeignKey(
+        Verification,
+        on_delete=models.PROTECT,
+        related_name="processing_jobs",
+    )
+    job_type = models.CharField(
+        max_length=32,
+        choices=ProcessingJobType.choices,
+        db_index=True,
+    )
+    resource_public_id = models.CharField(max_length=64)
+    status = models.CharField(
+        max_length=16,
+        choices=ProcessingJobStatus.choices,
+        default=ProcessingJobStatus.QUEUED,
+        db_index=True,
+    )
+    attempt_count = models.PositiveSmallIntegerField(default=0)
+    max_attempts = models.PositiveSmallIntegerField(default=3)
+    heartbeat_at = models.DateTimeField(null=True, blank=True)
+    lease_expires_at = models.DateTimeField(db_index=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    error_code = models.CharField(max_length=120, blank=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["job_type", "resource_public_id"],
+                name="processing_job_resource_uniq",
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=["status", "lease_expires_at"],
+                name="processing_job_due_idx",
+            )
+        ]
 
 
 class VerificationSession(PublicIdModel):

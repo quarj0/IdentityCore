@@ -222,6 +222,8 @@ CELERY_TASK_ALWAYS_EAGER = False
 CELERY_TASK_EAGER_PROPAGATES = False
 CELERY_TASK_DEFAULT_QUEUE = "default"
 CELERY_TASK_DEFAULT_ROUTING_KEY = "default"
+PROCESSING_JOB_LEASE_SECONDS = int(os.getenv("PROCESSING_JOB_LEASE_SECONDS", "300"))
+PROCESSING_JOB_MAX_ATTEMPTS = int(os.getenv("PROCESSING_JOB_MAX_ATTEMPTS", "3"))
 CELERY_TASK_ROUTES = {
     "apps.biometrics.tasks.process_verification_biometrics_task": {
         "queue": "ai_processing"
@@ -237,6 +239,9 @@ CELERY_TASK_ROUTES = {
         "queue": "retention"
     },
     "apps.verifications.tasks.cleanup_retained_media_task": {"queue": "retention"},
+    "apps.verifications.tasks.recover_stale_processing_jobs_task": {
+        "queue": "retention"
+    },
     "apps.webhooks.tasks.process_pending_webhook_events_task": {"queue": "webhooks"},
     "apps.webhooks.tasks.deliver_webhook_event_task": {"queue": "webhooks"},
     "apps.notifications.tasks.process_pending_notifications_task": {
@@ -276,6 +281,11 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.uploads.tasks.cleanup_expired_uploads_task",
         "schedule": int(os.getenv("CELERY_UPLOAD_CLEANUP_BEAT_SECONDS", "300")),
         "kwargs": {"limit": int(os.getenv("UPLOAD_CLEANUP_BATCH_SIZE", "200"))},
+    },
+    "recover-stale-processing-jobs": {
+        "task": "apps.verifications.tasks.recover_stale_processing_jobs_task",
+        "schedule": int(os.getenv("CELERY_PROCESSING_RECOVERY_BEAT_SECONDS", "60")),
+        "kwargs": {"limit": int(os.getenv("PROCESSING_RECOVERY_BATCH_SIZE", "100"))},
     },
 }
 

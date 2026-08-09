@@ -8,8 +8,10 @@ from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 
 from apps.audit.services import record_audit_event
-from apps.biometrics.tasks import process_verification_biometrics_task
-from apps.identity_documents.tasks import process_identity_document_task
+from apps.verifications.processing_jobs import (
+    queue_biometrics_processing,
+    queue_identity_document_processing,
+)
 from apps.platform_settings.services import get_platform_setting_value
 from apps.organizations.onboarding import submit_administrator_identity_verification
 from apps.webhooks.services import queue_webhook_events
@@ -256,11 +258,7 @@ class VerificationSessionDocumentView(VerificationSessionBaseView):
                     "status": verification.status,
                 },
             )
-            transaction.on_commit(
-                lambda: process_identity_document_task.delay(
-                    identity_document.public_id
-                )
-            )
+            queue_identity_document_processing(identity_document)
         return success_response(
             {
                 "identity_document_id": identity_document.public_id,
@@ -331,7 +329,7 @@ class VerificationSessionLivenessView(VerificationSessionBaseView):
                     verification_id=verification.public_id,
                     request=request,
                 )
-            process_verification_biometrics_task.delay(liveness_check.public_id)
+            queue_biometrics_processing(liveness_check)
         return success_response(
             {
                 "liveness_check_id": liveness_check.public_id,

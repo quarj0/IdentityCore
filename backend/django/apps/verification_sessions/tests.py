@@ -394,7 +394,7 @@ class VerificationSessionPortalTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    @patch("apps.verification_sessions.views.process_identity_document_task.delay")
+    @patch("apps.identity_documents.tasks.process_identity_document_task.delay")
     def test_submit_documents_creates_identity_document_and_captures(self, mock_delay):
         ConsentRecord.objects.create(
             tenant=self.tenant,
@@ -672,9 +672,7 @@ class VerificationSessionPortalTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    @patch(
-        "apps.verification_sessions.views.process_verification_biometrics_task.delay"
-    )
+    @patch("apps.biometrics.tasks.process_verification_biometrics_task.delay")
     def test_submit_liveness_creates_provider_checks_and_queues_background_processing(
         self, mock_delay
     ):
@@ -723,19 +721,20 @@ class VerificationSessionPortalTests(APITestCase):
             actions=["turn_left", "look_up"],
             expires_at=timezone.now() + timedelta(minutes=3),
         )
-        response = self.client.post(
-            reverse(
-                "verification-session-liveness",
-                kwargs={"session_id": self.session.public_id},
-            ),
-            {
-                "liveness_type": "active",
-                "selfie_capture_id": selfie_capture.public_id,
-                "challenge_id": challenge.public_id,
-            },
-            format="json",
-            **self.session_headers(),
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                reverse(
+                    "verification-session-liveness",
+                    kwargs={"session_id": self.session.public_id},
+                ),
+                {
+                    "liveness_type": "active",
+                    "selfie_capture_id": selfie_capture.public_id,
+                    "challenge_id": challenge.public_id,
+                },
+                format="json",
+                **self.session_headers(),
+            )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["status"], "processing")
@@ -958,14 +957,12 @@ class VerificationSessionPortalTests(APITestCase):
     @patch("apps.biometrics.tasks.promote_upload_to_media_by_storage_key")
     @patch("apps.biometrics.tasks.run_face_compare")
     @patch("apps.biometrics.tasks.run_liveness_check")
-    @patch(
-        "apps.verification_sessions.views.process_verification_biometrics_task.delay"
-    )
+    @patch("apps.biometrics.tasks.process_verification_biometrics_task.delay")
     @patch("apps.identity_documents.tasks.promote_upload_to_media_by_storage_key")
     @patch("apps.identity_documents.tasks.run_document_ocr")
     @patch("apps.identity_documents.tasks.run_document_classification")
     @patch("apps.identity_documents.tasks.run_document_quality")
-    @patch("apps.verification_sessions.views.process_identity_document_task.delay")
+    @patch("apps.identity_documents.tasks.process_identity_document_task.delay")
     def test_complete_public_verification_golden_path(
         self,
         mock_document_delay,
@@ -1134,21 +1131,22 @@ class VerificationSessionPortalTests(APITestCase):
             actions=["turn_left", "look_up"],
             expires_at=timezone.now() + timedelta(minutes=3),
         )
-        liveness_response = self.client.post(
-            reverse(
-                "verification-session-liveness",
-                kwargs={"session_id": self.session.public_id},
-            ),
-            {
-                "liveness_type": "active",
-                "selfie_capture_id": liveness_selfie_response.data["data"][
-                    "selfie_capture_id"
-                ],
-                "challenge_id": challenge.public_id,
-            },
-            format="json",
-            **self.session_headers(),
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            liveness_response = self.client.post(
+                reverse(
+                    "verification-session-liveness",
+                    kwargs={"session_id": self.session.public_id},
+                ),
+                {
+                    "liveness_type": "active",
+                    "selfie_capture_id": liveness_selfie_response.data["data"][
+                        "selfie_capture_id"
+                    ],
+                    "challenge_id": challenge.public_id,
+                },
+                format="json",
+                **self.session_headers(),
+            )
         self.assertEqual(liveness_response.status_code, status.HTTP_200_OK)
         mock_liveness.return_value = {
             "status": "completed",

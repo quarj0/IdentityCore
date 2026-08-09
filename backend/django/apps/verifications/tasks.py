@@ -20,6 +20,7 @@ from apps.verifications.models import (
     VerificationSessionStatus,
     VerificationStatus,
 )
+from apps.verifications.processing_jobs import recover_stale_processing_jobs
 from apps.verifications.transitions import transition_verification
 from apps.webhooks.services import queue_webhook_events
 from common.authorization import ServicePrincipal, require_service_access
@@ -31,10 +32,22 @@ VERIFICATION_MAINTENANCE_WORKER = ServicePrincipal(
             "verification.expire",
             "verification.cleanup_sessions",
             "verification.cleanup_media",
+            "verification.recover_processing",
         }
     ),
     allow_cross_tenant=True,
 )
+
+
+@shared_task(queue="retention")
+def recover_stale_processing_jobs_task(limit: int = 100) -> dict[str, int]:
+    require_service_access(
+        VERIFICATION_MAINTENANCE_WORKER,
+        action="verification.recover_processing",
+    )
+    recovered, exhausted = recover_stale_processing_jobs(limit=limit)
+    return {"recovered": recovered, "exhausted": exhausted}
+
 
 EXPIRABLE_VERIFICATION_STATUSES = {
     VerificationStatus.CREATED,
