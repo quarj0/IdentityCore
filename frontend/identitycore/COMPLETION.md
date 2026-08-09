@@ -1,6 +1,6 @@
 # IdentityCore Web Completion Plan
 
-Last reviewed: 2026-07-26
+Last reviewed: 2026-08-09
 
 ## Scope
 
@@ -31,10 +31,11 @@ The application has a broad, buildable UI foundation:
   validation;
 - clean ESLint and production Next.js builds.
 
-This means the application is **feature-complete for its current engineering scope**:
-public acquisition, organization account entry, onboarding, verification-portal handoff,
-and first-workflow creation. Production release approval still depends on the external
-certification and operational items called out below.
+This means the application has a **working implementation foundation** for public
+acquisition, organization account entry, onboarding, verification-portal handoff, and
+first-workflow creation. Browser, accessibility, interruption, contract, and operational
+acceptance work listed below remains engineering work; deployment certification is an
+additional boundary.
 
 ## Status at a glance
 
@@ -262,7 +263,7 @@ pnpm --filter identitycore-web build
 
 ## Suggested delivery order
 
-The engineering scope is complete. Remaining release/certification work is:
+The next engineering and release work is:
 
 1. Run the complete browser/accessibility/visual suite once CI browser infrastructure is available.
 2. Approve final legal and product claims and decide whether optional analytics will be enabled.
@@ -270,6 +271,5 @@ The engineering scope is complete. Remaining release/certification work is:
 4. Configure production origins, CSP dependencies, indexing, monitoring, and release rollback.
 5. Complete the security/privacy review and supported-browser sign-off.
 
-Do not reopen completed features in this application when work moves to
-`frontend/verification-portal`; record integration defects against the owning application
-and keep the capture implementation single-sourced.
+Keep capture implementation single-sourced in `frontend/verification-portal`; record
+cross-application integration defects against the component that owns the failed contract.

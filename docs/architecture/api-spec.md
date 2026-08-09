@@ -4,6 +4,11 @@
 
 **Version:** 1.0
 
+**Status:** Target API design. This document describes intended Version 1.0 behavior and
+is not the live endpoint contract. The concrete implemented public surface is
+`docs/openapi/identitycore-public-api.yaml` (currently version 0.2.0). IC-069 tracks
+contract parity and IC-070 tracks complete public idempotency enforcement.
+
 ---
 
 ## Purpose
@@ -64,6 +69,8 @@ SDK and Postman artifacts:
 ```text
 sdk/python
 sdk/javascript
+sdk/java
+sdk/dotnet
 sdk/postman
 ```
 
@@ -103,6 +110,11 @@ Optional but recommended:
 X-Signature: <request_signature>
 X-Timestamp: <unix_timestamp>
 ```
+
+These request-signing headers are target design for public API clients and are not
+currently verified by API-client authentication. Provider-message signing is implemented
+at a separate internal provider boundary and must not be represented as public request
+signing.
 
 ---
 
@@ -1504,6 +1516,7 @@ Default limits:
 API clients: 100 requests/minute
 Verification sessions: 30 requests/minute
 Dashboard users: 300 requests/minute
+Sensitive unauthenticated actions: 20 requests/minute
 Webhook retries: controlled by worker queue
 ```
 
@@ -1514,6 +1527,10 @@ Limits may vary by plan and tenant.
 ## Idempotency
 
 Critical POST requests should support idempotency.
+
+The list below is the Version 1.0 target. Do not infer that every endpoint currently
+enforces it; IC-070 remains the acceptance boundary for public create and retry-sensitive
+endpoints.
 
 Header:
 

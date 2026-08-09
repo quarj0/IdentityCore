@@ -1,5 +1,7 @@
 # ADR-011: Verification state transitions
 
+**Status:** Accepted
+
 ## Decision
 
 Verification status changes are applied through the locked transition service in

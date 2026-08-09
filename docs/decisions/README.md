@@ -135,27 +135,36 @@ This preserves the project's architectural history.
 
 ## Current ADR Index
 
-```id="q5mpml"
-ADR-001  Public ID Strategy
+All current ADRs are accepted. Older records use an inline `**Status:**` field and newer
+records use a `## Status` section; both forms are valid, but every ADR must state a status.
 
-ADR-002  Modular Monolith Architecture
-
-ADR-003  REST for Public APIs and GraphQL for Internal Applications
-
-ADR-004  Dedicated FastAPI AI Service
-
-ADR-005  PostgreSQL as the Primary Database
-
-ADR-006  Celery for Background Processing
-
-ADR-007  Object Storage for Binary Media
-
-ADR-008  Shared Database Multi-Tenancy Strategy
-
-ADR-009  Provider Adapter Pattern
-
-ADR-010  AI as Evidence, Not Decision
-```
+| ADR                                                      | Decision                                                            | Status   |
+| -------------------------------------------------------- | ------------------------------------------------------------------- | -------- |
+| [ADR-001](ADR-001-public-id-strategy.md)                 | Public ID Strategy                                                  | Accepted |
+| [ADR-002](ADR-002-modular-monolith.md)                   | Modular Monolith Architecture                                       | Accepted |
+| [ADR-003](ADR-003-rest-and-graphql.md)                   | REST for Public APIs and GraphQL for Internal Applications          | Accepted |
+| [ADR-004](ADR-004-fastapi-ai-service.md)                 | Dedicated FastAPI AI Service                                        | Accepted |
+| [ADR-005](ADR-005-postgresql.md)                         | PostgreSQL as the Primary Database                                  | Accepted |
+| [ADR-006](ADR-006-celery-background-jobs.md)             | Celery for Background Processing                                    | Accepted |
+| [ADR-007](ADR-007-object-storage.md)                     | Object Storage for Binary Media                                     | Accepted |
+| [ADR-008](ADR-008-multi-tenancy.md)                      | Shared Database Multi-Tenancy Strategy                              | Accepted |
+| [ADR-009](ADR-009-provider-adapter-pattern.md)           | Provider Adapter Pattern                                            | Accepted |
+| [ADR-010](ADR-010-ai-evidence-not-decision.md)           | AI as Evidence, Not Decision                                        | Accepted |
+| [ADR-011](ADR-011-verification-state-transitions.md)     | Verification state transitions                                      | Accepted |
+| [ADR-012](ADR-012-verification-session-token-scoping.md) | Scope verification session tokens                                   | Accepted |
+| [ADR-013](ADR-013-immutable-verification-snapshots.md)   | Freeze policy and workflow configuration at verification creation   | Accepted |
+| [ADR-014](ADR-014-idempotent-upload-completion.md)       | Make upload completion idempotent                                   | Accepted |
+| [ADR-015](ADR-015-upload-quarantine.md)                  | Quarantine untrusted upload content                                 | Accepted |
+| [ADR-016](ADR-016-provider-capability-contract.md)       | Version the provider capability contract                            | Accepted |
+| [ADR-017](ADR-017-secure-custom-http-provider.md)        | Secure custom HTTP provider adapter                                 | Accepted |
+| [ADR-018](ADR-018-versioned-decision-contract.md)        | Version and persist decision inputs                                 | Accepted |
+| [ADR-019](ADR-019-reviewer-assignment.md)                | Claim Manual Reviews atomically                                     | Accepted |
+| [ADR-020](ADR-020-maker-checker-decisions.md)            | Require independent approval for high-risk decisions                | Accepted |
+| [ADR-021](ADR-021-tamper-evident-audit-chain.md)         | Protect the audit trail with a tenant hash chain                    | Accepted |
+| [ADR-022](ADR-022-retention-deletion-controls.md)        | Enforce verified retention deletion with legal holds                | Accepted |
+| [ADR-023](ADR-023-data-subject-deletion.md)              | Pseudonymize subject deletion while preserving required audit facts | Accepted |
+| [ADR-024](ADR-024-data-subject-export.md)                | Authorized, redacted, expiring subject exports                      | Accepted |
+| [ADR-025](ADR-025-centralized-object-authorization.md)   | Centralized Object Authorization                                    | Accepted |
 
 ---
 

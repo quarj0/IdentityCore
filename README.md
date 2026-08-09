@@ -114,7 +114,7 @@ Implemented foundations include:
 - Manual Review assignment and maker-checker controls;
 - tamper-evident audit events;
 - retention deletion, legal holds, subject exports, and subject deletion;
-- Python, Java, and .NET SDKs and a Python CLI;
+- Python, JavaScript/TypeScript, Java, and .NET SDKs and a Python CLI;
 - organization, developer, verification, marketing, and platform-admin frontends.
 
 Important work remains before broad production use, including richer conditional provider
@@ -142,6 +142,7 @@ frontend/
 
 sdk/
 ├── python/
+├── javascript/
 ├── java/
 └── dotnet/
 
@@ -182,7 +183,7 @@ infrastructure/
 ### Frontend and developer tooling
 
 - Next.js, React, TypeScript, Tailwind CSS
-- Python, Java, and .NET SDKs
+- Python, JavaScript/TypeScript, Java, and .NET SDKs
 - Python CLI
 
 ### Infrastructure

@@ -67,9 +67,10 @@ pnpm test:e2e:verify
 ```
 
 The browser matrix runs desktop Chromium and WebKit plus Pixel and iPhone device
-profiles. It covers the primary subject flow, keyboard interaction, expiry
-handling, and response security headers. Physical-device certification remains
-a release evidence gate because an emulator cannot certify camera hardware.
+profiles. Current tests cover the mocked primary subject flow, landing-page keyboard and
+axe checks, expiry handling, and response security headers. IC-081 through IC-086 track
+the broader critical-journey acceptance matrix. Physical-device certification remains a
+release evidence gate because an emulator cannot certify camera hardware.
 Provider, storage, worker, and Django integration tests live in their owning
 backend applications.
 
@@ -81,11 +82,12 @@ select a weaker liveness mode. Consent is rendered from a server-selected,
 locale-specific immutable artifact; acceptance echoes its template ID, version,
 locale, and SHA-256 digest, and the backend rejects stale artifacts.
 
-English and Arabic are the initial locale architecture baseline. The document
-language and direction follow locale negotiation and are updated to the
-session-selected locale. New production locales must add a complete catalog and
-pass the RTL, keyboard, axe, WebKit, and physical-device evidence gates described
-in `docs/operations/verification-portal-production.md`.
+English and Arabic are the initial locale architecture baseline. The document language
+and direction follow locale negotiation and are updated to the session-selected locale.
+IC-083 remains open until both configured locales cover the complete applicant journey
+and pass formatting, fallback, RTL, keyboard, axe, and WebKit checks. Production locale
+support also requires the physical-device evidence described in
+`docs/operations/verification-portal-production.md`.
 
 ## Production image
 
@@ -99,9 +101,9 @@ The runtime exposes `/api/health` for process liveness and `/api/ready` for
 runtime-configuration readiness. Dependency availability is monitored separately
 so a provider or Django incident does not create a container restart loop.
 
-## Completion status
+## Maturity status
 
-The repository-owned implementation is complete. The remaining release gates
-require deployment owners, independent assessors, providers, or physical-device
-testers and are tracked separately in `COMPLETION.md`; they are not represented as
-unfinished portal code.
+The portal is a working repository vertical slice with open acceptance work in IC-081
+through IC-086. `COMPLETION.md` distinguishes those repository-owned gaps from the
+additional deployment, independent-assurance, provider, physical-device, pilot, and
+approval gates.

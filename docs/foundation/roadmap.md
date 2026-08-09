@@ -1,7 +1,14 @@
 # Roadmap
 
+Last reviewed: 2026-08-09
+
 > For independently assignable work items, priorities, dependencies, and acceptance
 > checks, use the [implementation backlog](../planning/implementation-backlog.md).
+
+> This is a narrative target roadmap, not a live progress board. Current execution and
+> completion state comes from GitHub issues and merged pull requests; repository maturity
+> is summarized in the [platform roadmap](platform-roadmap.md) and
+> [product alignment assessment](../architecture/product-alignment.md).
 
 ## IdentityCore
 
@@ -29,11 +36,12 @@ The platform should first prove that it can reliably support an identity verific
 
 ## Phase 0: Foundation
 
-Status: In Progress
+Status: Implemented foundation; continuously maintained
 
 Purpose:
 
-Define the product, architecture, and engineering rules before implementation begins.
+Establish and maintain the product, architecture, and engineering rules as implementation
+evolves.
 
 Deliverables:
 

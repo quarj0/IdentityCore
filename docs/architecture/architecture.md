@@ -18,7 +18,7 @@ The current repository contains:
 - PostgreSQL for tenant, workflow, provider, evidence, decision, audit, and subject data;
 - S3-compatible object storage for media, raw evidence artifacts, and provider assets;
 - frontend applications for hosted journeys, developer docs, organization dashboards, and platform administration;
-- Python, Java, and .NET SDKs plus a Python CLI;
+- Python, JavaScript/TypeScript, Java, and .NET SDKs plus a Python CLI;
 - public REST APIs and internal GraphQL boundaries.
 
 ## Purpose

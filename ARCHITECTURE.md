@@ -273,7 +273,7 @@ IdentityCore currently uses:
 - S3-compatible object storage for media and evidence objects;
 - a FastAPI service hosting IdentityCore Managed AI Providers;
 - Next.js applications for marketing, organization, developer, verification, and platform-administration experiences;
-- Python, Java, and .NET SDKs plus a Python CLI.
+- Python, JavaScript/TypeScript, Java, and .NET SDKs plus a Python CLI.
 
 This modular-monolith architecture is intentional. Components should be extracted only where scaling, security, deployment ownership, or availability boundaries justify it.
 

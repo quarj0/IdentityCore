@@ -4,6 +4,10 @@
 
 **Version:** 1.0
 
+**Status:** Target logical design with selected implementation notes. Django models and
+migrations are authoritative for the current physical schema; this document must not be
+used to infer that every listed table or field is already implemented.
+
 ---
 
 ## Purpose
@@ -1384,7 +1388,9 @@ index(checked_at)
 
 Implementation note:
 
-- The current Django bootstrap creates liveness checks with an initial placeholder status while the AI service integration is still pending, and the session API returns a subject-facing `processing` state for that handoff.
+- The current Django flow creates a pending liveness-check lifecycle record and returns a
+  subject-facing `processing` state while adapter-backed biometric processing runs. The
+  pending state is a durable workflow handoff, not evidence that AI integration is absent.
 
 ---
 
@@ -1434,8 +1440,10 @@ index(matched_at)
 
 Implementation note:
 
-- The current Django bootstrap creates a face-match placeholder record when liveness is submitted so downstream verification detail APIs can expose a concrete face-match lifecycle before AI integration is connected.
-- The bootstrap flow links the face match to the latest submitted identity document and prefers a `front` or `single` document capture when available.
+- The current Django flow creates a face-match lifecycle record when liveness is submitted
+  so downstream APIs can expose processing state while adapter-backed biometric work runs.
+- The flow links the face match to the latest submitted identity document and prefers a
+  `front` or `single` document capture when available.
 
 ---
 
@@ -1489,7 +1497,9 @@ index(status)
 
 Implementation note:
 
-- The current Django implementation includes internal provider records for bootstrap liveness, face-match, and risk-rule execution so verification workflows already produce traceable provider metadata before third-party adapters are connected.
+- The current Django implementation includes managed provider records for liveness,
+  face-match, and risk-rule execution. Managed and custom providers use the provider
+  runtime boundary; broader third-party conformance remains separate work.
 
 ---
 
@@ -1613,7 +1623,8 @@ index(risk_score)
 Implementation note:
 
 - The current Django implementation persists one risk assessment per verification and uses simple internal rules to recommend `approve`, `reject`, or `manual_review`.
-- With the current bootstrap evidence flow, inconclusive liveness and face-match placeholders are intentionally routed to manual review instead of being auto-approved.
+- Inconclusive liveness and face-match evidence is intentionally routed to Manual Review
+  instead of being auto-approved.
 
 ---
 
