@@ -18,7 +18,7 @@ export default function AuthenticationPage() {
       <CodeBlock
         title="Authorization header"
         language="http"
-        code={`Authorization: Bearer sk_test_xxxxxxxxxxxxx`}
+        code={`Authorization: Bearer YOUR_IDENTITYCORE_API_KEY`}
       />
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6">
