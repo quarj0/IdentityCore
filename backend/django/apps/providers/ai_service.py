@@ -13,6 +13,8 @@ AI_SERVICE_UNAVAILABLE_MESSAGE = (
 
 
 class AIServiceUnavailable(RuntimeError):
+    public_message = AI_SERVICE_UNAVAILABLE_MESSAGE
+
     def __init__(
         self,
         message: str = AI_SERVICE_UNAVAILABLE_MESSAGE,
@@ -20,11 +22,13 @@ class AIServiceUnavailable(RuntimeError):
         error_code: str = "provider_unavailable",
         provider_check_status: str = "failed",
         reason: str = "",
+        retryable: bool = True,
     ):
         super().__init__(message)
         self.error_code = error_code
         self.provider_check_status = provider_check_status
         self.reason = reason
+        self.retryable = retryable
 
 
 def _safe_error_reason(response_body: bytes) -> str:
@@ -79,6 +83,7 @@ def _post_json(path: str, payload: dict) -> dict:
         raise AIServiceUnavailable(
             error_code=f"provider_http_{exc.code}",
             reason=reason or f"AI service returned HTTP {exc.code}.",
+            retryable=exc.code in {408, 425, 429} or exc.code >= 500,
         ) from exc
     except (TimeoutError, socket.timeout) as exc:
         raise AIServiceUnavailable(
@@ -94,12 +99,14 @@ def _post_json(path: str, payload: dict) -> dict:
         raise AIServiceUnavailable(
             error_code="provider_invalid_response",
             reason="AI service returned an invalid response.",
+            retryable=False,
         ) from exc
 
     if not isinstance(data, dict):
         raise AIServiceUnavailable(
             error_code="provider_invalid_response",
             reason="AI service returned an unexpected response shape.",
+            retryable=False,
         )
     if "result" in data:
         normalized = dict(data["result"])

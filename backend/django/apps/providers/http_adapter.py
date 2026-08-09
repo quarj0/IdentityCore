@@ -12,9 +12,12 @@ BLOCKED_HOSTNAMES = {"metadata.google.internal", "instance-data.ec2.internal"}
 
 
 class SecureHTTPAdapterError(RuntimeError):
-    def __init__(self, message: str, *, error_code: str):
+    public_message = "Provider invocation failed."
+
+    def __init__(self, message: str, *, error_code: str, retryable: bool = False):
         super().__init__(message)
         self.error_code = error_code
+        self.retryable = retryable
 
 
 class _NoRedirectHandler(request.HTTPRedirectHandler):
@@ -37,11 +40,13 @@ def _resolve_public_addresses(hostname: str) -> None:
         raise SecureHTTPAdapterError(
             "Provider destination could not be resolved.",
             error_code="provider_destination_unresolved",
+            retryable=True,
         ) from exc
     if not addresses:
         raise SecureHTTPAdapterError(
             "Provider destination could not be resolved.",
             error_code="provider_destination_unresolved",
+            retryable=True,
         )
     for address in addresses:
         parsed = ipaddress.ip_address(address)
@@ -125,14 +130,19 @@ class SecureHTTPProviderAdapter:
             raise SecureHTTPAdapterError(
                 "Provider returned an HTTP error.",
                 error_code=f"provider_http_{exc.code}",
+                retryable=exc.code in {408, 425, 429} or exc.code >= 500,
             ) from exc
         except (TimeoutError, socket.timeout) as exc:
             raise SecureHTTPAdapterError(
-                "Provider request timed out.", error_code="provider_timeout"
+                "Provider request timed out.",
+                error_code="provider_timeout",
+                retryable=True,
             ) from exc
         except error.URLError as exc:
             raise SecureHTTPAdapterError(
-                "Provider request failed.", error_code="provider_network_error"
+                "Provider request failed.",
+                error_code="provider_network_error",
+                retryable=True,
             ) from exc
 
         if len(response_body) > self.max_response_bytes:

@@ -1,5 +1,6 @@
 import json
 import socket
+from datetime import timedelta
 from unittest.mock import Mock, patch
 from urllib.error import HTTPError
 
@@ -30,8 +31,12 @@ from apps.providers.models import (
     ProviderCheck,
     ProviderCheckStatus,
     ProviderCheckType,
+    ProviderCircuitState,
+    ProviderCircuitStatus,
+    ProviderAttemptOutcome,
     ProviderRoute,
     ProviderRouteEnvironment,
+    ProviderRouteFinalAction,
     ProviderRouteStatus,
     ProviderRouteStep,
     ProviderStatus,
@@ -39,11 +44,14 @@ from apps.providers.models import (
 )
 from apps.providers.services import (
     create_provider_check,
+    execute_provider_route,
     invoke_provider_check,
     publish_provider_route,
+    ProviderRouteExhausted,
     redact_provider_metadata,
     resolve_provider_chain,
 )
+from apps.providers.serializers import serialize_provider_check
 from apps.tenants.models import Tenant
 from apps.verification_subjects.models import VerificationSubject
 from apps.verifications.models import Verification, VerificationStatus
@@ -295,6 +303,7 @@ class ProviderRouteTests(TestCase):
         countries=None,
         document_types=None,
         workflows=None,
+        **policy,
     ):
         route = ProviderRoute.objects.create(
             tenant=self.tenant,
@@ -307,6 +316,7 @@ class ProviderRouteTests(TestCase):
             country_codes_json=countries or [],
             document_type_ids_json=document_types or [],
             workflow_public_ids_json=workflows or [],
+            **policy,
         )
         for position, provider in enumerate(providers, start=1):
             ProviderRouteStep.objects.create(
@@ -535,6 +545,200 @@ class ProviderRouteTests(TestCase):
         self.assertEqual(check.request_metadata_json["provider_route_version"], 1)
         self.assertEqual(check.request_metadata_json["provider_route_step"], 1)
 
+    def create_processing_verification(self):
+        subject = VerificationSubject.objects.create(
+            tenant=self.tenant,
+            full_name="Route Execution Subject",
+        )
+        return Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=subject,
+            purpose="Route execution",
+            status=VerificationStatus.PROCESSING,
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+
+    def test_execution_retries_then_falls_back_with_explainable_history(self):
+        route = self.create_route(
+            route_key="resilient-route",
+            providers=[self.providers[0], self.providers[1]],
+            timeout_seconds=7,
+            max_attempts_per_provider=2,
+            circuit_failure_threshold=2,
+        )
+        verification = self.create_processing_verification()
+        calls = []
+
+        def operation(provider, timeout_seconds):
+            calls.append((provider.public_id, timeout_seconds))
+            if provider == self.providers[0]:
+                raise AIServiceUnavailable(
+                    "secret upstream detail",
+                    error_code="provider_timeout",
+                    provider_check_status=ProviderCheckStatus.TIMEOUT,
+                )
+            return {"status": "completed", "confidence_score": 0.93}
+
+        execution = execute_provider_route(
+            verification=verification,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+            operation=operation,
+        )
+
+        self.assertEqual(
+            calls,
+            [
+                (self.providers[0].public_id, 7),
+                (self.providers[0].public_id, 7),
+                (self.providers[1].public_id, 7),
+            ],
+        )
+        self.assertEqual(execution.provider_check.provider, self.providers[1])
+        self.assertEqual(
+            [attempt.outcome for attempt in execution.attempts],
+            [
+                ProviderAttemptOutcome.TIMEOUT,
+                ProviderAttemptOutcome.TIMEOUT,
+                ProviderAttemptOutcome.SUCCEEDED,
+            ],
+        )
+        self.assertEqual(
+            [attempt.fallback_reason for attempt in execution.attempts],
+            ["retryable_error", "provider_fallback", ""],
+        )
+        self.assertTrue(execution.attempts[0].retryable)
+        self.assertNotIn(
+            "secret upstream detail",
+            execution.attempts[0].provider_check.error_message,
+        )
+        circuit = ProviderCircuitState.objects.get(
+            route_step__route=route,
+            route_step__provider=self.providers[0],
+        )
+        self.assertEqual(circuit.status, ProviderCircuitStatus.OPEN)
+        serialized = serialize_provider_check(execution.attempts[0].provider_check)
+        self.assertEqual(
+            serialized["execution_attempt"]["execution_id"],
+            execution.attempts[0].execution_id,
+        )
+
+    def test_open_circuit_skips_then_allows_one_recovery_probe(self):
+        route = self.create_route(
+            route_key="circuit-route",
+            providers=[self.providers[0], self.providers[1]],
+            max_attempts_per_provider=1,
+            circuit_failure_threshold=1,
+            circuit_recovery_seconds=30,
+        )
+        verification = self.create_processing_verification()
+
+        def fail_primary(provider, timeout_seconds):
+            if provider == self.providers[0]:
+                raise AIServiceUnavailable(error_code="provider_unavailable")
+            return {"status": "completed"}
+
+        execute_provider_route(
+            verification=verification,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+            operation=fail_primary,
+        )
+        skipped = execute_provider_route(
+            verification=verification,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+            operation=lambda provider, timeout: {"status": "completed"},
+        )
+        self.assertEqual(skipped.attempts[0].outcome, ProviderAttemptOutcome.SKIPPED)
+        self.assertEqual(skipped.attempts[0].fallback_reason, "circuit_open")
+        self.assertEqual(skipped.provider_check.provider, self.providers[1])
+
+        circuit = ProviderCircuitState.objects.get(
+            route_step__route=route,
+            route_step__provider=self.providers[0],
+        )
+        circuit.retry_after = timezone.now() - timedelta(seconds=1)
+        circuit.save(update_fields=["retry_after", "updated_at"])
+        recovered_calls = []
+        recovered = execute_provider_route(
+            verification=verification,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+            operation=lambda provider, timeout: (
+                recovered_calls.append(provider.public_id) or {"status": "completed"}
+            ),
+        )
+        circuit.refresh_from_db()
+        self.assertEqual(recovered.provider_check.provider, self.providers[0])
+        self.assertEqual(recovered_calls, [self.providers[0].public_id])
+        self.assertEqual(circuit.status, ProviderCircuitStatus.CLOSED)
+        self.assertEqual(circuit.consecutive_failures, 0)
+
+    def test_route_exhaustion_applies_manual_review_without_exception_details(self):
+        route = self.create_route(
+            route_key="manual-route",
+            providers=[self.providers[0], self.providers[1]],
+            max_attempts_per_provider=1,
+            final_action=ProviderRouteFinalAction.MANUAL_REVIEW,
+        )
+        verification = self.create_processing_verification()
+
+        with self.assertRaises(ProviderRouteExhausted) as exc:
+            execute_provider_route(
+                verification=verification,
+                check_type=ProviderCheckType.DOCUMENT_OCR,
+                operation=lambda provider, timeout: (_ for _ in ()).throw(
+                    AIServiceUnavailable(
+                        "private provider response",
+                        error_code="provider_unavailable",
+                    )
+                ),
+            )
+
+        verification.refresh_from_db()
+        self.assertEqual(verification.status, VerificationStatus.MANUAL_REVIEW_REQUIRED)
+        self.assertEqual(
+            exc.exception.final_action, ProviderRouteFinalAction.MANUAL_REVIEW
+        )
+        decision = verification.decision_record
+        self.assertEqual(decision.reason_code, "provider_route_exhausted")
+        self.assertEqual(
+            decision.evidence_summary_json["provider_route_id"], route.public_id
+        )
+        self.assertNotIn(
+            "private provider response", json.dumps(decision.evidence_summary_json)
+        )
+        attempts = list(route.execution_attempts.order_by("sequence"))
+        self.assertEqual(len(attempts), 2)
+        self.assertEqual(attempts[-1].fallback_reason, "route_exhausted")
+
+    def test_route_can_fail_verification_after_nonretryable_error(self):
+        self.create_route(
+            route_key="fail-route",
+            providers=[self.providers[0]],
+            max_attempts_per_provider=3,
+            final_action=ProviderRouteFinalAction.FAIL,
+        )
+        verification = self.create_processing_verification()
+        calls = []
+
+        with self.assertRaises(ProviderRouteExhausted):
+            execute_provider_route(
+                verification=verification,
+                check_type=ProviderCheckType.DOCUMENT_OCR,
+                operation=lambda provider, timeout: (
+                    calls.append(provider.public_id)
+                    or (_ for _ in ()).throw(
+                        AIServiceUnavailable(
+                            error_code="provider_invalid_response",
+                            retryable=False,
+                        )
+                    )
+                ),
+            )
+
+        verification.refresh_from_db()
+        self.assertEqual(verification.status, VerificationStatus.FAILED)
+        self.assertEqual(calls, [self.providers[0].public_id])
+
 
 class AIServiceClientTests(TestCase):
     @override_settings(
@@ -561,6 +765,27 @@ class AIServiceClientTests(TestCase):
         self.assertEqual(str(exc.exception), AI_SERVICE_UNAVAILABLE_MESSAGE)
         self.assertEqual(exc.exception.error_code, "provider_http_503")
         self.assertEqual(exc.exception.reason, "models missing")
+        self.assertTrue(exc.exception.retryable)
+
+    @override_settings(AI_SERVICE_BASE_URL="http://ai-service:8001")
+    @patch("apps.providers.ai_service.request.urlopen")
+    def test_client_error_is_explicitly_nonretryable(self, mock_urlopen):
+        mock_urlopen.side_effect = HTTPError(
+            url="http://ai-service:8001/v1/document/quality",
+            code=400,
+            msg="Bad Request",
+            hdrs=None,
+            fp=Mock(read=Mock(return_value=b'{"detail":"invalid input"}')),
+        )
+
+        with self.assertRaises(AIServiceUnavailable) as exc:
+            run_document_quality(
+                verification_id="ver_123",
+                document_storage_key="documents/front.jpg",
+            )
+
+        self.assertEqual(exc.exception.error_code, "provider_http_400")
+        self.assertFalse(exc.exception.retryable)
 
     @override_settings(AI_SERVICE_BASE_URL="http://ai-service:8001")
     @patch("apps.providers.ai_service.request.urlopen")
@@ -654,6 +879,23 @@ class SecureHTTPProviderAdapterTests(TestCase):
             )
         with self.assertRaisesRegex(SecureHTTPAdapterError, "allowlisted"):
             self.adapter().post_json(url="https://other.example.com/check", payload={})
+
+    @patch(
+        "apps.providers.http_adapter.socket.getaddrinfo",
+        return_value=[(None, None, None, None, ("8.8.8.8", 0))],
+    )
+    @patch("apps.providers.http_adapter.request.build_opener")
+    def test_timeout_is_explicitly_retryable(self, build_opener, getaddrinfo):
+        build_opener.return_value.open.side_effect = socket.timeout("private detail")
+
+        with self.assertRaises(SecureHTTPAdapterError) as exc:
+            self.adapter().post_json(
+                url="https://provider.example.com/check", payload={}
+            )
+
+        self.assertEqual(exc.exception.error_code, "provider_timeout")
+        self.assertTrue(exc.exception.retryable)
+        self.assertEqual(exc.exception.public_message, "Provider invocation failed.")
 
     @patch(
         "apps.providers.http_adapter.socket.getaddrinfo",

@@ -42,7 +42,7 @@ from apps.incidents.models import Incident
 from apps.incidents.serializers import serialize_incident
 from apps.verification_policies.models import VerificationPolicy
 from apps.verification_policies.serializers import serialize_verification_policy
-from apps.verifications.models import Verification, VerificationStatus
+from apps.verifications.models import VerificationStatus
 from apps.verifications.review_access import manual_review_queryset_for_user
 from apps.verifications.serializers import paginate_results, serialize_manual_review_summary, serialize_verification
 from apps.security.models import SecurityCase
@@ -78,11 +78,6 @@ from config.graphql_types import (
     VerificationNode,
     VerificationPolicyNode,
     WebhookEndpointNode,
-    VerificationSubjectNode,
-    RiskAssessmentNode,
-    VerificationCheckNode,
-    VerificationChecksNode,
-    VerificationDecisionNode,
     AuthUserNode,
     OrganizationNode,
     OrganizationSupportingDocumentNode,
@@ -270,9 +265,12 @@ class Query:
         page_size: int = 50,
     ) -> list[ProviderCheckNode]:
         require_platform_admin(info)
-        queryset = ProviderCheck.objects.select_related("verification", "provider").order_by(
-            "-started_at"
-        )
+        queryset = ProviderCheck.objects.select_related(
+            "verification",
+            "provider",
+            "execution_attempt__route",
+            "execution_attempt__route_step",
+        ).order_by("-started_at")
         if provider_id:
             queryset = queryset.filter(provider__public_id=provider_id)
         if check_type:
