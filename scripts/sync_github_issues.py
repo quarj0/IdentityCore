@@ -16,8 +16,9 @@ from pathlib import Path
 
 BACKLOG = Path("docs/planning/implementation-backlog.md")
 ROW = re.compile(
-    r"^\| (?P<id>IC-\d{3}) \| (?P<priority>P[0-2]) \| (?P<kind>[^|]+?) "
-    r"\| (?P<title>[^|]+?) \| (?P<acceptance>[^|]+?) \| (?P<depends>[^|]+?) \|$"
+    r"^\|\s*(?P<id>IC-\d{3})\s*\|\s*(?P<priority>P[0-2])\s*\|\s*"
+    r"(?P<kind>[^|]+?)\s*\|\s*(?P<title>[^|]+?)\s*\|\s*"
+    r"(?P<acceptance>[^|]+?)\s*\|\s*(?P<depends>[^|]+?)\s*\|$"
 )
 MILESTONE = re.compile(r"^## Milestone (?P<number>\d+) — (?P<title>.+)$")
 
@@ -93,10 +94,10 @@ def parse_backlog(path: Path) -> list[BacklogIssue]:
                 BacklogIssue(
                     stable_id=row["id"],
                     priority=row["priority"],
-                    kind=row["kind"],
-                    title=row["title"],
-                    acceptance=row["acceptance"],
-                    dependencies=row["depends"],
+                    kind=row["kind"].strip(),
+                    title=row["title"].strip(),
+                    acceptance=row["acceptance"].strip(),
+                    dependencies=row["depends"].strip(),
                     milestone=milestone,
                 )
             )

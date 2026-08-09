@@ -1,8 +1,15 @@
 # IdentityCore Platform Roadmap
 
+Last reviewed: 2026-08-09
+
 > IdentityCore is vendor-neutral identity infrastructure. Identity verification is the first workload built on the platform.
 
 This roadmap is organized by platform capability rather than by the order in which repository folders were created.
+
+Maturity labels describe repository capabilities, not deployment certification. The
+[implementation backlog](../planning/implementation-backlog.md) defines acceptance
+boundaries, while live GitHub issues and merged pull requests determine current work and
+completion state.
 
 ## Maturity labels
 
@@ -54,7 +61,7 @@ Current foundations:
 - public REST API;
 - internal GraphQL API;
 - interactive OpenAPI explorer;
-- Python, Java and .NET SDKs;
+- Python, JavaScript/TypeScript, Java and .NET SDKs;
 - production-oriented Python CLI;
 - API clients, scopes and secret rotation.
 

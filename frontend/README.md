@@ -8,7 +8,15 @@ The workspace contains five Next.js applications:
 - `developer-portal` (`3003`): integration documentation.
 - `platform-admin` (`3004`): internal platform administration.
 
-Shared UI and API code live under `packages/`. All applications use `NEXT_PUBLIC_API_ORIGIN` for Django and app-specific public URL variables for cross-application navigation.
+Shared UI and API code live under `packages/`. The dashboard, public site,
+developer portal, and platform-admin app use `NEXT_PUBLIC_API_ORIGIN` for Django.
+The verification portal deliberately uses the server-only `API_ORIGIN` through its BFF;
+it must not expose the Django origin to browser code. App-specific public URL variables
+handle cross-application navigation.
+
+Each application README documents its complete runtime variables and production rules.
+The verification portal also provides a checked-in `.env.example`; copy values into the
+individual application's `.env.local`, never into a browser-visible shared secrets file.
 
 Install the complete frontend workspace from this directory with the pinned package manager:
 

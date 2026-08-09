@@ -2,7 +2,7 @@
 
 > Status: architecture and integration contract.
 >
-> This document describes how a provider integrates with the IdentityCore Provider Runtime. It is distinct from the customer-facing Python, Java, and .NET SDKs used to call IdentityCore APIs.
+> This document describes how a provider integrates with the IdentityCore Provider Runtime. It is distinct from the customer-facing Python, JavaScript/TypeScript, Java, and .NET SDKs used to call IdentityCore APIs.
 
 ## 1. Purpose
 

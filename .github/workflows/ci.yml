@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - name: Validate implementation backlog
+        run: python scripts/sync_github_issues.py
       - name: Validate records-of-processing inventory
         run: python scripts/check_processing_inventory.py
 

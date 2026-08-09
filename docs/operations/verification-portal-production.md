@@ -1,9 +1,12 @@
 # Verification portal production operations
 
-The repository-owned portal implementation is marked complete in
-`frontend/verification-portal/COMPLETION.md`. The gates in this document are
-deliberately deployment- and human-owned release evidence; they do not indicate
-unfinished frontend code.
+Last reviewed: 2026-08-09
+
+The repository-owned portal is a working vertical slice with acceptance work tracked in
+IC-081 through IC-086 and summarized in
+`frontend/verification-portal/COMPLETION.md`. The gates in this document are additional
+deployment- and human-owned release evidence; completing repository issues does not satisfy
+them automatically.
 
 The verification portal is releasable only when every gate below has an owner,
 dated evidence, and approval. Repository tests are necessary but do not replace
@@ -11,13 +14,13 @@ independent assessment or a physical-device pilot.
 
 ## Service-level objectives
 
-| Signal | Target | Page when |
-| --- | --- | --- |
-| BFF availability | 99.95% over 30 days | 5-minute success rate below 99% |
-| Session exchange latency | p95 below 750 ms | p95 above 1.5 s for 10 minutes |
-| Evidence upload initiation | 99.5% successful | failures above 2% for 10 minutes |
-| Journey completion | Baseline set by approved pilot | 20% relative regression by locale/device |
-| Provider latency | Contract-specific | timeout/error budget exhausted |
+| Signal                     | Target                         | Page when                                |
+| -------------------------- | ------------------------------ | ---------------------------------------- |
+| BFF availability           | 99.95% over 30 days            | 5-minute success rate below 99%          |
+| Session exchange latency   | p95 below 750 ms               | p95 above 1.5 s for 10 minutes           |
+| Evidence upload initiation | 99.5% successful               | failures above 2% for 10 minutes         |
+| Journey completion         | Baseline set by approved pilot | 20% relative regression by locale/device |
+| Provider latency           | Contract-specific              | timeout/error budget exhausted           |
 
 Logs and traces must contain a generated request ID, route template, status,
 latency, deployment version, and provider-check ID where applicable. They must
