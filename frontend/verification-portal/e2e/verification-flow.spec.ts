@@ -249,12 +249,17 @@ test("subject completes consent, document, selfie, liveness, and review routing"
           upload_url: "",
           upload_headers: {},
           upload_transfer_path: `/uploads/upl_${uploadNumber}/transfer`,
+          upload_complete_path: `/uploads/upl_${uploadNumber}/complete`,
         },
         201,
       );
     }
 
     if (/\/api\/verification\/uploads\/upl_\d+\/transfer$/.test(path)) {
+      return json(route, { upload_id: `upl_${uploadNumber}` });
+    }
+
+    if (/\/api\/verification\/uploads\/upl_\d+\/complete$/.test(path)) {
       return json(route, { upload_id: `upl_${uploadNumber}` });
     }
 

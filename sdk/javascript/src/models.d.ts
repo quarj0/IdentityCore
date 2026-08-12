@@ -143,6 +143,7 @@ export interface PortalUploadCreateResponse {
   upload_url: string;
   upload_headers: Record<string, unknown>;
   upload_transfer_path: string;
+  upload_complete_path: string;
   expires_at: string;
 }
 

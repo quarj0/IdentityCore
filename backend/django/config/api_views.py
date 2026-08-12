@@ -166,6 +166,16 @@ class PublicDocsOverviewView(APIView):
                         "description": "Transfer file bytes into temporary storage.",
                     },
                     {
+                        "slug": "complete-upload",
+                        "name": "Complete upload",
+                        "method": "POST",
+                        "path": "/uploads/{upload_id}/complete",
+                        "category": "Uploads",
+                        "description": (
+                            "Validate and finalize a direct object-storage upload."
+                        ),
+                    },
+                    {
                         "slug": "organization-profile",
                         "name": "Organization profile",
                         "method": "GET",

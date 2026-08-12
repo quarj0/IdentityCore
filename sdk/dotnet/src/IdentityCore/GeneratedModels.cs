@@ -262,6 +262,8 @@ public sealed record PortalUploadCreateResponse
     public JsonElement UploadHeaders { get; init; }
     [JsonPropertyName("upload_transfer_path")]
     public string UploadTransferPath { get; init; }
+    [JsonPropertyName("upload_complete_path")]
+    public string UploadCompletePath { get; init; }
     [JsonPropertyName("expires_at")]
     public string ExpiresAt { get; init; }
 }

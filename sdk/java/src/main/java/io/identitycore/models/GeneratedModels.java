@@ -36,7 +36,7 @@ public final class GeneratedModels {
 
     public record PortalUploadCreateRequest(@JsonProperty("purpose") String purpose, @JsonProperty("mime_type") String mime_type, @JsonProperty("file_size_bytes") Integer file_size_bytes) {}
 
-    public record PortalUploadCreateResponse(@JsonProperty("upload_id") String upload_id, @JsonProperty("upload_url") String upload_url, @JsonProperty("upload_headers") JsonNode upload_headers, @JsonProperty("upload_transfer_path") String upload_transfer_path, @JsonProperty("expires_at") String expires_at) {}
+    public record PortalUploadCreateResponse(@JsonProperty("upload_id") String upload_id, @JsonProperty("upload_url") String upload_url, @JsonProperty("upload_headers") JsonNode upload_headers, @JsonProperty("upload_transfer_path") String upload_transfer_path, @JsonProperty("upload_complete_path") String upload_complete_path, @JsonProperty("expires_at") String expires_at) {}
 
     public record PortalUploadTransferResponse(@JsonProperty("upload_id") String upload_id) {}
 

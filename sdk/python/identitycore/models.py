@@ -166,6 +166,7 @@ class _PortalUploadCreateResponseRequired(TypedDict):
     upload_url: str
     upload_headers: dict[str, Any]
     upload_transfer_path: str
+    upload_complete_path: str
     expires_at: str
 
 class PortalUploadCreateResponse(_PortalUploadCreateResponseRequired, total=False):

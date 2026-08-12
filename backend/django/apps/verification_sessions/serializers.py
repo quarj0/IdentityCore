@@ -190,6 +190,10 @@ def resolve_session_upload(
         raise serializers.ValidationError(
             {"upload_id": "This upload was quarantined and cannot be processed."}
         )
+    if upload.status == UploadStatus.INITIATED:
+        raise serializers.ValidationError(
+            {"upload_id": "Upload must be completed and validated before submission."}
+        )
     if upload.status in {UploadStatus.CONSUMED, UploadStatus.PROMOTED} and not allow_consumed:
         raise serializers.ValidationError(
             {"upload_id": "Upload has already been used."}

@@ -333,6 +333,7 @@ def get_object_bytes(
     key: str,
     decrypt: bool = False,
     encryption_purpose: str = "",
+    max_bytes: int | None = None,
 ) -> tuple[bytes, str]:
     client = get_object_storage_client()
 
@@ -344,7 +345,13 @@ def get_object_bytes(
         Key=key,
     )
 
-    payload = response["Body"].read()
+    payload = (
+        response["Body"].read(max_bytes + 1)
+        if max_bytes is not None
+        else response["Body"].read()
+    )
+    if max_bytes is not None and len(payload) > max_bytes:
+        raise ValueError("Stored object exceeds the permitted size.")
 
     content_type = response.get(
         "ContentType",

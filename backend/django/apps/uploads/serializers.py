@@ -86,5 +86,6 @@ class UploadCreateSerializer(serializers.Serializer):
             "upload_url": build_signed_upload_url(upload=upload),
             "upload_headers": upload_headers,
             "upload_transfer_path": f"/uploads/{upload.public_id}/transfer",
+            "upload_complete_path": f"/uploads/{upload.public_id}/complete",
             "expires_at": expires_at.isoformat(),
         }

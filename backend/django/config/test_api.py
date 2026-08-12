@@ -52,7 +52,7 @@ class CatalogEndpointTests(APITestCase):
             data["base_urls"]["development"], "http://localhost:8000/api/v1"
         )
         # Verifications exposes separate list and create operations on one path.
-        self.assertEqual(len(data["resources"]), 34)
+        self.assertEqual(len(data["resources"]), 35)
         self.assertIn("/verifications/", [item["path"] for item in data["resources"]])
         documented_paths = {item["path"] for item in data["resources"]}
         self.assertTrue(

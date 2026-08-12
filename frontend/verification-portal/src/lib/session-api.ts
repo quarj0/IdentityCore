@@ -236,6 +236,7 @@ export async function createUpload(
     upload_url: string;
     upload_headers: Record<string, string>;
     upload_transfer_path: string;
+    upload_complete_path: string;
   }>(credentials, "/uploads/", {
     method: "POST",
     body: JSON.stringify({
@@ -278,6 +279,10 @@ export async function createUpload(
       });
       if (!response.ok) {
         await uploadThroughApi();
+      } else {
+        await request(credentials, upload.upload_complete_path, {
+          method: "POST",
+        });
       }
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
