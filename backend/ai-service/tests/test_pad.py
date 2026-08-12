@@ -21,7 +21,9 @@ class FakeSession:
         ]
 
     def get_outputs(self):
-        return [SimpleNamespace(name="scores", shape=[self.batch, 3])]
+        return [
+            SimpleNamespace(name="scores", shape=[self.batch, 3], type="tensor(float)")
+        ]
 
     def run(self, _outputs, inputs):
         tensor = inputs["images"]
@@ -46,10 +48,43 @@ def test_pad_contract_rejects_non_float_input():
 
 def test_pad_contract_rejects_rank_one_output():
     session = FakeSession(batch=1)
-    session.get_outputs = lambda: [SimpleNamespace(name="scores", shape=[3])]
+    session.get_outputs = lambda: [
+        SimpleNamespace(name="scores", shape=[3], type="tensor(float)")
+    ]
 
     with pytest.raises(ProcessingConfigurationError, match="batch and class"):
         pad.validate_pad_session_contract(session, live_class_index=1)
+
+
+def test_pad_contract_rejects_non_float_output():
+    session = FakeSession()
+    session.get_outputs = lambda: [
+        SimpleNamespace(name="scores", shape=[1, 3], type="tensor(int64)")
+    ]
+
+    with pytest.raises(ProcessingConfigurationError, match="output.*float32"):
+        pad.validate_pad_session_contract(session, live_class_index=1)
+
+
+def test_pad_model_contract_cache_is_keyed_by_model_digest(tmp_path, monkeypatch):
+    model_path = tmp_path / "pad.onnx"
+    model_path.write_bytes(b"first-model")
+    sessions = []
+
+    def build_session(path, providers):
+        session = FakeSession(batch=1)
+        sessions.append(session)
+        return session
+
+    monkeypatch.setattr(pad.ort, "InferenceSession", build_session)
+    pad._validate_pad_model_contract.cache_clear()
+
+    pad.validate_pad_model_contract(model_path, live_class_index=1)
+    pad.validate_pad_model_contract(model_path, live_class_index=1)
+    model_path.write_bytes(b"replacement-model")
+    pad.validate_pad_model_contract(model_path, live_class_index=1)
+
+    assert len(sessions) == 2
 
 
 def test_pad_model_applies_live_class_softmax(monkeypatch):

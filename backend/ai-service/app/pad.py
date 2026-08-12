@@ -11,6 +11,7 @@ The service refuses real-mode processing when the model is absent or invalid.
 """
 
 from functools import lru_cache
+import hashlib
 from pathlib import Path
 from typing import Any
 
@@ -68,6 +69,10 @@ def validate_pad_session_contract(
                 "PAD model spatial dimensions must be positive."
             )
     output_shape = outputs[0].shape
+    if outputs[0].type != "tensor(float)":
+        raise ProcessingConfigurationError(
+            "PAD model output must use float32 tensor elements."
+        )
     if len(output_shape) < 2:
         raise ProcessingConfigurationError(
             "PAD model output must include batch and class dimensions."
@@ -80,7 +85,10 @@ def validate_pad_session_contract(
             )
 
 
-def validate_pad_model_contract(model_path: Path, live_class_index: int) -> None:
+@lru_cache(maxsize=8)
+def _validate_pad_model_contract(
+    model_path: Path, live_class_index: int, model_digest: str
+) -> None:
     try:
         session = ort.InferenceSession(
             str(model_path), providers=["CPUExecutionProvider"]
@@ -92,6 +100,16 @@ def validate_pad_model_contract(model_path: Path, live_class_index: int) -> None
         raise ProcessingConfigurationError(
             f"PAD model could not be loaded: {model_path}"
         ) from exc
+
+
+def validate_pad_model_contract(model_path: Path, live_class_index: int) -> None:
+    try:
+        model_digest = hashlib.sha256(model_path.read_bytes()).hexdigest()
+    except OSError as exc:
+        raise ProcessingConfigurationError(
+            f"PAD model could not be read: {model_path}"
+        ) from exc
+    _validate_pad_model_contract(model_path, live_class_index, model_digest)
 
 
 def _softmax(values: np.ndarray) -> np.ndarray:
