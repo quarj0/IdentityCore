@@ -1,6 +1,8 @@
 from datetime import timedelta
+from importlib import import_module
 from unittest.mock import Mock, patch
 
+from django.apps import apps as django_apps
 from django.urls import reverse
 from django.db import connection
 from django.test import TestCase
@@ -48,6 +50,7 @@ from apps.verifications.transitions import (
 from apps.verification_subjects.models import VerificationSubject
 from apps.webhooks.models import WebhookEndpoint, WebhookEvent, WebhookEventStatus
 from common.crypto import encrypt_object_bytes
+from apps.verifications.evidence import build_verification_evidence_pdf_bytes
 
 
 class VerificationTransitionTests(TestCase):
@@ -802,6 +805,7 @@ class VerificationWorkflowTests(APITestCase):
         )
         workflow_version = WorkflowVersion.objects.create(
             workflow=workflow,
+            workflow_name=workflow.name,
             version=1,
             steps_json=workflow.steps_json,
             settings_json=workflow.settings_json,
@@ -830,6 +834,19 @@ class VerificationWorkflowTests(APITestCase):
         self.assertEqual(
             verification.workflow_snapshot_json["steps"], workflow.steps_json
         )
+        created_event = AuditEvent.objects.get(
+            action="verification.created", target_id=verification.public_id
+        )
+        self.assertEqual(
+            created_event.metadata_json["policy_id"], self.policy.public_id
+        )
+        self.assertEqual(created_event.metadata_json["policy_version"], 1)
+        self.assertEqual(created_event.metadata_json["workflow_id"], workflow.public_id)
+        self.assertEqual(
+            created_event.metadata_json["workflow_version_id"],
+            workflow_version.public_id,
+        )
+        self.assertEqual(created_event.metadata_json["workflow_version"], 1)
 
         workflow.steps_json = ["consent", "selfie", "decision"]
         workflow.save(update_fields=["steps_json", "updated_at"])
@@ -838,6 +855,79 @@ class VerificationWorkflowTests(APITestCase):
             verification.workflow_snapshot_json["steps"],
             ["consent", "document", "decision"],
         )
+
+    def test_workflow_snapshot_migration_backfills_legacy_verification(self):
+        from apps.workflows.models import Workflow, WorkflowVersion
+
+        project = Project.objects.create(
+            tenant=self.tenant,
+            created_by=self.user,
+            name="Legacy snapshots",
+            slug="legacy-snapshots",
+        )
+        workflow = Workflow.objects.create(
+            tenant=self.tenant,
+            project=project,
+            name="Legacy workflow",
+            steps_json=["consent", "decision"],
+            settings_json={"required_document_types": ["passport"]},
+            current_version=1,
+            status="published",
+            created_by=self.user,
+        )
+        version = WorkflowVersion.objects.create(
+            workflow=workflow,
+            workflow_name=workflow.name,
+            version=1,
+            steps_json=workflow.steps_json,
+            settings_json=workflow.settings_json,
+            policy=self.policy,
+            published_by=self.user,
+        )
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.tenant.verification_subjects.create(
+                full_name="Legacy snapshot subject"
+            ),
+            policy_public_id=self.policy.public_id,
+            workflow_snapshot_json={},
+            purpose="Migration coverage",
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+
+        migration = import_module(
+            "apps.verifications.migrations.0017_backfill_workflow_snapshots"
+        )
+        migration.backfill_workflow_snapshots(django_apps, None)
+
+        verification.refresh_from_db()
+        self.assertEqual(verification.workflow_snapshot_json["id"], version.public_id)
+        self.assertEqual(
+            verification.workflow_snapshot_json["workflow_name"], "Legacy workflow"
+        )
+
+    def test_evidence_pdf_renders_workflow_version_lineage(self):
+        payload = {
+            "verification_id": "ver_evidence",
+            "organization_id": self.organization.public_id,
+            "tenant_id": self.tenant.public_id,
+            "external_reference": "customer_evidence",
+            "status": VerificationStatus.VERIFIED,
+            "purpose": "Evidence lineage",
+            "verification_subject": {"id": "sub_evidence"},
+            "workflow_snapshot": {
+                "id": "wfv_evidence",
+                "workflow_id": "wfl_evidence",
+                "version": 7,
+            },
+        }
+
+        pdf = build_verification_evidence_pdf_bytes(payload)
+
+        self.assertIn(b"Workflow ID: wfl_evidence", pdf)
+        self.assertIn(b"Workflow Version ID: wfv_evidence", pdf)
+        self.assertIn(b"Workflow Version: 7", pdf)
 
     def test_api_client_create_requires_active_policy(self):
         response = self.client.post(

@@ -1,9 +1,11 @@
 from rest_framework.test import APITestCase
+from django.apps import apps as django_apps
+from importlib import import_module
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.organizations.models import Organization
 from apps.projects.models import Project
 from apps.tenants.models import Tenant
-from apps.workflows.models import WorkflowVersion
+from apps.workflows.models import Workflow, WorkflowVersion
 
 
 class WorkflowAPITests(APITestCase):
@@ -49,6 +51,40 @@ class WorkflowAPITests(APITestCase):
         version = WorkflowVersion.objects.get(workflow__public_id=workflow_id)
         self.assertEqual(version.version, 1)
         self.assertEqual(version.policy.project, self.project)
+        self.assertEqual(version.workflow_name, "KYC")
+
+        workflow = version.workflow
+        workflow.name = "Renamed draft"
+        workflow.save(update_fields=["name", "updated_at"])
+        version.refresh_from_db()
+        self.assertEqual(version.snapshot()["workflow_name"], "KYC")
+
+        versions = self.client.get(f"/api/v1/workflows/{workflow_id}/versions")
+        self.assertEqual(versions.status_code, 200)
+        self.assertEqual(versions.data["data"]["results"][0]["workflow_name"], "KYC")
+
+    def test_workflow_name_migration_backfills_existing_versions(self):
+        workflow = Workflow.objects.create(
+            tenant=self.tenant,
+            project=self.project,
+            created_by=self.user,
+            name="Published name",
+            steps_json=["consent", "decision"],
+        )
+        created = self.client.post(
+            f"/api/v1/workflows/{workflow.public_id}/publish", {}, format="json"
+        )
+        self.assertEqual(created.status_code, 200)
+        version = WorkflowVersion.objects.get(workflow=workflow)
+        WorkflowVersion.objects.filter(pk=version.pk).update(workflow_name="")
+
+        migration = import_module(
+            "apps.workflows.migrations.0004_workflowversion_workflow_name"
+        )
+        migration.backfill_workflow_names(django_apps, None)
+
+        version.refresh_from_db()
+        self.assertEqual(version.workflow_name, "Published name")
 
     def test_rejects_unsupported_steps(self):
         response = self.client.post(

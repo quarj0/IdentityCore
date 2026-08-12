@@ -247,7 +247,14 @@ class VerificationListCreateView(VerificationAccessMixin, APIView):
             action="verification.created",
             target_type="verification",
             target_id=verification.public_id,
-            metadata={"session_id": session.public_id},
+            metadata={
+                "session_id": session.public_id,
+                "policy_id": verification.policy_snapshot_json.get("id"),
+                "policy_version": verification.policy_snapshot_json.get("version"),
+                "workflow_id": verification.workflow_snapshot_json.get("workflow_id"),
+                "workflow_version_id": verification.workflow_snapshot_json.get("id"),
+                "workflow_version": verification.workflow_snapshot_json.get("version"),
+            },
         )
         queue_webhook_events(
             tenant=self._get_tenant(request),

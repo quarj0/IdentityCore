@@ -105,6 +105,7 @@ class WorkflowVersionsView(WorkflowDetailView):
                 "results": [
                     {
                         "id": v.public_id,
+                        "workflow_name": v.workflow_name,
                         "version": v.version,
                         "policy_id": v.policy.public_id,
                         "steps": v.steps_json,

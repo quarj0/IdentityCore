@@ -61,6 +61,7 @@ class WorkflowVersion(PublicIdModel):
     workflow = models.ForeignKey(
         Workflow, on_delete=models.PROTECT, related_name="versions"
     )
+    workflow_name = models.CharField(max_length=255)
     version = models.PositiveIntegerField()
     steps_json = models.JSONField(default=list)
     settings_json = models.JSONField(default=dict)
@@ -88,7 +89,7 @@ class WorkflowVersion(PublicIdModel):
         return {
             "id": self.public_id,
             "workflow_id": self.workflow.public_id,
-            "workflow_name": self.workflow.name,
+            "workflow_name": self.workflow_name,
             "version": self.version,
             "steps": list(self.steps_json),
             "settings": dict(self.settings_json),

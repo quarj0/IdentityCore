@@ -286,7 +286,7 @@ class VerificationSession(PublicIdModel):
 
     @property
     def allowed_actions(self) -> list[str]:
-        return list(self.allowed_actions_json or VERIFICATION_SESSION_ACTIONS)
+        return list(self.allowed_actions_json)
 
     @property
     def is_authenticated(self) -> bool:

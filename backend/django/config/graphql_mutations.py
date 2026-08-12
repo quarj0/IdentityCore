@@ -446,6 +446,7 @@ class Mutation:
         )
         workflow_version = WorkflowVersion.objects.create(
             workflow=workflow,
+            workflow_name=workflow.name,
             version=version,
             steps_json=workflow.steps_json,
             settings_json=workflow.settings_json,
@@ -467,7 +468,7 @@ class Mutation:
         return WorkflowVersionNode(
             id=workflow_version.public_id,
             workflow_id=workflow.public_id,
-            workflow_name=workflow.name,
+            workflow_name=workflow_version.workflow_name,
             version=version,
             steps=workflow.steps_json,
             settings=workflow.settings_json,

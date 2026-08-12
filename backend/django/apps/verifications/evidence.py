@@ -304,6 +304,7 @@ def build_verification_evidence_pdf_bytes(payload: dict) -> bytes:
     document_classification = payload.get("document_classification") or {}
     liveness = (payload.get("checks") or {}).get("liveness") or {}
     face_match = (payload.get("checks") or {}).get("face_match") or {}
+    workflow_snapshot = payload.get("workflow_snapshot") or {}
     sections = [
         (
             "Verification Summary",
@@ -314,6 +315,9 @@ def build_verification_evidence_pdf_bytes(payload: dict) -> bytes:
                 f"External Reference: {payload.get('external_reference', '') or 'N/A'}",
                 f"Status: {payload['status']}",
                 f"Purpose: {payload.get('purpose', '') or 'N/A'}",
+                f"Workflow ID: {workflow_snapshot.get('workflow_id', '') or 'N/A'}",
+                f"Workflow Version ID: {workflow_snapshot.get('id', '') or 'N/A'}",
+                f"Workflow Version: {workflow_snapshot.get('version', '') or 'N/A'}",
                 f"Created At: {payload.get('created_at', '')}",
                 f"Completed At: {payload.get('completed_at', '') or 'N/A'}",
             ],
