@@ -477,7 +477,7 @@ def test_liveness_pad_only_receives_exactly_one_face_frames(monkeypatch):
     assert captured["bboxes"] == [bbox, bbox]
 
 
-def test_liveness_rejects_video_without_two_single_face_frames(monkeypatch):
+def test_liveness_fails_video_without_two_single_face_frames(monkeypatch):
     np = pytest.importorskip("numpy")
     frames = [np.zeros((8, 8, 3), dtype="uint8") for _ in range(3)]
     asset = MediaAsset("capture.mp4", b"video", "video", frames[0], frames)
@@ -491,8 +491,32 @@ def test_liveness_rejects_video_without_two_single_face_frames(monkeypatch):
         lambda frame: {"quality_score": 1.0, "blur_variance": 1000.0},
     )
 
-    with pytest.raises(ProcessingConfigurationError, match="exactly one detected face"):
-        run_liveness_pipeline("capture.mp4", "passive")
+    result = run_liveness_pipeline("capture.mp4", "passive")
+
+    assert result["passed"] is False
+    assert result["issues"] == ["insufficient_single_face_frames"]
+
+
+def test_liveness_requires_two_valid_frames_for_single_frame_video(monkeypatch):
+    np = pytest.importorskip("numpy")
+    frame = np.zeros((8, 8, 3), dtype="uint8")
+    asset = MediaAsset("capture.mp4", b"video", "video", frame, [frame])
+    bbox = {"xmin": 0.1, "ymin": 0.1, "width": 0.5, "height": 0.5}
+
+    monkeypatch.setattr("app.pipeline.load_media_asset", lambda *args, **kwargs: asset)
+    monkeypatch.setattr(
+        "app.pipeline._detect_faces",
+        lambda captured_frame: [{"score": 0.9, "bbox": bbox}],
+    )
+    monkeypatch.setattr(
+        "app.pipeline._compute_image_quality_metrics",
+        lambda captured_frame: {"quality_score": 1.0, "blur_variance": 1000.0},
+    )
+
+    result = run_liveness_pipeline("capture.mp4", "passive")
+
+    assert result["passed"] is False
+    assert result["issues"] == ["insufficient_single_face_frames"]
 
 
 def test_real_mode_accepts_r2_storage_aliases(tmp_path):

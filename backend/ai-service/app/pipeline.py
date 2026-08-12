@@ -350,11 +350,36 @@ def run_liveness_pipeline(
         for frame, detections in zip(asset.frames, frame_detections)
         if len(detections) == 1
     ]
-    minimum_valid_frames = 2 if len(asset.frames) > 1 else 1
+    minimum_valid_frames = 2 if asset.kind == "video" else 1
     if len(valid_frame_pairs) < minimum_valid_frames:
-        raise ProcessingConfigurationError(
-            "PAD inference requires enough frames containing exactly one detected face."
-        )
+        issues = []
+        if max_face_count == 0:
+            issues.append("no_face_detected")
+        elif max_face_count > 1:
+            issues.append("multiple_faces_detected")
+        else:
+            issues.append("insufficient_single_face_frames")
+        return {
+            "passed": False,
+            "score": 0.0,
+            "pad_score": 0.0,
+            "confidence_level": "low",
+            "issues": issues,
+            "metrics": {
+                "asset_kind": asset.kind,
+                "frame_count": len(asset.frames),
+                "face_count": max_face_count,
+                "face_presence_ratio": face_presence_ratio,
+                "avg_detection_confidence": avg_detection_confidence,
+                "movement_score": 0.0,
+                "quality_score": quality_metrics["quality_score"],
+                "detected_actions": [],
+                "challenge_actions": challenge_actions or [],
+            },
+            "challenge_passed": False,
+            "model_name": settings.pad_model_name,
+            "model_version": settings.pad_model_version,
+        }
     pad_result = run_pad_model(
         [frame for frame, _ in valid_frame_pairs],
         [bbox for _, bbox in valid_frame_pairs],

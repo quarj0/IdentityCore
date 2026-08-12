@@ -1,8 +1,10 @@
 from types import SimpleNamespace
 
 import numpy as np
+import pytest
 
 from app import pad
+from app.pipeline import ProcessingConfigurationError
 from app.settings import Settings
 
 
@@ -12,7 +14,11 @@ class FakeSession:
         self.inputs = []
 
     def get_inputs(self):
-        return [SimpleNamespace(name="images", shape=[self.batch, 3, 80, 80])]
+        return [
+            SimpleNamespace(
+                name="images", shape=[self.batch, 3, 80, 80], type="tensor(float)"
+            )
+        ]
 
     def get_outputs(self):
         return [SimpleNamespace(name="scores", shape=[self.batch, 3])]
@@ -26,6 +32,24 @@ class FakeSession:
 
 def test_pad_live_class_defaults_to_genuine_class():
     assert Settings().pad_live_class_index == 1
+
+
+def test_pad_contract_rejects_non_float_input():
+    session = FakeSession()
+    session.get_inputs = lambda: [
+        SimpleNamespace(name="images", shape=[1, 3, 80, 80], type="tensor(uint8)")
+    ]
+
+    with pytest.raises(ProcessingConfigurationError, match="float32"):
+        pad.validate_pad_session_contract(session, live_class_index=1)
+
+
+def test_pad_contract_rejects_rank_one_output():
+    session = FakeSession(batch=1)
+    session.get_outputs = lambda: [SimpleNamespace(name="scores", shape=[3])]
+
+    with pytest.raises(ProcessingConfigurationError, match="batch and class"):
+        pad.validate_pad_session_contract(session, live_class_index=1)
 
 
 def test_pad_model_applies_live_class_softmax(monkeypatch):

@@ -52,6 +52,10 @@ def validate_pad_session_contract(
             "PAD model must expose exactly one input and at least one output."
         )
     input_shape = inputs[0].shape
+    if inputs[0].type != "tensor(float)":
+        raise ProcessingConfigurationError(
+            "PAD model input must use float32 tensor elements."
+        )
     if len(input_shape) != 4 or (
         isinstance(input_shape[1], int) and input_shape[1] != 3
     ):
@@ -64,6 +68,10 @@ def validate_pad_session_contract(
                 "PAD model spatial dimensions must be positive."
             )
     output_shape = outputs[0].shape
+    if len(output_shape) < 2:
+        raise ProcessingConfigurationError(
+            "PAD model output must include batch and class dimensions."
+        )
     if output_shape and isinstance(output_shape[-1], int):
         class_count = output_shape[-1]
         if class_count > 1 and not 0 <= live_class_index < class_count:
