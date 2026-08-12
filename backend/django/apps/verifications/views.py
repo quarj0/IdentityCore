@@ -117,7 +117,7 @@ class VerificationListCreateView(VerificationAccessMixin, APIView):
     def get(self, request):
         verifications = (
             self._get_tenant(request)
-            .verifications.select_related("verification_subject")
+            .verifications.select_related("verification_subject", "assigned_reviewer")
             .order_by("-created_at", "-pk")
         )
         verifications = self._scope_to_client_environment(request, verifications)
@@ -553,6 +553,16 @@ class ManualReviewDecisionView(APIView):
         decision_record = serializer.save(
             verification=verification, decided_by=request.user
         )
+        if getattr(decision_record, "_review_assigned_now", False):
+            record_audit_event(
+                tenant=verification.tenant,
+                actor=request.user,
+                request=request,
+                action="verification.review_assigned",
+                target_type="verification",
+                target_id=verification.public_id,
+                metadata={"reviewer_id": request.user.public_id},
+            )
         if decision_record.approval_status == VerificationApprovalStatus.PENDING:
             return success_response(
                 {
@@ -563,16 +573,6 @@ class ManualReviewDecisionView(APIView):
                 },
                 request=request,
                 status=status.HTTP_202_ACCEPTED,
-            )
-        if getattr(verification, "_review_assigned_now", False):
-            record_audit_event(
-                tenant=verification.tenant,
-                actor=request.user,
-                request=request,
-                action="verification.review_assigned",
-                target_type="verification",
-                target_id=verification.public_id,
-                metadata={"reviewer_id": request.user.public_id},
             )
         record_audit_event(
             tenant=verification.tenant,
@@ -642,6 +642,14 @@ class ManualReviewApprovalView(APIView):
             raise ValidationError(
                 {"approval": "The maker cannot approve their own decision."}
             )
+        reviewer_email = (request.user.email or "").strip().lower()
+        subject_email = (verification.verification_subject.email or "").strip().lower()
+        if verification.created_by_id == request.user.id or (
+            reviewer_email and reviewer_email == subject_email
+        ):
+            raise ValidationError(
+                {"approval": "You cannot approve your own verification."}
+            )
         approval = ManualReviewApprovalSerializer(data=request.data)
         approval.is_valid(raise_exception=True)
         now = timezone.now()
@@ -672,8 +680,35 @@ class ManualReviewApprovalView(APIView):
             action="verification.decision_approved",
             target_type="verification",
             target_id=verification.public_id,
-            metadata={"decision_id": decision_record.public_id},
+            metadata={
+                "decision_id": decision_record.public_id,
+                "proposed_decision": decision_record.proposed_decision,
+                "final_decision": decision_record.decision,
+            },
         )
+        if decision_record.decision in {
+            VerificationStatus.VERIFIED,
+            VerificationStatus.REJECTED,
+            VerificationStatus.MANUAL_REVIEW_REQUIRED,
+            VerificationStatus.FAILED,
+        }:
+            queue_webhook_events(
+                tenant=verification.tenant,
+                event_type=f"verification.{decision_record.decision}",
+                payload={
+                    "verification_id": verification.public_id,
+                    "external_reference": verification.external_reference,
+                    "status": verification.status,
+                },
+            )
+            risk_assessment = getattr(verification, "risk_assessment", None)
+            queue_verification_status_notifications(
+                verification=verification,
+                decision=decision_record.decision,
+                risk_level=(
+                    risk_assessment.risk_level if risk_assessment is not None else ""
+                ),
+            )
         ensure_verification_evidence_report(verification)
         return success_response(
             {

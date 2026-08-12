@@ -97,6 +97,7 @@ def queue_verification_status_notifications(
     status_subject_map = {
         "verified": "Your verification was approved",
         "rejected": "Your verification needs attention",
+        "failed": "Your verification could not be completed",
         "manual_review_required": "Your verification is under review",
         "cancelled": "Your verification was cancelled",
         "expired": "Your verification link has expired",
@@ -104,6 +105,7 @@ def queue_verification_status_notifications(
     status_body_map = {
         "verified": f"Verification {verification.public_id} has been completed successfully.",
         "rejected": f"Verification {verification.public_id} could not be approved at this time.",
+        "failed": f"Verification {verification.public_id} could not be completed.",
         "manual_review_required": (
             f"Verification {verification.public_id} needs additional review."
             + (f" Current risk level: {risk_level}." if risk_level else "")

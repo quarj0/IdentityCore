@@ -42,6 +42,7 @@ class _PolicyRequired(TypedDict):
     required_liveness_level: str
     face_match_threshold: float
     manual_review_threshold: float
+    maker_checker_required: bool
     verification_expiry_minutes: int
     media_retention_days: int
     metadata_retention_days: int
@@ -376,4 +377,18 @@ class _ManualReviewDecisionResponseRequired(TypedDict):
     decided_at: str
 
 class ManualReviewDecisionResponse(_ManualReviewDecisionResponseRequired, total=False):
+    pass
+
+class _ManualReviewApprovalRequestRequired(TypedDict):
+    decision: str
+
+class ManualReviewApprovalRequest(_ManualReviewApprovalRequestRequired, total=False):
+    pass
+
+class _ManualReviewApprovalResponseRequired(TypedDict):
+    verification_id: str
+    decision: str
+    approval_status: str
+
+class ManualReviewApprovalResponse(_ManualReviewApprovalResponseRequired, total=False):
     pass

@@ -2,8 +2,10 @@ from datetime import timedelta
 from unittest.mock import Mock, patch
 
 from django.urls import reverse
+from django.db import connection
 from django.test import TestCase
 from django.test import override_settings
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -374,6 +376,35 @@ class VerificationWorkflowTests(APITestCase):
             list_response.data["data"]["results"][0]["id"], verification.public_id
         )
         self.assertEqual(detail_response.data["data"]["id"], verification.public_id)
+
+    def test_verification_list_eager_loads_assigned_reviewers(self):
+        self.authenticate_dashboard_user()
+
+        def create_assigned(index):
+            return Verification.objects.create(
+                tenant=self.tenant,
+                organization=self.organization,
+                verification_subject=self.tenant.verification_subjects.create(
+                    full_name=f"Assigned Subject {index}"
+                ),
+                purpose="Assigned review list",
+                expires_at=timezone.now() + timedelta(hours=1),
+                status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
+                assigned_reviewer=self.user,
+                assigned_at=timezone.now(),
+            )
+
+        create_assigned(1)
+        with CaptureQueriesContext(connection) as one_item_queries:
+            first = self.client.get(reverse("verification-list-create"))
+        create_assigned(2)
+        create_assigned(3)
+        with CaptureQueriesContext(connection) as three_item_queries:
+            second = self.client.get(reverse("verification-list-create"))
+
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        self.assertEqual(second.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(one_item_queries), len(three_item_queries))
 
     def test_list_rejects_invalid_and_unbounded_pagination(self):
         for query in ("?page=zero", "?page=0", "?page_size=0", "?page_size=101"):
@@ -900,6 +931,7 @@ class VerificationWorkflowTests(APITestCase):
         self.assertEqual(verification.status, VerificationStatus.VERIFIED)
         decision = VerificationDecision.objects.get(verification=verification)
         self.assertEqual(decision.decision_type, "manual")
+        self.assertEqual(decision.proposed_decision, VerificationStatus.VERIFIED)
         self.assertEqual(decision.reason_code, "evidence_confirmed")
         verification.refresh_from_db()
         self.assertEqual(verification.assigned_reviewer_id, self.user.id)
@@ -908,6 +940,13 @@ class VerificationWorkflowTests(APITestCase):
             Notification.objects.filter(
                 tenant=self.tenant,
                 template_code="verification.verified",
+            ).exists()
+        )
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                tenant=self.tenant,
+                action="verification.review_assigned",
+                target_id=verification.public_id,
             ).exists()
         )
 
@@ -953,7 +992,8 @@ class VerificationWorkflowTests(APITestCase):
             tenant=self.tenant,
             organization=self.organization,
             verification_subject=self.tenant.verification_subjects.create(
-                full_name="High Risk Case"
+                full_name="High Risk Case",
+                email="high-risk-subject@example.com",
             ),
             purpose="High risk manual review",
             expires_at=self.tenant.created_at,
@@ -972,6 +1012,14 @@ class VerificationWorkflowTests(APITestCase):
             status=PlatformUserStatus.ACTIVE,
             tenant=self.tenant,
         )
+        webhook = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/verification-events",
+            events_json=["verification.verified"],
+            created_by=self.user,
+        )
+        webhook.set_secret("webhook-secret")
+        webhook.save()
 
         self.client.force_authenticate(self.user)
         proposal = self.client.post(
@@ -1000,8 +1048,200 @@ class VerificationWorkflowTests(APITestCase):
         verification.refresh_from_db()
         self.assertEqual(verification.status, VerificationStatus.VERIFIED)
         decision = verification.decision_record
+        self.assertEqual(decision.proposed_decision, VerificationStatus.REJECTED)
+        self.assertEqual(decision.decision, VerificationStatus.VERIFIED)
         self.assertEqual(decision.reason_code, "manual_review_verified")
         self.assertEqual(decision.reason_codes_json, ["manual_review_verified"])
+        self.assertTrue(
+            WebhookEvent.objects.filter(
+                webhook_endpoint=webhook,
+                event_type="verification.verified",
+            ).exists()
+        )
+        self.assertTrue(
+            Notification.objects.filter(
+                tenant=self.tenant,
+                template_code="verification.verified",
+                recipient="high-risk-subject@example.com",
+            ).exists()
+        )
+
+    def test_independent_approval_accepts_every_proposable_outcome(self):
+        checker = PlatformUser.objects.create_user(
+            email="all-outcomes-checker@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            tenant=self.tenant,
+        )
+        outcomes = (
+            VerificationStatus.VERIFIED,
+            VerificationStatus.REJECTED,
+            VerificationStatus.FAILED,
+        )
+
+        for index, outcome in enumerate(outcomes):
+            with self.subTest(outcome=outcome):
+                verification = Verification.objects.create(
+                    tenant=self.tenant,
+                    organization=self.organization,
+                    verification_subject=self.tenant.verification_subjects.create(
+                        full_name=f"Approval Outcome {index}"
+                    ),
+                    purpose="Approval outcome coverage",
+                    expires_at=self.tenant.created_at,
+                    status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
+                    policy_snapshot_json={"maker_checker_required": True},
+                )
+                self.client.force_authenticate(self.user)
+                proposal = self.client.post(
+                    reverse(
+                        "manual-review-decision",
+                        kwargs={"verification_id": verification.public_id},
+                    ),
+                    {"decision": outcome, "reason_code": "reviewer_proposal"},
+                    format="json",
+                )
+                self.assertEqual(proposal.status_code, status.HTTP_202_ACCEPTED)
+
+                self.client.force_authenticate(checker)
+                approval = self.client.post(
+                    reverse(
+                        "manual-review-approval",
+                        kwargs={"verification_id": verification.public_id},
+                    ),
+                    {"decision": outcome},
+                    format="json",
+                )
+
+                self.assertEqual(approval.status_code, status.HTTP_200_OK)
+                verification.refresh_from_db()
+                decision = verification.decision_record
+                self.assertEqual(decision.proposed_decision, outcome)
+                self.assertEqual(decision.decision, outcome)
+                self.assertEqual(decision.approval_status, "approved")
+
+    def test_checker_cannot_approve_a_verification_they_created(self):
+        checker = PlatformUser.objects.create_user(
+            email="self-checker@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            tenant=self.tenant,
+        )
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.tenant.verification_subjects.create(
+                full_name="Checker-created Case"
+            ),
+            purpose="Checker self-review coverage",
+            expires_at=self.tenant.created_at,
+            status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
+            policy_snapshot_json={"maker_checker_required": True},
+            created_by=checker,
+        )
+        self.client.force_authenticate(self.user)
+        proposal = self.client.post(
+            reverse(
+                "manual-review-decision",
+                kwargs={"verification_id": verification.public_id},
+            ),
+            {"decision": "verified", "reason_code": "maker_proposal"},
+            format="json",
+        )
+        self.assertEqual(proposal.status_code, status.HTTP_202_ACCEPTED)
+
+        self.client.force_authenticate(checker)
+        approval = self.client.post(
+            reverse(
+                "manual-review-approval",
+                kwargs={"verification_id": verification.public_id},
+            ),
+            {"decision": "verified"},
+            format="json",
+        )
+
+        self.assertEqual(approval.status_code, status.HTTP_400_BAD_REQUEST)
+        verification.refresh_from_db()
+        self.assertEqual(verification.status, VerificationStatus.MANUAL_REVIEW_REQUIRED)
+        self.assertEqual(verification.decision_record.approval_status, "pending")
+
+    def test_checker_cannot_approve_their_subject_identity(self):
+        checker = PlatformUser.objects.create_user(
+            email="subject-checker@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            tenant=self.tenant,
+        )
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.tenant.verification_subjects.create(
+                full_name="Subject Checker",
+                email="subject-checker@example.com",
+            ),
+            purpose="Checker subject identity coverage",
+            expires_at=self.tenant.created_at,
+            status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
+            policy_snapshot_json={"maker_checker_required": True},
+        )
+        self.client.force_authenticate(self.user)
+        proposal = self.client.post(
+            reverse(
+                "manual-review-decision",
+                kwargs={"verification_id": verification.public_id},
+            ),
+            {"decision": "rejected", "reason_code": "maker_proposal"},
+            format="json",
+        )
+        self.assertEqual(proposal.status_code, status.HTTP_202_ACCEPTED)
+
+        self.client.force_authenticate(checker)
+        approval = self.client.post(
+            reverse(
+                "manual-review-approval",
+                kwargs={"verification_id": verification.public_id},
+            ),
+            {"decision": "rejected"},
+            format="json",
+        )
+
+        self.assertEqual(approval.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(verification.decision_record.approval_status, "pending")
+
+    def test_policy_snapshot_can_require_approval_for_low_risk_review(self):
+        self.policy.maker_checker_required = True
+        self.policy.save(update_fields=["maker_checker_required", "updated_at"])
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.tenant.verification_subjects.create(
+                full_name="Policy Approval Case"
+            ),
+            purpose="Policy-controlled approval",
+            expires_at=self.tenant.created_at,
+            status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
+            policy_snapshot_json=self.policy.snapshot(),
+        )
+        RiskAssessment.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            risk_score="10.00",
+            risk_level="low",
+            recommendation="manual_review",
+        )
+        self.client.force_authenticate(self.user)
+
+        proposal = self.client.post(
+            reverse(
+                "manual-review-decision",
+                kwargs={"verification_id": verification.public_id},
+            ),
+            {"decision": "verified", "reason_code": "policy_review"},
+            format="json",
+        )
+
+        self.assertEqual(proposal.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(proposal.data["data"]["approval_status"], "pending")
 
     def test_detail_includes_decision_when_present(self):
         verification = Verification.objects.create(

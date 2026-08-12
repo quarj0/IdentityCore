@@ -266,11 +266,25 @@ def serialize_verification_evidence_report(verification: Verification) -> dict:
             {
                 "id": decision_record.public_id,
                 "decision": decision_record.decision,
+                "proposed_decision": (
+                    decision_record.proposed_decision or decision_record.decision
+                ),
                 "decision_type": decision_record.decision_type,
                 "reason_code": decision_record.reason_code,
                 "reason_detail": decision_record.reason_detail,
                 "contract_version": decision_record.contract_version,
                 "reason_codes": decision_record.reason_codes_json,
+                "approval_status": decision_record.approval_status,
+                "approved_by_id": (
+                    decision_record.approved_by.public_id
+                    if decision_record.approved_by_id
+                    else None
+                ),
+                "approved_at": (
+                    decision_record.approved_at.isoformat()
+                    if decision_record.approved_at
+                    else None
+                ),
                 "decided_at": decision_record.decided_at.isoformat(),
             }
             if decision_record is not None
@@ -317,7 +331,9 @@ def build_verification_evidence_pdf_bytes(payload: dict) -> bytes:
             "Decision and Risk",
             [
                 f"Decision: {decision.get('decision', '') or 'N/A'}",
+                f"Proposed Decision: {decision.get('proposed_decision', '') or 'N/A'}",
                 f"Decision Type: {decision.get('decision_type', '') or 'N/A'}",
+                f"Approval Status: {decision.get('approval_status', '') or 'N/A'}",
                 f"Reason Code: {decision.get('reason_code', '') or 'N/A'}",
                 f"Reason Detail: {decision.get('reason_detail', '') or 'N/A'}",
                 f"Risk Level: {risk_assessment.get('risk_level', '') or 'N/A'}",

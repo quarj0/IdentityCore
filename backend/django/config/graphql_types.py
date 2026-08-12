@@ -77,6 +77,7 @@ class VerificationPolicyNode:
     required_liveness_level: str
     face_match_threshold: float
     manual_review_threshold: float
+    maker_checker_required: bool
     verification_expiry_minutes: int
     media_retention_days: int
     metadata_retention_days: int

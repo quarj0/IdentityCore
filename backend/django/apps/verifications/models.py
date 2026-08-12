@@ -344,6 +344,11 @@ class VerificationDecision(PublicIdModel, BaseModel):
         choices=VerificationStatus.choices,
         db_index=True,
     )
+    proposed_decision = models.CharField(
+        max_length=32,
+        choices=VerificationStatus.choices,
+        blank=True,
+    )
     decision_type = models.CharField(
         max_length=32,
         choices=VerificationDecisionType.choices,

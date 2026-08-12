@@ -163,6 +163,9 @@ def serialize_verification(verification: Verification, request=None) -> dict:
         "decision": (
             {
                 "decision": decision_record.decision,
+                "proposed_decision": (
+                    decision_record.proposed_decision or decision_record.decision
+                ),
                 "decision_type": decision_record.decision_type,
                 "reason_code": decision_record.reason_code,
                 "reason_detail": decision_record.reason_detail,
@@ -424,7 +427,6 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
         choices=[
             (VerificationStatus.VERIFIED, "Verified"),
             (VerificationStatus.REJECTED, "Rejected"),
-            (VerificationStatus.MANUAL_REVIEW_REQUIRED, "Manual Review Required"),
             (VerificationStatus.FAILED, "Failed"),
         ]
     )
@@ -458,7 +460,10 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
                 }
             )
 
-        if verification.assigned_reviewer_id not in {None, getattr(decided_by, "pk", None)}:
+        if verification.assigned_reviewer_id not in {
+            None,
+            getattr(decided_by, "pk", None),
+        }:
             raise serializers.ValidationError(
                 {"decision": "This verification is assigned to another reviewer."}
             )
@@ -466,7 +471,9 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
         if assigned_now:
             verification.assigned_reviewer = decided_by
             verification.assigned_at = timezone.now()
-            verification.save(update_fields=["assigned_reviewer", "assigned_at", "updated_at"])
+            verification.save(
+                update_fields=["assigned_reviewer", "assigned_at", "updated_at"]
+            )
 
         reviewer_email = (getattr(decided_by, "email", "") or "").strip().lower()
         subject_email = (verification.verification_subject.email or "").strip().lower()
@@ -490,6 +497,7 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
             verification=verification,
             tenant=verification.tenant,
             decision=self.validated_data["decision"],
+            proposed_decision=self.validated_data["decision"],
             decision_type=VerificationDecisionType.MANUAL,
             reason_code=self.validated_data["reason_code"],
             reason_detail=self.validated_data.get("reason_detail", ""),
@@ -522,8 +530,7 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
                 self.validated_data["decision"],
                 completed_at=now,
             )
-        verification._review_assigned_now = assigned_now
-        verification._approval_pending = approval_required
+        decision_record._review_assigned_now = assigned_now
         return decision_record
 
 
@@ -532,5 +539,6 @@ class ManualReviewApprovalSerializer(serializers.Serializer):
         choices=[
             (VerificationStatus.VERIFIED, "Verified"),
             (VerificationStatus.REJECTED, "Rejected"),
+            (VerificationStatus.FAILED, "Failed"),
         ]
     )

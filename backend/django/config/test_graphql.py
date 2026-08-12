@@ -1448,6 +1448,7 @@ class PlatformAdminGraphQLTests(APITestCase):
             required_liveness_level="passive",
             face_match_threshold="0.8500",
             manual_review_threshold="0.6500",
+            maker_checker_required=True,
             verification_expiry_minutes=1440,
             media_retention_days=30,
             metadata_retention_days=365,
@@ -1655,6 +1656,7 @@ class PlatformAdminGraphQLTests(APITestCase):
                   platformVerificationPolicies {
                     id
                     name
+                    makerCheckerRequired
                   }
                   platformApiClients {
                     publicId
@@ -1680,6 +1682,9 @@ class PlatformAdminGraphQLTests(APITestCase):
             )
         )
         self.assertEqual(payload["platformVerificationPolicies"][0]["id"], self.policy.public_id)
+        self.assertTrue(
+            payload["platformVerificationPolicies"][0]["makerCheckerRequired"]
+        )
         self.assertEqual(payload["platformApiClients"][0]["publicId"], self.api_client.public_id)
         self.assertEqual(
             payload["platformWebhookEndpoints"][0]["id"], self.webhook_endpoint.public_id

@@ -60,6 +60,7 @@ export function LiveTemplateDetail({ id }: { id: string }) {
         manual_review_threshold: String(
           data.get("manual_review_threshold") || "0.6500",
         ),
+        maker_checker_required: data.get("maker_checker_required") === "on",
         verification_expiry_minutes: Number(
           data.get("verification_expiry_minutes") || 1440,
         ),
@@ -239,6 +240,22 @@ export function LiveTemplateDetail({ id }: { id: string }) {
                 disabled={!editable}
               />
             </div>
+            <label className="flex items-start gap-3 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                name="maker_checker_required"
+                defaultChecked={item.maker_checker_required}
+                disabled={!editable}
+                className="mt-1"
+              />
+              <span>
+                <strong className="block text-slate-900">
+                  Require independent approval
+                </strong>
+                A second reviewer must approve every manual decision made with
+                this template.
+              </span>
+            </label>
             <div>
               <Label htmlFor="verification_expiry_minutes">
                 Expiry minutes

@@ -14,7 +14,7 @@ public final class GeneratedModels {
 
     public record WorkflowSummary(@JsonProperty("id") String id, @JsonProperty("project_id") String project_id, @JsonProperty("name") String name, @JsonProperty("description") String description, @JsonProperty("status") String status, @JsonProperty("steps") List<String> steps, @JsonProperty("settings") JsonNode settings, @JsonProperty("current_version") Integer current_version, @JsonProperty("source_template_id") String source_template_id, @JsonProperty("source_template_version") String source_template_version, @JsonProperty("created_at") String created_at, @JsonProperty("updated_at") String updated_at) {}
 
-    public record Policy(@JsonProperty("id") String id, @JsonProperty("name") String name, @JsonProperty("description") String description, @JsonProperty("version") Integer version, @JsonProperty("status") String status, @JsonProperty("required_document_types") List<String> required_document_types, @JsonProperty("required_liveness_level") String required_liveness_level, @JsonProperty("face_match_threshold") Double face_match_threshold, @JsonProperty("manual_review_threshold") Double manual_review_threshold, @JsonProperty("verification_expiry_minutes") Integer verification_expiry_minutes, @JsonProperty("media_retention_days") Integer media_retention_days, @JsonProperty("metadata_retention_days") Integer metadata_retention_days, @JsonProperty("created_at") String created_at, @JsonProperty("updated_at") String updated_at) {}
+    public record Policy(@JsonProperty("id") String id, @JsonProperty("name") String name, @JsonProperty("description") String description, @JsonProperty("version") Integer version, @JsonProperty("status") String status, @JsonProperty("required_document_types") List<String> required_document_types, @JsonProperty("required_liveness_level") String required_liveness_level, @JsonProperty("face_match_threshold") Double face_match_threshold, @JsonProperty("manual_review_threshold") Double manual_review_threshold, @JsonProperty("maker_checker_required") Boolean maker_checker_required, @JsonProperty("verification_expiry_minutes") Integer verification_expiry_minutes, @JsonProperty("media_retention_days") Integer media_retention_days, @JsonProperty("metadata_retention_days") Integer metadata_retention_days, @JsonProperty("created_at") String created_at, @JsonProperty("updated_at") String updated_at) {}
 
     public record VerificationSubjectInput(@JsonProperty("full_name") String full_name, @JsonProperty("email") String email, @JsonProperty("phone_number") String phone_number, @JsonProperty("date_of_birth") String date_of_birth, @JsonProperty("metadata") JsonNode metadata) {}
 
@@ -77,5 +77,9 @@ public final class GeneratedModels {
     public record ManualReviewDecisionRequest(@JsonProperty("decision") String decision, @JsonProperty("reason_code") String reason_code, @JsonProperty("reason_detail") String reason_detail) {}
 
     public record ManualReviewDecisionResponse(@JsonProperty("verification_id") String verification_id, @JsonProperty("decision") String decision, @JsonProperty("decision_type") String decision_type, @JsonProperty("decided_at") String decided_at) {}
+
+    public record ManualReviewApprovalRequest(@JsonProperty("decision") String decision) {}
+
+    public record ManualReviewApprovalResponse(@JsonProperty("verification_id") String verification_id, @JsonProperty("decision") String decision, @JsonProperty("approval_status") String approval_status) {}
 
 }

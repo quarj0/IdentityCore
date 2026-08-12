@@ -109,6 +109,7 @@ components:
         - required_liveness_level
         - face_match_threshold
         - manual_review_threshold
+        - maker_checker_required
         - verification_expiry_minutes
         - media_retention_days
         - metadata_retention_days
@@ -138,6 +139,9 @@ components:
           type: number
         manual_review_threshold:
           type: number
+        maker_checker_required:
+          type: boolean
+          description: Require an independent checker for every manual decision.
         verification_expiry_minutes:
           type: integer
         media_retention_days:
@@ -858,7 +862,7 @@ components:
       properties:
         decision:
           type: string
-          enum: [verified, rejected, manual_review_required, failed]
+          enum: [verified, rejected, failed]
         reason_code:
           type: string
         reason_detail:
@@ -876,6 +880,24 @@ components:
         decided_at:
           type: string
           format: date-time
+    ManualReviewApprovalRequest:
+      type: object
+      required: [decision]
+      properties:
+        decision:
+          type: string
+          enum: [verified, rejected, failed]
+    ManualReviewApprovalResponse:
+      type: object
+      required: [verification_id, decision, approval_status]
+      properties:
+        verification_id:
+          type: string
+        decision:
+          type: string
+        approval_status:
+          type: string
+          const: approved
   responses:
     ValidationError:
       description: Validation error.
@@ -2333,6 +2355,47 @@ paths:
                     const: true
                   data:
                     $ref: "#/components/schemas/ManualReviewDecisionResponse"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /verifications/manual-reviews/{verification_id}/approval:
+    post:
+      summary: Complete an independent manual-review approval.
+      description: The checker must be different from the maker and cannot review their own verification.
+      security:
+        - platformUserSession: []
+        - platformUserBearer: []
+      parameters:
+        - name: verification_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManualReviewApprovalRequest"
+      responses:
+        "200":
+          description: Independent approval completed.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/ManualReviewApprovalResponse"
                   request_id:
                     type: string
         "400":
