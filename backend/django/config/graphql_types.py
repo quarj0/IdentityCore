@@ -33,9 +33,13 @@ class VerificationChecksNode:
 @strawberry.type
 class VerificationDecisionNode:
     decision: str
+    proposed_decision: str
     decision_type: str
     reason_code: str
     reason_detail: str
+    contract_version: str
+    reason_codes: list[str]
+    approval_status: str
     decided_at: str
 
 

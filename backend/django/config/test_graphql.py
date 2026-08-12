@@ -480,6 +480,30 @@ class GraphQLAPITests(APITestCase):
             verification.public_id,
         )
 
+        detail = self.post_graphql(
+            """
+                query VerificationDecision($verificationId: String!) {
+                  verification(verificationId: $verificationId) {
+                    decision {
+                      decision
+                      proposedDecision
+                      contractVersion
+                      reasonCodes
+                      approvalStatus
+                    }
+                  }
+                }
+            """,
+            {"verificationId": verification.public_id},
+        ).json()
+        self.assertNotIn("errors", detail)
+        decision = detail["data"]["verification"]["decision"]
+        self.assertEqual(decision["decision"], "verified")
+        self.assertEqual(decision["proposedDecision"], "verified")
+        self.assertEqual(decision["contractVersion"], "1")
+        self.assertEqual(decision["reasonCodes"], ["evidence_confirmed"])
+        self.assertEqual(decision["approvalStatus"], "not_required")
+
     @override_settings(DEBUG=True)
     def test_register_organization_onboarding_creates_pending_trial_workspace(self):
         response = self.post_graphql(
