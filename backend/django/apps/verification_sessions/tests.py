@@ -16,7 +16,7 @@ from apps.biometrics.models import (
 )
 from apps.consent.models import ConsentRecord, ConsentTemplate, ConsentTemplateStatus
 from apps.document_captures.models import DocumentCapture
-from apps.identity_documents.models import IdentityDocument
+from apps.identity_documents.models import IdentityDocument, IdentityDocumentStatus
 from apps.identity_documents.tasks import process_identity_document_task
 from apps.notifications.models import Notification
 from apps.organizations.models import Organization
@@ -743,6 +743,55 @@ class VerificationSessionPortalTests(APITestCase):
         self.assertEqual(selfie_upload.status, UploadStatus.CONSUMED)
         self.verification.refresh_from_db()
         self.assertEqual(self.verification.status, VerificationStatus.PROCESSING)
+
+    def test_submit_selfie_rolls_back_when_verification_is_terminal(self):
+        ConsentRecord.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_subject=self.subject,
+            consent_text_snapshot="I consent to identity verification.",
+            accepted=True,
+            accepted_at=timezone.now(),
+        )
+        IdentityDocument.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_subject=self.subject,
+            document_type_id="national_id",
+            country_profile_id="GH",
+            status=IdentityDocumentStatus.PROCESSED,
+        )
+        self.verification.status = VerificationStatus.CANCELLED
+        self.verification.cancelled_at = timezone.now()
+        self.verification.completed_at = self.verification.cancelled_at
+        self.verification.save(
+            update_fields=[
+                "status",
+                "cancelled_at",
+                "completed_at",
+                "updated_at",
+            ]
+        )
+        selfie_upload = self.create_upload(
+            purpose=UploadPurpose.SELFIE_CAPTURE, suffix="01JROLLBACK"
+        )
+
+        response = self.client.post(
+            reverse(
+                "verification-session-selfies",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            {"capture_type": "image", "upload_id": selfie_upload.public_id},
+            format="json",
+            **self.session_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(
+            SelfieCapture.objects.filter(verification=self.verification).exists()
+        )
+        selfie_upload.refresh_from_db()
+        self.assertEqual(selfie_upload.status, UploadStatus.UPLOADED)
 
     def test_submit_liveness_requires_matching_selfie_capture(self):
         response = self.client.post(

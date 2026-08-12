@@ -2,6 +2,7 @@ from datetime import timedelta
 import hashlib
 import secrets
 
+from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -32,7 +33,10 @@ from apps.verifications.models import (
     VerificationSessionStatus,
     VerificationStatus,
 )
-from apps.verifications.transitions import transition_verification
+from apps.verifications.transitions import (
+    VerificationTransitionError,
+    transition_verification,
+)
 from common.catalog import COUNTRY_PROFILES, DOCUMENT_TYPES
 
 
@@ -788,6 +792,7 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
         )
         return attrs
 
+    @transaction.atomic
     def save(self, **kwargs):
         request = self.context["request"]
         verification_session = request.verification_session
@@ -811,7 +816,12 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
         )
         consume_upload(upload=upload)
 
-        transition_verification(verification, VerificationStatus.PROCESSING)
+        try:
+            transition_verification(verification, VerificationStatus.PROCESSING)
+        except VerificationTransitionError as exc:
+            raise serializers.ValidationError(
+                {"detail": "This verification no longer accepts selfie evidence."}
+            ) from exc
         verification_session.last_seen_at = now
         verification_session.save(update_fields=["last_seen_at", "updated_at"])
         return selfie_capture

@@ -111,6 +111,32 @@ class VerificationTransitionTests(TestCase):
         with self.assertRaises(VerificationTransitionError):
             transition_verification(self.verification, VerificationStatus.IN_PROGRESS)
 
+    def test_manual_review_can_expire(self):
+        self.verification.status = VerificationStatus.MANUAL_REVIEW_REQUIRED
+        self.verification.save(update_fields=["status", "updated_at"])
+
+        transitioned, changed = transition_verification(
+            self.verification, VerificationStatus.EXPIRED
+        )
+
+        self.assertTrue(changed)
+        self.assertEqual(transitioned.status, VerificationStatus.EXPIRED)
+        self.assertIsNotNone(transitioned.completed_at)
+
+    def test_cancellation_persists_status_and_timestamps_together(self):
+        cancelled_at = timezone.now()
+
+        transitioned, changed = transition_verification(
+            self.verification,
+            VerificationStatus.CANCELLED,
+            completed_at=cancelled_at,
+        )
+
+        self.assertTrue(changed)
+        self.assertEqual(transitioned.status, VerificationStatus.CANCELLED)
+        self.assertEqual(transitioned.completed_at, cancelled_at)
+        self.assertEqual(transitioned.cancelled_at, cancelled_at)
+
 
 class VerificationWorkflowTests(APITestCase):
     def setUp(self):
@@ -606,12 +632,43 @@ class VerificationWorkflowTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["status"], VerificationStatus.CANCELLED)
+        verification = Verification.objects.get(public_id=verification_id)
+        self.assertIsNotNone(verification.cancelled_at)
+        self.assertEqual(verification.cancelled_at, verification.completed_at)
         self.assertTrue(
             Notification.objects.filter(
                 tenant=self.tenant,
                 template_code="verification.cancelled",
             ).exists()
         )
+
+    def test_cancel_terminal_verification_returns_conflict(self):
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.tenant.verification_subjects.create(
+                full_name="Terminal Subject"
+            ),
+            purpose="Test terminal cancellation",
+            expires_at=timezone.now() + timedelta(hours=1),
+            status=VerificationStatus.VERIFIED,
+            completed_at=timezone.now(),
+        )
+
+        response = self.client.post(
+            reverse(
+                "verification-cancel",
+                kwargs={"verification_id": verification.public_id},
+            ),
+            {"reason": "Too late"},
+            format="json",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        verification.refresh_from_db()
+        self.assertEqual(verification.status, VerificationStatus.VERIFIED)
+        self.assertIsNone(verification.cancelled_at)
 
     def test_resend_link_sends_notification_when_subject_has_email(self):
         create_response = self.client.post(
@@ -1734,7 +1791,7 @@ class VerificationOperationsTaskTests(TestCase):
             organization=self.organization,
             verification_subject=self.subject,
             purpose="Customer onboarding",
-            status=VerificationStatus.IN_PROGRESS,
+            status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
             external_reference="ext-123",
             expires_at=timezone.now() - timedelta(minutes=5),
         )

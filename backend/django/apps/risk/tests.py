@@ -18,7 +18,12 @@ from apps.risk.models import RiskRecommendation
 from apps.risk.services import run_verification_risk_and_decision
 from apps.tenants.models import Tenant
 from apps.verification_subjects.models import VerificationSubject
-from apps.verifications.models import Verification, VerificationStatus
+from apps.verifications.models import (
+    Verification,
+    VerificationDecision,
+    VerificationStatus,
+)
+from apps.verifications.transitions import VerificationTransitionError
 
 
 class RiskDecisionTests(TestCase):
@@ -132,6 +137,7 @@ class RiskDecisionTests(TestCase):
         self.assertEqual(decision_record.contract_version, "1")
         self.assertEqual(decision_record.reason_codes_json, ["risk_rules_approved"])
         self.assertIn("provider_checks", decision_record.input_snapshot_json)
+        self.assertEqual(self.verification.status, VerificationStatus.VERIFIED)
         self.verification.refresh_from_db()
         self.assertEqual(self.verification.status, VerificationStatus.VERIFIED)
         self.assertIsNotNone(self.verification.completed_at)
@@ -213,3 +219,19 @@ class RiskDecisionTests(TestCase):
         self.assertEqual(decision_record.decision, VerificationStatus.REJECTED)
         self.verification.refresh_from_db()
         self.assertEqual(self.verification.status, VerificationStatus.REJECTED)
+
+    def test_terminal_race_rolls_back_automatic_decision(self):
+        Verification.objects.filter(pk=self.verification.pk).update(
+            status=VerificationStatus.CANCELLED,
+            cancelled_at=timezone.now(),
+            completed_at=timezone.now(),
+        )
+
+        with self.assertRaises(VerificationTransitionError):
+            run_verification_risk_and_decision(self.verification)
+
+        self.assertFalse(
+            VerificationDecision.objects.filter(
+                verification=self.verification
+            ).exists()
+        )

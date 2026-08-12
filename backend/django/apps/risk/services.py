@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.db import transaction
 from django.utils import timezone
 
 from apps.biometrics.models import FaceMatchStatus, LivenessCheckStatus
@@ -7,6 +8,7 @@ from apps.providers.models import ProviderCheckStatus, ProviderCheckType
 from apps.providers.services import create_provider_check
 from apps.risk.models import RiskAssessment, RiskLevel, RiskRecommendation
 from apps.verifications.models import (
+    Verification,
     VerificationDecision,
     VerificationDecisionType,
     VerificationStatus,
@@ -157,9 +159,16 @@ def evaluate_risk_assessment(verification) -> RiskAssessment:
     return assessment
 
 
+@transaction.atomic
 def apply_automatic_decision(
     verification, risk_assessment: RiskAssessment
 ) -> VerificationDecision:
+    requested_verification = verification
+    verification = (
+        Verification.objects.select_for_update()
+        .select_related("tenant", "verification_subject")
+        .get(pk=verification.pk)
+    )
     now = timezone.now()
     decision_map = {
         RiskRecommendation.APPROVE: VerificationStatus.VERIFIED,
@@ -201,7 +210,12 @@ def apply_automatic_decision(
             "decided_at": now,
         },
     )
-    transition_verification(verification, decision, completed_at=now)
+    transitioned, _ = transition_verification(
+        verification, decision, completed_at=now
+    )
+    requested_verification.status = transitioned.status
+    requested_verification.completed_at = transitioned.completed_at
+    requested_verification.updated_at = transitioned.updated_at
     return decision_record
 
 
