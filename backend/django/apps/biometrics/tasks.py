@@ -18,6 +18,7 @@ from apps.providers.services import (
     ProviderRouteExhausted,
     execute_provider_route,
     invoke_selected_provider_operation,
+    preserve_provider_result_envelope,
 )
 from apps.risk.services import run_verification_risk_and_decision
 from apps.uploads.services import promote_upload_to_media_by_storage_key
@@ -185,15 +186,18 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             liveness_provider_check.status = ProviderCheckStatus.COMPLETED
             liveness_provider_check.completed_at = timezone.now()
             liveness_provider_check.response_metadata_json = liveness_result
-            liveness_provider_check.normalized_result_json = {
-                "status": liveness_check.status,
-                "score": (
-                    float(liveness_check.score)
-                    if liveness_check.score is not None
-                    else None
-                ),
-                "confidence_level": liveness_check.confidence_level,
-            }
+            liveness_provider_check.normalized_result_json = preserve_provider_result_envelope(
+                liveness_provider_check,
+                workflow_result={
+                    "status": liveness_check.status,
+                    "score": (
+                        float(liveness_check.score)
+                        if liveness_check.score is not None
+                        else None
+                    ),
+                    "confidence_level": liveness_check.confidence_level,
+                },
+            )
             liveness_provider_check.save(
                 update_fields=[
                     "status",
@@ -280,15 +284,18 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                 face_provider_check.status = ProviderCheckStatus.COMPLETED
                 face_provider_check.completed_at = timezone.now()
                 face_provider_check.response_metadata_json = face_result
-                face_provider_check.normalized_result_json = {
-                    "status": face_match.status,
-                    "match_score": (
-                        float(face_match.match_score)
-                        if face_match.match_score is not None
-                        else None
-                    ),
-                    "confidence_level": face_match.confidence_level,
-                }
+                face_provider_check.normalized_result_json = preserve_provider_result_envelope(
+                    face_provider_check,
+                    workflow_result={
+                        "status": face_match.status,
+                        "match_score": (
+                            float(face_match.match_score)
+                            if face_match.match_score is not None
+                            else None
+                        ),
+                        "confidence_level": face_match.confidence_level,
+                    },
+                )
                 face_provider_check.save(
                     update_fields=[
                         "status",

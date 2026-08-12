@@ -23,6 +23,7 @@ from apps.providers.services import (
     create_provider_check,
     execute_provider_route,
     invoke_selected_provider_operation,
+    preserve_provider_result_envelope,
 )
 from apps.uploads.services import promote_upload_to_media_by_storage_key
 from apps.verifications.models import VerificationStatus
@@ -279,15 +280,18 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 ],
                 "issues": issues_found,
             }
-            quality_provider_check.normalized_result_json = {
-                "status": latest_quality_status,
-                "quality_score": (
-                    float(lowest_quality_score)
-                    if lowest_quality_score is not None
-                    else None
-                ),
-                "issues": issues_found,
-            }
+            quality_provider_check.normalized_result_json = preserve_provider_result_envelope(
+                quality_provider_check,
+                workflow_result={
+                    "status": latest_quality_status,
+                    "quality_score": (
+                        float(lowest_quality_score)
+                        if lowest_quality_score is not None
+                        else None
+                    ),
+                    "issues": issues_found,
+                },
+            )
             quality_provider_check.save(
                 update_fields=[
                     "status",
@@ -467,7 +471,12 @@ def process_identity_document_task(identity_document_id: str) -> str:
             )
             classification_provider_check.completed_at = now
             classification_provider_check.response_metadata_json = classification_result
-            classification_provider_check.normalized_result_json = classification_result
+            classification_provider_check.normalized_result_json = (
+                preserve_provider_result_envelope(
+                    classification_provider_check,
+                    workflow_result=classification_result,
+                )
+            )
             classification_provider_check.error_code = (
                 "provider_unavailable"
                 if classification_result.get("provider_error")
@@ -496,10 +505,13 @@ def process_identity_document_task(identity_document_id: str) -> str:
             )
             ocr_provider_check.completed_at = now
             ocr_provider_check.response_metadata_json = ocr_result
-            ocr_provider_check.normalized_result_json = {
-                "status": identity_document.status,
-                "extracted_fields": identity_document.extracted_data_json,
-            }
+            ocr_provider_check.normalized_result_json = preserve_provider_result_envelope(
+                ocr_provider_check,
+                workflow_result={
+                    "status": identity_document.status,
+                    "extracted_fields": identity_document.extracted_data_json,
+                },
+            )
             ocr_provider_check.error_code = (
                 "provider_unavailable" if ocr_result.get("provider_error") else ""
             )

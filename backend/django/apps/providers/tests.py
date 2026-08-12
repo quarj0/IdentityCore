@@ -50,6 +50,7 @@ from apps.providers.services import (
     invoke_provider_check,
     publish_provider_route,
     ProviderRouteExhausted,
+    preserve_provider_result_envelope,
     redact_provider_metadata,
     resolve_provider_chain,
 )
@@ -263,6 +264,32 @@ class ProviderModelTests(TestCase):
             ProviderCheckType.DOCUMENT_QUALITY,
         )
         self.assertIsNotNone(check.duration_ms)
+
+    def test_workflow_result_preserves_normalized_provider_envelope(self):
+        check = create_provider_check(
+            verification=self.verification,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+            status=ProviderCheckStatus.PENDING,
+        )
+        invoke_provider_check(
+            provider_check=check,
+            operation=lambda: {
+                "status": "completed",
+                "confidence_score": 0.91,
+            },
+            operation_kwargs={},
+        )
+        check.refresh_from_db()
+
+        persisted = preserve_provider_result_envelope(
+            check,
+            workflow_result={"status": "processed"},
+        )
+
+        self.assertEqual(persisted["contract_version"], "1")
+        self.assertEqual(persisted["capability"], ProviderCheckType.DOCUMENT_OCR)
+        self.assertEqual(persisted["status"], "completed")
+        self.assertEqual(persisted["workflow_result"], {"status": "processed"})
 
     def test_redaction_is_recursive(self):
         self.assertEqual(
@@ -1000,6 +1027,7 @@ class ProviderAdapterRegistryTests(TestCase):
     def test_contract_rejects_malformed_and_unsupported_version_results(self):
         invalid_results = (
             [],
+            {"contract_version": "1"},
             {"status": "unexpected"},
             {"contract_version": "999", "status": "completed"},
         )

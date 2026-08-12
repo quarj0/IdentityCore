@@ -182,6 +182,17 @@ class BiometricsTaskTests(TestCase):
         self.assertEqual(self.selfie_capture.face_detection_model_name, "mock-liveness")
         self.assertEqual(self.selfie_capture.face_detection_model_version, "v1")
         self.assertEqual(self.selfie_upload.status, UploadStatus.PROMOTED)
+        self.liveness_provider_check.refresh_from_db()
+        self.assertEqual(
+            self.liveness_provider_check.normalized_result_json["contract_version"],
+            "1",
+        )
+        self.assertEqual(
+            self.liveness_provider_check.normalized_result_json["workflow_result"][
+                "status"
+            ],
+            "passed",
+        )
         self.assertTrue(
             RiskAssessment.objects.filter(verification=self.verification).exists()
         )

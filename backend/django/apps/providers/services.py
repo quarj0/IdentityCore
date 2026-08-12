@@ -445,6 +445,15 @@ def invoke_selected_provider_operation(
     return operation(timeout_seconds=timeout_seconds, **operation_kwargs)
 
 
+def preserve_provider_result_envelope(
+    provider_check: ProviderCheck, *, workflow_result: dict
+) -> dict:
+    """Attach domain persistence details without replacing the provider contract."""
+    normalized = dict(provider_check.normalized_result_json or {})
+    normalized["workflow_result"] = workflow_result
+    return normalized
+
+
 def _claim_circuit_probe(route_step: ProviderRouteStep | None) -> str | None:
     if route_step is None:
         return "closed"

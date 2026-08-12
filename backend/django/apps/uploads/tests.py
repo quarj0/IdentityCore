@@ -5,6 +5,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
+from PIL import Image
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -14,6 +15,7 @@ from apps.organizations.models import Organization
 from apps.tenants.models import Tenant
 from apps.uploads.models import Upload, UploadPurpose, UploadStatus
 from apps.uploads.tasks import cleanup_expired_uploads_task
+from apps.uploads.scanning import inspect_upload_content
 from apps.verifications.models import (
     VERIFICATION_SESSION_ACTIONS,
     Verification,
@@ -211,6 +213,19 @@ class UploadCreateTests(APITestCase):
         self.assertEqual(upload.status, UploadStatus.QUARANTINED)
         self.assertEqual(upload.quarantine_reason, "image_content_unrecognized")
         put_object_bytes.assert_not_called()
+
+    @patch(
+        "apps.uploads.scanning.Image.open",
+        side_effect=Image.DecompressionBombError("oversized image"),
+    )
+    def test_decompression_bomb_is_quarantined(self, _image_open):
+        safe, reason = inspect_upload_content(
+            content=b"oversized-image",
+            declared_mime_type="image/jpeg",
+        )
+
+        self.assertFalse(safe)
+        self.assertEqual(reason, "image_decompression_bomb")
 
     def test_create_upload_requires_session_authentication(self):
         response = self.client.post(
