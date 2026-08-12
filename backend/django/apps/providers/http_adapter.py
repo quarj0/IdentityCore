@@ -1,3 +1,4 @@
+import base64
 import http.client
 import ipaddress
 import json
@@ -6,13 +7,17 @@ import socket
 import ssl
 import threading
 import time
-from urllib.parse import urlsplit
+import urllib.request
+from dataclasses import dataclass
+from urllib.parse import unquote, urlsplit
 
 
 DEFAULT_MAX_RESPONSE_BYTES = 1 * 1024 * 1024
 DEFAULT_TIMEOUT_SECONDS = 10
 MAX_TIMEOUT_SECONDS = 30
 BLOCKED_HOSTNAMES = {"metadata.google.internal", "instance-data.ec2.internal"}
+DNS_RESOLVER_WORKERS = 4
+DNS_RESOLVER_CAPACITY = 8
 
 
 class SecureHTTPAdapterError(RuntimeError):
@@ -49,6 +54,108 @@ def _remaining_seconds(deadline: float) -> float:
     return remaining
 
 
+class _BoundedDNSResolver:
+    """Resolve hostnames without allowing timed-out calls to grow threads forever."""
+
+    def __init__(self, *, workers: int, capacity: int):
+        self._workers = workers
+        self._capacity = threading.BoundedSemaphore(capacity)
+        self._requests: queue.Queue[
+            tuple[str, int, queue.Queue[tuple[list[tuple] | None, Exception | None]]]
+        ] = queue.Queue(maxsize=capacity)
+        self._start_lock = threading.Lock()
+        self._started = False
+
+    def _ensure_started(self) -> None:
+        with self._start_lock:
+            if self._started:
+                return
+            for worker_number in range(self._workers):
+                worker = threading.Thread(
+                    target=self._run,
+                    name=f"identitycore-dns-{worker_number + 1}",
+                    daemon=True,
+                )
+                worker.start()
+            self._started = True
+
+    def _run(self) -> None:
+        while True:
+            hostname, port, result_queue = self._requests.get()
+            try:
+                try:
+                    result = socket.getaddrinfo(
+                        hostname,
+                        port,
+                        type=socket.SOCK_STREAM,
+                        proto=socket.IPPROTO_TCP,
+                    )
+                    outcome = (result, None)
+                except Exception as exc:  # pragma: no cover - returned to caller
+                    outcome = (None, exc)
+                try:
+                    result_queue.put_nowait(outcome)
+                except queue.Full:  # pragma: no cover - defensive only
+                    pass
+            finally:
+                self._capacity.release()
+                self._requests.task_done()
+
+    def resolve(self, hostname: str, port: int, *, deadline: float) -> list[tuple]:
+        self._ensure_started()
+        if not self._capacity.acquire(timeout=_remaining_seconds(deadline)):
+            raise _provider_timeout_error()
+        result_queue: queue.Queue[tuple[list[tuple] | None, Exception | None]] = (
+            queue.Queue(maxsize=1)
+        )
+        try:
+            self._requests.put_nowait((hostname, port, result_queue))
+        except queue.Full as exc:  # pragma: no cover - semaphore keeps these aligned
+            self._capacity.release()
+            raise _provider_timeout_error() from exc
+        try:
+            address_info, resolution_error = result_queue.get(
+                timeout=_remaining_seconds(deadline)
+            )
+        except queue.Empty as exc:
+            raise _provider_timeout_error() from exc
+        if resolution_error is not None:
+            if isinstance(resolution_error, (TimeoutError, socket.timeout)):
+                raise _provider_timeout_error() from resolution_error
+            raise SecureHTTPAdapterError(
+                "Provider destination could not be resolved.",
+                error_code="provider_destination_unresolved",
+                retryable=True,
+            ) from resolution_error
+        if not address_info:
+            raise SecureHTTPAdapterError(
+                "Provider destination could not be resolved.",
+                error_code="provider_destination_unresolved",
+                retryable=True,
+            )
+        return address_info
+
+
+_dns_resolver = _BoundedDNSResolver(
+    workers=DNS_RESOLVER_WORKERS,
+    capacity=DNS_RESOLVER_CAPACITY,
+)
+
+
+def _resolve_addresses(
+    hostname: str, port: int, *, deadline: float
+) -> tuple[tuple[int, tuple], ...]:
+    address_info = _dns_resolver.resolve(hostname, port, deadline=deadline)
+    endpoints = []
+    seen = set()
+    for family, _, _, _, sockaddr in address_info:
+        endpoint_key = (family, sockaddr)
+        if endpoint_key not in seen:
+            seen.add(endpoint_key)
+            endpoints.append(endpoint_key)
+    return tuple(endpoints)
+
+
 def _resolve_public_addresses(
     hostname: str, port: int, *, deadline: float
 ) -> tuple[tuple[int, tuple], ...]:
@@ -57,51 +164,15 @@ def _resolve_public_addresses(
         raise SecureHTTPAdapterError(
             "Provider destination is not allowed.", error_code="provider_ssrf_blocked"
         )
-    result_queue: queue.Queue[tuple[list[tuple] | None, Exception | None]] = queue.Queue(
-        maxsize=1
-    )
-
-    def resolve() -> None:
-        try:
-            result_queue.put(
-                (
-                    socket.getaddrinfo(
-                        hostname,
-                        port,
-                        type=socket.SOCK_STREAM,
-                        proto=socket.IPPROTO_TCP,
-                    ),
-                    None,
-                )
-            )
-        except Exception as exc:  # pragma: no cover - exercised via caller outcome
-            result_queue.put((None, exc))
-
-    resolver = threading.Thread(target=resolve, daemon=True)
-    resolver.start()
-    try:
-        address_info, resolution_error = result_queue.get(
-            timeout=_remaining_seconds(deadline)
-        )
-    except queue.Empty as exc:
-        raise _provider_timeout_error() from exc
-    if resolution_error is not None:
-        if isinstance(resolution_error, (TimeoutError, socket.timeout)):
-            raise _provider_timeout_error() from resolution_error
-        raise SecureHTTPAdapterError(
-            "Provider destination could not be resolved.",
-            error_code="provider_destination_unresolved",
-            retryable=True,
-        ) from resolution_error
-    if not address_info:
+    endpoints = _resolve_addresses(hostname, port, deadline=deadline)
+    if not endpoints:
         raise SecureHTTPAdapterError(
             "Provider destination could not be resolved.",
             error_code="provider_destination_unresolved",
             retryable=True,
         )
     vetted_endpoints = []
-    seen = set()
-    for family, _, _, _, sockaddr in address_info:
+    for family, sockaddr in endpoints:
         address = sockaddr[0]
         parsed = ipaddress.ip_address(address)
         if not parsed.is_global:
@@ -109,11 +180,33 @@ def _resolve_public_addresses(
                 "Provider destination resolves to a private or reserved network.",
                 error_code="provider_ssrf_blocked",
             )
-        endpoint_key = (family, sockaddr)
-        if endpoint_key not in seen:
-            seen.add(endpoint_key)
-            vetted_endpoints.append(endpoint_key)
+        vetted_endpoints.append((family, sockaddr))
     return tuple(vetted_endpoints)
+
+
+@dataclass(frozen=True)
+class _HTTPSProxy:
+    hostname: str
+    port: int
+    use_tls: bool
+    headers: dict[str, str]
+    endpoints: tuple[tuple[int, tuple], ...]
+
+
+def _response_socket(response: http.client.HTTPResponse | None):
+    if response is None:
+        return None
+    raw = getattr(getattr(response, "fp", None), "raw", None)
+    return getattr(raw, "_sock", None)
+
+
+def _shutdown_socket(active_socket) -> None:
+    if active_socket is None:
+        return
+    try:
+        active_socket.shutdown(socket.SHUT_RDWR)
+    except OSError:
+        pass
 
 
 class _PinnedHTTPSConnection(http.client.HTTPSConnection):
@@ -126,6 +219,7 @@ class _PinnedHTTPSConnection(http.client.HTTPSConnection):
         *,
         endpoints: tuple[tuple[int, tuple], ...],
         deadline: float,
+        proxy: _HTTPSProxy | None = None,
     ):
         super().__init__(
             hostname,
@@ -135,15 +229,62 @@ class _PinnedHTTPSConnection(http.client.HTTPSConnection):
         )
         self._vetted_endpoints = endpoints
         self._deadline = deadline
+        self._proxy = proxy
+
+    def _open_socket(self, family: int, sockaddr: tuple):
+        raw_socket = socket.socket(family, socket.SOCK_STREAM, socket.IPPROTO_TCP)
+        try:
+            raw_socket.settimeout(_remaining_seconds(self._deadline))
+            raw_socket.connect(sockaddr)
+            raw_socket.settimeout(_remaining_seconds(self._deadline))
+            return raw_socket
+        except Exception:
+            raw_socket.close()
+            raise
 
     def connect(self) -> None:
         last_error = None
+        if self._proxy is not None:
+            if self._proxy.use_tls:
+                raise SecureHTTPAdapterError(
+                    "TLS-encrypted HTTPS proxies are not supported.",
+                    error_code="provider_proxy_unsupported",
+                )
+            for _, provider_sockaddr in self._vetted_endpoints:
+                provider_address = provider_sockaddr[0]
+                for family, proxy_sockaddr in self._proxy.endpoints:
+                    raw_socket = None
+                    try:
+                        tunnel_headers = dict(self._proxy.headers)
+                        if ipaddress.ip_address(provider_address).version == 6:
+                            tunnel_headers["Host"] = f"[{provider_address}]:{self.port}"
+                        self.set_tunnel(
+                            provider_address,
+                            self.port,
+                            headers=tunnel_headers,
+                        )
+                        raw_socket = self._open_socket(family, proxy_sockaddr)
+                        self.sock = raw_socket
+                        self.sock.settimeout(_remaining_seconds(self._deadline))
+                        self._tunnel()
+                        self.sock.settimeout(_remaining_seconds(self._deadline))
+                        self.sock = self._context.wrap_socket(
+                            self.sock,
+                            server_hostname=self.host,
+                        )
+                        return
+                    except OSError as exc:
+                        last_error = exc
+                        if raw_socket is not None:
+                            raw_socket.close()
+                        self.sock = None
+            if last_error is not None:
+                raise last_error
+            raise OSError("No configured proxy endpoint is available.")
         for family, sockaddr in self._vetted_endpoints:
-            raw_socket = socket.socket(family, socket.SOCK_STREAM, socket.IPPROTO_TCP)
+            raw_socket = None
             try:
-                raw_socket.settimeout(_remaining_seconds(self._deadline))
-                raw_socket.connect(sockaddr)
-                raw_socket.settimeout(_remaining_seconds(self._deadline))
+                raw_socket = self._open_socket(family, sockaddr)
                 self.sock = self._context.wrap_socket(
                     raw_socket,
                     server_hostname=self.host,
@@ -151,7 +292,8 @@ class _PinnedHTTPSConnection(http.client.HTTPSConnection):
                 return
             except OSError as exc:
                 last_error = exc
-                raw_socket.close()
+                if raw_socket is not None:
+                    raw_socket.close()
         if last_error is not None:
             raise last_error
         raise OSError("No vetted provider endpoint is available.")
@@ -186,6 +328,68 @@ class SecureHTTPProviderAdapter:
             10 * DEFAULT_MAX_RESPONSE_BYTES,
         )
 
+    def _proxy_for_destination(
+        self, hostname: str, *, deadline: float
+    ) -> _HTTPSProxy | None:
+        configured_proxy = self.configuration.get("https_proxy")
+        if configured_proxy is None:
+            configured_proxy = urllib.request.getproxies().get("https")
+            if configured_proxy and urllib.request.proxy_bypass(hostname):
+                return None
+        if not configured_proxy:
+            return None
+        try:
+            parsed = urlsplit(str(configured_proxy))
+            proxy_hostname = parsed.hostname
+        except ValueError as exc:
+            raise SecureHTTPAdapterError(
+                "HTTPS proxy configuration is malformed.",
+                error_code="provider_proxy_invalid",
+            ) from exc
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not proxy_hostname
+            or (parsed.path not in {"", "/"})
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise SecureHTTPAdapterError(
+                "HTTPS proxy configuration is malformed.",
+                error_code="provider_proxy_invalid",
+            )
+        try:
+            proxy_port = parsed.port
+        except ValueError as exc:
+            raise SecureHTTPAdapterError(
+                "HTTPS proxy configuration is malformed.",
+                error_code="provider_proxy_invalid",
+            ) from exc
+        if parsed.scheme == "https":
+            raise SecureHTTPAdapterError(
+                "TLS-encrypted HTTPS proxies are not supported.",
+                error_code="provider_proxy_unsupported",
+            )
+        if proxy_port is None:
+            proxy_port = 443 if parsed.scheme == "https" else 80
+        if proxy_port == 0:
+            raise SecureHTTPAdapterError(
+                "HTTPS proxy configuration is malformed.",
+                error_code="provider_proxy_invalid",
+            )
+        headers = {}
+        if parsed.username is not None:
+            credentials = f"{unquote(parsed.username)}:{unquote(parsed.password or '')}"
+            encoded = base64.b64encode(credentials.encode("utf-8")).decode("ascii")
+            headers["Proxy-Authorization"] = f"Basic {encoded}"
+        endpoints = _resolve_addresses(proxy_hostname, proxy_port, deadline=deadline)
+        return _HTTPSProxy(
+            hostname=proxy_hostname,
+            port=proxy_port,
+            use_tls=parsed.scheme == "https",
+            headers=headers,
+            endpoints=endpoints,
+        )
+
     def _validate_destination(
         self, url: str, *, deadline: float
     ) -> tuple[str, int, str, tuple[tuple[int, tuple], ...]]:
@@ -206,12 +410,19 @@ class SecureHTTPProviderAdapter:
                 error_code="provider_destination_not_allowlisted",
             )
         try:
-            port = parsed.port or 443
+            port = parsed.port
         except ValueError as exc:
             raise SecureHTTPAdapterError(
                 "Provider destination is malformed.",
                 error_code="provider_url_invalid",
             ) from exc
+        if port is None:
+            port = 443
+        if port == 0:
+            raise SecureHTTPAdapterError(
+                "Provider destination is malformed.",
+                error_code="provider_url_invalid",
+            )
         endpoints = _resolve_public_addresses(hostname, port, deadline=deadline)
         request_target = parsed.path or "/"
         if parsed.query:
@@ -225,6 +436,7 @@ class SecureHTTPProviderAdapter:
         hostname, port, request_target, endpoints = self._validate_destination(
             url, deadline=deadline
         )
+        proxy = self._proxy_for_destination(hostname, deadline=deadline)
         body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
         request_headers = {
             "Accept": "application/json",
@@ -236,11 +448,18 @@ class SecureHTTPProviderAdapter:
             port,
             endpoints=endpoints,
             deadline=deadline,
+            proxy=proxy,
         )
         deadline_reached = threading.Event()
+        response = None
 
         def abort_request() -> None:
             deadline_reached.set()
+            response_owned_socket = _response_socket(response)
+            connection_socket = connection.sock
+            _shutdown_socket(response_owned_socket)
+            if connection_socket is not response_owned_socket:
+                _shutdown_socket(connection_socket)
             connection.close()
 
         watchdog = threading.Timer(_remaining_seconds(deadline), abort_request)
@@ -253,6 +472,8 @@ class SecureHTTPProviderAdapter:
                 body=body,
                 headers=request_headers,
             )
+            if connection.sock is not None:
+                connection.sock.settimeout(_remaining_seconds(deadline))
             response = connection.getresponse()
             if deadline_reached.is_set() or time.monotonic() >= deadline:
                 raise _provider_timeout_error()
@@ -280,10 +501,10 @@ class SecureHTTPProviderAdapter:
             while bytes_read <= self.max_response_bytes:
                 if deadline_reached.is_set():
                     raise _provider_timeout_error()
-                connection.sock.settimeout(_remaining_seconds(deadline))
-                chunk = read(
-                    min(64 * 1024, self.max_response_bytes + 1 - bytes_read)
-                )
+                active_socket = _response_socket(response) or connection.sock
+                if active_socket is not None:
+                    active_socket.settimeout(_remaining_seconds(deadline))
+                chunk = read(min(64 * 1024, self.max_response_bytes + 1 - bytes_read))
                 if deadline_reached.is_set() or time.monotonic() >= deadline:
                     raise _provider_timeout_error()
                 if not chunk:
