@@ -2,20 +2,25 @@
 
 from typing import Any, Optional, TypedDict
 
+
 class _ErrorRequired(TypedDict):
     code: str
     message: str
 
+
 class Error(_ErrorRequired, total=False):
     details: dict[str, Any]
+
 
 class _ErrorEnvelopeRequired(TypedDict):
     success: dict[str, Any]
     error: Error
     request_id: str
 
+
 class ErrorEnvelope(_ErrorEnvelopeRequired, total=False):
     pass
+
 
 class _WorkflowSummaryRequired(TypedDict):
     id: str
@@ -26,12 +31,14 @@ class _WorkflowSummaryRequired(TypedDict):
     settings: dict[str, Any]
     current_version: int
 
+
 class WorkflowSummary(_WorkflowSummaryRequired, total=False):
     description: str
     source_template_id: Optional[str]
     source_template_version: Optional[str]
     created_at: str
     updated_at: str
+
 
 class _PolicyRequired(TypedDict):
     id: str
@@ -49,11 +56,14 @@ class _PolicyRequired(TypedDict):
     created_at: str
     updated_at: str
 
+
 class Policy(_PolicyRequired, total=False):
     description: str
 
+
 class _VerificationSubjectInputRequired(TypedDict):
     pass
+
 
 class VerificationSubjectInput(_VerificationSubjectInputRequired, total=False):
     full_name: str
@@ -62,16 +72,19 @@ class VerificationSubjectInput(_VerificationSubjectInputRequired, total=False):
     date_of_birth: str
     metadata: dict[str, Any]
 
+
 class _VerificationCreateRequestRequired(TypedDict):
     purpose: str
     policy_id: str
     verification_subject: VerificationSubjectInput
+
 
 class VerificationCreateRequest(_VerificationCreateRequestRequired, total=False):
     external_reference: str
     project_id: str
     redirect_url: str
     metadata: dict[str, Any]
+
 
 class _VerificationCreateResponseRequired(TypedDict):
     id: str
@@ -80,8 +93,10 @@ class _VerificationCreateResponseRequired(TypedDict):
     session_id: str
     expires_at: str
 
+
 class VerificationCreateResponse(_VerificationCreateResponseRequired, total=False):
     session_token: str
+
 
 class _VerificationSummaryRequired(TypedDict):
     id: str
@@ -92,8 +107,10 @@ class _VerificationSummaryRequired(TypedDict):
     policy: dict[str, Any]
     created_at: str
 
+
 class VerificationSummary(_VerificationSummaryRequired, total=False):
     completed_at: Optional[str]
+
 
 class _VerificationDetailRequired(TypedDict):
     id: str
@@ -104,6 +121,7 @@ class _VerificationDetailRequired(TypedDict):
     policy: dict[str, Any]
     created_at: str
 
+
 class VerificationDetail(_VerificationDetailRequired, total=False):
     completed_at: Optional[str]
     verification_subject: dict[str, Any]
@@ -112,6 +130,7 @@ class VerificationDetail(_VerificationDetailRequired, total=False):
     evidence_report: Optional[dict[str, Any]]
     decision: Optional[dict[str, Any]]
     expires_at: str
+
 
 class _VerificationResultRequired(TypedDict):
     schema_version: str
@@ -123,16 +142,20 @@ class _VerificationResultRequired(TypedDict):
     check_provenance: list[dict[str, Any]]
     timestamps: dict[str, Any]
 
+
 class VerificationResult(_VerificationResultRequired, total=False):
     pass
+
 
 class _CursorPaginationRequired(TypedDict):
     limit: int
     next_cursor: Optional[str]
     has_more: bool
 
+
 class CursorPagination(_CursorPaginationRequired, total=False):
     pass
+
 
 class _PagePaginationRequired(TypedDict):
     page: int
@@ -140,8 +163,10 @@ class _PagePaginationRequired(TypedDict):
     total: int
     total_pages: int
 
+
 class PagePagination(_PagePaginationRequired, total=False):
     pass
+
 
 class _EvidenceReportRequired(TypedDict):
     verification_id: str
@@ -150,16 +175,20 @@ class _EvidenceReportRequired(TypedDict):
     pdf_storage_key: str
     pdf_download_url: str
 
+
 class EvidenceReport(_EvidenceReportRequired, total=False):
     pass
+
 
 class _PortalUploadCreateRequestRequired(TypedDict):
     purpose: str
     mime_type: str
     file_size_bytes: int
 
+
 class PortalUploadCreateRequest(_PortalUploadCreateRequestRequired, total=False):
     pass
+
 
 class _PortalUploadCreateResponseRequired(TypedDict):
     upload_id: str
@@ -169,14 +198,18 @@ class _PortalUploadCreateResponseRequired(TypedDict):
     upload_complete_path: str
     expires_at: str
 
+
 class PortalUploadCreateResponse(_PortalUploadCreateResponseRequired, total=False):
     pass
+
 
 class _PortalUploadTransferResponseRequired(TypedDict):
     upload_id: str
 
+
 class PortalUploadTransferResponse(_PortalUploadTransferResponseRequired, total=False):
     pass
+
 
 class _OrganizationProfileRequired(TypedDict):
     id: str
@@ -185,6 +218,7 @@ class _OrganizationProfileRequired(TypedDict):
     status: str
     settings: dict[str, Any]
     sandbox_usage: dict[str, Any]
+
 
 class OrganizationProfile(_OrganizationProfileRequired, total=False):
     industry: str
@@ -196,13 +230,18 @@ class OrganizationProfile(_OrganizationProfileRequired, total=False):
     created_at: str
     updated_at: str
 
+
 class _OrganizationBrandingAssetUploadRequestRequired(TypedDict):
     asset_type: str
     filename: str
     mime_type: str
 
-class OrganizationBrandingAssetUploadRequest(_OrganizationBrandingAssetUploadRequestRequired, total=False):
+
+class OrganizationBrandingAssetUploadRequest(
+    _OrganizationBrandingAssetUploadRequestRequired, total=False
+):
     pass
+
 
 class _OrganizationBrandingAssetUploadResponseRequired(TypedDict):
     asset_type: str
@@ -211,16 +250,24 @@ class _OrganizationBrandingAssetUploadResponseRequired(TypedDict):
     upload_url: str
     asset_url: str
 
-class OrganizationBrandingAssetUploadResponse(_OrganizationBrandingAssetUploadResponseRequired, total=False):
+
+class OrganizationBrandingAssetUploadResponse(
+    _OrganizationBrandingAssetUploadResponseRequired, total=False
+):
     pass
+
 
 class _OrganizationSupportingDocumentUploadRequestRequired(TypedDict):
     filename: str
     mime_type: str
     file_size_bytes: int
 
-class OrganizationSupportingDocumentUploadRequest(_OrganizationSupportingDocumentUploadRequestRequired, total=False):
+
+class OrganizationSupportingDocumentUploadRequest(
+    _OrganizationSupportingDocumentUploadRequestRequired, total=False
+):
     pass
+
 
 class _OrganizationSupportingDocumentUploadResponseRequired(TypedDict):
     document_id: str
@@ -231,22 +278,34 @@ class _OrganizationSupportingDocumentUploadResponseRequired(TypedDict):
     download_url: str
     upload_url: str
 
-class OrganizationSupportingDocumentUploadResponse(_OrganizationSupportingDocumentUploadResponseRequired, total=False):
+
+class OrganizationSupportingDocumentUploadResponse(
+    _OrganizationSupportingDocumentUploadResponseRequired, total=False
+):
     pass
+
 
 class _OrganizationSupportingDocumentCompleteResponseRequired(TypedDict):
     document_id: str
     status: str
 
-class OrganizationSupportingDocumentCompleteResponse(_OrganizationSupportingDocumentCompleteResponseRequired, total=False):
+
+class OrganizationSupportingDocumentCompleteResponse(
+    _OrganizationSupportingDocumentCompleteResponseRequired, total=False
+):
     pass
+
 
 class _OrganizationSupportingDocumentDeleteResponseRequired(TypedDict):
     document_id: str
     deleted: bool
 
-class OrganizationSupportingDocumentDeleteResponse(_OrganizationSupportingDocumentDeleteResponseRequired, total=False):
+
+class OrganizationSupportingDocumentDeleteResponse(
+    _OrganizationSupportingDocumentDeleteResponseRequired, total=False
+):
     pass
+
 
 class _ProjectSummaryRequired(TypedDict):
     id: str
@@ -259,16 +318,20 @@ class _ProjectSummaryRequired(TypedDict):
     created_at: str
     updated_at: str
 
+
 class ProjectSummary(_ProjectSummaryRequired, total=False):
     pass
 
+
 class _ProjectCreateRequestRequired(TypedDict):
     name: str
+
 
 class ProjectCreateRequest(_ProjectCreateRequestRequired, total=False):
     slug: str
     environment: str
     allowed_origins: list[str]
+
 
 class _APIClientSummaryRequired(TypedDict):
     public_id: str
@@ -282,19 +345,23 @@ class _APIClientSummaryRequired(TypedDict):
     created_at: str
     updated_at: str
 
+
 class APIClientSummary(_APIClientSummaryRequired, total=False):
     project_id: Optional[str]
     last_used_at: Optional[str]
     client_secret_overlap_expires_at: Optional[str]
 
+
 class _APIClientCreateRequestRequired(TypedDict):
     name: str
     scopes: list[str]
+
 
 class APIClientCreateRequest(_APIClientCreateRequestRequired, total=False):
     project_id: str
     allowed_networks: list[str]
     rate_limit_per_minute: int
+
 
 class _APIClientCreateResponseRequired(TypedDict):
     public_id: str
@@ -309,10 +376,12 @@ class _APIClientCreateResponseRequired(TypedDict):
     updated_at: str
     client_secret: str
 
+
 class APIClientCreateResponse(_APIClientCreateResponseRequired, total=False):
     project_id: Optional[str]
     last_used_at: Optional[str]
     client_secret_overlap_expires_at: Optional[str]
+
 
 class _WebhookEndpointSummaryRequired(TypedDict):
     id: str
@@ -322,17 +391,21 @@ class _WebhookEndpointSummaryRequired(TypedDict):
     created_at: str
     updated_at: str
 
+
 class WebhookEndpointSummary(_WebhookEndpointSummaryRequired, total=False):
     project_id: Optional[str]
     description: str
+
 
 class _WebhookEndpointCreateRequestRequired(TypedDict):
     url: str
     events: list[str]
 
+
 class WebhookEndpointCreateRequest(_WebhookEndpointCreateRequestRequired, total=False):
     project_id: str
     description: str
+
 
 class _WebhookEndpointCreateResponseRequired(TypedDict):
     id: str
@@ -343,15 +416,21 @@ class _WebhookEndpointCreateResponseRequired(TypedDict):
     updated_at: str
     secret: str
 
-class WebhookEndpointCreateResponse(_WebhookEndpointCreateResponseRequired, total=False):
+
+class WebhookEndpointCreateResponse(
+    _WebhookEndpointCreateResponseRequired, total=False
+):
     project_id: Optional[str]
     description: str
+
 
 class _WebhookEndpointTestResponseRequired(TypedDict):
     queued: bool
 
+
 class WebhookEndpointTestResponse(_WebhookEndpointTestResponseRequired, total=False):
     pass
+
 
 class _ManualReviewSummaryRequired(TypedDict):
     verification_id: str
@@ -361,15 +440,19 @@ class _ManualReviewSummaryRequired(TypedDict):
     risk_level: str
     created_at: str
 
+
 class ManualReviewSummary(_ManualReviewSummaryRequired, total=False):
     document_classification: Optional[dict[str, Any]]
+
 
 class _ManualReviewDecisionRequestRequired(TypedDict):
     decision: str
     reason_code: str
 
+
 class ManualReviewDecisionRequest(_ManualReviewDecisionRequestRequired, total=False):
     reason_detail: str
+
 
 class _ManualReviewDecisionResponseRequired(TypedDict):
     verification_id: str
@@ -377,19 +460,24 @@ class _ManualReviewDecisionResponseRequired(TypedDict):
     decision_type: str
     decided_at: str
 
+
 class ManualReviewDecisionResponse(_ManualReviewDecisionResponseRequired, total=False):
     pass
+
 
 class _ManualReviewApprovalRequestRequired(TypedDict):
     decision: str
 
+
 class ManualReviewApprovalRequest(_ManualReviewApprovalRequestRequired, total=False):
     pass
+
 
 class _ManualReviewApprovalResponseRequired(TypedDict):
     verification_id: str
     decision: str
     approval_status: str
+
 
 class ManualReviewApprovalResponse(_ManualReviewApprovalResponseRequired, total=False):
     pass

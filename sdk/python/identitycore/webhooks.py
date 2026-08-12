@@ -37,4 +37,3 @@ def verify_webhook_signature(
     ).hexdigest()
     expected = f"sha256={digest}"
     return hmac.compare_digest(expected, str(signature))
-

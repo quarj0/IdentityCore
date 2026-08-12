@@ -107,7 +107,7 @@ public sealed class IdentityCoreClient : IDisposable
         public Task<JsonElement> ListCursorAsync(string? status = null, string? externalReference = null, string? cursor = null, int? limit = null, CancellationToken token = default) => client.SendAsync(HttpMethod.Get, "/verifications/" + Query(new() { ["status"] = status, ["external_reference"] = externalReference, ["cursor"] = cursor, ["limit"] = limit }), cancellationToken: token);
         public async IAsyncEnumerable<JsonElement> IterateAsync(string? status = null, string? externalReference = null, int pageSize = 100, [EnumeratorCancellation] CancellationToken token = default)
         {
-            string? cursor=null; do { var result=await ListCursorAsync(status,externalReference,cursor,pageSize,token); foreach(var item in result.GetProperty("results").EnumerateArray()) yield return item.Clone(); cursor=result.GetProperty("pagination").GetProperty("next_cursor").GetString(); } while(!string.IsNullOrEmpty(cursor));
+            string? cursor = null; do { var result = await ListCursorAsync(status, externalReference, cursor, pageSize, token); foreach (var item in result.GetProperty("results").EnumerateArray()) yield return item.Clone(); cursor = result.GetProperty("pagination").GetProperty("next_cursor").GetString(); } while (!string.IsNullOrEmpty(cursor));
         }
         public Task<JsonElement> RetrieveAsync(string id, CancellationToken token = default) => client.SendAsync(HttpMethod.Get, "/verifications/" + Segment(id), cancellationToken: token);
         public Task<JsonElement> ResultAsync(string id, CancellationToken token = default) => client.SendAsync(HttpMethod.Get, "/verifications/" + Segment(id) + "/result", cancellationToken: token);
@@ -116,5 +116,5 @@ public sealed class IdentityCoreClient : IDisposable
         public Task<JsonElement> EvidenceReportAsync(string id, CancellationToken token = default) => client.SendAsync(HttpMethod.Get, "/verifications/" + Segment(id) + "/evidence-report", cancellationToken: token);
     }
     private static string Segment(string value) => Uri.EscapeDataString(value);
-    private static string Query(Dictionary<string,object?> values) { var parts=values.Where(x=>x.Value is not null && !string.IsNullOrWhiteSpace(x.Value.ToString())).Select(x=>$"{Uri.EscapeDataString(x.Key)}={Uri.EscapeDataString(x.Value!.ToString()!)}"); var q=string.Join("&",parts); return q.Length==0?"":"?"+q; }
+    private static string Query(Dictionary<string, object?> values) { var parts = values.Where(x => x.Value is not null && !string.IsNullOrWhiteSpace(x.Value.ToString())).Select(x => $"{Uri.EscapeDataString(x.Key)}={Uri.EscapeDataString(x.Value!.ToString()!)}"); var q = string.Join("&", parts); return q.Length == 0 ? "" : "?" + q; }
 }
