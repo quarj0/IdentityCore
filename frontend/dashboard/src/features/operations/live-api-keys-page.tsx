@@ -24,6 +24,13 @@ function messageOf(error: unknown) {
     : "Something went wrong. Please try again.";
 }
 
+function formatOverlapExpiry(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "long",
+  }).format(new Date(value));
+}
+
 export function LiveApiKeysPage() {
   const [items, setItems] = useState<APIClient[]>([]);
   const [secret, setSecret] = useState("");
@@ -106,7 +113,7 @@ export function LiveApiKeysPage() {
   async function keyAction(item: APIClient, action: "rotate" | "revoke") {
     const warning =
       action === "rotate"
-        ? "Rotate this key? The current secret will stop working immediately."
+        ? "Rotate this key? The current secret will remain valid during a temporary overlap. Revoke the key instead if access must stop immediately."
         : "Revoke this key? Applications using it will immediately lose access.";
     if (!window.confirm(warning)) return;
     setActing(item.public_id);
@@ -116,8 +123,11 @@ export function LiveApiKeysPage() {
       const result = await dashboardApi.apiClientAction(item.public_id, action);
       if (action === "rotate") {
         setSecret(`${result.client_id}:${result.client_secret ?? ""}`);
+        const overlapMessage = result.client_secret_overlap_expires_at
+          ? ` The previous secret remains valid until ${formatOverlapExpiry(result.client_secret_overlap_expires_at)}.`
+          : "";
         setMessage(
-          "API key rotated. Copy the new secret now; it will not be shown again.",
+          `API key rotated. Copy the new secret now; it will not be shown again.${overlapMessage}`,
         );
       } else {
         setSecret("");
