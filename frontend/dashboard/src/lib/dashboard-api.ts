@@ -114,6 +114,7 @@ export type APIClient = {
   name: string;
   client_id: string;
   client_secret?: string;
+  client_secret_overlap_expires_at: string | null;
   status: string;
   scopes: string[];
   allowed_networks: string[];
