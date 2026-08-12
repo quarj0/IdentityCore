@@ -31,6 +31,33 @@ class ProjectAPITests(APITestCase):
         response = self.client.get("/api/v1/projects/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["data"]["results"][0]["environment"], "sandbox")
+        self.assertEqual(response.data["data"]["pagination"]["page"], 1)
+
+    def test_list_filters_and_paginates_supported_fields(self):
+        Project.objects.create(
+            tenant=self.tenant,
+            name="Production project",
+            slug="production-project",
+            environment="production",
+            created_by=self.user,
+        )
+        Project.objects.create(
+            tenant=self.tenant,
+            name="Sandbox project",
+            slug="sandbox-project",
+            environment="sandbox",
+            created_by=self.user,
+        )
+
+        response = self.client.get(
+            "/api/v1/projects/",
+            {"environment": "sandbox", "status": "active", "page_size": 1},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data["data"]["results"]), 1)
+        self.assertEqual(response.data["data"]["results"][0]["environment"], "sandbox")
+        self.assertEqual(response.data["data"]["pagination"]["page_size"], 1)
 
     def test_create_and_suspend_project(self):
         response = self.client.post(
@@ -44,6 +71,11 @@ class ProjectAPITests(APITestCase):
             f"/api/v1/projects/{project_id}/suspend", {}, format="json"
         )
         self.assertEqual(suspended.data["data"]["status"], "suspended")
+
+        unsupported = self.client.post(
+            f"/api/v1/projects/{project_id}/disable", {}, format="json"
+        )
+        self.assertEqual(unsupported.status_code, 400)
 
     def test_environment_cannot_change_after_verification_activity(self):
         project = Project.objects.create(

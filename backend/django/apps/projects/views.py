@@ -12,6 +12,7 @@ from common.responses import success_response
 from apps.templates.models import Template
 from apps.templates.services import instantiate_workflow_template
 from apps.workflows.serializers import serialize_workflow
+from common.pagination import paginate_results, pagination_params
 
 
 class ProjectListCreateView(APIView):
@@ -27,11 +28,19 @@ class ProjectListCreateView(APIView):
                 environment="sandbox",
                 is_default=True,
             )
+        projects = request.user.tenant.projects.all()
+        environment = request.query_params.get("environment", "")
+        project_status = request.query_params.get("status", "")
+        if environment:
+            projects = projects.filter(environment=environment)
+        if project_status:
+            projects = projects.filter(status=project_status)
+        page, page_size = pagination_params(request.query_params)
+        page_obj, pagination = paginate_results(projects, page, page_size)
         return success_response(
             {
-                "results": [
-                    serialize_project(x) for x in request.user.tenant.projects.all()
-                ]
+                "results": [serialize_project(project) for project in page_obj],
+                "pagination": pagination,
             },
             request=request,
         )
@@ -88,9 +97,18 @@ class ProjectDetailView(APIView):
 class ProjectStatusView(ProjectDetailView):
     def post(self, request, project_id, action):
         project = self.get_object(request, project_id)
-        project.status = (
-            ProjectStatus.SUSPENDED if action == "suspend" else ProjectStatus.ACTIVE
-        )
+        statuses = {
+            "activate": ProjectStatus.ACTIVE,
+            "reactivate": ProjectStatus.ACTIVE,
+            "suspend": ProjectStatus.SUSPENDED,
+        }
+        if action not in statuses:
+            return success_response(
+                {"detail": "Unsupported action."},
+                request=request,
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        project.status = statuses[action]
         project.save(update_fields=["status", "updated_at"])
         record_audit_event(
             tenant=request.user.tenant,

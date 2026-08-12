@@ -18,16 +18,33 @@ from identitycore.errors import (
 )
 
 __version__ = "0.2.0"
-Transport = Callable[[str, str, dict[str, str], Optional[bytes], float], Tuple[int, bytes]]
+Transport = Callable[
+    [str, str, dict[str, str], Optional[bytes], float], Tuple[int, bytes]
+]
 
 
 def _human_message(message: str) -> str:
-    if any(token in message.lower() for token in ("unexpected token", "invalidtag", "not valid json", "json.parse", "syntaxerror")):
+    if any(
+        token in message.lower()
+        for token in (
+            "unexpected token",
+            "invalidtag",
+            "not valid json",
+            "json.parse",
+            "syntaxerror",
+        )
+    ):
         return "The service is temporarily unavailable. Please try again shortly."
     return message or "Request failed. Please try again."
 
 
-def _default_transport(method: str, url: str, headers: dict[str, str], body: Optional[bytes], timeout: float) -> Tuple[int, bytes]:
+def _default_transport(
+    method: str,
+    url: str,
+    headers: dict[str, str],
+    body: Optional[bytes],
+    timeout: float,
+) -> Tuple[int, bytes]:
     request = Request(url, data=body, headers=headers, method=method)
     try:
         with urlopen(request, timeout=timeout) as response:
@@ -61,25 +78,66 @@ class _PoliciesClient:
 class _VerificationsClient:
     client: "IdentityCoreClient"
 
-    def create(self, *, purpose: str, policy_id: str, verification_subject: dict[str, Any], project_id: str = "", external_reference: str = "", redirect_url: str = "", metadata: Optional[dict[str, Any]] = None, idempotency_key: str = "") -> dict[str, Any]:
-        return self.client.request("POST", "/verifications/", {
-            "purpose": purpose,
-            "policy_id": policy_id,
-            "project_id": project_id,
-            "verification_subject": verification_subject,
-            "external_reference": external_reference,
-            "redirect_url": redirect_url,
-            "metadata": metadata or {},
-        }, idempotency_key=idempotency_key or f"ik_{uuid.uuid4().hex}")
+    def create(
+        self,
+        *,
+        purpose: str,
+        policy_id: str,
+        verification_subject: dict[str, Any],
+        project_id: str = "",
+        external_reference: str = "",
+        redirect_url: str = "",
+        metadata: Optional[dict[str, Any]] = None,
+        idempotency_key: str = "",
+    ) -> dict[str, Any]:
+        return self.client.request(
+            "POST",
+            "/verifications/",
+            {
+                "purpose": purpose,
+                "policy_id": policy_id,
+                "project_id": project_id,
+                "verification_subject": verification_subject,
+                "external_reference": external_reference,
+                "redirect_url": redirect_url,
+                "metadata": metadata or {},
+            },
+            idempotency_key=idempotency_key or f"ik_{uuid.uuid4().hex}",
+        )
 
-    def list(self, *, status: str = "", external_reference: str = "", cursor: str = "", limit: int | None = None, page: int | None = None, page_size: int | None = None) -> dict[str, Any]:
-        query = _query({"status": status, "external_reference": external_reference, "cursor": cursor, "limit": limit, "page": page, "page_size": page_size})
+    def list(
+        self,
+        *,
+        status: str = "",
+        external_reference: str = "",
+        cursor: str = "",
+        limit: int | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
+    ) -> dict[str, Any]:
+        query = _query(
+            {
+                "status": status,
+                "external_reference": external_reference,
+                "cursor": cursor,
+                "limit": limit,
+                "page": page,
+                "page_size": page_size,
+            }
+        )
         return self.client.request("GET", f"/verifications/{query}")
 
-    def iter(self, *, status: str = "", external_reference: str = "", page_size: int = 100) -> Iterator[dict[str, Any]]:
+    def iter(
+        self, *, status: str = "", external_reference: str = "", page_size: int = 100
+    ) -> Iterator[dict[str, Any]]:
         cursor = ""
         while True:
-            response = self.list(status=status, external_reference=external_reference, cursor=cursor, limit=page_size)
+            response = self.list(
+                status=status,
+                external_reference=external_reference,
+                cursor=cursor,
+                limit=page_size,
+            )
             yield from response.get("results", [])
             pagination = response.get("pagination", {})
             cursor = pagination.get("next_cursor") or ""
@@ -87,7 +145,9 @@ class _VerificationsClient:
                 return
 
     def retrieve(self, verification_id: str) -> dict[str, Any]:
-        return self.client.request("GET", f"/verifications/{_path_segment(verification_id)}")
+        return self.client.request(
+            "GET", f"/verifications/{_path_segment(verification_id)}"
+        )
 
     def result(self, verification_id: str) -> dict[str, Any]:
         return self.client.request(
@@ -95,24 +155,52 @@ class _VerificationsClient:
         )
 
     def cancel(self, verification_id: str, *, reason: str = "") -> dict[str, Any]:
-        return self.client.request("POST", f"/verifications/{_path_segment(verification_id)}/cancel", {"reason": reason})
+        return self.client.request(
+            "POST",
+            f"/verifications/{_path_segment(verification_id)}/cancel",
+            {"reason": reason},
+        )
 
-    def resend_link(self, verification_id: str, *, channel: str = "email") -> dict[str, Any]:
-        return self.client.request("POST", f"/verifications/{_path_segment(verification_id)}/resend-link", {"channel": channel})
+    def resend_link(
+        self, verification_id: str, *, channel: str = "email"
+    ) -> dict[str, Any]:
+        return self.client.request(
+            "POST",
+            f"/verifications/{_path_segment(verification_id)}/resend-link",
+            {"channel": channel},
+        )
 
     def evidence_report(self, verification_id: str) -> dict[str, Any]:
-        return self.client.request("GET", f"/verifications/{_path_segment(verification_id)}/evidence-report")
+        return self.client.request(
+            "GET", f"/verifications/{_path_segment(verification_id)}/evidence-report"
+        )
 
 
 class IdentityCoreClient:
-    def __init__(self, *, api_origin: str, client_id: str = "", client_secret: str = "", access_token: str = "", timeout: float = 30, max_retries: int = 2, retry_backoff: float = 0.25, transport: Optional[Transport] = None, sleep: Callable[[float], None] = time.sleep) -> None:
+    def __init__(
+        self,
+        *,
+        api_origin: str,
+        client_id: str = "",
+        client_secret: str = "",
+        access_token: str = "",
+        timeout: float = 30,
+        max_retries: int = 2,
+        retry_backoff: float = 0.25,
+        transport: Optional[Transport] = None,
+        sleep: Callable[[float], None] = time.sleep,
+    ) -> None:
         parsed = urlparse(api_origin)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
             raise IdentityCoreError("api_origin must be an absolute HTTP(S) URL.")
         if not access_token and (not client_id or not client_secret):
-            raise IdentityCoreError("access_token or client_id and client_secret are required.")
+            raise IdentityCoreError(
+                "access_token or client_id and client_secret are required."
+            )
         if timeout <= 0 or max_retries < 0 or retry_backoff < 0:
-            raise IdentityCoreError("timeout must be positive and retry settings cannot be negative.")
+            raise IdentityCoreError(
+                "timeout must be positive and retry settings cannot be negative."
+            )
         self.api_origin = api_origin.rstrip("/")
         self.client_id = client_id
         self.client_secret = client_secret
@@ -128,7 +216,16 @@ class IdentityCoreClient:
     def health(self) -> dict[str, Any]:
         return self.request("GET", "/health")
 
-    def request(self, method: str, path: str, body: Optional[dict[str, Any]] = None, *, idempotency_key: str = "", request_id: str = "", headers: Optional[dict[str, str]] = None) -> Any:
+    def request(
+        self,
+        method: str,
+        path: str,
+        body: Optional[dict[str, Any]] = None,
+        *,
+        idempotency_key: str = "",
+        request_id: str = "",
+        headers: Optional[dict[str, str]] = None,
+    ) -> Any:
         method = method.upper()
         url = f"{self.api_origin}/api/v1{path}"
         request_headers = {
@@ -137,7 +234,7 @@ class IdentityCoreClient:
             "X-Request-Id": request_id or f"req_{uuid.uuid4().hex}",
             "User-Agent": f"identitycore-python/{__version__}",
         }
-        if self.client_id:
+        if self.client_id and not self.access_token:
             request_headers["X-Client-Id"] = self.client_id
         if headers:
             request_headers.update(headers)
@@ -151,18 +248,28 @@ class IdentityCoreClient:
         retryable_method = method in {"GET", "HEAD", "OPTIONS"} or bool(idempotency_key)
         for attempt in range(self.max_retries + 1):
             try:
-                status, response_body = self.transport(method, url, request_headers, encoded_body, self.timeout)
+                status, response_body = self.transport(
+                    method, url, request_headers, encoded_body, self.timeout
+                )
             except (socket.timeout, TimeoutError) as exc:
                 if retryable_method and attempt < self.max_retries:
                     self._sleep(self.retry_backoff * (2**attempt))
                     continue
-                raise IdentityCoreTimeoutError("The request timed out. Please try again.") from exc
+                raise IdentityCoreTimeoutError(
+                    "The request timed out. Please try again."
+                ) from exc
             except (URLError, OSError) as exc:
                 if retryable_method and attempt < self.max_retries:
                     self._sleep(self.retry_backoff * (2**attempt))
                     continue
-                raise IdentityCoreConnectionError("Could not connect to IdentityCore.") from exc
-            if retryable_method and status in {408, 429, 500, 502, 503, 504} and attempt < self.max_retries:
+                raise IdentityCoreConnectionError(
+                    "Could not connect to IdentityCore."
+                ) from exc
+            if (
+                retryable_method
+                and status in {408, 429, 500, 502, 503, 504}
+                and attempt < self.max_retries
+            ):
                 self._sleep(self.retry_backoff * (2**attempt))
                 continue
             return self._parse_response(status, response_body)
@@ -176,24 +283,57 @@ class IdentityCoreClient:
             "X-Request-Id": f"req_{uuid.uuid4().hex}",
             "User-Agent": f"identitycore-python/{__version__}",
         }
-        if self.client_id:
+        if self.client_id and not self.access_token:
             headers["X-Client-Id"] = self.client_id
-        try:
-            status, body = self.transport("GET", f"{self.api_origin}/api/v1{path}", headers, None, self.timeout)
-        except (socket.timeout, TimeoutError) as exc:
-            raise IdentityCoreTimeoutError("The request timed out. Please try again.") from exc
-        except (URLError, OSError) as exc:
-            raise IdentityCoreConnectionError("Could not connect to IdentityCore.") from exc
-        if status >= 400:
-            return self._parse_response(status, body)
-        return body
+        for attempt in range(self.max_retries + 1):
+            try:
+                status, body = self.transport(
+                    "GET",
+                    f"{self.api_origin}/api/v1{path}",
+                    headers,
+                    None,
+                    self.timeout,
+                )
+            except (socket.timeout, TimeoutError) as exc:
+                if attempt < self.max_retries:
+                    self._sleep(self.retry_backoff * (2**attempt))
+                    continue
+                raise IdentityCoreTimeoutError(
+                    "The request timed out. Please try again."
+                ) from exc
+            except (URLError, OSError) as exc:
+                if attempt < self.max_retries:
+                    self._sleep(self.retry_backoff * (2**attempt))
+                    continue
+                raise IdentityCoreConnectionError(
+                    "Could not connect to IdentityCore."
+                ) from exc
+            if status in {408, 429, 500, 502, 503, 504} and attempt < self.max_retries:
+                self._sleep(self.retry_backoff * (2**attempt))
+                continue
+            if status >= 400:
+                return self._parse_response(status, body)
+            return body
+        raise IdentityCoreConnectionError("Could not connect to IdentityCore.")
 
     def _parse_response(self, status: int, response_body: bytes) -> Any:
         try:
             payload = json.loads(response_body.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise IdentityCoreAPIError("The service is temporarily unavailable. Please try again shortly.", code="invalid_response", status=status) from exc
+            raise IdentityCoreAPIError(
+                "The service is temporarily unavailable. Please try again shortly.",
+                code="invalid_response",
+                status=status,
+            ) from exc
         if status >= 400 or not payload.get("success", False):
             error = payload.get("error") or {}
-            raise IdentityCoreAPIError(_human_message(error.get("message", "Request failed. Please try again.")), code=error.get("code", "request_failed"), status=status, request_id=payload.get("request_id", ""), details=error.get("details") or {})
+            raise IdentityCoreAPIError(
+                _human_message(
+                    error.get("message", "Request failed. Please try again.")
+                ),
+                code=error.get("code", "request_failed"),
+                status=status,
+                request_id=payload.get("request_id", ""),
+                details=error.get("details") or {},
+            )
         return payload.get("data")
