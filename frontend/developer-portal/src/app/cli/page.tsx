@@ -38,7 +38,7 @@ export default function CliPage() {
         code={`pip install identitycore
 
 identitycore login --profile sandbox --environment sandbox \\
-  --client-id cli_... --client-secret "$IDENTITYCORE_CLIENT_SECRET"
+  --access-token "$IDENTITYCORE_ACCESS_TOKEN"
 identitycore login --profile production --environment production \\
   --access-token "$IDENTITYCORE_ACCESS_TOKEN"
 
@@ -93,9 +93,8 @@ identitycore --profile sandbox verifications create \\
             <code>--output table</code> for terminal-friendly results.
           </li>
           <li>
-            List commands accept <code>--cursor</code>, <code>--limit</code>,{" "}
-            <code>--page</code>, and <code>--page-size</code>, plus resource
-            filters.
+            List commands expose only the pagination and filtering options
+            supported by their corresponding public endpoint.
           </li>
           <li>
             CI can use <code>IDENTITYCORE_ACCESS_TOKEN</code> or client
@@ -115,8 +114,7 @@ identitycore --profile sandbox verifications create \\
         code={`identitycore --profile sandbox webhooks create \\
   --url https://example.com/hooks/identitycore \\
   --event verification.completed --event verification.failed
-identitycore --profile sandbox webhooks test wh_... \\
-  --event verification.completed
+identitycore --profile sandbox webhooks test wh_...
 identitycore --profile sandbox verifications evidence ver_... \\
   --pdf --file ./evidence/ver_....pdf`}
       />

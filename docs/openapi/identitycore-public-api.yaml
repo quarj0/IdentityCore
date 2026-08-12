@@ -1616,6 +1616,28 @@ paths:
       security:
         - platformUserSession: []
         - platformUserBearer: []
+      parameters:
+        - name: environment
+          in: query
+          schema:
+            type: string
+            enum: [sandbox, production]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, suspended]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
       responses:
         "200":
           description: Project list.
@@ -1633,8 +1655,12 @@ paths:
                         type: array
                         items:
                           $ref: "#/components/schemas/ProjectSummary"
+                      pagination:
+                        $ref: "#/components/schemas/PagePagination"
                   request_id:
                     type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
         "401":
           $ref: "#/components/responses/PermissionDenied"
         "403":
@@ -1773,6 +1799,8 @@ paths:
                     $ref: "#/components/schemas/ProjectSummary"
                   request_id:
                     type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
         "401":
           $ref: "#/components/responses/PermissionDenied"
         "403":
