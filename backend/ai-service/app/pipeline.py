@@ -31,7 +31,9 @@ class ProcessingError(RuntimeError):
 
 class MediaAssetNotFoundError(RuntimeError):
     def __init__(self, storage_key: str, bucket_name: str):
-        message = f"Media asset '{storage_key}' was not found in bucket '{bucket_name}'."
+        message = (
+            f"Media asset '{storage_key}' was not found in bucket '{bucket_name}'."
+        )
         super().__init__(message)
         self.storage_key = storage_key
         self.bucket_name = bucket_name
@@ -126,10 +128,14 @@ def load_media_asset(
         )
     else:
         candidate_buckets.extend([media_bucket_name, temp_bucket_name])
-    candidate_buckets = list(dict.fromkeys(bucket for bucket in candidate_buckets if bucket))
+    candidate_buckets = list(
+        dict.fromkeys(bucket for bucket in candidate_buckets if bucket)
+    )
     last_error: ClientError | None = None
     content: bytes | None = None
-    resolved_bucket_name = candidate_buckets[0] if candidate_buckets else "<unconfigured>"
+    resolved_bucket_name = (
+        candidate_buckets[0] if candidate_buckets else "<unconfigured>"
+    )
     for candidate_bucket in candidate_buckets or [""]:
         try:
             if candidate_bucket:
@@ -169,7 +175,9 @@ def load_media_asset(
         media_mime_type=media_mime_type,
     )
     if not frames:
-        raise ProcessingError(f"Could not decode media for storage key '{storage_key}'.")
+        raise ProcessingError(
+            f"Could not decode media for storage key '{storage_key}'."
+        )
     return MediaAsset(
         storage_key=storage_key,
         content=content,
@@ -326,7 +334,9 @@ def run_liveness_pipeline(
     face_presence_ratio = _safe_mean(
         [1.0 if len(detections) == 1 else 0.0 for detections in frame_detections]
     )
-    max_face_count = max((len(detections) for detections in frame_detections), default=0)
+    max_face_count = max(
+        (len(detections) for detections in frame_detections), default=0
+    )
     avg_detection_confidence = _safe_mean(
         [
             detections[0]["score"]
@@ -335,12 +345,19 @@ def run_liveness_pipeline(
         ]
     )
     quality_metrics = _compute_image_quality_metrics(asset.primary_frame)
+    valid_frame_pairs = [
+        (frame, detections[0]["bbox"])
+        for frame, detections in zip(asset.frames, frame_detections)
+        if len(detections) == 1
+    ]
+    minimum_valid_frames = 2 if len(asset.frames) > 1 else 1
+    if len(valid_frame_pairs) < minimum_valid_frames:
+        raise ProcessingConfigurationError(
+            "PAD inference requires enough frames containing exactly one detected face."
+        )
     pad_result = run_pad_model(
-        asset.frames,
-        [
-            detections[0]["bbox"] if len(detections) == 1 else None
-            for detections in frame_detections
-        ],
+        [frame for frame, _ in valid_frame_pairs],
+        [bbox for _, bbox in valid_frame_pairs],
     )
     pad_score = float(pad_result["pad_score"])
 
@@ -368,7 +385,9 @@ def run_liveness_pipeline(
     ]
     score = _clamp(sum(score_components))
     issues: list[str] = []
-    passed = pad_score >= settings.pad_min_score and score >= settings.liveness_min_score
+    passed = (
+        pad_score >= settings.pad_min_score and score >= settings.liveness_min_score
+    )
 
     if max_face_count == 0:
         issues.append("no_face_detected")
@@ -433,7 +452,10 @@ def get_insightface_analyzer():
     analyzer = FaceAnalysis(name=settings.insightface_model_name, root=str(model_root))
     analyzer.prepare(
         ctx_id=-1,
-        det_size=(settings.insightface_detection_size, settings.insightface_detection_size),
+        det_size=(
+            settings.insightface_detection_size,
+            settings.insightface_detection_size,
+        ),
     )
     return analyzer
 
@@ -443,7 +465,9 @@ def _pick_largest_face(faces: list[Any]):
         return None
     return max(
         faces,
-        key=lambda face: float((face.bbox[2] - face.bbox[0]) * (face.bbox[3] - face.bbox[1])),
+        key=lambda face: float(
+            (face.bbox[2] - face.bbox[0]) * (face.bbox[3] - face.bbox[1])
+        ),
     )
 
 
@@ -462,7 +486,9 @@ def run_face_compare_pipeline(
         bucket_name=selfie_bucket_name,
         media_mime_type=selfie_mime_type,
     )
-    document_asset = load_media_asset(document_storage_key, bucket_name=document_bucket_name)
+    document_asset = load_media_asset(
+        document_storage_key, bucket_name=document_bucket_name
+    )
 
     selfie_detections = _detect_faces(selfie_asset.primary_frame)
     document_detections = _detect_faces(document_asset.primary_frame)
@@ -490,7 +516,10 @@ def run_face_compare_pipeline(
 
     similarity = float(
         np.dot(selfie_face.embedding, document_face.embedding)
-        / (np.linalg.norm(selfie_face.embedding) * np.linalg.norm(document_face.embedding))
+        / (
+            np.linalg.norm(selfie_face.embedding)
+            * np.linalg.norm(document_face.embedding)
+        )
     )
     normalized_score = _clamp((similarity + 1.0) / 2.0)
     matched = normalized_score >= threshold and not issues
@@ -524,7 +553,10 @@ def get_paddle_ocr_engine():
 
     def local_model_name(path: Path) -> str | None:
         try:
-            payload = yaml.safe_load((path / "inference.yml").read_text(encoding="utf-8")) or {}
+            payload = (
+                yaml.safe_load((path / "inference.yml").read_text(encoding="utf-8"))
+                or {}
+            )
         except (OSError, yaml.YAMLError):
             return None
         global_config = payload.get("Global") or {}
@@ -546,8 +578,16 @@ def get_paddle_ocr_engine():
         "enable_mkldnn": False,
     }
     local_model_arguments = (
-        ("text_detection_model_dir", "text_detection_model_name", settings.paddle_text_detection_model_dir),
-        ("text_recognition_model_dir", "text_recognition_model_name", settings.paddle_text_recognition_model_dir),
+        (
+            "text_detection_model_dir",
+            "text_detection_model_name",
+            settings.paddle_text_detection_model_dir,
+        ),
+        (
+            "text_recognition_model_dir",
+            "text_recognition_model_name",
+            settings.paddle_text_recognition_model_dir,
+        ),
     )
     for directory_argument, name_argument, path in local_model_arguments:
         if settings.paddle_model_is_complete(path):
@@ -571,7 +611,9 @@ def _extract_text_lines(ocr_result: Any) -> tuple[list[str], list[float]]:
     return texts, scores
 
 
-def _normalize_ocr_fields(texts: list[str], document_type: str, country_code: str) -> dict[str, Any]:
+def _normalize_ocr_fields(
+    texts: list[str], document_type: str, country_code: str
+) -> dict[str, Any]:
     joined = "\n".join(texts)
     normalized_texts = [text.strip() for text in texts if text.strip()]
     uppercase_candidates = [
@@ -584,7 +626,9 @@ def _normalize_ocr_fields(texts: list[str], document_type: str, country_code: st
         "document_type": document_type,
         "country_code": country_code,
         "full_name": uppercase_candidates[0].title() if uppercase_candidates else "",
-        "date_of_birth": date_candidates[0].replace("/", "-") if date_candidates else "",
+        "date_of_birth": date_candidates[0].replace("/", "-")
+        if date_candidates
+        else "",
         "document_number": id_candidates[0] if id_candidates else "",
         "raw_text_lines": normalized_texts,
     }
@@ -698,7 +742,9 @@ def run_document_classification_pipeline(
 def build_mock_face_compare(
     selfie_storage_key: str, document_storage_key: str, threshold: float
 ) -> dict[str, Any]:
-    matched = "mismatch" not in selfie_storage_key and "mismatch" not in document_storage_key
+    matched = (
+        "mismatch" not in selfie_storage_key and "mismatch" not in document_storage_key
+    )
     match_score = 0.96 if matched else 0.42
     return {
         "matched": matched,
@@ -711,7 +757,9 @@ def build_mock_face_compare(
 
 
 def build_mock_liveness(
-    selfie_storage_key: str, liveness_type: str, challenge_actions: list[str] | None = None
+    selfie_storage_key: str,
+    liveness_type: str,
+    challenge_actions: list[str] | None = None,
 ) -> dict[str, Any]:
     passed = "spoof" not in selfie_storage_key
     score = 0.94 if passed else 0.23

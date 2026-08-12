@@ -27,10 +27,13 @@ from app.main import (
     readiness,
 )
 from app.pipeline import (
+    MediaAsset,
+    ProcessingConfigurationError,
     get_paddle_ocr_engine,
     run_document_classification_pipeline,
     run_document_ocr_pipeline,
     run_document_quality_pipeline,
+    run_liveness_pipeline,
 )
 from app.settings import Settings, get_settings
 
@@ -114,7 +117,12 @@ def test_document_ocr_returns_extracted_fields():
 
 def test_document_ocr_returns_manual_review_when_media_is_missing(monkeypatch):
     missing_object_error = ClientError(
-        {"Error": {"Code": "NoSuchKey", "Message": "The specified key does not exist."}},
+        {
+            "Error": {
+                "Code": "NoSuchKey",
+                "Message": "The specified key does not exist.",
+            }
+        },
         "GetObject",
     )
 
@@ -151,7 +159,12 @@ def test_document_quality_flags_blurry_capture():
 
 def test_document_quality_returns_review_signal_when_media_is_missing(monkeypatch):
     missing_object_error = ClientError(
-        {"Error": {"Code": "NoSuchKey", "Message": "The specified key does not exist."}},
+        {
+            "Error": {
+                "Code": "NoSuchKey",
+                "Message": "The specified key does not exist.",
+            }
+        },
         "GetObject",
     )
 
@@ -190,7 +203,12 @@ def test_document_quality_falls_back_to_alternate_bucket(monkeypatch):
         if bucket_name == "identitycore-media":
             return encoded.tobytes()
         raise ClientError(
-            {"Error": {"Code": "NoSuchKey", "Message": "The specified key does not exist."}},
+            {
+                "Error": {
+                    "Code": "NoSuchKey",
+                    "Message": "The specified key does not exist.",
+                }
+            },
             "GetObject",
         )
 
@@ -200,9 +218,7 @@ def test_document_quality_falls_back_to_alternate_bucket(monkeypatch):
     get_settings.cache_clear()
 
     try:
-        result = run_document_quality_pipeline(
-            "uploads/documents/fallback.jpg"
-        )
+        result = run_document_quality_pipeline("uploads/documents/fallback.jpg")
     finally:
         monkeypatch.delenv("OBJECT_STORAGE_MEDIA_BUCKET", raising=False)
         monkeypatch.delenv("OBJECT_STORAGE_TEMP_BUCKET", raising=False)
@@ -235,7 +251,12 @@ def test_document_classification_returns_manual_review_when_media_is_missing(
     monkeypatch,
 ):
     missing_object_error = ClientError(
-        {"Error": {"Code": "NoSuchKey", "Message": "The specified key does not exist."}},
+        {
+            "Error": {
+                "Code": "NoSuchKey",
+                "Message": "The specified key does not exist.",
+            }
+        },
         "GetObject",
     )
 
@@ -334,21 +355,144 @@ def test_model_manifest_detects_missing_and_altered_assets(tmp_path):
     asset = tmp_path / "insightface" / "models" / "buffalo_l" / "model.onnx"
     asset.parent.mkdir(parents=True)
     asset.write_bytes(b"trusted-model")
-    (tmp_path / "manifest.json").write_text(json.dumps({"files": [{
-        "path": str(asset.relative_to(tmp_path)),
-        "sha256": hashlib.sha256(asset.read_bytes()).hexdigest(),
-    }]}))
+    (tmp_path / "manifest.json").write_text(
+        json.dumps(
+            {
+                "files": [
+                    {
+                        "path": str(asset.relative_to(tmp_path)),
+                        "sha256": hashlib.sha256(asset.read_bytes()).hexdigest(),
+                    }
+                ]
+            }
+        )
+    )
     settings = Settings(AI_MODEL_ROOT=tmp_path)
-    assert settings.model_asset_integrity_errors() == []
+    assert settings.model_asset_integrity_errors() == [
+        "models.manifest_required_asset_missing:liveness/pad.onnx"
+    ]
 
     asset.write_bytes(b"tampered-model")
     assert settings.model_asset_integrity_errors() == [
-        "models.asset_checksum_mismatch:insightface/models/buffalo_l/model.onnx"
+        "models.asset_checksum_mismatch:insightface/models/buffalo_l/model.onnx",
+        "models.manifest_required_asset_missing:liveness/pad.onnx",
     ]
     asset.unlink()
     assert settings.model_asset_integrity_errors() == [
-        "models.asset_missing:insightface/models/buffalo_l/model.onnx"
+        "models.asset_missing:insightface/models/buffalo_l/model.onnx",
+        "models.manifest_required_asset_missing:liveness/pad.onnx",
     ]
+
+
+def test_model_manifest_requires_configured_pad_asset(tmp_path):
+    pad_asset = tmp_path / "liveness" / "pad.onnx"
+    pad_asset.parent.mkdir(parents=True)
+    pad_asset.write_bytes(b"approved-pad")
+    (tmp_path / "manifest.json").write_text(
+        json.dumps(
+            {
+                "files": [
+                    {
+                        "path": "liveness/pad.onnx",
+                        "sha256": hashlib.sha256(pad_asset.read_bytes()).hexdigest(),
+                    }
+                ]
+            }
+        )
+    )
+
+    settings = Settings(AI_MODEL_ROOT=tmp_path)
+
+    assert settings.model_asset_integrity_errors() == []
+
+
+def test_real_requirements_validate_pad_model_contract(tmp_path, monkeypatch):
+    pad_asset = tmp_path / "liveness" / "pad.onnx"
+    pad_asset.parent.mkdir(parents=True)
+    pad_asset.write_bytes(b"approved-pad")
+    (tmp_path / "manifest.json").write_text(
+        json.dumps(
+            {
+                "files": [
+                    {
+                        "path": "liveness/pad.onnx",
+                        "sha256": hashlib.sha256(pad_asset.read_bytes()).hexdigest(),
+                    }
+                ]
+            }
+        )
+    )
+
+    def reject_contract(model_path, live_class_index):
+        raise ProcessingConfigurationError("invalid model contract")
+
+    monkeypatch.setattr("app.pad.validate_pad_model_contract", reject_contract)
+    settings = Settings(
+        AI_SERVICE_MODE="real",
+        OBJECT_STORAGE_MEDIA_BUCKET="identitycore-media",
+        OBJECT_STORAGE_ENDPOINT_URL="https://example.invalid",
+        OBJECT_STORAGE_ACCESS_KEY_ID="key",
+        OBJECT_STORAGE_SECRET_ACCESS_KEY="secret",
+        INSIGHTFACE_ALLOW_DOWNLOAD=True,
+        PADDLE_OCR_ALLOW_DOWNLOAD=True,
+        AI_MODEL_ROOT=tmp_path,
+    )
+
+    assert settings.real_inference_missing_requirements() == [
+        f"models.pad_contract_invalid:{pad_asset}"
+    ]
+
+
+def test_liveness_pad_only_receives_exactly_one_face_frames(monkeypatch):
+    frames = [
+        pytest.importorskip("numpy").full((8, 8, 3), value, dtype="uint8")
+        for value in (10, 20, 30)
+    ]
+    asset = MediaAsset("capture.mp4", b"video", "video", frames[0], frames)
+    bbox = {"xmin": 0.1, "ymin": 0.1, "width": 0.5, "height": 0.5}
+    detections = [
+        [{"score": 0.9, "bbox": bbox}],
+        [],
+        [{"score": 0.8, "bbox": bbox}],
+    ]
+    captured = {}
+
+    monkeypatch.setattr("app.pipeline.load_media_asset", lambda *args, **kwargs: asset)
+    monkeypatch.setattr("app.pipeline._detect_faces", lambda frame: detections.pop(0))
+    monkeypatch.setattr(
+        "app.pipeline._compute_image_quality_metrics",
+        lambda frame: {"quality_score": 1.0, "blur_variance": 1000.0},
+    )
+
+    def run_pad(frames_to_score, bboxes_to_score):
+        captured["frames"] = frames_to_score
+        captured["bboxes"] = bboxes_to_score
+        return {"pad_score": 0.99, "model_name": "pad", "model_version": "test"}
+
+    monkeypatch.setattr("app.pad.run_pad_model", run_pad)
+
+    run_liveness_pipeline("capture.mp4", "passive")
+
+    assert captured["frames"] == [frames[0], frames[2]]
+    assert captured["bboxes"] == [bbox, bbox]
+
+
+def test_liveness_rejects_video_without_two_single_face_frames(monkeypatch):
+    np = pytest.importorskip("numpy")
+    frames = [np.zeros((8, 8, 3), dtype="uint8") for _ in range(3)]
+    asset = MediaAsset("capture.mp4", b"video", "video", frames[0], frames)
+    bbox = {"xmin": 0.1, "ymin": 0.1, "width": 0.5, "height": 0.5}
+    detections = [[{"score": 0.9, "bbox": bbox}], [], []]
+
+    monkeypatch.setattr("app.pipeline.load_media_asset", lambda *args, **kwargs: asset)
+    monkeypatch.setattr("app.pipeline._detect_faces", lambda frame: detections.pop(0))
+    monkeypatch.setattr(
+        "app.pipeline._compute_image_quality_metrics",
+        lambda frame: {"quality_score": 1.0, "blur_variance": 1000.0},
+    )
+
+    with pytest.raises(ProcessingConfigurationError, match="exactly one detected face"):
+        run_liveness_pipeline("capture.mp4", "passive")
 
 
 def test_real_mode_accepts_r2_storage_aliases(tmp_path):
@@ -369,7 +513,9 @@ def test_real_mode_accepts_r2_storage_aliases(tmp_path):
     ]
 
 
-def test_hybrid_mode_is_degraded_but_ready_when_real_requirements_are_missing(monkeypatch):
+def test_hybrid_mode_is_degraded_but_ready_when_real_requirements_are_missing(
+    monkeypatch,
+):
     monkeypatch.setenv("AI_SERVICE_MODE", "hybrid")
     monkeypatch.setenv("OBJECT_STORAGE_MEDIA_BUCKET", "")
     monkeypatch.setenv("OBJECT_STORAGE_BUCKET", "")
@@ -384,8 +530,8 @@ def test_hybrid_mode_is_degraded_but_ready_when_real_requirements_are_missing(mo
     payload = response.body.decode("utf-8")
 
     assert response.status_code == 200
-    assert "\"status\":\"degraded\"" in payload
-    assert "\"ready\":true" in payload
+    assert '"status":"degraded"' in payload
+    assert '"ready":true' in payload
 
     monkeypatch.delenv("AI_SERVICE_MODE", raising=False)
     monkeypatch.delenv("INSIGHTFACE_ALLOW_DOWNLOAD", raising=False)
@@ -418,8 +564,7 @@ def test_real_paddle_ocr_disables_unstable_optional_classifiers(monkeypatch, tmp
         paddle_text_detection_model_dir=det,
         paddle_text_recognition_model_dir=rec,
         paddle_model_is_complete=lambda path: (
-            (path / "inference.yml").is_file()
-            and (path / "inference.json").is_file()
+            (path / "inference.yml").is_file() and (path / "inference.json").is_file()
         ),
     )
     monkeypatch.setattr("app.pipeline.get_settings", lambda: settings)

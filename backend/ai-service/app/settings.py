@@ -16,7 +16,9 @@ class Settings(BaseSettings):
     shared_token: str = Field(default="", alias="AI_SERVICE_SHARED_TOKEN")
 
     cache_dir: str = Field(default="/tmp/identitycore-ai", alias="AI_SERVICE_CACHE_DIR")
-    ai_model_root: Path = Field(default=Path("/opt/identitycore/models"), alias="AI_MODEL_ROOT")
+    ai_model_root: Path = Field(
+        default=Path("/opt/identitycore/models"), alias="AI_MODEL_ROOT"
+    )
     ai_model_manifest: Path | None = Field(default=None, alias="AI_MODEL_MANIFEST")
     object_storage_bucket: str = Field(
         default="",
@@ -56,7 +58,9 @@ class Settings(BaseSettings):
     )
     object_storage_access_key_id: str = Field(
         default="",
-        validation_alias=AliasChoices("OBJECT_STORAGE_ACCESS_KEY_ID", "R2_ACCESS_KEY_ID"),
+        validation_alias=AliasChoices(
+            "OBJECT_STORAGE_ACCESS_KEY_ID", "R2_ACCESS_KEY_ID"
+        ),
     )
     object_storage_secret_access_key: str = Field(
         default="",
@@ -95,16 +99,10 @@ class Settings(BaseSettings):
     pad_model_relative_path: str = Field(
         default="liveness/pad.onnx", alias="PAD_MODEL_RELATIVE_PATH"
     )
-    pad_model_name: str = Field(
-        default="MiniFASNetV2", alias="PAD_MODEL_NAME"
-    )
-    pad_model_version: str = Field(
-        default="2.7_80x80", alias="PAD_MODEL_VERSION"
-    )
-    pad_output_kind: str = Field(
-        default="logits", alias="PAD_OUTPUT_KIND"
-    )
-    pad_live_class_index: int = Field(default=0, alias="PAD_LIVE_CLASS_INDEX")
+    pad_model_name: str = Field(default="MiniFASNetV2", alias="PAD_MODEL_NAME")
+    pad_model_version: str = Field(default="2.7_80x80", alias="PAD_MODEL_VERSION")
+    pad_output_kind: str = Field(default="logits", alias="PAD_OUTPUT_KIND")
+    pad_live_class_index: int = Field(default=1, alias="PAD_LIVE_CLASS_INDEX")
     pad_crop_scale: float = Field(default=2.7, alias="PAD_CROP_SCALE")
     pad_min_score: float = Field(default=0.80, alias="PAD_MIN_SCORE")
     active_liveness_motion_threshold: float = Field(
@@ -165,9 +163,7 @@ class Settings(BaseSettings):
 
     paddle_pdx_cache_home: str = Field(default="/tmp/identitycore-ai/paddlex")
     paddle_home: str = Field(default="/tmp/identitycore-ai/paddle")
-    matplotlib_config_dir: str = Field(
-        default="/tmp/identitycore-ai/matplotlib"
-    )
+    matplotlib_config_dir: str = Field(default="/tmp/identitycore-ai/matplotlib")
     xdg_cache_home: str = Field(default="/tmp/identitycore-ai/.cache")
     paddle_disable_model_source_check: bool = Field(
         default=True, alias="PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"
@@ -230,6 +226,7 @@ class Settings(BaseSettings):
             return [f"models.manifest_invalid:{manifest_path}"]
 
         errors: list[str] = []
+        listed_paths: set[str] = set()
         model_root = self.ai_model_root.resolve()
         for entry in files:
             if not isinstance(entry, dict):
@@ -237,9 +234,12 @@ class Settings(BaseSettings):
                 continue
             relative_path = entry.get("path")
             expected_digest = entry.get("sha256")
-            if not isinstance(relative_path, str) or not isinstance(expected_digest, str):
+            if not isinstance(relative_path, str) or not isinstance(
+                expected_digest, str
+            ):
                 errors.append("models.manifest_entry_invalid")
                 continue
+            listed_paths.add(Path(relative_path).as_posix())
             try:
                 asset_path = (model_root / relative_path).resolve()
                 asset_path.relative_to(model_root)
@@ -256,6 +256,9 @@ class Settings(BaseSettings):
                 continue
             if len(expected_digest) != 64 or actual_digest != expected_digest.lower():
                 errors.append(f"models.asset_checksum_mismatch:{relative_path}")
+        required_pad_path = Path(self.pad_model_relative_path).as_posix()
+        if required_pad_path not in listed_paths:
+            errors.append(f"models.manifest_required_asset_missing:{required_pad_path}")
         return errors
 
     @property
@@ -327,7 +330,8 @@ class Settings(BaseSettings):
         if not self.object_storage_secret_access_key:
             missing.append("object_storage.secret_access_key")
 
-        missing.extend(self.model_asset_integrity_errors())
+        model_integrity_errors = self.model_asset_integrity_errors()
+        missing.extend(model_integrity_errors)
 
         try:
             pad_model_path = self.pad_model_path
@@ -336,8 +340,20 @@ class Settings(BaseSettings):
         else:
             if not pad_model_path.is_file():
                 missing.append(f"models.pad:{pad_model_path}")
+            elif not model_integrity_errors:
+                try:
+                    from app.pad import validate_pad_model_contract
 
-        if not self.insightface_allow_download and not self.insightface_model_dir.exists():
+                    validate_pad_model_contract(
+                        pad_model_path, self.pad_live_class_index
+                    )
+                except Exception:
+                    missing.append(f"models.pad_contract_invalid:{pad_model_path}")
+
+        if (
+            not self.insightface_allow_download
+            and not self.insightface_model_dir.exists()
+        ):
             missing.append(f"models.insightface:{self.insightface_model_dir}")
 
         if not self.paddle_allow_download:

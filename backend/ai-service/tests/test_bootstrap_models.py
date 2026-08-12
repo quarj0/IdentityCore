@@ -10,6 +10,7 @@ def test_bootstrap_creates_paddle_directories_before_initialization(
     settings = SimpleNamespace(
         ai_model_root=tmp_path,
         pad_model_path=tmp_path / "liveness" / "pad.onnx",
+        pad_live_class_index=1,
         paddle_text_detection_model_dir=tmp_path / "paddleocr" / "det",
         paddle_text_recognition_model_dir=tmp_path / "paddleocr" / "rec",
         insightface_model_name="buffalo_l",
@@ -31,6 +32,12 @@ def test_bootstrap_creates_paddle_directories_before_initialization(
             (directory / "inference.json").write_text("{}")
 
     monkeypatch.setattr(bootstrap_models, "get_settings", lambda: settings)
+    validate_pad = []
+    monkeypatch.setattr(
+        bootstrap_models,
+        "validate_pad_model_contract",
+        lambda path, class_index: validate_pad.append((path, class_index)),
+    )
     monkeypatch.setattr(bootstrap_models, "get_insightface_analyzer", lambda: None)
     monkeypatch.setattr(bootstrap_models, "get_paddle_ocr_engine", initialize_paddle)
 
@@ -40,3 +47,7 @@ def test_bootstrap_creates_paddle_directories_before_initialization(
     bootstrap_models.main()
     manifest = json.loads((tmp_path / "manifest.json").read_text())
     assert "manifest.json" not in {entry["path"] for entry in manifest["files"]}
+    assert validate_pad == [
+        (settings.pad_model_path, 1),
+        (settings.pad_model_path, 1),
+    ]
