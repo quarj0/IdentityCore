@@ -1302,7 +1302,7 @@ class SecureHTTPProviderAdapterTests(TestCase):
         )
 
         proxy = adapter._proxy_for_destination(
-            "provider.example.com", deadline=time.monotonic() + 3
+            "provider.example.com", 443, deadline=time.monotonic() + 3
         )
 
         self.assertEqual(proxy.hostname, "proxy.example.com")
@@ -1330,7 +1330,7 @@ class SecureHTTPProviderAdapterTests(TestCase):
 
         with self.assertRaises(SecureHTTPAdapterError) as exc:
             adapter._proxy_for_destination(
-                "provider.example.com", deadline=time.monotonic() + 3
+                "provider.example.com", 443, deadline=time.monotonic() + 3
             )
 
         self.assertEqual(exc.exception.error_code, "provider_proxy_invalid")
@@ -1345,7 +1345,7 @@ class SecureHTTPProviderAdapterTests(TestCase):
 
         with self.assertRaises(SecureHTTPAdapterError) as exc:
             adapter._proxy_for_destination(
-                "provider.example.com", deadline=time.monotonic() + 3
+                "provider.example.com", 443, deadline=time.monotonic() + 3
             )
 
         self.assertEqual(exc.exception.error_code, "provider_proxy_invalid")
@@ -1363,11 +1363,61 @@ class SecureHTTPProviderAdapterTests(TestCase):
 
         with self.assertRaises(SecureHTTPAdapterError) as exc:
             adapter._proxy_for_destination(
-                "provider.example.com", deadline=time.monotonic() + 3
+                "provider.example.com", 443, deadline=time.monotonic() + 3
             )
 
         self.assertEqual(exc.exception.error_code, "provider_proxy_unsupported")
         resolve_addresses.assert_not_called()
+
+    @patch("apps.providers.http_adapter._resolve_public_addresses")
+    def test_rejects_tls_proxy_before_provider_dns(self, resolve_public_addresses):
+        adapter = SecureHTTPProviderAdapter(
+            {
+                "allowed_hosts": ["provider.example.com"],
+                "https_proxy": "https://proxy.example.com:8443",
+            }
+        )
+
+        with self.assertRaises(SecureHTTPAdapterError) as exc:
+            adapter.post_json(
+                url="https://provider.example.com/check",
+                payload={},
+            )
+
+        self.assertEqual(exc.exception.error_code, "provider_proxy_unsupported")
+        resolve_public_addresses.assert_not_called()
+
+    @patch("apps.providers.http_adapter.urllib.request.proxy_bypass", return_value=True)
+    @patch(
+        "apps.providers.http_adapter.urllib.request.getproxies",
+        return_value={"https": "http://proxy.example.com:8080"},
+    )
+    def test_proxy_bypass_uses_port_qualified_destination(
+        self, getproxies, proxy_bypass
+    ):
+        adapter = SecureHTTPProviderAdapter({"allowed_hosts": ["provider.example.com"]})
+
+        proxy = adapter._proxy_for_destination(
+            "provider.example.com", 8443, deadline=time.monotonic() + 3
+        )
+
+        self.assertIsNone(proxy)
+        proxy_bypass.assert_called_once_with("provider.example.com:8443")
+
+    @patch("apps.providers.http_adapter.urllib.request.proxy_bypass", return_value=True)
+    @patch(
+        "apps.providers.http_adapter.urllib.request.getproxies",
+        return_value={"https": "http://proxy.example.com:8080"},
+    )
+    def test_proxy_bypass_brackets_ipv6_destination(self, getproxies, proxy_bypass):
+        adapter = SecureHTTPProviderAdapter({"allowed_hosts": ["2001:db8::1"]})
+
+        proxy = adapter._proxy_for_destination(
+            "2001:db8::1", 443, deadline=time.monotonic() + 3
+        )
+
+        self.assertIsNone(proxy)
+        proxy_bypass.assert_called_once_with("[2001:db8::1]:443")
 
     @patch("apps.providers.http_adapter.socket.socket")
     @patch("apps.providers.http_adapter.ssl.create_default_context")

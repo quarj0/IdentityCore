@@ -329,12 +329,15 @@ class SecureHTTPProviderAdapter:
         )
 
     def _proxy_for_destination(
-        self, hostname: str, *, deadline: float
+        self, hostname: str, port: int, *, deadline: float
     ) -> _HTTPSProxy | None:
         configured_proxy = self.configuration.get("https_proxy")
         if configured_proxy is None:
             configured_proxy = urllib.request.getproxies().get("https")
-            if configured_proxy and urllib.request.proxy_bypass(hostname):
+            bypass_hostname = f"[{hostname}]" if ":" in hostname else hostname
+            if configured_proxy and urllib.request.proxy_bypass(
+                f"{bypass_hostname}:{port}"
+            ):
                 return None
         if not configured_proxy:
             return None
@@ -390,9 +393,7 @@ class SecureHTTPProviderAdapter:
             endpoints=endpoints,
         )
 
-    def _validate_destination(
-        self, url: str, *, deadline: float
-    ) -> tuple[str, int, str, tuple[tuple[int, tuple], ...]]:
+    def _validate_destination(self, url: str) -> tuple[str, int, str]:
         parsed = urlsplit(url)
         hostname = (parsed.hostname or "").lower().rstrip(".")
         if parsed.scheme != "https":
@@ -423,20 +424,22 @@ class SecureHTTPProviderAdapter:
                 "Provider destination is malformed.",
                 error_code="provider_url_invalid",
             )
-        endpoints = _resolve_public_addresses(hostname, port, deadline=deadline)
         request_target = parsed.path or "/"
         if parsed.query:
             request_target = f"{request_target}?{parsed.query}"
-        return hostname, port, request_target, endpoints
+        return hostname, port, request_target
 
     def post_json(
         self, *, url: str, payload: dict, headers: dict | None = None
     ) -> dict:
         deadline = time.monotonic() + self.timeout_seconds
-        hostname, port, request_target, endpoints = self._validate_destination(
-            url, deadline=deadline
+        hostname, port, request_target = self._validate_destination(url)
+        proxy = self._proxy_for_destination(hostname, port, deadline=deadline)
+        endpoints = _resolve_public_addresses(
+            hostname,
+            port,
+            deadline=deadline,
         )
-        proxy = self._proxy_for_destination(hostname, deadline=deadline)
         body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
         request_headers = {
             "Accept": "application/json",
