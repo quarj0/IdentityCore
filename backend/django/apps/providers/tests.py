@@ -1404,12 +1404,17 @@ class SecureHTTPProviderAdapterTests(TestCase):
         self.assertIsNone(proxy)
         proxy_bypass.assert_called_once_with("provider.example.com:8443")
 
-    @patch("apps.providers.http_adapter.urllib.request.proxy_bypass", return_value=True)
+    @patch(
+        "apps.providers.http_adapter.urllib.request.proxy_bypass",
+        side_effect=[False, True],
+    )
     @patch(
         "apps.providers.http_adapter.urllib.request.getproxies",
         return_value={"https": "http://proxy.example.com:8080"},
     )
-    def test_proxy_bypass_brackets_ipv6_destination(self, getproxies, proxy_bypass):
+    def test_proxy_bypass_checks_ipv6_authority_and_raw_host(
+        self, getproxies, proxy_bypass
+    ):
         adapter = SecureHTTPProviderAdapter({"allowed_hosts": ["2001:db8::1"]})
 
         proxy = adapter._proxy_for_destination(
@@ -1417,7 +1422,10 @@ class SecureHTTPProviderAdapterTests(TestCase):
         )
 
         self.assertIsNone(proxy)
-        proxy_bypass.assert_called_once_with("[2001:db8::1]:443")
+        self.assertEqual(
+            proxy_bypass.call_args_list,
+            [call("[2001:db8::1]:443"), call("2001:db8::1")],
+        )
 
     @patch("apps.providers.http_adapter.socket.socket")
     @patch("apps.providers.http_adapter.ssl.create_default_context")

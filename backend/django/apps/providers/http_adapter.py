@@ -335,8 +335,9 @@ class SecureHTTPProviderAdapter:
         if configured_proxy is None:
             configured_proxy = urllib.request.getproxies().get("https")
             bypass_hostname = f"[{hostname}]" if ":" in hostname else hostname
-            if configured_proxy and urllib.request.proxy_bypass(
-                f"{bypass_hostname}:{port}"
+            if configured_proxy and (
+                urllib.request.proxy_bypass(f"{bypass_hostname}:{port}")
+                or urllib.request.proxy_bypass(hostname)
             ):
                 return None
         if not configured_proxy:
