@@ -51,6 +51,7 @@ class VerificationPolicyAPITests(APITestCase):
                 "required_liveness_level": "passive",
                 "face_match_threshold": "0.8500",
                 "manual_review_threshold": "0.6500",
+                "maker_checker_required": True,
                 "verification_expiry_minutes": 1440,
                 "media_retention_days": 30,
                 "metadata_retention_days": 365,
@@ -63,6 +64,13 @@ class VerificationPolicyAPITests(APITestCase):
         self.assertEqual(policy.version, 1)
         self.assertEqual(policy.status, "draft")
         self.assertEqual(policy.required_document_types, ["national_id", "passport"])
+        self.assertTrue(policy.maker_checker_required)
+        self.assertTrue(policy.snapshot()["maker_checker_required"])
+
+        detail = self.client.get(
+            reverse("verification-policy-detail", kwargs={"policy_id": policy.public_id})
+        )
+        self.assertTrue(detail.data["data"]["maker_checker_required"])
 
     def test_create_policy_increments_version_for_same_name(self):
         VerificationPolicy.objects.create(
@@ -156,6 +164,7 @@ class VerificationPolicyAPITests(APITestCase):
                 "required_liveness_level": "passive",
                 "face_match_threshold": "0.8500",
                 "manual_review_threshold": "0.6500",
+                "maker_checker_required": True,
                 "verification_expiry_minutes": 60,
                 "media_retention_days": 30,
                 "metadata_retention_days": 365,
@@ -177,6 +186,7 @@ class VerificationPolicyAPITests(APITestCase):
         self.assertEqual(clone.status_code, status.HTTP_201_CREATED)
         self.assertEqual(clone.data["data"]["version"], 2)
         self.assertEqual(clone.data["data"]["status"], "draft")
+        self.assertTrue(clone.data["data"]["maker_checker_required"])
 
     def test_api_client_can_list_only_active_policies_with_read_scope(self):
         self.client.force_authenticate(user=None)

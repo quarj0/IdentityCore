@@ -21,6 +21,7 @@ def serialize_verification_policy(policy: VerificationPolicy) -> dict:
         "required_liveness_level": policy.required_liveness_level,
         "face_match_threshold": float(policy.face_match_threshold),
         "manual_review_threshold": float(policy.manual_review_threshold),
+        "maker_checker_required": policy.maker_checker_required,
         "verification_expiry_minutes": policy.verification_expiry_minutes,
         "media_retention_days": policy.media_retention_days,
         "metadata_retention_days": policy.metadata_retention_days,
@@ -47,6 +48,7 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
     )
     face_match_threshold = serializers.DecimalField(max_digits=5, decimal_places=4)
     manual_review_threshold = serializers.DecimalField(max_digits=5, decimal_places=4)
+    maker_checker_required = serializers.BooleanField(required=False, default=False)
     verification_expiry_minutes = serializers.IntegerField(min_value=1)
     media_retention_days = serializers.IntegerField(min_value=1)
     metadata_retention_days = serializers.IntegerField(min_value=1)
@@ -110,6 +112,7 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
             required_liveness_level=validated_data["required_liveness_level"],
             face_match_threshold=validated_data["face_match_threshold"],
             manual_review_threshold=validated_data["manual_review_threshold"],
+            maker_checker_required=validated_data["maker_checker_required"],
             verification_expiry_minutes=validated_data["verification_expiry_minutes"],
             media_retention_days=validated_data["media_retention_days"],
             metadata_retention_days=validated_data["metadata_retention_days"],
@@ -136,6 +139,7 @@ class VerificationPolicyUpdateSerializer(VerificationPolicyCreateSerializer):
     manual_review_threshold = serializers.DecimalField(
         max_digits=5, decimal_places=4, required=False
     )
+    maker_checker_required = serializers.BooleanField(required=False)
     verification_expiry_minutes = serializers.IntegerField(min_value=1, required=False)
     media_retention_days = serializers.IntegerField(min_value=1, required=False)
     metadata_retention_days = serializers.IntegerField(min_value=1, required=False)

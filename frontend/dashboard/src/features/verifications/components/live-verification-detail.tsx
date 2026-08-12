@@ -94,12 +94,21 @@ export function LiveVerificationDetail({
     setMessage("");
     setError("");
     try {
-      await dashboardApi.decideReview(
-        id,
-        decision,
-        reason.trim() || "Reviewed from dashboard.",
-      );
-      setMessage("Manual review decision recorded.");
+      if (item?.decision?.approval_status === "pending") {
+        await dashboardApi.approveReview(id, decision);
+        setMessage("Independent review completed.");
+      } else {
+        const result = await dashboardApi.decideReview(
+          id,
+          decision,
+          reason.trim() || "Reviewed from dashboard.",
+        );
+        setMessage(
+          result.approval_required
+            ? "Decision proposed and awaiting an independent reviewer."
+            : "Manual review decision recorded.",
+        );
+      }
       setReason("");
       await load();
     } catch (caught) {
@@ -242,21 +251,35 @@ export function LiveVerificationDetail({
         </Card>
       </div>
 
-      {review ? (
+      {review &&
+      (!item.decision || item.decision.approval_status === "pending") ? (
         <Card className="rounded-2xl border-slate-200 shadow-sm">
           <CardHeader>
-            <CardTitle>Manual decision</CardTitle>
+            <CardTitle>
+              {item.decision?.approval_status === "pending"
+                ? "Independent approval"
+                : "Manual decision"}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="decision_reason">Decision reason</Label>
-              <Input
-                id="decision_reason"
-                value={reason}
-                onChange={(event) => setReason(event.target.value)}
-                placeholder="Explain the review decision"
-              />
-            </div>
+            {item.decision?.approval_status === "pending" ? (
+              <p className="text-sm text-slate-600">
+                The first reviewer proposed{" "}
+                <strong>{item.decision.proposed_decision}</strong>. Confirm the
+                final outcome below; your decision is recorded separately from
+                the proposal.
+              </p>
+            ) : (
+              <div>
+                <Label htmlFor="decision_reason">Decision reason</Label>
+                <Input
+                  id="decision_reason"
+                  value={reason}
+                  onChange={(event) => setReason(event.target.value)}
+                  placeholder="Explain the review decision"
+                />
+              </div>
+            )}
             <div className="flex flex-wrap gap-2">
               <Button
                 onClick={() => decide("verified")}
@@ -275,11 +298,11 @@ export function LiveVerificationDetail({
               </Button>
               <Button
                 variant="outline"
-                onClick={() => decide("manual_review_required")}
+                onClick={() => decide("failed")}
                 disabled={Boolean(busy)}
                 className="rounded-xl"
               >
-                Needs more review
+                Mark failed
               </Button>
             </div>
           </CardContent>

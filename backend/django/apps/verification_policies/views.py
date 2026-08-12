@@ -155,6 +155,7 @@ class VerificationPolicyCloneView(VerificationPolicyDetailView):
             required_liveness_level=source.required_liveness_level,
             face_match_threshold=source.face_match_threshold,
             manual_review_threshold=source.manual_review_threshold,
+            maker_checker_required=source.maker_checker_required,
             verification_expiry_minutes=source.verification_expiry_minutes,
             media_retention_days=source.media_retention_days,
             metadata_retention_days=source.metadata_retention_days,

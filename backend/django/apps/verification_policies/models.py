@@ -51,6 +51,7 @@ class VerificationPolicy(PublicIdModel, BaseModel):
     manual_review_threshold = models.DecimalField(
         max_digits=5, decimal_places=4, default=0.6500
     )
+    maker_checker_required = models.BooleanField(default=False)
     verification_expiry_minutes = models.PositiveIntegerField(default=1440)
     media_retention_days = models.PositiveIntegerField(default=30)
     metadata_retention_days = models.PositiveIntegerField(default=365)
@@ -106,6 +107,7 @@ class VerificationPolicy(PublicIdModel, BaseModel):
             "required_liveness_level": self.required_liveness_level,
             "face_match_threshold": float(self.face_match_threshold),
             "manual_review_threshold": float(self.manual_review_threshold),
+            "maker_checker_required": self.maker_checker_required,
             "verification_expiry_minutes": self.verification_expiry_minutes,
             "media_retention_days": self.media_retention_days,
             "metadata_retention_days": self.metadata_retention_days,

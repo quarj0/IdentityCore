@@ -37,6 +37,7 @@ export interface Policy {
   required_liveness_level: string;
   face_match_threshold: number;
   manual_review_threshold: number;
+  maker_checker_required: boolean;
   verification_expiry_minutes: number;
   media_retention_days: number;
   metadata_retention_days: number;
@@ -321,4 +322,14 @@ export interface ManualReviewDecisionResponse {
   decision: string;
   decision_type: string;
   decided_at: string;
+}
+
+export interface ManualReviewApprovalRequest {
+  decision: string;
+}
+
+export interface ManualReviewApprovalResponse {
+  verification_id: string;
+  decision: string;
+  approval_status: string;
 }

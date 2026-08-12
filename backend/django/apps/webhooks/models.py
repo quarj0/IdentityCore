@@ -30,6 +30,7 @@ SUPPORTED_WEBHOOK_EVENTS = {
     "verification.manual_review_required",
     "verification.verified",
     "verification.rejected",
+    "verification.failed",
     "verification.expired",
     "verification.cancelled",
 }

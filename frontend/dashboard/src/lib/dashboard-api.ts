@@ -10,6 +10,7 @@ export type Policy = {
   required_liveness_level: string;
   face_match_threshold: number;
   manual_review_threshold: number;
+  maker_checker_required: boolean;
   verification_expiry_minutes: number;
   media_retention_days: number;
   metadata_retention_days: number;
@@ -50,9 +51,11 @@ export type VerificationDetail = {
   } | null;
   decision: {
     decision: string;
+    proposed_decision: string;
     decision_type: string;
     reason_code: string;
     reason_detail: string;
+    approval_status: "not_required" | "pending" | "approved" | "rejected";
     decided_at: string;
   } | null;
   evidence_report: { download_url: string; pdf_download_url: string } | null;
@@ -217,6 +220,7 @@ export const supportedWebhookEvents = [
   "verification.manual_review_required",
   "verification.verified",
   "verification.rejected",
+  "verification.failed",
   "verification.expired",
   "verification.cancelled",
 ];
@@ -264,13 +268,27 @@ export const dashboardApi = {
   manualReviews: () =>
     backend.rest<Page<ManualReviewSummary>>("/verifications/manual-reviews"),
   decideReview: (id: string, decision: string, reason_detail: string) =>
-    backend.rest(`/verifications/manual-reviews/${id}/decision`, {
+    backend.rest<{
+      verification_id: string;
+      decision: string;
+      approval_status?: string;
+      approval_required?: boolean;
+    }>(`/verifications/manual-reviews/${id}/decision`, {
       method: "POST",
       body: JSON.stringify({
         decision,
         reason_code: "dashboard_manual_review",
         reason_detail,
       }),
+    }),
+  approveReview: (id: string, decision: string) =>
+    backend.rest<{
+      verification_id: string;
+      decision: string;
+      approval_status: string;
+    }>(`/verifications/manual-reviews/${id}/approval`, {
+      method: "POST",
+      body: JSON.stringify({ decision }),
     }),
   auditEvents: () => backend.rest<Page<AuditEvent>>("/audit-events/"),
   webhooks: () =>

@@ -72,6 +72,8 @@ public sealed record Policy
     public double FaceMatchThreshold { get; init; }
     [JsonPropertyName("manual_review_threshold")]
     public double ManualReviewThreshold { get; init; }
+    [JsonPropertyName("maker_checker_required")]
+    public bool MakerCheckerRequired { get; init; }
     [JsonPropertyName("verification_expiry_minutes")]
     public int VerificationExpiryMinutes { get; init; }
     [JsonPropertyName("media_retention_days")]
@@ -578,4 +580,20 @@ public sealed record ManualReviewDecisionResponse
     public string DecisionType { get; init; }
     [JsonPropertyName("decided_at")]
     public string DecidedAt { get; init; }
+}
+
+public sealed record ManualReviewApprovalRequest
+{
+    [JsonPropertyName("decision")]
+    public string Decision { get; init; }
+}
+
+public sealed record ManualReviewApprovalResponse
+{
+    [JsonPropertyName("verification_id")]
+    public string VerificationId { get; init; }
+    [JsonPropertyName("decision")]
+    public string Decision { get; init; }
+    [JsonPropertyName("approval_status")]
+    public string ApprovalStatus { get; init; }
 }
