@@ -26,6 +26,161 @@ from apps.verifications.models import (
 from apps.verification_subjects.models import VerificationSubject
 
 
+def _iso_box(box_type: bytes, payload: bytes) -> bytes:
+    return (len(payload) + 8).to_bytes(4, "big") + box_type + payload
+
+
+def _iso_video(*, major_brand: bytes = b"isom", handler_type: bytes = b"vide") -> bytes:
+    ftyp = _iso_box(b"ftyp", major_brand + b"\x00\x00\x00\x00" + major_brand)
+    sample_entry = bytearray(78)
+    sample_entry[6:8] = (1).to_bytes(2, "big")
+    sample_entry[24:26] = (640).to_bytes(2, "big")
+    sample_entry[26:28] = (480).to_bytes(2, "big")
+    sample_entry[40:42] = (1).to_bytes(2, "big")
+    sample_entry[74:76] = (24).to_bytes(2, "big")
+    sample_description = _iso_box(
+        b"stsd",
+        b"\x00" * 4
+        + (1).to_bytes(4, "big")
+        + _iso_box(b"avc1", bytes(sample_entry) + _iso_box(b"avcC", b"\x01")),
+    )
+    sample_table = _iso_box(
+        b"stbl",
+        sample_description
+        + _iso_box(b"stts", b"\x00" * 4 + (1).to_bytes(4, "big") + b"\x00" * 8)
+        + _iso_box(b"stsc", b"\x00" * 4 + (1).to_bytes(4, "big") + b"\x00" * 12)
+        + _iso_box(
+            b"stsz",
+            b"\x00" * 8 + (1).to_bytes(4, "big") + (11).to_bytes(4, "big"),
+        )
+        + _iso_box(
+            b"stco",
+            b"\x00" * 4 + (1).to_bytes(4, "big") + (100).to_bytes(4, "big"),
+        ),
+    )
+    handler = _iso_box(b"hdlr", b"\x00" * 8 + handler_type + b"\x00" * 12)
+    media_info = _iso_box(
+        b"minf",
+        _iso_box(b"vmhd", b"\x00" * 12)
+        + _iso_box(b"dinf", _iso_box(b"dref", b"\x00" * 8))
+        + sample_table,
+    )
+    media = _iso_box(b"mdia", _iso_box(b"mdhd", b"\x00" * 24) + handler + media_info)
+    track = _iso_box(b"trak", _iso_box(b"tkhd", b"\x00" * 84) + media)
+    movie = _iso_box(b"moov", _iso_box(b"mvhd", b"\x00" * 100) + track)
+    return ftyp + movie + _iso_box(b"mdat", b"video-frame")
+
+
+def _ebml_element(element_id: bytes, payload: bytes) -> bytes:
+    if len(payload) >= 0x7F:
+        raise ValueError("Test EBML payload is too large for its one-byte size.")
+    return element_id + bytes([0x80 | len(payload)]) + payload
+
+
+def _webm_video(*, track_type: int = 1, codec_id: bytes = b"V_VP9") -> bytes:
+    header = _ebml_element(
+        b"\x1a\x45\xdf\xa3",
+        _ebml_element(b"\x42\x86", b"\x01")
+        + _ebml_element(b"\x42\xf7", b"\x01")
+        + _ebml_element(b"\x42\xf2", b"\x04")
+        + _ebml_element(b"\x42\xf3", b"\x08")
+        + _ebml_element(b"\x42\x82", b"webm")
+        + _ebml_element(b"\x42\x85", b"\x02"),
+    )
+    info = _ebml_element(
+        b"\x15\x49\xa9\x66",
+        _ebml_element(b"\x2a\xd7\xb1", b"\x0f\x42\x40")
+        + _ebml_element(b"\x4d\x80", b"IdentityCore")
+        + _ebml_element(b"\x57\x41", b"IdentityCore"),
+    )
+    video = _ebml_element(
+        b"\xe0",
+        _ebml_element(b"\xb0", (640).to_bytes(2, "big"))
+        + _ebml_element(b"\xba", (480).to_bytes(2, "big")),
+    )
+    track_entry = _ebml_element(
+        b"\xae",
+        _ebml_element(b"\xd7", b"\x01")
+        + _ebml_element(b"\x73\xc5", b"\x01")
+        + _ebml_element(b"\x83", bytes([track_type]))
+        + _ebml_element(b"\x86", codec_id)
+        + video,
+    )
+    tracks = _ebml_element(b"\x16\x54\xae\x6b", track_entry)
+    cluster = _ebml_element(
+        b"\x1f\x43\xb6\x75",
+        _ebml_element(b"\xe7", b"\x00")
+        + _ebml_element(b"\xa3", b"\x81\x00\x00\x80video-frame"),
+    )
+    return header + _ebml_element(b"\x18\x53\x80\x67", info + tracks + cluster)
+
+
+class UploadVideoInspectionTests(TestCase):
+    def assert_video_result(
+        self, content: bytes, mime_type: str, *, expected_safe: bool
+    ) -> None:
+        safe, reason = inspect_upload_content(
+            content=content,
+            declared_mime_type=mime_type,
+        )
+        self.assertEqual(safe, expected_safe)
+        self.assertEqual(reason, "" if expected_safe else "video_container_unrecognized")
+
+    def test_accepts_structurally_valid_supported_video_containers(self):
+        fixtures = (
+            (_iso_video(), "video/mp4"),
+            (_iso_video(major_brand=b"qt  "), "video/quicktime"),
+            (_webm_video(), "video/webm"),
+        )
+
+        for content, mime_type in fixtures:
+            with self.subTest(mime_type=mime_type):
+                self.assert_video_result(content, mime_type, expected_safe=True)
+
+    def test_rejects_magic_byte_only_video_impostors(self):
+        fixtures = (
+            (b"\x00\x00\x00\x0cftypisom", "video/mp4"),
+            (b"\x1a\x45\xdf\xa3", "video/webm"),
+        )
+
+        for content, mime_type in fixtures:
+            with self.subTest(mime_type=mime_type):
+                self.assert_video_result(content, mime_type, expected_safe=False)
+
+    def test_rejects_truncated_iso_box(self):
+        content = _iso_video()[:-1]
+
+        self.assert_video_result(content, "video/mp4", expected_safe=False)
+
+    def test_rejects_iso_audio_only_track(self):
+        self.assert_video_result(
+            _iso_video(handler_type=b"soun"),
+            "video/mp4",
+            expected_safe=False,
+        )
+
+    def test_rejects_iso_brand_that_does_not_match_declared_type(self):
+        self.assert_video_result(
+            _iso_video(major_brand=b"qt  "),
+            "video/mp4",
+            expected_safe=False,
+        )
+
+    def test_rejects_webm_without_video_track(self):
+        self.assert_video_result(
+            _webm_video(track_type=2, codec_id=b"A_OPUS"),
+            "video/webm",
+            expected_safe=False,
+        )
+
+    def test_rejects_webm_with_unsupported_video_codec(self):
+        self.assert_video_result(
+            _webm_video(codec_id=b"V_MPEG4"),
+            "video/webm",
+            expected_safe=False,
+        )
+
+
 class UploadCreateTests(APITestCase):
     def setUp(self):
         self.organization = Organization.objects.create(
@@ -284,6 +439,41 @@ class UploadCreateTests(APITestCase):
         upload = Upload.objects.get(public_id=upload_id)
         self.assertEqual(upload.status, UploadStatus.QUARANTINED)
         self.assertEqual(upload.quarantine_reason, "image_content_unrecognized")
+        put_object_bytes.assert_not_called()
+
+    @patch("apps.uploads.views.put_object_bytes")
+    def test_magic_only_liveness_video_is_quarantined_before_processing(
+        self, put_object_bytes
+    ):
+        content = b"\x1a\x45\xdf\xa3"
+        create_response = self.client.post(
+            reverse("upload-create"),
+            {
+                "purpose": "liveness_capture",
+                "mime_type": "video/webm",
+                "file_size_bytes": len(content),
+            },
+            format="json",
+            **self.auth_headers(),
+        )
+        upload_id = create_response.data["data"]["upload_id"]
+
+        response = self.client.post(
+            reverse("upload-transfer", kwargs={"upload_id": upload_id}),
+            {
+                "file": SimpleUploadedFile(
+                    "liveness.webm", content, content_type="video/webm"
+                )
+            },
+            format="multipart",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["error"]["code"], "upload_quarantined")
+        upload = Upload.objects.get(public_id=upload_id)
+        self.assertEqual(upload.status, UploadStatus.QUARANTINED)
+        self.assertEqual(upload.quarantine_reason, "video_container_unrecognized")
         put_object_bytes.assert_not_called()
 
     @patch("apps.uploads.views.delete_object")
