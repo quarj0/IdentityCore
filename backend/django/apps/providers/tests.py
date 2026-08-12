@@ -1,3 +1,4 @@
+import base64
 import json
 import socket
 import threading
@@ -17,6 +18,8 @@ from apps.providers.ai_service import (
     run_document_quality,
 )
 from apps.providers.http_adapter import (
+    _BoundedDNSResolver,
+    _HTTPSProxy,
     _PinnedHTTPSConnection,
     _resolve_public_addresses,
     SecureHTTPAdapterError,
@@ -1053,7 +1056,11 @@ class ProviderAdapterRegistryTests(TestCase):
 class SecureHTTPProviderAdapterTests(TestCase):
     def adapter(self):
         return SecureHTTPProviderAdapter(
-            {"allowed_hosts": ["provider.example.com"], "timeout_seconds": 5}
+            {
+                "allowed_hosts": ["provider.example.com"],
+                "timeout_seconds": 5,
+                "https_proxy": "",
+            }
         )
 
     @patch(
@@ -1167,6 +1174,18 @@ class SecureHTTPProviderAdapterTests(TestCase):
 
         self.assertEqual(exc.exception.error_code, "provider_url_invalid")
 
+    def test_rejects_explicit_port_zero_without_resolving(self):
+        with patch(
+            "apps.providers.http_adapter._resolve_public_addresses"
+        ) as resolve_public_addresses:
+            with self.assertRaises(SecureHTTPAdapterError) as exc:
+                self.adapter().post_json(
+                    url="https://provider.example.com:0/check", payload={}
+                )
+
+        self.assertEqual(exc.exception.error_code, "provider_url_invalid")
+        resolve_public_addresses.assert_not_called()
+
     @patch("apps.providers.http_adapter.socket.socket")
     @patch("apps.providers.http_adapter.ssl.create_default_context")
     def test_pinned_connection_uses_vetted_ip_and_original_hostname_for_tls(
@@ -1246,6 +1265,308 @@ class SecureHTTPProviderAdapterTests(TestCase):
 
         self.assertEqual(exc.exception.error_code, "provider_timeout")
         self.assertTrue(exc.exception.retryable)
+
+    @patch("apps.providers.http_adapter.socket.getaddrinfo")
+    def test_dns_resolver_caps_abandoned_work(self, getaddrinfo):
+        release_resolution = threading.Event()
+        getaddrinfo.side_effect = lambda *args, **kwargs: (
+            release_resolution.wait(timeout=1) or []
+        )
+        resolver = _BoundedDNSResolver(workers=1, capacity=1)
+        try:
+            for _ in range(2):
+                with self.assertRaises(SecureHTTPAdapterError) as exc:
+                    resolver.resolve(
+                        "provider.example.com",
+                        443,
+                        deadline=time.monotonic() + 0.01,
+                    )
+                self.assertEqual(exc.exception.error_code, "provider_timeout")
+        finally:
+            release_resolution.set()
+
+        self.assertEqual(getaddrinfo.call_count, 1)
+
+    @patch(
+        "apps.providers.http_adapter._resolve_addresses",
+        return_value=((socket.AF_INET, ("192.0.2.10", 8080)),),
+    )
+    def test_https_proxy_is_resolved_and_credentials_are_encoded(
+        self, resolve_addresses
+    ):
+        adapter = SecureHTTPProviderAdapter(
+            {
+                "allowed_hosts": ["provider.example.com"],
+                "https_proxy": "http://proxy-user:proxy-pass@proxy.example.com:8080",
+            }
+        )
+
+        proxy = adapter._proxy_for_destination(
+            "provider.example.com", 443, deadline=time.monotonic() + 3
+        )
+
+        self.assertEqual(proxy.hostname, "proxy.example.com")
+        self.assertEqual(proxy.port, 8080)
+        self.assertFalse(proxy.use_tls)
+        self.assertEqual(
+            proxy.headers,
+            {
+                "Proxy-Authorization": "Basic "
+                + base64.b64encode(b"proxy-user:proxy-pass").decode("ascii")
+            },
+        )
+        self.assertEqual(resolve_addresses.call_args.args, ("proxy.example.com", 8080))
+        self.assertGreater(
+            resolve_addresses.call_args.kwargs["deadline"], time.monotonic()
+        )
+
+    def test_rejects_proxy_with_explicit_port_zero(self):
+        adapter = SecureHTTPProviderAdapter(
+            {
+                "allowed_hosts": ["provider.example.com"],
+                "https_proxy": "http://proxy.example.com:0",
+            }
+        )
+
+        with self.assertRaises(SecureHTTPAdapterError) as exc:
+            adapter._proxy_for_destination(
+                "provider.example.com", 443, deadline=time.monotonic() + 3
+            )
+
+        self.assertEqual(exc.exception.error_code, "provider_proxy_invalid")
+
+    def test_rejects_malformed_bracketed_proxy_url(self):
+        adapter = SecureHTTPProviderAdapter(
+            {
+                "allowed_hosts": ["provider.example.com"],
+                "https_proxy": "http://[::1",
+            }
+        )
+
+        with self.assertRaises(SecureHTTPAdapterError) as exc:
+            adapter._proxy_for_destination(
+                "provider.example.com", 443, deadline=time.monotonic() + 3
+            )
+
+        self.assertEqual(exc.exception.error_code, "provider_proxy_invalid")
+
+    @patch("apps.providers.http_adapter._resolve_addresses")
+    def test_rejects_tls_encrypted_https_proxy_before_resolution(
+        self, resolve_addresses
+    ):
+        adapter = SecureHTTPProviderAdapter(
+            {
+                "allowed_hosts": ["provider.example.com"],
+                "https_proxy": "https://proxy.example.com:8443",
+            }
+        )
+
+        with self.assertRaises(SecureHTTPAdapterError) as exc:
+            adapter._proxy_for_destination(
+                "provider.example.com", 443, deadline=time.monotonic() + 3
+            )
+
+        self.assertEqual(exc.exception.error_code, "provider_proxy_unsupported")
+        resolve_addresses.assert_not_called()
+
+    @patch("apps.providers.http_adapter._resolve_public_addresses")
+    def test_rejects_tls_proxy_before_provider_dns(self, resolve_public_addresses):
+        adapter = SecureHTTPProviderAdapter(
+            {
+                "allowed_hosts": ["provider.example.com"],
+                "https_proxy": "https://proxy.example.com:8443",
+            }
+        )
+
+        with self.assertRaises(SecureHTTPAdapterError) as exc:
+            adapter.post_json(
+                url="https://provider.example.com/check",
+                payload={},
+            )
+
+        self.assertEqual(exc.exception.error_code, "provider_proxy_unsupported")
+        resolve_public_addresses.assert_not_called()
+
+    @patch("apps.providers.http_adapter.urllib.request.proxy_bypass", return_value=True)
+    @patch(
+        "apps.providers.http_adapter.urllib.request.getproxies",
+        return_value={"https": "http://proxy.example.com:8080"},
+    )
+    def test_proxy_bypass_uses_port_qualified_destination(
+        self, getproxies, proxy_bypass
+    ):
+        adapter = SecureHTTPProviderAdapter({"allowed_hosts": ["provider.example.com"]})
+
+        proxy = adapter._proxy_for_destination(
+            "provider.example.com", 8443, deadline=time.monotonic() + 3
+        )
+
+        self.assertIsNone(proxy)
+        proxy_bypass.assert_called_once_with("provider.example.com:8443")
+
+    @patch(
+        "apps.providers.http_adapter.urllib.request.proxy_bypass",
+        side_effect=[False, True],
+    )
+    @patch(
+        "apps.providers.http_adapter.urllib.request.getproxies",
+        return_value={"https": "http://proxy.example.com:8080"},
+    )
+    def test_proxy_bypass_checks_ipv6_authority_and_raw_host(
+        self, getproxies, proxy_bypass
+    ):
+        adapter = SecureHTTPProviderAdapter({"allowed_hosts": ["2001:db8::1"]})
+
+        proxy = adapter._proxy_for_destination(
+            "2001:db8::1", 443, deadline=time.monotonic() + 3
+        )
+
+        self.assertIsNone(proxy)
+        self.assertEqual(
+            proxy_bypass.call_args_list,
+            [call("[2001:db8::1]:443"), call("2001:db8::1")],
+        )
+
+    @patch("apps.providers.http_adapter.socket.socket")
+    @patch("apps.providers.http_adapter.ssl.create_default_context")
+    def test_proxy_connect_targets_vetted_ip_and_preserves_tls_hostname(
+        self, create_default_context, socket_factory
+    ):
+        raw_socket = socket_factory.return_value
+        tls_socket = Mock()
+        create_default_context.return_value.wrap_socket.return_value = tls_socket
+        proxy = _HTTPSProxy(
+            hostname="proxy.example.com",
+            port=8080,
+            use_tls=False,
+            headers={"Proxy-Authorization": "Basic credentials"},
+            endpoints=((socket.AF_INET, ("192.0.2.10", 8080)),),
+        )
+        connection = _PinnedHTTPSConnection(
+            "provider.example.com",
+            443,
+            endpoints=((socket.AF_INET, ("8.8.8.8", 443)),),
+            deadline=time.monotonic() + 3,
+            proxy=proxy,
+        )
+
+        with patch.object(connection, "_tunnel") as tunnel:
+            connection.connect()
+
+        raw_socket.connect.assert_called_once_with(("192.0.2.10", 8080))
+        self.assertEqual(connection._tunnel_host, "8.8.8.8")
+        self.assertEqual(connection._tunnel_port, 443)
+        self.assertEqual(
+            connection._tunnel_headers["Proxy-Authorization"],
+            "Basic credentials",
+        )
+        self.assertEqual(connection._tunnel_headers["Host"], "8.8.8.8:443")
+        tunnel.assert_called_once_with()
+        create_default_context.return_value.wrap_socket.assert_called_once_with(
+            raw_socket,
+            server_hostname="provider.example.com",
+        )
+        self.assertIs(connection.sock, tls_socket)
+
+    @patch("apps.providers.http_adapter.socket.socket")
+    @patch("apps.providers.http_adapter.ssl.create_default_context")
+    def test_proxy_connect_brackets_ipv6_host_authority(
+        self, create_default_context, socket_factory
+    ):
+        create_default_context.return_value.wrap_socket.return_value = Mock()
+        proxy = _HTTPSProxy(
+            hostname="proxy.example.com",
+            port=8080,
+            use_tls=False,
+            headers={},
+            endpoints=((socket.AF_INET, ("192.0.2.10", 8080)),),
+        )
+        connection = _PinnedHTTPSConnection(
+            "provider.example.com",
+            443,
+            endpoints=((socket.AF_INET6, ("2001:4860:4860::8888", 443, 0, 0)),),
+            deadline=time.monotonic() + 3,
+            proxy=proxy,
+        )
+
+        with patch.object(connection, "_tunnel"):
+            connection.connect()
+
+        self.assertEqual(
+            connection._tunnel_headers["Host"],
+            "[2001:4860:4860::8888]:443",
+        )
+
+    def test_pinned_connection_rejects_tls_encrypted_proxy_defensively(self):
+        proxy = _HTTPSProxy(
+            hostname="proxy.example.com",
+            port=8443,
+            use_tls=True,
+            headers={},
+            endpoints=((socket.AF_INET, ("192.0.2.10", 8443)),),
+        )
+        connection = _PinnedHTTPSConnection(
+            "provider.example.com",
+            443,
+            endpoints=((socket.AF_INET, ("8.8.8.8", 443)),),
+            deadline=time.monotonic() + 3,
+            proxy=proxy,
+        )
+
+        with self.assertRaises(SecureHTTPAdapterError) as exc:
+            connection.connect()
+
+        self.assertEqual(exc.exception.error_code, "provider_proxy_unsupported")
+
+    @patch("apps.providers.http_adapter.threading.Timer")
+    @patch("apps.providers.http_adapter._PinnedHTTPSConnection")
+    @patch(
+        "apps.providers.http_adapter._resolve_public_addresses",
+        return_value=((socket.AF_INET, ("8.8.8.8", 443)),),
+    )
+    def test_close_delimited_response_uses_response_owned_socket(
+        self, resolve_public_addresses, connection_class, timer_class
+    ):
+        connection = connection_class.return_value
+        connection.sock = None
+        response = connection.getresponse.return_value
+        response.status = 200
+        response.headers.get_content_type.return_value = "application/json"
+        response.read1.side_effect = [b'{"status":"ok"}', b""]
+        response.fp.raw._sock = Mock()
+
+        result = self.adapter().post_json(
+            url="https://provider.example.com/check", payload={}
+        )
+
+        self.assertEqual(result, {"status": "ok"})
+        self.assertGreaterEqual(response.fp.raw._sock.settimeout.call_count, 1)
+
+    @patch("apps.providers.http_adapter.threading.Timer")
+    @patch("apps.providers.http_adapter._PinnedHTTPSConnection")
+    @patch(
+        "apps.providers.http_adapter._resolve_public_addresses",
+        return_value=((socket.AF_INET, ("8.8.8.8", 443)),),
+    )
+    def test_watchdog_shuts_down_socket_during_response_headers(
+        self, resolve_public_addresses, connection_class, timer_class
+    ):
+        connection = connection_class.return_value
+        connection.sock = Mock()
+
+        def block_on_headers():
+            timer_class.call_args.args[1]()
+            raise OSError("socket interrupted")
+
+        connection.getresponse.side_effect = block_on_headers
+
+        with self.assertRaises(SecureHTTPAdapterError) as exc:
+            self.adapter().post_json(
+                url="https://provider.example.com/check", payload={}
+            )
+
+        self.assertEqual(exc.exception.error_code, "provider_timeout")
+        connection.sock.shutdown.assert_called_once_with(socket.SHUT_RDWR)
 
     @patch("apps.providers.http_adapter.threading.Timer")
     @patch("apps.providers.http_adapter._PinnedHTTPSConnection")
