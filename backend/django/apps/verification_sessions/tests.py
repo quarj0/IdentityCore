@@ -152,7 +152,8 @@ class VerificationSessionPortalTests(APITestCase):
             storage_provider="local",
             mime_type=mime_type,
             file_size_bytes=1024,
-            status=UploadStatus.INITIATED,
+            checksum_sha256=f"validated-{suffix}",
+            status=UploadStatus.UPLOADED,
             expires_at=timezone.now() + timedelta(minutes=10),
         )
 

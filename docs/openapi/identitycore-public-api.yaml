@@ -501,6 +501,7 @@ components:
           upload_url,
           upload_headers,
           upload_transfer_path,
+          upload_complete_path,
           expires_at,
         ]
       properties:
@@ -514,6 +515,8 @@ components:
           additionalProperties:
             type: string
         upload_transfer_path:
+          type: string
+        upload_complete_path:
           type: string
         expires_at:
           type: string
@@ -1322,6 +1325,40 @@ paths:
       responses:
         "200":
           description: Upload accepted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/PortalUploadTransferResponse"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /uploads/{upload_id}/complete:
+    post:
+      summary: Validate and finalize a direct object-storage upload.
+      description: Retrieves bounded uploaded bytes, validates declared size, media type, and content, then moves validated bytes to a non-replayable storage key before the upload can be submitted as evidence.
+      security:
+        - verificationSessionBearer: []
+      parameters:
+        - name: upload_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Upload validated and finalized.
           content:
             application/json:
               schema:

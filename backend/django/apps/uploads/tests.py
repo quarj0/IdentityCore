@@ -1,12 +1,12 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.test import APITestCase
 
 from apps.audit.models import AuditEvent
@@ -16,6 +16,7 @@ from apps.tenants.models import Tenant
 from apps.uploads.models import Upload, UploadPurpose, UploadStatus
 from apps.uploads.tasks import cleanup_expired_uploads_task
 from apps.uploads.scanning import inspect_upload_content
+from apps.verification_sessions.serializers import resolve_session_upload
 from apps.verifications.models import (
     VERIFICATION_SESSION_ACTIONS,
     Verification,
@@ -106,6 +107,10 @@ class UploadCreateTests(APITestCase):
         self.assertEqual(upload.purpose, UploadPurpose.DOCUMENT_CAPTURE)
         self.assertEqual(upload.status, UploadStatus.INITIATED)
         self.assertEqual(
+            response.data["data"]["upload_complete_path"],
+            f"/uploads/{upload.public_id}/complete",
+        )
+        self.assertEqual(
             upload.storage_key,
             (
                 f"organizations/{self.organization.public_id}"
@@ -162,6 +167,23 @@ class UploadCreateTests(APITestCase):
         self.assertEqual(duplicate_response.status_code, status.HTTP_200_OK)
         put_object_bytes.assert_called_once()
 
+        upload.status = UploadStatus.CONSUMED
+        upload.consumed_at = timezone.now()
+        upload.save(update_fields=["status", "consumed_at", "updated_at"])
+        consumed_retry = self.client.post(
+            reverse("upload-transfer", kwargs={"upload_id": upload_id}),
+            {
+                "file": SimpleUploadedFile(
+                    "document.jpg", b"test", content_type="image/jpeg"
+                )
+            },
+            format="multipart",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(consumed_retry.status_code, status.HTTP_200_OK)
+        put_object_bytes.assert_called_once()
+
     @patch("apps.uploads.views.inspect_upload_content", return_value=(True, ""))
     @patch("apps.uploads.views.put_object_bytes")
     def test_duplicate_transfer_with_different_content_is_rejected(
@@ -191,6 +213,56 @@ class UploadCreateTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         put_object_bytes.assert_called_once()
 
+    @patch("apps.uploads.views.inspect_upload_content")
+    @patch("apps.uploads.views.put_object_bytes")
+    def test_unsafe_retry_is_scanned_but_does_not_quarantine_validated_upload(
+        self, put_object_bytes, inspect_upload_content
+    ):
+        inspect_upload_content.side_effect = [
+            (True, ""),
+            (False, "image_content_unrecognized"),
+        ]
+        create_response = self.client.post(
+            reverse("upload-create"),
+            {
+                "purpose": "document_capture",
+                "mime_type": "image/jpeg",
+                "file_size_bytes": 4,
+            },
+            format="json",
+            **self.auth_headers(),
+        )
+        upload_id = create_response.data["data"]["upload_id"]
+        self.client.post(
+            reverse("upload-transfer", kwargs={"upload_id": upload_id}),
+            {
+                "file": SimpleUploadedFile(
+                    "document.jpg", b"test", content_type="image/jpeg"
+                )
+            },
+            format="multipart",
+            **self.auth_headers(),
+        )
+
+        response = self.client.post(
+            reverse("upload-transfer", kwargs={"upload_id": upload_id}),
+            {
+                "file": SimpleUploadedFile(
+                    "document.jpg", b"nope", content_type="image/jpeg"
+                )
+            },
+            format="multipart",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["error"]["code"], "upload_quarantined")
+        upload = Upload.objects.get(public_id=upload_id)
+        self.assertEqual(upload.status, UploadStatus.UPLOADED)
+        self.assertEqual(upload.quarantine_reason, "")
+        self.assertEqual(inspect_upload_content.call_count, 2)
+        put_object_bytes.assert_called_once()
+
     @patch("apps.uploads.views.put_object_bytes")
     def test_unrecognized_content_is_quarantined_before_processing(self, put_object_bytes):
         create_response = self.client.post(
@@ -213,6 +285,127 @@ class UploadCreateTests(APITestCase):
         self.assertEqual(upload.status, UploadStatus.QUARANTINED)
         self.assertEqual(upload.quarantine_reason, "image_content_unrecognized")
         put_object_bytes.assert_not_called()
+
+    @patch("apps.uploads.views.delete_object")
+    @patch("apps.uploads.views.put_object_bytes")
+    @patch("apps.uploads.views.inspect_upload_content", return_value=(True, ""))
+    @patch(
+        "apps.uploads.views.get_object_bytes",
+        return_value=(b"test", "image/jpeg"),
+    )
+    def test_complete_validates_direct_upload_into_immutable_key(
+        self,
+        get_object_bytes,
+        inspect_upload_content,
+        put_object_bytes,
+        delete_object,
+    ):
+        create_response = self.client.post(
+            reverse("upload-create"),
+            {
+                "purpose": "document_capture",
+                "mime_type": "image/jpeg",
+                "file_size_bytes": 4,
+            },
+            format="json",
+            **self.auth_headers(),
+        )
+        upload_id = create_response.data["data"]["upload_id"]
+        upload = Upload.objects.get(public_id=upload_id)
+        original_key = upload.storage_key
+
+        response = self.client.post(
+            reverse("upload-complete", kwargs={"upload_id": upload_id}),
+            {},
+            format="json",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        upload.refresh_from_db()
+        self.assertEqual(upload.status, UploadStatus.UPLOADED)
+        self.assertNotEqual(upload.storage_key, original_key)
+        self.assertTrue(upload.storage_key.startswith(f"{original_key}.validated."))
+        get_object_bytes.assert_called_once_with(
+            bucket_name=ANY,
+            key=original_key,
+            max_bytes=4,
+        )
+        put_object_bytes.assert_called_once_with(
+            bucket_name=ANY,
+            key=upload.storage_key,
+            content=b"test",
+            content_type="image/jpeg",
+        )
+        delete_object.assert_called_once_with(bucket_name=ANY, key=original_key)
+
+        retry = self.client.post(
+            reverse("upload-complete", kwargs={"upload_id": upload_id}),
+            {},
+            format="json",
+            **self.auth_headers(),
+        )
+        self.assertEqual(retry.status_code, status.HTTP_200_OK)
+        get_object_bytes.assert_called_once()
+
+    @patch("apps.uploads.views.delete_object")
+    @patch("apps.uploads.views.put_object_bytes")
+    @patch(
+        "apps.uploads.views.get_object_bytes",
+        return_value=(b"test", "image/jpeg"),
+    )
+    def test_unsafe_direct_upload_is_quarantined_without_copying_bytes(
+        self, get_object_bytes, put_object_bytes, delete_object
+    ):
+        create_response = self.client.post(
+            reverse("upload-create"),
+            {
+                "purpose": "document_capture",
+                "mime_type": "image/jpeg",
+                "file_size_bytes": 4,
+            },
+            format="json",
+            **self.auth_headers(),
+        )
+        upload_id = create_response.data["data"]["upload_id"]
+
+        response = self.client.post(
+            reverse("upload-complete", kwargs={"upload_id": upload_id}),
+            {},
+            format="json",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["error"]["code"], "upload_quarantined")
+        upload = Upload.objects.get(public_id=upload_id)
+        self.assertEqual(upload.status, UploadStatus.QUARANTINED)
+        self.assertEqual(upload.quarantine_reason, "image_content_unrecognized")
+        get_object_bytes.assert_called_once()
+        put_object_bytes.assert_not_called()
+        delete_object.assert_not_called()
+
+    def test_initiated_direct_upload_cannot_be_submitted_as_evidence(self):
+        create_response = self.client.post(
+            reverse("upload-create"),
+            {
+                "purpose": "document_capture",
+                "mime_type": "image/jpeg",
+                "file_size_bytes": 4,
+            },
+            format="json",
+            **self.auth_headers(),
+        )
+
+        with self.assertRaisesMessage(
+            serializers.ValidationError,
+            "Upload must be completed and validated before submission.",
+        ):
+            resolve_session_upload(
+                verification_session=self.session,
+                upload_id=create_response.data["data"]["upload_id"],
+                purpose=UploadPurpose.DOCUMENT_CAPTURE,
+            )
 
     @patch(
         "apps.uploads.scanning.Image.open",
