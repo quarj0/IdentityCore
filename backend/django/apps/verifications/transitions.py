@@ -82,6 +82,7 @@ ALLOWED_TRANSITIONS = {
         {
             VerificationStatus.VERIFIED,
             VerificationStatus.REJECTED,
+            VerificationStatus.EXPIRED,
             VerificationStatus.FAILED,
         }
     ),
@@ -117,6 +118,7 @@ def transition_verification(
     if current.status == target:
         verification.status = current.status
         verification.completed_at = current.completed_at
+        verification.cancelled_at = current.cancelled_at
         verification.updated_at = current.updated_at
         return current, False
     if target not in ALLOWED_TRANSITIONS.get(current.status, frozenset()):
@@ -130,11 +132,15 @@ def transition_verification(
     if target in TERMINAL_STATUSES:
         current.completed_at = now
         fields.append("completed_at")
+        if target == VerificationStatus.CANCELLED:
+            current.cancelled_at = now
+            fields.append("cancelled_at")
     elif clear_completed_at:
         current.completed_at = None
         fields.append("completed_at")
     current.save(update_fields=fields)
     verification.status = current.status
     verification.completed_at = current.completed_at
+    verification.cancelled_at = current.cancelled_at
     verification.updated_at = current.updated_at
     return current, True

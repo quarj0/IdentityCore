@@ -188,6 +188,72 @@ class IdentityDocumentTaskTests(TestCase):
         )
         self.assertEqual(mock_ocr.call_args.kwargs["document_storage_bucket"], "")
 
+    @patch("apps.identity_documents.tasks.run_document_classification")
+    @patch("apps.identity_documents.tasks.run_document_ocr")
+    @patch("apps.identity_documents.tasks.run_document_quality")
+    def test_terminal_transition_race_preserves_processed_document(
+        self, mock_quality, mock_ocr, mock_classification
+    ):
+        self.verification.status = VerificationStatus.CANCELLED
+        self.verification.cancelled_at = timezone.now()
+        self.verification.completed_at = self.verification.cancelled_at
+        self.verification.save(
+            update_fields=[
+                "status",
+                "cancelled_at",
+                "completed_at",
+                "updated_at",
+            ]
+        )
+        mock_quality.return_value = {
+            "status": "completed",
+            "quality_score": 0.88,
+            "issues": [],
+        }
+        mock_classification.return_value = {
+            "status": "completed",
+            "classification_status": "recognized",
+            "predicted_document_type": "national_id",
+            "expected_document_type": "national_id",
+            "matched_expected_document_type": True,
+            "predicted_country_code": "GH",
+            "confidence_score": 0.95,
+            "evidence_score": 0.95,
+            "classification_margin": 0.95,
+            "workflow_action": "continue",
+            "requires_manual_review": False,
+            "manual_review": {
+                "required": False,
+                "priority": "low",
+                "reason_codes": [],
+                "review_category": "document_classification",
+            },
+            "issues": [],
+            "ocr": {"average_confidence": 0.95, "line_count": 2},
+            "evidence": [],
+            "candidates": [],
+            "raw_text_lines": [],
+            "model_name": "mock-document-classifier",
+            "model_version": "v1",
+        }
+        mock_ocr.return_value = {
+            "status": "completed",
+            "confidence_score": 0.91,
+            "extracted_fields": {"full_name": "Kwame Mensah"},
+            "model_name": "mock-ocr",
+            "model_version": "v1",
+        }
+
+        result = process_identity_document_task(self.identity_document.public_id)
+
+        self.assertEqual(result, IdentityDocumentStatus.PROCESSED)
+        self.identity_document.refresh_from_db()
+        self.verification.refresh_from_db()
+        self.assertEqual(
+            self.identity_document.status, IdentityDocumentStatus.PROCESSED
+        )
+        self.assertEqual(self.verification.status, VerificationStatus.CANCELLED)
+
     def test_document_pipeline_invokes_the_provider_selected_by_active_routes(self):
         provider = Provider.objects.create(
             tenant=self.tenant,

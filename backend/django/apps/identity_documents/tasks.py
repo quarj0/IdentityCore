@@ -34,7 +34,11 @@ from apps.verifications.processing_jobs import (
     defer_processing_job,
     heartbeat_processing_job,
 )
-from apps.verifications.transitions import transition_verification
+from apps.verifications.transitions import (
+    TERMINAL_STATUSES,
+    VerificationTransitionError,
+    transition_verification,
+)
 from common.authorization import ServicePrincipal, require_service_access
 from common.storage import get_object_storage_temp_bucket_name
 
@@ -450,18 +454,29 @@ def process_identity_document_task(identity_document_id: str) -> str:
         # collecting selfie, liveness, and face-match evidence so a reviewer has
         # the complete case. The risk engine consumes the persisted classification
         # result and applies manual-review routing after biometrics finish.
-        transition_verification(
-            verification,
-            (
-                VerificationStatus.AWAITING_SELFIE
-                if identity_document.status
-                in {
-                    IdentityDocumentStatus.PROCESSED,
-                    IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
-                }
-                else VerificationStatus.AWAITING_DOCUMENT
-            ),
-        )
+        try:
+            transition_verification(
+                verification,
+                (
+                    VerificationStatus.AWAITING_SELFIE
+                    if identity_document.status
+                    in {
+                        IdentityDocumentStatus.PROCESSED,
+                        IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
+                    }
+                    else VerificationStatus.AWAITING_DOCUMENT
+                ),
+            )
+        except VerificationTransitionError:
+            verification.refresh_from_db(fields=["status", "updated_at"])
+            if verification.status not in TERMINAL_STATUSES:
+                raise
+            logger.info(
+                "Preserving processed document %s after verification %s reached terminal status %s",
+                identity_document.public_id,
+                verification.public_id,
+                verification.status,
+            )
 
         if classification_provider_check is not None:
             classification_provider_check.status = (
