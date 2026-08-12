@@ -15,6 +15,7 @@ from apps.tenants.models import Tenant
 from apps.uploads.models import Upload, UploadPurpose, UploadStatus
 from apps.uploads.tasks import cleanup_expired_uploads_task
 from apps.verifications.models import (
+    VERIFICATION_SESSION_ACTIONS,
     Verification,
     VerificationSession,
     VerificationStatus,
@@ -56,6 +57,7 @@ class UploadCreateTests(APITestCase):
             verification=self.verification,
             tenant=self.tenant,
             expires_at=self.verification.expires_at,
+            allowed_actions_json=list(VERIFICATION_SESSION_ACTIONS),
         )
         self.raw_session_token = "portal-secret-token"
         self.session.set_session_token(self.raw_session_token)
@@ -334,6 +336,7 @@ class UploadRetentionTaskTests(TestCase):
             verification=self.verification,
             tenant=self.tenant,
             expires_at=self.verification.expires_at,
+            allowed_actions_json=list(VERIFICATION_SESSION_ACTIONS),
         )
         self.session.set_session_token("retention-secret-token")
         self.session.save()

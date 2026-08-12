@@ -1097,7 +1097,7 @@ class Query:
             WorkflowVersionNode(
                 id=item.public_id,
                 workflow_id=item.workflow.public_id,
-                workflow_name=item.workflow.name,
+                workflow_name=item.workflow_name,
                 version=item.version,
                 steps=item.steps_json,
                 settings=item.settings_json,

@@ -25,8 +25,10 @@ from apps.risk.models import RiskAssessment
 from apps.tenants.models import Tenant
 from apps.uploads.models import Upload, UploadPurpose, UploadStatus
 from apps.verifications.models import (
+    VERIFICATION_SESSION_ACTIONS,
     Verification,
     VerificationDecision,
+    VerificationMobileHandoff,
     VerificationSession,
     VerificationStatus,
 )
@@ -75,6 +77,7 @@ class VerificationSessionPortalTests(APITestCase):
             verification=self.verification,
             tenant=self.tenant,
             expires_at=self.verification.expires_at,
+            allowed_actions_json=list(VERIFICATION_SESSION_ACTIONS),
         )
         self.raw_session_token = "portal-secret-token"
         self.session.set_session_token(self.raw_session_token)
@@ -278,6 +281,47 @@ class VerificationSessionPortalTests(APITestCase):
 
         self.assertEqual(read_response.status_code, status.HTTP_200_OK)
         self.assertEqual(consent_response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_empty_session_action_scope_denies_all_operations(self):
+        self.session.allowed_actions_json = []
+        self.session.save(update_fields=["allowed_actions_json", "updated_at"])
+
+        response = self.client.get(
+            reverse(
+                "verification-session-detail",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            **self.session_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_mobile_handoff_redemption_preserves_source_action_scope(self):
+        self.session.allowed_actions_json = ["session:read", "mobile_handoff:create"]
+        self.session.save(update_fields=["allowed_actions_json", "updated_at"])
+        raw_handoff_token = "restricted-handoff-token"
+        handoff = VerificationMobileHandoff(
+            source_session=self.session,
+            expires_at=timezone.now() + timedelta(minutes=5),
+            token_hash="",
+        )
+        handoff.set_token(raw_handoff_token)
+        handoff.save()
+
+        response = self.client.post(
+            reverse("verification-mobile-handoff-redeem"),
+            {"handoff": f"{handoff.public_id}.{raw_handoff_token}"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        redeemed = VerificationSession.objects.get(
+            public_id=response.data["data"]["session_id"]
+        )
+        self.assertEqual(
+            redeemed.allowed_actions_json,
+            ["session:read", "mobile_handoff:create"],
+        )
 
     def test_session_uses_immutable_policy_consent_locale_and_documents(self):
         template = ConsentTemplate.objects.create(

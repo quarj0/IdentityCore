@@ -154,6 +154,7 @@ def publish_workflow(workflow, user):
     )
     result = WorkflowVersion.objects.create(
         workflow=workflow,
+        workflow_name=workflow.name,
         version=version,
         steps_json=workflow.steps_json,
         settings_json=s,

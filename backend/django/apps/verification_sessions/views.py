@@ -25,7 +25,6 @@ from apps.verification_sessions.serializers import (
     serialize_verification_session_status,
 )
 from apps.verifications.models import (
-    VERIFICATION_SESSION_ACTIONS,
     VerificationMobileHandoff,
     VerificationSession,
     VerificationSessionStatus,
@@ -173,7 +172,7 @@ class VerificationMobileHandoffRedeemView(APIView):
             verification=source.verification,
             tenant=source.tenant,
             expires_at=source.expires_at,
-            allowed_actions_json=list(VERIFICATION_SESSION_ACTIONS),
+            allowed_actions_json=list(source.allowed_actions),
         )
         mobile_session.set_session_token(session_token)
         mobile_session.save()
