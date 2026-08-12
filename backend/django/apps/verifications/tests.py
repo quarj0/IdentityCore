@@ -929,6 +929,37 @@ class VerificationWorkflowTests(APITestCase):
         self.assertIn(b"Workflow Version ID: wfv_evidence", pdf)
         self.assertIn(b"Workflow Version: 7", pdf)
 
+    def test_incomplete_historical_decision_contract_is_marked_legacy(self):
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.tenant.verification_subjects.create(
+                full_name="Legacy decision subject"
+            ),
+            purpose="Legacy decision migration",
+            expires_at=timezone.now() + timedelta(hours=1),
+            status=VerificationStatus.VERIFIED,
+        )
+        decision = VerificationDecision.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            decision=VerificationStatus.VERIFIED,
+            decision_type="automatic",
+            reason_code="historical_result",
+            contract_version="1",
+            reason_codes_json=[],
+            input_snapshot_json={},
+            decided_at=timezone.now(),
+        )
+
+        migration = import_module(
+            "apps.verifications.migrations.0018_mark_incomplete_decision_contracts_legacy"
+        )
+        migration.mark_incomplete_decision_contracts_legacy(django_apps, None)
+
+        decision.refresh_from_db()
+        self.assertEqual(decision.contract_version, "legacy")
+
     def test_api_client_create_requires_active_policy(self):
         response = self.client.post(
             reverse("verification-list-create"),
@@ -1089,12 +1120,13 @@ class VerificationWorkflowTests(APITestCase):
             expires_at=self.tenant.created_at,
             status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
         )
-        RiskAssessment.objects.create(
+        risk_assessment = RiskAssessment.objects.create(
             tenant=self.tenant,
             verification=verification,
             risk_score="85.00",
             risk_level="high",
             recommendation="manual_review",
+            signals_json={"document_mismatch": True},
         )
         checker = PlatformUser.objects.create_user(
             email="checker@example.com",
@@ -1138,6 +1170,10 @@ class VerificationWorkflowTests(APITestCase):
         verification.refresh_from_db()
         self.assertEqual(verification.status, VerificationStatus.VERIFIED)
         decision = verification.decision_record
+        self.assertEqual(
+            decision.input_snapshot_json["risk_signals"],
+            risk_assessment.signals_json,
+        )
         self.assertEqual(decision.proposed_decision, VerificationStatus.REJECTED)
         self.assertEqual(decision.decision, VerificationStatus.VERIFIED)
         self.assertEqual(decision.reason_code, "manual_review_verified")

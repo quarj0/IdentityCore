@@ -20,7 +20,9 @@ def inspect_upload_content(*, content: bytes, declared_mime_type: str) -> tuple[
             with Image.open(BytesIO(content)) as image:
                 image.verify()
                 detected_mime_type = IMAGE_FORMATS.get(image.format)
-        except (UnidentifiedImageError, OSError):
+        except (Image.DecompressionBombError, Image.DecompressionBombWarning):
+            return False, "image_decompression_bomb"
+        except (UnidentifiedImageError, OSError, ValueError, SyntaxError):
             return False, "image_content_unrecognized"
         if detected_mime_type != declared_mime_type:
             return False, "declared_type_does_not_match_content"

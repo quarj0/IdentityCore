@@ -39,7 +39,8 @@ def normalize_provider_result(capability: str, result: dict) -> dict:
     normalized = dict(result)
     normalized["contract_version"] = PROVIDER_CONTRACT_VERSION
     normalized["capability"] = capability
-    normalized.setdefault("status", "completed")
+    if "status" not in normalized:
+        raise ProviderContractError("Provider response status is required.")
     if (
         not isinstance(normalized["status"], str)
         or normalized["status"] not in SUPPORTED_PROVIDER_STATUSES

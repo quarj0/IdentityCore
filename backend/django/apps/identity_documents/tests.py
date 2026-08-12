@@ -149,6 +149,18 @@ class IdentityDocumentTaskTests(TestCase):
         self.assertEqual(self.verification.status, VerificationStatus.AWAITING_SELFIE)
         self.assertEqual(self.capture.status, "validated")
         self.assertEqual(self.upload.status, UploadStatus.PROMOTED)
+        ocr_check = self.verification.provider_checks.get(
+            check_type=ProviderCheckType.DOCUMENT_OCR
+        )
+        self.assertEqual(ocr_check.normalized_result_json["contract_version"], "1")
+        self.assertEqual(
+            ocr_check.normalized_result_json["capability"],
+            ProviderCheckType.DOCUMENT_OCR,
+        )
+        self.assertEqual(
+            ocr_check.normalized_result_json["workflow_result"]["status"],
+            IdentityDocumentStatus.PROCESSED,
+        )
         self.assertEqual(
             self.identity_document.extracted_data_json["full_name"], "Kwame Mensah"
         )

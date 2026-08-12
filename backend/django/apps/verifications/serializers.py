@@ -503,7 +503,9 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
             reason_detail=self.validated_data.get("reason_detail", ""),
             contract_version=DECISION_CONTRACT_VERSION,
             reason_codes_json=[self.validated_data["reason_code"]],
-            input_snapshot_json=build_decision_input_snapshot(verification),
+            input_snapshot_json=build_decision_input_snapshot(
+                verification, risk_assessment=risk_assessment
+            ),
             approval_status=(
                 VerificationApprovalStatus.PENDING
                 if approval_required
