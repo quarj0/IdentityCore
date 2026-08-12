@@ -1,7 +1,9 @@
 import json
 import socket
+import threading
+import time
 from datetime import timedelta
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 from urllib.error import HTTPError
 
 from django.db import connection
@@ -15,6 +17,8 @@ from apps.providers.ai_service import (
     run_document_quality,
 )
 from apps.providers.http_adapter import (
+    _PinnedHTTPSConnection,
+    _resolve_public_addresses,
     SecureHTTPAdapterError,
     SecureHTTPProviderAdapter,
 )
@@ -1054,25 +1058,52 @@ class SecureHTTPProviderAdapterTests(TestCase):
 
     @patch(
         "apps.providers.http_adapter.socket.getaddrinfo",
-        return_value=[(None, None, None, None, ("8.8.8.8", 0))],
+        return_value=[
+            (
+                socket.AF_INET,
+                socket.SOCK_STREAM,
+                socket.IPPROTO_TCP,
+                "",
+                ("8.8.8.8", 443),
+            )
+        ],
     )
-    @patch("apps.providers.http_adapter.request.build_opener")
+    @patch("apps.providers.http_adapter._PinnedHTTPSConnection")
     def test_post_json_enforces_json_and_bounds_response(
-        self, build_opener, getaddrinfo
+        self, connection_class, getaddrinfo
     ):
+        connection = connection_class.return_value
+        connection.sock = Mock()
         response = Mock()
+        response.status = 200
         response.headers.get_content_type.return_value = "application/json"
-        response.read.return_value = b'{"status":"ok"}'
-        response.__enter__ = Mock(return_value=response)
-        response.__exit__ = Mock(return_value=False)
-        build_opener.return_value.open.return_value = response
+        response.read1.side_effect = [b'{"status":"ok"}', b""]
+        connection.getresponse.return_value = response
 
         result = self.adapter().post_json(
             url="https://provider.example.com/check", payload={"id": "ver_123"}
         )
 
         self.assertEqual(result, {"status": "ok"})
-        build_opener.return_value.open.assert_called_once()
+        getaddrinfo.assert_called_once_with(
+            "provider.example.com",
+            443,
+            type=socket.SOCK_STREAM,
+            proto=socket.IPPROTO_TCP,
+        )
+        self.assertEqual(
+            connection_class.call_args.kwargs["endpoints"],
+            ((socket.AF_INET, ("8.8.8.8", 443)),),
+        )
+        connection.request.assert_called_once_with(
+            "POST",
+            "/check",
+            body=b'{"id":"ver_123"}',
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+            },
+        )
 
     def test_blocks_private_destinations_and_non_https_urls(self):
         with self.assertRaisesRegex(SecureHTTPAdapterError, "HTTPS"):
@@ -1084,11 +1115,21 @@ class SecureHTTPProviderAdapterTests(TestCase):
 
     @patch(
         "apps.providers.http_adapter.socket.getaddrinfo",
-        return_value=[(None, None, None, None, ("8.8.8.8", 0))],
+        return_value=[
+            (
+                socket.AF_INET,
+                socket.SOCK_STREAM,
+                socket.IPPROTO_TCP,
+                "",
+                ("8.8.8.8", 443),
+            )
+        ],
     )
-    @patch("apps.providers.http_adapter.request.build_opener")
-    def test_timeout_is_explicitly_retryable(self, build_opener, getaddrinfo):
-        build_opener.return_value.open.side_effect = socket.timeout("private detail")
+    @patch("apps.providers.http_adapter._PinnedHTTPSConnection")
+    def test_timeout_is_explicitly_retryable(self, connection_class, getaddrinfo):
+        connection_class.return_value.request.side_effect = socket.timeout(
+            "private detail"
+        )
 
         with self.assertRaises(SecureHTTPAdapterError) as exc:
             self.adapter().post_json(
@@ -1102,10 +1143,139 @@ class SecureHTTPProviderAdapterTests(TestCase):
 
     @patch(
         "apps.providers.http_adapter.socket.getaddrinfo",
-        return_value=[(None, None, None, None, ("127.0.0.1", 0))],
+        return_value=[
+            (
+                socket.AF_INET,
+                socket.SOCK_STREAM,
+                socket.IPPROTO_TCP,
+                "",
+                ("127.0.0.1", 443),
+            )
+        ],
     )
     def test_blocks_private_dns_resolution(self, getaddrinfo):
         with self.assertRaisesRegex(SecureHTTPAdapterError, "private"):
             self.adapter().post_json(
                 url="https://provider.example.com/check", payload={}
             )
+
+    def test_rejects_malformed_port(self):
+        with self.assertRaises(SecureHTTPAdapterError) as exc:
+            self.adapter().post_json(
+                url="https://provider.example.com:not-a-port/check", payload={}
+            )
+
+        self.assertEqual(exc.exception.error_code, "provider_url_invalid")
+
+    @patch("apps.providers.http_adapter.socket.socket")
+    @patch("apps.providers.http_adapter.ssl.create_default_context")
+    def test_pinned_connection_uses_vetted_ip_and_original_hostname_for_tls(
+        self, create_default_context, socket_factory
+    ):
+        raw_socket = socket_factory.return_value
+        tls_socket = Mock()
+        create_default_context.return_value.wrap_socket.return_value = tls_socket
+        connection = _PinnedHTTPSConnection(
+            "provider.example.com",
+            443,
+            endpoints=((socket.AF_INET, ("8.8.8.8", 443)),),
+            deadline=time.monotonic() + 3,
+        )
+
+        connection.connect()
+
+        raw_socket.connect.assert_called_once_with(("8.8.8.8", 443))
+        create_default_context.return_value.wrap_socket.assert_called_once_with(
+            raw_socket,
+            server_hostname="provider.example.com",
+        )
+        self.assertIs(connection.sock, tls_socket)
+
+    @patch(
+        "apps.providers.http_adapter.time.monotonic",
+        side_effect=[0.0, 1.0, 2.0, 3.0],
+    )
+    @patch("apps.providers.http_adapter.socket.socket")
+    @patch("apps.providers.http_adapter.ssl.create_default_context")
+    def test_pinned_connection_recomputes_deadline_for_each_endpoint(
+        self, create_default_context, socket_factory, monotonic
+    ):
+        first_socket = Mock()
+        first_socket.connect.side_effect = socket.timeout("first endpoint timed out")
+        second_socket = Mock()
+        socket_factory.side_effect = [first_socket, second_socket]
+        connection = _PinnedHTTPSConnection(
+            "provider.example.com",
+            443,
+            endpoints=(
+                (socket.AF_INET, ("8.8.8.8", 443)),
+                (socket.AF_INET, ("8.8.4.4", 443)),
+            ),
+            deadline=10.0,
+        )
+
+        connection.connect()
+
+        first_socket.settimeout.assert_called_once_with(9.0)
+        first_socket.close.assert_called_once()
+        self.assertEqual(
+            second_socket.settimeout.call_args_list,
+            [call(8.0), call(7.0)],
+        )
+        second_socket.connect.assert_called_once_with(("8.8.4.4", 443))
+        create_default_context.return_value.wrap_socket.assert_called_once_with(
+            second_socket,
+            server_hostname="provider.example.com",
+        )
+
+    @patch("apps.providers.http_adapter.socket.getaddrinfo")
+    def test_dns_resolution_is_bounded_by_request_deadline(self, getaddrinfo):
+        release_resolution = threading.Event()
+        getaddrinfo.side_effect = lambda *args, **kwargs: (
+            release_resolution.wait(timeout=1) or []
+        )
+        try:
+            with self.assertRaises(SecureHTTPAdapterError) as exc:
+                _resolve_public_addresses(
+                    "provider.example.com",
+                    443,
+                    deadline=time.monotonic() + 0.01,
+                )
+        finally:
+            release_resolution.set()
+
+        self.assertEqual(exc.exception.error_code, "provider_timeout")
+        self.assertTrue(exc.exception.retryable)
+
+    @patch("apps.providers.http_adapter.threading.Timer")
+    @patch("apps.providers.http_adapter._PinnedHTTPSConnection")
+    @patch(
+        "apps.providers.http_adapter._resolve_public_addresses",
+        return_value=((socket.AF_INET, ("8.8.8.8", 443)),),
+    )
+    @patch(
+        "apps.providers.http_adapter.time.monotonic",
+        side_effect=[0.0, 0.1, 0.2, 0.3, 0.4, 5.1],
+    )
+    def test_absolute_deadline_applies_while_response_is_streaming(
+        self,
+        monotonic,
+        resolve_public_addresses,
+        connection_class,
+        timer_class,
+    ):
+        connection = connection_class.return_value
+        connection.sock = Mock()
+        response = connection.getresponse.return_value
+        response.status = 200
+        response.headers.get_content_type.return_value = "application/json"
+        response.read1.return_value = b'{"status":"ok"}'
+
+        with self.assertRaises(SecureHTTPAdapterError) as exc:
+            self.adapter().post_json(
+                url="https://provider.example.com/check", payload={}
+            )
+
+        self.assertEqual(exc.exception.error_code, "provider_timeout")
+        self.assertTrue(exc.exception.retryable)
+        timer_class.return_value.cancel.assert_called_once()
