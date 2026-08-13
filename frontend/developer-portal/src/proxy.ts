@@ -4,7 +4,11 @@ import { securityHeaders } from "../../security-headers";
 import { configuredApiOrigin } from "./lib/api-origin";
 
 export function proxy(request: NextRequest) {
-  const apiOrigin = configuredApiOrigin();
+  const apiOrigin = configuredApiOrigin({
+    NODE_ENV: process.env.NODE_ENV,
+    NEXT_PUBLIC_API_ORIGIN: process.env.NEXT_PUBLIC_API_ORIGIN,
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+  });
 
   const nonce = crypto.randomUUID().replaceAll("-", "");
   const headers = securityHeaders(nonce, {
