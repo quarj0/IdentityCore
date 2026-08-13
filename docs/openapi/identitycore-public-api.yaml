@@ -23,15 +23,25 @@ components:
       in: header
       name: X-Client-Id
       description: Send the API client ID with the bearer API client secret.
-    platformUserSession:
-      type: apiKey
-      in: cookie
-      name: sessionid
-      description: Portal session authentication used by authenticated workspace users.
     platformUserBearer:
       type: http
       scheme: bearer
       description: Portal JWT authentication used by authenticated workspace users.
+    platformRefreshCookie:
+      type: apiKey
+      in: cookie
+      name: identitycore_refresh
+      description: Scoped HttpOnly refresh token cookie issued by platform-user login.
+    verificationSessionBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: Verification session token
+      description: Short-lived subject session token issued with a hosted verification link.
+    verificationSessionId:
+      type: apiKey
+      in: header
+      name: X-Session-Id
+      description: Verification session identifier required when it is not present in the URL path.
   parameters:
     IdempotencyKeyHeader:
       name: Idempotency-Key
@@ -131,6 +141,7 @@ components:
           type: array
           items:
             type: string
+            enum: [national_id, passport, driver_license, health_id, voter_id]
         required_liveness_level:
           type: string
           enum: [passive, active]
@@ -191,6 +202,212 @@ components:
         metadata:
           type: object
           additionalProperties: true
+    PlatformUserLoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    PlatformUser:
+      type: object
+      required:
+        [
+          public_id,
+          email,
+          first_name,
+          last_name,
+          phone_number,
+          status,
+          tenant_public_id,
+          tenant_name,
+          tenant_status,
+          is_platform_admin,
+          mfa_enabled,
+          roles,
+          notification_preferences,
+          last_login_at,
+          created_at,
+          updated_at,
+        ]
+      properties:
+        public_id:
+          type: string
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+        last_name:
+          type: string
+        phone_number:
+          type: string
+        status:
+          type: string
+        tenant_public_id:
+          type: [string, "null"]
+        tenant_name:
+          type: [string, "null"]
+        tenant_status:
+          type: [string, "null"]
+        is_platform_admin:
+          type: boolean
+        mfa_enabled:
+          type: boolean
+        roles:
+          type: array
+          items:
+            type: string
+        notification_preferences:
+          type: object
+          additionalProperties: true
+        last_login_at:
+          type: [string, "null"]
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    PlatformUserMfaChallenge:
+      type: object
+      required: [mfa_required, mfa_enrollment_required, mfa_token]
+      properties:
+        mfa_required:
+          type: boolean
+          const: true
+        mfa_enrollment_required:
+          type: boolean
+        mfa_token:
+          type: string
+    PlatformUserAuthentication:
+      type: object
+      required: [tokens, user]
+      properties:
+        tokens:
+          type: object
+          required: [access]
+          properties:
+            access:
+              type: string
+        user:
+          $ref: "#/components/schemas/PlatformUser"
+        recovery_codes:
+          type: array
+          description: One-time recovery codes returned only after MFA enrollment confirmation.
+          items:
+            type: string
+    PlatformUserMfaEnrollmentRequest:
+      type: object
+      additionalProperties: false
+      required: [mfa_token]
+      properties:
+        mfa_token:
+          type: string
+          description: Short-lived enrollment token returned by platform-user login.
+    PlatformUserMfaCodeRequest:
+      type: object
+      additionalProperties: false
+      required: [mfa_token, code]
+      properties:
+        mfa_token:
+          type: string
+          description: Short-lived MFA transaction token returned by platform-user login.
+        code:
+          type: string
+          description: Six-digit authenticator code, or a recovery code for an MFA challenge.
+    PlatformUserMfaEnrollment:
+      type: object
+      required: [secret, provisioning_uri]
+      properties:
+        secret:
+          type: string
+          description: Base32 TOTP secret to store in the user's authenticator.
+        provisioning_uri:
+          type: string
+          format: uri
+    VerificationPolicyCreateRequest:
+      type: object
+      additionalProperties: false
+      description: The manual_review_threshold must be less than or equal to face_match_threshold.
+      required:
+        [
+          name,
+          required_document_types,
+          required_liveness_level,
+          face_match_threshold,
+          manual_review_threshold,
+          verification_expiry_minutes,
+          media_retention_days,
+          metadata_retention_days,
+        ]
+      properties:
+        project_id:
+          type: string
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        consent_template_id:
+          type: string
+        default_locale:
+          type: string
+          maxLength: 16
+          default: en
+        supported_locales:
+          type: array
+          items:
+            type: string
+            maxLength: 16
+        required_document_types:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            enum: [national_id, passport, driver_license, health_id, voter_id]
+        required_liveness_level:
+          type: string
+          enum: [passive, active]
+        face_match_threshold:
+          type: number
+          minimum: 0
+          maximum: 1
+        manual_review_threshold:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Must be less than or equal to face_match_threshold.
+        maker_checker_required:
+          type: boolean
+          default: false
+        verification_expiry_minutes:
+          type: integer
+          minimum: 1
+        media_retention_days:
+          type: integer
+          minimum: 1
+        metadata_retention_days:
+          type: integer
+          minimum: 1
+    VerificationPolicyCreateResponse:
+      type: object
+      required: [id, name, version, status]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        version:
+          type: integer
+        status:
+          type: string
+          const: draft
     VerificationCreateResponse:
       type: object
       required: [id, status, verification_url, session_id, expires_at]
@@ -207,6 +424,257 @@ components:
         session_token:
           type: string
           description: Raw session token returned only when issuing a fresh hosted link.
+        expires_at:
+          type: string
+          format: date-time
+    VerificationSessionConsentRequest:
+      type: object
+      additionalProperties: false
+      required: [accepted]
+      properties:
+        accepted:
+          type: boolean
+          const: true
+        template_id:
+          type: string
+          maxLength: 64
+        version:
+          type: integer
+          minimum: 1
+        locale:
+          type: string
+          maxLength: 16
+        content_hash:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+    VerificationSessionDocumentRequest:
+      type: object
+      additionalProperties: false
+      required: [document_type, country_code, captures]
+      example:
+        document_type: passport
+        country_code: GH
+        captures:
+          - side: single
+            upload_id: upl_01JABC
+      properties:
+        document_type:
+          type: string
+          maxLength: 64
+        country_code:
+          type: string
+          maxLength: 8
+        captures:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required: [side, upload_id]
+            properties:
+              side:
+                type: string
+                enum: [front, back, single, mrz, other]
+              upload_id:
+                type: string
+                maxLength: 64
+    VerificationSessionSelfieRequest:
+      type: object
+      additionalProperties: false
+      required: [capture_type, upload_id]
+      properties:
+        capture_type:
+          type: string
+          enum: [image, video]
+        upload_id:
+          type: string
+          maxLength: 64
+    VerificationSessionLivenessRequest:
+      type: object
+      additionalProperties: false
+      required: [liveness_type, selfie_capture_id]
+      if:
+        properties:
+          liveness_type:
+            const: active
+        required: [liveness_type]
+      then:
+        required: [challenge_id]
+      properties:
+        liveness_type:
+          type: string
+          enum: [passive, active]
+        selfie_capture_id:
+          type: string
+          maxLength: 64
+        challenge_id:
+          type: string
+          maxLength: 64
+    VerificationMobileHandoffRedeemResponse:
+      type: object
+      required: [session_id, session_token, verification_id]
+      properties:
+        session_id:
+          type: string
+        session_token:
+          type: string
+        verification_id:
+          type: string
+    VerificationSessionResponse:
+      type: object
+      required:
+        [
+          session_id,
+          verification_id,
+          status,
+          organization,
+          purpose,
+          redirect_url,
+          required_steps,
+          workflow,
+          locale,
+          supported_locales,
+          direction,
+          consent,
+          document,
+          available_documents,
+          available_countries,
+          expires_at,
+        ]
+      properties:
+        session_id:
+          type: string
+        verification_id:
+          type: string
+        status:
+          type: string
+        organization:
+          type: object
+          additionalProperties: true
+        purpose:
+          type: string
+        redirect_url:
+          type: string
+        required_steps:
+          type: array
+          items:
+            type: string
+        workflow:
+          type: object
+          additionalProperties: true
+        locale:
+          type: string
+        supported_locales:
+          type: array
+          items:
+            type: string
+        direction:
+          type: string
+          enum: [ltr, rtl]
+        consent:
+          type: object
+          additionalProperties: true
+        document:
+          type: object
+          additionalProperties: true
+        available_documents:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        available_countries:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        expires_at:
+          type: string
+          format: date-time
+    VerificationSessionConsentResponse:
+      type: object
+      required: [consent_record_id, next_step]
+      properties:
+        consent_record_id:
+          type: string
+        next_step:
+          type: string
+          const: document_capture
+    VerificationSessionDocumentResponse:
+      type: object
+      required: [identity_document_id, status, next_step]
+      properties:
+        identity_document_id:
+          type: string
+        status:
+          type: string
+        next_step:
+          type: string
+          const: document_processing
+    VerificationSessionSelfieResponse:
+      type: object
+      required: [selfie_capture_id, status, next_step]
+      properties:
+        selfie_capture_id:
+          type: string
+        status:
+          type: string
+          const: processing
+        next_step:
+          type: string
+          const: liveness_check
+    VerificationSessionLivenessResponse:
+      type: object
+      required: [liveness_check_id, status]
+      properties:
+        liveness_check_id:
+          type: string
+        status:
+          type: string
+          const: processing
+    VerificationSessionLivenessChallengeResponse:
+      type: object
+      required: [challenge_id, actions, expires_at]
+      properties:
+        challenge_id:
+          type: string
+        actions:
+          type: array
+          items:
+            type: string
+            enum: [turn_left, turn_right, look_up, look_down]
+        expires_at:
+          type: string
+          format: date-time
+    VerificationSessionStatusResponse:
+      type: object
+      required: [verification_id, status, current_step, message, evidence]
+      properties:
+        verification_id:
+          type: string
+        status:
+          type: string
+        current_step:
+          type: string
+        message:
+          type: string
+        evidence:
+          type: object
+          additionalProperties: false
+          required: [identity_document_id, selfie_capture_id, liveness_check_id]
+          properties:
+            identity_document_id:
+              type: string
+            selfie_capture_id:
+              type: string
+            liveness_check_id:
+              type: string
+    VerificationMobileHandoffResponse:
+      type: object
+      required: [handoff_url, expires_at]
+      properties:
+        handoff_url:
+          type: string
+          format: uri
         expires_at:
           type: string
           format: date-time
@@ -248,32 +716,72 @@ components:
           type: [string, "null"]
           format: date-time
     VerificationDetail:
-      allOf:
-        - $ref: "#/components/schemas/VerificationSummary"
-        - type: object
+      type: object
+      required:
+        [
+          id,
+          status,
+          purpose,
+          policy,
+          workflow,
+          external_reference,
+          verification_subject,
+          checks,
+          risk_assessment,
+          document_classification,
+          evidence_report,
+          decision,
+          created_at,
+          completed_at,
+          expires_at,
+        ]
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        purpose:
+          type: string
+        policy:
+          type: object
+          additionalProperties: true
+        workflow:
+          type: object
+          additionalProperties: true
+        external_reference:
+          type: string
+        verification_subject:
+          type: object
+          required: [id, full_name]
           properties:
-            verification_subject:
-              type: object
-              properties:
-                id:
-                  type: string
-                full_name:
-                  type: string
-            checks:
-              type: object
-              additionalProperties: true
-            risk_assessment:
-              type: [object, "null"]
-              additionalProperties: true
-            evidence_report:
-              type: [object, "null"]
-              additionalProperties: true
-            decision:
-              type: [object, "null"]
-              additionalProperties: true
-            expires_at:
+            id:
               type: string
-              format: date-time
+            full_name:
+              type: string
+        checks:
+          type: object
+          additionalProperties: true
+        risk_assessment:
+          type: [object, "null"]
+          additionalProperties: true
+        document_classification:
+          type: [object, "null"]
+          additionalProperties: true
+        evidence_report:
+          type: [object, "null"]
+          additionalProperties: true
+        decision:
+          type: [object, "null"]
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: [string, "null"]
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
     VerificationResult:
       type: object
       additionalProperties: false
@@ -457,6 +965,53 @@ components:
           type: integer
         total_pages:
           type: integer
+    AuditEvent:
+      type: object
+      required:
+        [
+          id,
+          actor_type,
+          actor_id,
+          action,
+          action_label,
+          actor_display_name,
+          target_type,
+          target_id,
+          target_label,
+          ip_address,
+          user_agent,
+          metadata,
+          created_at,
+        ]
+      properties:
+        id:
+          type: string
+        actor_type:
+          type: string
+        actor_id:
+          type: string
+        action:
+          type: string
+        action_label:
+          type: string
+        actor_display_name:
+          type: string
+        target_type:
+          type: string
+        target_id:
+          type: string
+        target_label:
+          type: string
+        ip_address:
+          type: [string, "null"]
+        user_agent:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
     EvidenceReport:
       type: object
       required:
@@ -483,6 +1038,35 @@ components:
     PortalUploadCreateRequest:
       type: object
       required: [purpose, mime_type, file_size_bytes]
+      example:
+        purpose: document_capture
+        mime_type: image/jpeg
+        file_size_bytes: 1048576
+      oneOf:
+        - title: Document capture
+          properties:
+            purpose:
+              const: document_capture
+            mime_type:
+              enum: [image/jpeg, image/png, image/webp]
+            file_size_bytes:
+              maximum: 10485760
+        - title: Selfie capture
+          properties:
+            purpose:
+              const: selfie_capture
+            mime_type:
+              enum: [image/jpeg, image/png, image/webp]
+            file_size_bytes:
+              maximum: 10485760
+        - title: Liveness capture
+          properties:
+            purpose:
+              const: liveness_capture
+            mime_type:
+              enum: [video/mp4, video/quicktime, video/webm]
+            file_size_bytes:
+              maximum: 26214400
       properties:
         purpose:
           type: string
@@ -565,14 +1149,20 @@ components:
     OrganizationBrandingAssetUploadRequest:
       type: object
       required: [asset_type, filename, mime_type]
+      example:
+        asset_type: logo
+        filename: logo.png
+        mime_type: image/png
       properties:
         asset_type:
           type: string
           enum: [logo, branding_image]
         filename:
           type: string
+          pattern: "\\.(png|jpg|jpeg|svg|webp)$"
         mime_type:
           type: string
+          pattern: "^image/"
     OrganizationBrandingAssetUploadResponse:
       type: object
       required: [asset_type, storage_key, bucket_name, upload_url, asset_url]
@@ -592,14 +1182,21 @@ components:
     OrganizationSupportingDocumentUploadRequest:
       type: object
       required: [filename, mime_type, file_size_bytes]
+      example:
+        filename: incorporation-certificate.pdf
+        mime_type: application/pdf
+        file_size_bytes: 1048576
       properties:
         filename:
           type: string
+          pattern: "\\.pdf$"
         mime_type:
           type: string
+          const: application/pdf
         file_size_bytes:
           type: integer
           minimum: 1
+          maximum: 10485760
     OrganizationSupportingDocumentUploadResponse:
       type: object
       required:
@@ -699,6 +1296,23 @@ components:
           items:
             type: string
             format: uri
+    ProjectUpdateRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        environment:
+          type: string
+          enum: [sandbox, production]
+        allowed_origins:
+          type: array
+          items:
+            type: string
+            format: uri
     APIClientSummary:
       type: object
       required:
@@ -729,6 +1343,7 @@ components:
           type: string
         scopes:
           type: array
+          minItems: 1
           items:
             type: string
         allowed_networks:
@@ -759,8 +1374,16 @@ components:
           type: string
         scopes:
           type: array
+          minItems: 1
           items:
             type: string
+            enum:
+              [
+                policies:read,
+                verifications:create,
+                verifications:read,
+                verifications:write,
+              ]
         allowed_networks:
           type: array
           items:
@@ -776,6 +1399,14 @@ components:
           properties:
             client_secret:
               type: string
+    APIClientActionResponse:
+      allOf:
+        - $ref: "#/components/schemas/APIClientSummary"
+        - type: object
+          properties:
+            client_secret:
+              type: string
+              description: Returned only when the action is rotate.
     WebhookEndpointSummary:
       type: object
       required: [id, url, events, status, created_at, updated_at]
@@ -791,8 +1422,21 @@ components:
           type: string
         events:
           type: array
+          minItems: 1
           items:
             type: string
+            enum:
+              - verification.created
+              - verification.consent_accepted
+              - verification.document_uploaded
+              - verification.selfie_uploaded
+              - verification.processing
+              - verification.manual_review_required
+              - verification.verified
+              - verification.rejected
+              - verification.failed
+              - verification.expired
+              - verification.cancelled
         status:
           type: string
         created_at:
@@ -814,16 +1458,31 @@ components:
           type: string
         events:
           type: array
+          minItems: 1
           items:
             type: string
+            enum:
+              - verification.created
+              - verification.consent_accepted
+              - verification.document_uploaded
+              - verification.selfie_uploaded
+              - verification.processing
+              - verification.manual_review_required
+              - verification.verified
+              - verification.rejected
+              - verification.failed
+              - verification.expired
+              - verification.cancelled
     WebhookEndpointCreateResponse:
-      allOf:
-        - $ref: "#/components/schemas/WebhookEndpointSummary"
-        - type: object
-          required: [secret]
-          properties:
-            secret:
-              type: string
+      type: object
+      required: [id, secret, status]
+      properties:
+        id:
+          type: string
+        secret:
+          type: string
+        status:
+          type: string
     WebhookEndpointTestResponse:
       type: object
       required: [queued]
@@ -882,6 +1541,20 @@ components:
         decided_at:
           type: string
           format: date-time
+    ManualReviewPendingDecisionResponse:
+      type: object
+      required: [verification_id, decision, approval_status, approval_required]
+      properties:
+        verification_id:
+          type: string
+        decision:
+          type: string
+        approval_status:
+          type: string
+          const: pending
+        approval_required:
+          type: boolean
+          const: true
     ManualReviewApprovalRequest:
       type: object
       required: [decision]
@@ -947,6 +1620,714 @@ paths:
                         type: string
                   request_id:
                     type: string
+  /document-types:
+    get:
+      security: []
+      summary: List supported document types.
+      description: Returns the public bootstrap catalog of identity document types.
+      responses:
+        "200":
+          description: Supported document types.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [code, name]
+                      properties:
+                        code:
+                          type: string
+                        name:
+                          type: string
+                  request_id:
+                    type: string
+              example:
+                success: true
+                data:
+                  - code: national_id
+                    name: National ID
+                request_id: req_01JABC
+  /auth/login:
+    post:
+      security: []
+      summary: Authenticate a platform user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformUserLoginRequest"
+      responses:
+        "200":
+          description: Authentication succeeded and the refresh token was set in an HttpOnly cookie.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/PlatformUserAuthentication"
+                  request_id:
+                    type: string
+        "202":
+          description: A multi-factor authentication challenge or enrollment is required.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/PlatformUserMfaChallenge"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /auth/mfa/enroll:
+    post:
+      security: []
+      summary: Start platform-user MFA enrollment.
+      description: Exchanges the short-lived enrollment token returned by login for TOTP provisioning material.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformUserMfaEnrollmentRequest"
+      responses:
+        "200":
+          description: TOTP provisioning material was issued.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/PlatformUserMfaEnrollment"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /auth/mfa/enroll/confirm:
+    post:
+      security: []
+      summary: Confirm platform-user MFA enrollment and finish login.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformUserMfaCodeRequest"
+      responses:
+        "200":
+          description: MFA enrollment was confirmed, recovery codes were issued, and login completed.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/PlatformUserAuthentication"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /auth/mfa/challenge:
+    post:
+      security: []
+      summary: Complete a platform-user MFA login challenge.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformUserMfaCodeRequest"
+      responses:
+        "200":
+          description: The second factor was accepted and login completed.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/PlatformUserAuthentication"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /auth/refresh:
+    post:
+      security:
+        - platformRefreshCookie: []
+      summary: Rotate the refresh cookie and issue a platform-user access token.
+      description: Requires the scoped HttpOnly refresh cookie and a trusted Origin header.
+      responses:
+        "200":
+          description: A new access token was issued.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: object
+                    required: [tokens]
+                    properties:
+                      tokens:
+                        type: object
+                        required: [access]
+                        properties:
+                          access:
+                            type: string
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+  /auth/me:
+    get:
+      summary: Retrieve the authenticated platform user and tenant context.
+      security:
+        - platformUserBearer: []
+      responses:
+        "200":
+          description: Current platform user.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: object
+                    required: [user]
+                    properties:
+                      user:
+                        $ref: "#/components/schemas/PlatformUser"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /country-profiles:
+    get:
+      security: []
+      summary: List supported country verification profiles.
+      description: Returns the public country-to-document capture requirements catalog.
+      responses:
+        "200":
+          description: Supported country profiles.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [code, name, supported_document_types]
+                      properties:
+                        code:
+                          type: string
+                        name:
+                          type: string
+                        supported_document_types:
+                          type: array
+                          items:
+                            type: object
+                            required: [document_type, local_name, capture_sides]
+                            properties:
+                              document_type:
+                                type: string
+                              local_name:
+                                type: string
+                              capture_sides:
+                                type: array
+                                items:
+                                  type: string
+                  request_id:
+                    type: string
+              example:
+                success: true
+                data:
+                  - code: GH
+                    name: Ghana
+                    supported_document_types:
+                      - document_type: national_id
+                        local_name: National ID
+                        capture_sides: [front, back]
+                request_id: req_01JABC
+  /countries:
+    get:
+      security: []
+      summary: List supported countries.
+      description: Returns the public ISO 3166-1 alpha-2 country catalog.
+      responses:
+        "200":
+          description: Supported countries.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [code, name]
+                      properties:
+                        code:
+                          type: string
+                          minLength: 2
+                          maxLength: 2
+                        name:
+                          type: string
+                  request_id:
+                    type: string
+              example:
+                success: true
+                data:
+                  - code: GH
+                    name: Ghana
+                request_id: req_01JABC
+  /sessions/mobile-handoff/redeem:
+    post:
+      security: []
+      summary: Redeem a one-time mobile handoff.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [handoff]
+              properties:
+                handoff:
+                  type: string
+      responses:
+        "200":
+          description: A new verification session was issued.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationMobileHandoffRedeemResponse"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /sessions/{session_id}:
+    get:
+      summary: Retrieve the hosted verification session.
+      security:
+        - verificationSessionBearer: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Verification session state and allowed actions.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationSessionResponse"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /sessions/{session_id}/consent:
+    post:
+      summary: Record consent for the verification session.
+      security:
+        - verificationSessionBearer: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerificationSessionConsentRequest"
+      responses:
+        "200":
+          description: Consent was recorded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationSessionConsentResponse"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /sessions/{session_id}/documents:
+    post:
+      summary: Submit document capture metadata for the verification session.
+      security:
+        - verificationSessionBearer: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerificationSessionDocumentRequest"
+      responses:
+        "200":
+          description: Document capture was accepted for processing.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationSessionDocumentResponse"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /sessions/{session_id}/selfies:
+    post:
+      summary: Submit a selfie capture for the verification session.
+      security:
+        - verificationSessionBearer: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerificationSessionSelfieRequest"
+      responses:
+        "200":
+          description: Selfie capture was accepted for processing.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationSessionSelfieResponse"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /sessions/{session_id}/liveness:
+    post:
+      summary: Submit liveness evidence for the verification session.
+      security:
+        - verificationSessionBearer: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerificationSessionLivenessRequest"
+      responses:
+        "200":
+          description: Liveness evidence was accepted for processing.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationSessionLivenessResponse"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /sessions/{session_id}/liveness/challenge:
+    post:
+      summary: Issue an active liveness challenge.
+      security:
+        - verificationSessionBearer: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+      responses:
+        "200":
+          description: Liveness challenge details.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationSessionLivenessChallengeResponse"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /sessions/{session_id}/status:
+    get:
+      summary: Retrieve verification-session progress.
+      security:
+        - verificationSessionBearer: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Verification-session progress and next action.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationSessionStatusResponse"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /sessions/{session_id}/mobile-handoff:
+    post:
+      summary: Create a one-time mobile handoff.
+      security:
+        - verificationSessionBearer: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Mobile handoff URL and expiry.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationMobileHandoffResponse"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /audit-events/:
+    get:
+      summary: List tenant audit events.
+      security:
+        - platformUserBearer: []
+      parameters:
+        - name: actor_type
+          in: query
+          schema:
+            type: string
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: target_type
+          in: query
+          schema:
+            type: string
+        - name: target_id
+          in: query
+          schema:
+            type: string
+        - name: created_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: created_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: A tenant-scoped page of audit events.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: object
+                    required: [results, pagination]
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/AuditEvent"
+                      pagination:
+                        $ref: "#/components/schemas/PagePagination"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+  /audit-events/{event_id}:
+    get:
+      summary: Retrieve a tenant audit event.
+      security:
+        - platformUserBearer: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Tenant audit event details.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/AuditEvent"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /policies/:
     get:
       summary: List active verification policies/templates.
@@ -967,6 +2348,38 @@ paths:
                       $ref: "#/components/schemas/Policy"
                   request_id:
                     type: string
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+    post:
+      summary: Create a draft verification policy.
+      description: Platform-user JWT authentication is required; API clients cannot create policies.
+      security:
+        - platformUserBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerificationPolicyCreateRequest"
+      responses:
+        "201":
+          description: Draft verification policy created.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationPolicyCreateResponse"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
         "403":
           $ref: "#/components/responses/PermissionDenied"
   /policies/{policy_id}:
@@ -1259,8 +2672,8 @@ paths:
       summary: Create a temporary upload transfer.
       description: Workspace-authenticated users create uploads before transferring file bytes from the browser or app.
       security:
-        - platformUserSession: []
-        - platformUserBearer: []
+        - verificationSessionBearer: []
+          verificationSessionId: []
       requestBody:
         required: true
         content:
@@ -1292,8 +2705,8 @@ paths:
       summary: Transfer file bytes into temporary storage.
       description: Accepts the raw file bytes for a previously created upload transfer.
       security:
-        - platformUserSession: []
-        - platformUserBearer: []
+        - verificationSessionBearer: []
+          verificationSessionId: []
       parameters:
         - name: upload_id
           in: path
@@ -1339,6 +2752,7 @@ paths:
       description: Retrieves bounded uploaded bytes, validates declared size, media type, and content, then moves validated bytes to a non-replayable storage key before the upload can be submitted as evidence.
       security:
         - verificationSessionBearer: []
+          verificationSessionId: []
       parameters:
         - name: upload_id
           in: path
@@ -1372,7 +2786,6 @@ paths:
       summary: Get the current organization profile.
       description: Returns the authenticated workspace's organization settings and sandbox usage.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       responses:
         "200":
@@ -1395,7 +2808,6 @@ paths:
     patch:
       summary: Update organization branding settings.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       requestBody:
         required: true
@@ -1434,7 +2846,6 @@ paths:
     post:
       summary: Create a branding asset upload.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       requestBody:
         required: true
@@ -1467,7 +2878,6 @@ paths:
       summary: Create a supporting document upload.
       description: Workspace-authenticated users upload organization verification documents to the public asset bucket.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       requestBody:
         required: true
@@ -1499,7 +2909,6 @@ paths:
     post:
       summary: Mark a supporting document upload complete.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: document_id
@@ -1531,7 +2940,6 @@ paths:
     delete:
       summary: Delete a supporting document.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: document_id
@@ -1564,7 +2972,6 @@ paths:
       summary: Transfer supporting document bytes.
       description: Upload the PDF bytes for an initiated organization supporting document.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: document_id
@@ -1622,7 +3029,6 @@ paths:
       summary: Suspend the current workspace.
       description: Requires the exact organization name as confirmation and disables active workspace credentials and sessions.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       requestBody:
         required: true
@@ -1662,7 +3068,6 @@ paths:
     get:
       summary: List projects.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: environment
@@ -1716,7 +3121,6 @@ paths:
     post:
       summary: Create a project.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       requestBody:
         required: true
@@ -1748,7 +3152,6 @@ paths:
     get:
       summary: Retrieve a project.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: project_id
@@ -1779,7 +3182,6 @@ paths:
     patch:
       summary: Update a project.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: project_id
@@ -1792,7 +3194,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ProjectCreateRequest"
+              $ref: "#/components/schemas/ProjectUpdateRequest"
       responses:
         "200":
           description: Updated project.
@@ -1819,7 +3221,6 @@ paths:
     post:
       summary: Suspend or reactivate a project.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: project_id
@@ -1860,7 +3261,6 @@ paths:
       summary: Instantiate a workflow template in a project.
       description: Creates an idempotent workflow from a published template. Production projects require an approved organization.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: project_id
@@ -1933,7 +3333,6 @@ paths:
     get:
       summary: List API clients.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       responses:
         "200":
@@ -1962,7 +3361,6 @@ paths:
       summary: Create an API client.
       description: Pending workspaces can use this route to mint a sandbox test key for API testing.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       requestBody:
         required: true
@@ -1994,7 +3392,6 @@ paths:
     get:
       summary: Retrieve an API client.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: client_id
@@ -2025,7 +3422,6 @@ paths:
     patch:
       summary: Update an API client.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: client_id
@@ -2076,7 +3472,6 @@ paths:
     post:
       summary: Rotate, revoke, or reactivate an API client.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: client_id
@@ -2101,7 +3496,7 @@ paths:
                   success:
                     const: true
                   data:
-                    $ref: "#/components/schemas/APIClientCreateResponse"
+                    $ref: "#/components/schemas/APIClientActionResponse"
                   request_id:
                     type: string
         "401":
@@ -2114,7 +3509,6 @@ paths:
     get:
       summary: List webhook endpoints.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       responses:
         "200":
@@ -2143,7 +3537,6 @@ paths:
       summary: Create a webhook endpoint.
       description: Pending workspaces can create a single disabled sandbox webhook for test delivery.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       requestBody:
         required: true
@@ -2175,7 +3568,6 @@ paths:
     get:
       summary: Retrieve a webhook endpoint.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: webhook_id
@@ -2206,7 +3598,6 @@ paths:
     patch:
       summary: Update a webhook endpoint.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: webhook_id
@@ -2254,7 +3645,6 @@ paths:
     post:
       summary: Queue a test webhook delivery.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: webhook_id
@@ -2286,7 +3676,6 @@ paths:
     post:
       summary: Disable or reactivate a webhook endpoint.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: webhook_id
@@ -2324,8 +3713,21 @@ paths:
     get:
       summary: List verifications requiring manual review.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
       responses:
         "200":
           description: Manual review queue.
@@ -2355,7 +3757,6 @@ paths:
     post:
       summary: Submit a manual review decision.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: verification_id
@@ -2383,6 +3784,20 @@ paths:
                     $ref: "#/components/schemas/ManualReviewDecisionResponse"
                   request_id:
                     type: string
+        "202":
+          description: The decision was recorded and requires an independent checker.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/ManualReviewPendingDecisionResponse"
+                  request_id:
+                    type: string
         "400":
           $ref: "#/components/responses/ValidationError"
         "401":
@@ -2396,7 +3811,6 @@ paths:
       summary: Complete an independent manual-review approval.
       description: The checker must be different from the maker and cannot review their own verification.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: verification_id
@@ -2436,7 +3850,6 @@ paths:
     get:
       summary: Download evidence-report data.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: verification_id
@@ -2462,7 +3875,6 @@ paths:
     get:
       summary: Download evidence-report PDF.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: verification_id

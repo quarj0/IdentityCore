@@ -22,5 +22,6 @@ RUN uv export \
     && pip install --no-cache-dir -r /tmp/requirements-django.txt
 
 COPY backend/django /app/backend/django
+COPY docs/openapi/identitycore-public-api.yaml /app/docs/openapi/identitycore-public-api.yaml
 
 WORKDIR /app/backend/django

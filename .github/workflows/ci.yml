@@ -24,6 +24,10 @@ jobs:
       - run: uv sync --project backend --group django --group dev --frozen
       - name: Run the complete Django backend test suite
         run: DJANGO_SETTINGS_MODULE=config.settings.testing uv run --project backend python backend/django/manage.py test apps common config
+      - name: Reject public API and OpenAPI drift
+        run: DJANGO_SETTINGS_MODULE=config.settings.testing uv run --project backend python scripts/check_openapi_contract.py
+      - name: Reject generated SDK model drift
+        run: uv run --project backend python scripts/generate_sdk_models.py --check
       - name: Test built-in adapters against Provider Contract v1
         run: DJANGO_SETTINGS_MODULE=config.settings.testing uv run --project backend python backend/django/manage.py test apps.providers.tests.ProviderAdapterRegistryTests
 

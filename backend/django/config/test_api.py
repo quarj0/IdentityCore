@@ -15,6 +15,14 @@ class CatalogEndpointTests(APITestCase):
         self.assertTrue(payload["success"])
         self.assertEqual(payload["data"]["service"], "identitycore-api")
 
+    def test_health_rejects_undeclared_methods(self):
+        for method in ("post", "put", "patch", "delete"):
+            with self.subTest(method=method):
+                response = getattr(self.client, method)("/api/v1/health")
+                self.assertEqual(
+                    response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED
+                )
+
     def test_countries_returns_full_public_catalog(self):
         response = self.client.get(reverse("country-list"))
 
@@ -54,13 +62,19 @@ class CatalogEndpointTests(APITestCase):
         self.assertEqual(
             data["base_urls"]["development"], "http://localhost:8000/api/v1"
         )
-        # Verifications exposes separate list and create operations on one path.
-        self.assertEqual(len(data["resources"]), 35)
+        self.assertEqual(len(data["resources"]), 64)
         self.assertIn("/verifications/", [item["path"] for item in data["resources"]])
         documented_paths = {item["path"] for item in data["resources"]}
         self.assertTrue(
             {
                 "/uploads/",
+                "/document-types",
+                "/country-profiles",
+                "/countries",
+                "/sessions/{session_id}",
+                "/sessions/{session_id}/consent",
+                "/sessions/{session_id}/status",
+                "/sessions/mobile-handoff/redeem",
                 "/organization/me/",
                 "/organization/me/verification-documents/{document_id}/content/",
                 "/organization/me/suspend",
@@ -69,6 +83,7 @@ class CatalogEndpointTests(APITestCase):
                 "/api-clients/",
                 "/webhook-endpoints/",
                 "/verifications/manual-reviews",
+                "/verifications/manual-reviews/{verification_id}/approval",
                 "/verifications/{verification_id}/result",
                 "/verifications/{verification_id}/evidence-report/download.pdf",
             }.issubset(documented_paths)
@@ -79,6 +94,18 @@ class CatalogEndpointTests(APITestCase):
         self.assertEqual(sdk_status["java"], "ready")
         self.assertEqual(sdk_status["csharp"], "ready")
         self.assertEqual(data["spec_url"], "/api/v1/docs/openapi.yaml")
+        create_verification = next(
+            item
+            for item in data["resources"]
+            if (item["method"], item["path"]) == ("POST", "/verifications/")
+        )
+        self.assertEqual(create_verification["slug"], "create-verification")
+        countries = next(
+            item
+            for item in data["resources"]
+            if (item["method"], item["path"]) == ("GET", "/countries")
+        )
+        self.assertEqual(countries["security"], [])
 
     def test_openapi_spec_returns_public_yaml(self):
         response = self.client.get(reverse("openapi-spec"))
@@ -138,9 +165,32 @@ class OpenApiAuthenticationContractTests(APITestCase):
         paths = self.contract["paths"]
 
         self.assertEqual(paths["/health"]["get"]["security"], [])
+        verification_session_security = [
+            {"verificationSessionBearer": [], "verificationSessionId": []}
+        ]
+        for upload_path in (
+            "/uploads/",
+            "/uploads/{upload_id}/transfer",
+            "/uploads/{upload_id}/complete",
+        ):
+            self.assertEqual(
+                paths[upload_path]["post"]["security"],
+                verification_session_security,
+            )
+        schemes = self.contract["components"]["securitySchemes"]
+        self.assertNotIn("platformUserSession", schemes)
         self.assertEqual(
-            paths["/uploads/"]["post"]["security"],
-            [{"platformUserSession": []}, {"platformUserBearer": []}],
+            schemes["verificationSessionId"],
+            {
+                "type": "apiKey",
+                "in": "header",
+                "name": "X-Session-Id",
+                "description": "Verification session identifier required when it is not present in the URL path.",
+            },
+        )
+        self.assertEqual(
+            paths["/auth/refresh"]["post"]["security"],
+            [{"platformRefreshCookie": []}],
         )
 
     def test_client_id_is_not_duplicated_as_an_operation_parameter(self):

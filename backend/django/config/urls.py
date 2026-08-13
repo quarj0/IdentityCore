@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import include, path
+from django.views.decorators.http import require_GET
 from django.views.decorators.csrf import csrf_exempt
 
 from config.api_views import (
@@ -12,8 +13,10 @@ from config.api_views import (
 from config.graphql import schema
 from config.graphql_view import AuthenticatedGraphQLView
 from common.responses import success_json_response
+from common.public_api import public_api_path
 
 
+@require_GET
 def healthcheck(request):
     return success_json_response(
         {"status": "ok", "service": "identitycore-api", "version": "1.0.0"},
@@ -23,20 +26,29 @@ def healthcheck(request):
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/v1/health", healthcheck),
-    path(
+    public_api_path("api/v1/health", healthcheck, methods=("GET",)),
+    public_api_path(
         "api/v1/document-types",
         DocumentTypeListView.as_view(),
+        methods=("GET",),
         name="document-type-list",
     ),
-    path(
+    public_api_path(
         "api/v1/country-profiles",
         CountryProfileListView.as_view(),
+        methods=("GET",),
         name="country-profile-list",
     ),
-    path("api/v1/docs/overview", PublicDocsOverviewView.as_view(), name="docs-overview"),
+    path(
+        "api/v1/docs/overview", PublicDocsOverviewView.as_view(), name="docs-overview"
+    ),
     path("api/v1/docs/openapi.yaml", OpenApiSpecView.as_view(), name="openapi-spec"),
-    path("api/v1/countries", CountryListView.as_view(), name="country-list"),
+    public_api_path(
+        "api/v1/countries",
+        CountryListView.as_view(),
+        methods=("GET",),
+        name="country-list",
+    ),
     path("api/v1/audit-events/", include("apps.audit.urls")),
     path("api/v1/auth/", include("apps.accounts.urls")),
     path("api/v1/api-clients/", include("apps.api_clients.urls")),

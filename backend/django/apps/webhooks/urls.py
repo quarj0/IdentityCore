@@ -1,4 +1,4 @@
-from django.urls import path
+from common.public_api import public_api_path
 
 from apps.webhooks.views import (
     WebhookEndpointActionView,
@@ -8,14 +8,26 @@ from apps.webhooks.views import (
 )
 
 urlpatterns = [
-    path(
-        "", WebhookEndpointListCreateView.as_view(), name="webhook-endpoint-list-create"
+    public_api_path(
+        "",
+        WebhookEndpointListCreateView.as_view(),
+        methods=("GET", "POST"),
+        name="webhook-endpoint-list-create",
     ),
-    path(
+    public_api_path(
         "<str:webhook_id>/test",
         WebhookEndpointTestView.as_view(),
+        methods=("POST",),
         name="webhook-endpoint-test",
     ),
-    path("<str:webhook_id>", WebhookEndpointDetailView.as_view()),
-    path("<str:webhook_id>/<str:action>", WebhookEndpointActionView.as_view()),
+    public_api_path(
+        "<str:webhook_id>",
+        WebhookEndpointDetailView.as_view(),
+        methods=("GET", "PATCH"),
+    ),
+    public_api_path(
+        "<str:webhook_id>/<str:action>",
+        WebhookEndpointActionView.as_view(),
+        methods=("POST",),
+    ),
 ]

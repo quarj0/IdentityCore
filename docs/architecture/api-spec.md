@@ -64,6 +64,15 @@ OpenAPI contract:
 docs/openapi/identitycore-public-api.yaml
 ```
 
+Supported public Django routes must be registered with
+`common.public_api.public_api_path`. The route marker declares which HTTP methods are
+part of the external contract. `scripts/check_openapi_contract.py` compares those
+implemented operations with the OpenAPI document in both directions, resolves every
+local reference, validates explicit examples and path parameters, and fails CI for an
+undocumented implementation or stale documented operation. The public docs overview is
+generated from the same validated OpenAPI operations rather than maintained as a second
+operation list.
+
 SDK and Postman artifacts:
 
 ```text
@@ -286,8 +295,7 @@ Response:
   "success": true,
   "data": {
     "tokens": {
-      "access": "jwt-access-token",
-      "refresh": "jwt-refresh-token"
+      "access": "jwt-access-token"
     },
     "user": {
       "public_id": "usr_01JABC...",
@@ -304,7 +312,8 @@ Response:
 
 ## POST /auth/refresh
 
-Refreshes a Platform User access token.
+Refreshes a Platform User access token using the scoped HttpOnly refresh cookie and
+rotates that cookie. Refresh tokens are not returned in the JSON response.
 
 ## GET /auth/me
 
@@ -1352,6 +1361,11 @@ Business rules:
 
 - Audit event listing is tenant-scoped.
 - Audit events are append-only security records and must not expose raw sensitive payloads.
+
+## GET /audit-events/{event_id}
+
+Retrieves one audit event from the authenticated platform user's tenant. Requests
+for events outside that tenant return the same not-found response as unknown IDs.
 
 ---
 

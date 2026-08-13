@@ -4,6 +4,7 @@ import { DocsLayout } from "@/components/docs/docs-layout";
 import { LanguageExamples } from "@/components/docs/language-examples";
 import { endpoints } from "@/data/endpoints";
 import { fetchPublicApiDocsOverview } from "@/lib/public-api-docs";
+import { requiredHeadersTemplate } from "@/lib/request-template";
 
 export function generateStaticParams() {
   return endpoints.map((endpoint) => ({
@@ -65,6 +66,62 @@ export default async function ApiDetailPage({
   const contractPath = contractEndpoint.path.startsWith("/api/")
     ? contractEndpoint.path
     : `/api/v1${contractEndpoint.path}`;
+  const securitySchemes = new Set(
+    (contractEndpoint.security ?? []).flatMap((requirement) =>
+      Object.keys(requirement),
+    ),
+  );
+  let authenticationHeaders = "";
+  if (securitySchemes.has("verificationSessionBearer")) {
+    authenticationHeaders = ` \\
+  -H "Authorization: Bearer $IDENTITYCORE_SESSION_TOKEN"`;
+    if (securitySchemes.has("verificationSessionId")) {
+      authenticationHeaders += ` \\
+  -H "X-Session-Id: $IDENTITYCORE_SESSION_ID"`;
+    }
+  } else if (securitySchemes.has("platformUserBearer")) {
+    authenticationHeaders = ` \\
+  -H "Authorization: Bearer $IDENTITYCORE_USER_TOKEN"`;
+  } else if (
+    contractEndpoint.security === undefined ||
+    securitySchemes.has("apiClient") ||
+    securitySchemes.has("apiClientId")
+  ) {
+    authenticationHeaders = ` \\
+  -H "Authorization: Bearer $IDENTITYCORE_API_KEY" \\
+  -H "X-Client-Id: $IDENTITYCORE_CLIENT_ID"`;
+  }
+  if (securitySchemes.has("platformRefreshCookie")) {
+    authenticationHeaders += ` \\
+  --cookie "identitycore_refresh=$IDENTITYCORE_REFRESH_TOKEN"`;
+  }
+  const requiredHeaders = requiredHeadersTemplate(
+    contractEndpoint.required_headers,
+  );
+  let requestBody = "";
+  if (contractEndpoint.request_body) {
+    if (contractEndpoint.request_body.content_type === "application/json") {
+      requestBody = ` \\
+  -H "Content-Type: application/json" \\
+  --data '${JSON.stringify(contractEndpoint.request_body.example, null, 2)}'`;
+    } else if (
+      contractEndpoint.request_body.content_type === "multipart/form-data" &&
+      typeof contractEndpoint.request_body.example === "object" &&
+      contractEndpoint.request_body.example !== null
+    ) {
+      requestBody = Object.entries(contractEndpoint.request_body.example)
+        .map(
+          ([name, value]) =>
+            ` \\
+  -F "${name}=@${String(value)}"`,
+        )
+        .join("");
+    } else {
+      requestBody = ` \\
+  -H "Content-Type: ${contractEndpoint.request_body.content_type}" \\
+  --data-binary "@${String(contractEndpoint.request_body.example)}"`;
+    }
+  }
 
   return (
     <DocsLayout
@@ -84,9 +141,7 @@ export default async function ApiDetailPage({
       <CodeBlock
         title="Request template"
         language="bash"
-        code={`curl -X ${contractEndpoint.method} https://api.identitycore.com${contractPath} \\
-  -H "Authorization: Bearer $IDENTITYCORE_API_KEY" \\
-  -H "X-Client-Id: $IDENTITYCORE_CLIENT_ID"`}
+        code={`curl -X ${contractEndpoint.method} https://api.identitycore.com${contractPath}${authenticationHeaders}${requiredHeaders}${requestBody}`}
       />
 
       <CodeBlock

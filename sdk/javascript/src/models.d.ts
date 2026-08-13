@@ -63,12 +63,177 @@ export interface VerificationCreateRequest {
   metadata?: Record<string, unknown>;
 }
 
+export interface PlatformUserLoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface PlatformUser {
+  public_id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone_number: string;
+  status: string;
+  tenant_public_id: string | null;
+  tenant_name: string | null;
+  tenant_status: string | null;
+  is_platform_admin: boolean;
+  mfa_enabled: boolean;
+  roles: Array<string>;
+  notification_preferences: Record<string, unknown>;
+  last_login_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PlatformUserMfaChallenge {
+  mfa_required: boolean;
+  mfa_enrollment_required: boolean;
+  mfa_token: string;
+}
+
+export interface PlatformUserAuthentication {
+  tokens: Record<string, unknown>;
+  user: PlatformUser;
+  recovery_codes?: Array<string>;
+}
+
+export interface PlatformUserMfaEnrollmentRequest {
+  mfa_token: string;
+}
+
+export interface PlatformUserMfaCodeRequest {
+  mfa_token: string;
+  code: string;
+}
+
+export interface PlatformUserMfaEnrollment {
+  secret: string;
+  provisioning_uri: string;
+}
+
+export interface VerificationPolicyCreateRequest {
+  project_id?: string;
+  name: string;
+  description?: string;
+  consent_template_id?: string;
+  default_locale?: string;
+  supported_locales?: Array<string>;
+  required_document_types: Array<string>;
+  required_liveness_level: string;
+  face_match_threshold: number;
+  manual_review_threshold: number;
+  maker_checker_required?: boolean;
+  verification_expiry_minutes: number;
+  media_retention_days: number;
+  metadata_retention_days: number;
+}
+
+export interface VerificationPolicyCreateResponse {
+  id: string;
+  name: string;
+  version: number;
+  status: string;
+}
+
 export interface VerificationCreateResponse {
   id: string;
   status: string;
   verification_url: string;
   session_id: string;
   session_token?: string;
+  expires_at: string;
+}
+
+export interface VerificationSessionConsentRequest {
+  accepted: boolean;
+  template_id?: string;
+  version?: number;
+  locale?: string;
+  content_hash?: string;
+}
+
+export interface VerificationSessionDocumentRequest {
+  document_type: string;
+  country_code: string;
+  captures: Array<Record<string, unknown>>;
+}
+
+export interface VerificationSessionSelfieRequest {
+  capture_type: string;
+  upload_id: string;
+}
+
+export interface VerificationSessionLivenessRequest {
+  liveness_type: string;
+  selfie_capture_id: string;
+  challenge_id?: string;
+}
+
+export interface VerificationMobileHandoffRedeemResponse {
+  session_id: string;
+  session_token: string;
+  verification_id: string;
+}
+
+export interface VerificationSessionResponse {
+  session_id: string;
+  verification_id: string;
+  status: string;
+  organization: Record<string, unknown>;
+  purpose: string;
+  redirect_url: string;
+  required_steps: Array<string>;
+  workflow: Record<string, unknown>;
+  locale: string;
+  supported_locales: Array<string>;
+  direction: string;
+  consent: Record<string, unknown>;
+  document: Record<string, unknown>;
+  available_documents: Array<Record<string, unknown>>;
+  available_countries: Array<Record<string, unknown>>;
+  expires_at: string;
+}
+
+export interface VerificationSessionConsentResponse {
+  consent_record_id: string;
+  next_step: string;
+}
+
+export interface VerificationSessionDocumentResponse {
+  identity_document_id: string;
+  status: string;
+  next_step: string;
+}
+
+export interface VerificationSessionSelfieResponse {
+  selfie_capture_id: string;
+  status: string;
+  next_step: string;
+}
+
+export interface VerificationSessionLivenessResponse {
+  liveness_check_id: string;
+  status: string;
+}
+
+export interface VerificationSessionLivenessChallengeResponse {
+  challenge_id: string;
+  actions: Array<string>;
+  expires_at: string;
+}
+
+export interface VerificationSessionStatusResponse {
+  verification_id: string;
+  status: string;
+  current_step: string;
+  message: string;
+  evidence: Record<string, unknown>;
+}
+
+export interface VerificationMobileHandoffResponse {
+  handoff_url: string;
   expires_at: string;
 }
 
@@ -87,17 +252,18 @@ export interface VerificationDetail {
   id: string;
   status: string;
   purpose: string;
-  external_reference: string;
-  subject: Record<string, unknown>;
   policy: Record<string, unknown>;
+  workflow: Record<string, unknown>;
+  external_reference: string;
+  verification_subject: Record<string, unknown>;
+  checks: Record<string, unknown>;
+  risk_assessment: Record<string, unknown> | null;
+  document_classification: Record<string, unknown> | null;
+  evidence_report: Record<string, unknown> | null;
+  decision: Record<string, unknown> | null;
   created_at: string;
-  completed_at?: string | null;
-  verification_subject?: Record<string, unknown>;
-  checks?: Record<string, unknown>;
-  risk_assessment?: Record<string, unknown> | null;
-  evidence_report?: Record<string, unknown> | null;
-  decision?: Record<string, unknown> | null;
-  expires_at?: string;
+  completed_at: string | null;
+  expires_at: string;
 }
 
 export interface VerificationResult {
@@ -122,6 +288,22 @@ export interface PagePagination {
   page_size: number;
   total: number;
   total_pages: number;
+}
+
+export interface AuditEvent {
+  id: string;
+  actor_type: string;
+  actor_id: string;
+  action: string;
+  action_label: string;
+  actor_display_name: string;
+  target_type: string;
+  target_id: string;
+  target_label: string;
+  ip_address: string | null;
+  user_agent: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
 }
 
 export interface EvidenceReport {
@@ -227,6 +409,13 @@ export interface ProjectCreateRequest {
   allowed_origins?: Array<string>;
 }
 
+export interface ProjectUpdateRequest {
+  name?: string;
+  slug?: string;
+  environment?: string;
+  allowed_origins?: Array<string>;
+}
+
 export interface APIClientSummary {
   public_id: string;
   tenant_public_id: string;
@@ -268,6 +457,23 @@ export interface APIClientCreateResponse {
   client_secret: string;
 }
 
+export interface APIClientActionResponse {
+  public_id: string;
+  tenant_public_id: string;
+  project_id?: string | null;
+  name: string;
+  client_id: string;
+  status: string;
+  scopes: Array<string>;
+  allowed_networks: Array<string>;
+  rate_limit_per_minute: number;
+  last_used_at?: string | null;
+  client_secret_overlap_expires_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  client_secret?: string;
+}
+
 export interface WebhookEndpointSummary {
   id: string;
   project_id?: string | null;
@@ -288,14 +494,8 @@ export interface WebhookEndpointCreateRequest {
 
 export interface WebhookEndpointCreateResponse {
   id: string;
-  project_id?: string | null;
-  url: string;
-  description?: string;
-  events: Array<string>;
-  status: string;
-  created_at: string;
-  updated_at: string;
   secret: string;
+  status: string;
 }
 
 export interface WebhookEndpointTestResponse {
@@ -323,6 +523,13 @@ export interface ManualReviewDecisionResponse {
   decision: string;
   decision_type: string;
   decided_at: string;
+}
+
+export interface ManualReviewPendingDecisionResponse {
+  verification_id: string;
+  decision: string;
+  approval_status: string;
+  approval_required: boolean;
 }
 
 export interface ManualReviewApprovalRequest {
