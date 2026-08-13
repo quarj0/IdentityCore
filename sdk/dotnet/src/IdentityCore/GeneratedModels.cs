@@ -118,6 +118,50 @@ public sealed record VerificationCreateRequest
     public JsonElement? Metadata { get; init; }
 }
 
+public sealed record PlatformUserLoginRequest
+{
+    [JsonPropertyName("email")]
+    public string Email { get; init; }
+    [JsonPropertyName("password")]
+    public string Password { get; init; }
+}
+
+public sealed record PlatformUser
+{
+    [JsonPropertyName("public_id")]
+    public string PublicId { get; init; }
+    [JsonPropertyName("email")]
+    public string Email { get; init; }
+    [JsonPropertyName("first_name")]
+    public string FirstName { get; init; }
+    [JsonPropertyName("last_name")]
+    public string LastName { get; init; }
+    [JsonPropertyName("phone_number")]
+    public string PhoneNumber { get; init; }
+    [JsonPropertyName("status")]
+    public string Status { get; init; }
+    [JsonPropertyName("tenant_public_id")]
+    public string? TenantPublicId { get; init; }
+    [JsonPropertyName("tenant_name")]
+    public string? TenantName { get; init; }
+    [JsonPropertyName("tenant_status")]
+    public string? TenantStatus { get; init; }
+    [JsonPropertyName("is_platform_admin")]
+    public bool IsPlatformAdmin { get; init; }
+    [JsonPropertyName("mfa_enabled")]
+    public bool MfaEnabled { get; init; }
+    [JsonPropertyName("roles")]
+    public IReadOnlyList<string> Roles { get; init; }
+    [JsonPropertyName("notification_preferences")]
+    public JsonElement NotificationPreferences { get; init; }
+    [JsonPropertyName("last_login_at")]
+    public string? LastLoginAt { get; init; }
+    [JsonPropertyName("created_at")]
+    public string CreatedAt { get; init; }
+    [JsonPropertyName("updated_at")]
+    public string UpdatedAt { get; init; }
+}
+
 public sealed record VerificationCreateResponse
 {
     [JsonPropertyName("id")]

@@ -23,11 +23,6 @@ components:
       in: header
       name: X-Client-Id
       description: Send the API client ID with the bearer API client secret.
-    platformUserSession:
-      type: apiKey
-      in: cookie
-      name: sessionid
-      description: Portal session authentication used by authenticated workspace users.
     platformUserBearer:
       type: http
       scheme: bearer
@@ -37,6 +32,11 @@ components:
       scheme: bearer
       bearerFormat: Verification session token
       description: Short-lived subject session token issued with a hosted verification link.
+    verificationSessionId:
+      type: apiKey
+      in: header
+      name: X-Session-Id
+      description: Verification session identifier required when it is not present in the URL path.
   parameters:
     IdempotencyKeyHeader:
       name: Idempotency-Key
@@ -196,6 +196,61 @@ components:
         metadata:
           type: object
           additionalProperties: true
+    PlatformUserLoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    PlatformUser:
+      type: object
+      required:
+        [public_id, email, first_name, last_name, phone_number, status, tenant_public_id, tenant_name, tenant_status, is_platform_admin, mfa_enabled, roles, notification_preferences, last_login_at, created_at, updated_at]
+      properties:
+        public_id:
+          type: string
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+        last_name:
+          type: string
+        phone_number:
+          type: string
+        status:
+          type: string
+        tenant_public_id:
+          type: [string, "null"]
+        tenant_name:
+          type: [string, "null"]
+        tenant_status:
+          type: [string, "null"]
+        is_platform_admin:
+          type: boolean
+        mfa_enabled:
+          type: boolean
+        roles:
+          type: array
+          items:
+            type: string
+        notification_preferences:
+          type: object
+          additionalProperties: true
+        last_login_at:
+          type: [string, "null"]
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
     VerificationCreateResponse:
       type: object
       required: [id, status, verification_url, session_id, expires_at]
@@ -1089,6 +1144,103 @@ paths:
                   - code: national_id
                     name: National ID
                 request_id: req_01JABC
+  /auth/login:
+    post:
+      security: []
+      summary: Authenticate a platform user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformUserLoginRequest"
+      responses:
+        "200":
+          description: Authentication succeeded and the refresh token was set in an HttpOnly cookie.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: object
+                    required: [tokens, user]
+                    properties:
+                      tokens:
+                        type: object
+                        required: [access]
+                        properties:
+                          access:
+                            type: string
+                      user:
+                        $ref: "#/components/schemas/PlatformUser"
+                  request_id:
+                    type: string
+        "202":
+          description: A multi-factor authentication challenge or enrollment is required.
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /auth/refresh:
+    post:
+      security: []
+      summary: Rotate the refresh cookie and issue a platform-user access token.
+      description: Requires the scoped HttpOnly refresh cookie and a trusted Origin header.
+      responses:
+        "200":
+          description: A new access token was issued.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: object
+                    required: [tokens]
+                    properties:
+                      tokens:
+                        type: object
+                        required: [access]
+                        properties:
+                          access:
+                            type: string
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /auth/me:
+    get:
+      summary: Retrieve the authenticated platform user and tenant context.
+      security:
+        - platformUserBearer: []
+      responses:
+        "200":
+          description: Current platform user.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: object
+                    required: [user]
+                    properties:
+                      user:
+                        $ref: "#/components/schemas/PlatformUser"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
   /country-profiles:
     get:
       security: []
@@ -1373,7 +1525,6 @@ paths:
     get:
       summary: List tenant audit events.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: actor_type
@@ -1412,6 +1563,7 @@ paths:
           schema:
             type: integer
             minimum: 1
+            maximum: 100
       responses:
         "200":
           description: A tenant-scoped page of audit events.
@@ -1443,7 +1595,6 @@ paths:
     get:
       summary: Retrieve a tenant audit event.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: event_id
@@ -1784,8 +1935,8 @@ paths:
       summary: Create a temporary upload transfer.
       description: Workspace-authenticated users create uploads before transferring file bytes from the browser or app.
       security:
-        - platformUserSession: []
-        - platformUserBearer: []
+        - verificationSessionBearer: []
+          verificationSessionId: []
       requestBody:
         required: true
         content:
@@ -1817,8 +1968,8 @@ paths:
       summary: Transfer file bytes into temporary storage.
       description: Accepts the raw file bytes for a previously created upload transfer.
       security:
-        - platformUserSession: []
-        - platformUserBearer: []
+        - verificationSessionBearer: []
+          verificationSessionId: []
       parameters:
         - name: upload_id
           in: path
@@ -1864,6 +2015,7 @@ paths:
       description: Retrieves bounded uploaded bytes, validates declared size, media type, and content, then moves validated bytes to a non-replayable storage key before the upload can be submitted as evidence.
       security:
         - verificationSessionBearer: []
+          verificationSessionId: []
       parameters:
         - name: upload_id
           in: path
@@ -1897,7 +2049,6 @@ paths:
       summary: Get the current organization profile.
       description: Returns the authenticated workspace's organization settings and sandbox usage.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       responses:
         "200":
@@ -1920,7 +2071,6 @@ paths:
     patch:
       summary: Update organization branding settings.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       requestBody:
         required: true
@@ -1959,7 +2109,6 @@ paths:
     post:
       summary: Create a branding asset upload.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       requestBody:
         required: true
@@ -1992,7 +2141,6 @@ paths:
       summary: Create a supporting document upload.
       description: Workspace-authenticated users upload organization verification documents to the public asset bucket.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       requestBody:
         required: true
@@ -2024,7 +2172,6 @@ paths:
     post:
       summary: Mark a supporting document upload complete.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: document_id
@@ -2056,7 +2203,6 @@ paths:
     delete:
       summary: Delete a supporting document.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: document_id
@@ -2089,7 +2235,6 @@ paths:
       summary: Transfer supporting document bytes.
       description: Upload the PDF bytes for an initiated organization supporting document.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: document_id
@@ -2147,7 +2292,6 @@ paths:
       summary: Suspend the current workspace.
       description: Requires the exact organization name as confirmation and disables active workspace credentials and sessions.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       requestBody:
         required: true
@@ -2187,7 +2331,6 @@ paths:
     get:
       summary: List projects.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: environment
@@ -2241,7 +2384,6 @@ paths:
     post:
       summary: Create a project.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       requestBody:
         required: true
@@ -2273,7 +2415,6 @@ paths:
     get:
       summary: Retrieve a project.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: project_id
@@ -2304,7 +2445,6 @@ paths:
     patch:
       summary: Update a project.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: project_id
@@ -2344,7 +2484,6 @@ paths:
     post:
       summary: Suspend or reactivate a project.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: project_id
@@ -2385,7 +2524,6 @@ paths:
       summary: Instantiate a workflow template in a project.
       description: Creates an idempotent workflow from a published template. Production projects require an approved organization.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: project_id
@@ -2458,7 +2596,6 @@ paths:
     get:
       summary: List API clients.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       responses:
         "200":
@@ -2487,7 +2624,6 @@ paths:
       summary: Create an API client.
       description: Pending workspaces can use this route to mint a sandbox test key for API testing.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       requestBody:
         required: true
@@ -2519,7 +2655,6 @@ paths:
     get:
       summary: Retrieve an API client.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: client_id
@@ -2550,7 +2685,6 @@ paths:
     patch:
       summary: Update an API client.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: client_id
@@ -2601,7 +2735,6 @@ paths:
     post:
       summary: Rotate, revoke, or reactivate an API client.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: client_id
@@ -2639,7 +2772,6 @@ paths:
     get:
       summary: List webhook endpoints.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       responses:
         "200":
@@ -2668,7 +2800,6 @@ paths:
       summary: Create a webhook endpoint.
       description: Pending workspaces can create a single disabled sandbox webhook for test delivery.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       requestBody:
         required: true
@@ -2700,7 +2831,6 @@ paths:
     get:
       summary: Retrieve a webhook endpoint.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: webhook_id
@@ -2731,7 +2861,6 @@ paths:
     patch:
       summary: Update a webhook endpoint.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: webhook_id
@@ -2779,7 +2908,6 @@ paths:
     post:
       summary: Queue a test webhook delivery.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: webhook_id
@@ -2811,7 +2939,6 @@ paths:
     post:
       summary: Disable or reactivate a webhook endpoint.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: webhook_id
@@ -2849,7 +2976,6 @@ paths:
     get:
       summary: List verifications requiring manual review.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       responses:
         "200":
@@ -2880,7 +3006,6 @@ paths:
     post:
       summary: Submit a manual review decision.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: verification_id
@@ -2921,7 +3046,6 @@ paths:
       summary: Complete an independent manual-review approval.
       description: The checker must be different from the maker and cannot review their own verification.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: verification_id
@@ -2961,7 +3085,6 @@ paths:
     get:
       summary: Download evidence-report data.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: verification_id
@@ -2987,7 +3110,6 @@ paths:
     get:
       summary: Download evidence-report PDF.
       security:
-        - platformUserSession: []
         - platformUserBearer: []
       parameters:
         - name: verification_id

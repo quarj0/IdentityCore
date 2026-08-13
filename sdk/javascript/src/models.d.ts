@@ -63,6 +63,30 @@ export interface VerificationCreateRequest {
   metadata?: Record<string, unknown>;
 }
 
+export interface PlatformUserLoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface PlatformUser {
+  public_id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone_number: string;
+  status: string;
+  tenant_public_id: string | null;
+  tenant_name: string | null;
+  tenant_status: string | null;
+  is_platform_admin: boolean;
+  mfa_enabled: boolean;
+  roles: Array<string>;
+  notification_preferences: Record<string, unknown>;
+  last_login_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface VerificationCreateResponse {
   id: string;
   status: string;

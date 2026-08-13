@@ -86,6 +86,38 @@ class VerificationCreateRequest(_VerificationCreateRequestRequired, total=False)
     metadata: dict[str, Any]
 
 
+class _PlatformUserLoginRequestRequired(TypedDict):
+    email: str
+    password: str
+
+
+class PlatformUserLoginRequest(_PlatformUserLoginRequestRequired, total=False):
+    pass
+
+
+class _PlatformUserRequired(TypedDict):
+    public_id: str
+    email: str
+    first_name: str
+    last_name: str
+    phone_number: str
+    status: str
+    tenant_public_id: Optional[str]
+    tenant_name: Optional[str]
+    tenant_status: Optional[str]
+    is_platform_admin: bool
+    mfa_enabled: bool
+    roles: list[str]
+    notification_preferences: dict[str, Any]
+    last_login_at: Optional[str]
+    created_at: str
+    updated_at: str
+
+
+class PlatformUser(_PlatformUserRequired, total=False):
+    pass
+
+
 class _VerificationCreateResponseRequired(TypedDict):
     id: str
     status: str

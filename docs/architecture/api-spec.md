@@ -295,8 +295,7 @@ Response:
   "success": true,
   "data": {
     "tokens": {
-      "access": "jwt-access-token",
-      "refresh": "jwt-refresh-token"
+      "access": "jwt-access-token"
     },
     "user": {
       "public_id": "usr_01JABC...",
@@ -313,7 +312,8 @@ Response:
 
 ## POST /auth/refresh
 
-Refreshes a Platform User access token.
+Refreshes a Platform User access token using the scoped HttpOnly refresh cookie and
+rotates that cookie. Refresh tokens are not returned in the JSON response.
 
 ## GET /auth/me
 

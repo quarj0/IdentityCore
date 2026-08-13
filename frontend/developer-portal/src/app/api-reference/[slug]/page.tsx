@@ -74,9 +74,12 @@ export default async function ApiDetailPage({
   if (securitySchemes.has("verificationSessionBearer")) {
     authenticationHeaders = ` \\
   -H "Authorization: Bearer $IDENTITYCORE_SESSION_TOKEN"`;
+    if (securitySchemes.has("verificationSessionId")) {
+      authenticationHeaders += ` \\
+  -H "X-Session-Id: $IDENTITYCORE_SESSION_ID"`;
+    }
   } else if (
-    securitySchemes.has("platformUserBearer") ||
-    securitySchemes.has("platformUserSession")
+    securitySchemes.has("platformUserBearer")
   ) {
     authenticationHeaders = ` \\
   -H "Authorization: Bearer $IDENTITYCORE_USER_TOKEN"`;

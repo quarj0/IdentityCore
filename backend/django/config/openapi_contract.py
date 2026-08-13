@@ -25,6 +25,7 @@ OPENAPI_PARAMETER = re.compile(r"{([^}]+)}")
 CONTRACT_MANAGED_PREFIXES = (
     "api/v1/api-clients/",
     "api/v1/audit-events/",
+    "api/v1/auth/",
     "api/v1/organization/",
     "api/v1/policies/",
     "api/v1/projects/",
@@ -160,9 +161,7 @@ def _example_schema(
     return schema
 
 
-def _resolve_mapping(
-    contract: Mapping[str, Any], value: Any
-) -> Mapping[str, Any]:
+def _resolve_mapping(contract: Mapping[str, Any], value: Any) -> Mapping[str, Any]:
     if not isinstance(value, Mapping):
         return {}
     if "$ref" not in value:
@@ -228,10 +227,11 @@ def _validate_tree(contract: Mapping[str, Any]) -> list[str]:
                 )
         elif isinstance(examples, Mapping) and isinstance(schema, Mapping):
             for name, example in examples.items():
-                if isinstance(example, Mapping) and "value" in example:
+                resolved_example = _resolve_mapping(contract, example)
+                if "value" in resolved_example:
                     errors.extend(
                         _validate_example(
-                            example["value"],
+                            resolved_example["value"],
                             schema,
                             contract,
                             f"{location}/examples/{name}",
@@ -375,9 +375,7 @@ def public_resources(
                     "path": route,
                     "category": str(tags[0]),
                     "description": str(operation.get("description", summary)),
-                    "security": operation.get(
-                        "security", contract.get("security", [])
-                    ),
+                    "security": operation.get("security", contract.get("security", [])),
                 }
             )
     return resources

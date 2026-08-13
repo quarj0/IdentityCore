@@ -34,6 +34,14 @@ public final class GeneratedModels {
 
     }
 
+    public record PlatformUserLoginRequest(@JsonProperty("email") String email, @JsonProperty("password") String password) {
+
+    }
+
+    public record PlatformUser(@JsonProperty("public_id") String public_id, @JsonProperty("email") String email, @JsonProperty("first_name") String first_name, @JsonProperty("last_name") String last_name, @JsonProperty("phone_number") String phone_number, @JsonProperty("status") String status, @JsonProperty("tenant_public_id") String tenant_public_id, @JsonProperty("tenant_name") String tenant_name, @JsonProperty("tenant_status") String tenant_status, @JsonProperty("is_platform_admin") Boolean is_platform_admin, @JsonProperty("mfa_enabled") Boolean mfa_enabled, @JsonProperty("roles") List<String> roles, @JsonProperty("notification_preferences") JsonNode notification_preferences, @JsonProperty("last_login_at") String last_login_at, @JsonProperty("created_at") String created_at, @JsonProperty("updated_at") String updated_at) {
+
+    }
+
     public record VerificationCreateResponse(@JsonProperty("id") String id, @JsonProperty("status") String status, @JsonProperty("verification_url") String verification_url, @JsonProperty("session_id") String session_id, @JsonProperty("session_token") String session_token, @JsonProperty("expires_at") String expires_at) {
 
     }
