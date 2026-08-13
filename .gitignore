@@ -56,3 +56,6 @@ Thumbs.db
 celerybeat-schedule
 *.sqlite3
 *.db
+sdk/java/target/
+bin/
+obj/
