@@ -4,9 +4,7 @@ export type ApiOriginEnvironment = {
   NEXT_PUBLIC_API_URL?: string;
 };
 
-export function configuredApiOrigin(
-  environment: ApiOriginEnvironment = process.env,
-) {
+export function configuredApiOrigin(environment: ApiOriginEnvironment) {
   const configuredApiUrl =
     environment.NEXT_PUBLIC_API_ORIGIN?.trim() ||
     environment.NEXT_PUBLIC_API_URL?.trim();
