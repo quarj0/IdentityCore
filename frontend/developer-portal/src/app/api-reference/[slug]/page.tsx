@@ -112,6 +112,10 @@ export default async function ApiDetailPage({
   -F "${name}=@${String(value)}"`,
         )
         .join("");
+    } else {
+      requestBody = ` \\
+  -H "Content-Type: ${contractEndpoint.request_body.content_type}" \\
+  --data-binary "@${String(contractEndpoint.request_body.example)}"`;
     }
   }
 
