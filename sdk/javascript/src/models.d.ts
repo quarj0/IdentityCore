@@ -72,6 +72,31 @@ export interface VerificationCreateResponse {
   expires_at: string;
 }
 
+export interface VerificationSessionConsentRequest {
+  accepted: boolean;
+  template_id?: string;
+  version?: number;
+  locale?: string;
+  content_hash?: string;
+}
+
+export interface VerificationSessionDocumentRequest {
+  document_type: string;
+  country_code: string;
+  captures: Array<Record<string, unknown>>;
+}
+
+export interface VerificationSessionSelfieRequest {
+  capture_type: string;
+  upload_id: string;
+}
+
+export interface VerificationSessionLivenessRequest {
+  liveness_type: string;
+  selfie_capture_id: string;
+  challenge_id?: string;
+}
+
 export interface VerificationSummary {
   id: string;
   status: string;
@@ -122,6 +147,22 @@ export interface PagePagination {
   page_size: number;
   total: number;
   total_pages: number;
+}
+
+export interface AuditEvent {
+  id: string;
+  actor_type: string;
+  actor_id: string;
+  action: string;
+  action_label: string;
+  actor_display_name: string;
+  target_type: string;
+  target_id: string;
+  target_label: string;
+  ip_address: string | null;
+  user_agent: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
 }
 
 export interface EvidenceReport {

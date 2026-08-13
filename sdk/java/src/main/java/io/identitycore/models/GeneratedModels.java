@@ -38,6 +38,22 @@ public final class GeneratedModels {
 
     }
 
+    public record VerificationSessionConsentRequest(@JsonProperty("accepted") Boolean accepted, @JsonProperty("template_id") String template_id, @JsonProperty("version") Integer version, @JsonProperty("locale") String locale, @JsonProperty("content_hash") String content_hash) {
+
+    }
+
+    public record VerificationSessionDocumentRequest(@JsonProperty("document_type") String document_type, @JsonProperty("country_code") String country_code, @JsonProperty("captures") List<JsonNode> captures) {
+
+    }
+
+    public record VerificationSessionSelfieRequest(@JsonProperty("capture_type") String capture_type, @JsonProperty("upload_id") String upload_id) {
+
+    }
+
+    public record VerificationSessionLivenessRequest(@JsonProperty("liveness_type") String liveness_type, @JsonProperty("selfie_capture_id") String selfie_capture_id, @JsonProperty("challenge_id") String challenge_id) {
+
+    }
+
     public record VerificationSummary(@JsonProperty("id") String id, @JsonProperty("status") String status, @JsonProperty("purpose") String purpose, @JsonProperty("external_reference") String external_reference, @JsonProperty("subject") JsonNode subject, @JsonProperty("policy") JsonNode policy, @JsonProperty("created_at") String created_at, @JsonProperty("completed_at") String completed_at) {
 
     }
@@ -55,6 +71,10 @@ public final class GeneratedModels {
     }
 
     public record PagePagination(@JsonProperty("page") Integer page, @JsonProperty("page_size") Integer page_size, @JsonProperty("total") Integer total, @JsonProperty("total_pages") Integer total_pages) {
+
+    }
+
+    public record AuditEvent(@JsonProperty("id") String id, @JsonProperty("actor_type") String actor_type, @JsonProperty("actor_id") String actor_id, @JsonProperty("action") String action, @JsonProperty("action_label") String action_label, @JsonProperty("actor_display_name") String actor_display_name, @JsonProperty("target_type") String target_type, @JsonProperty("target_id") String target_id, @JsonProperty("target_label") String target_label, @JsonProperty("ip_address") String ip_address, @JsonProperty("user_agent") String user_agent, @JsonProperty("metadata") JsonNode metadata, @JsonProperty("created_at") String created_at) {
 
     }
 

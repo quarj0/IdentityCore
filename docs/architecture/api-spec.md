@@ -1362,6 +1362,11 @@ Business rules:
 - Audit event listing is tenant-scoped.
 - Audit events are append-only security records and must not expose raw sensitive payloads.
 
+## GET /audit-events/{event_id}
+
+Retrieves one audit event from the authenticated platform user's tenant. Requests
+for events outside that tenant return the same not-found response as unknown IDs.
+
 ---
 
 ## Internal AI Service API

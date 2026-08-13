@@ -1,4 +1,6 @@
 from copy import deepcopy
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from django.http import HttpResponse
 from django.test import SimpleTestCase
@@ -181,3 +183,56 @@ class OpenApiParityTests(SimpleTestCase):
 
         with self.assertRaisesRegex(OpenApiContractError, "unknown security scheme"):
             validate_contract(changed, implemented_operations=self.implemented)
+
+    def test_schema_examples_array_is_validated_without_crashing(self):
+        changed = deepcopy(self.contract)
+        changed["components"]["schemas"]["Policy"]["properties"]["id"][
+            "examples"
+        ] = ["pol_123", "pol_456"]
+
+        validate_contract(changed, implemented_operations=self.implemented)
+
+    def test_invalid_schema_examples_array_value_fails(self):
+        changed = deepcopy(self.contract)
+        changed["components"]["schemas"]["Policy"]["properties"]["id"][
+            "examples"
+        ] = [123]
+
+        with self.assertRaisesRegex(OpenApiContractError, "is not of type"):
+            validate_contract(changed, implemented_operations=self.implemented)
+
+    def test_duplicate_yaml_mapping_key_fails_loading(self):
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "duplicate.yaml"
+            path.write_text("openapi: 3.1.0\npaths: {}\npaths: {}\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(
+                OpenApiContractError, "Duplicate YAML mapping key 'paths'"
+            ):
+                load_contract(path)
+
+    def test_verification_session_request_schemas_match_required_inputs(self):
+        schemas = self.contract["components"]["schemas"]
+
+        self.assertEqual(
+            set(schemas["VerificationSessionConsentRequest"]["required"]),
+            {"accepted"},
+        )
+        self.assertIs(
+            schemas["VerificationSessionConsentRequest"]["properties"]["accepted"][
+                "const"
+            ],
+            True,
+        )
+        self.assertEqual(
+            set(schemas["VerificationSessionDocumentRequest"]["required"]),
+            {"document_type", "country_code", "captures"},
+        )
+        self.assertEqual(
+            set(schemas["VerificationSessionSelfieRequest"]["required"]),
+            {"capture_type", "upload_id"},
+        )
+        self.assertEqual(
+            set(schemas["VerificationSessionLivenessRequest"]["required"]),
+            {"liveness_type", "selfie_capture_id"},
+        )

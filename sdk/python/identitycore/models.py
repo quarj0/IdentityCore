@@ -98,6 +98,53 @@ class VerificationCreateResponse(_VerificationCreateResponseRequired, total=Fals
     session_token: str
 
 
+class _VerificationSessionConsentRequestRequired(TypedDict):
+    accepted: bool
+
+
+class VerificationSessionConsentRequest(
+    _VerificationSessionConsentRequestRequired, total=False
+):
+    template_id: str
+    version: int
+    locale: str
+    content_hash: str
+
+
+class _VerificationSessionDocumentRequestRequired(TypedDict):
+    document_type: str
+    country_code: str
+    captures: list[dict[str, Any]]
+
+
+class VerificationSessionDocumentRequest(
+    _VerificationSessionDocumentRequestRequired, total=False
+):
+    pass
+
+
+class _VerificationSessionSelfieRequestRequired(TypedDict):
+    capture_type: str
+    upload_id: str
+
+
+class VerificationSessionSelfieRequest(
+    _VerificationSessionSelfieRequestRequired, total=False
+):
+    pass
+
+
+class _VerificationSessionLivenessRequestRequired(TypedDict):
+    liveness_type: str
+    selfie_capture_id: str
+
+
+class VerificationSessionLivenessRequest(
+    _VerificationSessionLivenessRequestRequired, total=False
+):
+    challenge_id: str
+
+
 class _VerificationSummaryRequired(TypedDict):
     id: str
     status: str
@@ -165,6 +212,26 @@ class _PagePaginationRequired(TypedDict):
 
 
 class PagePagination(_PagePaginationRequired, total=False):
+    pass
+
+
+class _AuditEventRequired(TypedDict):
+    id: str
+    actor_type: str
+    actor_id: str
+    action: str
+    action_label: str
+    actor_display_name: str
+    target_type: str
+    target_id: str
+    target_label: str
+    ip_address: Optional[str]
+    user_agent: str
+    metadata: dict[str, Any]
+    created_at: str
+
+
+class AuditEvent(_AuditEventRequired, total=False):
     pass
 
 

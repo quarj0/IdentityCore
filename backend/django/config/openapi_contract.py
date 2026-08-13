@@ -24,6 +24,7 @@ DJANGO_PARAMETER = re.compile(r"<(?:(?:[^:>]+):)?([^>]+)>")
 OPENAPI_PARAMETER = re.compile(r"{([^}]+)}")
 CONTRACT_MANAGED_PREFIXES = (
     "api/v1/api-clients/",
+    "api/v1/audit-events/",
     "api/v1/organization/",
     "api/v1/policies/",
     "api/v1/projects/",
@@ -46,9 +47,31 @@ class OpenApiContractError(ValueError):
     """Raised when the OpenAPI document and implemented public API diverge."""
 
 
+class _UniqueKeyLoader(yaml.SafeLoader):
+    """Safe YAML loader that rejects ambiguous duplicate mapping keys."""
+
+
+def _construct_unique_mapping(loader, node, deep=False):
+    mapping = {}
+    for key_node, value_node in node.value:
+        key = loader.construct_object(key_node, deep=deep)
+        if key in mapping:
+            raise OpenApiContractError(
+                f"Duplicate YAML mapping key {key!r} at line {key_node.start_mark.line + 1}."
+            )
+        mapping[key] = loader.construct_object(value_node, deep=deep)
+    return mapping
+
+
+_UniqueKeyLoader.add_constructor(
+    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+    _construct_unique_mapping,
+)
+
+
 @lru_cache(maxsize=1)
 def load_contract(path: Path) -> dict[str, Any]:
-    contract = yaml.safe_load(path.read_text(encoding="utf-8"))
+    contract = yaml.load(path.read_text(encoding="utf-8"), Loader=_UniqueKeyLoader)
     if not isinstance(contract, dict):
         raise OpenApiContractError("The OpenAPI document must be a mapping.")
     return contract
@@ -192,8 +215,19 @@ def _validate_tree(contract: Mapping[str, Any]) -> list[str]:
             errors.extend(
                 _validate_example(node["example"], schema, contract, location)
             )
-        if "examples" in node and isinstance(schema, Mapping):
-            for name, example in node["examples"].items():
+        examples = node.get("examples")
+        if schema is node and isinstance(examples, list):
+            for index, example in enumerate(examples):
+                errors.extend(
+                    _validate_example(
+                        example,
+                        schema,
+                        contract,
+                        f"{location}/examples/{index}",
+                    )
+                )
+        elif isinstance(examples, Mapping) and isinstance(schema, Mapping):
+            for name, example in examples.items():
                 if isinstance(example, Mapping) and "value" in example:
                     errors.extend(
                         _validate_example(

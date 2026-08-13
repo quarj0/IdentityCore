@@ -134,6 +134,48 @@ public sealed record VerificationCreateResponse
     public string ExpiresAt { get; init; }
 }
 
+public sealed record VerificationSessionConsentRequest
+{
+    [JsonPropertyName("accepted")]
+    public bool Accepted { get; init; }
+    [JsonPropertyName("template_id")]
+    public string? TemplateId { get; init; }
+    [JsonPropertyName("version")]
+    public int? Version { get; init; }
+    [JsonPropertyName("locale")]
+    public string? Locale { get; init; }
+    [JsonPropertyName("content_hash")]
+    public string? ContentHash { get; init; }
+}
+
+public sealed record VerificationSessionDocumentRequest
+{
+    [JsonPropertyName("document_type")]
+    public string DocumentType { get; init; }
+    [JsonPropertyName("country_code")]
+    public string CountryCode { get; init; }
+    [JsonPropertyName("captures")]
+    public IReadOnlyList<JsonElement> Captures { get; init; }
+}
+
+public sealed record VerificationSessionSelfieRequest
+{
+    [JsonPropertyName("capture_type")]
+    public string CaptureType { get; init; }
+    [JsonPropertyName("upload_id")]
+    public string UploadId { get; init; }
+}
+
+public sealed record VerificationSessionLivenessRequest
+{
+    [JsonPropertyName("liveness_type")]
+    public string LivenessType { get; init; }
+    [JsonPropertyName("selfie_capture_id")]
+    public string SelfieCaptureId { get; init; }
+    [JsonPropertyName("challenge_id")]
+    public string? ChallengeId { get; init; }
+}
+
 public sealed record VerificationSummary
 {
     [JsonPropertyName("id")]
@@ -226,6 +268,36 @@ public sealed record PagePagination
     public int Total { get; init; }
     [JsonPropertyName("total_pages")]
     public int TotalPages { get; init; }
+}
+
+public sealed record AuditEvent
+{
+    [JsonPropertyName("id")]
+    public string Id { get; init; }
+    [JsonPropertyName("actor_type")]
+    public string ActorType { get; init; }
+    [JsonPropertyName("actor_id")]
+    public string ActorId { get; init; }
+    [JsonPropertyName("action")]
+    public string Action { get; init; }
+    [JsonPropertyName("action_label")]
+    public string ActionLabel { get; init; }
+    [JsonPropertyName("actor_display_name")]
+    public string ActorDisplayName { get; init; }
+    [JsonPropertyName("target_type")]
+    public string TargetType { get; init; }
+    [JsonPropertyName("target_id")]
+    public string TargetId { get; init; }
+    [JsonPropertyName("target_label")]
+    public string TargetLabel { get; init; }
+    [JsonPropertyName("ip_address")]
+    public string? IpAddress { get; init; }
+    [JsonPropertyName("user_agent")]
+    public string UserAgent { get; init; }
+    [JsonPropertyName("metadata")]
+    public JsonElement Metadata { get; init; }
+    [JsonPropertyName("created_at")]
+    public string CreatedAt { get; init; }
 }
 
 public sealed record EvidenceReport
