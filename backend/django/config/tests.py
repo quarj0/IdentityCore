@@ -19,6 +19,7 @@ from apps.webhooks.tasks import (
     deliver_webhook_event_task,
     process_pending_webhook_events_task,
 )
+from config.settings.base import merge_cors_allow_headers
 
 
 class CeleryConfigurationTests(SimpleTestCase):
@@ -145,4 +146,37 @@ class CorsConfigurationTests(SimpleTestCase):
         self.assertIn(
             "X-IdentityCore-Session-Scope",
             response["Access-Control-Allow-Headers"],
+        )
+
+    def test_api_client_preflight_allows_authentication_and_idempotency_headers(self):
+        response = self.client.options(
+            "/api/v1/verifications/",
+            HTTP_ORIGIN="http://localhost:3003",
+            HTTP_ACCESS_CONTROL_REQUEST_METHOD="POST",
+            HTTP_ACCESS_CONTROL_REQUEST_HEADERS=(
+                "authorization,x-client-id,idempotency-key,content-type"
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        allowed_headers = {
+            header.strip().lower()
+            for header in response["Access-Control-Allow-Headers"].split(",")
+        }
+        self.assertTrue(
+            {"authorization", "x-client-id", "idempotency-key", "content-type"}
+            <= allowed_headers
+        )
+
+    def test_environment_cors_headers_extend_required_defaults(self):
+        headers = merge_cors_allow_headers(
+            ["X-Custom-Integration", "X-IdentityCore-Session-Scope"]
+        )
+
+        self.assertIn("X-Client-Id", headers)
+        self.assertIn("Idempotency-Key", headers)
+        self.assertIn("X-Custom-Integration", headers)
+        self.assertEqual(
+            headers.count("X-IdentityCore-Session-Scope"),
+            1,
         )

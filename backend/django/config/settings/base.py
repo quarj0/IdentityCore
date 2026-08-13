@@ -66,10 +66,16 @@ DEFAULT_CORS_ALLOW_HEADERS = [
     "X-Device-Fingerprint",
     "X-Request-Id",
     "X-IdentityCore-Session-Scope",
+    "X-Client-Id",
+    "Idempotency-Key",
 ]
-CORS_ALLOW_HEADERS = list(
-    dict.fromkeys(DEFAULT_CORS_ALLOW_HEADERS + env_list("DJANGO_CORS_ALLOW_HEADERS"))
-)
+
+
+def merge_cors_allow_headers(additional_headers: list[str]) -> list[str]:
+    return list(dict.fromkeys(DEFAULT_CORS_ALLOW_HEADERS + additional_headers))
+
+
+CORS_ALLOW_HEADERS = merge_cors_allow_headers(env_list("DJANGO_CORS_ALLOW_HEADERS"))
 CORS_ALLOW_METHODS = env_list(
     "DJANGO_CORS_ALLOW_METHODS",
     "GET,POST,PUT,PATCH,DELETE,OPTIONS",

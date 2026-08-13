@@ -1,6 +1,9 @@
+import yaml
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
+
+from config.api_views import OPENAPI_SPEC_PATH
 
 
 class CatalogEndpointTests(APITestCase):
@@ -106,3 +109,45 @@ class CatalogEndpointTests(APITestCase):
             with self.subTest(method=method, path=path):
                 response = getattr(self.client, method)(path, {}, format="json")
                 self.assertNotEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class OpenApiAuthenticationContractTests(APITestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.contract = yaml.safe_load(OPENAPI_SPEC_PATH.read_text(encoding="utf-8"))
+
+    def test_api_client_auth_requires_bearer_secret_and_client_id(self):
+        schemes = self.contract["components"]["securitySchemes"]
+
+        self.assertEqual(
+            self.contract["security"],
+            [{"apiClient": [], "apiClientId": []}],
+        )
+        self.assertEqual(
+            schemes["apiClientId"],
+            {
+                "type": "apiKey",
+                "in": "header",
+                "name": "X-Client-Id",
+                "description": "Send the API client ID with the bearer API client secret.",
+            },
+        )
+
+    def test_authentication_exceptions_remain_explicit(self):
+        paths = self.contract["paths"]
+
+        self.assertEqual(paths["/health"]["get"]["security"], [])
+        self.assertEqual(
+            paths["/uploads/"]["post"]["security"],
+            [{"platformUserSession": []}, {"platformUserBearer": []}],
+        )
+
+    def test_client_id_is_not_duplicated_as_an_operation_parameter(self):
+        parameters = self.contract["components"]["parameters"]
+
+        self.assertNotIn("ClientIdHeader", parameters)
+        self.assertNotIn(
+            "#/components/parameters/ClientIdHeader",
+            OPENAPI_SPEC_PATH.read_text(encoding="utf-8"),
+        )

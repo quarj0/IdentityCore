@@ -50,6 +50,8 @@ class LocalCorsMiddleware:
                         "X-Device-Fingerprint",
                         "X-Request-Id",
                         "X-IdentityCore-Session-Scope",
+                        "X-Client-Id",
+                        "Idempotency-Key",
                     ],
                 )
             )

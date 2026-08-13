@@ -6,7 +6,8 @@
     "dev": "next dev --webpack --port 3003",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --test src/lib/*.test.js"
   },
   "dependencies": {
     "@identitycore/api-client": "workspace:*",
