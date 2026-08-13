@@ -251,6 +251,28 @@ def _request_body_summary(
     }
 
 
+def _required_header_names(
+    contract: Mapping[str, Any],
+    path_item: Mapping[str, Any],
+    operation: Mapping[str, Any],
+) -> list[str]:
+    """Return required request headers after applying operation overrides."""
+
+    parameters: dict[tuple[str, str], Mapping[str, Any]] = {}
+    for raw_parameter in [
+        *path_item.get("parameters", []),
+        *operation.get("parameters", []),
+    ]:
+        parameter = _resolve_mapping(contract, raw_parameter)
+        key = (str(parameter.get("name", "")), str(parameter.get("in", "")))
+        parameters[key] = parameter
+    return [
+        name
+        for (name, location), parameter in parameters.items()
+        if location == "header" and parameter.get("required") is True
+    ]
+
+
 def _validate_tree(contract: Mapping[str, Any]) -> list[str]:
     errors: list[str] = []
 
@@ -433,6 +455,9 @@ def public_resources(
                     "category": str(tags[0]),
                     "description": str(operation.get("description", summary)),
                     "security": operation.get("security", contract.get("security", [])),
+                    "required_headers": _required_header_names(
+                        contract, path_item, operation
+                    ),
                     "request_body": _request_body_summary(contract, operation),
                 }
             )

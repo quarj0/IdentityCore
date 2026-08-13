@@ -141,6 +141,7 @@ components:
           type: array
           items:
             type: string
+            enum: [national_id, passport, driver_license, health_id, voter_id]
         required_liveness_level:
           type: string
           enum: [passive, active]
@@ -296,7 +297,7 @@ components:
           minItems: 1
           items:
             type: string
-            maxLength: 64
+            enum: [national_id, passport, driver_license, health_id, voter_id]
         required_liveness_level:
           type: string
           enum: [passive, active]

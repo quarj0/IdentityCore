@@ -42,6 +42,7 @@ export type PublicApiDocsResource = {
   category: string;
   description: string;
   security?: Array<Record<string, string[]>>;
+  required_headers?: string[];
   request_body?: {
     required: boolean;
     content_type: string;

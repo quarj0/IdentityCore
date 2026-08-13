@@ -4,6 +4,7 @@ import { DocsLayout } from "@/components/docs/docs-layout";
 import { LanguageExamples } from "@/components/docs/language-examples";
 import { endpoints } from "@/data/endpoints";
 import { fetchPublicApiDocsOverview } from "@/lib/public-api-docs";
+import { requiredHeadersTemplate } from "@/lib/request-template";
 
 export function generateStaticParams() {
   return endpoints.map((endpoint) => ({
@@ -94,6 +95,9 @@ export default async function ApiDetailPage({
     authenticationHeaders += ` \\
   --cookie "identitycore_refresh=$IDENTITYCORE_REFRESH_TOKEN"`;
   }
+  const requiredHeaders = requiredHeadersTemplate(
+    contractEndpoint.required_headers,
+  );
   let requestBody = "";
   if (contractEndpoint.request_body) {
     if (contractEndpoint.request_body.content_type === "application/json") {
@@ -137,7 +141,7 @@ export default async function ApiDetailPage({
       <CodeBlock
         title="Request template"
         language="bash"
-        code={`curl -X ${contractEndpoint.method} https://api.identitycore.com${contractPath}${authenticationHeaders}${requestBody}`}
+        code={`curl -X ${contractEndpoint.method} https://api.identitycore.com${contractPath}${authenticationHeaders}${requiredHeaders}${requestBody}`}
       />
 
       <CodeBlock

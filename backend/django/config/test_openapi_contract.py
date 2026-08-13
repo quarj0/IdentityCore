@@ -6,6 +6,7 @@ from django.http import HttpResponse
 from django.test import SimpleTestCase
 from django.urls import get_resolver, path
 
+from common.catalog import DOCUMENT_TYPES
 from config.api_views import OPENAPI_SPEC_PATH
 from config.openapi_contract import (
     OpenApiContractError,
@@ -167,6 +168,50 @@ class OpenApiParityTests(SimpleTestCase):
                 "content_type": "multipart/form-data",
                 "example": {"file": "/path/to/file"},
             },
+        )
+
+    def test_docs_overview_preserves_required_operation_headers(self):
+        resources = public_resources(self.contract)
+        by_operation = {
+            (resource["method"], resource["path"]): resource for resource in resources
+        }
+
+        self.assertEqual(
+            by_operation[("POST", "/projects/{project_id}/workflows:instantiate")][
+                "required_headers"
+            ],
+            ["Idempotency-Key"],
+        )
+        self.assertEqual(by_operation[("GET", "/countries")]["required_headers"], [])
+
+    def test_policy_document_types_match_the_accepted_catalog(self):
+        expected = {item["code"] for item in DOCUMENT_TYPES}
+        schemas = self.contract["components"]["schemas"]
+
+        self.assertEqual(
+            set(
+                schemas["VerificationPolicyCreateRequest"]["properties"][
+                    "required_document_types"
+                ]["items"]["enum"]
+            ),
+            expected,
+        )
+        self.assertEqual(
+            set(
+                schemas["Policy"]["properties"]["required_document_types"]["items"][
+                    "enum"
+                ]
+            ),
+            expected,
+        )
+        create_policy = next(
+            resource
+            for resource in public_resources(self.contract)
+            if (resource["method"], resource["path"]) == ("POST", "/policies/")
+        )
+        self.assertEqual(
+            create_policy["request_body"]["example"]["required_document_types"],
+            ["national_id"],
         )
 
     def test_policy_create_is_part_of_public_parity(self):
