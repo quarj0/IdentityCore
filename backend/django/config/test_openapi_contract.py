@@ -443,6 +443,9 @@ class OpenApiParityTests(SimpleTestCase):
             "enum"
         ]
         self.assertIn("policies:read", scopes)
+        self.assertNotIn(
+            "enum", schemas["APIClientSummary"]["properties"]["scopes"]["items"]
+        )
 
     def test_action_and_creation_response_schemas_match_emitted_payloads(self):
         schemas = self.contract["components"]["schemas"]

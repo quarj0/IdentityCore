@@ -1346,13 +1346,6 @@ components:
           minItems: 1
           items:
             type: string
-            enum:
-              [
-                policies:read,
-                verifications:create,
-                verifications:read,
-                verifications:write,
-              ]
         allowed_networks:
           type: array
           items:
