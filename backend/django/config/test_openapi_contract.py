@@ -5,8 +5,11 @@ from tempfile import TemporaryDirectory
 from django.http import HttpResponse
 from django.test import SimpleTestCase
 from django.urls import get_resolver, path
+from jsonschema import Draft202012Validator
 
 from common.catalog import COUNTRY_PROFILES, DOCUMENT_TYPES
+from apps.uploads.serializers import ALLOWED_MIME_TYPES_BY_PURPOSE
+from apps.webhooks.models import SUPPORTED_WEBHOOK_EVENTS
 from config.api_views import OPENAPI_SPEC_PATH
 from config.openapi_contract import (
     OpenApiContractError,
@@ -387,6 +390,44 @@ class OpenApiParityTests(SimpleTestCase):
             == ("POST", "/sessions/{session_id}/documents")
         )
         self.assertEqual(document_resource["request_body"]["example"], document_example)
+
+    def test_active_liveness_requires_a_challenge_id(self):
+        schema = self.contract["components"]["schemas"][
+            "VerificationSessionLivenessRequest"
+        ]
+        validator = Draft202012Validator(schema)
+        passive = {"liveness_type": "passive", "selfie_capture_id": "cap_01JABC"}
+        active = {"liveness_type": "active", "selfie_capture_id": "cap_01JABC"}
+
+        self.assertEqual(list(validator.iter_errors(passive)), [])
+        self.assertTrue(list(validator.iter_errors(active)))
+        self.assertEqual(
+            list(validator.iter_errors({**active, "challenge_id": "lch_01JABC"})),
+            [],
+        )
+
+    def test_generated_closed_set_request_examples_are_accepted_values(self):
+        resources = {
+            (resource["method"], resource["path"]): resource
+            for resource in public_resources(self.contract)
+        }
+        upload = resources[("POST", "/uploads/")]["request_body"]["example"]
+        self.assertIn(
+            upload["mime_type"], ALLOWED_MIME_TYPES_BY_PURPOSE[upload["purpose"]]
+        )
+        webhook = resources[("POST", "/webhook-endpoints/")]["request_body"]["example"]
+        self.assertTrue(set(webhook["events"]).issubset(SUPPORTED_WEBHOOK_EVENTS))
+        branding = resources[("POST", "/organization/me/branding/assets/upload/")][
+            "request_body"
+        ]["example"]
+        self.assertTrue(branding["filename"].endswith(".png"))
+        self.assertTrue(branding["mime_type"].startswith("image/"))
+        supporting_document = resources[
+            ("POST", "/organization/me/verification-documents/upload/")
+        ]["request_body"]["example"]
+        self.assertTrue(supporting_document["filename"].endswith(".pdf"))
+        self.assertEqual(supporting_document["mime_type"], "application/pdf")
+        self.assertLessEqual(supporting_document["file_size_bytes"], 10 * 1024 * 1024)
 
     def test_referenced_media_example_is_validated_against_its_schema(self):
         changed = deepcopy(self.contract)

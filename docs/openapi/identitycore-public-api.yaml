@@ -467,6 +467,13 @@ components:
       type: object
       additionalProperties: false
       required: [liveness_type, selfie_capture_id]
+      if:
+        properties:
+          liveness_type:
+            const: active
+        required: [liveness_type]
+      then:
+        required: [challenge_id]
       properties:
         liveness_type:
           type: string
@@ -934,6 +941,35 @@ components:
     PortalUploadCreateRequest:
       type: object
       required: [purpose, mime_type, file_size_bytes]
+      example:
+        purpose: document_capture
+        mime_type: image/jpeg
+        file_size_bytes: 1048576
+      oneOf:
+        - title: Document capture
+          properties:
+            purpose:
+              const: document_capture
+            mime_type:
+              enum: [image/jpeg, image/png, image/webp]
+            file_size_bytes:
+              maximum: 10485760
+        - title: Selfie capture
+          properties:
+            purpose:
+              const: selfie_capture
+            mime_type:
+              enum: [image/jpeg, image/png, image/webp]
+            file_size_bytes:
+              maximum: 10485760
+        - title: Liveness capture
+          properties:
+            purpose:
+              const: liveness_capture
+            mime_type:
+              enum: [video/mp4, video/quicktime, video/webm]
+            file_size_bytes:
+              maximum: 26214400
       properties:
         purpose:
           type: string
@@ -1016,14 +1052,20 @@ components:
     OrganizationBrandingAssetUploadRequest:
       type: object
       required: [asset_type, filename, mime_type]
+      example:
+        asset_type: logo
+        filename: logo.png
+        mime_type: image/png
       properties:
         asset_type:
           type: string
           enum: [logo, branding_image]
         filename:
           type: string
+          pattern: "\\.(png|jpg|jpeg|svg|webp)$"
         mime_type:
           type: string
+          pattern: "^image/"
     OrganizationBrandingAssetUploadResponse:
       type: object
       required: [asset_type, storage_key, bucket_name, upload_url, asset_url]
@@ -1043,14 +1085,21 @@ components:
     OrganizationSupportingDocumentUploadRequest:
       type: object
       required: [filename, mime_type, file_size_bytes]
+      example:
+        filename: incorporation-certificate.pdf
+        mime_type: application/pdf
+        file_size_bytes: 1048576
       properties:
         filename:
           type: string
+          pattern: "\\.pdf$"
         mime_type:
           type: string
+          const: application/pdf
         file_size_bytes:
           type: integer
           minimum: 1
+          maximum: 10485760
     OrganizationSupportingDocumentUploadResponse:
       type: object
       required:
@@ -1180,8 +1229,10 @@ components:
           type: string
         scopes:
           type: array
+          minItems: 1
           items:
             type: string
+            enum: [verifications:create, verifications:read, verifications:write]
         allowed_networks:
           type: array
           items:
@@ -1210,8 +1261,10 @@ components:
           type: string
         scopes:
           type: array
+          minItems: 1
           items:
             type: string
+            enum: [verifications:create, verifications:read, verifications:write]
         allowed_networks:
           type: array
           items:
@@ -1242,8 +1295,21 @@ components:
           type: string
         events:
           type: array
+          minItems: 1
           items:
             type: string
+            enum:
+              - verification.created
+              - verification.consent_accepted
+              - verification.document_uploaded
+              - verification.selfie_uploaded
+              - verification.processing
+              - verification.manual_review_required
+              - verification.verified
+              - verification.rejected
+              - verification.failed
+              - verification.expired
+              - verification.cancelled
         status:
           type: string
         created_at:
@@ -1265,8 +1331,21 @@ components:
           type: string
         events:
           type: array
+          minItems: 1
           items:
             type: string
+            enum:
+              - verification.created
+              - verification.consent_accepted
+              - verification.document_uploaded
+              - verification.selfie_uploaded
+              - verification.processing
+              - verification.manual_review_required
+              - verification.verified
+              - verification.rejected
+              - verification.failed
+              - verification.expired
+              - verification.cancelled
     WebhookEndpointCreateResponse:
       allOf:
         - $ref: "#/components/schemas/WebhookEndpointSummary"
