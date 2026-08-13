@@ -41,6 +41,7 @@ export type PublicApiDocsResource = {
   path: string;
   category: string;
   description: string;
+  security?: Array<Record<string, string[]>>;
 };
 
 export type PublicApiDocsOverview = {

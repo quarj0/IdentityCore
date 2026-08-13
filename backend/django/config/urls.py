@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import include, path
+from django.views.decorators.http import require_GET
 from django.views.decorators.csrf import csrf_exempt
 
 from config.api_views import (
@@ -15,6 +16,7 @@ from common.responses import success_json_response
 from common.public_api import public_api_path
 
 
+@require_GET
 def healthcheck(request):
     return success_json_response(
         {"status": "ok", "service": "identitycore-api", "version": "1.0.0"},

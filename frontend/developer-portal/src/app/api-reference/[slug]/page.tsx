@@ -65,6 +65,10 @@ export default async function ApiDetailPage({
   const contractPath = contractEndpoint.path.startsWith("/api/")
     ? contractEndpoint.path
     : `/api/v1${contractEndpoint.path}`;
+  const authenticationHeaders =
+    contractEndpoint.security?.length === 0
+      ? ""
+      : ` \\\n+  -H "Authorization: Bearer $IDENTITYCORE_API_KEY" \\\n+  -H "X-Client-Id: $IDENTITYCORE_CLIENT_ID"`;
 
   return (
     <DocsLayout
@@ -84,9 +88,7 @@ export default async function ApiDetailPage({
       <CodeBlock
         title="Request template"
         language="bash"
-        code={`curl -X ${contractEndpoint.method} https://api.identitycore.com${contractPath} \\
-  -H "Authorization: Bearer $IDENTITYCORE_API_KEY" \\
-  -H "X-Client-Id: $IDENTITYCORE_CLIENT_ID"`}
+        code={`curl -X ${contractEndpoint.method} https://api.identitycore.com${contractPath}${authenticationHeaders}`}
       />
 
       <CodeBlock

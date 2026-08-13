@@ -73,7 +73,16 @@ class OpenApiParityTests(SimpleTestCase):
         changed = deepcopy(self.contract)
         changed["components"]["schemas"]["Policy"]["properties"]["id"]["example"] = 123
 
-        with self.assertRaisesRegex(OpenApiContractError, "does not match type"):
+        with self.assertRaisesRegex(OpenApiContractError, "is not of type"):
+            validate_contract(changed, implemented_operations=self.implemented)
+
+    def test_example_schema_constraints_are_enforced(self):
+        changed = deepcopy(self.contract)
+        changed["paths"]["/countries"]["get"]["responses"]["200"]["content"][
+            "application/json"
+        ]["example"]["data"][0]["code"] = "GHA"
+
+        with self.assertRaisesRegex(OpenApiContractError, "is too long"):
             validate_contract(changed, implemented_operations=self.implemented)
 
     def test_referenced_path_parameter_is_resolved(self):
@@ -91,6 +100,18 @@ class OpenApiParityTests(SimpleTestCase):
         ]
 
         validate_contract(changed, implemented_operations=self.implemented)
+
+    def test_referenced_path_item_is_resolved(self):
+        changed = deepcopy(self.contract)
+        changed.setdefault("components", {}).setdefault("pathItems", {})[
+            "Health"
+        ] = changed["paths"]["/health"]
+        changed["paths"]["/health"] = {
+            "$ref": "#/components/pathItems/Health"
+        }
+
+        validate_contract(changed, implemented_operations=self.implemented)
+        self.assertIn(("GET", "/health"), documented_operations(changed))
 
     def test_docs_overview_is_derived_from_every_documented_operation(self):
         resources = public_resources(self.contract)
@@ -113,3 +134,16 @@ class OpenApiParityTests(SimpleTestCase):
             == ("POST", "/verifications/")
         )
         self.assertEqual(create_verification["slug"], "create-verification")
+
+    def test_docs_overview_preserves_effective_security(self):
+        resources = public_resources(self.contract)
+        by_operation = {
+            (resource["method"], resource["path"]): resource
+            for resource in resources
+        }
+
+        self.assertEqual(by_operation[("GET", "/countries")]["security"], [])
+        self.assertEqual(
+            by_operation[("POST", "/verifications/")]["security"],
+            self.contract["security"],
+        )

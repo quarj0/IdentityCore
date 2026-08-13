@@ -15,6 +15,12 @@ class CatalogEndpointTests(APITestCase):
         self.assertTrue(payload["success"])
         self.assertEqual(payload["data"]["service"], "identitycore-api")
 
+    def test_health_rejects_undeclared_methods(self):
+        for method in ("post", "put", "patch", "delete"):
+            with self.subTest(method=method):
+                response = getattr(self.client, method)("/api/v1/health")
+                self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
     def test_countries_returns_full_public_catalog(self):
         response = self.client.get(reverse("country-list"))
 
@@ -88,6 +94,12 @@ class CatalogEndpointTests(APITestCase):
             if (item["method"], item["path"]) == ("POST", "/verifications/")
         )
         self.assertEqual(create_verification["slug"], "create-verification")
+        countries = next(
+            item
+            for item in data["resources"]
+            if (item["method"], item["path"]) == ("GET", "/countries")
+        )
+        self.assertEqual(countries["security"], [])
 
     def test_openapi_spec_returns_public_yaml(self):
         response = self.client.get(reverse("openapi-spec"))

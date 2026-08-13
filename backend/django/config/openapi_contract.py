@@ -11,6 +11,7 @@ from typing import Any
 
 import yaml
 from django.urls import URLPattern, URLResolver, get_resolver
+from jsonschema import Draft202012Validator, FormatChecker
 
 from common.public_api import API_VISIBILITY_ATTRIBUTE, PUBLIC_METHODS_ATTRIBUTE
 
@@ -50,7 +51,8 @@ def load_contract(path: Path) -> dict[str, Any]:
 
 def documented_operations(contract: Mapping[str, Any]) -> set[tuple[str, str]]:
     operations: set[tuple[str, str]] = set()
-    for route, path_item in contract.get("paths", {}).items():
+    for route, raw_path_item in contract.get("paths", {}).items():
+        path_item = _resolve_mapping(contract, raw_path_item)
         if not isinstance(path_item, Mapping):
             continue
         for method in path_item:
@@ -130,6 +132,22 @@ def _example_schema(
     return schema
 
 
+def _resolve_mapping(
+    contract: Mapping[str, Any], value: Any
+) -> Mapping[str, Any]:
+    if not isinstance(value, Mapping):
+        return {}
+    if "$ref" not in value:
+        return value
+    resolved = _resolve_ref(contract, str(value["$ref"]))
+    if not isinstance(resolved, Mapping):
+        raise OpenApiContractError(
+            f"OpenAPI reference does not resolve to a mapping: {value['$ref']}"
+        )
+    siblings = {key: item for key, item in value.items() if key != "$ref"}
+    return {**resolved, **siblings}
+
+
 def _validate_example(
     value: Any,
     schema: Mapping[str, Any],
@@ -137,60 +155,15 @@ def _validate_example(
     location: str,
 ) -> list[str]:
     schema = _example_schema(contract, schema)
-    errors: list[str] = []
-    for combined_schema in schema.get("allOf", []):
-        if isinstance(combined_schema, Mapping):
-            errors.extend(_validate_example(value, combined_schema, contract, location))
-    expected = schema.get("type")
-    allowed_types = set(expected) if isinstance(expected, list) else {expected}
-    allowed_types.discard(None)
-    if value is None and "null" in allowed_types:
-        return errors
-    type_matches = {
-        "array": lambda item: isinstance(item, list),
-        "boolean": lambda item: isinstance(item, bool),
-        "integer": lambda item: isinstance(item, int) and not isinstance(item, bool),
-        "number": lambda item: isinstance(item, (int, float))
-        and not isinstance(item, bool),
-        "object": lambda item: isinstance(item, Mapping),
-        "string": lambda item: isinstance(item, str),
-    }
-    if allowed_types and not any(
-        type_matches[kind](value) for kind in allowed_types if kind in type_matches
-    ):
-        errors.append(f"{location}: example {value!r} does not match type {expected!r}")
-        return errors
-    if "const" in schema and value != schema["const"]:
-        errors.append(
-            f"{location}: example {value!r} does not match const {schema['const']!r}"
-        )
-    if "enum" in schema and value not in schema["enum"]:
-        errors.append(
-            f"{location}: example {value!r} is not in enum {schema['enum']!r}"
-        )
-    if isinstance(value, Mapping):
-        required = set(schema.get("required", []))
-        missing = sorted(required - value.keys())
-        if missing:
-            errors.append(f"{location}: example is missing required fields {missing}")
-        properties = schema.get("properties", {})
-        for key, child in value.items():
-            child_schema = properties.get(key)
-            if isinstance(child_schema, Mapping):
-                errors.extend(
-                    _validate_example(
-                        child, child_schema, contract, f"{location}/{key}"
-                    )
-                )
-            elif schema.get("additionalProperties") is False:
-                errors.append(f"{location}: example has unknown field {key!r}")
-    if isinstance(value, list) and isinstance(schema.get("items"), Mapping):
-        for index, child in enumerate(value):
-            errors.extend(
-                _validate_example(
-                    child, schema["items"], contract, f"{location}/{index}"
-                )
-            )
+    validator = Draft202012Validator(
+        dict(contract),
+        format_checker=FormatChecker(),
+    ).evolve(schema=dict(schema))
+    errors = []
+    for error in sorted(validator.iter_errors(value), key=lambda item: list(item.path)):
+        suffix = "/".join(str(part) for part in error.absolute_path)
+        error_location = f"{location}/{suffix}" if suffix else location
+        errors.append(f"{error_location}: example {error.message}")
     return errors
 
 
@@ -235,11 +208,10 @@ def _validate_tree(contract: Mapping[str, Any]) -> list[str]:
 
 def _validate_path_parameters(contract: Mapping[str, Any]) -> list[str]:
     errors: list[str] = []
-    for route, path_item in contract.get("paths", {}).items():
+    for route, raw_path_item in contract.get("paths", {}).items():
+        path_item = _resolve_mapping(contract, raw_path_item)
         expected = set(OPENAPI_PARAMETER.findall(route))
-        shared = (
-            path_item.get("parameters", []) if isinstance(path_item, Mapping) else []
-        )
+        shared = path_item.get("parameters", [])
         for method, operation in path_item.items():
             if method.lower() not in HTTP_METHODS or not isinstance(operation, Mapping):
                 continue
@@ -248,7 +220,7 @@ def _validate_path_parameters(contract: Mapping[str, Any]) -> list[str]:
             for parameter in parameters:
                 if not isinstance(parameter, Mapping):
                     continue
-                resolved = _example_schema(contract, parameter)
+                resolved = _resolve_mapping(contract, parameter)
                 resolved_parameters.append(resolved)
             declared = {
                 parameter.get("name")
@@ -299,11 +271,12 @@ def public_resources(
     contract: Mapping[str, Any],
     *,
     slug_overrides: Mapping[tuple[str, str], str] | None = None,
-) -> list[dict[str, str]]:
+) -> list[dict[str, Any]]:
     """Build the docs overview from the validated OpenAPI operations."""
 
-    resources: list[dict[str, str]] = []
-    for route, path_item in contract.get("paths", {}).items():
+    resources: list[dict[str, Any]] = []
+    for route, raw_path_item in contract.get("paths", {}).items():
+        path_item = _resolve_mapping(contract, raw_path_item)
         for method, operation in path_item.items():
             if method.lower() not in HTTP_METHODS or not isinstance(operation, Mapping):
                 continue
@@ -330,6 +303,9 @@ def public_resources(
                     "path": route,
                     "category": str(operation.get("tags", [segment.title()])[0]),
                     "description": str(operation.get("description", summary)),
+                    "security": operation.get(
+                        "security", contract.get("security", [])
+                    ),
                 }
             )
     return resources
