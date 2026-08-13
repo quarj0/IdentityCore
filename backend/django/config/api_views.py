@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 
 from common.catalog import COUNTRY_PROFILES, DOCUMENT_TYPES
 from common.responses import success_response
+from config.openapi_contract import load_contract, public_resources
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 OPENAPI_SPEC_PATH = PROJECT_ROOT / "docs" / "openapi" / "identitycore-public-api.yaml"
@@ -42,8 +43,7 @@ class PublicDocsOverviewView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        return success_response(
-            {
+        overview = {
                 "api_version": "1.0",
                 "base_urls": {
                     "production": "https://api.identitycore.com/api/v1",
@@ -378,9 +378,9 @@ class PublicDocsOverviewView(APIView):
                         "notes": "Implemented with retries, pagination, idempotency, webhook verification, and tests.",
                     },
                 ],
-            },
-            request=request,
-        )
+            }
+        overview["resources"] = public_resources(load_contract(OPENAPI_SPEC_PATH))
+        return success_response(overview, request=request)
 
 
 class OpenApiSpecView(APIView):

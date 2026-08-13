@@ -1,4 +1,4 @@
-from django.urls import path
+from common.public_api import public_api_path
 
 from apps.api_clients.views import (
     APIClientActionView,
@@ -7,11 +7,19 @@ from apps.api_clients.views import (
 )
 
 urlpatterns = [
-    path("", APIClientListCreateView.as_view(), name="api-client-list-create"),
-    path("<str:client_id>", APIClientDetailView.as_view()),
-    path(
+    public_api_path(
+        "",
+        APIClientListCreateView.as_view(),
+        methods=("GET", "POST"),
+        name="api-client-list-create",
+    ),
+    public_api_path(
+        "<str:client_id>", APIClientDetailView.as_view(), methods=("GET", "PATCH")
+    ),
+    public_api_path(
         "<str:client_id>/<str:action>",
         APIClientActionView.as_view(),
+        methods=("POST",),
         name="api-client-action",
     ),
 ]

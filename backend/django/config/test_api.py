@@ -54,8 +54,7 @@ class CatalogEndpointTests(APITestCase):
         self.assertEqual(
             data["base_urls"]["development"], "http://localhost:8000/api/v1"
         )
-        # Verifications exposes separate list and create operations on one path.
-        self.assertEqual(len(data["resources"]), 35)
+        self.assertEqual(len(data["resources"]), 43)
         self.assertIn("/verifications/", [item["path"] for item in data["resources"]])
         documented_paths = {item["path"] for item in data["resources"]}
         self.assertTrue(
@@ -69,6 +68,7 @@ class CatalogEndpointTests(APITestCase):
                 "/api-clients/",
                 "/webhook-endpoints/",
                 "/verifications/manual-reviews",
+                "/verifications/manual-reviews/{verification_id}/approval",
                 "/verifications/{verification_id}/result",
                 "/verifications/{verification_id}/evidence-report/download.pdf",
             }.issubset(documented_paths)

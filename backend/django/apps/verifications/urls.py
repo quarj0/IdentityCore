@@ -1,4 +1,4 @@
-from django.urls import path
+from common.public_api import public_api_path
 
 from apps.verifications.views import (
     ManualReviewDecisionView,
@@ -16,51 +16,70 @@ from apps.verifications.views import (
 
 
 urlpatterns = [
-    path("manual-reviews", ManualReviewListView.as_view(), name="manual-review-list"),
-    path(
+    public_api_path(
+        "manual-reviews",
+        ManualReviewListView.as_view(),
+        methods=("GET",),
+        name="manual-review-list",
+    ),
+    public_api_path(
         "manual-reviews/<str:verification_id>/decision",
         ManualReviewDecisionView.as_view(),
+        methods=("POST",),
         name="manual-review-decision",
     ),
-    path(
+    public_api_path(
         "manual-reviews/<str:verification_id>/approval",
         ManualReviewApprovalView.as_view(),
+        methods=("POST",),
         name="manual-review-approval",
     ),
-    path("", VerificationListCreateView.as_view(), name="verification-list-create"),
-    path(
+    public_api_path(
+        "",
+        VerificationListCreateView.as_view(),
+        methods=("GET", "POST"),
+        name="verification-list-create",
+    ),
+    public_api_path(
         "<str:verification_id>",
         VerificationDetailView.as_view(),
+        methods=("GET",),
         name="verification-detail",
     ),
-    path(
+    public_api_path(
         "<str:verification_id>/result",
         VerificationResultView.as_view(),
+        methods=("GET",),
         name="verification-result",
     ),
-    path(
+    public_api_path(
         "<str:verification_id>/evidence-report",
         VerificationEvidenceReportView.as_view(),
+        methods=("GET",),
         name="verification-evidence-report",
     ),
-    path(
+    public_api_path(
         "<str:verification_id>/evidence-report/download",
         VerificationEvidenceReportDownloadView.as_view(),
+        methods=("GET",),
         name="verification-evidence-report-download",
     ),
-    path(
+    public_api_path(
         "<str:verification_id>/evidence-report/download.pdf",
         VerificationEvidenceReportPDFDownloadView.as_view(),
+        methods=("GET",),
         name="verification-evidence-report-pdf-download",
     ),
-    path(
+    public_api_path(
         "<str:verification_id>/cancel",
         VerificationCancelView.as_view(),
+        methods=("POST",),
         name="verification-cancel",
     ),
-    path(
+    public_api_path(
         "<str:verification_id>/resend-link",
         VerificationResendLinkView.as_view(),
+        methods=("POST",),
         name="verification-resend-link",
     ),
 ]

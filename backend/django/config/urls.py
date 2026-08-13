@@ -12,6 +12,7 @@ from config.api_views import (
 from config.graphql import schema
 from config.graphql_view import AuthenticatedGraphQLView
 from common.responses import success_json_response
+from common.public_api import public_api_path
 
 
 def healthcheck(request):
@@ -23,7 +24,7 @@ def healthcheck(request):
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/v1/health", healthcheck),
+    public_api_path("api/v1/health", healthcheck, methods=("GET",)),
     path(
         "api/v1/document-types",
         DocumentTypeListView.as_view(),
@@ -34,7 +35,9 @@ urlpatterns = [
         CountryProfileListView.as_view(),
         name="country-profile-list",
     ),
-    path("api/v1/docs/overview", PublicDocsOverviewView.as_view(), name="docs-overview"),
+    path(
+        "api/v1/docs/overview", PublicDocsOverviewView.as_view(), name="docs-overview"
+    ),
     path("api/v1/docs/openapi.yaml", OpenApiSpecView.as_view(), name="openapi-spec"),
     path("api/v1/countries", CountryListView.as_view(), name="country-list"),
     path("api/v1/audit-events/", include("apps.audit.urls")),

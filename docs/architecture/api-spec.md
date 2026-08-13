@@ -64,6 +64,15 @@ OpenAPI contract:
 docs/openapi/identitycore-public-api.yaml
 ```
 
+Supported public Django routes must be registered with
+`common.public_api.public_api_path`. The route marker declares which HTTP methods are
+part of the external contract. `scripts/check_openapi_contract.py` compares those
+implemented operations with the OpenAPI document in both directions, resolves every
+local reference, validates explicit examples and path parameters, and fails CI for an
+undocumented implementation or stale documented operation. The public docs overview is
+generated from the same validated OpenAPI operations rather than maintained as a second
+operation list.
+
 SDK and Postman artifacts:
 
 ```text
