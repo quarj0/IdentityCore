@@ -54,12 +54,15 @@ class CatalogEndpointTests(APITestCase):
         self.assertEqual(
             data["base_urls"]["development"], "http://localhost:8000/api/v1"
         )
-        self.assertEqual(len(data["resources"]), 43)
+        self.assertEqual(len(data["resources"]), 46)
         self.assertIn("/verifications/", [item["path"] for item in data["resources"]])
         documented_paths = {item["path"] for item in data["resources"]}
         self.assertTrue(
             {
                 "/uploads/",
+                "/document-types",
+                "/country-profiles",
+                "/countries",
                 "/organization/me/",
                 "/organization/me/verification-documents/{document_id}/content/",
                 "/organization/me/suspend",
@@ -79,6 +82,12 @@ class CatalogEndpointTests(APITestCase):
         self.assertEqual(sdk_status["java"], "ready")
         self.assertEqual(sdk_status["csharp"], "ready")
         self.assertEqual(data["spec_url"], "/api/v1/docs/openapi.yaml")
+        create_verification = next(
+            item
+            for item in data["resources"]
+            if (item["method"], item["path"]) == ("POST", "/verifications/")
+        )
+        self.assertEqual(create_verification["slug"], "create-verification")
 
     def test_openapi_spec_returns_public_yaml(self):
         response = self.client.get(reverse("openapi-spec"))

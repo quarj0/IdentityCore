@@ -947,6 +947,128 @@ paths:
                         type: string
                   request_id:
                     type: string
+  /document-types:
+    get:
+      security: []
+      summary: List supported document types.
+      description: Returns the public bootstrap catalog of identity document types.
+      responses:
+        "200":
+          description: Supported document types.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [code, name]
+                      properties:
+                        code:
+                          type: string
+                        name:
+                          type: string
+                  request_id:
+                    type: string
+              example:
+                success: true
+                data:
+                  - code: national_id
+                    name: National ID
+                request_id: req_01JABC
+  /country-profiles:
+    get:
+      security: []
+      summary: List supported country verification profiles.
+      description: Returns the public country-to-document capture requirements catalog.
+      responses:
+        "200":
+          description: Supported country profiles.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [code, name, supported_document_types]
+                      properties:
+                        code:
+                          type: string
+                        name:
+                          type: string
+                        supported_document_types:
+                          type: array
+                          items:
+                            type: object
+                            required: [document_type, local_name, capture_sides]
+                            properties:
+                              document_type:
+                                type: string
+                              local_name:
+                                type: string
+                              capture_sides:
+                                type: array
+                                items:
+                                  type: string
+                  request_id:
+                    type: string
+              example:
+                success: true
+                data:
+                  - code: GH
+                    name: Ghana
+                    supported_document_types:
+                      - document_type: national_id
+                        local_name: National ID
+                        capture_sides: [front, back]
+                request_id: req_01JABC
+  /countries:
+    get:
+      security: []
+      summary: List supported countries.
+      description: Returns the public ISO 3166-1 alpha-2 country catalog.
+      responses:
+        "200":
+          description: Supported countries.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [code, name]
+                      properties:
+                        code:
+                          type: string
+                          minLength: 2
+                          maxLength: 2
+                        name:
+                          type: string
+                  request_id:
+                    type: string
+              example:
+                success: true
+                data:
+                  - code: GH
+                    name: Ghana
+                request_id: req_01JABC
   /policies/:
     get:
       summary: List active verification policies/templates.

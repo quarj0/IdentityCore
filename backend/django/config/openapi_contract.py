@@ -26,6 +26,14 @@ CONTRACT_MANAGED_PREFIXES = (
     "api/v1/verifications/",
     "api/v1/webhook-endpoints/",
 )
+CONTRACT_MANAGED_ROUTES = frozenset(
+    {
+        "api/v1/countries",
+        "api/v1/country-profiles",
+        "api/v1/document-types",
+        "api/v1/health",
+    }
+)
 
 
 class OpenApiContractError(ValueError):
@@ -71,7 +79,7 @@ def registered_public_operations() -> set[tuple[str, str]]:
             if not isinstance(pattern, URLPattern):
                 continue
             visibility = getattr(pattern.callback, API_VISIBILITY_ATTRIBUTE, None)
-            managed = route == "api/v1/health" or route.startswith(
+            managed = route in CONTRACT_MANAGED_ROUTES or route.startswith(
                 CONTRACT_MANAGED_PREFIXES
             )
             if managed and visibility not in {"internal", "public"}:
@@ -236,20 +244,25 @@ def _validate_path_parameters(contract: Mapping[str, Any]) -> list[str]:
             if method.lower() not in HTTP_METHODS or not isinstance(operation, Mapping):
                 continue
             parameters = [*shared, *operation.get("parameters", [])]
+            resolved_parameters = []
+            for parameter in parameters:
+                if not isinstance(parameter, Mapping):
+                    continue
+                resolved = _example_schema(contract, parameter)
+                resolved_parameters.append(resolved)
             declared = {
                 parameter.get("name")
-                for parameter in parameters
-                if isinstance(parameter, Mapping) and parameter.get("in") == "path"
+                for parameter in resolved_parameters
+                if parameter.get("in") == "path"
             }
             if declared != expected:
                 errors.append(
                     f"{method.upper()} {route}: path parameters are {sorted(declared)}; "
                     f"expected {sorted(expected)}"
                 )
-            for parameter in parameters:
+            for parameter in resolved_parameters:
                 if (
-                    isinstance(parameter, Mapping)
-                    and parameter.get("in") == "path"
+                    parameter.get("in") == "path"
                     and parameter.get("required") is not True
                 ):
                     errors.append(
@@ -282,7 +295,11 @@ def validate_contract(
         raise OpenApiContractError("\n".join(errors))
 
 
-def public_resources(contract: Mapping[str, Any]) -> list[dict[str, str]]:
+def public_resources(
+    contract: Mapping[str, Any],
+    *,
+    slug_overrides: Mapping[tuple[str, str], str] | None = None,
+) -> list[dict[str, str]]:
     """Build the docs overview from the validated OpenAPI operations."""
 
     resources: list[dict[str, str]] = []
@@ -294,9 +311,15 @@ def public_resources(contract: Mapping[str, Any]) -> list[dict[str, str]]:
                 "."
             )
             segment = next((part for part in route.split("/") if part), "System")
+            operation_key = (method.upper(), route)
+            fallback_slug = (
+                slug_overrides.get(operation_key)
+                if slug_overrides is not None
+                else None
+            ) or f"{method}-{route}"
             resources.append(
                 {
-                    "slug": str(operation.get("operationId", f"{method}-{route}"))
+                    "slug": str(operation.get("operationId", fallback_slug))
                     .strip("/")
                     .replace("/", "-")
                     .replace("{", "")

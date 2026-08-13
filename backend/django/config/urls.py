@@ -25,21 +25,28 @@ def healthcheck(request):
 urlpatterns = [
     path("admin/", admin.site.urls),
     public_api_path("api/v1/health", healthcheck, methods=("GET",)),
-    path(
+    public_api_path(
         "api/v1/document-types",
         DocumentTypeListView.as_view(),
+        methods=("GET",),
         name="document-type-list",
     ),
-    path(
+    public_api_path(
         "api/v1/country-profiles",
         CountryProfileListView.as_view(),
+        methods=("GET",),
         name="country-profile-list",
     ),
     path(
         "api/v1/docs/overview", PublicDocsOverviewView.as_view(), name="docs-overview"
     ),
     path("api/v1/docs/openapi.yaml", OpenApiSpecView.as_view(), name="openapi-spec"),
-    path("api/v1/countries", CountryListView.as_view(), name="country-list"),
+    public_api_path(
+        "api/v1/countries",
+        CountryListView.as_view(),
+        methods=("GET",),
+        name="country-list",
+    ),
     path("api/v1/audit-events/", include("apps.audit.urls")),
     path("api/v1/auth/", include("apps.accounts.urls")),
     path("api/v1/api-clients/", include("apps.api_clients.urls")),

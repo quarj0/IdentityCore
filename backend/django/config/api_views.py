@@ -379,7 +379,13 @@ class PublicDocsOverviewView(APIView):
                     },
                 ],
             }
-        overview["resources"] = public_resources(load_contract(OPENAPI_SPEC_PATH))
+        curated_slugs = {
+            (resource["method"], resource["path"]): resource["slug"]
+            for resource in overview["resources"]
+        }
+        overview["resources"] = public_resources(
+            load_contract(OPENAPI_SPEC_PATH), slug_overrides=curated_slugs
+        )
         return success_response(overview, request=request)
 
 

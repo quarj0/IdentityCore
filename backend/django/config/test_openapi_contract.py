@@ -76,6 +76,22 @@ class OpenApiParityTests(SimpleTestCase):
         with self.assertRaisesRegex(OpenApiContractError, "does not match type"):
             validate_contract(changed, implemented_operations=self.implemented)
 
+    def test_referenced_path_parameter_is_resolved(self):
+        changed = deepcopy(self.contract)
+        changed.setdefault("components", {}).setdefault("parameters", {})[
+            "PolicyId"
+        ] = {
+            "name": "policy_id",
+            "in": "path",
+            "required": True,
+            "schema": {"type": "string"},
+        }
+        changed["paths"]["/policies/{policy_id}"]["get"]["parameters"] = [
+            {"$ref": "#/components/parameters/PolicyId"}
+        ]
+
+        validate_contract(changed, implemented_operations=self.implemented)
+
     def test_docs_overview_is_derived_from_every_documented_operation(self):
         resources = public_resources(self.contract)
 
@@ -83,3 +99,17 @@ class OpenApiParityTests(SimpleTestCase):
             {(resource["method"], resource["path"]) for resource in resources},
             self.implemented,
         )
+
+    def test_docs_overview_can_preserve_curated_slugs(self):
+        resources = public_resources(
+            self.contract,
+            slug_overrides={("POST", "/verifications/"): "create-verification"},
+        )
+
+        create_verification = next(
+            resource
+            for resource in resources
+            if (resource["method"], resource["path"])
+            == ("POST", "/verifications/")
+        )
+        self.assertEqual(create_verification["slug"], "create-verification")
