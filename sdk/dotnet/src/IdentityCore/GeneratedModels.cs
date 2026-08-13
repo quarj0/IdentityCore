@@ -172,6 +172,38 @@ public sealed record PlatformUserMfaChallenge
     public string MfaToken { get; init; }
 }
 
+public sealed record PlatformUserAuthentication
+{
+    [JsonPropertyName("tokens")]
+    public JsonElement Tokens { get; init; }
+    [JsonPropertyName("user")]
+    public PlatformUser User { get; init; }
+    [JsonPropertyName("recovery_codes")]
+    public IReadOnlyList<string>? RecoveryCodes { get; init; }
+}
+
+public sealed record PlatformUserMfaEnrollmentRequest
+{
+    [JsonPropertyName("mfa_token")]
+    public string MfaToken { get; init; }
+}
+
+public sealed record PlatformUserMfaCodeRequest
+{
+    [JsonPropertyName("mfa_token")]
+    public string MfaToken { get; init; }
+    [JsonPropertyName("code")]
+    public string Code { get; init; }
+}
+
+public sealed record PlatformUserMfaEnrollment
+{
+    [JsonPropertyName("secret")]
+    public string Secret { get; init; }
+    [JsonPropertyName("provisioning_uri")]
+    public string ProvisioningUri { get; init; }
+}
+
 public sealed record VerificationPolicyCreateRequest
 {
     [JsonPropertyName("project_id")]

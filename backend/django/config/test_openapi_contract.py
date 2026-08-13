@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from django.test import SimpleTestCase
 from django.urls import get_resolver, path
 
-from common.catalog import DOCUMENT_TYPES
+from common.catalog import COUNTRY_PROFILES, DOCUMENT_TYPES
 from config.api_views import OPENAPI_SPEC_PATH
 from config.openapi_contract import (
     OpenApiContractError,
@@ -214,6 +214,34 @@ class OpenApiParityTests(SimpleTestCase):
             ["national_id"],
         )
 
+    def test_policy_threshold_ordering_constraint_is_documented(self):
+        schema = self.contract["components"]["schemas"][
+            "VerificationPolicyCreateRequest"
+        ]
+
+        self.assertIn(
+            "manual_review_threshold must be less than or equal to face_match_threshold",
+            schema["description"],
+        )
+
+    def test_public_mfa_flow_and_refresh_origin_failure_are_documented(self):
+        for route in (
+            "/auth/mfa/enroll",
+            "/auth/mfa/enroll/confirm",
+            "/auth/mfa/challenge",
+        ):
+            with self.subTest(route=route):
+                operation = self.contract["paths"][route]["post"]
+                self.assertEqual(operation["security"], [])
+                self.assertIn("200", operation["responses"])
+                self.assertIn("401", operation["responses"])
+                self.assertIn(("POST", route), self.implemented)
+
+        self.assertIn(
+            "403",
+            self.contract["paths"]["/auth/refresh"]["post"]["responses"],
+        )
+
     def test_policy_create_is_part_of_public_parity(self):
         self.assertIn(("POST", "/policies/"), self.implemented)
         self.assertIn(("POST", "/policies/"), documented_operations(self.contract))
@@ -338,6 +366,27 @@ class OpenApiParityTests(SimpleTestCase):
             set(schemas["VerificationSessionLivenessRequest"]["required"]),
             {"liveness_type", "selfie_capture_id"},
         )
+        document_example = schemas["VerificationSessionDocumentRequest"]["example"]
+        country = next(
+            profile
+            for profile in COUNTRY_PROFILES
+            if profile["code"] == document_example["country_code"]
+        )
+        document = next(
+            item
+            for item in country["supported_document_types"]
+            if item["document_type"] == document_example["document_type"]
+        )
+        self.assertIn(
+            document_example["captures"][0]["side"], document["capture_sides"]
+        )
+        document_resource = next(
+            resource
+            for resource in public_resources(self.contract)
+            if (resource["method"], resource["path"])
+            == ("POST", "/sessions/{session_id}/documents")
+        )
+        self.assertEqual(document_resource["request_body"]["example"], document_example)
 
     def test_referenced_media_example_is_validated_against_its_schema(self):
         changed = deepcopy(self.contract)

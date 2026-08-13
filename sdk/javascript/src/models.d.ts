@@ -93,6 +93,26 @@ export interface PlatformUserMfaChallenge {
   mfa_token: string;
 }
 
+export interface PlatformUserAuthentication {
+  tokens: Record<string, unknown>;
+  user: PlatformUser;
+  recovery_codes?: Array<string>;
+}
+
+export interface PlatformUserMfaEnrollmentRequest {
+  mfa_token: string;
+}
+
+export interface PlatformUserMfaCodeRequest {
+  mfa_token: string;
+  code: string;
+}
+
+export interface PlatformUserMfaEnrollment {
+  secret: string;
+  provisioning_uri: string;
+}
+
 export interface VerificationPolicyCreateRequest {
   project_id?: string;
   name: string;

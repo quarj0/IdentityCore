@@ -46,6 +46,22 @@ public final class GeneratedModels {
 
     }
 
+    public record PlatformUserAuthentication(@JsonProperty("tokens") JsonNode tokens, @JsonProperty("user") PlatformUser user, @JsonProperty("recovery_codes") List<String> recovery_codes) {
+
+    }
+
+    public record PlatformUserMfaEnrollmentRequest(@JsonProperty("mfa_token") String mfa_token) {
+
+    }
+
+    public record PlatformUserMfaCodeRequest(@JsonProperty("mfa_token") String mfa_token, @JsonProperty("code") String code) {
+
+    }
+
+    public record PlatformUserMfaEnrollment(@JsonProperty("secret") String secret, @JsonProperty("provisioning_uri") String provisioning_uri) {
+
+    }
+
     public record VerificationPolicyCreateRequest(@JsonProperty("project_id") String project_id, @JsonProperty("name") String name, @JsonProperty("description") String description, @JsonProperty("consent_template_id") String consent_template_id, @JsonProperty("default_locale") String default_locale, @JsonProperty("supported_locales") List<String> supported_locales, @JsonProperty("required_document_types") List<String> required_document_types, @JsonProperty("required_liveness_level") String required_liveness_level, @JsonProperty("face_match_threshold") Double face_match_threshold, @JsonProperty("manual_review_threshold") Double manual_review_threshold, @JsonProperty("maker_checker_required") Boolean maker_checker_required, @JsonProperty("verification_expiry_minutes") Integer verification_expiry_minutes, @JsonProperty("media_retention_days") Integer media_retention_days, @JsonProperty("metadata_retention_days") Integer metadata_retention_days) {
 
     }

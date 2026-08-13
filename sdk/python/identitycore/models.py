@@ -128,6 +128,43 @@ class PlatformUserMfaChallenge(_PlatformUserMfaChallengeRequired, total=False):
     pass
 
 
+class _PlatformUserAuthenticationRequired(TypedDict):
+    tokens: dict[str, Any]
+    user: PlatformUser
+
+
+class PlatformUserAuthentication(_PlatformUserAuthenticationRequired, total=False):
+    recovery_codes: list[str]
+
+
+class _PlatformUserMfaEnrollmentRequestRequired(TypedDict):
+    mfa_token: str
+
+
+class PlatformUserMfaEnrollmentRequest(
+    _PlatformUserMfaEnrollmentRequestRequired, total=False
+):
+    pass
+
+
+class _PlatformUserMfaCodeRequestRequired(TypedDict):
+    mfa_token: str
+    code: str
+
+
+class PlatformUserMfaCodeRequest(_PlatformUserMfaCodeRequestRequired, total=False):
+    pass
+
+
+class _PlatformUserMfaEnrollmentRequired(TypedDict):
+    secret: str
+    provisioning_uri: str
+
+
+class PlatformUserMfaEnrollment(_PlatformUserMfaEnrollmentRequired, total=False):
+    pass
+
+
 class _VerificationPolicyCreateRequestRequired(TypedDict):
     name: str
     required_document_types: list[str]

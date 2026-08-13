@@ -22,14 +22,23 @@ urlpatterns = [
         "refresh", RefreshView.as_view(), methods=("POST",), name="auth-refresh"
     ),
     internal_api_path("logout", LogoutView.as_view(), name="auth-logout"),
-    internal_api_path("mfa/enroll", MFAEnrollView.as_view(), name="auth-mfa-enroll"),
-    internal_api_path(
+    public_api_path(
+        "mfa/enroll",
+        MFAEnrollView.as_view(),
+        methods=("POST",),
+        name="auth-mfa-enroll",
+    ),
+    public_api_path(
         "mfa/enroll/confirm",
         MFAEnrollConfirmView.as_view(),
+        methods=("POST",),
         name="auth-mfa-enroll-confirm",
     ),
-    internal_api_path(
-        "mfa/challenge", MFAChallengeView.as_view(), name="auth-mfa-challenge"
+    public_api_path(
+        "mfa/challenge",
+        MFAChallengeView.as_view(),
+        methods=("POST",),
+        name="auth-mfa-challenge",
     ),
     internal_api_path("mfa/reset", MFAResetView.as_view(), name="auth-mfa-reset"),
     public_api_path("me", MeView.as_view(), methods=("GET",), name="auth-me"),

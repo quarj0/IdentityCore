@@ -268,9 +268,56 @@ components:
           type: boolean
         mfa_token:
           type: string
+    PlatformUserAuthentication:
+      type: object
+      required: [tokens, user]
+      properties:
+        tokens:
+          type: object
+          required: [access]
+          properties:
+            access:
+              type: string
+        user:
+          $ref: "#/components/schemas/PlatformUser"
+        recovery_codes:
+          type: array
+          description: One-time recovery codes returned only after MFA enrollment confirmation.
+          items:
+            type: string
+    PlatformUserMfaEnrollmentRequest:
+      type: object
+      additionalProperties: false
+      required: [mfa_token]
+      properties:
+        mfa_token:
+          type: string
+          description: Short-lived enrollment token returned by platform-user login.
+    PlatformUserMfaCodeRequest:
+      type: object
+      additionalProperties: false
+      required: [mfa_token, code]
+      properties:
+        mfa_token:
+          type: string
+          description: Short-lived MFA transaction token returned by platform-user login.
+        code:
+          type: string
+          description: Six-digit authenticator code, or a recovery code for an MFA challenge.
+    PlatformUserMfaEnrollment:
+      type: object
+      required: [secret, provisioning_uri]
+      properties:
+        secret:
+          type: string
+          description: Base32 TOTP secret to store in the user's authenticator.
+        provisioning_uri:
+          type: string
+          format: uri
     VerificationPolicyCreateRequest:
       type: object
       additionalProperties: false
+      description: The manual_review_threshold must be less than or equal to face_match_threshold.
       required:
         [name, required_document_types, required_liveness_level, face_match_threshold, manual_review_threshold, verification_expiry_minutes, media_retention_days, metadata_retention_days]
       properties:
@@ -309,6 +356,7 @@ components:
           type: number
           minimum: 0
           maximum: 1
+          description: Must be less than or equal to face_match_threshold.
         maker_checker_required:
           type: boolean
           default: false
@@ -377,6 +425,12 @@ components:
       type: object
       additionalProperties: false
       required: [document_type, country_code, captures]
+      example:
+        document_type: passport
+        country_code: GH
+        captures:
+          - side: single
+            upload_id: upl_01JABC
       properties:
         document_type:
           type: string
@@ -1400,17 +1454,7 @@ paths:
                   success:
                     const: true
                   data:
-                    type: object
-                    required: [tokens, user]
-                    properties:
-                      tokens:
-                        type: object
-                        required: [access]
-                        properties:
-                          access:
-                            type: string
-                      user:
-                        $ref: "#/components/schemas/PlatformUser"
+                    $ref: "#/components/schemas/PlatformUserAuthentication"
                   request_id:
                     type: string
         "202":
@@ -1429,6 +1473,88 @@ paths:
                     type: string
         "400":
           $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /auth/mfa/enroll:
+    post:
+      security: []
+      summary: Start platform-user MFA enrollment.
+      description: Exchanges the short-lived enrollment token returned by login for TOTP provisioning material.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformUserMfaEnrollmentRequest"
+      responses:
+        "200":
+          description: TOTP provisioning material was issued.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/PlatformUserMfaEnrollment"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /auth/mfa/enroll/confirm:
+    post:
+      security: []
+      summary: Confirm platform-user MFA enrollment and finish login.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformUserMfaCodeRequest"
+      responses:
+        "200":
+          description: MFA enrollment was confirmed, recovery codes were issued, and login completed.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/PlatformUserAuthentication"
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /auth/mfa/challenge:
+    post:
+      security: []
+      summary: Complete a platform-user MFA login challenge.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformUserMfaCodeRequest"
+      responses:
+        "200":
+          description: The second factor was accepted and login completed.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/PlatformUserAuthentication"
+                  request_id:
+                    type: string
         "401":
           $ref: "#/components/responses/PermissionDenied"
   /auth/refresh:
@@ -1461,6 +1587,8 @@ paths:
                   request_id:
                     type: string
         "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
           $ref: "#/components/responses/PermissionDenied"
   /auth/me:
     get:
