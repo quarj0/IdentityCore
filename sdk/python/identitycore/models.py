@@ -118,6 +118,51 @@ class PlatformUser(_PlatformUserRequired, total=False):
     pass
 
 
+class _PlatformUserMfaChallengeRequired(TypedDict):
+    mfa_required: bool
+    mfa_enrollment_required: bool
+    mfa_token: str
+
+
+class PlatformUserMfaChallenge(_PlatformUserMfaChallengeRequired, total=False):
+    pass
+
+
+class _VerificationPolicyCreateRequestRequired(TypedDict):
+    name: str
+    required_document_types: list[str]
+    required_liveness_level: str
+    face_match_threshold: float
+    manual_review_threshold: float
+    verification_expiry_minutes: int
+    media_retention_days: int
+    metadata_retention_days: int
+
+
+class VerificationPolicyCreateRequest(
+    _VerificationPolicyCreateRequestRequired, total=False
+):
+    project_id: str
+    description: str
+    consent_template_id: str
+    default_locale: str
+    supported_locales: list[str]
+    maker_checker_required: bool
+
+
+class _VerificationPolicyCreateResponseRequired(TypedDict):
+    id: str
+    name: str
+    version: int
+    status: str
+
+
+class VerificationPolicyCreateResponse(
+    _VerificationPolicyCreateResponseRequired, total=False
+):
+    pass
+
+
 class _VerificationCreateResponseRequired(TypedDict):
     id: str
     status: str
@@ -175,6 +220,124 @@ class VerificationSessionLivenessRequest(
     _VerificationSessionLivenessRequestRequired, total=False
 ):
     challenge_id: str
+
+
+class _VerificationMobileHandoffRedeemResponseRequired(TypedDict):
+    session_id: str
+    session_token: str
+    verification_id: str
+
+
+class VerificationMobileHandoffRedeemResponse(
+    _VerificationMobileHandoffRedeemResponseRequired, total=False
+):
+    pass
+
+
+class _VerificationSessionResponseRequired(TypedDict):
+    session_id: str
+    verification_id: str
+    status: str
+    organization: dict[str, Any]
+    purpose: str
+    redirect_url: str
+    required_steps: list[str]
+    workflow: dict[str, Any]
+    locale: str
+    supported_locales: list[str]
+    direction: str
+    consent: dict[str, Any]
+    document: dict[str, Any]
+    available_documents: list[dict[str, Any]]
+    available_countries: list[dict[str, Any]]
+    expires_at: str
+
+
+class VerificationSessionResponse(_VerificationSessionResponseRequired, total=False):
+    pass
+
+
+class _VerificationSessionConsentResponseRequired(TypedDict):
+    consent_record_id: str
+    next_step: str
+
+
+class VerificationSessionConsentResponse(
+    _VerificationSessionConsentResponseRequired, total=False
+):
+    pass
+
+
+class _VerificationSessionDocumentResponseRequired(TypedDict):
+    identity_document_id: str
+    status: str
+    next_step: str
+
+
+class VerificationSessionDocumentResponse(
+    _VerificationSessionDocumentResponseRequired, total=False
+):
+    pass
+
+
+class _VerificationSessionSelfieResponseRequired(TypedDict):
+    selfie_capture_id: str
+    status: str
+    next_step: str
+
+
+class VerificationSessionSelfieResponse(
+    _VerificationSessionSelfieResponseRequired, total=False
+):
+    pass
+
+
+class _VerificationSessionLivenessResponseRequired(TypedDict):
+    liveness_check_id: str
+    status: str
+
+
+class VerificationSessionLivenessResponse(
+    _VerificationSessionLivenessResponseRequired, total=False
+):
+    pass
+
+
+class _VerificationSessionLivenessChallengeResponseRequired(TypedDict):
+    challenge_id: str
+    actions: list[str]
+    expires_at: str
+
+
+class VerificationSessionLivenessChallengeResponse(
+    _VerificationSessionLivenessChallengeResponseRequired, total=False
+):
+    pass
+
+
+class _VerificationSessionStatusResponseRequired(TypedDict):
+    verification_id: str
+    status: str
+    current_step: str
+    message: str
+    evidence: dict[str, Any]
+
+
+class VerificationSessionStatusResponse(
+    _VerificationSessionStatusResponseRequired, total=False
+):
+    pass
+
+
+class _VerificationMobileHandoffResponseRequired(TypedDict):
+    handoff_url: str
+    expires_at: str
+
+
+class VerificationMobileHandoffResponse(
+    _VerificationMobileHandoffResponseRequired, total=False
+):
+    pass
 
 
 class _VerificationSummaryRequired(TypedDict):

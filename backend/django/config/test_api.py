@@ -62,7 +62,7 @@ class CatalogEndpointTests(APITestCase):
         self.assertEqual(
             data["base_urls"]["development"], "http://localhost:8000/api/v1"
         )
-        self.assertEqual(len(data["resources"]), 60)
+        self.assertEqual(len(data["resources"]), 61)
         self.assertIn("/verifications/", [item["path"] for item in data["resources"]])
         documented_paths = {item["path"] for item in data["resources"]}
         self.assertTrue(
@@ -187,6 +187,10 @@ class OpenApiAuthenticationContractTests(APITestCase):
                 "name": "X-Session-Id",
                 "description": "Verification session identifier required when it is not present in the URL path.",
             },
+        )
+        self.assertEqual(
+            paths["/auth/refresh"]["post"]["security"],
+            [{"platformRefreshCookie": []}],
         )
 
     def test_client_id_is_not_duplicated_as_an_operation_parameter(self):

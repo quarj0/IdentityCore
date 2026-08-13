@@ -78,18 +78,41 @@ export default async function ApiDetailPage({
       authenticationHeaders += ` \\
   -H "X-Session-Id: $IDENTITYCORE_SESSION_ID"`;
     }
-  } else if (
-    securitySchemes.has("platformUserBearer")
-  ) {
+  } else if (securitySchemes.has("platformUserBearer")) {
     authenticationHeaders = ` \\
   -H "Authorization: Bearer $IDENTITYCORE_USER_TOKEN"`;
   } else if (
     contractEndpoint.security === undefined ||
-    securitySchemes.size > 0
+    securitySchemes.has("apiClient") ||
+    securitySchemes.has("apiClientId")
   ) {
     authenticationHeaders = ` \\
   -H "Authorization: Bearer $IDENTITYCORE_API_KEY" \\
   -H "X-Client-Id: $IDENTITYCORE_CLIENT_ID"`;
+  }
+  if (securitySchemes.has("platformRefreshCookie")) {
+    authenticationHeaders += ` \\
+  --cookie "identitycore_refresh=$IDENTITYCORE_REFRESH_TOKEN"`;
+  }
+  let requestBody = "";
+  if (contractEndpoint.request_body) {
+    if (contractEndpoint.request_body.content_type === "application/json") {
+      requestBody = ` \\
+  -H "Content-Type: application/json" \\
+  --data '${JSON.stringify(contractEndpoint.request_body.example, null, 2)}'`;
+    } else if (
+      contractEndpoint.request_body.content_type === "multipart/form-data" &&
+      typeof contractEndpoint.request_body.example === "object" &&
+      contractEndpoint.request_body.example !== null
+    ) {
+      requestBody = Object.entries(contractEndpoint.request_body.example)
+        .map(
+          ([name, value]) =>
+            ` \\
+  -F "${name}=@${String(value)}"`,
+        )
+        .join("");
+    }
   }
 
   return (
@@ -110,7 +133,7 @@ export default async function ApiDetailPage({
       <CodeBlock
         title="Request template"
         language="bash"
-        code={`curl -X ${contractEndpoint.method} https://api.identitycore.com${contractPath}${authenticationHeaders}`}
+        code={`curl -X ${contractEndpoint.method} https://api.identitycore.com${contractPath}${authenticationHeaders}${requestBody}`}
       />
 
       <CodeBlock

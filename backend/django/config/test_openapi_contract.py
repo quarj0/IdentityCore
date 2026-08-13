@@ -146,6 +146,68 @@ class OpenApiParityTests(SimpleTestCase):
             self.contract["security"],
         )
 
+    def test_docs_overview_includes_request_body_examples(self):
+        resources = public_resources(self.contract)
+        by_operation = {
+            (resource["method"], resource["path"]): resource for resource in resources
+        }
+
+        self.assertEqual(
+            by_operation[("POST", "/auth/login")]["request_body"],
+            {
+                "required": True,
+                "content_type": "application/json",
+                "example": {"email": "user@example.com", "password": "string"},
+            },
+        )
+        self.assertEqual(
+            by_operation[("POST", "/uploads/{upload_id}/transfer")]["request_body"],
+            {
+                "required": True,
+                "content_type": "multipart/form-data",
+                "example": {"file": "/path/to/file"},
+            },
+        )
+
+    def test_policy_create_is_part_of_public_parity(self):
+        self.assertIn(("POST", "/policies/"), self.implemented)
+        self.assertIn(("POST", "/policies/"), documented_operations(self.contract))
+
+    def test_session_success_responses_are_typed(self):
+        expected = {
+            (
+                "/sessions/mobile-handoff/redeem",
+                "VerificationMobileHandoffRedeemResponse",
+            ),
+            ("/sessions/{session_id}", "VerificationSessionResponse"),
+            ("/sessions/{session_id}/consent", "VerificationSessionConsentResponse"),
+            ("/sessions/{session_id}/documents", "VerificationSessionDocumentResponse"),
+            ("/sessions/{session_id}/selfies", "VerificationSessionSelfieResponse"),
+            ("/sessions/{session_id}/liveness", "VerificationSessionLivenessResponse"),
+            (
+                "/sessions/{session_id}/liveness/challenge",
+                "VerificationSessionLivenessChallengeResponse",
+            ),
+            ("/sessions/{session_id}/status", "VerificationSessionStatusResponse"),
+            (
+                "/sessions/{session_id}/mobile-handoff",
+                "VerificationMobileHandoffResponse",
+            ),
+        }
+        for route, schema_name in expected:
+            method = (
+                "get"
+                if route.endswith("{session_id}") or route.endswith("/status")
+                else "post"
+            )
+            schema = self.contract["paths"][route][method]["responses"]["200"][
+                "content"
+            ]["application/json"]["schema"]
+            self.assertEqual(
+                schema["properties"]["data"]["$ref"],
+                f"#/components/schemas/{schema_name}",
+            )
+
     def test_trace_is_included_in_stale_operation_detection(self):
         changed = deepcopy(self.contract)
         changed["paths"]["/health"]["trace"] = {

@@ -42,6 +42,18 @@ public final class GeneratedModels {
 
     }
 
+    public record PlatformUserMfaChallenge(@JsonProperty("mfa_required") Boolean mfa_required, @JsonProperty("mfa_enrollment_required") Boolean mfa_enrollment_required, @JsonProperty("mfa_token") String mfa_token) {
+
+    }
+
+    public record VerificationPolicyCreateRequest(@JsonProperty("project_id") String project_id, @JsonProperty("name") String name, @JsonProperty("description") String description, @JsonProperty("consent_template_id") String consent_template_id, @JsonProperty("default_locale") String default_locale, @JsonProperty("supported_locales") List<String> supported_locales, @JsonProperty("required_document_types") List<String> required_document_types, @JsonProperty("required_liveness_level") String required_liveness_level, @JsonProperty("face_match_threshold") Double face_match_threshold, @JsonProperty("manual_review_threshold") Double manual_review_threshold, @JsonProperty("maker_checker_required") Boolean maker_checker_required, @JsonProperty("verification_expiry_minutes") Integer verification_expiry_minutes, @JsonProperty("media_retention_days") Integer media_retention_days, @JsonProperty("metadata_retention_days") Integer metadata_retention_days) {
+
+    }
+
+    public record VerificationPolicyCreateResponse(@JsonProperty("id") String id, @JsonProperty("name") String name, @JsonProperty("version") Integer version, @JsonProperty("status") String status) {
+
+    }
+
     public record VerificationCreateResponse(@JsonProperty("id") String id, @JsonProperty("status") String status, @JsonProperty("verification_url") String verification_url, @JsonProperty("session_id") String session_id, @JsonProperty("session_token") String session_token, @JsonProperty("expires_at") String expires_at) {
 
     }
@@ -59,6 +71,42 @@ public final class GeneratedModels {
     }
 
     public record VerificationSessionLivenessRequest(@JsonProperty("liveness_type") String liveness_type, @JsonProperty("selfie_capture_id") String selfie_capture_id, @JsonProperty("challenge_id") String challenge_id) {
+
+    }
+
+    public record VerificationMobileHandoffRedeemResponse(@JsonProperty("session_id") String session_id, @JsonProperty("session_token") String session_token, @JsonProperty("verification_id") String verification_id) {
+
+    }
+
+    public record VerificationSessionResponse(@JsonProperty("session_id") String session_id, @JsonProperty("verification_id") String verification_id, @JsonProperty("status") String status, @JsonProperty("organization") JsonNode organization, @JsonProperty("purpose") String purpose, @JsonProperty("redirect_url") String redirect_url, @JsonProperty("required_steps") List<String> required_steps, @JsonProperty("workflow") JsonNode workflow, @JsonProperty("locale") String locale, @JsonProperty("supported_locales") List<String> supported_locales, @JsonProperty("direction") String direction, @JsonProperty("consent") JsonNode consent, @JsonProperty("document") JsonNode document, @JsonProperty("available_documents") List<JsonNode> available_documents, @JsonProperty("available_countries") List<JsonNode> available_countries, @JsonProperty("expires_at") String expires_at) {
+
+    }
+
+    public record VerificationSessionConsentResponse(@JsonProperty("consent_record_id") String consent_record_id, @JsonProperty("next_step") String next_step) {
+
+    }
+
+    public record VerificationSessionDocumentResponse(@JsonProperty("identity_document_id") String identity_document_id, @JsonProperty("status") String status, @JsonProperty("next_step") String next_step) {
+
+    }
+
+    public record VerificationSessionSelfieResponse(@JsonProperty("selfie_capture_id") String selfie_capture_id, @JsonProperty("status") String status, @JsonProperty("next_step") String next_step) {
+
+    }
+
+    public record VerificationSessionLivenessResponse(@JsonProperty("liveness_check_id") String liveness_check_id, @JsonProperty("status") String status) {
+
+    }
+
+    public record VerificationSessionLivenessChallengeResponse(@JsonProperty("challenge_id") String challenge_id, @JsonProperty("actions") List<String> actions, @JsonProperty("expires_at") String expires_at) {
+
+    }
+
+    public record VerificationSessionStatusResponse(@JsonProperty("verification_id") String verification_id, @JsonProperty("status") String status, @JsonProperty("current_step") String current_step, @JsonProperty("message") String message, @JsonProperty("evidence") JsonNode evidence) {
+
+    }
+
+    public record VerificationMobileHandoffResponse(@JsonProperty("handoff_url") String handoff_url, @JsonProperty("expires_at") String expires_at) {
 
     }
 

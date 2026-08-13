@@ -27,6 +27,11 @@ components:
       type: http
       scheme: bearer
       description: Portal JWT authentication used by authenticated workspace users.
+    platformRefreshCookie:
+      type: apiKey
+      in: cookie
+      name: identitycore_refresh
+      description: Scoped HttpOnly refresh token cookie issued by platform-user login.
     verificationSessionBearer:
       type: http
       scheme: bearer
@@ -251,6 +256,83 @@ components:
         updated_at:
           type: string
           format: date-time
+    PlatformUserMfaChallenge:
+      type: object
+      required: [mfa_required, mfa_enrollment_required, mfa_token]
+      properties:
+        mfa_required:
+          type: boolean
+          const: true
+        mfa_enrollment_required:
+          type: boolean
+        mfa_token:
+          type: string
+    VerificationPolicyCreateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        [name, required_document_types, required_liveness_level, face_match_threshold, manual_review_threshold, verification_expiry_minutes, media_retention_days, metadata_retention_days]
+      properties:
+        project_id:
+          type: string
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        consent_template_id:
+          type: string
+        default_locale:
+          type: string
+          maxLength: 16
+          default: en
+        supported_locales:
+          type: array
+          items:
+            type: string
+            maxLength: 16
+        required_document_types:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            maxLength: 64
+        required_liveness_level:
+          type: string
+          enum: [passive, active]
+        face_match_threshold:
+          type: number
+          minimum: 0
+          maximum: 1
+        manual_review_threshold:
+          type: number
+          minimum: 0
+          maximum: 1
+        maker_checker_required:
+          type: boolean
+          default: false
+        verification_expiry_minutes:
+          type: integer
+          minimum: 1
+        media_retention_days:
+          type: integer
+          minimum: 1
+        metadata_retention_days:
+          type: integer
+          minimum: 1
+    VerificationPolicyCreateResponse:
+      type: object
+      required: [id, name, version, status]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        version:
+          type: integer
+        status:
+          type: string
+          const: draft
     VerificationCreateResponse:
       type: object
       required: [id, status, verification_url, session_id, expires_at]
@@ -340,6 +422,157 @@ components:
         challenge_id:
           type: string
           maxLength: 64
+    VerificationMobileHandoffRedeemResponse:
+      type: object
+      required: [session_id, session_token, verification_id]
+      properties:
+        session_id:
+          type: string
+        session_token:
+          type: string
+        verification_id:
+          type: string
+    VerificationSessionResponse:
+      type: object
+      required:
+        [session_id, verification_id, status, organization, purpose, redirect_url, required_steps, workflow, locale, supported_locales, direction, consent, document, available_documents, available_countries, expires_at]
+      properties:
+        session_id:
+          type: string
+        verification_id:
+          type: string
+        status:
+          type: string
+        organization:
+          type: object
+          additionalProperties: true
+        purpose:
+          type: string
+        redirect_url:
+          type: string
+        required_steps:
+          type: array
+          items:
+            type: string
+        workflow:
+          type: object
+          additionalProperties: true
+        locale:
+          type: string
+        supported_locales:
+          type: array
+          items:
+            type: string
+        direction:
+          type: string
+          enum: [ltr, rtl]
+        consent:
+          type: object
+          additionalProperties: true
+        document:
+          type: object
+          additionalProperties: true
+        available_documents:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        available_countries:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        expires_at:
+          type: string
+          format: date-time
+    VerificationSessionConsentResponse:
+      type: object
+      required: [consent_record_id, next_step]
+      properties:
+        consent_record_id:
+          type: string
+        next_step:
+          type: string
+          const: document_capture
+    VerificationSessionDocumentResponse:
+      type: object
+      required: [identity_document_id, status, next_step]
+      properties:
+        identity_document_id:
+          type: string
+        status:
+          type: string
+        next_step:
+          type: string
+          const: document_processing
+    VerificationSessionSelfieResponse:
+      type: object
+      required: [selfie_capture_id, status, next_step]
+      properties:
+        selfie_capture_id:
+          type: string
+        status:
+          type: string
+          const: processing
+        next_step:
+          type: string
+          const: liveness_check
+    VerificationSessionLivenessResponse:
+      type: object
+      required: [liveness_check_id, status]
+      properties:
+        liveness_check_id:
+          type: string
+        status:
+          type: string
+          const: processing
+    VerificationSessionLivenessChallengeResponse:
+      type: object
+      required: [challenge_id, actions, expires_at]
+      properties:
+        challenge_id:
+          type: string
+        actions:
+          type: array
+          items:
+            type: string
+            enum: [turn_left, turn_right, look_up, look_down]
+        expires_at:
+          type: string
+          format: date-time
+    VerificationSessionStatusResponse:
+      type: object
+      required: [verification_id, status, current_step, message, evidence]
+      properties:
+        verification_id:
+          type: string
+        status:
+          type: string
+        current_step:
+          type: string
+        message:
+          type: string
+        evidence:
+          type: object
+          additionalProperties: false
+          required: [identity_document_id, selfie_capture_id, liveness_check_id]
+          properties:
+            identity_document_id:
+              type: string
+            selfie_capture_id:
+              type: string
+            liveness_check_id:
+              type: string
+    VerificationMobileHandoffResponse:
+      type: object
+      required: [handoff_url, expires_at]
+      properties:
+        handoff_url:
+          type: string
+          format: uri
+        expires_at:
+          type: string
+          format: date-time
     VerificationSummary:
       type: object
       required:
@@ -1181,13 +1414,26 @@ paths:
                     type: string
         "202":
           description: A multi-factor authentication challenge or enrollment is required.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/PlatformUserMfaChallenge"
+                  request_id:
+                    type: string
         "400":
           $ref: "#/components/responses/ValidationError"
         "401":
           $ref: "#/components/responses/PermissionDenied"
   /auth/refresh:
     post:
-      security: []
+      security:
+        - platformRefreshCookie: []
       summary: Rotate the refresh cookie and issue a platform-user access token.
       description: Requires the scoped HttpOnly refresh cookie and a trusted Origin header.
       responses:
@@ -1346,6 +1592,18 @@ paths:
       responses:
         "200":
           description: A new verification session was issued.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationMobileHandoffRedeemResponse"
+                  request_id:
+                    type: string
         "400":
           $ref: "#/components/responses/ValidationError"
         "404":
@@ -1364,6 +1622,18 @@ paths:
       responses:
         "200":
           description: Verification session state and allowed actions.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationSessionResponse"
+                  request_id:
+                    type: string
         "401":
           $ref: "#/components/responses/PermissionDenied"
   /sessions/{session_id}/consent:
@@ -1386,6 +1656,18 @@ paths:
       responses:
         "200":
           description: Consent was recorded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationSessionConsentResponse"
+                  request_id:
+                    type: string
         "400":
           $ref: "#/components/responses/ValidationError"
         "401":
@@ -1410,6 +1692,18 @@ paths:
       responses:
         "200":
           description: Document capture was accepted for processing.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationSessionDocumentResponse"
+                  request_id:
+                    type: string
         "400":
           $ref: "#/components/responses/ValidationError"
         "401":
@@ -1434,6 +1728,18 @@ paths:
       responses:
         "200":
           description: Selfie capture was accepted for processing.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationSessionSelfieResponse"
+                  request_id:
+                    type: string
         "400":
           $ref: "#/components/responses/ValidationError"
         "401":
@@ -1458,6 +1764,18 @@ paths:
       responses:
         "200":
           description: Liveness evidence was accepted for processing.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationSessionLivenessResponse"
+                  request_id:
+                    type: string
         "400":
           $ref: "#/components/responses/ValidationError"
         "401":
@@ -1483,6 +1801,18 @@ paths:
       responses:
         "200":
           description: Liveness challenge details.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationSessionLivenessChallengeResponse"
+                  request_id:
+                    type: string
         "400":
           $ref: "#/components/responses/ValidationError"
         "401":
@@ -1501,6 +1831,18 @@ paths:
       responses:
         "200":
           description: Verification-session progress and next action.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationSessionStatusResponse"
+                  request_id:
+                    type: string
         "401":
           $ref: "#/components/responses/PermissionDenied"
   /sessions/{session_id}/mobile-handoff:
@@ -1517,6 +1859,18 @@ paths:
       responses:
         "200":
           description: Mobile handoff URL and expiry.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationMobileHandoffResponse"
+                  request_id:
+                    type: string
         "400":
           $ref: "#/components/responses/ValidationError"
         "401":
@@ -1643,6 +1997,38 @@ paths:
                       $ref: "#/components/schemas/Policy"
                   request_id:
                     type: string
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+    post:
+      summary: Create a draft verification policy.
+      description: Platform-user JWT authentication is required; API clients cannot create policies.
+      security:
+        - platformUserBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerificationPolicyCreateRequest"
+      responses:
+        "201":
+          description: Draft verification policy created.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationPolicyCreateResponse"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
         "403":
           $ref: "#/components/responses/PermissionDenied"
   /policies/{policy_id}:

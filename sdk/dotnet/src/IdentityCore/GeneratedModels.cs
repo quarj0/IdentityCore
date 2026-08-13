@@ -162,6 +162,60 @@ public sealed record PlatformUser
     public string UpdatedAt { get; init; }
 }
 
+public sealed record PlatformUserMfaChallenge
+{
+    [JsonPropertyName("mfa_required")]
+    public bool MfaRequired { get; init; }
+    [JsonPropertyName("mfa_enrollment_required")]
+    public bool MfaEnrollmentRequired { get; init; }
+    [JsonPropertyName("mfa_token")]
+    public string MfaToken { get; init; }
+}
+
+public sealed record VerificationPolicyCreateRequest
+{
+    [JsonPropertyName("project_id")]
+    public string? ProjectId { get; init; }
+    [JsonPropertyName("name")]
+    public string Name { get; init; }
+    [JsonPropertyName("description")]
+    public string? Description { get; init; }
+    [JsonPropertyName("consent_template_id")]
+    public string? ConsentTemplateId { get; init; }
+    [JsonPropertyName("default_locale")]
+    public string? DefaultLocale { get; init; }
+    [JsonPropertyName("supported_locales")]
+    public IReadOnlyList<string>? SupportedLocales { get; init; }
+    [JsonPropertyName("required_document_types")]
+    public IReadOnlyList<string> RequiredDocumentTypes { get; init; }
+    [JsonPropertyName("required_liveness_level")]
+    public string RequiredLivenessLevel { get; init; }
+    [JsonPropertyName("face_match_threshold")]
+    public double FaceMatchThreshold { get; init; }
+    [JsonPropertyName("manual_review_threshold")]
+    public double ManualReviewThreshold { get; init; }
+    [JsonPropertyName("maker_checker_required")]
+    public bool? MakerCheckerRequired { get; init; }
+    [JsonPropertyName("verification_expiry_minutes")]
+    public int VerificationExpiryMinutes { get; init; }
+    [JsonPropertyName("media_retention_days")]
+    public int MediaRetentionDays { get; init; }
+    [JsonPropertyName("metadata_retention_days")]
+    public int MetadataRetentionDays { get; init; }
+}
+
+public sealed record VerificationPolicyCreateResponse
+{
+    [JsonPropertyName("id")]
+    public string Id { get; init; }
+    [JsonPropertyName("name")]
+    public string Name { get; init; }
+    [JsonPropertyName("version")]
+    public int Version { get; init; }
+    [JsonPropertyName("status")]
+    public string Status { get; init; }
+}
+
 public sealed record VerificationCreateResponse
 {
     [JsonPropertyName("id")]
@@ -218,6 +272,120 @@ public sealed record VerificationSessionLivenessRequest
     public string SelfieCaptureId { get; init; }
     [JsonPropertyName("challenge_id")]
     public string? ChallengeId { get; init; }
+}
+
+public sealed record VerificationMobileHandoffRedeemResponse
+{
+    [JsonPropertyName("session_id")]
+    public string SessionId { get; init; }
+    [JsonPropertyName("session_token")]
+    public string SessionToken { get; init; }
+    [JsonPropertyName("verification_id")]
+    public string VerificationId { get; init; }
+}
+
+public sealed record VerificationSessionResponse
+{
+    [JsonPropertyName("session_id")]
+    public string SessionId { get; init; }
+    [JsonPropertyName("verification_id")]
+    public string VerificationId { get; init; }
+    [JsonPropertyName("status")]
+    public string Status { get; init; }
+    [JsonPropertyName("organization")]
+    public JsonElement Organization { get; init; }
+    [JsonPropertyName("purpose")]
+    public string Purpose { get; init; }
+    [JsonPropertyName("redirect_url")]
+    public string RedirectUrl { get; init; }
+    [JsonPropertyName("required_steps")]
+    public IReadOnlyList<string> RequiredSteps { get; init; }
+    [JsonPropertyName("workflow")]
+    public JsonElement Workflow { get; init; }
+    [JsonPropertyName("locale")]
+    public string Locale { get; init; }
+    [JsonPropertyName("supported_locales")]
+    public IReadOnlyList<string> SupportedLocales { get; init; }
+    [JsonPropertyName("direction")]
+    public string Direction { get; init; }
+    [JsonPropertyName("consent")]
+    public JsonElement Consent { get; init; }
+    [JsonPropertyName("document")]
+    public JsonElement Document { get; init; }
+    [JsonPropertyName("available_documents")]
+    public IReadOnlyList<JsonElement> AvailableDocuments { get; init; }
+    [JsonPropertyName("available_countries")]
+    public IReadOnlyList<JsonElement> AvailableCountries { get; init; }
+    [JsonPropertyName("expires_at")]
+    public string ExpiresAt { get; init; }
+}
+
+public sealed record VerificationSessionConsentResponse
+{
+    [JsonPropertyName("consent_record_id")]
+    public string ConsentRecordId { get; init; }
+    [JsonPropertyName("next_step")]
+    public string NextStep { get; init; }
+}
+
+public sealed record VerificationSessionDocumentResponse
+{
+    [JsonPropertyName("identity_document_id")]
+    public string IdentityDocumentId { get; init; }
+    [JsonPropertyName("status")]
+    public string Status { get; init; }
+    [JsonPropertyName("next_step")]
+    public string NextStep { get; init; }
+}
+
+public sealed record VerificationSessionSelfieResponse
+{
+    [JsonPropertyName("selfie_capture_id")]
+    public string SelfieCaptureId { get; init; }
+    [JsonPropertyName("status")]
+    public string Status { get; init; }
+    [JsonPropertyName("next_step")]
+    public string NextStep { get; init; }
+}
+
+public sealed record VerificationSessionLivenessResponse
+{
+    [JsonPropertyName("liveness_check_id")]
+    public string LivenessCheckId { get; init; }
+    [JsonPropertyName("status")]
+    public string Status { get; init; }
+}
+
+public sealed record VerificationSessionLivenessChallengeResponse
+{
+    [JsonPropertyName("challenge_id")]
+    public string ChallengeId { get; init; }
+    [JsonPropertyName("actions")]
+    public IReadOnlyList<string> Actions { get; init; }
+    [JsonPropertyName("expires_at")]
+    public string ExpiresAt { get; init; }
+}
+
+public sealed record VerificationSessionStatusResponse
+{
+    [JsonPropertyName("verification_id")]
+    public string VerificationId { get; init; }
+    [JsonPropertyName("status")]
+    public string Status { get; init; }
+    [JsonPropertyName("current_step")]
+    public string CurrentStep { get; init; }
+    [JsonPropertyName("message")]
+    public string Message { get; init; }
+    [JsonPropertyName("evidence")]
+    public JsonElement Evidence { get; init; }
+}
+
+public sealed record VerificationMobileHandoffResponse
+{
+    [JsonPropertyName("handoff_url")]
+    public string HandoffUrl { get; init; }
+    [JsonPropertyName("expires_at")]
+    public string ExpiresAt { get; init; }
 }
 
 public sealed record VerificationSummary

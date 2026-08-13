@@ -87,6 +87,36 @@ export interface PlatformUser {
   updated_at: string;
 }
 
+export interface PlatformUserMfaChallenge {
+  mfa_required: boolean;
+  mfa_enrollment_required: boolean;
+  mfa_token: string;
+}
+
+export interface VerificationPolicyCreateRequest {
+  project_id?: string;
+  name: string;
+  description?: string;
+  consent_template_id?: string;
+  default_locale?: string;
+  supported_locales?: Array<string>;
+  required_document_types: Array<string>;
+  required_liveness_level: string;
+  face_match_threshold: number;
+  manual_review_threshold: number;
+  maker_checker_required?: boolean;
+  verification_expiry_minutes: number;
+  media_retention_days: number;
+  metadata_retention_days: number;
+}
+
+export interface VerificationPolicyCreateResponse {
+  id: string;
+  name: string;
+  version: number;
+  status: string;
+}
+
 export interface VerificationCreateResponse {
   id: string;
   status: string;
@@ -119,6 +149,72 @@ export interface VerificationSessionLivenessRequest {
   liveness_type: string;
   selfie_capture_id: string;
   challenge_id?: string;
+}
+
+export interface VerificationMobileHandoffRedeemResponse {
+  session_id: string;
+  session_token: string;
+  verification_id: string;
+}
+
+export interface VerificationSessionResponse {
+  session_id: string;
+  verification_id: string;
+  status: string;
+  organization: Record<string, unknown>;
+  purpose: string;
+  redirect_url: string;
+  required_steps: Array<string>;
+  workflow: Record<string, unknown>;
+  locale: string;
+  supported_locales: Array<string>;
+  direction: string;
+  consent: Record<string, unknown>;
+  document: Record<string, unknown>;
+  available_documents: Array<Record<string, unknown>>;
+  available_countries: Array<Record<string, unknown>>;
+  expires_at: string;
+}
+
+export interface VerificationSessionConsentResponse {
+  consent_record_id: string;
+  next_step: string;
+}
+
+export interface VerificationSessionDocumentResponse {
+  identity_document_id: string;
+  status: string;
+  next_step: string;
+}
+
+export interface VerificationSessionSelfieResponse {
+  selfie_capture_id: string;
+  status: string;
+  next_step: string;
+}
+
+export interface VerificationSessionLivenessResponse {
+  liveness_check_id: string;
+  status: string;
+}
+
+export interface VerificationSessionLivenessChallengeResponse {
+  challenge_id: string;
+  actions: Array<string>;
+  expires_at: string;
+}
+
+export interface VerificationSessionStatusResponse {
+  verification_id: string;
+  status: string;
+  current_step: string;
+  message: string;
+  evidence: Record<string, unknown>;
+}
+
+export interface VerificationMobileHandoffResponse {
+  handoff_url: string;
+  expires_at: string;
 }
 
 export interface VerificationSummary {

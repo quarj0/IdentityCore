@@ -13,7 +13,7 @@ urlpatterns = [
     public_api_path(
         "",
         VerificationPolicyListCreateView.as_view(),
-        methods=("GET",),
+        methods=("GET", "POST"),
         name="verification-policy-list-create",
     ),
     public_api_path(

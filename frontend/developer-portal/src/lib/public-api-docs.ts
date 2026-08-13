@@ -42,6 +42,11 @@ export type PublicApiDocsResource = {
   category: string;
   description: string;
   security?: Array<Record<string, string[]>>;
+  request_body?: {
+    required: boolean;
+    content_type: string;
+    example: unknown;
+  } | null;
 };
 
 export type PublicApiDocsOverview = {

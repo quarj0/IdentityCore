@@ -194,6 +194,63 @@ def _validate_example(
     return errors
 
 
+def _schema_example(contract: Mapping[str, Any], raw_schema: Any) -> Any:
+    schema = _resolve_mapping(contract, raw_schema)
+    if not schema:
+        return {}
+    for key in ("example", "default", "const"):
+        if key in schema:
+            return deepcopy(schema[key])
+    if schema.get("enum"):
+        return deepcopy(schema["enum"][0])
+    schema_type = schema.get("type")
+    if isinstance(schema_type, list):
+        schema_type = next((value for value in schema_type if value != "null"), "null")
+    if schema_type == "object" or "properties" in schema:
+        required = set(schema.get("required", []))
+        return {
+            name: _schema_example(contract, value)
+            for name, value in schema.get("properties", {}).items()
+            if name in required
+        }
+    if schema_type == "array":
+        return [_schema_example(contract, schema.get("items", {}))]
+    if schema_type in {"integer", "number"}:
+        return schema.get("minimum", 0)
+    if schema_type == "boolean":
+        return True
+    if schema_type == "string":
+        return {
+            "binary": "/path/to/file",
+            "date": "2026-01-01",
+            "date-time": "2026-01-01T00:00:00Z",
+            "email": "user@example.com",
+            "uri": "https://example.com",
+        }.get(schema.get("format"), "string")
+    return None
+
+
+def _request_body_summary(
+    contract: Mapping[str, Any], operation: Mapping[str, Any]
+) -> dict[str, Any] | None:
+    request_body = _resolve_mapping(contract, operation.get("requestBody"))
+    content = request_body.get("content", {})
+    if not isinstance(content, Mapping) or not content:
+        return None
+    content_type = (
+        "application/json" if "application/json" in content else next(iter(content))
+    )
+    media_type = _resolve_mapping(contract, content[content_type])
+    example = media_type.get("example")
+    if example is None:
+        example = _schema_example(contract, media_type.get("schema", {}))
+    return {
+        "required": request_body.get("required") is True,
+        "content_type": content_type,
+        "example": example,
+    }
+
+
 def _validate_tree(contract: Mapping[str, Any]) -> list[str]:
     errors: list[str] = []
 
@@ -376,6 +433,7 @@ def public_resources(
                     "category": str(tags[0]),
                     "description": str(operation.get("description", summary)),
                     "security": operation.get("security", contract.get("security", [])),
+                    "request_body": _request_body_summary(contract, operation),
                 }
             )
     return resources
