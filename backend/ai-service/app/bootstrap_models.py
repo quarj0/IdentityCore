@@ -5,6 +5,7 @@ from pathlib import Path
 import yaml
 
 from app.pipeline import get_insightface_analyzer, get_paddle_ocr_engine
+from app.pad import validate_pad_model_contract
 from app.settings import get_settings
 
 
@@ -27,12 +28,18 @@ def _persist_downloaded_paddle_models(settings) -> None:
         if settings.paddle_model_is_complete(target):
             continue
         source = next(
-            (root / name for root in official_roots for name in PADDLE_MODEL_CANDIDATES[kind]
-             if settings.paddle_model_is_complete(root / name)),
+            (
+                root / name
+                for root in official_roots
+                for name in PADDLE_MODEL_CANDIDATES[kind]
+                if settings.paddle_model_is_complete(root / name)
+            ),
             None,
         )
         if source is None:
-            raise RuntimeError(f"Downloaded PaddleOCR {kind} model was not found under: {', '.join(map(str, official_roots))}.")
+            raise RuntimeError(
+                f"Downloaded PaddleOCR {kind} model was not found under: {', '.join(map(str, official_roots))}."
+            )
         shutil.copytree(source, target, dirs_exist_ok=True)
 
 
@@ -49,6 +56,7 @@ def main() -> None:
             "PAD model is missing. Place the approved ONNX asset at "
             f"{settings.pad_model_path} before bootstrapping production models."
         )
+    validate_pad_model_contract(settings.pad_model_path, settings.pad_live_class_index)
     paddle_directories = (
         settings.paddle_text_detection_model_dir,
         settings.paddle_text_recognition_model_dir,
@@ -61,10 +69,15 @@ def main() -> None:
 
     _persist_downloaded_paddle_models(settings)
 
-    incomplete_directories = [str(path) for path in paddle_directories if not settings.paddle_model_is_complete(path)]
+    incomplete_directories = [
+        str(path)
+        for path in paddle_directories
+        if not settings.paddle_model_is_complete(path)
+    ]
     if incomplete_directories:
         raise RuntimeError(
-            "PaddleOCR bootstrap did not populate complete models: " + ", ".join(incomplete_directories)
+            "PaddleOCR bootstrap did not populate complete models: "
+            + ", ".join(incomplete_directories)
         )
     files = []
     manifest_path = getattr(
@@ -72,21 +85,33 @@ def main() -> None:
     )
     for path in sorted(settings.ai_model_root.rglob("*")):
         if path.is_file() and path != manifest_path:
-            files.append({
-                "path": str(path.relative_to(settings.ai_model_root)),
-                "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-                "bytes": path.stat().st_size,
-            })
+            files.append(
+                {
+                    "path": str(path.relative_to(settings.ai_model_root)),
+                    "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                    "bytes": path.stat().st_size,
+                }
+            )
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
-    manifest_path.write_text(json.dumps({
-        "insightface_model": settings.insightface_model_name,
-        "paddle_models": {
-            "detection": _model_name(settings.paddle_text_detection_model_dir),
-            "recognition": _model_name(settings.paddle_text_recognition_model_dir),
-        },
-        "files": files,
-    }, indent=2), encoding="utf-8")
-    print(f"Model bootstrap complete: {len(files)} artifacts recorded in {manifest_path}")
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "insightface_model": settings.insightface_model_name,
+                "paddle_models": {
+                    "detection": _model_name(settings.paddle_text_detection_model_dir),
+                    "recognition": _model_name(
+                        settings.paddle_text_recognition_model_dir
+                    ),
+                },
+                "files": files,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    print(
+        f"Model bootstrap complete: {len(files)} artifacts recorded in {manifest_path}"
+    )
 
 
 if __name__ == "__main__":

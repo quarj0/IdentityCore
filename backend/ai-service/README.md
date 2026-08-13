@@ -32,7 +32,8 @@ docker compose --profile model-bootstrap run --rm ai-model-bootstrap
 ```
 
 The initial candidate is MiniFASNetV2 2.7_80x80 with a three-logit output
-(`live`, `print attack`, `replay attack`). It is a baseline candidate,
+(`print attack`, `live`, `replay attack`), so `PAD_LIVE_CLASS_INDEX` defaults
+to `1`. It is a baseline candidate,
 not a production performance claim; it must pass our held-out Ghana/device PAD
 evaluation before pilot use.
 
