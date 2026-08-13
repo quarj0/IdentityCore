@@ -448,28 +448,30 @@ public sealed record VerificationDetail
     public string Status { get; init; }
     [JsonPropertyName("purpose")]
     public string Purpose { get; init; }
-    [JsonPropertyName("external_reference")]
-    public string ExternalReference { get; init; }
-    [JsonPropertyName("subject")]
-    public JsonElement Subject { get; init; }
     [JsonPropertyName("policy")]
     public JsonElement Policy { get; init; }
-    [JsonPropertyName("created_at")]
-    public string CreatedAt { get; init; }
-    [JsonPropertyName("completed_at")]
-    public string? CompletedAt { get; init; }
+    [JsonPropertyName("workflow")]
+    public JsonElement Workflow { get; init; }
+    [JsonPropertyName("external_reference")]
+    public string ExternalReference { get; init; }
     [JsonPropertyName("verification_subject")]
-    public JsonElement? VerificationSubject { get; init; }
+    public JsonElement VerificationSubject { get; init; }
     [JsonPropertyName("checks")]
-    public JsonElement? Checks { get; init; }
+    public JsonElement Checks { get; init; }
     [JsonPropertyName("risk_assessment")]
     public JsonElement? RiskAssessment { get; init; }
+    [JsonPropertyName("document_classification")]
+    public JsonElement? DocumentClassification { get; init; }
     [JsonPropertyName("evidence_report")]
     public JsonElement? EvidenceReport { get; init; }
     [JsonPropertyName("decision")]
     public JsonElement? Decision { get; init; }
+    [JsonPropertyName("created_at")]
+    public string CreatedAt { get; init; }
+    [JsonPropertyName("completed_at")]
+    public string? CompletedAt { get; init; }
     [JsonPropertyName("expires_at")]
-    public string? ExpiresAt { get; init; }
+    public string ExpiresAt { get; init; }
 }
 
 public sealed record VerificationResult
@@ -724,6 +726,18 @@ public sealed record ProjectCreateRequest
     public IReadOnlyList<string>? AllowedOrigins { get; init; }
 }
 
+public sealed record ProjectUpdateRequest
+{
+    [JsonPropertyName("name")]
+    public string? Name { get; init; }
+    [JsonPropertyName("slug")]
+    public string? Slug { get; init; }
+    [JsonPropertyName("environment")]
+    public string? Environment { get; init; }
+    [JsonPropertyName("allowed_origins")]
+    public IReadOnlyList<string>? AllowedOrigins { get; init; }
+}
+
 public sealed record APIClientSummary
 {
     [JsonPropertyName("public_id")]
@@ -800,6 +814,38 @@ public sealed record APIClientCreateResponse
     public string ClientSecret { get; init; }
 }
 
+public sealed record APIClientActionResponse
+{
+    [JsonPropertyName("public_id")]
+    public string PublicId { get; init; }
+    [JsonPropertyName("tenant_public_id")]
+    public string TenantPublicId { get; init; }
+    [JsonPropertyName("project_id")]
+    public string? ProjectId { get; init; }
+    [JsonPropertyName("name")]
+    public string Name { get; init; }
+    [JsonPropertyName("client_id")]
+    public string ClientId { get; init; }
+    [JsonPropertyName("status")]
+    public string Status { get; init; }
+    [JsonPropertyName("scopes")]
+    public IReadOnlyList<string> Scopes { get; init; }
+    [JsonPropertyName("allowed_networks")]
+    public IReadOnlyList<string> AllowedNetworks { get; init; }
+    [JsonPropertyName("rate_limit_per_minute")]
+    public int RateLimitPerMinute { get; init; }
+    [JsonPropertyName("last_used_at")]
+    public string? LastUsedAt { get; init; }
+    [JsonPropertyName("client_secret_overlap_expires_at")]
+    public string? ClientSecretOverlapExpiresAt { get; init; }
+    [JsonPropertyName("created_at")]
+    public string CreatedAt { get; init; }
+    [JsonPropertyName("updated_at")]
+    public string UpdatedAt { get; init; }
+    [JsonPropertyName("client_secret")]
+    public string? ClientSecret { get; init; }
+}
+
 public sealed record WebhookEndpointSummary
 {
     [JsonPropertyName("id")]
@@ -836,22 +882,10 @@ public sealed record WebhookEndpointCreateResponse
 {
     [JsonPropertyName("id")]
     public string Id { get; init; }
-    [JsonPropertyName("project_id")]
-    public string? ProjectId { get; init; }
-    [JsonPropertyName("url")]
-    public string Url { get; init; }
-    [JsonPropertyName("description")]
-    public string? Description { get; init; }
-    [JsonPropertyName("events")]
-    public IReadOnlyList<string> Events { get; init; }
-    [JsonPropertyName("status")]
-    public string Status { get; init; }
-    [JsonPropertyName("created_at")]
-    public string CreatedAt { get; init; }
-    [JsonPropertyName("updated_at")]
-    public string UpdatedAt { get; init; }
     [JsonPropertyName("secret")]
     public string Secret { get; init; }
+    [JsonPropertyName("status")]
+    public string Status { get; init; }
 }
 
 public sealed record WebhookEndpointTestResponse
@@ -898,6 +932,18 @@ public sealed record ManualReviewDecisionResponse
     public string DecisionType { get; init; }
     [JsonPropertyName("decided_at")]
     public string DecidedAt { get; init; }
+}
+
+public sealed record ManualReviewPendingDecisionResponse
+{
+    [JsonPropertyName("verification_id")]
+    public string VerificationId { get; init; }
+    [JsonPropertyName("decision")]
+    public string Decision { get; init; }
+    [JsonPropertyName("approval_status")]
+    public string ApprovalStatus { get; init; }
+    [JsonPropertyName("approval_required")]
+    public bool ApprovalRequired { get; init; }
 }
 
 public sealed record ManualReviewApprovalRequest

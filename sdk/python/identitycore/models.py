@@ -395,20 +395,22 @@ class _VerificationDetailRequired(TypedDict):
     id: str
     status: str
     purpose: str
-    external_reference: str
-    subject: dict[str, Any]
     policy: dict[str, Any]
-    created_at: str
-
-
-class VerificationDetail(_VerificationDetailRequired, total=False):
-    completed_at: Optional[str]
+    workflow: dict[str, Any]
+    external_reference: str
     verification_subject: dict[str, Any]
     checks: dict[str, Any]
     risk_assessment: Optional[dict[str, Any]]
+    document_classification: Optional[dict[str, Any]]
     evidence_report: Optional[dict[str, Any]]
     decision: Optional[dict[str, Any]]
+    created_at: str
+    completed_at: Optional[str]
     expires_at: str
+
+
+class VerificationDetail(_VerificationDetailRequired, total=False):
+    pass
 
 
 class _VerificationResultRequired(TypedDict):
@@ -632,6 +634,17 @@ class ProjectCreateRequest(_ProjectCreateRequestRequired, total=False):
     allowed_origins: list[str]
 
 
+class _ProjectUpdateRequestRequired(TypedDict):
+    pass
+
+
+class ProjectUpdateRequest(_ProjectUpdateRequestRequired, total=False):
+    name: str
+    slug: str
+    environment: str
+    allowed_origins: list[str]
+
+
 class _APIClientSummaryRequired(TypedDict):
     public_id: str
     tenant_public_id: str
@@ -682,6 +695,26 @@ class APIClientCreateResponse(_APIClientCreateResponseRequired, total=False):
     client_secret_overlap_expires_at: Optional[str]
 
 
+class _APIClientActionResponseRequired(TypedDict):
+    public_id: str
+    tenant_public_id: str
+    name: str
+    client_id: str
+    status: str
+    scopes: list[str]
+    allowed_networks: list[str]
+    rate_limit_per_minute: int
+    created_at: str
+    updated_at: str
+
+
+class APIClientActionResponse(_APIClientActionResponseRequired, total=False):
+    project_id: Optional[str]
+    last_used_at: Optional[str]
+    client_secret_overlap_expires_at: Optional[str]
+    client_secret: str
+
+
 class _WebhookEndpointSummaryRequired(TypedDict):
     id: str
     url: str
@@ -708,19 +741,14 @@ class WebhookEndpointCreateRequest(_WebhookEndpointCreateRequestRequired, total=
 
 class _WebhookEndpointCreateResponseRequired(TypedDict):
     id: str
-    url: str
-    events: list[str]
-    status: str
-    created_at: str
-    updated_at: str
     secret: str
+    status: str
 
 
 class WebhookEndpointCreateResponse(
     _WebhookEndpointCreateResponseRequired, total=False
 ):
-    project_id: Optional[str]
-    description: str
+    pass
 
 
 class _WebhookEndpointTestResponseRequired(TypedDict):
@@ -761,6 +789,19 @@ class _ManualReviewDecisionResponseRequired(TypedDict):
 
 
 class ManualReviewDecisionResponse(_ManualReviewDecisionResponseRequired, total=False):
+    pass
+
+
+class _ManualReviewPendingDecisionResponseRequired(TypedDict):
+    verification_id: str
+    decision: str
+    approval_status: str
+    approval_required: bool
+
+
+class ManualReviewPendingDecisionResponse(
+    _ManualReviewPendingDecisionResponseRequired, total=False
+):
     pass
 
 

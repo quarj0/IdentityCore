@@ -252,17 +252,18 @@ export interface VerificationDetail {
   id: string;
   status: string;
   purpose: string;
-  external_reference: string;
-  subject: Record<string, unknown>;
   policy: Record<string, unknown>;
+  workflow: Record<string, unknown>;
+  external_reference: string;
+  verification_subject: Record<string, unknown>;
+  checks: Record<string, unknown>;
+  risk_assessment: Record<string, unknown> | null;
+  document_classification: Record<string, unknown> | null;
+  evidence_report: Record<string, unknown> | null;
+  decision: Record<string, unknown> | null;
   created_at: string;
-  completed_at?: string | null;
-  verification_subject?: Record<string, unknown>;
-  checks?: Record<string, unknown>;
-  risk_assessment?: Record<string, unknown> | null;
-  evidence_report?: Record<string, unknown> | null;
-  decision?: Record<string, unknown> | null;
-  expires_at?: string;
+  completed_at: string | null;
+  expires_at: string;
 }
 
 export interface VerificationResult {
@@ -408,6 +409,13 @@ export interface ProjectCreateRequest {
   allowed_origins?: Array<string>;
 }
 
+export interface ProjectUpdateRequest {
+  name?: string;
+  slug?: string;
+  environment?: string;
+  allowed_origins?: Array<string>;
+}
+
 export interface APIClientSummary {
   public_id: string;
   tenant_public_id: string;
@@ -449,6 +457,23 @@ export interface APIClientCreateResponse {
   client_secret: string;
 }
 
+export interface APIClientActionResponse {
+  public_id: string;
+  tenant_public_id: string;
+  project_id?: string | null;
+  name: string;
+  client_id: string;
+  status: string;
+  scopes: Array<string>;
+  allowed_networks: Array<string>;
+  rate_limit_per_minute: number;
+  last_used_at?: string | null;
+  client_secret_overlap_expires_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  client_secret?: string;
+}
+
 export interface WebhookEndpointSummary {
   id: string;
   project_id?: string | null;
@@ -469,14 +494,8 @@ export interface WebhookEndpointCreateRequest {
 
 export interface WebhookEndpointCreateResponse {
   id: string;
-  project_id?: string | null;
-  url: string;
-  description?: string;
-  events: Array<string>;
-  status: string;
-  created_at: string;
-  updated_at: string;
   secret: string;
+  status: string;
 }
 
 export interface WebhookEndpointTestResponse {
@@ -504,6 +523,13 @@ export interface ManualReviewDecisionResponse {
   decision: string;
   decision_type: string;
   decided_at: string;
+}
+
+export interface ManualReviewPendingDecisionResponse {
+  verification_id: string;
+  decision: string;
+  approval_status: string;
+  approval_required: boolean;
 }
 
 export interface ManualReviewApprovalRequest {

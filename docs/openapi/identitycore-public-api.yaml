@@ -216,7 +216,24 @@ components:
     PlatformUser:
       type: object
       required:
-        [public_id, email, first_name, last_name, phone_number, status, tenant_public_id, tenant_name, tenant_status, is_platform_admin, mfa_enabled, roles, notification_preferences, last_login_at, created_at, updated_at]
+        [
+          public_id,
+          email,
+          first_name,
+          last_name,
+          phone_number,
+          status,
+          tenant_public_id,
+          tenant_name,
+          tenant_status,
+          is_platform_admin,
+          mfa_enabled,
+          roles,
+          notification_preferences,
+          last_login_at,
+          created_at,
+          updated_at,
+        ]
       properties:
         public_id:
           type: string
@@ -319,7 +336,16 @@ components:
       additionalProperties: false
       description: The manual_review_threshold must be less than or equal to face_match_threshold.
       required:
-        [name, required_document_types, required_liveness_level, face_match_threshold, manual_review_threshold, verification_expiry_minutes, media_retention_days, metadata_retention_days]
+        [
+          name,
+          required_document_types,
+          required_liveness_level,
+          face_match_threshold,
+          manual_review_threshold,
+          verification_expiry_minutes,
+          media_retention_days,
+          metadata_retention_days,
+        ]
       properties:
         project_id:
           type: string
@@ -497,7 +523,24 @@ components:
     VerificationSessionResponse:
       type: object
       required:
-        [session_id, verification_id, status, organization, purpose, redirect_url, required_steps, workflow, locale, supported_locales, direction, consent, document, available_documents, available_countries, expires_at]
+        [
+          session_id,
+          verification_id,
+          status,
+          organization,
+          purpose,
+          redirect_url,
+          required_steps,
+          workflow,
+          locale,
+          supported_locales,
+          direction,
+          consent,
+          document,
+          available_documents,
+          available_countries,
+          expires_at,
+        ]
       properties:
         session_id:
           type: string
@@ -673,32 +716,72 @@ components:
           type: [string, "null"]
           format: date-time
     VerificationDetail:
-      allOf:
-        - $ref: "#/components/schemas/VerificationSummary"
-        - type: object
+      type: object
+      required:
+        [
+          id,
+          status,
+          purpose,
+          policy,
+          workflow,
+          external_reference,
+          verification_subject,
+          checks,
+          risk_assessment,
+          document_classification,
+          evidence_report,
+          decision,
+          created_at,
+          completed_at,
+          expires_at,
+        ]
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        purpose:
+          type: string
+        policy:
+          type: object
+          additionalProperties: true
+        workflow:
+          type: object
+          additionalProperties: true
+        external_reference:
+          type: string
+        verification_subject:
+          type: object
+          required: [id, full_name]
           properties:
-            verification_subject:
-              type: object
-              properties:
-                id:
-                  type: string
-                full_name:
-                  type: string
-            checks:
-              type: object
-              additionalProperties: true
-            risk_assessment:
-              type: [object, "null"]
-              additionalProperties: true
-            evidence_report:
-              type: [object, "null"]
-              additionalProperties: true
-            decision:
-              type: [object, "null"]
-              additionalProperties: true
-            expires_at:
+            id:
               type: string
-              format: date-time
+            full_name:
+              type: string
+        checks:
+          type: object
+          additionalProperties: true
+        risk_assessment:
+          type: [object, "null"]
+          additionalProperties: true
+        document_classification:
+          type: [object, "null"]
+          additionalProperties: true
+        evidence_report:
+          type: [object, "null"]
+          additionalProperties: true
+        decision:
+          type: [object, "null"]
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: [string, "null"]
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
     VerificationResult:
       type: object
       additionalProperties: false
@@ -885,7 +968,21 @@ components:
     AuditEvent:
       type: object
       required:
-        [id, actor_type, actor_id, action, action_label, actor_display_name, target_type, target_id, target_label, ip_address, user_agent, metadata, created_at]
+        [
+          id,
+          actor_type,
+          actor_id,
+          action,
+          action_label,
+          actor_display_name,
+          target_type,
+          target_id,
+          target_label,
+          ip_address,
+          user_agent,
+          metadata,
+          created_at,
+        ]
       properties:
         id:
           type: string
@@ -1199,6 +1296,23 @@ components:
           items:
             type: string
             format: uri
+    ProjectUpdateRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        environment:
+          type: string
+          enum: [sandbox, production]
+        allowed_origins:
+          type: array
+          items:
+            type: string
+            format: uri
     APIClientSummary:
       type: object
       required:
@@ -1232,7 +1346,13 @@ components:
           minItems: 1
           items:
             type: string
-            enum: [verifications:create, verifications:read, verifications:write]
+            enum:
+              [
+                policies:read,
+                verifications:create,
+                verifications:read,
+                verifications:write,
+              ]
         allowed_networks:
           type: array
           items:
@@ -1264,7 +1384,13 @@ components:
           minItems: 1
           items:
             type: string
-            enum: [verifications:create, verifications:read, verifications:write]
+            enum:
+              [
+                policies:read,
+                verifications:create,
+                verifications:read,
+                verifications:write,
+              ]
         allowed_networks:
           type: array
           items:
@@ -1280,6 +1406,14 @@ components:
           properties:
             client_secret:
               type: string
+    APIClientActionResponse:
+      allOf:
+        - $ref: "#/components/schemas/APIClientSummary"
+        - type: object
+          properties:
+            client_secret:
+              type: string
+              description: Returned only when the action is rotate.
     WebhookEndpointSummary:
       type: object
       required: [id, url, events, status, created_at, updated_at]
@@ -1347,13 +1481,15 @@ components:
               - verification.expired
               - verification.cancelled
     WebhookEndpointCreateResponse:
-      allOf:
-        - $ref: "#/components/schemas/WebhookEndpointSummary"
-        - type: object
-          required: [secret]
-          properties:
-            secret:
-              type: string
+      type: object
+      required: [id, secret, status]
+      properties:
+        id:
+          type: string
+        secret:
+          type: string
+        status:
+          type: string
     WebhookEndpointTestResponse:
       type: object
       required: [queued]
@@ -1412,6 +1548,20 @@ components:
         decided_at:
           type: string
           format: date-time
+    ManualReviewPendingDecisionResponse:
+      type: object
+      required: [verification_id, decision, approval_status, approval_required]
+      properties:
+        verification_id:
+          type: string
+        decision:
+          type: string
+        approval_status:
+          type: string
+          const: pending
+        approval_required:
+          type: boolean
+          const: true
     ManualReviewApprovalRequest:
       type: object
       required: [decision]
@@ -3051,7 +3201,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ProjectCreateRequest"
+              $ref: "#/components/schemas/ProjectUpdateRequest"
       responses:
         "200":
           description: Updated project.
@@ -3353,7 +3503,7 @@ paths:
                   success:
                     const: true
                   data:
-                    $ref: "#/components/schemas/APIClientCreateResponse"
+                    $ref: "#/components/schemas/APIClientActionResponse"
                   request_id:
                     type: string
         "401":
@@ -3571,6 +3721,20 @@ paths:
       summary: List verifications requiring manual review.
       security:
         - platformUserBearer: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
       responses:
         "200":
           description: Manual review queue.
@@ -3625,6 +3789,20 @@ paths:
                     const: true
                   data:
                     $ref: "#/components/schemas/ManualReviewDecisionResponse"
+                  request_id:
+                    type: string
+        "202":
+          description: The decision was recorded and requires an independent checker.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, request_id]
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/ManualReviewPendingDecisionResponse"
                   request_id:
                     type: string
         "400":

@@ -130,7 +130,7 @@ public final class GeneratedModels {
 
     }
 
-    public record VerificationDetail(@JsonProperty("id") String id, @JsonProperty("status") String status, @JsonProperty("purpose") String purpose, @JsonProperty("external_reference") String external_reference, @JsonProperty("subject") JsonNode subject, @JsonProperty("policy") JsonNode policy, @JsonProperty("created_at") String created_at, @JsonProperty("completed_at") String completed_at, @JsonProperty("verification_subject") JsonNode verification_subject, @JsonProperty("checks") JsonNode checks, @JsonProperty("risk_assessment") JsonNode risk_assessment, @JsonProperty("evidence_report") JsonNode evidence_report, @JsonProperty("decision") JsonNode decision, @JsonProperty("expires_at") String expires_at) {
+    public record VerificationDetail(@JsonProperty("id") String id, @JsonProperty("status") String status, @JsonProperty("purpose") String purpose, @JsonProperty("policy") JsonNode policy, @JsonProperty("workflow") JsonNode workflow, @JsonProperty("external_reference") String external_reference, @JsonProperty("verification_subject") JsonNode verification_subject, @JsonProperty("checks") JsonNode checks, @JsonProperty("risk_assessment") JsonNode risk_assessment, @JsonProperty("document_classification") JsonNode document_classification, @JsonProperty("evidence_report") JsonNode evidence_report, @JsonProperty("decision") JsonNode decision, @JsonProperty("created_at") String created_at, @JsonProperty("completed_at") String completed_at, @JsonProperty("expires_at") String expires_at) {
 
     }
 
@@ -202,6 +202,10 @@ public final class GeneratedModels {
 
     }
 
+    public record ProjectUpdateRequest(@JsonProperty("name") String name, @JsonProperty("slug") String slug, @JsonProperty("environment") String environment, @JsonProperty("allowed_origins") List<String> allowed_origins) {
+
+    }
+
     public record APIClientSummary(@JsonProperty("public_id") String public_id, @JsonProperty("tenant_public_id") String tenant_public_id, @JsonProperty("project_id") String project_id, @JsonProperty("name") String name, @JsonProperty("client_id") String client_id, @JsonProperty("status") String status, @JsonProperty("scopes") List<String> scopes, @JsonProperty("allowed_networks") List<String> allowed_networks, @JsonProperty("rate_limit_per_minute") Integer rate_limit_per_minute, @JsonProperty("last_used_at") String last_used_at, @JsonProperty("client_secret_overlap_expires_at") String client_secret_overlap_expires_at, @JsonProperty("created_at") String created_at, @JsonProperty("updated_at") String updated_at) {
 
     }
@@ -214,6 +218,10 @@ public final class GeneratedModels {
 
     }
 
+    public record APIClientActionResponse(@JsonProperty("public_id") String public_id, @JsonProperty("tenant_public_id") String tenant_public_id, @JsonProperty("project_id") String project_id, @JsonProperty("name") String name, @JsonProperty("client_id") String client_id, @JsonProperty("status") String status, @JsonProperty("scopes") List<String> scopes, @JsonProperty("allowed_networks") List<String> allowed_networks, @JsonProperty("rate_limit_per_minute") Integer rate_limit_per_minute, @JsonProperty("last_used_at") String last_used_at, @JsonProperty("client_secret_overlap_expires_at") String client_secret_overlap_expires_at, @JsonProperty("created_at") String created_at, @JsonProperty("updated_at") String updated_at, @JsonProperty("client_secret") String client_secret) {
+
+    }
+
     public record WebhookEndpointSummary(@JsonProperty("id") String id, @JsonProperty("project_id") String project_id, @JsonProperty("url") String url, @JsonProperty("description") String description, @JsonProperty("events") List<String> events, @JsonProperty("status") String status, @JsonProperty("created_at") String created_at, @JsonProperty("updated_at") String updated_at) {
 
     }
@@ -222,7 +230,7 @@ public final class GeneratedModels {
 
     }
 
-    public record WebhookEndpointCreateResponse(@JsonProperty("id") String id, @JsonProperty("project_id") String project_id, @JsonProperty("url") String url, @JsonProperty("description") String description, @JsonProperty("events") List<String> events, @JsonProperty("status") String status, @JsonProperty("created_at") String created_at, @JsonProperty("updated_at") String updated_at, @JsonProperty("secret") String secret) {
+    public record WebhookEndpointCreateResponse(@JsonProperty("id") String id, @JsonProperty("secret") String secret, @JsonProperty("status") String status) {
 
     }
 
@@ -239,6 +247,10 @@ public final class GeneratedModels {
     }
 
     public record ManualReviewDecisionResponse(@JsonProperty("verification_id") String verification_id, @JsonProperty("decision") String decision, @JsonProperty("decision_type") String decision_type, @JsonProperty("decided_at") String decided_at) {
+
+    }
+
+    public record ManualReviewPendingDecisionResponse(@JsonProperty("verification_id") String verification_id, @JsonProperty("decision") String decision, @JsonProperty("approval_status") String approval_status, @JsonProperty("approval_required") Boolean approval_required) {
 
     }
 

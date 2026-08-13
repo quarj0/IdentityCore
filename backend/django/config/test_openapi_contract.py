@@ -429,6 +429,81 @@ class OpenApiParityTests(SimpleTestCase):
         self.assertEqual(supporting_document["mime_type"], "application/pdf")
         self.assertLessEqual(supporting_document["file_size_bytes"], 10 * 1024 * 1024)
 
+    def test_workspace_contract_models_partial_updates_and_supported_scopes(self):
+        schemas = self.contract["components"]["schemas"]
+        project_patch = self.contract["paths"]["/projects/{project_id}"]["patch"]
+        self.assertEqual(
+            project_patch["requestBody"]["content"]["application/json"]["schema"][
+                "$ref"
+            ],
+            "#/components/schemas/ProjectUpdateRequest",
+        )
+        self.assertNotIn("required", schemas["ProjectUpdateRequest"])
+        scopes = schemas["APIClientCreateRequest"]["properties"]["scopes"]["items"][
+            "enum"
+        ]
+        self.assertIn("policies:read", scopes)
+
+    def test_action_and_creation_response_schemas_match_emitted_payloads(self):
+        schemas = self.contract["components"]["schemas"]
+        validator = Draft202012Validator(dict(self.contract))
+
+        action_schema = schemas["APIClientActionResponse"]
+        action_payload = {
+            "public_id": "client_01JABC",
+            "tenant_public_id": "tenant_01JABC",
+            "name": "Backend",
+            "client_id": "client-id",
+            "status": "revoked",
+            "scopes": ["verifications:read"],
+            "allowed_networks": [],
+            "rate_limit_per_minute": 60,
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z",
+        }
+        self.assertEqual(
+            list(validator.evolve(schema=action_schema).iter_errors(action_payload)), []
+        )
+        webhook_payload = {
+            "id": "wh_01JABC",
+            "secret": "secret",
+            "status": "active",
+        }
+        self.assertEqual(
+            list(
+                validator.evolve(
+                    schema=schemas["WebhookEndpointCreateResponse"]
+                ).iter_errors(webhook_payload)
+            ),
+            [],
+        )
+
+    def test_verification_detail_and_manual_review_variants_match_views(self):
+        schemas = self.contract["components"]["schemas"]
+        detail_required = set(schemas["VerificationDetail"]["required"])
+        self.assertIn("verification_subject", detail_required)
+        self.assertNotIn("subject", detail_required)
+
+        manual_list = self.contract["paths"]["/verifications/manual-reviews"]["get"]
+        parameters = {
+            parameter["name"]: parameter for parameter in manual_list["parameters"]
+        }
+        self.assertEqual(parameters["page"]["schema"]["minimum"], 1)
+        self.assertEqual(parameters["page_size"]["schema"]["maximum"], 100)
+        decision_responses = self.contract["paths"][
+            "/verifications/manual-reviews/{verification_id}/decision"
+        ]["post"]["responses"]
+        self.assertIn("202", decision_responses)
+        self.assertEqual(
+            set(schemas["ManualReviewPendingDecisionResponse"]["required"]),
+            {
+                "verification_id",
+                "decision",
+                "approval_status",
+                "approval_required",
+            },
+        )
+
     def test_referenced_media_example_is_validated_against_its_schema(self):
         changed = deepcopy(self.contract)
         changed.setdefault("components", {}).setdefault("examples", {})[
