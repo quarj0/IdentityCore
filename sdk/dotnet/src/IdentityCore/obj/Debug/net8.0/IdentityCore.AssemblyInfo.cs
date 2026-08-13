@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute("Server-side .NET SDK for the IdentityCore REST API.")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("0.2.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.2.0+8d8873d56ecfa2f7436102cde1f7f175e073c547")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.2.0+1d978a7d4e368f59a9d516ad09a0ff8cb1a4ad45")]
 [assembly: System.Reflection.AssemblyProductAttribute("IdentityCore")]
 [assembly: System.Reflection.AssemblyTitleAttribute("IdentityCore")]
 [assembly: System.Reflection.AssemblyVersionAttribute("0.2.0.0")]
