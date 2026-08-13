@@ -21,10 +21,9 @@ export function InteractiveApiReference() {
         displayRequestDuration
         docExpansion="list"
         filter
-        persistAuthorization
         tryItOutEnabled
         defaultModelsExpandDepth={1}
-        requestInterceptor={(request: { headers: { [x: string]: string; }; }) => {
+        requestInterceptor={(request: { headers: { [x: string]: string } }) => {
           request.headers["X-Request-Id"] ??= crypto.randomUUID();
           return request;
         }}

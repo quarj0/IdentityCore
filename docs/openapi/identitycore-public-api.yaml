@@ -10,6 +10,7 @@ servers:
     description: Local development
 security:
   - apiClient: []
+    apiClientId: []
 components:
   securitySchemes:
     apiClient:
@@ -17,6 +18,11 @@ components:
       scheme: bearer
       bearerFormat: API client secret
       description: Send the API client secret as a bearer token and the client ID in `X-Client-Id`.
+    apiClientId:
+      type: apiKey
+      in: header
+      name: X-Client-Id
+      description: Send the API client ID with the bearer API client secret.
     platformUserSession:
       type: apiKey
       in: cookie
@@ -27,13 +33,6 @@ components:
       scheme: bearer
       description: Portal JWT authentication used by authenticated workspace users.
   parameters:
-    ClientIdHeader:
-      name: X-Client-Id
-      in: header
-      required: true
-      schema:
-        type: string
-      description: API client ID.
     IdempotencyKeyHeader:
       name: Idempotency-Key
       in: header
@@ -952,8 +951,6 @@ paths:
     get:
       summary: List active verification policies/templates.
       description: API clients need `policies:read` and receive active policies only.
-      parameters:
-        - $ref: "#/components/parameters/ClientIdHeader"
       responses:
         "200":
           description: Active policies.
@@ -976,7 +973,6 @@ paths:
     get:
       summary: Retrieve an active verification policy/template.
       parameters:
-        - $ref: "#/components/parameters/ClientIdHeader"
         - name: policy_id
           in: path
           required: true
@@ -1004,7 +1000,6 @@ paths:
     get:
       summary: List verifications.
       parameters:
-        - $ref: "#/components/parameters/ClientIdHeader"
         - name: status
           in: query
           schema:
@@ -1052,7 +1047,6 @@ paths:
       summary: Create a hosted verification request.
       description: Requires `verifications:create`; API-client requests must include an active `policy_id` and an idempotency key.
       parameters:
-        - $ref: "#/components/parameters/ClientIdHeader"
         - $ref: "#/components/parameters/IdempotencyKeyHeader"
       requestBody:
         required: true
@@ -1088,7 +1082,6 @@ paths:
     get:
       summary: Retrieve a verification.
       parameters:
-        - $ref: "#/components/parameters/ClientIdHeader"
         - name: verification_id
           in: path
           required: true
@@ -1116,7 +1109,6 @@ paths:
     get:
       summary: Retrieve the stable versioned verification result.
       parameters:
-        - $ref: "#/components/parameters/ClientIdHeader"
         - name: verification_id
           in: path
           required: true
@@ -1144,7 +1136,6 @@ paths:
     post:
       summary: Cancel a verification.
       parameters:
-        - $ref: "#/components/parameters/ClientIdHeader"
         - name: verification_id
           in: path
           required: true
@@ -1187,7 +1178,6 @@ paths:
     post:
       summary: Reissue and resend a verification link.
       parameters:
-        - $ref: "#/components/parameters/ClientIdHeader"
         - name: verification_id
           in: path
           required: true
@@ -1241,7 +1231,6 @@ paths:
     get:
       summary: Get evidence-report download URLs.
       parameters:
-        - $ref: "#/components/parameters/ClientIdHeader"
         - name: verification_id
           in: path
           required: true
