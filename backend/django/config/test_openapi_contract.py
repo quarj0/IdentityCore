@@ -147,3 +147,37 @@ class OpenApiParityTests(SimpleTestCase):
             by_operation[("POST", "/verifications/")]["security"],
             self.contract["security"],
         )
+
+    def test_trace_is_included_in_stale_operation_detection(self):
+        changed = deepcopy(self.contract)
+        changed["paths"]["/health"]["trace"] = {
+            "summary": "Trace health",
+            "security": [],
+            "responses": {"200": {"description": "Trace result"}},
+        }
+
+        with self.assertRaisesRegex(
+            OpenApiContractError, "Stale OpenAPI operations without public routes"
+        ):
+            validate_contract(changed, implemented_operations=self.implemented)
+
+    def test_empty_tags_use_path_category_fallback(self):
+        changed = deepcopy(self.contract)
+        changed["paths"]["/health"]["get"]["tags"] = []
+
+        health = next(
+            resource
+            for resource in public_resources(changed)
+            if (resource["method"], resource["path"]) == ("GET", "/health")
+        )
+
+        self.assertEqual(health["category"], "Health")
+
+    def test_unknown_security_scheme_fails_document_validation(self):
+        changed = deepcopy(self.contract)
+        changed["paths"]["/health"]["get"]["security"] = [
+            {"missingSecurityScheme": []}
+        ]
+
+        with self.assertRaisesRegex(OpenApiContractError, "unknown security scheme"):
+            validate_contract(changed, implemented_operations=self.implemented)

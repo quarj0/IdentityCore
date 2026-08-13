@@ -32,6 +32,11 @@ components:
       type: http
       scheme: bearer
       description: Portal JWT authentication used by authenticated workspace users.
+    verificationSessionBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: Verification session token
+      description: Short-lived subject session token issued with a hosted verification link.
   parameters:
     IdempotencyKeyHeader:
       name: Idempotency-Key
@@ -1069,6 +1074,202 @@ paths:
                   - code: GH
                     name: Ghana
                 request_id: req_01JABC
+  /sessions/mobile-handoff/redeem:
+    post:
+      security: []
+      summary: Redeem a one-time mobile handoff.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [handoff]
+              properties:
+                handoff:
+                  type: string
+      responses:
+        "200":
+          description: A new verification session was issued.
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /sessions/{session_id}:
+    get:
+      summary: Retrieve the hosted verification session.
+      security:
+        - verificationSessionBearer: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Verification session state and allowed actions.
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /sessions/{session_id}/consent:
+    post:
+      summary: Record consent for the verification session.
+      security:
+        - verificationSessionBearer: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Consent was recorded.
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /sessions/{session_id}/documents:
+    post:
+      summary: Submit document capture metadata for the verification session.
+      security:
+        - verificationSessionBearer: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Document capture was accepted for processing.
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /sessions/{session_id}/selfies:
+    post:
+      summary: Submit a selfie capture for the verification session.
+      security:
+        - verificationSessionBearer: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Selfie capture was accepted for processing.
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /sessions/{session_id}/liveness:
+    post:
+      summary: Submit liveness evidence for the verification session.
+      security:
+        - verificationSessionBearer: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Liveness evidence was accepted for processing.
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /sessions/{session_id}/liveness/challenge:
+    post:
+      summary: Issue an active liveness challenge.
+      security:
+        - verificationSessionBearer: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Liveness challenge details.
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /sessions/{session_id}/status:
+    get:
+      summary: Retrieve verification-session progress.
+      security:
+        - verificationSessionBearer: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Verification-session progress and next action.
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+  /sessions/{session_id}/mobile-handoff:
+    post:
+      summary: Create a one-time mobile handoff.
+      security:
+        - verificationSessionBearer: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Mobile handoff URL and expiry.
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
   /policies/:
     get:
       summary: List active verification policies/templates.

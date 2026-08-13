@@ -65,10 +65,29 @@ export default async function ApiDetailPage({
   const contractPath = contractEndpoint.path.startsWith("/api/")
     ? contractEndpoint.path
     : `/api/v1${contractEndpoint.path}`;
-  const authenticationHeaders =
-    contractEndpoint.security?.length === 0
-      ? ""
-      : ` \\\n+  -H "Authorization: Bearer $IDENTITYCORE_API_KEY" \\\n+  -H "X-Client-Id: $IDENTITYCORE_CLIENT_ID"`;
+  const securitySchemes = new Set(
+    (contractEndpoint.security ?? []).flatMap((requirement) =>
+      Object.keys(requirement),
+    ),
+  );
+  let authenticationHeaders = "";
+  if (securitySchemes.has("verificationSessionBearer")) {
+    authenticationHeaders = ` \\
+  -H "Authorization: Bearer $IDENTITYCORE_SESSION_TOKEN"`;
+  } else if (
+    securitySchemes.has("platformUserBearer") ||
+    securitySchemes.has("platformUserSession")
+  ) {
+    authenticationHeaders = ` \\
+  -H "Authorization: Bearer $IDENTITYCORE_USER_TOKEN"`;
+  } else if (
+    contractEndpoint.security === undefined ||
+    securitySchemes.size > 0
+  ) {
+    authenticationHeaders = ` \\
+  -H "Authorization: Bearer $IDENTITYCORE_API_KEY" \\
+  -H "X-Client-Id: $IDENTITYCORE_CLIENT_ID"`;
+  }
 
   return (
     <DocsLayout

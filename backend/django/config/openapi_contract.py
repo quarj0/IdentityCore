@@ -12,10 +12,14 @@ from typing import Any
 import yaml
 from django.urls import URLPattern, URLResolver, get_resolver
 from jsonschema import Draft202012Validator, FormatChecker
+from openapi_spec_validator import validate as validate_openapi
+from openapi_spec_validator.validation.exceptions import OpenAPIValidationError
 
 from common.public_api import API_VISIBILITY_ATTRIBUTE, PUBLIC_METHODS_ATTRIBUTE
 
-HTTP_METHODS = frozenset({"delete", "get", "head", "options", "patch", "post", "put"})
+HTTP_METHODS = frozenset(
+    {"delete", "get", "head", "options", "patch", "post", "put", "trace"}
+)
 DJANGO_PARAMETER = re.compile(r"<(?:(?:[^:>]+):)?([^>]+)>")
 OPENAPI_PARAMETER = re.compile(r"{([^}]+)}")
 CONTRACT_MANAGED_PREFIXES = (
@@ -23,6 +27,7 @@ CONTRACT_MANAGED_PREFIXES = (
     "api/v1/organization/",
     "api/v1/policies/",
     "api/v1/projects/",
+    "api/v1/sessions/",
     "api/v1/uploads/",
     "api/v1/verifications/",
     "api/v1/webhook-endpoints/",
@@ -244,6 +249,33 @@ def _validate_path_parameters(contract: Mapping[str, Any]) -> list[str]:
     return errors
 
 
+def _validate_security_requirements(contract: Mapping[str, Any]) -> list[str]:
+    errors: list[str] = []
+    declared = set(contract.get("components", {}).get("securitySchemes", {}))
+
+    def validate(requirements: Any, location: str) -> None:
+        if not isinstance(requirements, list):
+            return
+        for index, requirement in enumerate(requirements):
+            if not isinstance(requirement, Mapping):
+                continue
+            for scheme in requirement:
+                if scheme not in declared:
+                    errors.append(
+                        f"{location}/{index}: unknown security scheme {scheme!r}"
+                    )
+
+    validate(contract.get("security", []), "#/security")
+    for route, raw_path_item in contract.get("paths", {}).items():
+        path_item = _resolve_mapping(contract, raw_path_item)
+        for method, operation in path_item.items():
+            if method.lower() not in HTTP_METHODS or not isinstance(operation, Mapping):
+                continue
+            if "security" in operation:
+                validate(operation["security"], f"#/paths/{route}/{method}/security")
+    return errors
+
+
 def validate_contract(
     contract: Mapping[str, Any],
     *,
@@ -252,6 +284,10 @@ def validate_contract(
     errors: list[str] = []
     if contract.get("openapi") != "3.1.0":
         errors.append("The public contract must use OpenAPI 3.1.0.")
+    try:
+        validate_openapi(dict(contract))
+    except OpenAPIValidationError as exc:
+        errors.append(f"Invalid OpenAPI document: {exc}")
     documented = documented_operations(contract)
     undocumented = sorted(implemented_operations - documented)
     stale = sorted(documented - implemented_operations)
@@ -262,6 +298,7 @@ def validate_contract(
     if stale:
         errors.append(f"Stale OpenAPI operations without public routes: {stale}")
     errors.extend(_validate_path_parameters(contract))
+    errors.extend(_validate_security_requirements(contract))
     errors.extend(_validate_tree(contract))
     if errors:
         raise OpenApiContractError("\n".join(errors))
@@ -290,6 +327,7 @@ def public_resources(
                 if slug_overrides is not None
                 else None
             ) or f"{method}-{route}"
+            tags = operation.get("tags") or [segment.title()]
             resources.append(
                 {
                     "slug": str(operation.get("operationId", fallback_slug))
@@ -301,7 +339,7 @@ def public_resources(
                     "name": summary,
                     "method": method.upper(),
                     "path": route,
-                    "category": str(operation.get("tags", [segment.title()])[0]),
+                    "category": str(tags[0]),
                     "description": str(operation.get("description", summary)),
                     "security": operation.get(
                         "security", contract.get("security", [])

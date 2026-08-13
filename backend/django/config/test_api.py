@@ -60,7 +60,7 @@ class CatalogEndpointTests(APITestCase):
         self.assertEqual(
             data["base_urls"]["development"], "http://localhost:8000/api/v1"
         )
-        self.assertEqual(len(data["resources"]), 46)
+        self.assertEqual(len(data["resources"]), 55)
         self.assertIn("/verifications/", [item["path"] for item in data["resources"]])
         documented_paths = {item["path"] for item in data["resources"]}
         self.assertTrue(
@@ -69,6 +69,10 @@ class CatalogEndpointTests(APITestCase):
                 "/document-types",
                 "/country-profiles",
                 "/countries",
+                "/sessions/{session_id}",
+                "/sessions/{session_id}/consent",
+                "/sessions/{session_id}/status",
+                "/sessions/mobile-handoff/redeem",
                 "/organization/me/",
                 "/organization/me/verification-documents/{document_id}/content/",
                 "/organization/me/suspend",

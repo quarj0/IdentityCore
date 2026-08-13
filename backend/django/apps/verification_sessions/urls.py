@@ -1,4 +1,4 @@
-from django.urls import path
+from common.public_api import public_api_path
 
 from apps.verification_sessions.views import (
     VerificationSessionConsentView,
@@ -14,41 +14,58 @@ from apps.verification_sessions.views import (
 
 
 urlpatterns = [
-    path("mobile-handoff/redeem", VerificationMobileHandoffRedeemView.as_view(), name="verification-mobile-handoff-redeem"),
-    path("<str:session_id>", VerificationSessionDetailView.as_view(), name="verification-session-detail"),
-    path(
+    public_api_path(
+        "mobile-handoff/redeem",
+        VerificationMobileHandoffRedeemView.as_view(),
+        methods=("POST",),
+        name="verification-mobile-handoff-redeem",
+    ),
+    public_api_path(
+        "<str:session_id>",
+        VerificationSessionDetailView.as_view(),
+        methods=("GET",),
+        name="verification-session-detail",
+    ),
+    public_api_path(
         "<str:session_id>/consent",
         VerificationSessionConsentView.as_view(),
+        methods=("POST",),
         name="verification-session-consent",
     ),
-    path(
+    public_api_path(
         "<str:session_id>/documents",
         VerificationSessionDocumentView.as_view(),
+        methods=("POST",),
         name="verification-session-documents",
     ),
-    path(
+    public_api_path(
         "<str:session_id>/selfies",
         VerificationSessionSelfieView.as_view(),
+        methods=("POST",),
         name="verification-session-selfies",
     ),
-    path(
+    public_api_path(
         "<str:session_id>/liveness",
         VerificationSessionLivenessView.as_view(),
+        methods=("POST",),
         name="verification-session-liveness",
     ),
-    path(
+    public_api_path(
         "<str:session_id>/liveness/challenge",
         VerificationSessionLivenessChallengeView.as_view(),
+        methods=("POST",),
         name="verification-session-liveness-challenge",
     ),
-    path(
+    public_api_path(
         "<str:session_id>/status",
         VerificationSessionStatusView.as_view(),
+        methods=("GET",),
         name="verification-session-status",
     ),
-    path(
+    public_api_path(
         "<str:session_id>/mobile-handoff",
         VerificationMobileHandoffCreateView.as_view(),
+        methods=("POST",),
         name="verification-mobile-handoff-create",
     ),
 ]
