@@ -351,9 +351,13 @@ def exhaust_processing_job(job: ProcessingJob) -> None:
                 tenant_id=locked.tenant_id,
             ).update(status=IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED)
         elif locked.job_type == ProcessingJobType.BIOMETRICS:
+            # Exhaustion describes unfinished orchestration, not invalid evidence.
+            # Preserve any committed PASSED/FAILED result and only mark work that
+            # never reached a biometric outcome as an error.
             LivenessCheck.objects.filter(
                 public_id=locked.resource_public_id,
                 tenant_id=locked.tenant_id,
+                status=LivenessCheckStatus.INCONCLUSIVE,
             ).update(
                 status=LivenessCheckStatus.ERROR,
                 failure_reason="processing_retries_exhausted",
