@@ -27,6 +27,7 @@ from apps.verifications.models import (
 )
 from apps.verifications.processing_jobs import (
     COMMITTED_PROVIDER_RESULT_RECOVERY,
+    COMMITTED_PROVIDER_RESULT_RECOVERY_CONSUMED,
     ProcessingJobOwnershipLost,
     acquire_processing_job,
     complete_processing_job,
@@ -228,5 +229,7 @@ class ProcessingJobReviewRaceTests(TestCase):
         self.assertIsNotNone(acquired)
         acquired.refresh_from_db()
         self.assertEqual(acquired.status, ProcessingJobStatus.PROCESSING)
-        self.assertEqual(acquired.attempt_count, 3)
-        self.assertEqual(acquired.error_code, COMMITTED_PROVIDER_RESULT_RECOVERY)
+        self.assertEqual(acquired.attempt_count, 4)
+        self.assertEqual(
+            acquired.error_code, COMMITTED_PROVIDER_RESULT_RECOVERY_CONSUMED
+        )
