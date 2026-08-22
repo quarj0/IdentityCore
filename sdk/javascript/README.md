@@ -38,7 +38,7 @@ GET requests retry transient failures automatically. Verification creation is id
 ## Pagination and webhooks
 
 ```js
-import { verifyWebhookSignature } from "@identitycore/sdk";
+import { verifyWebhookSignatureWithReplayClaim } from "@identitycore/sdk";
 
 for await (const verification of client.verifications.iterate({
   status: "verified",
@@ -46,8 +46,8 @@ for await (const verification of client.verifications.iterate({
   console.log(verification.id);
 }
 
-const valid = verifyWebhookSignature(rawRequestBody, {
-  signature: request.headers["x-identitycore-signature"],
+const valid = await verifyWebhookSignatureWithReplayClaim(rawRequestBody, {
+  signature: request.headers["x-identitycore-signature-v1"],
   timestamp: request.headers["x-identitycore-timestamp"],
   eventId: request.headers["x-identitycore-event-id"],
   signingKeys: [currentWebhookSecret, previousWebhookSecret],
@@ -55,4 +55,4 @@ const valid = verifyWebhookSignature(rawRequestBody, {
 });
 ```
 
-Always verify the unmodified request body before parsing JSON. The default timestamp tolerance is five minutes. `claimProcessedEventId` must atomically insert the event ID only if absent and return whether it succeeded. Retain the previous secret only until its rotation overlap expires; IdentityCore emits signatures for both secrets during that window.
+Always verify the unmodified request body before parsing JSON. The default timestamp tolerance is five minutes. The asynchronous helper awaits `claimProcessedEventId`, which must atomically insert the event ID only if absent and return whether it succeeded. Retain the previous secret only until its rotation overlap expires; IdentityCore emits v1 signatures for both secrets during that window. The synchronous `verifyWebhookSignature` remains compatible with the original `X-IdentityCore-Signature` header but intentionally performs no replay claim.

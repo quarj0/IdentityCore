@@ -85,14 +85,11 @@ export function verifyWebhookSignature(
     signingKeys = [],
     toleranceSeconds = 300,
     now = Math.floor(Date.now() / 1000),
-    claimEventId,
   },
 ) {
   const secrets = [signingKey, ...signingKeys].filter(Boolean);
   if (secrets.length === 0)
     throw new IdentityCoreError("At least one signing secret is required.");
-  if (!eventId)
-    throw new IdentityCoreError("eventId is required for v1 signatures.");
   if (toleranceSeconds < 0)
     throw new IdentityCoreError("toleranceSeconds cannot be negative.");
   const sentAt = Number(timestamp);
@@ -104,6 +101,20 @@ export function verifyWebhookSignature(
   const receivedSignatures = String(signature)
     .split(",")
     .map((value) => Buffer.from(value.trim()));
+  const legacySignature = receivedSignatures.find((value) =>
+    value.toString().startsWith("sha256="),
+  );
+  if (legacySignature) {
+    const expected = Buffer.from(
+      `sha256=${createHmac("sha256", secrets[0]).update(`${timestamp}.`).update(raw).digest("hex")}`,
+    );
+    return (
+      expected.length === legacySignature.length &&
+      timingSafeEqual(expected, legacySignature)
+    );
+  }
+  if (!eventId)
+    throw new IdentityCoreError("eventId is required for v1 signatures.");
   const valid = secrets.some((secret) => {
     const derivedKey = createHash("sha256").update(secret).digest("hex");
     const expected = `v1=${createHmac("sha256", derivedKey).update(`${timestamp}.${eventId}.`).update(raw).digest("hex")}`;
@@ -128,8 +139,17 @@ export function verifyWebhookSignature(
   )
     return false;
   if (document.id !== eventId || document.schema_version !== "1") return false;
-  if (claimEventId && !claimEventId(eventId)) return false;
   return true;
+}
+
+export async function verifyWebhookSignatureWithReplayClaim(
+  payload,
+  { claimEventId, ...options },
+) {
+  if (typeof claimEventId !== "function")
+    throw new IdentityCoreError("claimEventId is required.");
+  if (!verifyWebhookSignature(payload, options)) return false;
+  return (await claimEventId(options.eventId)) === true;
 }
 
 export class IdentityCoreClient {

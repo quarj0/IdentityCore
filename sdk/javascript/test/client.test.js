@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { IdentityCoreAPIError, IdentityCoreClient, verifyWebhookSignature } from "../src/index.js";
+import { IdentityCoreAPIError, IdentityCoreClient, verifyWebhookSignature, verifyWebhookSignatureWithReplayClaim } from "../src/index.js";
 
 function response(body, status = 200) { return { status, ok: status < 400, async text() { return typeof body === "string" ? body : JSON.stringify(body); } }; }
 function success(data) { return { success: true, data, request_id: "req_test" }; }
@@ -42,19 +42,20 @@ test("retrieves the versioned verification result", async () => {
   assert.equal(urls[0], "https://api.example.test/api/v1/verifications/ver_1/result");
 });
 
-test("verifies signatures over the raw payload", () => {
+test("verifies signatures over the raw payload", async () => {
   const fixture = JSON.parse(readFileSync(new URL("../../fixtures/webhook-signature-v1.json", import.meta.url)));
   const seenEventIds = new Set();
-  const claimEventId = (eventId) => {
+  const claimEventId = async (eventId) => {
     if (seenEventIds.has(eventId)) return false;
     seenEventIds.add(eventId);
     return true;
   };
-  const options = { signature: fixture.rotation_signature_header, timestamp: fixture.timestamp, eventId: fixture.event_id, signingKeys: [fixture.previous_secret], now: fixture.now_within_tolerance, claimEventId };
+  const options = { signature: fixture.rotation_signature_header, timestamp: fixture.timestamp, eventId: fixture.event_id, signingKeys: [fixture.previous_secret], now: fixture.now_within_tolerance };
   assert.equal(verifyWebhookSignature(fixture.raw_body, options), true);
-  assert.equal(verifyWebhookSignature(fixture.raw_body, options), false);
-  assert.equal(verifyWebhookSignature(fixture.raw_body, { ...options, signature: fixture.current_signature, signingKey: fixture.current_secret, signingKeys: [], claimEventId: undefined, now: fixture.now_outside_tolerance }), false);
-  const validOptions = { ...options, signature: fixture.current_signature, signingKey: fixture.current_secret, signingKeys: [], claimEventId: undefined };
+  assert.equal(await verifyWebhookSignatureWithReplayClaim(fixture.raw_body, { ...options, claimEventId }), true);
+  assert.equal(await verifyWebhookSignatureWithReplayClaim(fixture.raw_body, { ...options, claimEventId }), false);
+  assert.equal(verifyWebhookSignature(fixture.raw_body, { ...options, signature: fixture.current_signature, signingKey: fixture.current_secret, signingKeys: [], now: fixture.now_outside_tolerance }), false);
+  const validOptions = { ...options, signature: fixture.current_signature, signingKey: fixture.current_secret, signingKeys: [] };
   assert.equal(verifyWebhookSignature(fixture.raw_body, { ...validOptions, signature: fixture.rotation_signature_header }), true);
   assert.equal(verifyWebhookSignature(fixture.raw_body, validOptions), true);
   assert.equal(verifyWebhookSignature(fixture.raw_body, { ...validOptions, signature: fixture.current_signature.replace("v1=", "v2=") }), false);
@@ -63,4 +64,5 @@ test("verifies signatures over the raw payload", () => {
   assert.equal(verifyWebhookSignature(fixture.non_object_raw_body, { ...validOptions, signature: fixture.non_object_signature }), false);
   assert.equal(verifyWebhookSignature(fixture.invalid_schema_raw_body, { ...validOptions, signature: fixture.invalid_schema_signature }), false);
   assert.throws(() => verifyWebhookSignature(fixture.raw_body, { ...validOptions, timestamp: Number.MAX_SAFE_INTEGER + 1 }));
+  assert.equal(verifyWebhookSignature(fixture.raw_body, { signature: fixture.legacy_signature, timestamp: fixture.timestamp, signingKey: fixture.legacy_signing_key, now: fixture.now_within_tolerance }), true);
 });

@@ -22,14 +22,12 @@ def verify_webhook_signature(
     now: int | None = None,
     claim_event_id: Callable[[str], bool] | None = None,
 ) -> bool:
-    """Verify a v1 webhook and optionally reject already-seen event IDs."""
+    """Verify a legacy or v1 webhook and optionally claim a v1 event ID."""
     candidate_secrets = [key for key in (signing_keys or []) if key]
     if signing_key:
         candidate_secrets.insert(0, signing_key)
     if not candidate_secrets:
         raise IdentityCoreError("At least one signing secret is required.")
-    if not event_id:
-        raise IdentityCoreError("event_id is required for v1 signatures.")
     if tolerance_seconds < 0:
         raise IdentityCoreError("tolerance_seconds cannot be negative.")
     try:
@@ -40,10 +38,22 @@ def verify_webhook_signature(
     if abs(current - sent_at) > tolerance_seconds:
         return False
     raw = payload.encode("utf-8") if isinstance(payload, str) else payload
+    received_signatures = [value.strip() for value in str(signature).split(",")]
+    if any(value.startswith("sha256=") for value in received_signatures):
+        legacy_message = str(timestamp).encode("utf-8") + b"." + raw
+        return any(
+            hmac.compare_digest(
+                f"sha256={hmac.new(secret.encode(), legacy_message, sha256).hexdigest()}",
+                received,
+            )
+            for secret in candidate_secrets
+            for received in received_signatures
+        )
+    if not event_id:
+        raise IdentityCoreError("event_id is required for v1 signatures.")
     message = (
         str(timestamp).encode("utf-8") + b"." + event_id.encode("utf-8") + b"." + raw
     )
-    received_signatures = [value.strip() for value in str(signature).split(",")]
     valid = any(
         hmac.compare_digest(
             f"v1={hmac.new(sha256(secret.encode()).hexdigest().encode(), message, sha256).hexdigest()}",

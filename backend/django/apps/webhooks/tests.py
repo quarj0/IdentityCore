@@ -17,7 +17,7 @@ from apps.verification_policies.models import VerificationPolicy
 from apps.verifications.models import Verification, VerificationStatus
 from apps.verification_subjects.models import VerificationSubject
 from apps.webhooks.models import WebhookDeliveryAttempt, WebhookEndpoint, WebhookEvent, WebhookEventStatus
-from apps.webhooks.services import _build_signature, _send_webhook_request, deliver_webhook_event, process_pending_webhook_events
+from apps.webhooks.services import _build_legacy_signature, _build_signature, _send_webhook_request, deliver_webhook_event, process_pending_webhook_events
 
 
 class WebhookEndpointTests(APITestCase):
@@ -170,6 +170,54 @@ class WebhookEndpointTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data["data"]["results"]), 1)
+
+    def test_patch_does_not_overwrite_a_completed_secret_rotation(self):
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/original",
+            events_json=["verification.verified"],
+            created_by=self.user,
+        )
+        endpoint.set_secret("old-secret")
+        endpoint.save()
+        stale_endpoint = WebhookEndpoint.objects.get(pk=endpoint.pk)
+        rotated_endpoint = WebhookEndpoint.objects.get(pk=endpoint.pk)
+        rotated_endpoint.rotate_secret(
+            "new-secret",
+            previous_secret_expires_at=timezone.now() + timedelta(minutes=5),
+        )
+        rotated_endpoint.save(
+            update_fields=[
+                "secret_hash",
+                "signing_key",
+                "previous_signing_key",
+                "signing_secret_version",
+                "previous_secret_expires_at",
+                "updated_at",
+            ]
+        )
+
+        with patch(
+            "apps.webhooks.views.WebhookEndpointDetailView.obj",
+            return_value=stale_endpoint,
+        ):
+            response = self.client.patch(
+                f"/api/v1/webhook-endpoints/{endpoint.public_id}",
+                {"url": "https://example.com/webhooks/updated"},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        endpoint.refresh_from_db()
+        self.assertEqual(endpoint.url, "https://example.com/webhooks/updated")
+        self.assertEqual(endpoint.signing_secret_version, 2)
+        self.assertEqual(
+            endpoint.signing_key, hashlib.sha256(b"new-secret").hexdigest()
+        )
+        self.assertEqual(
+            endpoint.previous_signing_key,
+            hashlib.sha256(b"old-secret").hexdigest(),
+        )
 
     def test_rotate_signing_secret_returns_new_secret_and_bounded_overlap(self):
         endpoint = WebhookEndpoint(
@@ -697,7 +745,8 @@ class WebhookEndpointTests(APITestCase):
         self.assertEqual(sent_request.get_header("X-identitycore-event-id"), event.public_id)
         self.assertEqual(sent_request.get_header("X-identitycore-signature-version"), "v1")
         self.assertEqual(sent_request.get_header("X-identitycore-signing-secret-version"), "3")
-        self.assertTrue(sent_request.get_header("X-identitycore-signature").startswith("v1="))
+        self.assertTrue(sent_request.get_header("X-identitycore-signature").startswith("sha256="))
+        self.assertTrue(sent_request.get_header("X-identitycore-signature-v1").startswith("v1="))
 
     @patch("apps.webhooks.services.request.urlopen")
     def test_delivery_is_signed_with_current_and_previous_keys_during_overlap(self, mock_urlopen):
@@ -728,8 +777,9 @@ class WebhookEndpointTests(APITestCase):
             webhook_event=event, payload_bytes=payload, timestamp="1720180800"
         )
 
-        signature_header = mock_urlopen.call_args.args[0].get_header(
-            "X-identitycore-signature"
+        sent_request = mock_urlopen.call_args.args[0]
+        signature_header = sent_request.get_header(
+            "X-identitycore-signature-v1"
         )
         self.assertEqual(
             signature_header.split(","),
@@ -746,13 +796,25 @@ class WebhookEndpointTests(APITestCase):
             ],
         )
 
+        self.assertEqual(
+            sent_request.get_header("X-identitycore-signature"),
+            _build_legacy_signature(
+                endpoint.previous_signing_key, "1720180800", payload
+            ),
+        )
+
         endpoint.previous_secret_expires_at = timezone.now() - timedelta(seconds=1)
         _send_webhook_request(
             webhook_event=event, payload_bytes=payload, timestamp="1720180801"
         )
+        sent_request = mock_urlopen.call_args.args[0]
         self.assertEqual(
-            mock_urlopen.call_args.args[0].get_header("X-identitycore-signature"),
+            sent_request.get_header("X-identitycore-signature-v1"),
             _build_signature(
                 endpoint.signing_key, "1720180801", event.public_id, payload
             ),
+        )
+        self.assertEqual(
+            sent_request.get_header("X-identitycore-signature"),
+            _build_legacy_signature(endpoint.signing_key, "1720180801", payload),
         )

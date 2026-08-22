@@ -1286,13 +1286,14 @@ Webhook headers:
 ```http
 X-IdentityCore-Event-Id: evt_01JABC...
 X-IdentityCore-Event-Type: verification.verified
-X-IdentityCore-Signature: v1=...
+X-IdentityCore-Signature: sha256=...
+X-IdentityCore-Signature-V1: v1=...,v1=...
 X-IdentityCore-Signature-Version: v1
 X-IdentityCore-Signing-Secret-Version: 2
 X-IdentityCore-Timestamp: 1783159380
 ```
 
-For v1, derive the HMAC key as the lowercase hexadecimal SHA-256 digest of the raw webhook secret, then sign the exact bytes `timestamp + "." + event_id + "." + raw_body` with HMAC-SHA256. During a rotation overlap, `X-IdentityCore-Signature` contains comma-separated `v1=` signatures for the current and previous secrets so either receiver configuration verifies. Verify the unmodified body in constant time, require payload `schema_version` `"1"` and a payload `id` matching the signed event header, reject timestamps outside the five-minute tolerance, and use one atomic insert-if-absent event-ID claim so a valid delivery cannot be applied twice. The canonical cross-SDK fixture is `sdk/fixtures/webhook-signature-v1.json`.
+`X-IdentityCore-Signature` retains the legacy `sha256=HMAC(timestamp + "." + raw_body)` contract so existing receivers keep working during a staged rollout. During a rotation overlap it uses the previous key until the advertised expiry, then switches to the current key. New receivers should read `X-IdentityCore-Signature-V1`. For v1, derive the HMAC key as the lowercase hexadecimal SHA-256 digest of the raw webhook secret, then sign the exact bytes `timestamp + "." + event_id + "." + raw_body` with HMAC-SHA256. During a rotation overlap, the v1 header contains comma-separated signatures for the current and previous secrets so either receiver configuration verifies. Verify the unmodified body in constant time, require payload `schema_version` `"1"` and a payload `id` matching the signed event header, reject timestamps outside the five-minute tolerance, and use one atomic insert-if-absent event-ID claim so a valid delivery cannot be applied twice. The canonical cross-SDK fixture is `sdk/fixtures/webhook-signature-v1.json`.
 
 Webhook events:
 

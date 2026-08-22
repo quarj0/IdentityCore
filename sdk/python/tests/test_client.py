@@ -228,6 +228,15 @@ class IdentityCoreClientTests(unittest.TestCase):
         self.assertTrue(
             verify_webhook_signature(
                 fixture["raw_body"],
+                signature=fixture["legacy_signature"],
+                timestamp=fixture["timestamp"],
+                signing_key=fixture["legacy_signing_key"],
+                now=fixture["now_within_tolerance"],
+            )
+        )
+        self.assertTrue(
+            verify_webhook_signature(
+                fixture["raw_body"],
                 signature=fixture["current_signature"],
                 **valid_options,
             )

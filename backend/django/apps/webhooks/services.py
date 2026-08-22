@@ -95,6 +95,14 @@ def _build_signature(
     return f"v1={digest}"
 
 
+def _build_legacy_signature(
+    signing_key: str, timestamp: str, payload_bytes: bytes
+) -> str:
+    message = timestamp.encode("utf-8") + b"." + payload_bytes
+    digest = hmac.new(signing_key.encode("utf-8"), message, sha256).hexdigest()
+    return f"sha256={digest}"
+
+
 def _build_signature_header(
     webhook_event: WebhookEvent, timestamp: str, payload_bytes: bytes
 ) -> str:
@@ -111,9 +119,18 @@ def _build_signature_header(
 def _send_webhook_request(
     *, webhook_event: WebhookEvent, payload_bytes: bytes, timestamp: str
 ):
-    signature = _build_signature_header(webhook_event, timestamp, payload_bytes)
+    endpoint = webhook_event.webhook_endpoint
+    signature_v1 = _build_signature_header(webhook_event, timestamp, payload_bytes)
+    legacy_signing_key = (
+        endpoint.previous_signing_key
+        if endpoint.previous_secret_overlap_active
+        else endpoint.signing_key
+    )
+    legacy_signature = _build_legacy_signature(
+        legacy_signing_key, timestamp, payload_bytes
+    )
     http_request = request.Request(
-        webhook_event.webhook_endpoint.url,
+        endpoint.url,
         data=payload_bytes,
         headers={
             "Content-Type": "application/json",
@@ -121,10 +138,11 @@ def _send_webhook_request(
             "X-IdentityCore-Event-Id": webhook_event.public_id,
             "X-IdentityCore-Event-Type": webhook_event.event_type,
             "X-IdentityCore-Timestamp": timestamp,
-            "X-IdentityCore-Signature": signature,
+            "X-IdentityCore-Signature": legacy_signature,
+            "X-IdentityCore-Signature-V1": signature_v1,
             "X-IdentityCore-Signature-Version": "v1",
             "X-IdentityCore-Signing-Secret-Version": str(
-                webhook_event.webhook_endpoint.signing_secret_version
+                endpoint.signing_secret_version
             ),
         },
         method="POST",

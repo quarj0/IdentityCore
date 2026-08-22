@@ -137,7 +137,7 @@ class WebhookEndpointDetailView(APIView):
                 setattr(endpoint, field, request.data[field])
         if "events" in request.data:
             endpoint.events_json = request.data["events"]
-        endpoint.save()
+        endpoint.save(update_fields=["url", "description", "events_json", "updated_at"])
         return success_response(serialize_webhook_endpoint(endpoint), request=request)
 
 

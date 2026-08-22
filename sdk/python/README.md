@@ -78,7 +78,7 @@ for verification in client.verifications.iter(status="verified"):
 
 valid = verify_webhook_signature(
     raw_request_body,
-    signature=request.headers["X-IdentityCore-Signature"],
+    signature=request.headers["X-IdentityCore-Signature-V1"],
     timestamp=request.headers["X-IdentityCore-Timestamp"],
     event_id=request.headers["X-IdentityCore-Event-Id"],
     signing_keys=[current_webhook_secret, previous_webhook_secret],
@@ -86,6 +86,6 @@ valid = verify_webhook_signature(
 )
 ```
 
-Always verify the unmodified webhook body before parsing JSON. The default timestamp tolerance is five minutes. `claim_processed_event_id` must atomically insert the event ID only if it does not exist and return whether the claim succeeded. During rotation, supply both secrets only until the API-provided overlap expiry; IdentityCore emits signatures for both during that window.
+Always verify the unmodified webhook body before parsing JSON. The default timestamp tolerance is five minutes. `claim_processed_event_id` must atomically insert the event ID only if it does not exist and return whether the claim succeeded. During rotation, supply both secrets only until the API-provided overlap expiry; IdentityCore emits v1 signatures for both during that window. The original `X-IdentityCore-Signature` header remains available for staged migration of legacy receivers.
 
 Required scopes are `policies:read`, `verifications:create`, and `verifications:read` for their corresponding resources.
