@@ -73,6 +73,18 @@ async function assertNoSeriousViolations(page: Page) {
 async function mockAdminBackend(page: Page) {
   await page.route("http://localhost:8000/**", async (route: Route) => {
     const request = route.request();
+    const corsHeaders = {
+      "Access-Control-Allow-Credentials": "true",
+      "Access-Control-Allow-Headers":
+        "Authorization, Content-Type, X-IdentityCore-Session-Scope",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Origin": "http://127.0.0.1:3004",
+    };
+
+    if (request.method() === "OPTIONS") {
+      return route.fulfill({ status: 204, headers: corsHeaders });
+    }
+
     if (new URL(request.url()).pathname.endsWith("/api/graphql")) {
       const payload = request.postDataJSON() as { query?: string };
       const query = payload.query ?? "";
@@ -80,6 +92,7 @@ async function mockAdminBackend(page: Page) {
         return route.fulfill({
           status: 200,
           contentType: "application/json",
+          headers: corsHeaders,
           body: JSON.stringify({
             data: {
               reviewOrganizationOnboarding: {
@@ -97,6 +110,7 @@ async function mockAdminBackend(page: Page) {
         return route.fulfill({
           status: 200,
           contentType: "application/json",
+          headers: corsHeaders,
           body: JSON.stringify({
             data: { organizationReviewQueue: [reviewItem] },
           }),
@@ -105,6 +119,7 @@ async function mockAdminBackend(page: Page) {
       return route.fulfill({
         status: 200,
         contentType: "application/json",
+        headers: corsHeaders,
         body: JSON.stringify({ data: { organizationReview: reviewItem } }),
       });
     }
@@ -112,6 +127,7 @@ async function mockAdminBackend(page: Page) {
     return route.fulfill({
       status: 200,
       contentType: "application/json",
+      headers: corsHeaders,
       body: JSON.stringify({
         success: true,
         data: {
