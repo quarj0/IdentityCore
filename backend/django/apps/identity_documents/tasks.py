@@ -29,6 +29,7 @@ from apps.uploads.services import promote_upload_to_media_by_storage_key
 from apps.verifications.models import VerificationStatus
 from apps.verifications.models import ProcessingJobType
 from apps.verifications.processing_jobs import (
+    ProcessingJobOwnershipLost,
     acquire_processing_job,
     complete_processing_job,
     defer_processing_job,
@@ -232,6 +233,7 @@ def process_identity_document_task(identity_document_id: str) -> str:
                     "capture_id": capture.public_id,
                 },
                 initial_provider_check=quality_provider_check,
+                processing_job=processing_job,
             )
             quality_result = quality_execution.result
             quality_provider_check = quality_execution.provider_check
@@ -331,6 +333,7 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 ),
                 request_metadata={"identity_document_id": identity_document.public_id},
                 initial_provider_check=classification_provider_check,
+                processing_job=processing_job,
             )
             classification_result = classification_execution.result
             classification_provider_check = classification_execution.provider_check
@@ -376,6 +379,7 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 ),
                 request_metadata={"identity_document_id": identity_document.public_id},
                 initial_provider_check=ocr_provider_check,
+                processing_job=processing_job,
             )
             ocr_result = ocr_execution.result
             ocr_provider_check = ocr_execution.provider_check
@@ -450,10 +454,6 @@ def process_identity_document_task(identity_document_id: str) -> str:
             update_fields=["extracted_data_json", "status", "updated_at"]
         )
 
-        # A document review signal is not a final verification decision. Continue
-        # collecting selfie, liveness, and face-match evidence so a reviewer has
-        # the complete case. The risk engine consumes the persisted classification
-        # result and applies manual-review routing after biometrics finish.
         try:
             transition_verification(
                 verification,
@@ -594,6 +594,8 @@ def process_identity_document_task(identity_document_id: str) -> str:
             )
         complete_processing_job(processing_job)
         return identity_document.status
+    except ProcessingJobOwnershipLost:
+        raise
     except ProviderRouteExhausted as exc:
         identity_document.status = (
             IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED
@@ -604,8 +606,6 @@ def process_identity_document_task(identity_document_id: str) -> str:
         complete_processing_job(processing_job)
         return identity_document.status
     except AIServiceUnavailable:
-        # Infrastructure timeouts are retryable and are not evidence that the
-        # submitted identity document is invalid.
         defer_processing_job(processing_job, error_code="provider_unavailable")
         raise
     except Exception as exc:
