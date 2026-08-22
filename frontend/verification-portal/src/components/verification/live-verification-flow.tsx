@@ -471,7 +471,7 @@ export function LiveVerificationFlow({
             </span>
           </label>
           <div className="flex items-center justify-between gap-4 border-t border-border pt-5">
-            <p className="flex items-center gap-2 text-xs text-muted-foreground/70">
+            <p className="flex items-center gap-2 text-xs text-muted-foreground">
               <LockKeyhole className="h-3.5 w-3.5" aria-hidden="true" />
               Consent is recorded in the audit trail
             </p>
@@ -1005,7 +1005,7 @@ function MobileHandoff({
                 <Copy className="h-4 w-4" />
                 Copy mobile link
               </Button>
-              <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground/70">
+              <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 Waiting for completion on your phone
               </p>
@@ -1020,7 +1020,7 @@ function MobileHandoff({
               Show secure QR code
             </Button>
           )}
-          <div className="relative py-1 text-center text-xs text-muted-foreground/70 before:absolute before:left-0 before:right-0 before:top-1/2 before:h-px before:bg-border">
+          <div className="relative py-1 text-center text-xs text-muted-foreground before:absolute before:left-0 before:right-0 before:top-1/2 before:h-px before:bg-border">
             <span className="relative bg-card px-3">or</span>
           </div>
           <Button variant="outline" className="w-full" onClick={onContinue}>
@@ -1044,7 +1044,7 @@ function OpeningState({ title, message }: { title: string; message?: string }) {
           {!message ? (
             <Loader2 className="h-7 w-7 animate-spin text-info" />
           ) : (
-            <ShieldCheck className="h-8 w-8 text-muted-foreground/70" />
+            <ShieldCheck className="h-8 w-8 text-muted-foreground" />
           )}
           <h1 className="text-xl font-semibold tracking-tight text-foreground">
             {title}
