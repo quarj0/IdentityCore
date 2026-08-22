@@ -35,7 +35,7 @@ export default function GlobalError({
           organization that sent you this link.
         </p>
         {error.digest ? (
-          <p className="mt-4 text-xs text-muted-foreground/70">
+          <p className="mt-4 text-xs text-muted-foreground">
             Reference {error.digest}
           </p>
         ) : null}
