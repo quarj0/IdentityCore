@@ -19,16 +19,42 @@ from apps.verifications.transitions import TERMINAL_STATUSES, transition_verific
 logger = logging.getLogger(__name__)
 
 COMMITTED_PROVIDER_RESULT_RECOVERY = "committed_provider_result_recovery"
+COMMITTED_PROVIDER_RESULT_RECOVERY_CONSUMED = (
+    "committed_provider_result_recovery_consumed"
+)
 
 
 class ProcessingJobOwnershipLost(RuntimeError):
-    """Raised when a worker tries to finalize work after its job was exhausted."""
+    """Raised when a worker no longer owns the durable processing lease."""
 
 
 def _lease_deadline(now=None):
     return (now or timezone.now()) + timedelta(
         seconds=settings.PROCESSING_JOB_LEASE_SECONDS
     )
+
+
+def _assert_processing_job_owner(
+    locked: ProcessingJob, owner: ProcessingJob
+) -> None:
+    if (
+        locked.status != ProcessingJobStatus.PROCESSING
+        or locked.attempt_count != owner.attempt_count
+    ):
+        raise ProcessingJobOwnershipLost(
+            f"Processing job {locked.public_id} is owned by another attempt."
+        )
+
+
+def lock_processing_job_for_finalization(job: ProcessingJob) -> ProcessingJob:
+    """Lock and validate a job before any verification finalization writes."""
+    if not transaction.get_connection().in_atomic_block:
+        raise RuntimeError(
+            "Processing-job finalization ownership must be checked inside an atomic block."
+        )
+    locked = ProcessingJob.objects.select_for_update().get(pk=job.pk)
+    _assert_processing_job_owner(locked, job)
+    return locked
 
 
 def enqueue_processing_job(*, job_type: str, resource) -> ProcessingJob:
@@ -94,12 +120,18 @@ def dispatch_processing_job(job_public_id: str) -> bool:
     return True
 
 
-def _repair_biometric_provider_check_links(resource) -> bool:
-    """Relink committed fallback results before biometric provider redelivery.
+def _provider_check_is_reusable(check) -> bool:
+    from apps.providers.models import ProviderCheckStatus
 
-    Returns True when unfinished biometric work has a durable completed provider
-    result that can be resumed without another external provider invocation.
-    """
+    return bool(
+        check
+        and check.status == ProviderCheckStatus.COMPLETED
+        and check.normalized_result_json
+    )
+
+
+def _repair_biometric_provider_check_links(resource) -> bool:
+    """Relink/reuse committed provider evidence before biometric redelivery."""
     from apps.biometrics.models import FaceMatchStatus, LivenessCheckStatus
     from apps.providers.models import ProviderCheckStatus, ProviderCheckType
 
@@ -121,33 +153,28 @@ def _repair_biometric_provider_check_links(resource) -> bool:
             None,
         )
 
-    if resource.status == LivenessCheckStatus.INCONCLUSIVE:
-        current = verification.provider_checks.filter(
-            public_id=resource.provider_check_id
-        ).first()
-        current_is_reusable = bool(
-            current
-            and current.status == ProviderCheckStatus.COMPLETED
-            and current.normalized_result_json
+    current = verification.provider_checks.filter(
+        public_id=resource.provider_check_id
+    ).first()
+    current_is_reusable = _provider_check_is_reusable(current)
+    if (
+        resource.status == LivenessCheckStatus.INCONCLUSIVE
+        and not current_is_reusable
+    ):
+        recovered = latest_completed(
+            ProviderCheckType.LIVENESS,
+            "liveness_check_id",
+            resource.public_id,
         )
-        if not current_is_reusable:
-            recovered = latest_completed(
-                ProviderCheckType.LIVENESS,
-                "liveness_check_id",
-                resource.public_id,
-            )
-            if recovered is not None:
-                resource.provider_check_id = recovered.public_id
-                resource.save(update_fields=["provider_check_id", "updated_at"])
-                current_is_reusable = True
-        reusable_result_found = reusable_result_found or current_is_reusable
+        if recovered is not None:
+            resource.provider_check_id = recovered.public_id
+            resource.save(update_fields=["provider_check_id", "updated_at"])
+            current_is_reusable = True
+    reusable_result_found = reusable_result_found or current_is_reusable
 
     face_match = (
-        verification.face_matches.filter(
-            selfie_capture=resource.selfie_capture,
-            status=FaceMatchStatus.INCONCLUSIVE,
-        )
-        .order_by("-matched_at")
+        verification.face_matches.filter(selfie_capture=resource.selfie_capture)
+        .order_by("-matched_at", "-created_at")
         .first()
     )
     if face_match is None:
@@ -156,12 +183,11 @@ def _repair_biometric_provider_check_links(resource) -> bool:
     current = verification.provider_checks.filter(
         public_id=face_match.provider_check_id
     ).first()
-    current_is_reusable = bool(
-        current
-        and current.status == ProviderCheckStatus.COMPLETED
-        and current.normalized_result_json
-    )
-    if not current_is_reusable:
+    current_is_reusable = _provider_check_is_reusable(current)
+    if (
+        face_match.status == FaceMatchStatus.INCONCLUSIVE
+        and not current_is_reusable
+    ):
         recovered = latest_completed(
             ProviderCheckType.FACE_MATCH,
             "face_match_id",
@@ -174,32 +200,44 @@ def _repair_biometric_provider_check_links(resource) -> bool:
     return reusable_result_found or current_is_reusable
 
 
-def _route_exhaustion_originates_from_job(
+def _route_exhaustion_resource_reference(
     job: ProcessingJob, *, liveness_check, decision: VerificationDecision
-) -> bool:
-    """Correlate a verification-wide route decision to one biometric job.
-
-    Provider request metadata and execution-attempt rows are durable even if a worker
-    dies before it can update the biometric resource. Use those persisted records to
-    avoid applying one submission's route exhaustion to another submission under the
-    same verification.
-    """
+) -> tuple[str, str] | None:
+    """Return the exact biometric resource that originated route exhaustion."""
     from apps.providers.models import ProviderCheckType, ProviderExecutionAttempt
 
     summary = decision.evidence_summary_json or {}
     capability = summary.get("capability")
     if capability not in {ProviderCheckType.LIVENESS, ProviderCheckType.FACE_MATCH}:
-        return False
+        return None
 
-    face_match_ids: set[str] = set()
-    if capability == ProviderCheckType.FACE_MATCH:
+    if capability == ProviderCheckType.LIVENESS:
+        explicit_id = str(summary.get("liveness_check_id") or "")
+        if explicit_id:
+            return (
+                (capability, explicit_id)
+                if explicit_id == job.resource_public_id
+                else None
+            )
+        valid_resource_ids = {job.resource_public_id}
+        metadata_key = "liveness_check_id"
+    else:
         face_match_ids = set(
             liveness_check.verification.face_matches.filter(
                 selfie_capture=liveness_check.selfie_capture
             ).values_list("public_id", flat=True)
         )
+        explicit_id = str(summary.get("face_match_id") or "")
+        if explicit_id:
+            return (
+                (capability, explicit_id)
+                if explicit_id in face_match_ids
+                else None
+            )
         if not face_match_ids:
-            return False
+            return None
+        valid_resource_ids = face_match_ids
+        metadata_key = "face_match_id"
 
     attempts = ProviderExecutionAttempt.objects.select_related(
         "provider_check", "route"
@@ -215,19 +253,21 @@ def _route_exhaustion_originates_from_job(
     groups: dict[str, dict] = {}
     for attempt in attempts:
         metadata = attempt.provider_check.request_metadata_json or {}
-        if capability == ProviderCheckType.LIVENESS:
-            resource_matches = metadata.get("liveness_check_id") == job.resource_public_id
-        else:
-            resource_matches = metadata.get("face_match_id") in face_match_ids
+        resource_id = str(metadata.get(metadata_key) or "")
         group = groups.setdefault(
             attempt.execution_id,
-            {"attempts": [], "last_completed_at": attempt.completed_at, "matches": False},
+            {
+                "attempts": [],
+                "last_completed_at": attempt.completed_at,
+                "resource_ids": set(),
+            },
         )
         group["attempts"].append(attempt)
         group["last_completed_at"] = max(
             group["last_completed_at"], attempt.completed_at
         )
-        group["matches"] = group["matches"] or resource_matches
+        if resource_id in valid_resource_ids:
+            group["resource_ids"].add(resource_id)
 
     expected_attempt_count = summary.get("attempt_count")
     expected_error_codes = set(summary.get("error_codes") or [])
@@ -243,17 +283,16 @@ def _route_exhaustion_originates_from_job(
         }
         if expected_error_codes and group_error_codes != expected_error_codes:
             continue
+        if len(group["resource_ids"]) != 1:
+            continue
         candidates.append(group)
 
     if not candidates:
-        return False
+        return None
 
-    # The route final action is written immediately after its execution group ends.
-    # Select the latest matching execution summary before the decision. In an
-    # ambiguous concurrency case this intentionally repairs only that origin and
-    # never marks every biometric submission under the verification as exhausted.
     origin = max(candidates, key=lambda group: group["last_completed_at"])
-    return bool(origin["matches"])
+    resource_id = next(iter(origin["resource_ids"]))
+    return capability, resource_id
 
 
 def _provider_route_exhaustion_decision_for_job(
@@ -286,17 +325,20 @@ def _provider_route_exhaustion_decision_for_job(
         )
     if liveness_check is None:
         return None
-    if not _route_exhaustion_originates_from_job(
-        job,
-        liveness_check=liveness_check,
-        decision=decision,
+    if (
+        _route_exhaustion_resource_reference(
+            job,
+            liveness_check=liveness_check,
+            decision=decision,
+        )
+        is None
     ):
         return None
     return decision
 
 
 def acquire_processing_job(*, job_type: str, resource) -> ProcessingJob | None:
-    """Acquire or renew one job without allowing concurrent duplicate execution."""
+    """Acquire one generation without allowing concurrent duplicate execution."""
     now = timezone.now()
     with transaction.atomic():
         job, _ = ProcessingJob.objects.select_for_update().get_or_create(
@@ -315,12 +357,18 @@ def acquire_processing_job(*, job_type: str, resource) -> ProcessingJob | None:
             ProcessingJobStatus.EXHAUSTED,
         }:
             return None
-        if job.status == ProcessingJobStatus.PROCESSING and job.lease_expires_at > now:
+        if (
+            job.status == ProcessingJobStatus.PROCESSING
+            and job.lease_expires_at > now
+        ):
             return None
 
         has_reusable_provider_result = False
         if job_type == ProcessingJobType.BIOMETRICS:
-            has_reusable_provider_result = _repair_biometric_provider_check_links(resource)
+            has_reusable_provider_result = _repair_biometric_provider_check_links(
+                resource
+            )
+
         recovery_grace = bool(
             job_type == ProcessingJobType.BIOMETRICS
             and job.attempt_count >= job.max_attempts
@@ -331,9 +379,15 @@ def acquire_processing_job(*, job_type: str, resource) -> ProcessingJob | None:
             return None
 
         job.status = ProcessingJobStatus.PROCESSING
-        if not recovery_grace:
-            job.attempt_count += 1
-            job.error_code = ""
+        # Every worker acquisition advances the durable generation. The recovery-only
+        # generation may be max_attempts + 1, but provider I/O is reused rather than
+        # replayed, so this does not expand the external-provider attempt budget.
+        job.attempt_count += 1
+        job.error_code = (
+            COMMITTED_PROVIDER_RESULT_RECOVERY_CONSUMED
+            if recovery_grace
+            else ""
+        )
         job.heartbeat_at = now
         job.lease_expires_at = _lease_deadline(now)
         job.save(
@@ -351,10 +405,21 @@ def acquire_processing_job(*, job_type: str, resource) -> ProcessingJob | None:
 
 def heartbeat_processing_job(job: ProcessingJob) -> None:
     now = timezone.now()
-    ProcessingJob.objects.filter(
+    lease_expires_at = _lease_deadline(now)
+    updated = ProcessingJob.objects.filter(
         pk=job.pk,
         status=ProcessingJobStatus.PROCESSING,
-    ).update(heartbeat_at=now, lease_expires_at=_lease_deadline(now))
+        attempt_count=job.attempt_count,
+    ).update(
+        heartbeat_at=now,
+        lease_expires_at=lease_expires_at,
+    )
+    if updated != 1:
+        raise ProcessingJobOwnershipLost(
+            f"Processing job {job.public_id} heartbeat lost ownership."
+        )
+    job.heartbeat_at = now
+    job.lease_expires_at = lease_expires_at
 
 
 def _repair_biometric_route_exhaustion(job: ProcessingJob, *, now) -> None:
@@ -385,9 +450,20 @@ def _repair_biometric_route_exhaustion(job: ProcessingJob, *, now) -> None:
     if decision is None:
         return
 
-    capability = (decision.evidence_summary_json or {}).get("capability")
+    reference = _route_exhaustion_resource_reference(
+        job,
+        liveness_check=liveness_check,
+        decision=decision,
+    )
+    if reference is None:
+        return
+    capability, resource_public_id = reference
+
     if capability == ProviderCheckType.LIVENESS:
-        if liveness_check.status == LivenessCheckStatus.INCONCLUSIVE:
+        if (
+            resource_public_id == liveness_check.public_id
+            and liveness_check.status == LivenessCheckStatus.INCONCLUSIVE
+        ):
             liveness_check.status = LivenessCheckStatus.ERROR
             liveness_check.failure_reason = "provider_route_exhausted"
             liveness_check.checked_at = now
@@ -402,18 +478,17 @@ def _repair_biometric_route_exhaustion(job: ProcessingJob, *, now) -> None:
         return
 
     if capability == ProviderCheckType.FACE_MATCH:
-        face_match = (
-            liveness_check.verification.face_matches.filter(
-                selfie_capture=liveness_check.selfie_capture,
-                status=FaceMatchStatus.INCONCLUSIVE,
-            )
-            .order_by("-matched_at")
-            .first()
-        )
+        face_match = liveness_check.verification.face_matches.filter(
+            public_id=resource_public_id,
+            selfie_capture=liveness_check.selfie_capture,
+            status=FaceMatchStatus.INCONCLUSIVE,
+        ).first()
         if face_match is not None:
             face_match.status = FaceMatchStatus.ERROR
             face_match.matched_at = now
-            face_match.save(update_fields=["status", "matched_at", "updated_at"])
+            face_match.save(
+                update_fields=["status", "matched_at", "updated_at"]
+            )
 
 
 @transaction.atomic
@@ -421,11 +496,12 @@ def complete_processing_job(job: ProcessingJob) -> None:
     now = timezone.now()
     locked = ProcessingJob.objects.select_for_update().get(pk=job.pk)
     if locked.status == ProcessingJobStatus.COMPLETED:
-        return
-    if locked.status == ProcessingJobStatus.EXHAUSTED:
+        if locked.attempt_count == job.attempt_count:
+            return
         raise ProcessingJobOwnershipLost(
-            f"Processing job {locked.public_id} was exhausted before finalization."
+            f"Processing job {locked.public_id} was completed by another attempt."
         )
+    _assert_processing_job_owner(locked, job)
     _repair_biometric_route_exhaustion(locked, now=now)
     locked.status = ProcessingJobStatus.COMPLETED
     locked.heartbeat_at = now
@@ -446,12 +522,24 @@ def complete_processing_job(job: ProcessingJob) -> None:
 
 def defer_processing_job(job: ProcessingJob, *, error_code: str) -> None:
     now = timezone.now()
-    ProcessingJob.objects.filter(pk=job.pk).update(
+    updated = ProcessingJob.objects.filter(
+        pk=job.pk,
+        status=ProcessingJobStatus.PROCESSING,
+        attempt_count=job.attempt_count,
+    ).update(
         status=ProcessingJobStatus.QUEUED,
         heartbeat_at=now,
         lease_expires_at=now,
         error_code=error_code,
     )
+    if updated != 1:
+        raise ProcessingJobOwnershipLost(
+            f"Processing job {job.public_id} defer lost ownership."
+        )
+    job.status = ProcessingJobStatus.QUEUED
+    job.heartbeat_at = now
+    job.lease_expires_at = now
+    job.error_code = error_code
 
 
 def exhaust_processing_job(job: ProcessingJob) -> None:
@@ -496,8 +584,6 @@ def exhaust_processing_job(job: ProcessingJob) -> None:
             ).update(status=IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED)
         elif locked.job_type == ProcessingJobType.BIOMETRICS:
             # Exhaustion describes unfinished orchestration, not invalid evidence.
-            # Preserve any committed PASSED/FAILED result and only mark work that
-            # never reached a biometric outcome as an error.
             LivenessCheck.objects.filter(
                 public_id=locked.resource_public_id,
                 tenant_id=locked.tenant_id,
@@ -609,17 +695,11 @@ def _resource_processing_finished(job: ProcessingJob) -> bool:
         if liveness_check is None:
             return False
 
-        # Provider-route exhaustion commits the verification decision/outbox first.
-        # Treat it as finished only when durable provider execution metadata proves
-        # this exact biometric job originated that decision.
         if _provider_route_exhaustion_decision_for_job(
             job, liveness_check=liveness_check
         ) is not None:
             return True
 
-        # A committed biometric sub-result is not the same as a committed
-        # verification decision. If finalization rolled back, the job must be
-        # redispatched so it can resume from persisted provider evidence.
         return (
             LivenessCheck.objects.filter(
                 pk=liveness_check.pk,
@@ -682,8 +762,8 @@ def recover_stale_processing_jobs(*, limit: int = 100) -> tuple[int, int]:
                     .first()
                 )
                 if resource is not None:
-                    has_reusable_provider_result = _repair_biometric_provider_check_links(
-                        resource
+                    has_reusable_provider_result = (
+                        _repair_biometric_provider_check_links(resource)
                     )
 
             if _resource_processing_finished(job):
@@ -694,12 +774,12 @@ def recover_stale_processing_jobs(*, limit: int = 100) -> tuple[int, int]:
                 if (
                     job.job_type == ProcessingJobType.BIOMETRICS
                     and has_reusable_provider_result
-                    and job.error_code != COMMITTED_PROVIDER_RESULT_RECOVERY
+                    and job.error_code
+                    != COMMITTED_PROVIDER_RESULT_RECOVERY_CONSUMED
                 ):
-                    # The final allowed attempt produced durable provider evidence
-                    # but died before the biometric row/finalization could consume
-                    # it. Grant exactly one recovery-only redelivery without
-                    # increasing the configured provider-attempt budget.
+                    # PENDING means the grace has been discovered/queued but has not
+                    # been consumed by a worker. Broker publication can retry without
+                    # spending it; acquisition changes the marker to CONSUMED.
                     should_exhaust = False
                     job.status = ProcessingJobStatus.QUEUED
                     job.lease_expires_at = timezone.now()
@@ -729,7 +809,10 @@ def recover_stale_processing_jobs(*, limit: int = 100) -> tuple[int, int]:
                     ]
                 )
         if already_finished:
-            complete_processing_job(job)
+            try:
+                complete_processing_job(job)
+            except ProcessingJobOwnershipLost:
+                continue
         elif should_exhaust:
             exhaust_processing_job(job)
             exhausted += 1
