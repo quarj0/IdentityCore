@@ -56,6 +56,7 @@ class WebhookEndpoint(PublicIdModel, BaseModel):
     description = models.CharField(max_length=255, blank=True)
     secret_hash = models.CharField(max_length=255)
     signing_key = models.CharField(max_length=64, blank=True)
+    previous_signing_key = models.CharField(max_length=64, blank=True)
     signing_secret_version = models.PositiveIntegerField(default=1)
     previous_secret_expires_at = models.DateTimeField(null=True, blank=True)
     events_json = models.JSONField(default=list, blank=True)
@@ -99,6 +100,7 @@ class WebhookEndpoint(PublicIdModel, BaseModel):
         self.signing_key = hashlib.sha256(raw_secret.encode("utf-8")).hexdigest()
 
     def rotate_secret(self, raw_secret: str, *, previous_secret_expires_at) -> None:
+        self.previous_signing_key = self.signing_key
         self.set_secret(raw_secret)
         self.signing_secret_version += 1
         self.previous_secret_expires_at = previous_secret_expires_at
@@ -106,7 +108,8 @@ class WebhookEndpoint(PublicIdModel, BaseModel):
     @property
     def previous_secret_overlap_active(self) -> bool:
         return bool(
-            self.previous_secret_expires_at
+            self.previous_signing_key
+            and self.previous_secret_expires_at
             and self.previous_secret_expires_at > timezone.now()
         )
 

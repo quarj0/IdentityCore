@@ -45,11 +45,17 @@ test("retrieves the versioned verification result", async () => {
 test("verifies signatures over the raw payload", () => {
   const fixture = JSON.parse(readFileSync(new URL("../../fixtures/webhook-signature-v1.json", import.meta.url)));
   const seenEventIds = new Set();
-  const options = { signature: fixture.previous_signature, timestamp: fixture.timestamp, eventId: fixture.event_id, signingKeys: [fixture.current_secret, fixture.previous_secret], now: fixture.now_within_tolerance, seenEventIds };
+  const claimEventId = (eventId) => {
+    if (seenEventIds.has(eventId)) return false;
+    seenEventIds.add(eventId);
+    return true;
+  };
+  const options = { signature: fixture.rotation_signature_header, timestamp: fixture.timestamp, eventId: fixture.event_id, signingKeys: [fixture.previous_secret], now: fixture.now_within_tolerance, claimEventId };
   assert.equal(verifyWebhookSignature(fixture.raw_body, options), true);
   assert.equal(verifyWebhookSignature(fixture.raw_body, options), false);
-  assert.equal(verifyWebhookSignature(fixture.raw_body, { ...options, signature: fixture.current_signature, signingKey: fixture.current_secret, signingKeys: [], seenEventIds: undefined, now: fixture.now_outside_tolerance }), false);
-  const validOptions = { ...options, signature: fixture.current_signature, signingKey: fixture.current_secret, signingKeys: [], seenEventIds: undefined };
+  assert.equal(verifyWebhookSignature(fixture.raw_body, { ...options, signature: fixture.current_signature, signingKey: fixture.current_secret, signingKeys: [], claimEventId: undefined, now: fixture.now_outside_tolerance }), false);
+  const validOptions = { ...options, signature: fixture.current_signature, signingKey: fixture.current_secret, signingKeys: [], claimEventId: undefined };
+  assert.equal(verifyWebhookSignature(fixture.raw_body, { ...validOptions, signature: fixture.rotation_signature_header }), true);
   assert.equal(verifyWebhookSignature(fixture.raw_body, validOptions), true);
   assert.equal(verifyWebhookSignature(fixture.raw_body, { ...validOptions, signature: fixture.current_signature.replace("v1=", "v2=") }), false);
   assert.equal(verifyWebhookSignature(fixture.raw_body, { ...validOptions, eventId: "evt_other" }), false);

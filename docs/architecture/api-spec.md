@@ -1292,7 +1292,7 @@ X-IdentityCore-Signing-Secret-Version: 2
 X-IdentityCore-Timestamp: 1783159380
 ```
 
-For v1, derive the HMAC key as the lowercase hexadecimal SHA-256 digest of the raw webhook secret, then sign the exact bytes `timestamp + "." + event_id + "." + raw_body` with HMAC-SHA256. Verify the unmodified body in constant time, require payload `schema_version` `"1"` and a payload `id` matching the signed event header, reject timestamps outside the five-minute tolerance, and atomically record processed event IDs so a valid delivery cannot be applied twice. The canonical cross-SDK fixture is `sdk/fixtures/webhook-signature-v1.json`.
+For v1, derive the HMAC key as the lowercase hexadecimal SHA-256 digest of the raw webhook secret, then sign the exact bytes `timestamp + "." + event_id + "." + raw_body` with HMAC-SHA256. During a rotation overlap, `X-IdentityCore-Signature` contains comma-separated `v1=` signatures for the current and previous secrets so either receiver configuration verifies. Verify the unmodified body in constant time, require payload `schema_version` `"1"` and a payload `id` matching the signed event header, reject timestamps outside the five-minute tolerance, and use one atomic insert-if-absent event-ID claim so a valid delivery cannot be applied twice. The canonical cross-SDK fixture is `sdk/fixtures/webhook-signature-v1.json`.
 
 Webhook events:
 

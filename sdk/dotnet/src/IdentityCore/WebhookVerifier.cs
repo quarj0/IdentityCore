@@ -26,7 +26,7 @@ public static class WebhookVerifier
         return expected.Length == received.Length && CryptographicOperations.FixedTimeEquals(expected, received);
     }
 
-    public static bool VerifyV1(ReadOnlySpan<byte> rawBody, string signature, string timestamp, string eventId, IEnumerable<string> signingSecrets, TimeSpan? tolerance = null, DateTimeOffset? now = null, ISet<string>? seenEventIds = null)
+    public static bool VerifyV1(ReadOnlySpan<byte> rawBody, string signature, string timestamp, string eventId, IEnumerable<string> signingSecrets, TimeSpan? tolerance = null, DateTimeOffset? now = null, Func<string, bool>? claimEventId = null)
     {
         if (string.IsNullOrWhiteSpace(eventId)) throw new IdentityCoreException("eventId is required for v1 signatures.");
         var secrets = signingSecrets?.Where(secret => !string.IsNullOrWhiteSpace(secret)).ToArray() ?? [];
@@ -42,13 +42,14 @@ public static class WebhookVerifier
         var prefix = Encoding.UTF8.GetBytes($"{timestamp}.{eventId}.");
         var message = new byte[prefix.Length + rawBody.Length];
         prefix.CopyTo(message, 0); rawBody.CopyTo(message.AsSpan(prefix.Length));
-        var received = Encoding.UTF8.GetBytes(signature ?? string.Empty);
+        var receivedSignatures = (signature ?? string.Empty).Split(',').Select(value => Encoding.UTF8.GetBytes(value.Trim())).ToArray();
         var valid = secrets.Any(secret =>
         {
             var derivedKey = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(secret))).ToLowerInvariant();
             using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(derivedKey));
             var expected = Encoding.UTF8.GetBytes("v1=" + Convert.ToHexString(hmac.ComputeHash(message)).ToLowerInvariant());
-            return expected.Length == received.Length && CryptographicOperations.FixedTimeEquals(expected, received);
+            return receivedSignatures.Any(received =>
+                expected.Length == received.Length && CryptographicOperations.FixedTimeEquals(expected, received));
         });
         if (!valid) return false;
         try
@@ -64,7 +65,7 @@ public static class WebhookVerifier
                 || schemaVersion.GetString() != "1") return false;
         }
         catch (JsonException) { return false; }
-        if (seenEventIds is not null && !seenEventIds.Add(eventId)) return false;
+        if (claimEventId is not null && !claimEventId(eventId)) return false;
         return true;
     }
 }

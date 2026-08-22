@@ -51,8 +51,8 @@ const valid = verifyWebhookSignature(rawRequestBody, {
   timestamp: request.headers["x-identitycore-timestamp"],
   eventId: request.headers["x-identitycore-event-id"],
   signingKeys: [currentWebhookSecret, previousWebhookSecret],
-  seenEventIds: processedEventIds,
+  claimEventId: claimProcessedEventId,
 });
 ```
 
-Always verify the unmodified request body before parsing JSON. The default timestamp tolerance is five minutes. Back `seenEventIds` with durable, atomic storage in production and retain the previous secret only until its rotation overlap expires.
+Always verify the unmodified request body before parsing JSON. The default timestamp tolerance is five minutes. `claimProcessedEventId` must atomically insert the event ID only if absent and return whether it succeeded. Retain the previous secret only until its rotation overlap expires; IdentityCore emits signatures for both secrets during that window.

@@ -41,6 +41,6 @@ class LiveCompatibilityTest {
         mac.update((timestamp + "." + eventId + ".").getBytes(StandardCharsets.UTF_8));
         assertTrue(WebhookVerifier.verifyV1(payload,
                 "v1=" + java.util.HexFormat.of().formatHex(mac.doFinal(payload)), timestamp, eventId,
-                List.of(secret), 300, Instant.now().getEpochSecond(), null));
+                List.of(secret)));
     }
 }

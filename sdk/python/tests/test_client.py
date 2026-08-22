@@ -172,15 +172,22 @@ class IdentityCoreClientTests(unittest.TestCase):
             ).read_text()
         )
         seen: set[str] = set()
+
+        def claim_event_id(event_id: str) -> bool:
+            if event_id in seen:
+                return False
+            seen.add(event_id)
+            return True
+
         self.assertTrue(
             verify_webhook_signature(
                 fixture["raw_body"].encode(),
-                signature=fixture["previous_signature"],
+                signature=fixture["rotation_signature_header"],
                 timestamp=fixture["timestamp"],
                 event_id=fixture["event_id"],
-                signing_keys=[fixture["current_secret"], fixture["previous_secret"]],
+                signing_keys=[fixture["previous_secret"]],
                 now=fixture["now_within_tolerance"],
-                seen_event_ids=seen,
+                claim_event_id=claim_event_id,
             )
         )
         self.assertIn(fixture["event_id"], seen)
@@ -192,7 +199,7 @@ class IdentityCoreClientTests(unittest.TestCase):
                 event_id=fixture["event_id"],
                 signing_keys=[fixture["current_secret"], fixture["previous_secret"]],
                 now=fixture["now_within_tolerance"],
-                seen_event_ids=seen,
+                claim_event_id=claim_event_id,
             )
         )
         self.assertFalse(
@@ -211,6 +218,13 @@ class IdentityCoreClientTests(unittest.TestCase):
             "signing_key": fixture["current_secret"],
             "now": fixture["now_within_tolerance"],
         }
+        self.assertTrue(
+            verify_webhook_signature(
+                fixture["raw_body"],
+                signature=fixture["rotation_signature_header"],
+                **valid_options,
+            )
+        )
         self.assertTrue(
             verify_webhook_signature(
                 fixture["raw_body"],

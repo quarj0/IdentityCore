@@ -12,6 +12,11 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name='webhookendpoint',
+            name='previous_signing_key',
+            field=models.CharField(blank=True, max_length=64),
+        ),
+        migrations.AddField(
+            model_name='webhookendpoint',
             name='previous_secret_expires_at',
             field=models.DateTimeField(blank=True, null=True),
         ),

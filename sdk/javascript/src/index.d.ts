@@ -105,6 +105,6 @@ export function verifyWebhookSignature(
     signingKeys?: string[];
     toleranceSeconds?: number;
     now?: number;
-    seenEventIds?: Set<string>;
+    claimEventId?: (eventId: string) => boolean;
   },
 ): boolean;

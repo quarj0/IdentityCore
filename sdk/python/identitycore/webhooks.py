@@ -4,7 +4,7 @@ import hmac
 import json
 import time
 from hashlib import sha256
-from collections.abc import MutableSet, Sequence
+from collections.abc import Callable, Sequence
 from typing import Union
 
 from identitycore.errors import IdentityCoreError
@@ -20,7 +20,7 @@ def verify_webhook_signature(
     signing_keys: Sequence[str] | None = None,
     tolerance_seconds: int = 300,
     now: int | None = None,
-    seen_event_ids: MutableSet[str] | None = None,
+    claim_event_id: Callable[[str], bool] | None = None,
 ) -> bool:
     """Verify a v1 webhook and optionally reject already-seen event IDs."""
     candidate_secrets = [key for key in (signing_keys or []) if key]
@@ -43,12 +43,14 @@ def verify_webhook_signature(
     message = (
         str(timestamp).encode("utf-8") + b"." + event_id.encode("utf-8") + b"." + raw
     )
+    received_signatures = [value.strip() for value in str(signature).split(",")]
     valid = any(
         hmac.compare_digest(
             f"v1={hmac.new(sha256(secret.encode()).hexdigest().encode(), message, sha256).hexdigest()}",
-            str(signature),
+            received,
         )
         for secret in candidate_secrets
+        for received in received_signatures
     )
     if not valid:
         return False
@@ -60,8 +62,6 @@ def verify_webhook_signature(
         return False
     if document.get("id") != event_id or document.get("schema_version") != "1":
         return False
-    if seen_event_ids is not None:
-        if event_id in seen_event_ids:
-            return False
-        seen_event_ids.add(event_id)
+    if claim_event_id is not None and not claim_event_id(event_id):
+        return False
     return True

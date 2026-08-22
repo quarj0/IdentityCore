@@ -16,11 +16,12 @@ public sealed class WebhookVerifierTests
         var timestamp = root.GetProperty("timestamp").GetString()!;
         var secrets = new[] { root.GetProperty("current_secret").GetString()!, root.GetProperty("previous_secret").GetString()! };
         var seen = new HashSet<string>();
-        Assert.True(WebhookVerifier.VerifyV1(body, root.GetProperty("previous_signature").GetString()!, timestamp, eventId, secrets, TimeSpan.FromMinutes(5), DateTimeOffset.FromUnixTimeSeconds(root.GetProperty("now_within_tolerance").GetInt64()), seen));
-        Assert.False(WebhookVerifier.VerifyV1(body, root.GetProperty("previous_signature").GetString()!, timestamp, eventId, secrets, TimeSpan.FromMinutes(5), DateTimeOffset.FromUnixTimeSeconds(root.GetProperty("now_within_tolerance").GetInt64()), seen));
+        Assert.True(WebhookVerifier.VerifyV1(body, root.GetProperty("rotation_signature_header").GetString()!, timestamp, eventId, [root.GetProperty("previous_secret").GetString()!], TimeSpan.FromMinutes(5), DateTimeOffset.FromUnixTimeSeconds(root.GetProperty("now_within_tolerance").GetInt64()), seen.Add));
+        Assert.False(WebhookVerifier.VerifyV1(body, root.GetProperty("previous_signature").GetString()!, timestamp, eventId, secrets, TimeSpan.FromMinutes(5), DateTimeOffset.FromUnixTimeSeconds(root.GetProperty("now_within_tolerance").GetInt64()), seen.Add));
         Assert.False(WebhookVerifier.VerifyV1(body, root.GetProperty("current_signature").GetString()!, timestamp, eventId, secrets, TimeSpan.FromMinutes(5), DateTimeOffset.FromUnixTimeSeconds(root.GetProperty("now_outside_tolerance").GetInt64())));
         var signature = root.GetProperty("current_signature").GetString()!;
         var now = DateTimeOffset.FromUnixTimeSeconds(root.GetProperty("now_within_tolerance").GetInt64());
+        Assert.True(WebhookVerifier.VerifyV1(body, root.GetProperty("rotation_signature_header").GetString()!, timestamp, eventId, [root.GetProperty("current_secret").GetString()!], TimeSpan.FromMinutes(5), now));
         Assert.True(WebhookVerifier.VerifyV1(body, signature, timestamp, eventId, secrets, TimeSpan.FromMinutes(5), now));
         Assert.False(WebhookVerifier.VerifyV1(body, signature.Replace("v1=", "v2="), timestamp, eventId, secrets, TimeSpan.FromMinutes(5), now));
         Assert.False(WebhookVerifier.VerifyV1(body, signature, timestamp, "evt_other", secrets, TimeSpan.FromMinutes(5), now));

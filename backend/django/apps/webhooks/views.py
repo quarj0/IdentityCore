@@ -110,9 +110,12 @@ class WebhookEndpointTestView(APIView):
 class WebhookEndpointDetailView(APIView):
     permission_classes = [IsAuthenticated, IsTenantUser]
 
-    def obj(self, request, webhook_id):
+    def obj(self, request, webhook_id, *, for_update=False):
+        endpoints = WebhookEndpoint.objects
+        if for_update:
+            endpoints = endpoints.select_for_update()
         return get_object_or_404(
-            WebhookEndpoint, tenant=request.user.tenant, public_id=webhook_id
+            endpoints, tenant=request.user.tenant, public_id=webhook_id
         )
 
     def get(self, request, webhook_id):
@@ -150,7 +153,7 @@ class WebhookEndpointActionView(WebhookEndpointDetailView):
                     request=request,
                     status=idempotency_result.response_status,
                 )
-        endpoint = self.obj(request, webhook_id)
+        endpoint = self.obj(request, webhook_id, for_update=action == "rotate")
         if action == "disable":
             endpoint.status = "disabled"
         elif action == "reactivate":
@@ -166,6 +169,7 @@ class WebhookEndpointActionView(WebhookEndpointDetailView):
                 update_fields=[
                     "secret_hash",
                     "signing_key",
+                    "previous_signing_key",
                     "signing_secret_version",
                     "previous_secret_expires_at",
                     "updated_at",

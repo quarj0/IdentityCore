@@ -82,10 +82,10 @@ valid = verify_webhook_signature(
     timestamp=request.headers["X-IdentityCore-Timestamp"],
     event_id=request.headers["X-IdentityCore-Event-Id"],
     signing_keys=[current_webhook_secret, previous_webhook_secret],
-    seen_event_ids=processed_event_ids,
+    claim_event_id=claim_processed_event_id,
 )
 ```
 
-Always verify the unmodified webhook body before parsing JSON. The default timestamp tolerance is five minutes. Persist processed event IDs in production; the set above is illustrative. During rotation, supply both secrets only until the API-provided overlap expiry.
+Always verify the unmodified webhook body before parsing JSON. The default timestamp tolerance is five minutes. `claim_processed_event_id` must atomically insert the event ID only if it does not exist and return whether the claim succeeded. During rotation, supply both secrets only until the API-provided overlap expiry; IdentityCore emits signatures for both during that window.
 
 Required scopes are `policies:read`, `verifications:create`, and `verifications:read` for their corresponding resources.

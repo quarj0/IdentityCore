@@ -95,15 +95,23 @@ def _build_signature(
     return f"v1={digest}"
 
 
+def _build_signature_header(
+    webhook_event: WebhookEvent, timestamp: str, payload_bytes: bytes
+) -> str:
+    endpoint = webhook_event.webhook_endpoint
+    signing_keys = [endpoint.signing_key]
+    if endpoint.previous_secret_overlap_active:
+        signing_keys.append(endpoint.previous_signing_key)
+    return ",".join(
+        _build_signature(key, timestamp, webhook_event.public_id, payload_bytes)
+        for key in signing_keys
+    )
+
+
 def _send_webhook_request(
     *, webhook_event: WebhookEvent, payload_bytes: bytes, timestamp: str
 ):
-    signature = _build_signature(
-        webhook_event.webhook_endpoint.signing_key,
-        timestamp,
-        webhook_event.public_id,
-        payload_bytes,
-    )
+    signature = _build_signature_header(webhook_event, timestamp, payload_bytes)
     http_request = request.Request(
         webhook_event.webhook_endpoint.url,
         data=payload_bytes,

@@ -85,7 +85,7 @@ export function verifyWebhookSignature(
     signingKeys = [],
     toleranceSeconds = 300,
     now = Math.floor(Date.now() / 1000),
-    seenEventIds,
+    claimEventId,
   },
 ) {
   const secrets = [signingKey, ...signingKeys].filter(Boolean);
@@ -101,14 +101,17 @@ export function verifyWebhookSignature(
     throw new IdentityCoreError("Webhook timestamp is invalid.");
   if (Math.abs(current - sentAt) > toleranceSeconds) return false;
   const raw = Buffer.isBuffer(payload) ? payload : Buffer.from(payload);
-  const received = Buffer.from(String(signature));
+  const receivedSignatures = String(signature)
+    .split(",")
+    .map((value) => Buffer.from(value.trim()));
   const valid = secrets.some((secret) => {
     const derivedKey = createHash("sha256").update(secret).digest("hex");
     const expected = `v1=${createHmac("sha256", derivedKey).update(`${timestamp}.${eventId}.`).update(raw).digest("hex")}`;
     const expectedBytes = Buffer.from(expected);
-    return (
-      received.length === expectedBytes.length &&
-      timingSafeEqual(received, expectedBytes)
+    return receivedSignatures.some(
+      (received) =>
+        received.length === expectedBytes.length &&
+        timingSafeEqual(received, expectedBytes),
     );
   });
   if (!valid) return false;
@@ -125,10 +128,7 @@ export function verifyWebhookSignature(
   )
     return false;
   if (document.id !== eventId || document.schema_version !== "1") return false;
-  if (seenEventIds) {
-    if (seenEventIds.has(eventId)) return false;
-    seenEventIds.add(eventId);
-  }
+  if (claimEventId && !claimEventId(eventId)) return false;
   return true;
 }
 

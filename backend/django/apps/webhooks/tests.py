@@ -1,4 +1,5 @@
 from datetime import timedelta
+import hashlib
 import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -180,7 +181,14 @@ class WebhookEndpointTests(APITestCase):
         endpoint.set_secret("old-secret")
         endpoint.save()
 
-        with self.settings(WEBHOOK_SECRET_ROTATION_OVERLAP_SECONDS=60):
+        with (
+            self.settings(WEBHOOK_SECRET_ROTATION_OVERLAP_SECONDS=60),
+            patch.object(
+                WebhookEndpoint.objects,
+                "select_for_update",
+                wraps=WebhookEndpoint.objects.select_for_update,
+            ) as select_for_update,
+        ):
             response = self.client.post(
                 reverse("webhook-endpoint-rotate", kwargs={"webhook_id": endpoint.public_id}),
                 format="json",
@@ -188,9 +196,14 @@ class WebhookEndpointTests(APITestCase):
             )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        select_for_update.assert_called_once_with()
         endpoint.refresh_from_db()
         new_secret = response.data["data"]["secret"]
         self.assertEqual(endpoint.signing_secret_version, 2)
+        self.assertEqual(
+            endpoint.previous_signing_key,
+            hashlib.sha256(b"old-secret").hexdigest(),
+        )
         self.assertTrue(endpoint.verify_secret(new_secret))
         self.assertFalse(endpoint.verify_secret("old-secret"))
         self.assertTrue(endpoint.previous_secret_overlap_active)
@@ -656,3 +669,61 @@ class WebhookEndpointTests(APITestCase):
         self.assertEqual(sent_request.get_header("X-identitycore-signature-version"), "v1")
         self.assertEqual(sent_request.get_header("X-identitycore-signing-secret-version"), "3")
         self.assertTrue(sent_request.get_header("X-identitycore-signature").startswith("v1="))
+
+    @patch("apps.webhooks.services.request.urlopen")
+    def test_delivery_is_signed_with_current_and_previous_keys_during_overlap(self, mock_urlopen):
+        response = MagicMock(status=200)
+        response.read.return_value = b"ok"
+        mock_urlopen.return_value.__enter__.return_value = response
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/rotating",
+            events_json=["verification.verified"],
+            created_by=self.user,
+        )
+        endpoint.set_secret("previous-secret")
+        endpoint.rotate_secret(
+            "current-secret",
+            previous_secret_expires_at=timezone.now() + timedelta(minutes=5),
+        )
+        endpoint.save()
+        event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={"id": "placeholder", "schema_version": "1"},
+        )
+        payload = b'{"id":"placeholder","schema_version":"1"}'
+
+        _send_webhook_request(
+            webhook_event=event, payload_bytes=payload, timestamp="1720180800"
+        )
+
+        signature_header = mock_urlopen.call_args.args[0].get_header(
+            "X-identitycore-signature"
+        )
+        self.assertEqual(
+            signature_header.split(","),
+            [
+                _build_signature(
+                    endpoint.signing_key, "1720180800", event.public_id, payload
+                ),
+                _build_signature(
+                    endpoint.previous_signing_key,
+                    "1720180800",
+                    event.public_id,
+                    payload,
+                ),
+            ],
+        )
+
+        endpoint.previous_secret_expires_at = timezone.now() - timedelta(seconds=1)
+        _send_webhook_request(
+            webhook_event=event, payload_bytes=payload, timestamp="1720180801"
+        )
+        self.assertEqual(
+            mock_urlopen.call_args.args[0].get_header("X-identitycore-signature"),
+            _build_signature(
+                endpoint.signing_key, "1720180801", event.public_id, payload
+            ),
+        )
