@@ -23,7 +23,7 @@ export default defineConfig({
   ],
   webServer: {
     command:
-      "pnpm --dir .. --filter platform-admin build && PORT=3004 NEXT_PUBLIC_API_ORIGIN=http://localhost:8000 pnpm --dir .. --filter platform-admin start",
+      "NEXT_PUBLIC_API_ORIGIN=http://localhost:8000 pnpm --dir .. --filter platform-admin build && PORT=3004 NEXT_PUBLIC_API_ORIGIN=http://localhost:8000 pnpm --dir .. --filter platform-admin start",
     url: "http://127.0.0.1:3004",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
