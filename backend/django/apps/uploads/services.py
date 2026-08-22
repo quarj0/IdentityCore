@@ -83,15 +83,21 @@ def consume_upload(*, upload: Upload) -> Upload:
 
 
 def promote_upload_to_media(*, upload: Upload) -> Upload:
+    # Promotion is a durable state transition. If an earlier worker already moved
+    # the object but later domain finalization rolled back, retries must not try to
+    # move the now-missing temporary object a second time.
+    if upload.status == UploadStatus.PROMOTED:
+        return upload
     _move_upload_to_media_bucket(upload)
-    if upload.status != UploadStatus.PROMOTED:
-        upload.status = UploadStatus.PROMOTED
-        upload.save(update_fields=["status", "updated_at"])
+    upload.status = UploadStatus.PROMOTED
+    upload.save(update_fields=["status", "updated_at"])
     return upload
 
 
 def promote_upload_to_media_by_storage_key(storage_key: str) -> Upload | None:
-    upload = Upload.objects.filter(storage_key=storage_key, deleted_at__isnull=True).first()
+    upload = Upload.objects.filter(
+        storage_key=storage_key, deleted_at__isnull=True
+    ).first()
     if upload is None:
         return None
     return promote_upload_to_media(upload=upload)
