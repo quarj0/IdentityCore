@@ -138,14 +138,91 @@ def heartbeat_processing_job(job: ProcessingJob) -> None:
     ).update(heartbeat_at=now, lease_expires_at=_lease_deadline(now))
 
 
+def _repair_biometric_route_exhaustion(job: ProcessingJob, *, now) -> None:
+    """Finish biometric resource state committed around provider-route exhaustion."""
+    if job.job_type != ProcessingJobType.BIOMETRICS:
+        return
+
+    from apps.biometrics.models import (
+        FaceMatchStatus,
+        LivenessCheck,
+        LivenessCheckStatus,
+    )
+    from apps.providers.models import ProviderCheckType
+
+    decision = VerificationDecision.objects.filter(
+        verification_id=job.verification_id,
+        reason_code="provider_route_exhausted",
+    ).first()
+    if decision is None:
+        return
+
+    capability = (decision.evidence_summary_json or {}).get("capability")
+    liveness_check = (
+        LivenessCheck.objects.select_related("selfie_capture")
+        .filter(
+            public_id=job.resource_public_id,
+            tenant_id=job.tenant_id,
+        )
+        .first()
+    )
+    if liveness_check is None:
+        return
+
+    if capability == ProviderCheckType.LIVENESS:
+        if liveness_check.status == LivenessCheckStatus.INCONCLUSIVE:
+            liveness_check.status = LivenessCheckStatus.ERROR
+            liveness_check.failure_reason = "provider_route_exhausted"
+            liveness_check.checked_at = now
+            liveness_check.save(
+                update_fields=[
+                    "status",
+                    "failure_reason",
+                    "checked_at",
+                    "updated_at",
+                ]
+            )
+        return
+
+    if capability == ProviderCheckType.FACE_MATCH:
+        face_match = (
+            liveness_check.verification.face_matches.filter(
+                selfie_capture=liveness_check.selfie_capture,
+                status=FaceMatchStatus.INCONCLUSIVE,
+            )
+            .order_by("-matched_at")
+            .first()
+        )
+        if face_match is not None:
+            face_match.status = FaceMatchStatus.ERROR
+            face_match.matched_at = now
+            face_match.save(update_fields=["status", "matched_at", "updated_at"])
+
+
+@transaction.atomic
 def complete_processing_job(job: ProcessingJob) -> None:
     now = timezone.now()
-    ProcessingJob.objects.filter(pk=job.pk).update(
-        status=ProcessingJobStatus.COMPLETED,
-        heartbeat_at=now,
-        lease_expires_at=now,
-        completed_at=now,
-        error_code="",
+    locked = ProcessingJob.objects.select_for_update().get(pk=job.pk)
+    if locked.status in {
+        ProcessingJobStatus.COMPLETED,
+        ProcessingJobStatus.EXHAUSTED,
+    }:
+        return
+    _repair_biometric_route_exhaustion(locked, now=now)
+    locked.status = ProcessingJobStatus.COMPLETED
+    locked.heartbeat_at = now
+    locked.lease_expires_at = now
+    locked.completed_at = now
+    locked.error_code = ""
+    locked.save(
+        update_fields=[
+            "status",
+            "heartbeat_at",
+            "lease_expires_at",
+            "completed_at",
+            "error_code",
+            "updated_at",
+        ]
     )
 
 
@@ -210,31 +287,60 @@ def exhaust_processing_job(job: ProcessingJob) -> None:
             )
 
         verification = locked.verification
-        VerificationDecision.objects.update_or_create(
-            verification=verification,
-            defaults={
-                "tenant": locked.tenant,
-                "decision": VerificationStatus.MANUAL_REVIEW_REQUIRED,
-                "decision_type": VerificationDecisionType.SYSTEM,
-                "reason_code": "processing_retries_exhausted",
-                "reason_detail": (
-                    "Automated processing could not finish after bounded recovery "
-                    "attempts and requires human review."
-                ),
-                "evidence_summary_json": {
-                    "processing_job_type": locked.job_type,
-                    "attempt_count": locked.attempt_count,
+        lifecycle_already_final = verification.status in {
+            *TERMINAL_STATUSES,
+            VerificationStatus.MANUAL_REVIEW_REQUIRED,
+        }
+        if not lifecycle_already_final:
+            from apps.notifications.services import (
+                queue_verification_status_notifications,
+            )
+            from apps.verifications.evidence_commit import (
+                schedule_verification_evidence_report_after_commit,
+            )
+            from apps.webhooks.services import queue_webhook_events
+
+            VerificationDecision.objects.update_or_create(
+                verification=verification,
+                defaults={
+                    "tenant": locked.tenant,
+                    "decision": VerificationStatus.MANUAL_REVIEW_REQUIRED,
+                    "decision_type": VerificationDecisionType.SYSTEM,
+                    "reason_code": "processing_retries_exhausted",
+                    "reason_detail": (
+                        "Automated processing could not finish after bounded recovery "
+                        "attempts and requires human review."
+                    ),
+                    "evidence_summary_json": {
+                        "processing_job_type": locked.job_type,
+                        "attempt_count": locked.attempt_count,
+                    },
+                    "decided_by": None,
+                    "decided_at": now,
                 },
-                "decided_by": None,
-                "decided_at": now,
-            },
-        )
-        if verification.status not in TERMINAL_STATUSES:
+            )
             transition_verification(
                 verification,
                 VerificationStatus.MANUAL_REVIEW_REQUIRED,
                 clear_completed_at=True,
             )
+            queue_webhook_events(
+                tenant=locked.tenant,
+                event_type="verification.manual_review_required",
+                payload={
+                    "verification_id": verification.public_id,
+                    "external_reference": verification.external_reference,
+                    "status": verification.status,
+                    "reason_code": "processing_retries_exhausted",
+                },
+            )
+            queue_verification_status_notifications(
+                verification=verification,
+                decision=verification.status,
+                risk_level="high",
+            )
+            schedule_verification_evidence_report_after_commit(verification)
+
         record_audit_event(
             tenant=locked.tenant,
             actor=verification.verification_subject,
@@ -269,6 +375,22 @@ def _resource_processing_finished(job: ProcessingJob) -> bool:
         ).exists()
     if job.job_type == ProcessingJobType.BIOMETRICS:
         from apps.biometrics.models import LivenessCheck, LivenessCheckStatus
+
+        # Provider-route exhaustion commits the verification decision/outbox first.
+        # Treat that lifecycle decision as finished work even if the worker died
+        # before its biometric row cleanup; complete_processing_job repairs the row.
+        if (
+            job.verification.status
+            in {
+                *TERMINAL_STATUSES,
+                VerificationStatus.MANUAL_REVIEW_REQUIRED,
+            }
+            and VerificationDecision.objects.filter(
+                verification_id=job.verification_id,
+                reason_code="provider_route_exhausted",
+            ).exists()
+        ):
+            return True
 
         # A committed biometric sub-result is not the same as a committed
         # verification decision. If finalization rolled back, the job must be
