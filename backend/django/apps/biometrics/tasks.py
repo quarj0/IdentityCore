@@ -33,6 +33,7 @@ from apps.verifications.models import (
     VerificationStatus,
 )
 from apps.verifications.processing_jobs import (
+    ProcessingJobOwnershipLost,
     acquire_processing_job,
     complete_processing_job,
     heartbeat_processing_job,
@@ -268,15 +269,10 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
         else None
     )
 
-    # A prior attempt may have committed a terminal/manual-review decision but
-    # died before its Celery invocation returned. Never re-run providers then.
     if verification.status in BIOMETRIC_FINAL_VERIFICATION_STATUSES:
         complete_processing_job(processing_job)
         return verification.status
 
-    # If provider/domain evidence committed but finalization rolled back, resume
-    # finalization from that evidence. Do not treat a non-inconclusive liveness
-    # row by itself as proof that the whole processing job completed.
     if liveness_check.status == LivenessCheckStatus.ERROR:
         return _finalize_unavailable_biometrics(
             verification=verification,
@@ -312,10 +308,6 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
     media_bucket = get_object_storage_media_bucket_name()
     processing_stage = "liveness"
 
-    # Provider execution is deliberately outside the final domain transaction.
-    # A worker can die after a provider response is persisted; on redelivery the
-    # completed normalized ProviderCheck is reused and the external call is not
-    # repeated.
     try:
         if liveness_check.status == LivenessCheckStatus.INCONCLUSIVE:
             liveness_result = _completed_provider_result(liveness_provider_check)
@@ -344,6 +336,7 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                     ),
                     request_metadata={"liveness_check_id": liveness_check.public_id},
                     initial_provider_check=liveness_provider_check,
+                    processing_job=processing_job,
                 )
                 liveness_result = liveness_execution.result
                 liveness_provider_check = liveness_execution.provider_check
@@ -481,6 +474,7 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                     ),
                     request_metadata={"face_match_id": face_match.public_id},
                     initial_provider_check=face_provider_check,
+                    processing_job=processing_job,
                 )
                 face_result = face_execution.result
                 face_provider_check = face_execution.provider_check
@@ -540,6 +534,8 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                         "updated_at",
                     ]
                 )
+    except ProcessingJobOwnershipLost:
+        raise
     except ProviderRouteExhausted:
         now = timezone.now()
         if processing_stage == "liveness":
@@ -616,9 +612,6 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             error=exc,
         )
 
-    # Finalization failures (outbox/notification/database) must propagate without
-    # being mislabeled as provider failures. The persisted provider results and
-    # biometric evidence above make the next attempt resumable without I/O replay.
     promote_upload_to_media_by_storage_key(selfie_capture.storage_key)
     return _finalize_biometric_decision(
         verification=verification,
