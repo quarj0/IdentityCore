@@ -2,6 +2,7 @@ import logging
 from decimal import Decimal
 
 from celery import shared_task
+from django.db import transaction
 from django.utils import timezone
 
 from apps.audit.services import record_audit_event
@@ -34,6 +35,7 @@ from apps.verifications.processing_jobs import (
     complete_processing_job,
     defer_processing_job,
     heartbeat_processing_job,
+    lock_processing_job_for_finalization,
 )
 from apps.verifications.transitions import (
     TERMINAL_STATUSES,
@@ -237,76 +239,82 @@ def process_identity_document_task(identity_document_id: str) -> str:
             )
             quality_result = quality_execution.result
             quality_provider_check = quality_execution.provider_check
-            capture.quality_score = Decimal(
-                str(quality_result.get("quality_score", "0"))
-            )
-            capture.status = (
-                DocumentCaptureStatus.REJECTED
-                if _quality_result_requires_rejection(quality_result)
-                else DocumentCaptureStatus.VALIDATED
-            )
-            capture.save(update_fields=["quality_score", "status", "updated_at"])
-            capture_quality_results.append(
-                {
-                    "capture_id": capture.public_id,
-                    "status": capture.status,
-                    "quality_score": float(capture.quality_score),
-                    "issues": list(quality_result.get("issues") or []),
-                    "metrics": quality_result.get("metrics") or {},
-                    "model_name": quality_result.get("model_name", ""),
-                    "model_version": quality_result.get("model_version", ""),
-                }
-            )
-            if (
-                lowest_quality_score is None
-                or capture.quality_score < lowest_quality_score
-            ):
-                lowest_quality_score = capture.quality_score
-            if quality_result.get("issues"):
-                if _quality_result_requires_rejection(quality_result):
-                    latest_quality_status = DocumentCaptureStatus.REJECTED
-                issues_found.extend(quality_result["issues"])
-            heartbeat_processing_job(processing_job)
-
-        if quality_provider_check is not None:
-            quality_provider_check.status = ProviderCheckStatus.COMPLETED
-            quality_provider_check.completed_at = now
-            quality_provider_check.response_metadata_json = {
-                "capture_results": [
+            with transaction.atomic():
+                lock_processing_job_for_finalization(processing_job)
+                capture.quality_score = Decimal(
+                    str(quality_result.get("quality_score", "0"))
+                )
+                capture.status = (
+                    DocumentCaptureStatus.REJECTED
+                    if _quality_result_requires_rejection(quality_result)
+                    else DocumentCaptureStatus.VALIDATED
+                )
+                capture.save(update_fields=["quality_score", "status", "updated_at"])
+                capture_quality_results.append(
                     {
                         "capture_id": capture.public_id,
                         "status": capture.status,
-                        "quality_score": (
-                            float(capture.quality_score)
-                            if capture.quality_score is not None
-                            else None
-                        ),
+                        "quality_score": float(capture.quality_score),
+                        "issues": list(quality_result.get("issues") or []),
+                        "metrics": quality_result.get("metrics") or {},
+                        "model_name": quality_result.get("model_name", ""),
+                        "model_version": quality_result.get("model_version", ""),
                     }
-                    for capture in captures
-                ],
-                "issues": issues_found,
-            }
-            quality_provider_check.normalized_result_json = preserve_provider_result_envelope(
-                quality_provider_check,
-                workflow_result={
-                    "status": latest_quality_status,
-                    "quality_score": (
-                        float(lowest_quality_score)
-                        if lowest_quality_score is not None
-                        else None
-                    ),
+                )
+                if (
+                    lowest_quality_score is None
+                    or capture.quality_score < lowest_quality_score
+                ):
+                    lowest_quality_score = capture.quality_score
+                if quality_result.get("issues"):
+                    if _quality_result_requires_rejection(quality_result):
+                        latest_quality_status = DocumentCaptureStatus.REJECTED
+                    issues_found.extend(quality_result["issues"])
+                heartbeat_processing_job(processing_job)
+
+        with transaction.atomic():
+            lock_processing_job_for_finalization(processing_job)
+            if quality_provider_check is not None:
+                quality_provider_check.status = ProviderCheckStatus.COMPLETED
+                quality_provider_check.completed_at = now
+                quality_provider_check.response_metadata_json = {
+                    "capture_results": [
+                        {
+                            "capture_id": capture.public_id,
+                            "status": capture.status,
+                            "quality_score": (
+                                float(capture.quality_score)
+                                if capture.quality_score is not None
+                                else None
+                            ),
+                        }
+                        for capture in captures
+                    ],
                     "issues": issues_found,
-                },
-            )
-            quality_provider_check.save(
-                update_fields=[
-                    "status",
-                    "completed_at",
-                    "response_metadata_json",
-                    "normalized_result_json",
-                    "updated_at",
-                ]
-            )
+                }
+                quality_provider_check.normalized_result_json = (
+                    preserve_provider_result_envelope(
+                        quality_provider_check,
+                        workflow_result={
+                            "status": latest_quality_status,
+                            "quality_score": (
+                                float(lowest_quality_score)
+                                if lowest_quality_score is not None
+                                else None
+                            ),
+                            "issues": issues_found,
+                        },
+                    )
+                )
+                quality_provider_check.save(
+                    update_fields=[
+                        "status",
+                        "completed_at",
+                        "response_metadata_json",
+                        "normalized_result_json",
+                        "updated_at",
+                    ]
+                )
 
         primary_capture = captures[0]
         classification_result = None
@@ -353,8 +361,9 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 verification.public_id,
                 exc,
             )
-        if classification_result is not None and _classification_requests_manual_review(
-            classification_result
+        if (
+            classification_result is not None
+            and _classification_requests_manual_review(classification_result)
         ):
             manual_review_required = True
         heartbeat_processing_job(processing_job)
@@ -424,124 +433,130 @@ def process_identity_document_task(identity_document_id: str) -> str:
             manual_review_required = True
         heartbeat_processing_job(processing_job)
 
-        identity_document.extracted_data_json = {
-            **ocr_result.get("extracted_fields", {}),
-            "document_classification": classification_result,
-            "document_quality": {
-                "status": latest_quality_status,
-                "quality_score": (
-                    float(lowest_quality_score)
-                    if lowest_quality_score is not None
-                    else None
-                ),
-                "issues": list(dict.fromkeys(issues_found)),
-                "requires_recapture": (
-                    latest_quality_status == DocumentCaptureStatus.REJECTED
-                ),
-                "capture_results": capture_quality_results,
-            },
-        }
-        identity_document.status = (
-            IdentityDocumentStatus.REJECTED
-            if latest_quality_status == DocumentCaptureStatus.REJECTED
-            else (
-                IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED
-                if manual_review_required
-                else IdentityDocumentStatus.PROCESSED
-            )
-        )
-        identity_document.save(
-            update_fields=["extracted_data_json", "status", "updated_at"]
-        )
-
-        try:
-            transition_verification(
-                verification,
-                (
-                    VerificationStatus.AWAITING_SELFIE
-                    if identity_document.status
-                    in {
-                        IdentityDocumentStatus.PROCESSED,
-                        IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
-                    }
-                    else VerificationStatus.AWAITING_DOCUMENT
-                ),
-            )
-        except VerificationTransitionError:
-            verification.refresh_from_db(fields=["status", "updated_at"])
-            if verification.status not in TERMINAL_STATUSES:
-                raise
-            logger.info(
-                "Preserving processed document %s after verification %s reached terminal status %s",
-                identity_document.public_id,
-                verification.public_id,
-                verification.status,
-            )
-
-        if classification_provider_check is not None:
-            classification_provider_check.status = (
-                ProviderCheckStatus.FAILED
-                if classification_result.get("provider_error")
-                else ProviderCheckStatus.COMPLETED
-            )
-            classification_provider_check.completed_at = now
-            classification_provider_check.response_metadata_json = classification_result
-            classification_provider_check.normalized_result_json = (
-                preserve_provider_result_envelope(
-                    classification_provider_check,
-                    workflow_result=classification_result,
+        with transaction.atomic():
+            lock_processing_job_for_finalization(processing_job)
+            identity_document.extracted_data_json = {
+                **ocr_result.get("extracted_fields", {}),
+                "document_classification": classification_result,
+                "document_quality": {
+                    "status": latest_quality_status,
+                    "quality_score": (
+                        float(lowest_quality_score)
+                        if lowest_quality_score is not None
+                        else None
+                    ),
+                    "issues": list(dict.fromkeys(issues_found)),
+                    "requires_recapture": (
+                        latest_quality_status == DocumentCaptureStatus.REJECTED
+                    ),
+                    "capture_results": capture_quality_results,
+                },
+            }
+            identity_document.status = (
+                IdentityDocumentStatus.REJECTED
+                if latest_quality_status == DocumentCaptureStatus.REJECTED
+                else (
+                    IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED
+                    if manual_review_required
+                    else IdentityDocumentStatus.PROCESSED
                 )
             )
-            classification_provider_check.error_code = (
-                "provider_unavailable"
-                if classification_result.get("provider_error")
-                else ""
-            )
-            classification_provider_check.error_message = classification_result.get(
-                "provider_error", ""
-            )
-            classification_provider_check.save(
-                update_fields=[
-                    "status",
-                    "error_code",
-                    "error_message",
-                    "completed_at",
-                    "response_metadata_json",
-                    "normalized_result_json",
-                    "updated_at",
-                ]
+            identity_document.save(
+                update_fields=["extracted_data_json", "status", "updated_at"]
             )
 
-        if ocr_provider_check is not None:
-            ocr_provider_check.status = (
-                ProviderCheckStatus.FAILED
-                if ocr_result.get("provider_error")
-                else ProviderCheckStatus.COMPLETED
-            )
-            ocr_provider_check.completed_at = now
-            ocr_provider_check.response_metadata_json = ocr_result
-            ocr_provider_check.normalized_result_json = preserve_provider_result_envelope(
-                ocr_provider_check,
-                workflow_result={
-                    "status": identity_document.status,
-                    "extracted_fields": identity_document.extracted_data_json,
-                },
-            )
-            ocr_provider_check.error_code = (
-                "provider_unavailable" if ocr_result.get("provider_error") else ""
-            )
-            ocr_provider_check.error_message = ocr_result.get("provider_error", "")
-            ocr_provider_check.save(
-                update_fields=[
-                    "status",
-                    "error_code",
-                    "error_message",
-                    "completed_at",
-                    "response_metadata_json",
-                    "normalized_result_json",
-                    "updated_at",
-                ]
-            )
+            try:
+                transition_verification(
+                    verification,
+                    (
+                        VerificationStatus.AWAITING_SELFIE
+                        if identity_document.status
+                        in {
+                            IdentityDocumentStatus.PROCESSED,
+                            IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
+                        }
+                        else VerificationStatus.AWAITING_DOCUMENT
+                    ),
+                )
+            except VerificationTransitionError:
+                verification.refresh_from_db(fields=["status", "updated_at"])
+                if verification.status not in TERMINAL_STATUSES:
+                    raise
+                logger.info(
+                    "Preserving processed document %s after verification %s reached terminal status %s",
+                    identity_document.public_id,
+                    verification.public_id,
+                    verification.status,
+                )
+
+            if classification_provider_check is not None:
+                classification_provider_check.status = (
+                    ProviderCheckStatus.FAILED
+                    if classification_result.get("provider_error")
+                    else ProviderCheckStatus.COMPLETED
+                )
+                classification_provider_check.completed_at = now
+                classification_provider_check.response_metadata_json = (
+                    classification_result
+                )
+                classification_provider_check.normalized_result_json = (
+                    preserve_provider_result_envelope(
+                        classification_provider_check,
+                        workflow_result=classification_result,
+                    )
+                )
+                classification_provider_check.error_code = (
+                    "provider_unavailable"
+                    if classification_result.get("provider_error")
+                    else ""
+                )
+                classification_provider_check.error_message = classification_result.get(
+                    "provider_error", ""
+                )
+                classification_provider_check.save(
+                    update_fields=[
+                        "status",
+                        "error_code",
+                        "error_message",
+                        "completed_at",
+                        "response_metadata_json",
+                        "normalized_result_json",
+                        "updated_at",
+                    ]
+                )
+
+            if ocr_provider_check is not None:
+                ocr_provider_check.status = (
+                    ProviderCheckStatus.FAILED
+                    if ocr_result.get("provider_error")
+                    else ProviderCheckStatus.COMPLETED
+                )
+                ocr_provider_check.completed_at = now
+                ocr_provider_check.response_metadata_json = ocr_result
+                ocr_provider_check.normalized_result_json = (
+                    preserve_provider_result_envelope(
+                        ocr_provider_check,
+                        workflow_result={
+                            "status": identity_document.status,
+                            "extracted_fields": identity_document.extracted_data_json,
+                        },
+                    )
+                )
+                ocr_provider_check.error_code = (
+                    "provider_unavailable" if ocr_result.get("provider_error") else ""
+                )
+                ocr_provider_check.error_message = ocr_result.get("provider_error", "")
+                ocr_provider_check.save(
+                    update_fields=[
+                        "status",
+                        "error_code",
+                        "error_message",
+                        "completed_at",
+                        "response_metadata_json",
+                        "normalized_result_json",
+                        "updated_at",
+                    ]
+                )
 
         for capture in captures:
             try:

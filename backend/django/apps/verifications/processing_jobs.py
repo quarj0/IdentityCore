@@ -35,9 +35,7 @@ def _lease_deadline(now=None):
     )
 
 
-def _assert_processing_job_owner(
-    locked: ProcessingJob, owner: ProcessingJob
-) -> None:
+def _assert_processing_job_owner(locked: ProcessingJob, owner: ProcessingJob) -> None:
     if (
         locked.status != ProcessingJobStatus.PROCESSING
         or locked.attempt_count != owner.attempt_count
@@ -48,11 +46,12 @@ def _assert_processing_job_owner(
 
 
 def lock_processing_job_for_finalization(job: ProcessingJob) -> ProcessingJob:
-    """Lock and validate a job before any verification finalization writes."""
+    """Lock Verification then ProcessingJob and validate the exact acquisition."""
     if not transaction.get_connection().in_atomic_block:
         raise RuntimeError(
             "Processing-job finalization ownership must be checked inside an atomic block."
         )
+    Verification.objects.select_for_update().get(pk=job.verification_id)
     locked = ProcessingJob.objects.select_for_update().get(pk=job.pk)
     _assert_processing_job_owner(locked, job)
     return locked
@@ -132,12 +131,11 @@ def _provider_check_is_reusable(check) -> bool:
 
 
 def _repair_biometric_provider_check_links(resource) -> bool:
-    """Relink/reuse committed provider evidence before biometric redelivery."""
+    """Relink committed evidence and report whether every pending stage is reusable."""
     from apps.biometrics.models import FaceMatchStatus, LivenessCheckStatus
     from apps.providers.models import ProviderCheckStatus, ProviderCheckType
 
     verification = resource.verification
-    reusable_result_found = False
 
     def latest_completed(check_type: str, metadata_key: str, resource_id: str):
         candidates = verification.provider_checks.filter(
@@ -154,24 +152,23 @@ def _repair_biometric_provider_check_links(resource) -> bool:
             None,
         )
 
-    current = verification.provider_checks.filter(
-        public_id=resource.provider_check_id
-    ).first()
-    current_is_reusable = _provider_check_is_reusable(current)
-    if (
-        resource.status == LivenessCheckStatus.INCONCLUSIVE
-        and not current_is_reusable
-    ):
-        recovered = latest_completed(
-            ProviderCheckType.LIVENESS,
-            "liveness_check_id",
-            resource.public_id,
-        )
-        if recovered is not None:
-            resource.provider_check_id = recovered.public_id
-            resource.save(update_fields=["provider_check_id", "updated_at"])
-            current_is_reusable = True
-    reusable_result_found = reusable_result_found or current_is_reusable
+    liveness_ready = resource.status != LivenessCheckStatus.INCONCLUSIVE
+    if not liveness_ready:
+        current = verification.provider_checks.filter(
+            public_id=resource.provider_check_id
+        ).first()
+        current_is_reusable = _provider_check_is_reusable(current)
+        if not current_is_reusable:
+            recovered = latest_completed(
+                ProviderCheckType.LIVENESS,
+                "liveness_check_id",
+                resource.public_id,
+            )
+            if recovered is not None:
+                resource.provider_check_id = recovered.public_id
+                resource.save(update_fields=["provider_check_id", "updated_at"])
+                current_is_reusable = True
+        liveness_ready = current_is_reusable
 
     face_match = (
         verification.face_matches.filter(selfie_capture=resource.selfie_capture)
@@ -179,26 +176,27 @@ def _repair_biometric_provider_check_links(resource) -> bool:
         .first()
     )
     if face_match is None:
-        return reusable_result_found
+        return liveness_ready
 
-    current = verification.provider_checks.filter(
-        public_id=face_match.provider_check_id
-    ).first()
-    current_is_reusable = _provider_check_is_reusable(current)
-    if (
-        face_match.status == FaceMatchStatus.INCONCLUSIVE
-        and not current_is_reusable
-    ):
-        recovered = latest_completed(
-            ProviderCheckType.FACE_MATCH,
-            "face_match_id",
-            face_match.public_id,
-        )
-        if recovered is not None:
-            face_match.provider_check_id = recovered.public_id
-            face_match.save(update_fields=["provider_check_id", "updated_at"])
-            current_is_reusable = True
-    return reusable_result_found or current_is_reusable
+    face_ready = face_match.status != FaceMatchStatus.INCONCLUSIVE
+    if not face_ready:
+        current = verification.provider_checks.filter(
+            public_id=face_match.provider_check_id
+        ).first()
+        current_is_reusable = _provider_check_is_reusable(current)
+        if not current_is_reusable:
+            recovered = latest_completed(
+                ProviderCheckType.FACE_MATCH,
+                "face_match_id",
+                face_match.public_id,
+            )
+            if recovered is not None:
+                face_match.provider_check_id = recovered.public_id
+                face_match.save(update_fields=["provider_check_id", "updated_at"])
+                current_is_reusable = True
+        face_ready = current_is_reusable
+
+    return liveness_ready and face_ready
 
 
 def _route_exhaustion_resource_reference(
@@ -230,11 +228,7 @@ def _route_exhaustion_resource_reference(
         )
         explicit_id = str(summary.get("face_match_id") or "")
         if explicit_id:
-            return (
-                (capability, explicit_id)
-                if explicit_id in face_match_ids
-                else None
-            )
+            return (capability, explicit_id) if explicit_id in face_match_ids else None
         if not face_match_ids:
             return None
         valid_resource_ids = face_match_ids
@@ -358,10 +352,7 @@ def acquire_processing_job(*, job_type: str, resource) -> ProcessingJob | None:
             ProcessingJobStatus.EXHAUSTED,
         }:
             return None
-        if (
-            job.status == ProcessingJobStatus.PROCESSING
-            and job.lease_expires_at > now
-        ):
+        if job.status == ProcessingJobStatus.PROCESSING and job.lease_expires_at > now:
             return None
 
         has_reusable_provider_result = False
@@ -385,9 +376,7 @@ def acquire_processing_job(*, job_type: str, resource) -> ProcessingJob | None:
         # replayed, so this does not expand the external-provider attempt budget.
         job.attempt_count += 1
         job.error_code = (
-            COMMITTED_PROVIDER_RESULT_RECOVERY_CONSUMED
-            if recovery_grace
-            else ""
+            COMMITTED_PROVIDER_RESULT_RECOVERY_CONSUMED if recovery_grace else ""
         )
         job.heartbeat_at = now
         job.lease_expires_at = _lease_deadline(now)
@@ -487,9 +476,7 @@ def _repair_biometric_route_exhaustion(job: ProcessingJob, *, now) -> None:
         if face_match is not None:
             face_match.status = FaceMatchStatus.ERROR
             face_match.matched_at = now
-            face_match.save(
-                update_fields=["status", "matched_at", "updated_at"]
-            )
+            face_match.save(update_fields=["status", "matched_at", "updated_at"])
 
 
 @transaction.atomic
@@ -707,9 +694,12 @@ def _resource_processing_finished(job: ProcessingJob) -> bool:
         if liveness_check is None:
             return False
 
-        if _provider_route_exhaustion_decision_for_job(
-            job, liveness_check=liveness_check
-        ) is not None:
+        if (
+            _provider_route_exhaustion_decision_for_job(
+                job, liveness_check=liveness_check
+            )
+            is not None
+        ):
             return True
 
         return (
@@ -786,8 +776,7 @@ def recover_stale_processing_jobs(*, limit: int = 100) -> tuple[int, int]:
                 if (
                     job.job_type == ProcessingJobType.BIOMETRICS
                     and has_reusable_provider_result
-                    and job.error_code
-                    != COMMITTED_PROVIDER_RESULT_RECOVERY_CONSUMED
+                    and job.error_code != COMMITTED_PROVIDER_RESULT_RECOVERY_CONSUMED
                 ):
                     # PENDING means the grace has been discovered/queued but has not
                     # been consumed by a worker. Broker publication can retry without
