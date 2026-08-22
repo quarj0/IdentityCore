@@ -88,6 +88,78 @@ def dispatch_processing_job(job_public_id: str) -> bool:
     return True
 
 
+def _repair_biometric_provider_check_links(resource) -> None:
+    """Relink committed fallback results before biometric provider redelivery."""
+    from apps.biometrics.models import FaceMatchStatus, LivenessCheckStatus
+    from apps.providers.models import ProviderCheckStatus, ProviderCheckType
+
+    verification = resource.verification
+
+    def latest_completed(check_type: str, metadata_key: str, resource_id: str):
+        candidates = verification.provider_checks.filter(
+            check_type=check_type,
+            status=ProviderCheckStatus.COMPLETED,
+        ).order_by("-completed_at", "-created_at")
+        return next(
+            (
+                check
+                for check in candidates
+                if check.normalized_result_json
+                and (check.request_metadata_json or {}).get(metadata_key) == resource_id
+            ),
+            None,
+        )
+
+    if resource.status == LivenessCheckStatus.INCONCLUSIVE:
+        current = verification.provider_checks.filter(
+            public_id=resource.provider_check_id
+        ).first()
+        current_is_reusable = bool(
+            current
+            and current.status == ProviderCheckStatus.COMPLETED
+            and current.normalized_result_json
+        )
+        if not current_is_reusable:
+            recovered = latest_completed(
+                ProviderCheckType.LIVENESS,
+                "liveness_check_id",
+                resource.public_id,
+            )
+            if recovered is not None:
+                resource.provider_check_id = recovered.public_id
+                resource.save(update_fields=["provider_check_id", "updated_at"])
+
+    face_match = (
+        verification.face_matches.filter(
+            selfie_capture=resource.selfie_capture,
+            status=FaceMatchStatus.INCONCLUSIVE,
+        )
+        .order_by("-matched_at")
+        .first()
+    )
+    if face_match is None:
+        return
+
+    current = verification.provider_checks.filter(
+        public_id=face_match.provider_check_id
+    ).first()
+    current_is_reusable = bool(
+        current
+        and current.status == ProviderCheckStatus.COMPLETED
+        and current.normalized_result_json
+    )
+    if current_is_reusable:
+        return
+    recovered = latest_completed(
+        ProviderCheckType.FACE_MATCH,
+        "face_match_id",
+        face_match.public_id,
+    )
+    if recovered is not None:
+        face_match.provider_check_id = recovered.public_id
+        face_match.save(update_fields=["provider_check_id", "updated_at"])
+
+
 def acquire_processing_job(*, job_type: str, resource) -> ProcessingJob | None:
     """Acquire or renew one job without allowing concurrent duplicate execution."""
     now = timezone.now()
@@ -127,6 +199,8 @@ def acquire_processing_job(*, job_type: str, resource) -> ProcessingJob | None:
                 "updated_at",
             ]
         )
+        if job_type == ProcessingJobType.BIOMETRICS:
+            _repair_biometric_provider_check_links(resource)
         return job
 
 
