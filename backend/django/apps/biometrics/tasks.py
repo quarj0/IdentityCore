@@ -27,6 +27,7 @@ from apps.verifications.evidence import ensure_verification_evidence_report
 from apps.webhooks.services import queue_webhook_events
 from apps.verifications.models import (
     ProcessingJobType,
+    Verification,
     VerificationDecision,
     VerificationDecisionType,
     VerificationStatus,
@@ -48,6 +49,24 @@ logger = logging.getLogger(__name__)
 BIOMETRICS_WORKER = ServicePrincipal(
     name="biometrics-worker", allowed_actions=frozenset({"biometrics.process"})
 )
+
+
+def _schedule_evidence_report_after_commit(verification: Verification) -> None:
+    verification_id = verification.public_id
+
+    def generate_evidence_report() -> None:
+        try:
+            persisted_verification = Verification.objects.get(
+                public_id=verification_id
+            )
+            ensure_verification_evidence_report(persisted_verification)
+        except Exception:
+            logger.exception(
+                "Verification evidence report generation failed for %s.",
+                verification_id,
+            )
+
+    transaction.on_commit(generate_evidence_report)
 
 
 @transaction.atomic
@@ -100,15 +119,8 @@ def _finalize_biometric_decision(*, verification, processing_job) -> str:
         decision=decision_record.decision,
         risk_level=risk_assessment.risk_level,
     )
-    try:
-        with transaction.atomic():
-            ensure_verification_evidence_report(verification)
-    except Exception:
-        logger.exception(
-            "Verification evidence report generation failed for %s.",
-            verification.public_id,
-        )
     complete_processing_job(processing_job)
+    _schedule_evidence_report_after_commit(verification)
     return verification.status
 
 
@@ -144,14 +156,6 @@ def _finalize_unavailable_biometrics(
         VerificationStatus.MANUAL_REVIEW_REQUIRED,
         clear_completed_at=True,
     )
-    try:
-        with transaction.atomic():
-            ensure_verification_evidence_report(verification)
-    except Exception:
-        logger.exception(
-            "Verification evidence report generation failed for %s.",
-            verification.public_id,
-        )
     record_audit_event(
         tenant=verification.tenant,
         actor=verification.verification_subject,
@@ -180,6 +184,7 @@ def _finalize_unavailable_biometrics(
         risk_level="high",
     )
     complete_processing_job(processing_job)
+    _schedule_evidence_report_after_commit(verification)
     return verification.status
 
 

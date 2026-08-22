@@ -344,6 +344,29 @@ class BiometricsTaskTests(TestCase):
         )
 
     @patch("apps.biometrics.tasks.ensure_verification_evidence_report")
+    @patch("apps.biometrics.tasks.queue_webhook_events")
+    @patch("apps.biometrics.tasks.run_liveness_check")
+    def test_rolled_back_biometric_decision_does_not_write_evidence(
+        self,
+        mock_liveness,
+        mock_queue_webhooks,
+        mock_evidence_report,
+    ):
+        mock_liveness.side_effect = RuntimeError("AI service unavailable")
+        mock_queue_webhooks.side_effect = RuntimeError("outbox insert failed")
+
+        with self.captureOnCommitCallbacks(execute=True) as callbacks:
+            with self.assertRaisesRegex(RuntimeError, "outbox insert failed"):
+                process_verification_biometrics_task(
+                    self.liveness_check.public_id
+                )
+
+        self.verification.refresh_from_db()
+        self.assertEqual(self.verification.status, VerificationStatus.PROCESSING)
+        self.assertEqual(callbacks, [])
+        mock_evidence_report.assert_not_called()
+
+    @patch("apps.biometrics.tasks.ensure_verification_evidence_report")
     @patch("apps.biometrics.tasks.queue_verification_status_notifications")
     @patch("apps.biometrics.tasks.queue_webhook_events")
     @patch("apps.biometrics.tasks.promote_upload_to_media_by_storage_key")
@@ -380,7 +403,10 @@ class BiometricsTaskTests(TestCase):
             "model_version": "buffalo_l",
         }
 
-        result = process_verification_biometrics_task(self.liveness_check.public_id)
+        with self.captureOnCommitCallbacks(execute=True):
+            result = process_verification_biometrics_task(
+                self.liveness_check.public_id
+            )
 
         self.assertEqual(result, VerificationStatus.REJECTED)
         self.selfie_capture.refresh_from_db()
