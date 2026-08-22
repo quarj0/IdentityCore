@@ -13,7 +13,14 @@ from apps.biometrics.models import (
 )
 from apps.identity_documents.models import IdentityDocument, IdentityDocumentStatus
 from apps.organizations.models import Organization
-from apps.providers.models import ProviderCheckType
+from apps.providers.models import (
+    ProviderAttemptOutcome,
+    ProviderCheck,
+    ProviderCheckStatus,
+    ProviderCheckType,
+    ProviderExecutionAttempt,
+)
+from apps.providers.services import get_or_create_system_provider
 from apps.tenants.models import Tenant
 from apps.verification_subjects.models import VerificationSubject
 from apps.verifications.models import (
@@ -78,6 +85,33 @@ class ProcessingJobLifecycleRecoveryTests(TestCase):
             status=LivenessCheckStatus.INCONCLUSIVE,
             checked_at=timezone.now(),
         )
+        now = timezone.now()
+        provider = get_or_create_system_provider(ProviderCheckType.LIVENESS)
+        provider_check = ProviderCheck.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            provider=provider,
+            check_type=ProviderCheckType.LIVENESS,
+            status=ProviderCheckStatus.FAILED,
+            request_metadata_json={"liveness_check_id": liveness.public_id},
+            error_code="provider_timeout",
+            error_message="timeout",
+            started_at=now - timedelta(seconds=2),
+            completed_at=now - timedelta(seconds=1),
+        )
+        ProviderExecutionAttempt.objects.create(
+            execution_id="pex_lifecycle_route_exhaustion",
+            provider_check=provider_check,
+            sequence=1,
+            provider_attempt=1,
+            outcome=ProviderAttemptOutcome.FAILED,
+            error_code="provider_timeout",
+            retryable=False,
+            fallback_reason="route_exhausted",
+            timeout_seconds=30,
+            started_at=now - timedelta(seconds=2),
+            completed_at=now - timedelta(seconds=1),
+        )
         VerificationDecision.objects.create(
             tenant=self.tenant,
             verification=verification,
@@ -85,8 +119,13 @@ class ProcessingJobLifecycleRecoveryTests(TestCase):
             decision_type=VerificationDecisionType.SYSTEM,
             reason_code="provider_route_exhausted",
             reason_detail="Provider route exhausted.",
-            evidence_summary_json={"capability": ProviderCheckType.LIVENESS},
-            decided_at=timezone.now(),
+            evidence_summary_json={
+                "capability": ProviderCheckType.LIVENESS,
+                "provider_route_id": "",
+                "attempt_count": 1,
+                "error_codes": ["provider_timeout"],
+            },
+            decided_at=now,
         )
         job = ProcessingJob.objects.create(
             tenant=self.tenant,
