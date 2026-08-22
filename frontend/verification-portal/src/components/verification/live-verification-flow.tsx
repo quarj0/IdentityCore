@@ -777,7 +777,7 @@ export function LiveVerificationFlow({
             <h3 className="mt-4 text-base font-semibold text-foreground">
               Prove you are present, live
             </h3>
-            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-foreground">
               Your challenge is single-use, randomized, and recorded directly
               from this device in one short video.
             </p>
