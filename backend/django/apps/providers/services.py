@@ -136,8 +136,6 @@ def publish_provider_route(route: ProviderRoute) -> ProviderRoute:
         if any(step.deleted_at is not None for step in steps):
             raise ValidationError("Deleted provider route steps cannot be published.")
         for step in steps:
-            # Route conditions and capability can change while a step is still
-            # draft, so publication must revalidate the complete final graph.
             step.full_clean()
         latest_version = (
             ProviderRoute.objects.filter(
@@ -517,8 +515,6 @@ def _record_circuit_outcome(
                     seconds=route_step.route.circuit_recovery_seconds
                 )
         else:
-            # A deterministic provider response proves transport recovery even when
-            # the request itself is not retryable.
             state.status = ProviderCircuitStatus.CLOSED
             state.consecutive_failures = 0
             state.opened_at = None
@@ -586,9 +582,13 @@ def _route_final_action_resource_reference(
 
 
 def _lock_route_final_action_processing_job(
-    *, verification, check_type: str, attempts: list[ProviderExecutionAttempt]
+    *,
+    verification,
+    check_type: str,
+    attempts: list[ProviderExecutionAttempt],
+    processing_job=None,
 ) -> tuple[str, str]:
-    """Serialize route finalization with the durable processing-job owner."""
+    """Lock and validate the durable processing owner for route finalization."""
     from apps.verifications.models import (
         ProcessingJob,
         ProcessingJobStatus,
@@ -600,6 +600,10 @@ def _lock_route_final_action_processing_job(
         check_type, attempts
     )
     if not resource_public_id:
+        if processing_job is not None:
+            raise ProcessingJobOwnershipLost(
+                "Provider route finalization is missing its durable resource reference."
+            )
         return resource_key, resource_public_id
 
     job_type = None
@@ -620,6 +624,10 @@ def _lock_route_final_action_processing_job(
             .first()
         )
         if face_match is None:
+            if processing_job is not None:
+                raise ProcessingJobOwnershipLost(
+                    "Face-match route finalization cannot resolve its processing resource."
+                )
             return resource_key, resource_public_id
         liveness_check = (
             LivenessCheck.objects.filter(
@@ -630,6 +638,10 @@ def _lock_route_final_action_processing_job(
             .first()
         )
         if liveness_check is None:
+            if processing_job is not None:
+                raise ProcessingJobOwnershipLost(
+                    "Face-match route finalization cannot resolve its liveness job."
+                )
             return resource_key, resource_public_id
         job_type = ProcessingJobType.BIOMETRICS
         job_resource_public_id = liveness_check.public_id
@@ -637,7 +649,21 @@ def _lock_route_final_action_processing_job(
     if job_type is None:
         return resource_key, resource_public_id
 
-    processing_job = (
+    if processing_job is not None:
+        locked_job = ProcessingJob.objects.select_for_update().get(pk=processing_job.pk)
+        if (
+            locked_job.verification_id != verification.pk
+            or locked_job.job_type != job_type
+            or locked_job.resource_public_id != job_resource_public_id
+            or locked_job.status != ProcessingJobStatus.PROCESSING
+            or locked_job.attempt_count != processing_job.attempt_count
+        ):
+            raise ProcessingJobOwnershipLost(
+                f"Processing job {locked_job.public_id} no longer owns route finalization."
+            )
+        return resource_key, resource_public_id
+
+    locked_job = (
         ProcessingJob.objects.select_for_update()
         .filter(
             verification=verification,
@@ -646,34 +672,43 @@ def _lock_route_final_action_processing_job(
         )
         .first()
     )
-    if processing_job is not None and processing_job.status in {
+    if locked_job is not None and locked_job.status in {
         ProcessingJobStatus.EXHAUSTED,
         ProcessingJobStatus.COMPLETED,
     }:
         raise ProcessingJobOwnershipLost(
-            f"Processing job {processing_job.public_id} no longer owns route finalization."
+            f"Processing job {locked_job.public_id} no longer owns route finalization."
         )
     return resource_key, resource_public_id
 
 
 @transaction.atomic
 def _apply_route_final_action(
-    *, verification, route, check_type: str, attempts: list[ProviderExecutionAttempt]
+    *,
+    verification,
+    route,
+    check_type: str,
+    attempts: list[ProviderExecutionAttempt],
+    processing_job=None,
 ) -> str:
     from apps.audit.services import record_audit_event
     from apps.notifications.services import queue_verification_status_notifications
     from apps.webhooks.services import queue_webhook_events
     from apps.verifications.models import (
+        Verification,
         VerificationDecision,
         VerificationDecisionType,
         VerificationStatus,
     )
     from apps.verifications.transitions import transition_verification
 
+    # Canonical lifecycle lock order: Verification first, ProcessingJob second.
+    verification = Verification.objects.select_for_update().get(pk=verification.pk)
     resource_key, resource_public_id = _lock_route_final_action_processing_job(
         verification=verification,
         check_type=check_type,
         attempts=attempts,
+        processing_job=processing_job,
     )
     final_action = (
         route.final_action
@@ -760,6 +795,7 @@ def execute_provider_route(
     operation: Callable[[Provider, int], dict],
     request_metadata: dict | None = None,
     initial_provider_check: ProviderCheck | None = None,
+    processing_job=None,
 ) -> ProviderRouteExecutionResult:
     """Execute bounded attempts across one resolved provider chain.
 
@@ -932,6 +968,7 @@ def execute_provider_route(
         route=route,
         check_type=check_type,
         attempts=attempts,
+        processing_job=processing_job,
     )
     raise ProviderRouteExhausted(final_action=final_action)
 
