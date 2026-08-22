@@ -3,6 +3,7 @@ from django.test import SimpleTestCase
 from django.urls import reverse
 
 from apps.biometrics.tasks import process_verification_biometrics_task
+from apps.api_clients.tasks import cleanup_expired_idempotency_records_task
 from apps.identity_documents.tasks import process_identity_document_task
 from apps.notifications.tasks import (
     deliver_notification_task,
@@ -28,6 +29,9 @@ class CeleryConfigurationTests(SimpleTestCase):
         self.assertEqual(settings.CELERY_TASK_DEFAULT_ROUTING_KEY, "default")
 
     def test_celery_beat_schedule_registers_operational_processors(self):
+        self.assertIn(
+            "cleanup-expired-idempotency-records", settings.CELERY_BEAT_SCHEDULE
+        )
         self.assertIn("process-pending-webhooks", settings.CELERY_BEAT_SCHEDULE)
         self.assertIn("process-pending-notifications", settings.CELERY_BEAT_SCHEDULE)
         self.assertIn("expire-pending-verifications", settings.CELERY_BEAT_SCHEDULE)
@@ -37,6 +41,12 @@ class CeleryConfigurationTests(SimpleTestCase):
         self.assertIn("cleanup-retained-media", settings.CELERY_BEAT_SCHEDULE)
         self.assertIn("cleanup-expired-uploads", settings.CELERY_BEAT_SCHEDULE)
         self.assertIn("recover-stale-processing-jobs", settings.CELERY_BEAT_SCHEDULE)
+        self.assertEqual(
+            settings.CELERY_BEAT_SCHEDULE["cleanup-expired-idempotency-records"][
+                "task"
+            ],
+            "apps.api_clients.tasks.cleanup_expired_idempotency_records_task",
+        )
         self.assertEqual(
             settings.CELERY_BEAT_SCHEDULE["process-pending-webhooks"]["task"],
             "apps.webhooks.tasks.process_pending_webhook_events_task",
@@ -69,6 +79,12 @@ class CeleryConfigurationTests(SimpleTestCase):
         )
 
     def test_celery_routes_use_dedicated_lightweight_queues(self):
+        self.assertEqual(
+            settings.CELERY_TASK_ROUTES[cleanup_expired_idempotency_records_task.name][
+                "queue"
+            ],
+            "retention",
+        )
         self.assertEqual(
             settings.CELERY_TASK_ROUTES[process_verification_biometrics_task.name][
                 "queue"

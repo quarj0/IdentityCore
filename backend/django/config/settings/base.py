@@ -84,9 +84,7 @@ CORS_PREFLIGHT_MAX_AGE = int(os.getenv("DJANGO_CORS_PREFLIGHT_MAX_AGE", "86400")
 API_CLIENT_ROTATION_OVERLAP_SECONDS = int(
     os.getenv("API_CLIENT_ROTATION_OVERLAP_SECONDS", "900")
 )
-IDEMPOTENCY_RECORD_TTL_HOURS = int(
-    os.getenv("IDEMPOTENCY_RECORD_TTL_HOURS", "24")
-)
+IDEMPOTENCY_RECORD_TTL_HOURS = int(os.getenv("IDEMPOTENCY_RECORD_TTL_HOURS", "24"))
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -234,6 +232,9 @@ CELERY_TASK_DEFAULT_ROUTING_KEY = "default"
 PROCESSING_JOB_LEASE_SECONDS = int(os.getenv("PROCESSING_JOB_LEASE_SECONDS", "300"))
 PROCESSING_JOB_MAX_ATTEMPTS = int(os.getenv("PROCESSING_JOB_MAX_ATTEMPTS", "3"))
 CELERY_TASK_ROUTES = {
+    "apps.api_clients.tasks.cleanup_expired_idempotency_records_task": {
+        "queue": "retention"
+    },
     "apps.biometrics.tasks.process_verification_biometrics_task": {
         "queue": "ai_processing"
     },
@@ -259,6 +260,11 @@ CELERY_TASK_ROUTES = {
     "apps.notifications.tasks.deliver_notification_task": {"queue": "notifications"},
 }
 CELERY_BEAT_SCHEDULE = {
+    "cleanup-expired-idempotency-records": {
+        "task": "apps.api_clients.tasks.cleanup_expired_idempotency_records_task",
+        "schedule": int(os.getenv("CELERY_IDEMPOTENCY_CLEANUP_BEAT_SECONDS", "300")),
+        "kwargs": {"limit": int(os.getenv("IDEMPOTENCY_CLEANUP_BATCH_SIZE", "1000"))},
+    },
     "process-pending-webhooks": {
         "task": "apps.webhooks.tasks.process_pending_webhook_events_task",
         "schedule": int(os.getenv("CELERY_WEBHOOK_BEAT_SECONDS", "30")),

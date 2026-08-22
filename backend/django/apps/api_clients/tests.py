@@ -9,6 +9,7 @@ from rest_framework.test import APIRequestFactory, APITestCase
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.api_clients.models import APIClient, APIIdempotencyRecord
+from apps.api_clients.tasks import cleanup_expired_idempotency_records_task
 from apps.audit.models import AuditEvent
 from common.authentication import APIClientAuthentication
 from apps.organizations.models import Organization, OrganizationStatus
@@ -104,7 +105,10 @@ class APIClientEndpointTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn("client_secret", response.data["data"])
-        self.assertEqual(response.data["data"]["scopes"], ["verifications:create", "verifications:read"])
+        self.assertEqual(
+            response.data["data"]["scopes"],
+            ["verifications:create", "verifications:read"],
+        )
 
     def test_create_api_client_requires_idempotency_key(self):
         response = self.client.post(
@@ -179,6 +183,33 @@ class APIClientEndpointTests(APITestCase):
         )
         self.assertEqual(APIClient.objects.filter(name="Expiring client").count(), 2)
 
+    def test_cleanup_task_deletes_only_expired_idempotency_records(self):
+        url = reverse("api-client-list-create")
+        for key, name in (
+            ("expired-record", "Expired record"),
+            ("active-record", "Active record"),
+        ):
+            response = self.client.post(
+                url,
+                {"name": name, "scopes": ["verifications:read"]},
+                format="json",
+                HTTP_IDEMPOTENCY_KEY=key,
+            )
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        APIIdempotencyRecord.objects.filter(key="expired-record").update(
+            expires_at=timezone.now() - timedelta(seconds=1)
+        )
+
+        deleted = cleanup_expired_idempotency_records_task(limit=100)
+
+        self.assertEqual(deleted, 1)
+        self.assertFalse(
+            APIIdempotencyRecord.objects.filter(key="expired-record").exists()
+        )
+        self.assertTrue(
+            APIIdempotencyRecord.objects.filter(key="active-record").exists()
+        )
+
     @override_settings(API_CLIENT_ROTATION_OVERLAP_SECONDS=60)
     def test_rotate_keeps_old_secret_valid_only_during_overlap(self):
         client = APIClient(
@@ -191,7 +222,10 @@ class APIClientEndpointTests(APITestCase):
         client.save()
 
         response = self.client.post(
-            reverse("api-client-action", kwargs={"client_id": client.public_id, "action": "rotate"}),
+            reverse(
+                "api-client-action",
+                kwargs={"client_id": client.public_id, "action": "rotate"},
+            ),
             format="json",
         )
 
@@ -302,4 +336,6 @@ class APIClientEndpointTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("platform approval", response.data["error"]["details"]["detail"][0])
+        self.assertIn(
+            "platform approval", response.data["error"]["details"]["detail"][0]
+        )
