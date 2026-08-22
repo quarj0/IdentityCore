@@ -36,7 +36,6 @@ from apps.providers.models import (
 from apps.core.models import generate_public_id
 from apps.tenants.models import Tenant
 
-
 SYSTEM_PROVIDER_DEFAULTS = {
     ProviderCheckType.DOCUMENT_OCR: {
         "code": "internal-document-ocr",
@@ -311,6 +310,14 @@ def redact_provider_metadata(value: Any) -> Any:
     return value
 
 
+def _lock_processing_owner(processing_job) -> None:
+    if processing_job is None:
+        return
+    from apps.verifications.processing_jobs import lock_processing_job_for_finalization
+
+    lock_processing_job_for_finalization(processing_job)
+
+
 def invoke_provider_check(
     *,
     provider_check: ProviderCheck,
@@ -318,6 +325,7 @@ def invoke_provider_check(
     operation_kwargs: dict,
     request_metadata: dict | None = None,
     normalize: Callable[[dict], dict] | None = None,
+    processing_job=None,
 ) -> dict:
     """Resolve invocation bookkeeping through one normalized provider boundary.
 
@@ -336,15 +344,17 @@ def invoke_provider_check(
     provider_check.request_metadata_json = redact_provider_metadata(
         merged_request_metadata
     )
-    provider_check.save(
-        update_fields=[
-            "status",
-            "started_at",
-            "completed_at",
-            "request_metadata_json",
-            "updated_at",
-        ]
-    )
+    with transaction.atomic():
+        _lock_processing_owner(processing_job)
+        provider_check.save(
+            update_fields=[
+                "status",
+                "started_at",
+                "completed_at",
+                "request_metadata_json",
+                "updated_at",
+            ]
+        )
 
     try:
         result = operation(**operation_kwargs)
@@ -378,18 +388,20 @@ def invoke_provider_check(
                 "retryable": bool(getattr(exc, "retryable", False)),
             },
         }
-        provider_check.save(
-            update_fields=[
-                "status",
-                "completed_at",
-                "duration_ms",
-                "error_code",
-                "error_message",
-                "response_metadata_json",
-                "normalized_result_json",
-                "updated_at",
-            ]
-        )
+        with transaction.atomic():
+            _lock_processing_owner(processing_job)
+            provider_check.save(
+                update_fields=[
+                    "status",
+                    "completed_at",
+                    "duration_ms",
+                    "error_code",
+                    "error_message",
+                    "response_metadata_json",
+                    "normalized_result_json",
+                    "updated_at",
+                ]
+            )
         raise
 
     provider_check.status = ProviderCheckStatus.COMPLETED
@@ -408,18 +420,20 @@ def invoke_provider_check(
         }
     )
     provider_check.normalized_result_json = normalized
-    provider_check.save(
-        update_fields=[
-            "status",
-            "completed_at",
-            "duration_ms",
-            "error_code",
-            "error_message",
-            "response_metadata_json",
-            "normalized_result_json",
-            "updated_at",
-        ]
-    )
+    with transaction.atomic():
+        _lock_processing_owner(processing_job)
+        provider_check.save(
+            update_fields=[
+                "status",
+                "completed_at",
+                "duration_ms",
+                "error_code",
+                "error_message",
+                "response_metadata_json",
+                "normalized_result_json",
+                "updated_at",
+            ]
+        )
     return normalized
 
 
@@ -544,22 +558,25 @@ def _record_execution_attempt(
     fallback_reason: str = "",
     timeout_seconds: int,
     started_at,
+    processing_job=None,
 ) -> ProviderExecutionAttempt:
-    return ProviderExecutionAttempt.objects.create(
-        provider_check=provider_check,
-        execution_id=execution_id,
-        route=route,
-        route_step=route_step,
-        sequence=sequence,
-        provider_attempt=provider_attempt,
-        outcome=outcome,
-        error_code=error_code,
-        retryable=retryable,
-        fallback_reason=fallback_reason,
-        timeout_seconds=timeout_seconds,
-        started_at=started_at,
-        completed_at=timezone.now(),
-    )
+    with transaction.atomic():
+        _lock_processing_owner(processing_job)
+        return ProviderExecutionAttempt.objects.create(
+            provider_check=provider_check,
+            execution_id=execution_id,
+            route=route,
+            route_step=route_step,
+            sequence=sequence,
+            provider_attempt=provider_attempt,
+            outcome=outcome,
+            error_code=error_code,
+            retryable=retryable,
+            fallback_reason=fallback_reason,
+            timeout_seconds=timeout_seconds,
+            started_at=started_at,
+            completed_at=timezone.now(),
+        )
 
 
 def _route_final_action_resource_reference(
@@ -733,7 +750,9 @@ def _apply_route_final_action(
         "provider_route_version": route.version if route is not None else None,
         "attempt_count": len(attempts),
         "error_codes": list(
-            dict.fromkeys(attempt.error_code for attempt in attempts if attempt.error_code)
+            dict.fromkeys(
+                attempt.error_code for attempt in attempts if attempt.error_code
+            )
         ),
     }
     if resource_key and resource_public_id:
@@ -802,6 +821,8 @@ def execute_provider_route(
     ``operation`` receives the selected provider and the route timeout. Adapters must
     enforce that timeout at their I/O boundary.
     """
+    from apps.verifications.processing_jobs import ProcessingJobOwnershipLost
+
     resolution = resolve_provider_chain_for_verification(
         verification=verification,
         check_type=check_type,
@@ -857,6 +878,7 @@ def execute_provider_route(
                     fallback_reason="circuit_open",
                     timeout_seconds=timeout_seconds,
                     started_at=now,
+                    processing_job=processing_job,
                 )
             )
             continue
@@ -898,7 +920,10 @@ def execute_provider_route(
                     operation=lambda: operation(provider, timeout_seconds),
                     operation_kwargs={},
                     request_metadata=check_metadata,
+                    processing_job=processing_job,
                 )
+            except ProcessingJobOwnershipLost:
+                raise
             except Exception as exc:
                 last_exception = exc
                 retryable = bool(getattr(exc, "retryable", False))
@@ -912,9 +937,7 @@ def execute_provider_route(
                 fallback_reason = (
                     "retryable_error"
                     if has_retry
-                    else "provider_fallback"
-                    if has_fallback
-                    else "route_exhausted"
+                    else "provider_fallback" if has_fallback else "route_exhausted"
                 )
                 attempt = _record_execution_attempt(
                     provider_check=provider_check,
@@ -933,6 +956,7 @@ def execute_provider_route(
                     fallback_reason=fallback_reason,
                     timeout_seconds=timeout_seconds,
                     started_at=started_at,
+                    processing_job=processing_job,
                 )
                 attempts.append(attempt)
                 _record_circuit_outcome(
@@ -952,6 +976,7 @@ def execute_provider_route(
                     outcome=ProviderAttemptOutcome.SUCCEEDED,
                     timeout_seconds=timeout_seconds,
                     started_at=started_at,
+                    processing_job=processing_job,
                 )
                 attempts.append(attempt)
                 _record_circuit_outcome(route_step, succeeded=True, retryable=False)

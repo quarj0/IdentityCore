@@ -37,6 +37,7 @@ from apps.verifications.processing_jobs import (
     acquire_processing_job,
     complete_processing_job,
     heartbeat_processing_job,
+    lock_processing_job_for_finalization,
 )
 from apps.verifications.transitions import TERMINAL_STATUSES, transition_verification
 from common.storage import (
@@ -291,9 +292,8 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             processing_job=processing_job,
             error=RuntimeError("Face-match provider unavailable."),
         )
-    if (
-        liveness_check.status != LivenessCheckStatus.INCONCLUSIVE
-        and (face_match is None or face_match.status != FaceMatchStatus.INCONCLUSIVE)
+    if liveness_check.status != LivenessCheckStatus.INCONCLUSIVE and (
+        face_match is None or face_match.status != FaceMatchStatus.INCONCLUSIVE
     ):
         promote_upload_to_media_by_storage_key(selfie_capture.storage_key)
         return _finalize_biometric_decision(
@@ -359,77 +359,79 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                     "Liveness provider omitted required face detection evidence."
                 )
 
-            selfie_capture.face_count = face_count
-            selfie_capture.face_detection_confidence = Decimal(
-                str(detection_confidence)
-            )
-            selfie_capture.face_detection_model_name = model_name
-            selfie_capture.face_detection_model_version = model_version
-            selfie_capture.save(
-                update_fields=[
-                    "face_count",
-                    "face_detection_confidence",
-                    "face_detection_model_name",
-                    "face_detection_model_version",
-                    "updated_at",
-                ]
-            )
-            liveness_check.status = (
-                LivenessCheckStatus.PASSED
-                if liveness_result.get("passed") and face_count == 1
-                else LivenessCheckStatus.FAILED
-            )
-            liveness_check.score = Decimal(str(liveness_result.get("score", "0")))
-            liveness_check.confidence_level = liveness_result.get(
-                "confidence_level", ""
-            )
-            liveness_check.model_name = liveness_result.get("model_name", "")
-            liveness_check.model_version = liveness_result.get("model_version", "")
-            liveness_check.failure_reason = (
-                "" if liveness_result.get("passed") else "ai_liveness_failed"
-            )
-            liveness_check.checked_at = timezone.now()
-            liveness_check.save(
-                update_fields=[
-                    "status",
-                    "score",
-                    "confidence_level",
-                    "model_name",
-                    "model_version",
-                    "failure_reason",
-                    "provider_check_id",
-                    "checked_at",
-                    "updated_at",
-                ]
-            )
-            heartbeat_processing_job(processing_job)
-            if liveness_provider_check is not None:
-                liveness_provider_check.status = ProviderCheckStatus.COMPLETED
-                liveness_provider_check.completed_at = timezone.now()
-                liveness_provider_check.response_metadata_json = liveness_result
-                liveness_provider_check.normalized_result_json = (
-                    preserve_provider_result_envelope(
-                        liveness_provider_check,
-                        workflow_result={
-                            "status": liveness_check.status,
-                            "score": (
-                                float(liveness_check.score)
-                                if liveness_check.score is not None
-                                else None
-                            ),
-                            "confidence_level": liveness_check.confidence_level,
-                        },
-                    )
+            with transaction.atomic():
+                lock_processing_job_for_finalization(processing_job)
+                selfie_capture.face_count = face_count
+                selfie_capture.face_detection_confidence = Decimal(
+                    str(detection_confidence)
                 )
-                liveness_provider_check.save(
+                selfie_capture.face_detection_model_name = model_name
+                selfie_capture.face_detection_model_version = model_version
+                selfie_capture.save(
                     update_fields=[
-                        "status",
-                        "completed_at",
-                        "response_metadata_json",
-                        "normalized_result_json",
+                        "face_count",
+                        "face_detection_confidence",
+                        "face_detection_model_name",
+                        "face_detection_model_version",
                         "updated_at",
                     ]
                 )
+                liveness_check.status = (
+                    LivenessCheckStatus.PASSED
+                    if liveness_result.get("passed") and face_count == 1
+                    else LivenessCheckStatus.FAILED
+                )
+                liveness_check.score = Decimal(str(liveness_result.get("score", "0")))
+                liveness_check.confidence_level = liveness_result.get(
+                    "confidence_level", ""
+                )
+                liveness_check.model_name = liveness_result.get("model_name", "")
+                liveness_check.model_version = liveness_result.get("model_version", "")
+                liveness_check.failure_reason = (
+                    "" if liveness_result.get("passed") else "ai_liveness_failed"
+                )
+                liveness_check.checked_at = timezone.now()
+                liveness_check.save(
+                    update_fields=[
+                        "status",
+                        "score",
+                        "confidence_level",
+                        "model_name",
+                        "model_version",
+                        "failure_reason",
+                        "provider_check_id",
+                        "checked_at",
+                        "updated_at",
+                    ]
+                )
+                heartbeat_processing_job(processing_job)
+                if liveness_provider_check is not None:
+                    liveness_provider_check.status = ProviderCheckStatus.COMPLETED
+                    liveness_provider_check.completed_at = timezone.now()
+                    liveness_provider_check.response_metadata_json = liveness_result
+                    liveness_provider_check.normalized_result_json = (
+                        preserve_provider_result_envelope(
+                            liveness_provider_check,
+                            workflow_result={
+                                "status": liveness_check.status,
+                                "score": (
+                                    float(liveness_check.score)
+                                    if liveness_check.score is not None
+                                    else None
+                                ),
+                                "confidence_level": liveness_check.confidence_level,
+                            },
+                        )
+                    )
+                    liveness_provider_check.save(
+                        update_fields=[
+                            "status",
+                            "completed_at",
+                            "response_metadata_json",
+                            "normalized_result_json",
+                            "updated_at",
+                        ]
+                    )
 
         if face_match is not None and face_match.status == FaceMatchStatus.INCONCLUSIVE:
             threshold = float(
@@ -480,137 +482,145 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                 face_provider_check = face_execution.provider_check
                 face_match.provider_check_id = face_provider_check.public_id
 
-            face_match.status = (
-                FaceMatchStatus.MATCHED
-                if face_result.get("matched")
-                else FaceMatchStatus.NOT_MATCHED
-            )
-            face_match.match_score = Decimal(str(face_result.get("match_score", "0")))
-            face_match.confidence_level = face_result.get("confidence_level", "")
-            face_match.threshold_used = Decimal(
-                str(face_result.get("threshold_used", threshold))
-            )
-            face_match.model_name = face_result.get("model_name", "")
-            face_match.model_version = face_result.get("model_version", "")
-            face_match.matched_at = timezone.now()
-            face_match.save(
-                update_fields=[
-                    "status",
-                    "match_score",
-                    "confidence_level",
-                    "threshold_used",
-                    "model_name",
-                    "model_version",
-                    "provider_check_id",
-                    "matched_at",
-                    "updated_at",
-                ]
-            )
-            heartbeat_processing_job(processing_job)
-            if face_provider_check is not None:
-                face_provider_check.status = ProviderCheckStatus.COMPLETED
-                face_provider_check.completed_at = timezone.now()
-                face_provider_check.response_metadata_json = face_result
-                face_provider_check.normalized_result_json = (
-                    preserve_provider_result_envelope(
-                        face_provider_check,
-                        workflow_result={
-                            "status": face_match.status,
-                            "match_score": (
-                                float(face_match.match_score)
-                                if face_match.match_score is not None
-                                else None
-                            ),
-                            "confidence_level": face_match.confidence_level,
-                        },
-                    )
+            with transaction.atomic():
+                lock_processing_job_for_finalization(processing_job)
+                face_match.status = (
+                    FaceMatchStatus.MATCHED
+                    if face_result.get("matched")
+                    else FaceMatchStatus.NOT_MATCHED
                 )
-                face_provider_check.save(
+                face_match.match_score = Decimal(
+                    str(face_result.get("match_score", "0"))
+                )
+                face_match.confidence_level = face_result.get("confidence_level", "")
+                face_match.threshold_used = Decimal(
+                    str(face_result.get("threshold_used", threshold))
+                )
+                face_match.model_name = face_result.get("model_name", "")
+                face_match.model_version = face_result.get("model_version", "")
+                face_match.matched_at = timezone.now()
+                face_match.save(
                     update_fields=[
                         "status",
-                        "completed_at",
-                        "response_metadata_json",
-                        "normalized_result_json",
+                        "match_score",
+                        "confidence_level",
+                        "threshold_used",
+                        "model_name",
+                        "model_version",
+                        "provider_check_id",
+                        "matched_at",
                         "updated_at",
                     ]
                 )
+                heartbeat_processing_job(processing_job)
+                if face_provider_check is not None:
+                    face_provider_check.status = ProviderCheckStatus.COMPLETED
+                    face_provider_check.completed_at = timezone.now()
+                    face_provider_check.response_metadata_json = face_result
+                    face_provider_check.normalized_result_json = (
+                        preserve_provider_result_envelope(
+                            face_provider_check,
+                            workflow_result={
+                                "status": face_match.status,
+                                "match_score": (
+                                    float(face_match.match_score)
+                                    if face_match.match_score is not None
+                                    else None
+                                ),
+                                "confidence_level": face_match.confidence_level,
+                            },
+                        )
+                    )
+                    face_provider_check.save(
+                        update_fields=[
+                            "status",
+                            "completed_at",
+                            "response_metadata_json",
+                            "normalized_result_json",
+                            "updated_at",
+                        ]
+                    )
     except ProcessingJobOwnershipLost:
         raise
     except ProviderRouteExhausted:
-        now = timezone.now()
-        if processing_stage == "liveness":
-            liveness_check.status = LivenessCheckStatus.ERROR
-            liveness_check.failure_reason = "provider_route_exhausted"
-            liveness_check.checked_at = now
-            liveness_check.save(
-                update_fields=[
-                    "status",
-                    "failure_reason",
-                    "checked_at",
-                    "updated_at",
-                ]
-            )
-        elif face_match is not None:
-            face_match.status = FaceMatchStatus.ERROR
-            face_match.matched_at = now
-            face_match.save(update_fields=["status", "matched_at", "updated_at"])
-        complete_processing_job(processing_job)
-        verification.refresh_from_db(fields=["status"])
-        return verification.status
+        with transaction.atomic():
+            lock_processing_job_for_finalization(processing_job)
+            now = timezone.now()
+            if processing_stage == "liveness":
+                liveness_check.status = LivenessCheckStatus.ERROR
+                liveness_check.failure_reason = "provider_route_exhausted"
+                liveness_check.checked_at = now
+                liveness_check.save(
+                    update_fields=[
+                        "status",
+                        "failure_reason",
+                        "checked_at",
+                        "updated_at",
+                    ]
+                )
+            elif face_match is not None:
+                face_match.status = FaceMatchStatus.ERROR
+                face_match.matched_at = now
+                face_match.save(update_fields=["status", "matched_at", "updated_at"])
+            complete_processing_job(processing_job)
+            verification.refresh_from_db(fields=["status"])
+            return verification.status
     except Exception as exc:
-        now = timezone.now()
-        if processing_stage == "liveness" and liveness_provider_check is not None:
-            liveness_provider_check.status = ProviderCheckStatus.FAILED
-            liveness_provider_check.error_code = "provider_unavailable"
-            liveness_provider_check.error_message = str(exc)
-            liveness_provider_check.completed_at = now
-            liveness_provider_check.save(
-                update_fields=[
-                    "status",
-                    "error_code",
-                    "error_message",
-                    "completed_at",
-                    "updated_at",
-                ]
-            )
-        if processing_stage == "face_match" and face_provider_check is not None:
-            face_provider_check.status = ProviderCheckStatus.FAILED
-            face_provider_check.error_code = "provider_unavailable"
-            face_provider_check.error_message = str(exc)
-            face_provider_check.completed_at = now
-            face_provider_check.save(
-                update_fields=[
-                    "status",
-                    "error_code",
-                    "error_message",
-                    "completed_at",
-                    "updated_at",
-                ]
-            )
-        if processing_stage == "liveness":
-            liveness_check.status = LivenessCheckStatus.ERROR
-            liveness_check.failure_reason = "provider_unavailable"
-            liveness_check.checked_at = now
-            liveness_check.save(
-                update_fields=[
-                    "status",
-                    "failure_reason",
-                    "checked_at",
-                    "updated_at",
-                ]
-            )
-        elif face_match is not None:
-            face_match.status = FaceMatchStatus.ERROR
-            face_match.matched_at = now
-            face_match.save(update_fields=["status", "matched_at", "updated_at"])
+        with transaction.atomic():
+            lock_processing_job_for_finalization(processing_job)
+            now = timezone.now()
+            if processing_stage == "liveness" and liveness_provider_check is not None:
+                liveness_provider_check.status = ProviderCheckStatus.FAILED
+                liveness_provider_check.error_code = "provider_unavailable"
+                liveness_provider_check.error_message = str(exc)
+                liveness_provider_check.completed_at = now
+                liveness_provider_check.save(
+                    update_fields=[
+                        "status",
+                        "error_code",
+                        "error_message",
+                        "completed_at",
+                        "updated_at",
+                    ]
+                )
+            if processing_stage == "face_match" and face_provider_check is not None:
+                face_provider_check.status = ProviderCheckStatus.FAILED
+                face_provider_check.error_code = "provider_unavailable"
+                face_provider_check.error_message = str(exc)
+                face_provider_check.completed_at = now
+                face_provider_check.save(
+                    update_fields=[
+                        "status",
+                        "error_code",
+                        "error_message",
+                        "completed_at",
+                        "updated_at",
+                    ]
+                )
+            if processing_stage == "liveness":
+                liveness_check.status = LivenessCheckStatus.ERROR
+                liveness_check.failure_reason = "provider_unavailable"
+                liveness_check.checked_at = now
+                liveness_check.save(
+                    update_fields=[
+                        "status",
+                        "failure_reason",
+                        "checked_at",
+                        "updated_at",
+                    ]
+                )
+            elif face_match is not None:
+                face_match.status = FaceMatchStatus.ERROR
+                face_match.matched_at = now
+                face_match.save(update_fields=["status", "matched_at", "updated_at"])
 
-        return _finalize_unavailable_biometrics(
-            verification=verification,
-            liveness_check=liveness_check,
-            face_match=face_match,
-            processing_job=processing_job,
-            error=exc,
-        )
+            return _finalize_unavailable_biometrics(
+                verification=verification,
+                liveness_check=liveness_check,
+                face_match=face_match,
+                processing_job=processing_job,
+                error=exc,
+            )
 
     promote_upload_to_media_by_storage_key(selfie_capture.storage_key)
     return _finalize_biometric_decision(
