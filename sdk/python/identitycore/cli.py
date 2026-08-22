@@ -8,6 +8,7 @@ import json
 import os
 import stat
 import sys
+import uuid
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote, urlencode
@@ -35,9 +36,13 @@ COMMAND_OPTIONS = {
     ),
     ("verifications", "evidence"): "--file --pdf",
     ("projects", "create"): "--name --environment",
-    ("api-clients", "create"): "--name --project-id --scopes --allowed-network",
+    ("api-clients", "create"): (
+        "--name --project-id --scopes --allowed-network --idempotency-key"
+    ),
     ("workflows", "create"): "--name --project-id --definition",
-    ("webhooks", "create"): "--url --event --project-id --description",
+    ("webhooks", "create"): (
+        "--url --event --project-id --description --idempotency-key"
+    ),
 }
 
 
@@ -301,6 +306,7 @@ Documentation: https://docs.identitycore.com/cli""",
     acc.add_argument("--project-id", required=True)
     acc.add_argument("--scopes", action="append", required=True)
     acc.add_argument("--allowed-network", action="append", default=[])
+    acc.add_argument("--idempotency-key", default="")
     for action in ("rotate", "revoke"):
         p = clients.add_parser(action)
         p.add_argument("api_client_id")
@@ -339,6 +345,7 @@ Documentation: https://docs.identitycore.com/cli""",
     whc.add_argument("--event", action="append", required=True)
     whc.add_argument("--project-id")
     whc.add_argument("--description", default="")
+    whc.add_argument("--idempotency-key", default="")
     wht = webhooks.add_parser("test")
     wht.add_argument("webhook_id")
     for action in ("disable", "reactivate"):
@@ -568,6 +575,13 @@ def _dispatch(client: IdentityCoreClient, args: argparse.Namespace) -> Any:
             }
             if args.project_id:
                 body["project_id"] = args.project_id
+        if command in {"api-clients", "webhooks"}:
+            return client.request(
+                "POST",
+                base,
+                body,
+                idempotency_key=args.idempotency_key or f"ik_{uuid.uuid4().hex}",
+            )
         return client.request("POST", base, body)
     if command == "workflows" and action == "versions":
         return client.request("GET", f"{base}{identifier}/versions")

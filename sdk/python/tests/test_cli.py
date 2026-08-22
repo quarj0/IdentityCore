@@ -180,8 +180,8 @@ class IdentityCoreCliTests(unittest.TestCase):
         calls = []
 
         class Client:
-            def request(self, method, path, body=None):
-                calls.append((method, path, body))
+            def request(self, method, path, body=None, *, idempotency_key=""):
+                calls.append((method, path, body, idempotency_key))
                 return {}
 
         with patch.object(cli, "_client", return_value=Client()):
@@ -201,9 +201,55 @@ class IdentityCoreCliTests(unittest.TestCase):
             )
             self.assertEqual(cli.main(["webhooks", "test", "wh_1"]), 0)
 
-        self.assertEqual(calls[0], ("POST", "/projects/prj_1/suspend", {}))
+        self.assertEqual(calls[0], ("POST", "/projects/prj_1/suspend", {}, ""))
         self.assertNotIn("project_id", calls[1][2])
-        self.assertEqual(calls[2], ("POST", "/webhook-endpoints/wh_1/test", {}))
+        self.assertTrue(calls[1][3].startswith("ik_"))
+        self.assertEqual(calls[2], ("POST", "/webhook-endpoints/wh_1/test", {}, ""))
+
+    def test_create_commands_forward_explicit_idempotency_keys(self) -> None:
+        calls = []
+
+        class Client:
+            def request(self, method, path, body=None, *, idempotency_key=""):
+                calls.append((method, path, body, idempotency_key))
+                return {}
+
+        with patch.object(cli, "_client", return_value=Client()):
+            self.assertEqual(
+                cli.main(
+                    [
+                        "api-clients",
+                        "create",
+                        "--name",
+                        "CLI",
+                        "--project-id",
+                        "prj_1",
+                        "--scopes",
+                        "verifications:read",
+                        "--idempotency-key",
+                        "api-client-attempt",
+                    ]
+                ),
+                0,
+            )
+            self.assertEqual(
+                cli.main(
+                    [
+                        "webhooks",
+                        "create",
+                        "--url",
+                        "https://example.com/hook",
+                        "--event",
+                        "verification.verified",
+                        "--idempotency-key",
+                        "webhook-attempt",
+                    ]
+                ),
+                0,
+            )
+
+        self.assertEqual(calls[0][3], "api-client-attempt")
+        self.assertEqual(calls[1][3], "webhook-attempt")
 
     def test_api_client_create_requires_a_scope(self) -> None:
         exit_code, _ = self.run_cli(
