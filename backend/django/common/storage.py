@@ -2,6 +2,7 @@ from urllib.parse import urlencode
 
 import boto3
 from botocore.config import Config
+from botocore.exceptions import ClientError
 from django.conf import settings
 
 from apps.platform_settings.services import get_platform_setting_value
@@ -248,6 +249,27 @@ def copy_object(
     )
 
 
+def _is_missing_object_error(exc: ClientError) -> bool:
+    error = exc.response.get("Error", {})
+    response_metadata = exc.response.get("ResponseMetadata", {})
+    return str(error.get("Code", "")) in {"404", "NoSuchKey", "NotFound"} or (
+        response_metadata.get("HTTPStatusCode") == 404
+    )
+
+
+def object_exists(*, bucket_name: str, key: str) -> bool:
+    client = get_object_storage_client()
+    if not client:
+        raise RuntimeError("Object storage is not configured for checking objects.")
+    try:
+        client.head_object(Bucket=bucket_name, Key=key)
+    except ClientError as exc:
+        if _is_missing_object_error(exc):
+            return False
+        raise
+    return True
+
+
 def move_object(
     source_bucket: str,
     source_key: str,
@@ -259,12 +281,22 @@ def move_object(
 
     target_key = destination_key or source_key
 
-    copy_object(
-        source_bucket=source_bucket,
-        source_key=source_key,
-        destination_bucket=destination_bucket,
-        destination_key=target_key,
-    )
+    try:
+        copy_object(
+            source_bucket=source_bucket,
+            source_key=source_key,
+            destination_bucket=destination_bucket,
+            destination_key=target_key,
+        )
+    except ClientError as exc:
+        # A worker may die after a successful copy+source delete but before the
+        # database records PROMOTED. On retry the source is legitimately absent;
+        # an existing canonical destination proves the move already completed.
+        if not _is_missing_object_error(exc) or not object_exists(
+            bucket_name=destination_bucket, key=target_key
+        ):
+            raise
+        return
 
     delete_object(
         bucket_name=source_bucket,
