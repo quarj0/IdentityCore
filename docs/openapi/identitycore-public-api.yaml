@@ -1409,7 +1409,17 @@ components:
               description: Returned only when the action is rotate.
     WebhookEndpointSummary:
       type: object
-      required: [id, url, events, status, created_at, updated_at]
+      required:
+        [
+          id,
+          url,
+          events,
+          status,
+          signing_secret_version,
+          previous_secret_expires_at,
+          created_at,
+          updated_at,
+        ]
       properties:
         id:
           type: string
@@ -1439,6 +1449,12 @@ components:
               - verification.cancelled
         status:
           type: string
+        signing_secret_version:
+          type: integer
+          minimum: 1
+        previous_secret_expires_at:
+          type: [string, "null"]
+          format: date-time
         created_at:
           type: string
           format: date-time
@@ -3725,6 +3741,52 @@ paths:
           $ref: "#/components/responses/PermissionDenied"
         "404":
           $ref: "#/components/responses/NotFound"
+  /webhook-endpoints/{webhook_id}/rotate:
+    post:
+      summary: Rotate a webhook endpoint signing secret with a bounded overlap.
+      security:
+        - platformUserBearer: []
+      parameters:
+        - name: webhook_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+      responses:
+        "200":
+          description: New signing secret returned once with the previous-secret overlap expiry.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    allOf:
+                      - $ref: "#/components/schemas/WebhookEndpointSummary"
+                      - type: object
+                        required: [secret]
+                        properties:
+                          secret:
+                            type: string
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: The previous-secret overlap is still active, or the idempotency key conflicts with an earlier request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /verifications/manual-reviews:
     get:
       summary: List verifications requiring manual review.

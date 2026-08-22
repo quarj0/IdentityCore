@@ -5,11 +5,18 @@ import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.util.List;
+import java.util.function.Predicate;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 public final class WebhookVerifier {
+
+    private static final ObjectMapper JSON = new ObjectMapper();
 
     private WebhookVerifier() {
     }
@@ -31,9 +38,13 @@ public final class WebhookVerifier {
         } catch (RuntimeException error) {
             throw new IdentityCoreException("Webhook timestamp is invalid.", error);
         }
-        if (Math.abs(now - sentAt) > toleranceSeconds) {
+        final long age;
+        try {
+            age = Math.subtractExact(now, sentAt);
+        } catch (ArithmeticException error) {
             return false;
         }
+        if (age > toleranceSeconds || age < -toleranceSeconds) return false;
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
             mac.init(new SecretKeySpec(signingKey.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
@@ -42,6 +53,56 @@ public final class WebhookVerifier {
             return MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8), String.valueOf(signature).getBytes(StandardCharsets.UTF_8));
         } catch (IllegalStateException | InvalidKeyException | NoSuchAlgorithmException error) {
             throw new IdentityCoreException("Webhook signature verification failed.", error);
+        }
+    }
+
+    public static boolean verifyV1(byte[] rawBody, String signature, String timestamp, String eventId,
+            List<String> signingSecrets) {
+        return verifyV1(rawBody, signature, timestamp, eventId, signingSecrets, 300,
+                Instant.now().getEpochSecond(), null);
+    }
+
+    public static boolean verifyV1(byte[] rawBody, String signature, String timestamp, String eventId,
+            List<String> signingSecrets, long toleranceSeconds, long now, Predicate<String> claimEventId) {
+        if (eventId == null || eventId.isBlank()) throw new IdentityCoreException("eventId is required for v1 signatures.");
+        if (signingSecrets == null || signingSecrets.stream().noneMatch(secret -> secret != null && !secret.isBlank())) {
+            throw new IdentityCoreException("At least one signing secret is required.");
+        }
+        if (toleranceSeconds < 0) throw new IdentityCoreException("toleranceSeconds cannot be negative.");
+        final long sentAt;
+        try { sentAt = Long.parseLong(timestamp); }
+        catch (RuntimeException error) { throw new IdentityCoreException("Webhook timestamp is invalid.", error); }
+        final long age;
+        try { age = Math.subtractExact(now, sentAt); }
+        catch (ArithmeticException error) { return false; }
+        if (age > toleranceSeconds || age < -toleranceSeconds) return false;
+        try {
+            boolean valid = false;
+            byte[] messagePrefix = (timestamp + "." + eventId + ".").getBytes(StandardCharsets.UTF_8);
+            String[] receivedSignatures = String.valueOf(signature).split(",");
+            for (String secret : signingSecrets) {
+                if (secret == null || secret.isBlank()) continue;
+                MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+                String derivedKey = java.util.HexFormat.of().formatHex(sha256.digest(secret.getBytes(StandardCharsets.UTF_8)));
+                Mac mac = Mac.getInstance("HmacSHA256");
+                mac.init(new SecretKeySpec(derivedKey.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+                mac.update(messagePrefix);
+                String expected = "v1=" + java.util.HexFormat.of().formatHex(mac.doFinal(rawBody));
+                for (String received : receivedSignatures) {
+                    valid |= MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8),
+                            received.trim().getBytes(StandardCharsets.UTF_8));
+                }
+            }
+            if (!valid) return false;
+            JsonNode document = JSON.readTree(rawBody);
+            JsonNode payloadEventId = document == null ? null : document.get("id");
+            JsonNode schemaVersion = document == null ? null : document.get("schema_version");
+            if (payloadEventId == null || !payloadEventId.isTextual() || !eventId.equals(payloadEventId.textValue())
+                    || schemaVersion == null || !schemaVersion.isTextual() || !"1".equals(schemaVersion.textValue())) return false;
+            if (claimEventId != null && !claimEventId.test(eventId)) return false;
+            return true;
+        } catch (Exception error) {
+            return false;
         }
     }
 }

@@ -1,5 +1,3 @@
-import hashlib
-import hmac
 import json
 import socket
 import sys
@@ -167,29 +165,115 @@ class IdentityCoreClientTests(unittest.TestCase):
         self.assertIn("cursor=next", self.transport.calls[1]["url"])
 
     def test_webhook_signature_and_tolerance(self):
-        body, timestamp, key = b'{"id":"evt_1"}', "1000", "whsec_test"
-        signature = (
-            "sha256="
-            + hmac.new(
-                key.encode(), timestamp.encode() + b"." + body, hashlib.sha256
-            ).hexdigest()
+        fixture = json.loads(
+            (
+                Path(__file__).resolve().parents[2]
+                / "fixtures/webhook-signature-v1.json"
+            ).read_text()
         )
+        seen: set[str] = set()
+
+        def claim_event_id(event_id: str) -> bool:
+            if event_id in seen:
+                return False
+            seen.add(event_id)
+            return True
+
         self.assertTrue(
             verify_webhook_signature(
-                body,
-                signature=signature,
-                timestamp=timestamp,
-                signing_key=key,
-                now=1001,
+                fixture["raw_body"].encode(),
+                signature=fixture["rotation_signature_header"],
+                timestamp=fixture["timestamp"],
+                event_id=fixture["event_id"],
+                signing_keys=[fixture["previous_secret"]],
+                now=fixture["now_within_tolerance"],
+                claim_event_id=claim_event_id,
+            )
+        )
+        self.assertIn(fixture["event_id"], seen)
+        self.assertFalse(
+            verify_webhook_signature(
+                fixture["raw_body"],
+                signature=fixture["previous_signature"],
+                timestamp=fixture["timestamp"],
+                event_id=fixture["event_id"],
+                signing_keys=[fixture["current_secret"], fixture["previous_secret"]],
+                now=fixture["now_within_tolerance"],
+                claim_event_id=claim_event_id,
             )
         )
         self.assertFalse(
             verify_webhook_signature(
-                body,
-                signature=signature,
-                timestamp=timestamp,
-                signing_key=key,
-                now=2000,
+                fixture["raw_body"],
+                signature=fixture["current_signature"],
+                timestamp=fixture["timestamp"],
+                event_id=fixture["event_id"],
+                signing_key=fixture["current_secret"],
+                now=fixture["now_outside_tolerance"],
+            )
+        )
+        valid_options = {
+            "timestamp": fixture["timestamp"],
+            "event_id": fixture["event_id"],
+            "signing_key": fixture["current_secret"],
+            "now": fixture["now_within_tolerance"],
+        }
+        self.assertTrue(
+            verify_webhook_signature(
+                fixture["raw_body"],
+                signature=fixture["rotation_signature_header"],
+                **valid_options,
+            )
+        )
+        self.assertTrue(
+            verify_webhook_signature(
+                fixture["raw_body"],
+                signature=fixture["legacy_signature"],
+                timestamp=fixture["timestamp"],
+                signing_key=fixture["legacy_signing_key"],
+                now=fixture["now_within_tolerance"],
+            )
+        )
+        self.assertTrue(
+            verify_webhook_signature(
+                fixture["raw_body"],
+                signature=fixture["current_signature"],
+                **valid_options,
+            )
+        )
+        self.assertFalse(
+            verify_webhook_signature(
+                fixture["raw_body"],
+                signature=fixture["current_signature"].replace("v1=", "v2="),
+                **valid_options,
+            )
+        )
+        self.assertFalse(
+            verify_webhook_signature(
+                fixture["raw_body"],
+                signature=fixture["current_signature"],
+                **{**valid_options, "event_id": "evt_other"},
+            )
+        )
+        self.assertFalse(
+            verify_webhook_signature(
+                fixture["raw_body"] + " ",
+                signature=fixture["current_signature"],
+                **valid_options,
+            )
+        )
+        self.assertFalse(
+            verify_webhook_signature(
+                fixture["non_object_raw_body"],
+                signature=fixture["non_object_signature"],
+                **valid_options,
+            )
+        )
+        self.assertFalse(
+            verify_webhook_signature(
+                fixture["invalid_schema_raw_body"],
+                signature=fixture["invalid_schema_signature"],
+                **valid_options,
             )
         )
 

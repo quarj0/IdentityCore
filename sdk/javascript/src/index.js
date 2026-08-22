@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { randomUUID } from "node:crypto";
 
 export const VERSION = "0.2.0";
@@ -80,26 +80,78 @@ export function verifyWebhookSignature(
   {
     signature,
     timestamp,
+    eventId,
     signingKey,
+    signingKeys = [],
     toleranceSeconds = 300,
     now = Math.floor(Date.now() / 1000),
   },
 ) {
-  if (!signingKey) throw new IdentityCoreError("signingKey is required.");
+  const secrets = [signingKey, ...signingKeys].filter(Boolean);
+  if (secrets.length === 0)
+    throw new IdentityCoreError("At least one signing secret is required.");
   if (toleranceSeconds < 0)
     throw new IdentityCoreError("toleranceSeconds cannot be negative.");
   const sentAt = Number(timestamp);
-  if (!Number.isInteger(sentAt))
+  const current = Number(now);
+  if (!Number.isSafeInteger(sentAt) || !Number.isSafeInteger(current))
     throw new IdentityCoreError("Webhook timestamp is invalid.");
-  if (Math.abs(Number(now) - sentAt) > toleranceSeconds) return false;
+  if (Math.abs(current - sentAt) > toleranceSeconds) return false;
   const raw = Buffer.isBuffer(payload) ? payload : Buffer.from(payload);
-  const expected = `sha256=${createHmac("sha256", signingKey).update(`${timestamp}.`).update(raw).digest("hex")}`;
-  const received = Buffer.from(String(signature));
-  const expectedBytes = Buffer.from(expected);
-  return (
-    received.length === expectedBytes.length &&
-    timingSafeEqual(received, expectedBytes)
+  const receivedSignatures = String(signature)
+    .split(",")
+    .map((value) => Buffer.from(value.trim()));
+  const legacySignature = receivedSignatures.find((value) =>
+    value.toString().startsWith("sha256="),
   );
+  if (legacySignature) {
+    return secrets.some((secret) => {
+      const expected = Buffer.from(
+        `sha256=${createHmac("sha256", secret).update(`${timestamp}.`).update(raw).digest("hex")}`,
+      );
+      return (
+        expected.length === legacySignature.length &&
+        timingSafeEqual(expected, legacySignature)
+      );
+    });
+  }
+  if (!eventId)
+    throw new IdentityCoreError("eventId is required for v1 signatures.");
+  const valid = secrets.some((secret) => {
+    const derivedKey = createHash("sha256").update(secret).digest("hex");
+    const expected = `v1=${createHmac("sha256", derivedKey).update(`${timestamp}.${eventId}.`).update(raw).digest("hex")}`;
+    const expectedBytes = Buffer.from(expected);
+    return receivedSignatures.some(
+      (received) =>
+        received.length === expectedBytes.length &&
+        timingSafeEqual(received, expectedBytes),
+    );
+  });
+  if (!valid) return false;
+  let document;
+  try {
+    document = JSON.parse(raw.toString("utf8"));
+  } catch {
+    return false;
+  }
+  if (
+    document === null ||
+    Array.isArray(document) ||
+    typeof document !== "object"
+  )
+    return false;
+  if (document.id !== eventId || document.schema_version !== "1") return false;
+  return true;
+}
+
+export async function verifyWebhookSignatureWithReplayClaim(
+  payload,
+  { claimEventId, ...options },
+) {
+  if (typeof claimEventId !== "function")
+    throw new IdentityCoreError("claimEventId is required.");
+  if (!verifyWebhookSignature(payload, options)) return false;
+  return (await claimEventId(options.eventId)) === true;
 }
 
 export class IdentityCoreClient {

@@ -1,7 +1,7 @@
 "use client";
 
 import { SubmitEvent, useEffect, useRef, useState } from "react";
-import { Copy, Loader2, Send, Webhook } from "lucide-react";
+import { Copy, Loader2, RefreshCw, Send, Webhook } from "lucide-react";
 import {
   Button,
   Card,
@@ -39,6 +39,9 @@ export function LiveWebhooksPage() {
   const [message, setMessage] = useState("");
   const [pendingApproval, setPendingApproval] = useState(false);
   const pendingCreate = useRef<PendingIdempotentSubmission | null>(null);
+  const pendingRotations = useRef<Record<string, PendingIdempotentSubmission>>(
+    {},
+  );
 
   async function load() {
     setError("");
@@ -111,6 +114,40 @@ export function LiveWebhooksPage() {
     try {
       await dashboardApi.testWebhook(id);
       setMessage("Webhook test event queued.");
+    } catch (caught) {
+      setError(messageOf(caught));
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function rotateEndpoint(item: WebhookEndpoint) {
+    if (
+      !window.confirm(
+        "Rotate this webhook secret? Keep the current secret configured until the displayed overlap expiry.",
+      )
+    )
+      return;
+    setBusy(`rotate:${item.id}`);
+    setMessage("");
+    setError("");
+    try {
+      const pending = idempotentSubmission(
+        { webhookId: item.id, action: "rotate" },
+        pendingRotations.current[item.id] ?? null,
+      );
+      pendingRotations.current[item.id] = pending;
+      const result = await dashboardApi.webhookAction(
+        item.id,
+        "rotate",
+        pending.key,
+      );
+      delete pendingRotations.current[item.id];
+      setSecret(result.secret ?? "");
+      setMessage(
+        `Webhook secret rotated to version ${result.signing_secret_version}. Save it now and retain the previous secret until ${result.previous_secret_expires_at ?? "the overlap expires"}.`,
+      );
+      await load();
     } catch (caught) {
       setError(messageOf(caught));
     } finally {
@@ -268,6 +305,19 @@ export function LiveWebhooksPage() {
                       <Send className="h-4 w-4" />
                     )}
                     Test
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="rounded-xl"
+                    onClick={() => rotateEndpoint(item)}
+                    disabled={Boolean(busy)}
+                  >
+                    {busy === `rotate:${item.id}` ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" />
+                    )}
+                    Rotate secret
                   </Button>
                 </div>
               </CardContent>

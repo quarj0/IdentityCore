@@ -481,6 +481,8 @@ export interface WebhookEndpointSummary {
   description?: string;
   events: Array<string>;
   status: string;
+  signing_secret_version: number;
+  previous_secret_expires_at: string | null;
   created_at: string;
   updated_at: string;
 }

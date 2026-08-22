@@ -20,8 +20,12 @@ public sealed class LiveCompatibilityTests
         var error = await Assert.ThrowsAsync<IdentityCoreApiException>(() => client.Verifications.RetrieveAsync("ver_does_not_exist"));
         Assert.Equal(404, error.Status);
 
-        var payload = Encoding.UTF8.GetBytes("{\"type\":\"verification.completed\"}"); var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(); const string key = "webhook-secret";
-        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(key)); var signature = "sha256=" + Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes(timestamp + ".").Concat(payload).ToArray())).ToLowerInvariant();
-        Assert.True(WebhookVerifier.Verify(payload, signature, timestamp, key));
+        const string eventId = "evt_live_compatibility", secret = "webhook-secret";
+        var payload = Encoding.UTF8.GetBytes($"{{\"id\":\"{eventId}\",\"schema_version\":\"1\",\"type\":\"verification.completed\"}}");
+        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
+        var derivedKey = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(secret))).ToLowerInvariant();
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(derivedKey));
+        var signature = "v1=" + Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes($"{timestamp}.{eventId}.").Concat(payload).ToArray())).ToLowerInvariant();
+        Assert.True(WebhookVerifier.VerifyV1(payload, signature, timestamp, eventId, [secret]));
     }
 }

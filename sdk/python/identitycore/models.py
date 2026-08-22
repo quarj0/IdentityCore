@@ -720,6 +720,8 @@ class _WebhookEndpointSummaryRequired(TypedDict):
     url: str
     events: list[str]
     status: str
+    signing_secret_version: int
+    previous_secret_expires_at: Optional[str]
     created_at: str
     updated_at: str
 

@@ -106,6 +106,8 @@ export type WebhookEndpoint = {
   description: string;
   events: string[];
   status: string;
+  signing_secret_version: number;
+  previous_secret_expires_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -315,6 +317,21 @@ export const dashboardApi = {
       method: "POST",
       body: JSON.stringify({}),
     }),
+  webhookAction: (
+    id: string,
+    action: "disable" | "reactivate" | "rotate",
+    idempotencyKey?: string,
+  ) =>
+    backend.rest<WebhookEndpoint & { secret?: string }>(
+      `/webhook-endpoints/${id}/${action}`,
+      {
+        method: "POST",
+        headers: idempotencyKey
+          ? idempotencyHeaders(idempotencyKey)
+          : undefined,
+        body: "{}",
+      },
+    ),
   apiClients: () => backend.rest<{ results: APIClient[] }>("/api-clients/"),
   createApiClient: (input: Record<string, unknown>, idempotencyKey: string) =>
     backend.rest<APIClient>("/api-clients/", {

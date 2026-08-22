@@ -26,8 +26,15 @@ urlpatterns = [
         methods=("GET", "PATCH"),
     ),
     public_api_path(
+        "<str:webhook_id>/rotate",
+        WebhookEndpointActionView.as_view(fixed_action="rotate"),
+        methods=("POST",),
+        name="webhook-endpoint-rotate",
+    ),
+    public_api_path(
         "<str:webhook_id>/<str:action>",
         WebhookEndpointActionView.as_view(),
         methods=("POST",),
+        name="webhook-endpoint-action",
     ),
 ]

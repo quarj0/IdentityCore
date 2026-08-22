@@ -100,8 +100,23 @@ export function verifyWebhookSignature(
   options: {
     signature: string;
     timestamp: string | number;
-    signingKey: string;
+    eventId?: string;
+    signingKey?: string;
+    signingKeys?: string[];
     toleranceSeconds?: number;
     now?: number;
   },
 ): boolean;
+export function verifyWebhookSignatureWithReplayClaim(
+  payload: string | Uint8Array,
+  options: {
+    signature: string;
+    timestamp: string | number;
+    eventId: string;
+    signingKey?: string;
+    signingKeys?: string[];
+    toleranceSeconds?: number;
+    now?: number;
+    claimEventId: (eventId: string) => boolean | Promise<boolean>;
+  },
+): Promise<boolean>;

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import hmac
+import json
 import time
 from hashlib import sha256
+from collections.abc import Callable, Sequence
 from typing import Union
 
 from identitycore.errors import IdentityCoreError
@@ -13,27 +15,63 @@ def verify_webhook_signature(
     *,
     signature: str,
     timestamp: Union[str, int],
-    signing_key: str,
+    event_id: str | None = None,
+    signing_key: str | None = None,
+    signing_keys: Sequence[str] | None = None,
     tolerance_seconds: int = 300,
     now: int | None = None,
+    claim_event_id: Callable[[str], bool] | None = None,
 ) -> bool:
-    """Verify an IdentityCore webhook using its unmodified request body."""
-    if not signing_key:
-        raise IdentityCoreError("signing_key is required.")
+    """Verify a legacy or v1 webhook and optionally claim a v1 event ID."""
+    candidate_secrets = [key for key in (signing_keys or []) if key]
+    if signing_key:
+        candidate_secrets.insert(0, signing_key)
+    if not candidate_secrets:
+        raise IdentityCoreError("At least one signing secret is required.")
     if tolerance_seconds < 0:
         raise IdentityCoreError("tolerance_seconds cannot be negative.")
     try:
         sent_at = int(timestamp)
+        current = int(time.time()) if now is None else int(now)
     except (TypeError, ValueError) as exc:
         raise IdentityCoreError("Webhook timestamp is invalid.") from exc
-    current = int(time.time()) if now is None else int(now)
     if abs(current - sent_at) > tolerance_seconds:
         return False
     raw = payload.encode("utf-8") if isinstance(payload, str) else payload
-    digest = hmac.new(
-        signing_key.encode("utf-8"),
-        str(timestamp).encode("utf-8") + b"." + raw,
-        sha256,
-    ).hexdigest()
-    expected = f"sha256={digest}"
-    return hmac.compare_digest(expected, str(signature))
+    received_signatures = [value.strip() for value in str(signature).split(",")]
+    if any(value.startswith("sha256=") for value in received_signatures):
+        legacy_message = str(timestamp).encode("utf-8") + b"." + raw
+        return any(
+            hmac.compare_digest(
+                f"sha256={hmac.new(secret.encode(), legacy_message, sha256).hexdigest()}",
+                received,
+            )
+            for secret in candidate_secrets
+            for received in received_signatures
+        )
+    if not event_id:
+        raise IdentityCoreError("event_id is required for v1 signatures.")
+    message = (
+        str(timestamp).encode("utf-8") + b"." + event_id.encode("utf-8") + b"." + raw
+    )
+    valid = any(
+        hmac.compare_digest(
+            f"v1={hmac.new(sha256(secret.encode()).hexdigest().encode(), message, sha256).hexdigest()}",
+            received,
+        )
+        for secret in candidate_secrets
+        for received in received_signatures
+    )
+    if not valid:
+        return False
+    try:
+        document = json.loads(raw)
+    except (TypeError, ValueError, UnicodeDecodeError):
+        return False
+    if not isinstance(document, dict):
+        return False
+    if document.get("id") != event_id or document.get("schema_version") != "1":
+        return False
+    if claim_event_id is not None and not claim_event_id(event_id):
+        return False
+    return True

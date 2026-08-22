@@ -49,6 +49,7 @@ def queue_webhook_events(
             continue
         event_payload = {
             "id": None,
+            "schema_version": "1",
             "type": event_type,
             "created_at": timezone.now().isoformat(),
             "data": payload,
@@ -70,20 +71,75 @@ def _encode_payload(payload: dict) -> bytes:
     return json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
 
 
-def _build_signature(signing_key: str, timestamp: str, payload_bytes: bytes) -> str:
+def _versioned_payload(webhook_event: WebhookEvent) -> dict:
+    payload = dict(webhook_event.payload_json)
+    payload["id"] = webhook_event.public_id
+    payload["schema_version"] = "1"
+    if payload != webhook_event.payload_json:
+        webhook_event.payload_json = payload
+        webhook_event.save(update_fields=["payload_json", "updated_at"])
+    return payload
+
+
+def _build_signature(
+    signing_key: str, timestamp: str, event_id: str, payload_bytes: bytes
+) -> str:
+    message = (
+        timestamp.encode("utf-8")
+        + b"."
+        + event_id.encode("utf-8")
+        + b"."
+        + payload_bytes
+    )
+    digest = hmac.new(signing_key.encode("utf-8"), message, sha256).hexdigest()
+    return f"v1={digest}"
+
+
+def _build_legacy_signature(
+    signing_key: str, timestamp: str, payload_bytes: bytes
+) -> str:
     message = timestamp.encode("utf-8") + b"." + payload_bytes
     digest = hmac.new(signing_key.encode("utf-8"), message, sha256).hexdigest()
     return f"sha256={digest}"
 
 
+def _build_signature_header(
+    webhook_event: WebhookEvent, timestamp: str, payload_bytes: bytes
+) -> str:
+    endpoint = webhook_event.webhook_endpoint
+    signing_keys = [endpoint.signing_key]
+    if endpoint.previous_secret_overlap_active:
+        signing_keys.append(endpoint.previous_signing_key)
+    return ",".join(
+        _build_signature(key, timestamp, webhook_event.public_id, payload_bytes)
+        for key in signing_keys
+    )
+
+
 def _send_webhook_request(
     *, webhook_event: WebhookEvent, payload_bytes: bytes, timestamp: str
 ):
-    signature = _build_signature(
-        webhook_event.webhook_endpoint.signing_key, timestamp, payload_bytes
+    endpoint = webhook_event.webhook_endpoint
+    endpoint.refresh_from_db(
+        fields=[
+            "url",
+            "signing_key",
+            "previous_signing_key",
+            "signing_secret_version",
+            "previous_secret_expires_at",
+        ]
+    )
+    signature_v1 = _build_signature_header(webhook_event, timestamp, payload_bytes)
+    legacy_signing_key = (
+        endpoint.previous_signing_key
+        if endpoint.previous_secret_overlap_active
+        else endpoint.signing_key
+    )
+    legacy_signature = _build_legacy_signature(
+        legacy_signing_key, timestamp, payload_bytes
     )
     http_request = request.Request(
-        webhook_event.webhook_endpoint.url,
+        endpoint.url,
         data=payload_bytes,
         headers={
             "Content-Type": "application/json",
@@ -91,7 +147,12 @@ def _send_webhook_request(
             "X-IdentityCore-Event-Id": webhook_event.public_id,
             "X-IdentityCore-Event-Type": webhook_event.event_type,
             "X-IdentityCore-Timestamp": timestamp,
-            "X-IdentityCore-Signature": signature,
+            "X-IdentityCore-Signature": legacy_signature,
+            "X-IdentityCore-Signature-V1": signature_v1,
+            "X-IdentityCore-Signature-Version": "v1",
+            "X-IdentityCore-Signing-Secret-Version": str(
+                endpoint.signing_secret_version
+            ),
         },
         method="POST",
     )
@@ -175,7 +236,7 @@ def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
         )
         return webhook_event
 
-    payload_bytes = _encode_payload(webhook_event.payload_json)
+    payload_bytes = _encode_payload(_versioned_payload(webhook_event))
     timestamp = str(int(timezone.now().timestamp()))
     try:
         status_code, response_body, duration_ms = _send_webhook_request(
