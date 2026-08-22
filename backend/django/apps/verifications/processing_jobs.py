@@ -270,10 +270,21 @@ def _resource_processing_finished(job: ProcessingJob) -> bool:
     if job.job_type == ProcessingJobType.BIOMETRICS:
         from apps.biometrics.models import LivenessCheck, LivenessCheckStatus
 
+        # A committed biometric sub-result is not the same as a committed
+        # verification decision. If finalization rolled back, the job must be
+        # redispatched so it can resume from persisted provider evidence.
         return (
             LivenessCheck.objects.filter(
                 public_id=job.resource_public_id,
                 tenant_id=job.tenant_id,
+                verification__status__in=[
+                    VerificationStatus.VERIFIED,
+                    VerificationStatus.REJECTED,
+                    VerificationStatus.MANUAL_REVIEW_REQUIRED,
+                    VerificationStatus.FAILED,
+                    VerificationStatus.CANCELLED,
+                    VerificationStatus.EXPIRED,
+                ],
             )
             .exclude(status=LivenessCheckStatus.INCONCLUSIVE)
             .exists()
