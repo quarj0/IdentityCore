@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 
 from celery import shared_task
@@ -25,6 +26,8 @@ from apps.verifications.processing_jobs import recover_stale_processing_jobs
 from apps.verifications.transitions import transition_verification
 from apps.webhooks.services import queue_webhook_events
 from common.authorization import ServicePrincipal, require_service_access
+
+logger = logging.getLogger(__name__)
 
 VERIFICATION_MAINTENANCE_WORKER = ServicePrincipal(
     name="verification-maintenance-worker",
@@ -86,6 +89,22 @@ def _has_active_retention_hold(verification: Verification, now) -> bool:
     )
 
 
+def _schedule_evidence_report_after_commit(verification: Verification) -> None:
+    verification_id = verification.public_id
+
+    def generate_evidence_report() -> None:
+        try:
+            persisted_verification = Verification.objects.get(public_id=verification_id)
+            ensure_verification_evidence_report(persisted_verification)
+        except Exception:
+            logger.exception(
+                "Verification evidence report generation failed for %s.",
+                verification_id,
+            )
+
+    transaction.on_commit(generate_evidence_report)
+
+
 @transaction.atomic
 def _expire_pending_verification(verification_id: int, now) -> bool:
     verification = (
@@ -124,7 +143,7 @@ def _expire_pending_verification(verification_id: int, now) -> bool:
         verification=verification,
         decision=VerificationStatus.EXPIRED,
     )
-    ensure_verification_evidence_report(verification)
+    _schedule_evidence_report_after_commit(verification)
     return True
 
 
