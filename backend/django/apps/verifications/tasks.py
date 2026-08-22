@@ -1,4 +1,3 @@
-import logging
 from datetime import timedelta
 
 from celery import shared_task
@@ -9,7 +8,9 @@ from django.utils import timezone
 from apps.audit.services import record_audit_event
 from apps.biometrics.models import SelfieCaptureStatus
 from apps.document_captures.models import DocumentCaptureStatus
-from apps.verifications.evidence import ensure_verification_evidence_report
+from apps.verifications.evidence_commit import (
+    schedule_verification_evidence_report_after_commit,
+)
 from common.storage import (
     delete_object,
     get_object_storage_media_bucket_name,
@@ -26,8 +27,6 @@ from apps.verifications.processing_jobs import recover_stale_processing_jobs
 from apps.verifications.transitions import transition_verification
 from apps.webhooks.services import queue_webhook_events
 from common.authorization import ServicePrincipal, require_service_access
-
-logger = logging.getLogger(__name__)
 
 VERIFICATION_MAINTENANCE_WORKER = ServicePrincipal(
     name="verification-maintenance-worker",
@@ -89,22 +88,6 @@ def _has_active_retention_hold(verification: Verification, now) -> bool:
     )
 
 
-def _schedule_evidence_report_after_commit(verification: Verification) -> None:
-    verification_id = verification.public_id
-
-    def generate_evidence_report() -> None:
-        try:
-            persisted_verification = Verification.objects.get(public_id=verification_id)
-            ensure_verification_evidence_report(persisted_verification)
-        except Exception:
-            logger.exception(
-                "Verification evidence report generation failed for %s.",
-                verification_id,
-            )
-
-    transaction.on_commit(generate_evidence_report)
-
-
 @transaction.atomic
 def _expire_pending_verification(verification_id: int, now) -> bool:
     verification = (
@@ -143,7 +126,7 @@ def _expire_pending_verification(verification_id: int, now) -> bool:
         verification=verification,
         decision=VerificationStatus.EXPIRED,
     )
-    _schedule_evidence_report_after_commit(verification)
+    schedule_verification_evidence_report_after_commit(verification)
     return True
 
 
