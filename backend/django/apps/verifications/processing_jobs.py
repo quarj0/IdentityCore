@@ -10,6 +10,7 @@ from apps.verifications.models import (
     ProcessingJob,
     ProcessingJobStatus,
     ProcessingJobType,
+    Verification,
     VerificationDecision,
     VerificationDecisionType,
     VerificationStatus,
@@ -549,6 +550,14 @@ def exhaust_processing_job(job: ProcessingJob) -> None:
 
     now = timezone.now()
     with transaction.atomic():
+        # Canonical lifecycle lock order is Verification first, ProcessingJob second.
+        # Finalizers already hold/lock the verification before completing the job;
+        # using the same order here prevents the recovery path from deadlocking them.
+        verification = (
+            Verification.objects.select_for_update()
+            .select_related("verification_subject")
+            .get(pk=job.verification_id)
+        )
         locked = (
             ProcessingJob.objects.select_for_update()
             .select_related(
@@ -556,6 +565,10 @@ def exhaust_processing_job(job: ProcessingJob) -> None:
             )
             .get(pk=job.pk)
         )
+        if locked.verification_id != verification.pk:
+            raise ProcessingJobOwnershipLost(
+                f"Processing job {locked.public_id} changed verification ownership."
+            )
         if locked.status in {
             ProcessingJobStatus.COMPLETED,
             ProcessingJobStatus.EXHAUSTED,
@@ -594,7 +607,6 @@ def exhaust_processing_job(job: ProcessingJob) -> None:
                 checked_at=now,
             )
 
-        verification = locked.verification
         lifecycle_already_final = verification.status in {
             *TERMINAL_STATUSES,
             VerificationStatus.MANUAL_REVIEW_REQUIRED,
