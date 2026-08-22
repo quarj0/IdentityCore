@@ -100,6 +100,9 @@ jobs:
         working-directory: frontend
       - run: pnpm --filter verification-portal test:e2e
         working-directory: frontend
+      - name: Run platform-admin accessibility journeys
+        run: pnpm --filter verification-portal exec playwright test --config=playwright.platform-admin.config.ts
+        working-directory: frontend
       - run: docker build -f verification-portal/Dockerfile -t identitycore/verification-portal:ci .
         working-directory: frontend
 
