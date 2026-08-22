@@ -1,9 +1,14 @@
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from apps.audit.services import record_audit_event
+from apps.api_clients.idempotency import (
+    begin_idempotent_request,
+    complete_idempotent_request,
+)
 from apps.webhooks.serializers import (
     WebhookEndpointCreateSerializer,
     WebhookTestSerializer,
@@ -28,7 +33,19 @@ class WebhookEndpointListCreateView(APIView):
             request=request,
         )
 
+    @transaction.atomic
     def post(self, request):
+        idempotency_result = begin_idempotent_request(
+            request=request,
+            tenant=request.user.tenant,
+            operation="webhook_endpoint.create",
+        )
+        if idempotency_result.is_replay:
+            return success_response(
+                idempotency_result.response_data,
+                request=request,
+                status=idempotency_result.response_status,
+            )
         serializer = WebhookEndpointCreateSerializer(
             data=request.data, context={"request": request}
         )
@@ -43,12 +60,18 @@ class WebhookEndpointListCreateView(APIView):
             target_id=endpoint.public_id,
             metadata={"url": endpoint.url, "events": endpoint.events},
         )
+        response_data = {
+            "id": endpoint.public_id,
+            "secret": endpoint._raw_secret,
+            "status": endpoint.status,
+        }
+        complete_idempotent_request(
+            idempotency_result,
+            response_data=response_data,
+            response_status=status.HTTP_201_CREATED,
+        )
         return success_response(
-            {
-                "id": endpoint.public_id,
-                "secret": endpoint._raw_secret,
-                "status": endpoint.status,
-            },
+            response_data,
             request=request,
             status=status.HTTP_201_CREATED,
         )

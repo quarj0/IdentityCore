@@ -1632,7 +1632,12 @@ Rules:
 
 - Same key with same payload returns same result.
 - Same key with different payload returns error.
-- Idempotency records expire after a configured period.
+- Keys are isolated by tenant and authenticated API client or workspace user.
+- Concurrent requests with the same key wait for and replay the first committed result.
+- Idempotency records expire after `IDEMPOTENCY_RECORD_TTL_HOURS` (24 hours by
+  default), after which the key may create a new result.
+- Stored response payloads are encrypted because create responses can contain
+  one-time API client or webhook secrets.
 
 ---
 

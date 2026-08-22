@@ -1,4 +1,5 @@
 import { backend } from "./backend";
+import { idempotencyHeaders } from "./idempotent-submission";
 
 export type Policy = {
   id: string;
@@ -268,7 +269,12 @@ export const dashboardApi = {
     ),
   manualReviews: () =>
     backend.rest<Page<ManualReviewSummary>>("/verifications/manual-reviews"),
-  decideReview: (id: string, decision: string, reason_detail: string) =>
+  decideReview: (
+    id: string,
+    decision: string,
+    reason_detail: string,
+    idempotencyKey: string,
+  ) =>
     backend.rest<{
       verification_id: string;
       decision: string;
@@ -276,6 +282,7 @@ export const dashboardApi = {
       approval_required?: boolean;
     }>(`/verifications/manual-reviews/${id}/decision`, {
       method: "POST",
+      headers: idempotencyHeaders(idempotencyKey),
       body: JSON.stringify({
         decision,
         reason_code: "dashboard_manual_review",
@@ -294,10 +301,14 @@ export const dashboardApi = {
   auditEvents: () => backend.rest<Page<AuditEvent>>("/audit-events/"),
   webhooks: () =>
     backend.rest<{ results: WebhookEndpoint[] }>("/webhook-endpoints/"),
-  createWebhook: (input: Record<string, unknown>) =>
+  createWebhook: (input: Record<string, unknown>, idempotencyKey: string) =>
     backend.rest<{ id: string; secret: string; status: string }>(
       "/webhook-endpoints/",
-      { method: "POST", body: JSON.stringify(input) },
+      {
+        method: "POST",
+        headers: idempotencyHeaders(idempotencyKey),
+        body: JSON.stringify(input),
+      },
     ),
   testWebhook: (id: string) =>
     backend.rest<{ queued: boolean }>(`/webhook-endpoints/${id}/test`, {
@@ -305,9 +316,10 @@ export const dashboardApi = {
       body: JSON.stringify({}),
     }),
   apiClients: () => backend.rest<{ results: APIClient[] }>("/api-clients/"),
-  createApiClient: (input: Record<string, unknown>) =>
+  createApiClient: (input: Record<string, unknown>, idempotencyKey: string) =>
     backend.rest<APIClient>("/api-clients/", {
       method: "POST",
+      headers: idempotencyHeaders(idempotencyKey),
       body: JSON.stringify(input),
     }),
   apiClientAction: (id: string, action: "rotate" | "revoke") =>

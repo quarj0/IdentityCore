@@ -1,6 +1,6 @@
 "use client";
 
-import { SubmitEvent, useEffect, useState } from "react";
+import { SubmitEvent, useEffect, useRef, useState } from "react";
 import { Check, Copy, KeyRound, Loader2 } from "lucide-react";
 import {
   Button,
@@ -15,6 +15,10 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeading } from "@/components/shared/page-heading";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { APIClient, dashboardApi, Project } from "@/lib/dashboard-api";
+import {
+  idempotentSubmission,
+  PendingIdempotentSubmission,
+} from "@/lib/idempotent-submission";
 
 const defaultScopes = ["verifications:read", "verifications:create"];
 
@@ -42,6 +46,7 @@ export function LiveApiKeysPage() {
   const [pendingApproval, setPendingApproval] = useState(false);
   const [copied, setCopied] = useState(false);
   const [acting, setActing] = useState("");
+  const pendingCreate = useRef<PendingIdempotentSubmission | null>(null);
   const hasUsableKey = items.some((item) => item.status !== "revoked");
 
   async function load() {
@@ -87,7 +92,7 @@ export function LiveApiKeysPage() {
     setMessage("");
     setError("");
     try {
-      const result = await dashboardApi.createApiClient({
+      const input = {
         project_id: String(data.get("project_id") || ""),
         name: String(data.get("name") || "").trim(),
         scopes: data.getAll("scopes").map(String),
@@ -96,7 +101,16 @@ export function LiveApiKeysPage() {
           .map((value) => value.trim())
           .filter(Boolean),
         rate_limit_per_minute: Number(data.get("rate_limit_per_minute") || 60),
-      });
+      };
+      pendingCreate.current = idempotentSubmission(
+        input,
+        pendingCreate.current,
+      );
+      const result = await dashboardApi.createApiClient(
+        input,
+        pendingCreate.current.key,
+      );
+      pendingCreate.current = null;
       setSecret(`${result.client_id}:${result.client_secret ?? ""}`);
       setMessage(
         "API key created. Save the client secret now; it will not be shown again.",

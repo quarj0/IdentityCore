@@ -125,6 +125,7 @@ class AuditEventTests(APITestCase):
                 "reason_detail": "Document and selfie match after manual review.",
             },
             format="json",
+            HTTP_IDEMPOTENCY_KEY="audit-manual-decision",
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)

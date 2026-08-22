@@ -75,13 +75,18 @@ POST /api/v1/projects/
       <section className="rounded-3xl border border-slate-200 bg-white p-6">
         <h2 className="text-xl font-semibold">Mint a sandbox API client</h2>
         <p className="mt-3 text-sm leading-7 text-slate-600">
-          Create a dedicated sandbox API client for isolated testing. Pending workspaces can create one sandbox test key for verification testing without production permissions.
+          Create a dedicated sandbox API client for isolated testing. Pending
+          workspaces can create one sandbox test key for verification testing
+          without production permissions.
         </p>
 
         <CodeBlock
           title="Create a sandbox key"
-          language="json"
+          language="http"
           code={`POST /api/v1/api-clients/
+Idempotency-Key: ik_create_sandbox_key_001
+Content-Type: application/json
+
 {
   "project_id": "prj_...",
   "name": "Sandbox test key",
@@ -92,7 +97,9 @@ POST /api/v1/projects/
         />
 
         <p className="mt-4 text-sm leading-7 text-slate-600">
-          Sandbox limits and reduced scopes are enforced automatically for pending workspaces.
+          Reuse the same idempotency key when retrying the same submission.
+          Change it when the request body changes. Sandbox limits and reduced
+          scopes are enforced automatically for pending workspaces.
         </p>
       </section>
 

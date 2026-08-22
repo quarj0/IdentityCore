@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.core.models import BaseModel, PublicIdModel, generate_public_id
@@ -120,14 +121,30 @@ class APIClient(PublicIdModel, BaseModel):
 
 
 class APIIdempotencyRecord(BaseModel):
-    """Stores a completed mutating API request for safe replay."""
+    """Stores a tenant-scoped mutating request for safe replay."""
+
+    tenant = models.ForeignKey(
+        "tenants.Tenant",
+        on_delete=models.CASCADE,
+        related_name="idempotency_records",
+    )
 
     api_client = models.ForeignKey(
         APIClient,
         on_delete=models.CASCADE,
         related_name="idempotency_records",
+        null=True,
+        blank=True,
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="idempotency_records",
+        null=True,
+        blank=True,
     )
     key = models.CharField(max_length=255)
+    operation = models.CharField(max_length=255)
     request_hash = models.CharField(max_length=64)
     method = models.CharField(max_length=16)
     path = models.CharField(max_length=512)
@@ -141,9 +158,26 @@ class APIIdempotencyRecord(BaseModel):
 
     class Meta:
         constraints = [
+            models.CheckConstraint(
+                condition=(
+                    (Q(api_client__isnull=False) & Q(user__isnull=True))
+                    | (Q(api_client__isnull=True) & Q(user__isnull=False))
+                ),
+                name="idempotency_record_has_one_principal",
+            ),
             models.UniqueConstraint(
-                fields=["api_client", "key"],
+                fields=["tenant", "api_client", "key"],
+                condition=Q(api_client__isnull=False),
                 name="unique_api_client_idempotency_key",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["tenant", "user", "key"],
+                condition=Q(user__isnull=False),
+                name="unique_user_idempotency_key",
+            ),
         ]
-        indexes = [models.Index(fields=["api_client", "created_at"])]
+        indexes = [
+            models.Index(fields=["tenant", "created_at"]),
+            models.Index(fields=["api_client", "created_at"]),
+            models.Index(fields=["user", "created_at"]),
+        ]

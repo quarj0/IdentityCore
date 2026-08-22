@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Copy, Download, Loader2, RefreshCw } from "lucide-react";
 import {
   Button,
@@ -14,6 +14,10 @@ import {
 import { PageHeading } from "@/components/shared/page-heading";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { dashboardApi, VerificationDetail } from "@/lib/dashboard-api";
+import {
+  idempotentSubmission,
+  PendingIdempotentSubmission,
+} from "@/lib/idempotent-submission";
 
 function messageOf(error: unknown) {
   return error instanceof Error
@@ -39,6 +43,7 @@ export function LiveVerificationDetail({
   const [error, setError] = useState("");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState("");
+  const pendingDecision = useRef<PendingIdempotentSubmission | null>(null);
 
   const load = useCallback(async () => {
     setError("");
@@ -98,11 +103,18 @@ export function LiveVerificationDetail({
         await dashboardApi.approveReview(id, decision);
         setMessage("Independent review completed.");
       } else {
+        const reasonDetail = reason.trim() || "Reviewed from dashboard.";
+        pendingDecision.current = idempotentSubmission(
+          { verificationId: id, decision, reasonDetail },
+          pendingDecision.current,
+        );
         const result = await dashboardApi.decideReview(
           id,
           decision,
-          reason.trim() || "Reviewed from dashboard.",
+          reasonDetail,
+          pendingDecision.current.key,
         );
+        pendingDecision.current = null;
         setMessage(
           result.approval_required
             ? "Decision proposed and awaiting an independent reviewer."

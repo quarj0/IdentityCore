@@ -1,6 +1,6 @@
 "use client";
 
-import { SubmitEvent, useEffect, useState } from "react";
+import { SubmitEvent, useEffect, useRef, useState } from "react";
 import { Copy, Loader2, Send, Webhook } from "lucide-react";
 import {
   Button,
@@ -19,6 +19,10 @@ import {
   supportedWebhookEvents,
   WebhookEndpoint,
 } from "@/lib/dashboard-api";
+import {
+  idempotentSubmission,
+  PendingIdempotentSubmission,
+} from "@/lib/idempotent-submission";
 
 function messageOf(error: unknown) {
   return error instanceof Error
@@ -34,6 +38,7 @@ export function LiveWebhooksPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [pendingApproval, setPendingApproval] = useState(false);
+  const pendingCreate = useRef<PendingIdempotentSubmission | null>(null);
 
   async function load() {
     setError("");
@@ -72,11 +77,20 @@ export function LiveWebhooksPage() {
     setMessage("");
     setError("");
     try {
-      const result = await dashboardApi.createWebhook({
+      const input = {
         url: String(data.get("url") || "").trim(),
         description: String(data.get("description") || "").trim(),
         events: data.getAll("events").map(String),
-      });
+      };
+      pendingCreate.current = idempotentSubmission(
+        input,
+        pendingCreate.current,
+      );
+      const result = await dashboardApi.createWebhook(
+        input,
+        pendingCreate.current.key,
+      );
+      pendingCreate.current = null;
       setSecret(result.secret);
       setMessage(
         "Webhook endpoint created. Save the signing secret now; it will not be shown again.",

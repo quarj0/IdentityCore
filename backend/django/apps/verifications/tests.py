@@ -13,7 +13,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
-from apps.api_clients.models import APIClient
+from apps.api_clients.models import APIClient, APIIdempotencyRecord
 from apps.audit.models import AuditEvent
 from apps.biometrics.models import (
     FaceMatch,
@@ -267,7 +267,7 @@ class VerificationWorkflowTests(APITestCase):
 
         self.assertEqual(first.status_code, status.HTTP_201_CREATED)
         self.assertEqual(second.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(first.data["data"]["id"], second.data["data"]["id"])
+        self.assertEqual(first.data["data"], second.data["data"])
         self.assertEqual(Verification.objects.count(), 1)
 
     def test_idempotency_key_rejects_a_different_payload(self):
@@ -287,6 +287,94 @@ class VerificationWorkflowTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
         self.assertEqual(Verification.objects.count(), 1)
+
+    def test_expired_verification_idempotency_key_creates_a_new_result(self):
+        payload = {
+            "purpose": "Customer onboarding verification",
+            "policy_id": self.policy.public_id,
+            "verification_subject": {"full_name": "Kwame Mensah"},
+        }
+        headers = self.auth_headers(idempotency_key="expired-verification")
+        first = self.client.post(
+            reverse("verification-list-create"), payload, format="json", **headers
+        )
+        APIIdempotencyRecord.objects.filter(
+            api_client=self.api_client, key="expired-verification"
+        ).update(expires_at=timezone.now() - timedelta(seconds=1))
+        after_expiry = self.client.post(
+            reverse("verification-list-create"), payload, format="json", **headers
+        )
+
+        self.assertEqual(after_expiry.status_code, status.HTTP_201_CREATED)
+        self.assertNotEqual(first.data["data"]["id"], after_expiry.data["data"]["id"])
+        self.assertEqual(Verification.objects.count(), 2)
+
+    def test_idempotency_keys_are_isolated_between_tenants(self):
+        other_org = Organization.objects.create(
+            name="Idempotency Beta", slug="idempotency-beta", status="active"
+        )
+        other_tenant = Tenant.objects.create(
+            organization=other_org,
+            name="Idempotency Beta Tenant",
+            slug="idempotency-beta-tenant",
+            status="active",
+        )
+        other_user = PlatformUser.objects.create_user(
+            email="idempotency-beta@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            tenant=other_tenant,
+        )
+        other_client = APIClient(
+            tenant=other_tenant,
+            created_by=other_user,
+            name="Beta Backend",
+            scopes_json=["verifications:create"],
+        )
+        other_client.set_client_secret("beta-secret")
+        other_client.save()
+        other_policy = VerificationPolicy.objects.create(
+            tenant=other_tenant,
+            name="Beta policy",
+            version=1,
+            status="active",
+            required_document_types_json=["national_id"],
+            required_liveness_level="passive",
+            face_match_threshold="0.8500",
+            manual_review_threshold="0.6500",
+            verification_expiry_minutes=1440,
+            media_retention_days=30,
+            metadata_retention_days=365,
+            created_by=other_user,
+        )
+        shared_key = "tenant-scoped-key"
+        first = self.client.post(
+            reverse("verification-list-create"),
+            {
+                "purpose": "First tenant verification",
+                "policy_id": self.policy.public_id,
+                "verification_subject": {"full_name": "First subject"},
+            },
+            format="json",
+            **self.auth_headers(idempotency_key=shared_key),
+        )
+        second = self.client.post(
+            reverse("verification-list-create"),
+            {
+                "purpose": "Second tenant verification",
+                "policy_id": other_policy.public_id,
+                "verification_subject": {"full_name": "Second subject"},
+            },
+            format="json",
+            HTTP_X_CLIENT_ID=other_client.client_id,
+            HTTP_AUTHORIZATION="Bearer beta-secret",
+            HTTP_IDEMPOTENCY_KEY=shared_key,
+        )
+
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(second.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(APIIdempotencyRecord.objects.filter(key=shared_key).count(), 2)
+        self.assertNotEqual(first.data["data"]["id"], second.data["data"]["id"])
 
     def test_dashboard_user_can_create_verification(self):
         self.authenticate_dashboard_user()
@@ -370,6 +458,7 @@ class VerificationWorkflowTests(APITestCase):
             format="json",
             HTTP_X_CLIENT_ID=other_client.client_id,
             HTTP_AUTHORIZATION="Bearer other-secret",
+            HTTP_IDEMPOTENCY_KEY="other-tenant-list-fixture",
         )
 
         list_response = self.client.get(
@@ -1102,9 +1191,35 @@ class VerificationWorkflowTests(APITestCase):
                 "reason_detail": "Document and selfie match after manual review.",
             },
             format="json",
+            HTTP_IDEMPOTENCY_KEY="record-manual-decision",
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        replay = self.client.post(
+            reverse(
+                "manual-review-decision",
+                kwargs={"verification_id": verification.public_id},
+            ),
+            {
+                "decision": "verified",
+                "reason_code": "evidence_confirmed",
+                "reason_detail": "Document and selfie match after manual review.",
+            },
+            format="json",
+            HTTP_IDEMPOTENCY_KEY="record-manual-decision",
+        )
+        conflict = self.client.post(
+            reverse(
+                "manual-review-decision",
+                kwargs={"verification_id": verification.public_id},
+            ),
+            {"decision": "rejected", "reason_code": "changed_decision"},
+            format="json",
+            HTTP_IDEMPOTENCY_KEY="record-manual-decision",
+        )
+        self.assertEqual(replay.status_code, status.HTTP_200_OK)
+        self.assertEqual(replay.data["data"], response.data["data"])
+        self.assertEqual(conflict.status_code, status.HTTP_409_CONFLICT)
         verification.refresh_from_db()
         self.assertEqual(verification.status, VerificationStatus.VERIFIED)
         decision = VerificationDecision.objects.get(verification=verification)
@@ -1159,6 +1274,7 @@ class VerificationWorkflowTests(APITestCase):
                 "reason_code": "evidence_confirmed",
             },
             format="json",
+            HTTP_IDEMPOTENCY_KEY="assigned-reviewer-conflict",
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -1208,6 +1324,7 @@ class VerificationWorkflowTests(APITestCase):
             ),
             {"decision": "rejected", "reason_code": "evidence_confirmed"},
             format="json",
+            HTTP_IDEMPOTENCY_KEY="high-risk-proposal",
         )
         self.assertEqual(proposal.status_code, status.HTTP_202_ACCEPTED)
         verification.refresh_from_db()
@@ -1283,6 +1400,7 @@ class VerificationWorkflowTests(APITestCase):
                     ),
                     {"decision": outcome, "reason_code": "reviewer_proposal"},
                     format="json",
+                    HTTP_IDEMPOTENCY_KEY=f"approval-outcome-{index}",
                 )
                 self.assertEqual(proposal.status_code, status.HTTP_202_ACCEPTED)
 
@@ -1330,6 +1448,7 @@ class VerificationWorkflowTests(APITestCase):
             ),
             {"decision": "verified", "reason_code": "maker_proposal"},
             format="json",
+            HTTP_IDEMPOTENCY_KEY="checker-created-proposal",
         )
         self.assertEqual(proposal.status_code, status.HTTP_202_ACCEPTED)
 
@@ -1375,6 +1494,7 @@ class VerificationWorkflowTests(APITestCase):
             ),
             {"decision": "rejected", "reason_code": "maker_proposal"},
             format="json",
+            HTTP_IDEMPOTENCY_KEY="checker-subject-proposal",
         )
         self.assertEqual(proposal.status_code, status.HTTP_202_ACCEPTED)
 
@@ -1421,6 +1541,7 @@ class VerificationWorkflowTests(APITestCase):
             ),
             {"decision": "verified", "reason_code": "policy_review"},
             format="json",
+            HTTP_IDEMPOTENCY_KEY="policy-review-proposal",
         )
 
         self.assertEqual(proposal.status_code, status.HTTP_202_ACCEPTED)
