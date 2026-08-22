@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from django.db import transaction
+from django.test import TransactionTestCase
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -17,7 +19,14 @@ from apps.verification_policies.models import VerificationPolicy
 from apps.verifications.models import Verification, VerificationStatus
 from apps.verification_subjects.models import VerificationSubject
 from apps.webhooks.models import WebhookDeliveryAttempt, WebhookEndpoint, WebhookEvent, WebhookEventStatus
-from apps.webhooks.services import _build_legacy_signature, _build_signature, _send_webhook_request, deliver_webhook_event, process_pending_webhook_events
+from apps.webhooks.services import (
+    _build_legacy_signature,
+    _build_signature,
+    _send_webhook_request,
+    deliver_webhook_event,
+    process_pending_webhook_events,
+    queue_webhook_events,
+)
 
 
 class WebhookEndpointTests(APITestCase):
@@ -906,3 +915,93 @@ class WebhookEndpointTests(APITestCase):
         self.assertEqual(
             sent_request.get_header("X-identitycore-signing-secret-version"), "2"
         )
+
+
+class WebhookOutboxTransactionTests(TransactionTestCase):
+    def setUp(self):
+        organization = Organization.objects.create(
+            name="Outbox Organization", slug="outbox-organization"
+        )
+        self.tenant = Tenant.objects.create(
+            organization=organization,
+            name="Outbox Tenant",
+            slug="outbox-tenant",
+            status="active",
+        )
+        self.user = PlatformUser.objects.create_user(
+            email="outbox@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            tenant=self.tenant,
+        )
+        self.endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/outbox",
+            events_json=["verification.verified"],
+            created_by=self.user,
+        )
+        self.endpoint.set_secret("outbox-secret")
+        self.endpoint.save()
+
+    def queue_event(self):
+        return queue_webhook_events(
+            tenant=self.tenant,
+            event_type="verification.verified",
+            payload={"status": "verified"},
+        )
+
+    def test_queue_requires_an_active_domain_transaction(self):
+        with self.assertRaisesMessage(
+            RuntimeError,
+            "Webhook outbox events must be queued inside the domain transaction.",
+        ):
+            self.queue_event()
+        self.assertFalse(WebhookEvent.objects.exists())
+
+    def test_rolled_back_domain_change_never_leaves_an_outbox_event(self):
+        with self.assertRaises(RuntimeError):
+            with transaction.atomic():
+                self.endpoint.description = "must roll back"
+                self.endpoint.save(update_fields=["description", "updated_at"])
+                self.queue_event()
+                raise RuntimeError("force rollback")
+
+        self.endpoint.refresh_from_db()
+        self.assertEqual(self.endpoint.description, "")
+        self.assertFalse(WebhookEvent.objects.exists())
+
+    @patch("apps.webhooks.services._send_webhook_request")
+    def test_committed_outbox_event_is_eventually_delivered(self, send_request):
+        send_request.return_value = (200, "ok", 5)
+        with transaction.atomic():
+            self.endpoint.description = "committed"
+            self.endpoint.save(update_fields=["description", "updated_at"])
+            queued = self.queue_event()
+
+        self.assertEqual(len(queued), 1)
+        self.assertEqual(process_pending_webhook_events(limit=10), 1)
+        event = WebhookEvent.objects.get(pk=queued[0].pk)
+        self.assertEqual(event.status, WebhookEventStatus.DELIVERED)
+        self.assertEqual(event.payload_json["id"], event.public_id)
+
+    @patch("apps.webhooks.services._send_webhook_request")
+    def test_duplicate_delivery_uses_one_stable_event_id(self, send_request):
+        send_request.side_effect = [(500, "retry", 5), (200, "ok", 5)]
+        with transaction.atomic():
+            event = self.queue_event()[0]
+
+        deliver_webhook_event(event)
+        first_event_id = send_request.call_args_list[0].kwargs[
+            "webhook_event"
+        ].public_id
+        deliver_webhook_event(event)
+        second_event_id = send_request.call_args_list[1].kwargs[
+            "webhook_event"
+        ].public_id
+
+        event.refresh_from_db()
+        self.assertEqual(first_event_id, event.public_id)
+        self.assertEqual(second_event_id, event.public_id)
+        self.assertEqual(event.payload_json["id"], event.public_id)
+        self.assertEqual(event.attempt_count, 2)
+        self.assertEqual(event.status, WebhookEventStatus.DELIVERED)

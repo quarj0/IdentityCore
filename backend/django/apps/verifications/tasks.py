@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from celery import shared_task
+from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -85,6 +86,48 @@ def _has_active_retention_hold(verification: Verification, now) -> bool:
     )
 
 
+@transaction.atomic
+def _expire_pending_verification(verification_id: int, now) -> bool:
+    verification = (
+        Verification.objects.select_for_update()
+        .select_related("tenant", "verification_subject")
+        .get(pk=verification_id)
+    )
+    verification, changed = transition_verification(
+        verification,
+        VerificationStatus.EXPIRED,
+        completed_at=now,
+    )
+    if not changed:
+        return False
+    verification.sessions.filter(status__in=EXPIRABLE_SESSION_STATUSES).update(
+        status=VerificationSessionStatus.EXPIRED,
+        updated_at=now,
+    )
+    record_audit_event(
+        tenant=verification.tenant,
+        actor=verification.verification_subject,
+        action="verification.expired",
+        target_type="verification",
+        target_id=verification.public_id,
+    )
+    queue_webhook_events(
+        tenant=verification.tenant,
+        event_type="verification.expired",
+        payload={
+            "verification_id": verification.public_id,
+            "external_reference": verification.external_reference,
+            "status": verification.status,
+        },
+    )
+    queue_verification_status_notifications(
+        verification=verification,
+        decision=VerificationStatus.EXPIRED,
+    )
+    ensure_verification_evidence_report(verification)
+    return True
+
+
 @shared_task(queue="retention")
 def expire_pending_verifications_task(limit: int = 100) -> int:
     require_service_access(
@@ -98,39 +141,8 @@ def expire_pending_verifications_task(limit: int = 100) -> int:
         .order_by("expires_at")[:limit]
     )
     for verification in verifications:
-        verification, changed = transition_verification(
-            verification,
-            VerificationStatus.EXPIRED,
-            completed_at=now,
-        )
-        if not changed:
-            continue
-        verification.sessions.filter(status__in=EXPIRABLE_SESSION_STATUSES).update(
-            status=VerificationSessionStatus.EXPIRED,
-            updated_at=now,
-        )
-        record_audit_event(
-            tenant=verification.tenant,
-            actor=verification.verification_subject,
-            action="verification.expired",
-            target_type="verification",
-            target_id=verification.public_id,
-        )
-        queue_webhook_events(
-            tenant=verification.tenant,
-            event_type="verification.expired",
-            payload={
-                "verification_id": verification.public_id,
-                "external_reference": verification.external_reference,
-                "status": verification.status,
-            },
-        )
-        queue_verification_status_notifications(
-            verification=verification,
-            decision=VerificationStatus.EXPIRED,
-        )
-        ensure_verification_evidence_report(verification)
-        expired += 1
+        if _expire_pending_verification(verification.pk, now):
+            expired += 1
     return expired
 
 

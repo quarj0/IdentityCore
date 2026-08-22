@@ -2,6 +2,7 @@ import logging
 from decimal import Decimal
 
 from celery import shared_task
+from django.db import transaction
 from django.utils import timezone
 
 from apps.audit.services import record_audit_event
@@ -47,6 +48,139 @@ logger = logging.getLogger(__name__)
 BIOMETRICS_WORKER = ServicePrincipal(
     name="biometrics-worker", allowed_actions=frozenset({"biometrics.process"})
 )
+
+
+@transaction.atomic
+def _finalize_biometric_decision(*, verification, processing_job) -> str:
+    risk_assessment, decision_record = run_verification_risk_and_decision(
+        verification
+    )
+    if verification.metadata_json.get("workflow") == "administrator_onboarding":
+        organization = verification.organization
+        settings_json = dict(organization.settings_json or {})
+        onboarding = dict(settings_json.get("onboarding") or {})
+        admin_identity = dict(
+            onboarding.get("administrator_identity_verification") or {}
+        )
+        admin_identity.update(
+            {
+                "verification_id": verification.public_id,
+                "status": decision_record.decision,
+                "completed_at": timezone.now().isoformat(),
+            }
+        )
+        onboarding["administrator_identity_verification"] = admin_identity
+        settings_json["onboarding"] = onboarding
+        organization.settings_json = settings_json
+        organization.save(update_fields=["settings_json", "updated_at"])
+    record_audit_event(
+        tenant=verification.tenant,
+        actor=verification.verification_subject,
+        action=f"verification.{decision_record.decision}",
+        target_type="verification",
+        target_id=verification.public_id,
+        metadata={
+            "decision_id": decision_record.public_id,
+            "decision_type": decision_record.decision_type,
+            "risk_assessment_id": risk_assessment.public_id,
+        },
+        sensitive_metadata={"reason_detail": decision_record.reason_detail},
+    )
+    queue_webhook_events(
+        tenant=verification.tenant,
+        event_type=f"verification.{decision_record.decision}",
+        payload={
+            "verification_id": verification.public_id,
+            "external_reference": verification.external_reference,
+            "status": verification.status,
+        },
+    )
+    queue_verification_status_notifications(
+        verification=verification,
+        decision=decision_record.decision,
+        risk_level=risk_assessment.risk_level,
+    )
+    try:
+        with transaction.atomic():
+            ensure_verification_evidence_report(verification)
+    except Exception:
+        logger.exception(
+            "Verification evidence report generation failed for %s.",
+            verification.public_id,
+        )
+    complete_processing_job(processing_job)
+    return verification.status
+
+
+@transaction.atomic
+def _finalize_unavailable_biometrics(
+    *, verification, liveness_check, face_match, processing_job, error
+) -> str:
+    now = timezone.now()
+    decision_record, _ = VerificationDecision.objects.update_or_create(
+        verification=verification,
+        defaults={
+            "tenant": verification.tenant,
+            "decision": VerificationStatus.MANUAL_REVIEW_REQUIRED,
+            "decision_type": VerificationDecisionType.SYSTEM,
+            "reason_code": "biometric_provider_unavailable",
+            "reason_detail": (
+                "Biometric processing was unavailable. The submitted evidence "
+                "requires human review."
+            ),
+            "evidence_summary_json": {
+                "provider_error": str(error),
+                "liveness_status": liveness_check.status,
+                "face_match_status": (
+                    face_match.status if face_match is not None else "missing"
+                ),
+            },
+            "decided_by": None,
+            "decided_at": now,
+        },
+    )
+    transition_verification(
+        verification,
+        VerificationStatus.MANUAL_REVIEW_REQUIRED,
+        clear_completed_at=True,
+    )
+    try:
+        with transaction.atomic():
+            ensure_verification_evidence_report(verification)
+    except Exception:
+        logger.exception(
+            "Verification evidence report generation failed for %s.",
+            verification.public_id,
+        )
+    record_audit_event(
+        tenant=verification.tenant,
+        actor=verification.verification_subject,
+        action="verification.manual_review_required",
+        target_type="verification",
+        target_id=verification.public_id,
+        metadata={
+            "decision_id": decision_record.public_id,
+            "reason_code": "biometric_provider_unavailable",
+        },
+        sensitive_metadata={"error": str(error)},
+    )
+    queue_webhook_events(
+        tenant=verification.tenant,
+        event_type="verification.manual_review_required",
+        payload={
+            "verification_id": verification.public_id,
+            "external_reference": verification.external_reference,
+            "status": verification.status,
+            "reason_code": "biometric_provider_unavailable",
+        },
+    )
+    queue_verification_status_notifications(
+        verification=verification,
+        decision=verification.status,
+        risk_level="high",
+    )
+    complete_processing_job(processing_job)
+    return verification.status
 
 
 @shared_task(queue="ai_processing")
@@ -332,63 +466,10 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                 metadata={"face_match_id": face_match.public_id},
             )
 
-        risk_assessment, decision_record = run_verification_risk_and_decision(
-            verification
-        )
-        if verification.metadata_json.get("workflow") == "administrator_onboarding":
-            organization = verification.organization
-            settings_json = dict(organization.settings_json or {})
-            onboarding = dict(settings_json.get("onboarding") or {})
-            admin_identity = dict(
-                onboarding.get("administrator_identity_verification") or {}
-            )
-            admin_identity.update(
-                {
-                    "verification_id": verification.public_id,
-                    "status": decision_record.decision,
-                    "completed_at": timezone.now().isoformat(),
-                }
-            )
-            onboarding["administrator_identity_verification"] = admin_identity
-            settings_json["onboarding"] = onboarding
-            organization.settings_json = settings_json
-            organization.save(update_fields=["settings_json", "updated_at"])
-        record_audit_event(
-            tenant=verification.tenant,
-            actor=verification.verification_subject,
-            action=f"verification.{decision_record.decision}",
-            target_type="verification",
-            target_id=verification.public_id,
-            metadata={
-                "decision_id": decision_record.public_id,
-                "decision_type": decision_record.decision_type,
-                "risk_assessment_id": risk_assessment.public_id,
-            },
-            sensitive_metadata={"reason_detail": decision_record.reason_detail},
-        )
-        queue_webhook_events(
-            tenant=verification.tenant,
-            event_type=f"verification.{decision_record.decision}",
-            payload={
-                "verification_id": verification.public_id,
-                "external_reference": verification.external_reference,
-                "status": verification.status,
-            },
-        )
-        queue_verification_status_notifications(
+        return _finalize_biometric_decision(
             verification=verification,
-            decision=decision_record.decision,
-            risk_level=risk_assessment.risk_level,
+            processing_job=processing_job,
         )
-        try:
-            ensure_verification_evidence_report(verification)
-        except Exception:
-            logger.exception(
-                "Verification evidence report generation failed for %s.",
-                verification.public_id,
-            )
-        complete_processing_job(processing_job)
-        return verification.status
     except ProviderRouteExhausted:
         now = timezone.now()
         if processing_stage == "liveness":
@@ -457,66 +538,10 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             face_match.matched_at = now
             face_match.save(update_fields=["status", "matched_at", "updated_at"])
 
-        decision_record, _ = VerificationDecision.objects.update_or_create(
+        return _finalize_unavailable_biometrics(
             verification=verification,
-            defaults={
-                "tenant": verification.tenant,
-                "decision": VerificationStatus.MANUAL_REVIEW_REQUIRED,
-                "decision_type": VerificationDecisionType.SYSTEM,
-                "reason_code": "biometric_provider_unavailable",
-                "reason_detail": (
-                    "Biometric processing was unavailable. The submitted evidence "
-                    "requires human review."
-                ),
-                "evidence_summary_json": {
-                    "provider_error": str(exc),
-                    "liveness_status": liveness_check.status,
-                    "face_match_status": (
-                        face_match.status if face_match is not None else "missing"
-                    ),
-                },
-                "decided_by": None,
-                "decided_at": now,
-            },
+            liveness_check=liveness_check,
+            face_match=face_match,
+            processing_job=processing_job,
+            error=exc,
         )
-        transition_verification(
-            verification,
-            VerificationStatus.MANUAL_REVIEW_REQUIRED,
-            clear_completed_at=True,
-        )
-        try:
-            ensure_verification_evidence_report(verification)
-        except Exception:
-            logger.exception(
-                "Verification evidence report generation failed for %s.",
-                verification.public_id,
-            )
-        record_audit_event(
-            tenant=verification.tenant,
-            actor=verification.verification_subject,
-            action="verification.manual_review_required",
-            target_type="verification",
-            target_id=verification.public_id,
-            metadata={
-                "decision_id": decision_record.public_id,
-                "reason_code": "biometric_provider_unavailable",
-            },
-            sensitive_metadata={"error": str(exc)},
-        )
-        queue_webhook_events(
-            tenant=verification.tenant,
-            event_type="verification.manual_review_required",
-            payload={
-                "verification_id": verification.public_id,
-                "external_reference": verification.external_reference,
-                "status": verification.status,
-                "reason_code": "biometric_provider_unavailable",
-            },
-        )
-        queue_verification_status_notifications(
-            verification=verification,
-            decision=verification.status,
-            risk_level="high",
-        )
-        complete_processing_job(processing_job)
-        return verification.status

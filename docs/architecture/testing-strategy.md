@@ -364,6 +364,8 @@ Current implemented webhook coverage includes:
 - Test webhook queueing
 - Verification-created webhook queueing
 - Manual decision webhook queueing
+- Transactional webhook outbox commit and rollback behavior
+- Stable webhook event IDs across duplicate delivery attempts
 - Signature generation
 - Delivery success handling
 - Delivery failure retry scheduling

@@ -300,6 +300,7 @@ class VerificationResultView(VerificationAccessMixin, APIView):
 class VerificationCancelView(VerificationAccessMixin, APIView):
     required_scopes = ("verifications:create",)
 
+    @transaction.atomic
     def post(self, request, verification_id: str):
         verification = get_object_or_404(
             self._scope_to_client_environment(request, Verification.objects.all()),

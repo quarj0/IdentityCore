@@ -5,6 +5,7 @@ import strawberry
 from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.text import slugify
@@ -1333,6 +1334,7 @@ class Mutation:
         )
 
     @strawberry.mutation
+    @transaction.atomic
     def record_manual_decision(
         self,
         info: Info,

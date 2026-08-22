@@ -204,6 +204,7 @@ class VerificationMobileHandoffRedeemView(APIView):
 class VerificationSessionConsentView(VerificationSessionBaseView):
     required_session_action = "consent:accept"
 
+    @transaction.atomic
     def post(self, request, session_id: str):
         self._touch_session(request)
         serializer = VerificationSessionConsentSerializer(
@@ -284,6 +285,7 @@ class VerificationSessionDocumentView(VerificationSessionBaseView):
 class VerificationSessionSelfieView(VerificationSessionBaseView):
     required_session_action = "selfie:capture"
 
+    @transaction.atomic
     def post(self, request, session_id: str):
         self._touch_session(request)
         serializer = VerificationSessionSelfieSerializer(

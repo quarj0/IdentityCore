@@ -6,6 +6,7 @@ from hashlib import sha256
 from urllib import error, request
 
 from django.conf import settings
+from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -21,6 +22,10 @@ from apps.webhooks.models import (
 def queue_webhook_events(
     *, tenant, event_type: str, payload: dict
 ) -> list[WebhookEvent]:
+    if not transaction.get_connection().in_atomic_block:
+        raise RuntimeError(
+            "Webhook outbox events must be queued inside the domain transaction."
+        )
     queued = []
     endpoints = tenant.webhook_endpoints.filter(status="active")
     verification_id = payload.get("verification_id")
