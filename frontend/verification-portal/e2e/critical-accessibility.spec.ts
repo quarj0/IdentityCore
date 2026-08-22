@@ -9,26 +9,39 @@ const image = Buffer.from(
   "base64",
 );
 
-async function json(route: Route, body: unknown, status = 200) {
+async function json(route: Route, data: unknown, status = 200) {
   await route.fulfill({
     status,
     contentType: "application/json",
-    body: JSON.stringify(body),
+    body: JSON.stringify({ success: true, data }),
   });
 }
 
 async function assertNoSeriousViolations(page: Page) {
-  if (!(await page.evaluate(() => Boolean((window as unknown as { axe?: unknown }).axe)))) {
+  if (
+    !(await page.evaluate(() =>
+      Boolean((window as unknown as { axe?: unknown }).axe),
+    ))
+  ) {
     await page.addScriptTag({ path: require.resolve("axe-core/axe.min.js") });
   }
   const violations = await page.evaluate(async () => {
-    const axe = (window as unknown as {
-      axe: {
-        run: (context?: unknown, options?: unknown) => Promise<{
-          violations: Array<{ id: string; impact: string | null; nodes: unknown[] }>;
-        }>;
-      };
-    }).axe;
+    const axe = (
+      window as unknown as {
+        axe: {
+          run: (
+            context?: unknown,
+            options?: unknown,
+          ) => Promise<{
+            violations: Array<{
+              id: string;
+              impact: string | null;
+              nodes: unknown[];
+            }>;
+          }>;
+        };
+      }
+    ).axe;
     const result = await axe.run(document, {
       runOnly: {
         type: "tag",
@@ -43,7 +56,10 @@ async function assertNoSeriousViolations(page: Page) {
   expect(violations).toEqual([]);
 }
 
-async function pressFocused(page: Page, locator: ReturnType<Page["getByRole"]>) {
+async function pressFocused(
+  page: Page,
+  locator: ReturnType<Page["getByRole"]>,
+) {
   await locator.focus();
   await expect(locator).toBeFocused();
   await page.keyboard.press("Enter");
@@ -78,7 +94,9 @@ test("critical verification journey is WCAG-clean and keyboard operable", async 
         this.onstop?.();
       }
     }
-    Object.defineProperty(window, "MediaRecorder", { value: MockMediaRecorder });
+    Object.defineProperty(window, "MediaRecorder", {
+      value: MockMediaRecorder,
+    });
     Object.defineProperty(navigator, "mediaDevices", {
       value: { getUserMedia: async () => new MediaStream() },
     });
@@ -92,7 +110,10 @@ test("critical verification journey is WCAG-clean and keyboard operable", async 
     if (path === "/api/verification/session" && method === "POST") {
       return json(route, { success: true });
     }
-    if (path === `/api/verification/sessions/${sessionId}` && method === "GET") {
+    if (
+      path === `/api/verification/sessions/${sessionId}` &&
+      method === "GET"
+    ) {
       return json(route, {
         session_id: sessionId,
         verification_id: verificationId,
@@ -211,7 +232,9 @@ test("critical verification journey is WCAG-clean and keyboard operable", async 
   });
 
   await page.goto(`/verify/${sessionId}#token=a11y-secret`);
-  const handoff = page.getByRole("button", { name: "Continue on this computer" });
+  const handoff = page.getByRole("button", {
+    name: "Continue on this computer",
+  });
   await expect(handoff).toBeVisible();
   await assertNoSeriousViolations(page);
   await pressFocused(page, handoff);
@@ -224,7 +247,10 @@ test("critical verification journey is WCAG-clean and keyboard operable", async 
   await consent.focus();
   await page.keyboard.press("Space");
   await expect(consent).toBeChecked();
-  await pressFocused(page, page.getByRole("button", { name: "Accept and continue" }));
+  await pressFocused(
+    page,
+    page.getByRole("button", { name: "Accept and continue" }),
+  );
 
   await expect(
     page.getByRole("heading", { name: "Capture your National ID" }),
@@ -235,15 +261,23 @@ test("critical verification journey is WCAG-clean and keyboard operable", async 
     mimeType: "image/png",
     buffer: image,
   });
-  await pressFocused(page, page.getByRole("button", { name: "Back Not captured" }));
+  await pressFocused(
+    page,
+    page.getByRole("button", { name: "Back Not captured" }),
+  );
   await page.getByLabel("Upload image").setInputFiles({
     name: "back.png",
     mimeType: "image/png",
     buffer: image,
   });
-  await pressFocused(page, page.getByRole("button", { name: "Submit document" }));
+  await pressFocused(
+    page,
+    page.getByRole("button", { name: "Submit document" }),
+  );
 
-  await expect(page.getByRole("heading", { name: "Take a live selfie" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Take a live selfie" }),
+  ).toBeVisible();
   await assertNoSeriousViolations(page);
   await page.getByLabel("Upload image").setInputFiles({
     name: "selfie.png",

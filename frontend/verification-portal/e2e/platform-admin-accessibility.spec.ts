@@ -40,13 +40,22 @@ const reviewItem = {
 async function assertNoSeriousViolations(page: Page) {
   await page.addScriptTag({ path: require.resolve("axe-core/axe.min.js") });
   const violations = await page.evaluate(async () => {
-    const axe = (window as unknown as {
-      axe: {
-        run: (context?: unknown, options?: unknown) => Promise<{
-          violations: Array<{ id: string; impact: string | null; nodes: unknown[] }>;
-        }>;
-      };
-    }).axe;
+    const axe = (
+      window as unknown as {
+        axe: {
+          run: (
+            context?: unknown,
+            options?: unknown,
+          ) => Promise<{
+            violations: Array<{
+              id: string;
+              impact: string | null;
+              nodes: unknown[];
+            }>;
+          }>;
+        };
+      }
+    ).axe;
     const result = await axe.run(document, {
       runOnly: {
         type: "tag",
@@ -88,7 +97,9 @@ async function mockAdminBackend(page: Page) {
         return route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ data: { organizationReviewQueue: [reviewItem] } }),
+          body: JSON.stringify({
+            data: { organizationReviewQueue: [reviewItem] },
+          }),
         });
       }
       return route.fulfill({
@@ -102,12 +113,16 @@ async function mockAdminBackend(page: Page) {
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        user: {
-          email: "reviewer@example.test",
-          first_name: "Review",
-          last_name: "Admin",
-          is_platform_admin: true,
+        success: true,
+        data: {
+          user: {
+            email: "reviewer@example.test",
+            first_name: "Review",
+            last_name: "Admin",
+            is_platform_admin: true,
+          },
         },
+        request_id: "req_accessibility",
       }),
     });
   });
@@ -123,7 +138,9 @@ test("review queue and decision flow are WCAG-clean and keyboard operable", asyn
   ).toBeVisible();
   await assertNoSeriousViolations(page);
 
-  const reviewLink = page.getByRole("link", { name: /accessible organization/i }).first();
+  const reviewLink = page
+    .getByRole("link", { name: /accessible organization/i })
+    .first();
   await reviewLink.focus();
   await expect(reviewLink).toBeFocused();
   await page.keyboard.press("Enter");
