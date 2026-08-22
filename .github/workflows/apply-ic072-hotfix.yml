@@ -22,6 +22,22 @@ jobs:
           fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --project backend --group django --group dev --frozen
+      - name: Narrow patcher attempt targeting
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/apply_ic072_postmerge_hotfix.py')
+          text = path.read_text()
+          text = text.replace(
+              '    "                    started_at=now,\\n                )",\n    "                    started_at=now,\\n                    processing_job=processing_job,\\n                )",',
+              '    "                    timeout_seconds=timeout_seconds,\\n                    started_at=now,\\n                )",\n    "                    timeout_seconds=timeout_seconds,\\n                    started_at=now,\\n                    processing_job=processing_job,\\n                )",',
+          )
+          text = text.replace(
+              '    "                    started_at=started_at,\\n                )",\n    "                    started_at=started_at,\\n                    processing_job=processing_job,\\n                )",',
+              '    "                    timeout_seconds=timeout_seconds,\\n                    started_at=started_at,\\n                )",\n    "                    timeout_seconds=timeout_seconds,\\n                    started_at=started_at,\\n                    processing_job=processing_job,\\n                )",',
+          )
+          path.write_text(text)
+          PY
       - name: Apply deterministic ownership patch
         run: python scripts/apply_ic072_postmerge_hotfix.py
       - name: Format changed Python
