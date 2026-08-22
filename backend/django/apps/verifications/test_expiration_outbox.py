@@ -36,7 +36,9 @@ class VerificationExpirationOutboxTests(TestCase):
             expires_at=timezone.now() - timedelta(minutes=1),
         )
 
-    @patch("apps.verifications.tasks.ensure_verification_evidence_report")
+    @patch(
+        "apps.verifications.evidence_commit.ensure_verification_evidence_report"
+    )
     @patch("apps.verifications.tasks.queue_webhook_events")
     def test_outbox_failure_rolls_back_without_evidence_write(
         self,
@@ -58,7 +60,9 @@ class VerificationExpirationOutboxTests(TestCase):
         self.assertEqual(callbacks, [])
         mock_evidence_report.assert_not_called()
 
-    @patch("apps.verifications.tasks.ensure_verification_evidence_report")
+    @patch(
+        "apps.verifications.evidence_commit.ensure_verification_evidence_report"
+    )
     @patch("apps.verifications.tasks.queue_webhook_events")
     def test_evidence_is_generated_from_committed_expired_verification(
         self,
