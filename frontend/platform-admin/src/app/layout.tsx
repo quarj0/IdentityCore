@@ -4,6 +4,8 @@ import { PlatformAdminShell } from "@/components/layout/platform-admin-shell";
 import { PlatformAdminAuthGate } from "@/components/auth/platform-admin-auth-gate";
 import "@/app/globals.css";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Platform Admin | IdentityCore",
   description: "Internal platform administration console for IdentityCore.",
