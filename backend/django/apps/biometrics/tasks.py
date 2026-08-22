@@ -543,80 +543,84 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
     except ProcessingJobOwnershipLost:
         raise
     except ProviderRouteExhausted:
-        now = timezone.now()
-        if processing_stage == "liveness":
-            liveness_check.status = LivenessCheckStatus.ERROR
-            liveness_check.failure_reason = "provider_route_exhausted"
-            liveness_check.checked_at = now
-            liveness_check.save(
-                update_fields=[
-                    "status",
-                    "failure_reason",
-                    "checked_at",
-                    "updated_at",
-                ]
-            )
-        elif face_match is not None:
-            face_match.status = FaceMatchStatus.ERROR
-            face_match.matched_at = now
-            face_match.save(update_fields=["status", "matched_at", "updated_at"])
-        complete_processing_job(processing_job)
-        verification.refresh_from_db(fields=["status"])
-        return verification.status
+        with transaction.atomic():
+            lock_processing_job_for_finalization(processing_job)
+            now = timezone.now()
+            if processing_stage == "liveness":
+                liveness_check.status = LivenessCheckStatus.ERROR
+                liveness_check.failure_reason = "provider_route_exhausted"
+                liveness_check.checked_at = now
+                liveness_check.save(
+                    update_fields=[
+                        "status",
+                        "failure_reason",
+                        "checked_at",
+                        "updated_at",
+                    ]
+                )
+            elif face_match is not None:
+                face_match.status = FaceMatchStatus.ERROR
+                face_match.matched_at = now
+                face_match.save(update_fields=["status", "matched_at", "updated_at"])
+            complete_processing_job(processing_job)
+            verification.refresh_from_db(fields=["status"])
+            return verification.status
     except Exception as exc:
-        now = timezone.now()
-        if processing_stage == "liveness" and liveness_provider_check is not None:
-            liveness_provider_check.status = ProviderCheckStatus.FAILED
-            liveness_provider_check.error_code = "provider_unavailable"
-            liveness_provider_check.error_message = str(exc)
-            liveness_provider_check.completed_at = now
-            liveness_provider_check.save(
-                update_fields=[
-                    "status",
-                    "error_code",
-                    "error_message",
-                    "completed_at",
-                    "updated_at",
-                ]
-            )
-        if processing_stage == "face_match" and face_provider_check is not None:
-            face_provider_check.status = ProviderCheckStatus.FAILED
-            face_provider_check.error_code = "provider_unavailable"
-            face_provider_check.error_message = str(exc)
-            face_provider_check.completed_at = now
-            face_provider_check.save(
-                update_fields=[
-                    "status",
-                    "error_code",
-                    "error_message",
-                    "completed_at",
-                    "updated_at",
-                ]
-            )
-        if processing_stage == "liveness":
-            liveness_check.status = LivenessCheckStatus.ERROR
-            liveness_check.failure_reason = "provider_unavailable"
-            liveness_check.checked_at = now
-            liveness_check.save(
-                update_fields=[
-                    "status",
-                    "failure_reason",
-                    "checked_at",
-                    "updated_at",
-                ]
-            )
-        elif face_match is not None:
-            face_match.status = FaceMatchStatus.ERROR
-            face_match.matched_at = now
-            face_match.save(update_fields=["status", "matched_at", "updated_at"])
+        with transaction.atomic():
+            lock_processing_job_for_finalization(processing_job)
+            now = timezone.now()
+            if processing_stage == "liveness" and liveness_provider_check is not None:
+                liveness_provider_check.status = ProviderCheckStatus.FAILED
+                liveness_provider_check.error_code = "provider_unavailable"
+                liveness_provider_check.error_message = str(exc)
+                liveness_provider_check.completed_at = now
+                liveness_provider_check.save(
+                    update_fields=[
+                        "status",
+                        "error_code",
+                        "error_message",
+                        "completed_at",
+                        "updated_at",
+                    ]
+                )
+            if processing_stage == "face_match" and face_provider_check is not None:
+                face_provider_check.status = ProviderCheckStatus.FAILED
+                face_provider_check.error_code = "provider_unavailable"
+                face_provider_check.error_message = str(exc)
+                face_provider_check.completed_at = now
+                face_provider_check.save(
+                    update_fields=[
+                        "status",
+                        "error_code",
+                        "error_message",
+                        "completed_at",
+                        "updated_at",
+                    ]
+                )
+            if processing_stage == "liveness":
+                liveness_check.status = LivenessCheckStatus.ERROR
+                liveness_check.failure_reason = "provider_unavailable"
+                liveness_check.checked_at = now
+                liveness_check.save(
+                    update_fields=[
+                        "status",
+                        "failure_reason",
+                        "checked_at",
+                        "updated_at",
+                    ]
+                )
+            elif face_match is not None:
+                face_match.status = FaceMatchStatus.ERROR
+                face_match.matched_at = now
+                face_match.save(update_fields=["status", "matched_at", "updated_at"])
 
-        return _finalize_unavailable_biometrics(
-            verification=verification,
-            liveness_check=liveness_check,
-            face_match=face_match,
-            processing_job=processing_job,
-            error=exc,
-        )
+            return _finalize_unavailable_biometrics(
+                verification=verification,
+                liveness_check=liveness_check,
+                face_match=face_match,
+                processing_job=processing_job,
+                error=exc,
+            )
 
     promote_upload_to_media_by_storage_key(selfie_capture.storage_key)
     return _finalize_biometric_decision(

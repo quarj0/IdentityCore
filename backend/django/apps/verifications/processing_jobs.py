@@ -120,13 +120,20 @@ def dispatch_processing_job(job_public_id: str) -> bool:
     return True
 
 
-def _provider_check_is_reusable(check) -> bool:
+def _provider_check_is_reusable(
+    check, *, check_type: str, metadata_key: str, resource_id: str
+) -> bool:
     from apps.providers.models import ProviderCheckStatus
 
+    normalized = (check.normalized_result_json or {}) if check else {}
+    metadata = (check.request_metadata_json or {}) if check else {}
     return bool(
         check
         and check.status == ProviderCheckStatus.COMPLETED
-        and check.normalized_result_json
+        and normalized
+        and check.check_type == check_type
+        and normalized.get("capability") == check_type
+        and metadata.get(metadata_key) == resource_id
     )
 
 
@@ -146,8 +153,12 @@ def _repair_biometric_provider_check_links(resource) -> bool:
             (
                 check
                 for check in candidates
-                if check.normalized_result_json
-                and (check.request_metadata_json or {}).get(metadata_key) == resource_id
+                if _provider_check_is_reusable(
+                    check,
+                    check_type=check_type,
+                    metadata_key=metadata_key,
+                    resource_id=resource_id,
+                )
             ),
             None,
         )
@@ -155,7 +166,12 @@ def _repair_biometric_provider_check_links(resource) -> bool:
     current = verification.provider_checks.filter(
         public_id=resource.provider_check_id
     ).first()
-    liveness_reusable = _provider_check_is_reusable(current)
+    liveness_reusable = _provider_check_is_reusable(
+        current,
+        check_type=ProviderCheckType.LIVENESS,
+        metadata_key="liveness_check_id",
+        resource_id=resource.public_id,
+    )
     if resource.status == LivenessCheckStatus.INCONCLUSIVE and not liveness_reusable:
         recovered = latest_completed(
             ProviderCheckType.LIVENESS,
@@ -178,7 +194,12 @@ def _repair_biometric_provider_check_links(resource) -> bool:
     current = verification.provider_checks.filter(
         public_id=face_match.provider_check_id
     ).first()
-    face_reusable = _provider_check_is_reusable(current)
+    face_reusable = _provider_check_is_reusable(
+        current,
+        check_type=ProviderCheckType.FACE_MATCH,
+        metadata_key="face_match_id",
+        resource_id=face_match.public_id,
+    )
     if face_match.status == FaceMatchStatus.INCONCLUSIVE and not face_reusable:
         recovered = latest_completed(
             ProviderCheckType.FACE_MATCH,
