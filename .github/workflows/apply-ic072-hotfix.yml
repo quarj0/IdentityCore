@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - fix/ic072-postmerge-ownership
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
