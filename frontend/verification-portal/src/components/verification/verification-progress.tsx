@@ -69,7 +69,7 @@ export function VerificationProgress({ currentStep }: { currentStep: string }) {
                     ? "border-info bg-info text-info-foreground"
                     : active
                       ? "border-info bg-info/10 text-info ring-4 ring-info/10"
-                      : "border-border bg-card text-muted-foreground/50"
+                      : "border-border bg-card text-muted-foreground"
                 }`}
                 aria-hidden="true"
               >
@@ -81,7 +81,7 @@ export function VerificationProgress({ currentStep }: { currentStep: string }) {
               </span>
               <div>
                 <p
-                  className={`text-sm font-medium ${active ? "text-info" : complete ? "text-foreground" : "text-muted-foreground/70"}`}
+                  className={`text-sm font-medium ${active ? "text-info" : complete ? "text-foreground" : "text-muted-foreground"}`}
                 >
                   {step.label}
                   {active ? (
@@ -91,7 +91,7 @@ export function VerificationProgress({ currentStep }: { currentStep: string }) {
                     <span className="sr-only">, completed</span>
                   ) : null}
                 </p>
-                <p className="mt-0.5 text-xs leading-5 text-muted-foreground/70">
+                <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
                   {step.description}
                 </p>
               </div>
