@@ -21,4 +21,6 @@ var result = await client.Verifications.ResultAsync(verification.GetProperty("id
 
 The SDK provides policies, verification creation/list/detail/result/cancel/resend/evidence helpers, async pagination, safe retries, structured API errors, cancellation, timeouts, and constant-time webhook verification.
 
+Use `WebhookVerifier.VerifyV1` with the raw body, signature, timestamp, event ID, and the current/temporarily previous signing secrets. Pass a durable event-ID set to reject replays; the default timestamp tolerance is five minutes. Canonical behavior is tested from `sdk/fixtures/webhook-signature-v1.json`.
+
 Run `dotnet test IdentityCore.sln` and `dotnet pack src/IdentityCore/IdentityCore.csproj -c Release`.

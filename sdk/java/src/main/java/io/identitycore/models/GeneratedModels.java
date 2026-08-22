@@ -222,7 +222,7 @@ public final class GeneratedModels {
 
     }
 
-    public record WebhookEndpointSummary(@JsonProperty("id") String id, @JsonProperty("project_id") String project_id, @JsonProperty("url") String url, @JsonProperty("description") String description, @JsonProperty("events") List<String> events, @JsonProperty("status") String status, @JsonProperty("created_at") String created_at, @JsonProperty("updated_at") String updated_at) {
+    public record WebhookEndpointSummary(@JsonProperty("id") String id, @JsonProperty("project_id") String project_id, @JsonProperty("url") String url, @JsonProperty("description") String description, @JsonProperty("events") List<String> events, @JsonProperty("status") String status, @JsonProperty("signing_secret_version") Integer signing_secret_version, @JsonProperty("previous_secret_expires_at") String previous_secret_expires_at, @JsonProperty("created_at") String created_at, @JsonProperty("updated_at") String updated_at) {
 
     }
 

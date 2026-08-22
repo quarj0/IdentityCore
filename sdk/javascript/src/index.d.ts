@@ -100,8 +100,11 @@ export function verifyWebhookSignature(
   options: {
     signature: string;
     timestamp: string | number;
-    signingKey: string;
+    eventId: string;
+    signingKey?: string;
+    signingKeys?: string[];
     toleranceSeconds?: number;
     now?: number;
+    seenEventIds?: Set<string>;
   },
 ): boolean;

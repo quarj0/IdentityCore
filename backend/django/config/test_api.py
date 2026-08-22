@@ -62,7 +62,7 @@ class CatalogEndpointTests(APITestCase):
         self.assertEqual(
             data["base_urls"]["development"], "http://localhost:8000/api/v1"
         )
-        self.assertEqual(len(data["resources"]), 64)
+        self.assertEqual(len(data["resources"]), 65)
         self.assertIn("/verifications/", [item["path"] for item in data["resources"]])
         documented_paths = {item["path"] for item in data["resources"]}
         self.assertTrue(

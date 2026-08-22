@@ -19,4 +19,6 @@ var result = client.verifications.result(verification.path("id").asText());
 
 The SDK provides policies, verification creation/list/detail/result/cancel/resend/evidence helpers, lazy pagination, safe retries, structured API errors, request IDs, timeouts, and constant-time webhook verification.
 
+Use `WebhookVerifier.verifyV1` with the raw body, signature, timestamp, event ID, and the current/temporarily previous signing secrets. Pass a durable event-ID set to reject replays; the default timestamp tolerance is five minutes. Canonical behavior is tested from `sdk/fixtures/webhook-signature-v1.json`.
+
 Run `mvn test package` from this directory.

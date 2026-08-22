@@ -1,14 +1,21 @@
 import hashlib
 import hmac
+import json
 import os
 import time
 import unittest
 import uuid
 
-from identitycore import IdentityCoreAPIError, IdentityCoreClient, verify_webhook_signature
+from identitycore import (
+    IdentityCoreAPIError,
+    IdentityCoreClient,
+    verify_webhook_signature,
+)
 
 
-@unittest.skipUnless(os.getenv("IDENTITYCORE_COMPAT_URL"), "live compatibility backend not configured")
+@unittest.skipUnless(
+    os.getenv("IDENTITYCORE_COMPAT_URL"), "live compatibility backend not configured"
+)
 class LiveCompatibilityTests(unittest.TestCase):
     def test_create_get_list_error_and_webhook(self):
         client = IdentityCoreClient(
@@ -23,12 +30,42 @@ class LiveCompatibilityTests(unittest.TestCase):
             verification_subject={"full_name": "Python Compatibility"},
             external_reference=reference,
         )
-        self.assertEqual(client.verifications.retrieve(created["id"])["id"], created["id"])
-        self.assertIn(created["id"], [item["id"] for item in client.verifications.iter(external_reference=reference)])
+        self.assertEqual(
+            client.verifications.retrieve(created["id"])["id"], created["id"]
+        )
+        self.assertIn(
+            created["id"],
+            [
+                item["id"]
+                for item in client.verifications.iter(external_reference=reference)
+            ],
+        )
         with self.assertRaises(IdentityCoreAPIError) as error:
             client.verifications.retrieve("ver_does_not_exist")
         self.assertEqual(error.exception.status, 404)
 
-        payload, timestamp, secret = b'{"type":"verification.completed"}', str(int(time.time())), "webhook-secret"
-        signature = "sha256=" + hmac.new(secret.encode(), timestamp.encode() + b"." + payload, hashlib.sha256).hexdigest()
-        self.assertTrue(verify_webhook_signature(payload, signature=signature, timestamp=timestamp, signing_key=secret))
+        event_id = "evt_live_compatibility"
+        payload = json.dumps(
+            {"id": event_id, "schema_version": "1", "type": "verification.completed"},
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode()
+        timestamp, secret = str(int(time.time())), "webhook-secret"
+        signing_key = hashlib.sha256(secret.encode()).hexdigest().encode()
+        signature = (
+            "v1="
+            + hmac.new(
+                signing_key,
+                timestamp.encode() + b"." + event_id.encode() + b"." + payload,
+                hashlib.sha256,
+            ).hexdigest()
+        )
+        self.assertTrue(
+            verify_webhook_signature(
+                payload,
+                signature=signature,
+                timestamp=timestamp,
+                event_id=event_id,
+                signing_key=secret,
+            )
+        )

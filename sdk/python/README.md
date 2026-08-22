@@ -80,10 +80,12 @@ valid = verify_webhook_signature(
     raw_request_body,
     signature=request.headers["X-IdentityCore-Signature"],
     timestamp=request.headers["X-IdentityCore-Timestamp"],
-    signing_key=webhook_signing_key,
+    event_id=request.headers["X-IdentityCore-Event-Id"],
+    signing_keys=[current_webhook_secret, previous_webhook_secret],
+    seen_event_ids=processed_event_ids,
 )
 ```
 
-Always verify the unmodified webhook body before parsing JSON. The default timestamp tolerance is five minutes.
+Always verify the unmodified webhook body before parsing JSON. The default timestamp tolerance is five minutes. Persist processed event IDs in production; the set above is illustrative. During rotation, supply both secrets only until the API-provided overlap expiry.
 
 Required scopes are `policies:read`, `verifications:create`, and `verifications:read` for their corresponding resources.

@@ -49,8 +49,10 @@ for await (const verification of client.verifications.iterate({
 const valid = verifyWebhookSignature(rawRequestBody, {
   signature: request.headers["x-identitycore-signature"],
   timestamp: request.headers["x-identitycore-timestamp"],
-  signingKey: process.env.IDENTITYCORE_WEBHOOK_SECRET,
+  eventId: request.headers["x-identitycore-event-id"],
+  signingKeys: [currentWebhookSecret, previousWebhookSecret],
+  seenEventIds: processedEventIds,
 });
 ```
 
-Always verify the unmodified request body before parsing JSON. The default timestamp tolerance is five minutes.
+Always verify the unmodified request body before parsing JSON. The default timestamp tolerance is five minutes. Back `seenEventIds` with durable, atomic storage in production and retain the previous secret only until its rotation overlap expires.

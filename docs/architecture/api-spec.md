@@ -1232,6 +1232,7 @@ Business rules:
 
 - Webhook endpoints are tenant-scoped.
 - The raw webhook secret is shown only once and is never stored in plain text.
+- `POST /webhook-endpoints/{webhook_id}/rotate` returns a new secret once. Receivers must accept the old and new secrets until `previous_secret_expires_at`, then remove the old secret.
 
 ---
 
@@ -1269,6 +1270,7 @@ Webhook payload:
 ```json
 {
   "id": "evt_01JABC...",
+  "schema_version": "1",
   "type": "verification.verified",
   "created_at": "2026-07-04T10:03:00Z",
   "data": {
@@ -1284,9 +1286,13 @@ Webhook headers:
 ```http
 X-IdentityCore-Event-Id: evt_01JABC...
 X-IdentityCore-Event-Type: verification.verified
-X-IdentityCore-Signature: sha256=...
+X-IdentityCore-Signature: v1=...
+X-IdentityCore-Signature-Version: v1
+X-IdentityCore-Signing-Secret-Version: 2
 X-IdentityCore-Timestamp: 1783159380
 ```
+
+For v1, derive the HMAC key as the lowercase hexadecimal SHA-256 digest of the raw webhook secret, then sign the exact bytes `timestamp + "." + event_id + "." + raw_body` with HMAC-SHA256. Verify the unmodified body in constant time, require payload `schema_version` `"1"` and a payload `id` matching the signed event header, reject timestamps outside the five-minute tolerance, and atomically record processed event IDs so a valid delivery cannot be applied twice. The canonical cross-SDK fixture is `sdk/fixtures/webhook-signature-v1.json`.
 
 Webhook events:
 

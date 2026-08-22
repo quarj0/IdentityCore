@@ -1,0 +1,16 @@
+{
+  "schema_version": "1",
+  "timestamp": "1787390400",
+  "now_within_tolerance": 1787390401,
+  "now_outside_tolerance": 1787390701,
+  "event_id": "evt_fixture_v1",
+  "raw_body": "{\"created_at\":\"2026-08-22T12:00:00Z\",\"data\":{\"status\":\"verified\",\"verification_id\":\"ver_fixture\"},\"id\":\"evt_fixture_v1\",\"schema_version\":\"1\",\"type\":\"verification.verified\"}",
+  "current_secret": "whsec_current_fixture",
+  "current_signature": "v1=15c74fe860229f251c43b7c04105c329a1133cde10cbd83e5383f6dc9d727ede",
+  "non_object_raw_body": "[]",
+  "non_object_signature": "v1=0be7d41a5630699945dbaf1f518569953a11fcaa6bc2a51cf78822db5ebf5a44",
+  "invalid_schema_raw_body": "{\"id\":\"evt_fixture_v1\",\"schema_version\":1}",
+  "invalid_schema_signature": "v1=74cfeeac529dba8bd6d9f6c020042df47dade2e654795a40a395b29e7533c8c9",
+  "previous_secret": "whsec_previous_fixture",
+  "previous_signature": "v1=a4d12f52afae4b93812c5d4cb9db840f7a64d37bd2db75564926855f56ae7eda"
+}

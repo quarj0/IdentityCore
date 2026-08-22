@@ -860,6 +860,10 @@ public sealed record WebhookEndpointSummary
     public IReadOnlyList<string> Events { get; init; }
     [JsonPropertyName("status")]
     public string Status { get; init; }
+    [JsonPropertyName("signing_secret_version")]
+    public int SigningSecretVersion { get; init; }
+    [JsonPropertyName("previous_secret_expires_at")]
+    public string? PreviousSecretExpiresAt { get; init; }
     [JsonPropertyName("created_at")]
     public string CreatedAt { get; init; }
     [JsonPropertyName("updated_at")]

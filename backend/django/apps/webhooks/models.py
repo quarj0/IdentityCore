@@ -1,9 +1,10 @@
-import secrets
 import hashlib
+import secrets
 
 from django.contrib.auth.hashers import check_password, make_password
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 
 from apps.core.models import BaseModel, PublicIdModel
 
@@ -55,6 +56,8 @@ class WebhookEndpoint(PublicIdModel, BaseModel):
     description = models.CharField(max_length=255, blank=True)
     secret_hash = models.CharField(max_length=255)
     signing_key = models.CharField(max_length=64, blank=True)
+    signing_secret_version = models.PositiveIntegerField(default=1)
+    previous_secret_expires_at = models.DateTimeField(null=True, blank=True)
     events_json = models.JSONField(default=list, blank=True)
     status = models.CharField(
         max_length=32,
@@ -94,6 +97,18 @@ class WebhookEndpoint(PublicIdModel, BaseModel):
     def set_secret(self, raw_secret: str) -> None:
         self.secret_hash = make_password(raw_secret)
         self.signing_key = hashlib.sha256(raw_secret.encode("utf-8")).hexdigest()
+
+    def rotate_secret(self, raw_secret: str, *, previous_secret_expires_at) -> None:
+        self.set_secret(raw_secret)
+        self.signing_secret_version += 1
+        self.previous_secret_expires_at = previous_secret_expires_at
+
+    @property
+    def previous_secret_overlap_active(self) -> bool:
+        return bool(
+            self.previous_secret_expires_at
+            and self.previous_secret_expires_at > timezone.now()
+        )
 
     def verify_secret(self, raw_secret: str) -> bool:
         return check_password(raw_secret, self.secret_hash)

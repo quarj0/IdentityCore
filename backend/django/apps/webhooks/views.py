@@ -1,5 +1,9 @@
+from datetime import timedelta
+
+from django.conf import settings
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -128,12 +132,67 @@ class WebhookEndpointDetailView(APIView):
 
 
 class WebhookEndpointActionView(WebhookEndpointDetailView):
-    def post(self, request, webhook_id, action):
+    fixed_action: str | None = None
+
+    @transaction.atomic
+    def post(self, request, webhook_id, action=None):
+        action = self.fixed_action or action
+        idempotency_result = None
+        if action == "rotate":
+            idempotency_result = begin_idempotent_request(
+                request=request,
+                tenant=request.user.tenant,
+                operation="webhook_endpoint.rotate",
+            )
+            if idempotency_result.is_replay:
+                return success_response(
+                    idempotency_result.response_data,
+                    request=request,
+                    status=idempotency_result.response_status,
+                )
         endpoint = self.obj(request, webhook_id)
         if action == "disable":
             endpoint.status = "disabled"
         elif action == "reactivate":
             endpoint.status = "active"
+        elif action == "rotate":
+            raw_secret = WebhookEndpoint.generate_secret()
+            endpoint.rotate_secret(
+                raw_secret,
+                previous_secret_expires_at=timezone.now()
+                + timedelta(seconds=settings.WEBHOOK_SECRET_ROTATION_OVERLAP_SECONDS),
+            )
+            endpoint.save(
+                update_fields=[
+                    "secret_hash",
+                    "signing_key",
+                    "signing_secret_version",
+                    "previous_secret_expires_at",
+                    "updated_at",
+                ]
+            )
+            record_audit_event(
+                tenant=request.user.tenant,
+                actor=request.user,
+                request=request,
+                action="webhook_endpoint.rotate",
+                target_type="webhook_endpoint",
+                target_id=endpoint.public_id,
+                metadata={
+                    "signing_secret_version": endpoint.signing_secret_version,
+                    "previous_secret_expires_at": endpoint.previous_secret_expires_at.isoformat(),
+                },
+            )
+            response_data = {
+                **serialize_webhook_endpoint(endpoint),
+                "secret": raw_secret,
+            }
+            complete_idempotent_request(
+                idempotency_result,
+                response_data=response_data,
+                response_status=status.HTTP_200_OK,
+            )
+            return success_response(response_data, request=request)
         else:
             return success_response(
                 {"detail": "Unsupported action."}, request=request, status=400

@@ -2,7 +2,9 @@ package io.identitycore;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -27,12 +29,18 @@ class LiveCompatibilityTest {
         var error = assertThrows(IdentityCoreApiException.class, () -> client.verifications.retrieve("ver_does_not_exist"));
         assertEquals(404, error.status());
 
-        byte[] payload = "{\"type\":\"verification.completed\"}".getBytes(StandardCharsets.UTF_8);
+        String eventId = "evt_live_compatibility";
+        byte[] payload = ("{\"id\":\"" + eventId + "\",\"schema_version\":\"1\",\"type\":\"verification.completed\"}")
+                .getBytes(StandardCharsets.UTF_8);
         String timestamp = Long.toString(Instant.now().getEpochSecond());
-        String key = "webhook-secret";
+        String secret = "webhook-secret";
+        String derivedKey = java.util.HexFormat.of().formatHex(
+                MessageDigest.getInstance("SHA-256").digest(secret.getBytes(StandardCharsets.UTF_8)));
         Mac mac = Mac.getInstance("HmacSHA256");
-        mac.init(new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
-        mac.update((timestamp + ".").getBytes(StandardCharsets.UTF_8));
-        assertTrue(WebhookVerifier.verify(payload, "sha256=" + java.util.HexFormat.of().formatHex(mac.doFinal(payload)), timestamp, key));
+        mac.init(new SecretKeySpec(derivedKey.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+        mac.update((timestamp + "." + eventId + ".").getBytes(StandardCharsets.UTF_8));
+        assertTrue(WebhookVerifier.verifyV1(payload,
+                "v1=" + java.util.HexFormat.of().formatHex(mac.doFinal(payload)), timestamp, eventId,
+                List.of(secret), 300, Instant.now().getEpochSecond(), null));
     }
 }

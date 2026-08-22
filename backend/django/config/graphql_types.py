@@ -114,6 +114,8 @@ class WebhookEndpointNode:
     description: str
     events: list[str]
     status: str
+    signing_secret_version: int
+    previous_secret_expires_at: str | None
     created_at: str
     updated_at: str
 
