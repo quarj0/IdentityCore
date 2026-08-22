@@ -131,7 +131,7 @@ def _provider_check_is_reusable(check) -> bool:
 
 
 def _repair_biometric_provider_check_links(resource) -> bool:
-    """Relink committed evidence and report whether every pending stage is reusable."""
+    """Relink committed evidence and require every biometric stage to be reusable."""
     from apps.biometrics.models import FaceMatchStatus, LivenessCheckStatus
     from apps.providers.models import ProviderCheckStatus, ProviderCheckType
 
@@ -152,23 +152,20 @@ def _repair_biometric_provider_check_links(resource) -> bool:
             None,
         )
 
-    liveness_ready = resource.status != LivenessCheckStatus.INCONCLUSIVE
-    if not liveness_ready:
-        current = verification.provider_checks.filter(
-            public_id=resource.provider_check_id
-        ).first()
-        current_is_reusable = _provider_check_is_reusable(current)
-        if not current_is_reusable:
-            recovered = latest_completed(
-                ProviderCheckType.LIVENESS,
-                "liveness_check_id",
-                resource.public_id,
-            )
-            if recovered is not None:
-                resource.provider_check_id = recovered.public_id
-                resource.save(update_fields=["provider_check_id", "updated_at"])
-                current_is_reusable = True
-        liveness_ready = current_is_reusable
+    current = verification.provider_checks.filter(
+        public_id=resource.provider_check_id
+    ).first()
+    liveness_reusable = _provider_check_is_reusable(current)
+    if resource.status == LivenessCheckStatus.INCONCLUSIVE and not liveness_reusable:
+        recovered = latest_completed(
+            ProviderCheckType.LIVENESS,
+            "liveness_check_id",
+            resource.public_id,
+        )
+        if recovered is not None:
+            resource.provider_check_id = recovered.public_id
+            resource.save(update_fields=["provider_check_id", "updated_at"])
+            liveness_reusable = True
 
     face_match = (
         verification.face_matches.filter(selfie_capture=resource.selfie_capture)
@@ -176,27 +173,24 @@ def _repair_biometric_provider_check_links(resource) -> bool:
         .first()
     )
     if face_match is None:
-        return liveness_ready
+        return liveness_reusable
 
-    face_ready = face_match.status != FaceMatchStatus.INCONCLUSIVE
-    if not face_ready:
-        current = verification.provider_checks.filter(
-            public_id=face_match.provider_check_id
-        ).first()
-        current_is_reusable = _provider_check_is_reusable(current)
-        if not current_is_reusable:
-            recovered = latest_completed(
-                ProviderCheckType.FACE_MATCH,
-                "face_match_id",
-                face_match.public_id,
-            )
-            if recovered is not None:
-                face_match.provider_check_id = recovered.public_id
-                face_match.save(update_fields=["provider_check_id", "updated_at"])
-                current_is_reusable = True
-        face_ready = current_is_reusable
+    current = verification.provider_checks.filter(
+        public_id=face_match.provider_check_id
+    ).first()
+    face_reusable = _provider_check_is_reusable(current)
+    if face_match.status == FaceMatchStatus.INCONCLUSIVE and not face_reusable:
+        recovered = latest_completed(
+            ProviderCheckType.FACE_MATCH,
+            "face_match_id",
+            face_match.public_id,
+        )
+        if recovered is not None:
+            face_match.provider_check_id = recovered.public_id
+            face_match.save(update_fields=["provider_check_id", "updated_at"])
+            face_reusable = True
 
-    return liveness_ready and face_ready
+    return liveness_reusable and face_reusable
 
 
 def _route_exhaustion_resource_reference(
