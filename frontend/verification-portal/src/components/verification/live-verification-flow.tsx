@@ -591,7 +591,7 @@ export function LiveVerificationFlow({
                 <span className="block text-sm font-semibold text-foreground">
                   {requirement.label}
                 </span>
-                <span className="mt-1 block text-xs text-muted-foreground">
+                <span className="mt-1 block text-xs text-foreground">
                   {documentFiles[requirement.side]
                     ? "Captured — select to review"
                     : "Not captured"}
