@@ -1,8 +1,8 @@
 from pathlib import Path
 
 
-def guard_block(text, header, end_marker, label):
-    start = text.find(header)
+def guard_block(text, header, end_marker, label, *, last=False):
+    start = text.rfind(header) if last else text.find(header)
     if start < 0:
         raise RuntimeError(f'{label}: header not found')
     body_start = start + len(header)
@@ -31,7 +31,8 @@ text = guard_block(
     text,
     '    except Exception as exc:\n',
     None,
-    'generic document failure writes',
+    'outer generic document failure writes',
+    last=True,
 )
 path.write_text(text)
 
