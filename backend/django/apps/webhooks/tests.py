@@ -234,6 +234,35 @@ class WebhookEndpointTests(APITestCase):
         endpoint.refresh_from_db()
         self.assertEqual(endpoint.signing_secret_version, 2)
 
+    def test_rotate_signing_secret_rejects_a_new_rotation_during_overlap(self):
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/overlapping-rotation",
+            events_json=["verification.verified"],
+            created_by=self.user,
+        )
+        endpoint.set_secret("old-secret")
+        endpoint.save()
+        url = reverse("webhook-endpoint-rotate", kwargs={"webhook_id": endpoint.public_id})
+
+        first = self.client.post(url, format="json", HTTP_IDEMPOTENCY_KEY="rotation-one")
+        rejected = self.client.post(
+            url, format="json", HTTP_IDEMPOTENCY_KEY="rotation-two"
+        )
+
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        self.assertEqual(rejected.status_code, status.HTTP_409_CONFLICT)
+        endpoint.refresh_from_db()
+        self.assertEqual(endpoint.signing_secret_version, 2)
+        self.assertEqual(
+            endpoint.signing_key,
+            hashlib.sha256(first.data["data"]["secret"].encode()).hexdigest(),
+        )
+        self.assertEqual(
+            endpoint.previous_signing_key,
+            hashlib.sha256(b"old-secret").hexdigest(),
+        )
+
     def test_rotate_signing_secret_requires_idempotency_key(self):
         endpoint = WebhookEndpoint(
             tenant=self.tenant,

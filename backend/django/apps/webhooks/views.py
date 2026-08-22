@@ -5,6 +5,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.exceptions import APIException
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
@@ -21,6 +22,12 @@ from apps.webhooks.serializers import (
 from common.permissions import IsTenantUser
 from common.responses import success_response
 from apps.webhooks.models import WebhookEndpoint
+
+
+class WebhookSecretRotationConflict(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = "The previous webhook signing secret overlap is still active."
+    default_code = "webhook_secret_rotation_conflict"
 
 
 class WebhookEndpointListCreateView(APIView):
@@ -159,6 +166,8 @@ class WebhookEndpointActionView(WebhookEndpointDetailView):
         elif action == "reactivate":
             endpoint.status = "active"
         elif action == "rotate":
+            if endpoint.previous_secret_overlap_active:
+                raise WebhookSecretRotationConflict()
             raw_secret = WebhookEndpoint.generate_secret()
             endpoint.rotate_secret(
                 raw_secret,

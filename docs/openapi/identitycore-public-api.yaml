@@ -3781,6 +3781,12 @@ paths:
           $ref: "#/components/responses/PermissionDenied"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          description: The previous-secret overlap is still active, or the idempotency key conflicts with an earlier request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /verifications/manual-reviews:
     get:
       summary: List verifications requiring manual review.

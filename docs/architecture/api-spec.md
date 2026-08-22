@@ -1232,7 +1232,7 @@ Business rules:
 
 - Webhook endpoints are tenant-scoped.
 - The raw webhook secret is shown only once and is never stored in plain text.
-- `POST /webhook-endpoints/{webhook_id}/rotate` returns a new secret once. Receivers must accept the old and new secrets until `previous_secret_expires_at`, then remove the old secret.
+- `POST /webhook-endpoints/{webhook_id}/rotate` returns a new secret once. Receivers must accept the old and new secrets until `previous_secret_expires_at`, then remove the old secret. A new rotation is rejected while that overlap is active so every advertised previous secret remains valid for its full overlap window.
 
 ---
 
