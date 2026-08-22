@@ -62,6 +62,8 @@ jobs:
         run: uv run --project backend python backend/django/manage.py makemigrations --check --dry-run
       - name: Apply migrations to an empty PostgreSQL database
         run: uv run --project backend python backend/django/manage.py migrate --noinput
+      - name: Test concurrent idempotency locking on PostgreSQL
+        run: uv run --project backend python backend/django/manage.py test apps.api_clients.test_idempotency --verbosity 1
 
   ai-service:
     runs-on: ubuntu-latest

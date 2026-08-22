@@ -56,6 +56,7 @@ class WebhookEndpointTests(APITestCase):
                 "events": ["verification.verified", "verification.rejected"],
             },
             format="json",
+            HTTP_IDEMPOTENCY_KEY="create-primary-webhook",
         )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -68,6 +69,69 @@ class WebhookEndpointTests(APITestCase):
                 action="webhook_endpoint.created",
                 target_id=endpoint.public_id,
             ).exists()
+        )
+
+    def test_create_webhook_endpoint_requires_idempotency_key(self):
+        response = self.client.post(
+            reverse("webhook-endpoint-list-create"),
+            {
+                "url": "https://example.com/missing-key",
+                "events": ["verification.verified"],
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("idempotency_key", response.data["error"]["details"])
+
+    def test_create_webhook_endpoint_replays_original_secret(self):
+        payload = {
+            "url": "https://example.com/replay",
+            "events": ["verification.verified"],
+        }
+        url = reverse("webhook-endpoint-list-create")
+        first = self.client.post(
+            url,
+            payload,
+            format="json",
+            HTTP_IDEMPOTENCY_KEY="replay-webhook",
+        )
+        replay = self.client.post(
+            url,
+            payload,
+            format="json",
+            HTTP_IDEMPOTENCY_KEY="replay-webhook",
+        )
+
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(replay.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(first.data["data"], replay.data["data"])
+        self.assertEqual(WebhookEndpoint.objects.filter(url=payload["url"]).count(), 1)
+
+    def test_create_webhook_endpoint_rejects_mismatched_replay(self):
+        url = reverse("webhook-endpoint-list-create")
+        self.client.post(
+            url,
+            {
+                "url": "https://example.com/original",
+                "events": ["verification.verified"],
+            },
+            format="json",
+            HTTP_IDEMPOTENCY_KEY="conflicting-webhook",
+        )
+        conflict = self.client.post(
+            url,
+            {
+                "url": "https://example.com/changed",
+                "events": ["verification.verified"],
+            },
+            format="json",
+            HTTP_IDEMPOTENCY_KEY="conflicting-webhook",
+        )
+
+        self.assertEqual(conflict.status_code, status.HTTP_409_CONFLICT)
+        self.assertFalse(
+            WebhookEndpoint.objects.filter(url="https://example.com/changed").exists()
         )
 
     def test_list_webhook_endpoints_is_tenant_scoped(self):
@@ -207,6 +271,7 @@ class WebhookEndpointTests(APITestCase):
                 "reason_detail": "Document and selfie match after manual review.",
             },
             format="json",
+            HTTP_IDEMPOTENCY_KEY="manual-webhook-decision",
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)

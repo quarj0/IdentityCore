@@ -179,12 +179,19 @@ class OpenApiParityTests(SimpleTestCase):
             (resource["method"], resource["path"]): resource for resource in resources
         }
 
-        self.assertEqual(
-            by_operation[("POST", "/projects/{project_id}/workflows:instantiate")][
-                "required_headers"
-            ],
-            ["Idempotency-Key"],
-        )
+        idempotent_operations = {
+            "/verifications/",
+            "/api-clients/",
+            "/webhook-endpoints/",
+            "/verifications/manual-reviews/{verification_id}/decision",
+            "/projects/{project_id}/workflows:instantiate",
+        }
+        for operation_path in idempotent_operations:
+            with self.subTest(path=operation_path):
+                self.assertEqual(
+                    by_operation[("POST", operation_path)]["required_headers"],
+                    ["Idempotency-Key"],
+                )
         self.assertEqual(by_operation[("GET", "/countries")]["required_headers"], [])
 
     def test_policy_document_types_match_the_accepted_catalog(self):

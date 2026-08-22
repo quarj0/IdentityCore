@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.conf import settings
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
@@ -8,6 +9,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from apps.audit.services import record_audit_event
+from apps.api_clients.idempotency import (
+    begin_idempotent_request,
+    complete_idempotent_request,
+)
 from apps.api_clients.serializers import APIClientCreateSerializer, serialize_api_client
 from common.permissions import IsTenantUser
 from common.responses import success_response
@@ -29,7 +34,19 @@ class APIClientListCreateView(APIView):
             request=request,
         )
 
+    @transaction.atomic
     def post(self, request):
+        idempotency_result = begin_idempotent_request(
+            request=request,
+            tenant=request.user.tenant,
+            operation="api_client.create",
+        )
+        if idempotency_result.is_replay:
+            return success_response(
+                idempotency_result.response_data,
+                request=request,
+                status=idempotency_result.response_status,
+            )
         serializer = APIClientCreateSerializer(
             data=request.data, context={"request": request}
         )
@@ -44,10 +61,16 @@ class APIClientListCreateView(APIView):
             target_id=api_client.public_id,
             metadata={"client_id": api_client.client_id, "name": api_client.name},
         )
+        response_data = serialize_api_client(
+            api_client, include_secret=api_client._raw_client_secret
+        )
+        complete_idempotent_request(
+            idempotency_result,
+            response_data=response_data,
+            response_status=status.HTTP_201_CREATED,
+        )
         return success_response(
-            serialize_api_client(
-                api_client, include_secret=api_client._raw_client_secret
-            ),
+            response_data,
             request=request,
             status=status.HTTP_201_CREATED,
         )

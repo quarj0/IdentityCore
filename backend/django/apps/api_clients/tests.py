@@ -8,7 +8,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.test import APIRequestFactory, APITestCase
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
-from apps.api_clients.models import APIClient, APIClientStatus
+from apps.api_clients.models import APIClient, APIIdempotencyRecord
 from apps.audit.models import AuditEvent
 from common.authentication import APIClientAuthentication
 from apps.organizations.models import Organization, OrganizationStatus
@@ -99,11 +99,85 @@ class APIClientEndpointTests(APITestCase):
                 "rate_limit_per_minute": 100,
             },
             format="json",
+            HTTP_IDEMPOTENCY_KEY="create-production-backend",
         )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn("client_secret", response.data["data"])
         self.assertEqual(response.data["data"]["scopes"], ["verifications:create", "verifications:read"])
+
+    def test_create_api_client_requires_idempotency_key(self):
+        response = self.client.post(
+            reverse("api-client-list-create"),
+            {"name": "Missing key", "scopes": ["verifications:read"]},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("idempotency_key", response.data["error"]["details"])
+
+    def test_create_api_client_replays_secret_for_same_key_and_payload(self):
+        payload = {"name": "Replay client", "scopes": ["verifications:read"]}
+        first = self.client.post(
+            reverse("api-client-list-create"),
+            payload,
+            format="json",
+            HTTP_IDEMPOTENCY_KEY="replay-api-client",
+        )
+        replay = self.client.post(
+            reverse("api-client-list-create"),
+            payload,
+            format="json",
+            HTTP_IDEMPOTENCY_KEY="replay-api-client",
+        )
+
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(replay.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(first.data["data"], replay.data["data"])
+        self.assertEqual(APIClient.objects.filter(name="Replay client").count(), 1)
+
+    def test_create_api_client_rejects_key_reuse_with_different_payload(self):
+        url = reverse("api-client-list-create")
+        self.client.post(
+            url,
+            {"name": "First client", "scopes": ["verifications:read"]},
+            format="json",
+            HTTP_IDEMPOTENCY_KEY="conflicting-api-client",
+        )
+        conflict = self.client.post(
+            url,
+            {"name": "Different client", "scopes": ["verifications:read"]},
+            format="json",
+            HTTP_IDEMPOTENCY_KEY="conflicting-api-client",
+        )
+
+        self.assertEqual(conflict.status_code, status.HTTP_409_CONFLICT)
+        self.assertFalse(APIClient.objects.filter(name="Different client").exists())
+
+    def test_expired_api_client_key_can_be_reused(self):
+        url = reverse("api-client-list-create")
+        payload = {"name": "Expiring client", "scopes": ["verifications:read"]}
+        first = self.client.post(
+            url,
+            payload,
+            format="json",
+            HTTP_IDEMPOTENCY_KEY="expired-api-client",
+        )
+        APIIdempotencyRecord.objects.filter(key="expired-api-client").update(
+            expires_at=timezone.now() - timedelta(seconds=1)
+        )
+        after_expiry = self.client.post(
+            url,
+            payload,
+            format="json",
+            HTTP_IDEMPOTENCY_KEY="expired-api-client",
+        )
+
+        self.assertEqual(after_expiry.status_code, status.HTTP_201_CREATED)
+        self.assertNotEqual(
+            first.data["data"]["public_id"], after_expiry.data["data"]["public_id"]
+        )
+        self.assertEqual(APIClient.objects.filter(name="Expiring client").count(), 2)
 
     @override_settings(API_CLIENT_ROTATION_OVERLAP_SECONDS=60)
     def test_rotate_keeps_old_secret_valid_only_during_overlap(self):
@@ -194,7 +268,7 @@ class APIClientEndpointTests(APITestCase):
 
     def test_platform_admin_without_tenant_cannot_manage_api_clients(self):
         self.client.credentials()
-        admin_user = PlatformUser.objects.create_user(
+        PlatformUser.objects.create_user(
             email="platform-admin@example.com",
             password="StrongPassword123!",
             status=PlatformUserStatus.ACTIVE,
@@ -224,6 +298,7 @@ class APIClientEndpointTests(APITestCase):
                 "rate_limit_per_minute": 100,
             },
             format="json",
+            HTTP_IDEMPOTENCY_KEY="pending-org-client",
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

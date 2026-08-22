@@ -1,6 +1,4 @@
 from datetime import timedelta
-import hashlib
-import json
 
 from django.conf import settings
 from django.db import transaction
@@ -16,7 +14,10 @@ from rest_framework.settings import api_settings
 from rest_framework.views import APIView
 
 from apps.audit.services import record_audit_event
-from apps.api_clients.models import APIIdempotencyRecord
+from apps.api_clients.idempotency import (
+    begin_idempotent_request,
+    complete_idempotent_request,
+)
 from apps.platform_settings.services import get_platform_setting_value
 from apps.notifications.services import (
     queue_verification_created_notifications,
@@ -61,11 +62,6 @@ from apps.verifications.review_access import manual_review_queryset_for_user
 from common.authentication import APIClientAuthentication
 from common.permissions import HasAPIClientScopes, IsManualReviewUser, IsTenantUser
 from common.responses import success_response
-
-
-class IdempotencyConflict(APIException):
-    status_code = status.HTTP_409_CONFLICT
-    default_code = "idempotency_conflict"
 
 
 class VerificationTransitionConflict(APIException):
@@ -186,52 +182,19 @@ class VerificationListCreateView(VerificationAccessMixin, APIView):
     @transaction.atomic
     def post(self, request):
         self._set_request_tenant(request)
-        idempotency_record = None
+        idempotency_result = None
         if self._is_api_client_request(request):
-            idempotency_key = request.headers.get("Idempotency-Key", "").strip()
-            if not idempotency_key:
-                raise ValidationError(
-                    {
-                        "idempotency_key": "Idempotency-Key is required for verification creation."
-                    }
-                )
-            request_hash = hashlib.sha256(
-                json.dumps(request.data, sort_keys=True, separators=(",", ":")).encode(
-                    "utf-8"
-                )
-            ).hexdigest()
-            existing_record = APIIdempotencyRecord.objects.filter(
-                api_client=request.api_client, key=idempotency_key
-            ).first()
-            if (
-                existing_record is not None
-                and existing_record.expires_at <= timezone.now()
-            ):
-                existing_record.delete()
-            idempotency_record, idempotency_created = (
-                APIIdempotencyRecord.objects.get_or_create(
-                    api_client=request.api_client,
-                    key=idempotency_key,
-                    defaults={
-                        "request_hash": request_hash,
-                        "method": request.method,
-                        "path": request.path,
-                        "expires_at": timezone.now() + timedelta(hours=24),
-                    },
-                )
+            idempotency_result = begin_idempotent_request(
+                request=request,
+                tenant=self._get_tenant(request),
+                operation="verification.create",
             )
-            if not idempotency_created:
-                if idempotency_record.request_hash != request_hash:
-                    raise IdempotencyConflict(
-                        "This Idempotency-Key was already used with a different request payload."
-                    )
-                if idempotency_record.response_data_json is not None:
-                    return success_response(
-                        idempotency_record.response_data_json,
-                        request=request,
-                        status=idempotency_record.response_status
-                        or status.HTTP_201_CREATED,
-                    )
+            if idempotency_result.is_replay:
+                return success_response(
+                    idempotency_result.response_data,
+                    request=request,
+                    status=idempotency_result.response_status,
+                )
         tenant = self._get_tenant(request)
         if tenant.organization.status != "active":
             month_start = timezone.now().replace(
@@ -286,11 +249,11 @@ class VerificationListCreateView(VerificationAccessMixin, APIView):
             "session_token": verification._initial_session_token,
             "expires_at": verification.expires_at.isoformat(),
         }
-        if idempotency_record is not None:
-            idempotency_record.response_data_json = response_data
-            idempotency_record.response_status = status.HTTP_201_CREATED
-            idempotency_record.save(
-                update_fields=["response_data_json", "response_status", "updated_at"]
+        if idempotency_result is not None:
+            complete_idempotent_request(
+                idempotency_result,
+                response_data=response_data,
+                response_status=status.HTTP_201_CREATED,
             )
         return success_response(
             response_data,
@@ -560,11 +523,23 @@ class ManualReviewListView(APIView):
 class ManualReviewDecisionView(APIView):
     permission_classes = [IsAuthenticated, IsManualReviewUser]
 
+    @transaction.atomic
     def post(self, request, verification_id: str):
         verification = get_object_or_404(
             manual_review_queryset_for_user(request.user),
             public_id=verification_id,
         )
+        idempotency_result = begin_idempotent_request(
+            request=request,
+            tenant=verification.tenant,
+            operation="manual_review.decision",
+        )
+        if idempotency_result.is_replay:
+            return success_response(
+                idempotency_result.response_data,
+                request=request,
+                status=idempotency_result.response_status,
+            )
         serializer = ManualReviewDecisionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         decision_record = serializer.save(
@@ -581,13 +556,19 @@ class ManualReviewDecisionView(APIView):
                 metadata={"reviewer_id": request.user.public_id},
             )
         if decision_record.approval_status == VerificationApprovalStatus.PENDING:
+            response_data = {
+                "verification_id": verification.public_id,
+                "decision": decision_record.decision,
+                "approval_status": decision_record.approval_status,
+                "approval_required": True,
+            }
+            complete_idempotent_request(
+                idempotency_result,
+                response_data=response_data,
+                response_status=status.HTTP_202_ACCEPTED,
+            )
             return success_response(
-                {
-                    "verification_id": verification.public_id,
-                    "decision": decision_record.decision,
-                    "approval_status": decision_record.approval_status,
-                    "approval_required": True,
-                },
+                response_data,
                 request=request,
                 status=status.HTTP_202_ACCEPTED,
             )
@@ -627,13 +608,19 @@ class ManualReviewDecisionView(APIView):
                 ),
             )
         ensure_verification_evidence_report(verification)
+        response_data = {
+            "verification_id": verification.public_id,
+            "decision": decision_record.decision,
+            "decision_type": decision_record.decision_type,
+            "decided_at": decision_record.decided_at.isoformat(),
+        }
+        complete_idempotent_request(
+            idempotency_result,
+            response_data=response_data,
+            response_status=status.HTTP_200_OK,
+        )
         return success_response(
-            {
-                "verification_id": verification.public_id,
-                "decision": decision_record.decision,
-                "decision_type": decision_record.decision_type,
-                "decided_at": decision_record.decided_at.isoformat(),
-            },
+            response_data,
             request=request,
             status=status.HTTP_200_OK,
         )
