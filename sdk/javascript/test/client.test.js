@@ -65,4 +65,5 @@ test("verifies signatures over the raw payload", async () => {
   assert.equal(verifyWebhookSignature(fixture.invalid_schema_raw_body, { ...validOptions, signature: fixture.invalid_schema_signature }), false);
   assert.throws(() => verifyWebhookSignature(fixture.raw_body, { ...validOptions, timestamp: Number.MAX_SAFE_INTEGER + 1 }));
   assert.equal(verifyWebhookSignature(fixture.raw_body, { signature: fixture.legacy_signature, timestamp: fixture.timestamp, signingKey: fixture.legacy_signing_key, now: fixture.now_within_tolerance }), true);
+  assert.equal(verifyWebhookSignature(fixture.raw_body, { signature: fixture.legacy_signature, timestamp: fixture.timestamp, signingKeys: ["wrong-key", fixture.legacy_signing_key], now: fixture.now_within_tolerance }), true);
 });

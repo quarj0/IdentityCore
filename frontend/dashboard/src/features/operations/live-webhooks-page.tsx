@@ -129,7 +129,6 @@ export function LiveWebhooksPage() {
     )
       return;
     setBusy(`rotate:${item.id}`);
-    setSecret("");
     setMessage("");
     setError("");
     try {

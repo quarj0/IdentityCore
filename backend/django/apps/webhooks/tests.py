@@ -282,6 +282,34 @@ class WebhookEndpointTests(APITestCase):
         endpoint.refresh_from_db()
         self.assertEqual(endpoint.signing_secret_version, 2)
 
+    def test_rotate_signing_secret_rejects_an_obsolete_idempotent_replay(self):
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/obsolete-replay",
+            events_json=["verification.verified"],
+            created_by=self.user,
+        )
+        endpoint.set_secret("original-secret")
+        endpoint.save()
+        url = reverse("webhook-endpoint-rotate", kwargs={"webhook_id": endpoint.public_id})
+
+        first = self.client.post(url, format="json", HTTP_IDEMPOTENCY_KEY="first-rotation")
+        first_secret = first.data["data"]["secret"]
+        endpoint.refresh_from_db()
+        endpoint.previous_secret_expires_at = timezone.now() - timedelta(seconds=1)
+        endpoint.save(update_fields=["previous_secret_expires_at", "updated_at"])
+        second = self.client.post(url, format="json", HTTP_IDEMPOTENCY_KEY="second-rotation")
+        obsolete_replay = self.client.post(
+            url, format="json", HTTP_IDEMPOTENCY_KEY="first-rotation"
+        )
+
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        self.assertEqual(second.status_code, status.HTTP_200_OK)
+        self.assertEqual(obsolete_replay.status_code, status.HTTP_409_CONFLICT)
+        self.assertNotIn(first_secret, json.dumps(obsolete_replay.data))
+        endpoint.refresh_from_db()
+        self.assertEqual(endpoint.signing_secret_version, 3)
+
     def test_rotate_signing_secret_rejects_a_new_rotation_during_overlap(self):
         endpoint = WebhookEndpoint(
             tenant=self.tenant,
@@ -804,6 +832,7 @@ class WebhookEndpointTests(APITestCase):
         )
 
         endpoint.previous_secret_expires_at = timezone.now() - timedelta(seconds=1)
+        endpoint.save(update_fields=["previous_secret_expires_at", "updated_at"])
         _send_webhook_request(
             webhook_event=event, payload_bytes=payload, timestamp="1720180801"
         )
@@ -817,4 +846,63 @@ class WebhookEndpointTests(APITestCase):
         self.assertEqual(
             sent_request.get_header("X-identitycore-signature"),
             _build_legacy_signature(endpoint.signing_key, "1720180801", payload),
+        )
+
+    @patch("apps.webhooks.services.request.urlopen")
+    def test_delivery_refreshes_signing_state_after_concurrent_rotation(self, mock_urlopen):
+        response = MagicMock(status=200)
+        response.read.return_value = b"ok"
+        mock_urlopen.return_value.__enter__.return_value = response
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/stale-worker",
+            events_json=["verification.verified"],
+            created_by=self.user,
+        )
+        endpoint.set_secret("old-secret")
+        endpoint.save()
+        event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={"id": "placeholder", "schema_version": "1"},
+        )
+        stale_event = WebhookEvent.objects.select_related("webhook_endpoint").get(
+            pk=event.pk
+        )
+        rotated_endpoint = WebhookEndpoint.objects.get(pk=endpoint.pk)
+        rotated_endpoint.rotate_secret(
+            "new-secret",
+            previous_secret_expires_at=timezone.now() - timedelta(seconds=1),
+        )
+        rotated_endpoint.save(
+            update_fields=[
+                "secret_hash",
+                "signing_key",
+                "previous_signing_key",
+                "signing_secret_version",
+                "previous_secret_expires_at",
+                "updated_at",
+            ]
+        )
+        payload = b'{"id":"placeholder","schema_version":"1"}'
+
+        _send_webhook_request(
+            webhook_event=stale_event,
+            payload_bytes=payload,
+            timestamp="1720180802",
+        )
+
+        sent_request = mock_urlopen.call_args.args[0]
+        self.assertEqual(
+            sent_request.get_header("X-identitycore-signature-v1"),
+            _build_signature(
+                rotated_endpoint.signing_key,
+                "1720180802",
+                event.public_id,
+                payload,
+            ),
+        )
+        self.assertEqual(
+            sent_request.get_header("X-identitycore-signing-secret-version"), "2"
         )

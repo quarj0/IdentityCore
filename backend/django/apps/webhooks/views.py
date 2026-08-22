@@ -30,6 +30,12 @@ class WebhookSecretRotationConflict(APIException):
     default_code = "webhook_secret_rotation_conflict"
 
 
+class WebhookSecretRotationReplayConflict(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = "This rotation response is obsolete because the secret was rotated again."
+    default_code = "webhook_secret_rotation_replay_conflict"
+
+
 class WebhookEndpointListCreateView(APIView):
     permission_classes = [IsAuthenticated, IsTenantUser]
 
@@ -155,6 +161,14 @@ class WebhookEndpointActionView(WebhookEndpointDetailView):
                 operation="webhook_endpoint.rotate",
             )
             if idempotency_result.is_replay:
+                endpoint = self.obj(request, webhook_id, for_update=True)
+                replay_version = (
+                    idempotency_result.response_data.get("signing_secret_version")
+                    if isinstance(idempotency_result.response_data, dict)
+                    else None
+                )
+                if replay_version != endpoint.signing_secret_version:
+                    raise WebhookSecretRotationReplayConflict()
                 return success_response(
                     idempotency_result.response_data,
                     request=request,

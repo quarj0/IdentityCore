@@ -105,13 +105,15 @@ export function verifyWebhookSignature(
     value.toString().startsWith("sha256="),
   );
   if (legacySignature) {
-    const expected = Buffer.from(
-      `sha256=${createHmac("sha256", secrets[0]).update(`${timestamp}.`).update(raw).digest("hex")}`,
-    );
-    return (
-      expected.length === legacySignature.length &&
-      timingSafeEqual(expected, legacySignature)
-    );
+    return secrets.some((secret) => {
+      const expected = Buffer.from(
+        `sha256=${createHmac("sha256", secret).update(`${timestamp}.`).update(raw).digest("hex")}`,
+      );
+      return (
+        expected.length === legacySignature.length &&
+        timingSafeEqual(expected, legacySignature)
+      );
+    });
   }
   if (!eventId)
     throw new IdentityCoreError("eventId is required for v1 signatures.");

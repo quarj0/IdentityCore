@@ -120,6 +120,15 @@ def _send_webhook_request(
     *, webhook_event: WebhookEvent, payload_bytes: bytes, timestamp: str
 ):
     endpoint = webhook_event.webhook_endpoint
+    endpoint.refresh_from_db(
+        fields=[
+            "url",
+            "signing_key",
+            "previous_signing_key",
+            "signing_secret_version",
+            "previous_secret_expires_at",
+        ]
+    )
     signature_v1 = _build_signature_header(webhook_event, timestamp, payload_bytes)
     legacy_signing_key = (
         endpoint.previous_signing_key
