@@ -136,8 +136,6 @@ def publish_provider_route(route: ProviderRoute) -> ProviderRoute:
         if any(step.deleted_at is not None for step in steps):
             raise ValidationError("Deleted provider route steps cannot be published.")
         for step in steps:
-            # Route conditions and capability can change while a step is still
-            # draft, so publication must revalidate the complete final graph.
             step.full_clean()
         latest_version = (
             ProviderRoute.objects.filter(
@@ -517,8 +515,6 @@ def _record_circuit_outcome(
                     seconds=route_step.route.circuit_recovery_seconds
                 )
         else:
-            # A deterministic provider response proves transport recovery even when
-            # the request itself is not retryable.
             state.status = ProviderCircuitStatus.CLOSED
             state.consecutive_failures = 0
             state.opened_at = None
@@ -566,20 +562,154 @@ def _record_execution_attempt(
     )
 
 
+def _route_final_action_resource_reference(
+    check_type: str, attempts: list[ProviderExecutionAttempt]
+) -> tuple[str, str]:
+    metadata_key = {
+        ProviderCheckType.DOCUMENT_OCR: "identity_document_id",
+        ProviderCheckType.DOCUMENT_CLASSIFICATION: "identity_document_id",
+        ProviderCheckType.DOCUMENT_QUALITY: "identity_document_id",
+        ProviderCheckType.LIVENESS: "liveness_check_id",
+        ProviderCheckType.FACE_MATCH: "face_match_id",
+    }.get(check_type, "")
+    if not metadata_key:
+        return "", ""
+    for attempt in reversed(attempts):
+        value = (attempt.provider_check.request_metadata_json or {}).get(metadata_key)
+        if value:
+            return metadata_key, str(value)
+    return metadata_key, ""
+
+
+def _lock_route_final_action_processing_job(
+    *,
+    verification,
+    check_type: str,
+    attempts: list[ProviderExecutionAttempt],
+    processing_job=None,
+) -> tuple[str, str]:
+    """Lock and validate the durable processing owner for route finalization."""
+    from apps.verifications.models import (
+        ProcessingJob,
+        ProcessingJobStatus,
+        ProcessingJobType,
+    )
+    from apps.verifications.processing_jobs import ProcessingJobOwnershipLost
+
+    resource_key, resource_public_id = _route_final_action_resource_reference(
+        check_type, attempts
+    )
+    if not resource_public_id:
+        if processing_job is not None:
+            raise ProcessingJobOwnershipLost(
+                "Provider route finalization is missing its durable resource reference."
+            )
+        return resource_key, resource_public_id
+
+    job_type = None
+    job_resource_public_id = resource_public_id
+    if resource_key == "identity_document_id":
+        job_type = ProcessingJobType.IDENTITY_DOCUMENT
+    elif resource_key == "liveness_check_id":
+        job_type = ProcessingJobType.BIOMETRICS
+    elif resource_key == "face_match_id":
+        from apps.biometrics.models import FaceMatch, LivenessCheck
+
+        face_match = (
+            FaceMatch.objects.select_related("selfie_capture")
+            .filter(
+                public_id=resource_public_id,
+                verification=verification,
+            )
+            .first()
+        )
+        if face_match is None:
+            if processing_job is not None:
+                raise ProcessingJobOwnershipLost(
+                    "Face-match route finalization cannot resolve its processing resource."
+                )
+            return resource_key, resource_public_id
+        liveness_check = (
+            LivenessCheck.objects.filter(
+                verification=verification,
+                selfie_capture=face_match.selfie_capture,
+            )
+            .order_by("-checked_at", "-created_at")
+            .first()
+        )
+        if liveness_check is None:
+            if processing_job is not None:
+                raise ProcessingJobOwnershipLost(
+                    "Face-match route finalization cannot resolve its liveness job."
+                )
+            return resource_key, resource_public_id
+        job_type = ProcessingJobType.BIOMETRICS
+        job_resource_public_id = liveness_check.public_id
+
+    if job_type is None:
+        return resource_key, resource_public_id
+
+    if processing_job is not None:
+        locked_job = ProcessingJob.objects.select_for_update().get(pk=processing_job.pk)
+        if (
+            locked_job.verification_id != verification.pk
+            or locked_job.job_type != job_type
+            or locked_job.resource_public_id != job_resource_public_id
+            or locked_job.status != ProcessingJobStatus.PROCESSING
+            or locked_job.attempt_count != processing_job.attempt_count
+        ):
+            raise ProcessingJobOwnershipLost(
+                f"Processing job {locked_job.public_id} no longer owns route finalization."
+            )
+        return resource_key, resource_public_id
+
+    locked_job = (
+        ProcessingJob.objects.select_for_update()
+        .filter(
+            verification=verification,
+            job_type=job_type,
+            resource_public_id=job_resource_public_id,
+        )
+        .first()
+    )
+    if locked_job is not None and locked_job.status in {
+        ProcessingJobStatus.EXHAUSTED,
+        ProcessingJobStatus.COMPLETED,
+    }:
+        raise ProcessingJobOwnershipLost(
+            f"Processing job {locked_job.public_id} no longer owns route finalization."
+        )
+    return resource_key, resource_public_id
+
+
 @transaction.atomic
 def _apply_route_final_action(
-    *, verification, route, check_type: str, attempts: list[ProviderExecutionAttempt]
+    *,
+    verification,
+    route,
+    check_type: str,
+    attempts: list[ProviderExecutionAttempt],
+    processing_job=None,
 ) -> str:
     from apps.audit.services import record_audit_event
     from apps.notifications.services import queue_verification_status_notifications
     from apps.webhooks.services import queue_webhook_events
     from apps.verifications.models import (
+        Verification,
         VerificationDecision,
         VerificationDecisionType,
         VerificationStatus,
     )
     from apps.verifications.transitions import transition_verification
 
+    # Canonical lifecycle lock order: Verification first, ProcessingJob second.
+    verification = Verification.objects.select_for_update().get(pk=verification.pk)
+    resource_key, resource_public_id = _lock_route_final_action_processing_job(
+        verification=verification,
+        check_type=check_type,
+        attempts=attempts,
+        processing_job=processing_job,
+    )
     final_action = (
         route.final_action
         if route is not None
@@ -597,6 +727,17 @@ def _apply_route_final_action(
         completed_at=now if target_status == VerificationStatus.FAILED else None,
         clear_completed_at=target_status == VerificationStatus.MANUAL_REVIEW_REQUIRED,
     )
+    evidence_summary = {
+        "capability": check_type,
+        "provider_route_id": route.public_id if route is not None else "",
+        "provider_route_version": route.version if route is not None else None,
+        "attempt_count": len(attempts),
+        "error_codes": list(
+            dict.fromkeys(attempt.error_code for attempt in attempts if attempt.error_code)
+        ),
+    }
+    if resource_key and resource_public_id:
+        evidence_summary[resource_key] = resource_public_id
     VerificationDecision.objects.update_or_create(
         verification=verification,
         defaults={
@@ -607,33 +748,26 @@ def _apply_route_final_action(
             "reason_detail": (
                 "Automated providers could not complete the requested capability."
             ),
-            "evidence_summary_json": {
-                "capability": check_type,
-                "provider_route_id": route.public_id if route is not None else "",
-                "provider_route_version": route.version if route is not None else None,
-                "attempt_count": len(attempts),
-                "error_codes": list(
-                    dict.fromkeys(
-                        attempt.error_code for attempt in attempts if attempt.error_code
-                    )
-                ),
-            },
+            "evidence_summary_json": evidence_summary,
             "decided_by": None,
             "decided_at": now,
         },
     )
+    audit_metadata = {
+        "reason_code": "provider_route_exhausted",
+        "capability": check_type,
+        "provider_route_id": route.public_id if route is not None else "",
+        "attempt_count": len(attempts),
+    }
+    if resource_key and resource_public_id:
+        audit_metadata[resource_key] = resource_public_id
     record_audit_event(
         tenant=verification.tenant,
         actor=verification.verification_subject,
         action=f"verification.{target_status}",
         target_type="verification",
         target_id=verification.public_id,
-        metadata={
-            "reason_code": "provider_route_exhausted",
-            "capability": check_type,
-            "provider_route_id": route.public_id if route is not None else "",
-            "attempt_count": len(attempts),
-        },
+        metadata=audit_metadata,
     )
     event_type = f"verification.{target_status}"
     queue_webhook_events(
@@ -661,6 +795,7 @@ def execute_provider_route(
     operation: Callable[[Provider, int], dict],
     request_metadata: dict | None = None,
     initial_provider_check: ProviderCheck | None = None,
+    processing_job=None,
 ) -> ProviderRouteExecutionResult:
     """Execute bounded attempts across one resolved provider chain.
 
@@ -833,6 +968,7 @@ def execute_provider_route(
         route=route,
         check_type=check_type,
         attempts=attempts,
+        processing_job=processing_job,
     )
     raise ProviderRouteExhausted(final_action=final_action)
 

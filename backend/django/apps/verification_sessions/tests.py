@@ -1303,9 +1303,10 @@ class VerificationSessionPortalTests(APITestCase):
             "model_name": "insightface",
             "model_version": "buffalo_l",
         }
-        process_verification_biometrics_task(
-            liveness_response.data["data"]["liveness_check_id"]
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            process_verification_biometrics_task(
+                liveness_response.data["data"]["liveness_check_id"]
+            )
 
         self.verification.refresh_from_db()
         final_status = self.client.get(

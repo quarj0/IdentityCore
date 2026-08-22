@@ -55,8 +55,13 @@ def dispatch_notification_delivery(
 
     from apps.notifications.tasks import deliver_notification_task
 
+    # The notification row is the durable work item. Broker publication happens only
+    # after the surrounding domain transaction commits and must never turn a
+    # successful request into an error if the broker is temporarily unavailable.
+    # Pending rows remain recoverable by the notification processor.
     transaction.on_commit(
-        lambda: deliver_notification_task.delay(notification.public_id)
+        lambda: deliver_notification_task.delay(notification.public_id),
+        robust=True,
     )
 
 

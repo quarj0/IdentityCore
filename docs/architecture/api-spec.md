@@ -1260,6 +1260,7 @@ Implementation note:
 
 - The current Django implementation queues webhook events for later delivery, records test sends as queued `webhook.test` events, signs outbound requests, and records delivery attempts.
 - Failed webhook deliveries are retried with exponential backoff until the configured maximum attempt count is reached.
+- Lifecycle webhook rows are a transactional outbox: every domain caller creates them inside the same database transaction as the corresponding verification change. A rollback removes both changes, while the periodic webhook worker eventually delivers committed rows. Every retry reuses the outbox row's stable event ID.
 
 ---
 

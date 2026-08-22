@@ -651,7 +651,7 @@ index(next_retry_at)
 
 Implementation note:
 
-- The current Django implementation creates queued webhook events from verification workflow hooks and test sends, then delivers due events over signed HTTP with retry scheduling.
+- The current Django implementation creates queued webhook events from verification workflow hooks and test sends, then delivers due events over signed HTTP with retry scheduling. Lifecycle events must be inserted in the same database transaction as their domain transition: rolled-back changes leave no outbox row, committed rows remain available to the periodic worker, and all retry attempts reuse the row's stable public event ID.
 
 ---
 

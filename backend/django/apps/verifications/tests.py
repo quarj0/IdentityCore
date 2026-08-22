@@ -731,6 +731,52 @@ class VerificationWorkflowTests(APITestCase):
             ).exists()
         )
 
+    def test_cancel_rolls_back_domain_state_when_outbox_insert_fails(self):
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.tenant.verification_subjects.create(
+                full_name="Rollback Subject"
+            ),
+            purpose="Test transactional cancellation",
+            expires_at=timezone.now() + timedelta(hours=1),
+            status=VerificationStatus.PENDING_CONSENT,
+        )
+
+        with (
+            patch(
+                "apps.verifications.views.queue_webhook_events",
+                side_effect=RuntimeError("outbox unavailable"),
+            ),
+            self.assertRaisesMessage(RuntimeError, "outbox unavailable"),
+        ):
+            self.client.post(
+                reverse(
+                    "verification-cancel",
+                    kwargs={"verification_id": verification.public_id},
+                ),
+                {"reason": "Must roll back"},
+                format="json",
+                **self.auth_headers(),
+            )
+
+        verification.refresh_from_db()
+        self.assertEqual(verification.status, VerificationStatus.PENDING_CONSENT)
+        self.assertIsNone(verification.cancelled_at)
+        self.assertFalse(
+            AuditEvent.objects.filter(
+                tenant=self.tenant,
+                action="verification.cancelled",
+                target_id=verification.public_id,
+            ).exists()
+        )
+        self.assertFalse(
+            Notification.objects.filter(
+                tenant=self.tenant,
+                template_code="verification.cancelled",
+            ).exists()
+        )
+
     def test_cancel_terminal_verification_returns_conflict(self):
         verification = Verification.objects.create(
             tenant=self.tenant,

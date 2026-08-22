@@ -29,6 +29,9 @@ from apps.verifications.evidence import (
     download_verification_evidence_object,
     ensure_verification_evidence_report,
 )
+from apps.verifications.evidence_commit import (
+    schedule_verification_evidence_report_after_commit,
+)
 from apps.webhooks.services import queue_webhook_events
 from apps.verifications.serializers import (
     ManualReviewDecisionSerializer,
@@ -300,6 +303,7 @@ class VerificationResultView(VerificationAccessMixin, APIView):
 class VerificationCancelView(VerificationAccessMixin, APIView):
     required_scopes = ("verifications:create",)
 
+    @transaction.atomic
     def post(self, request, verification_id: str):
         verification = get_object_or_404(
             self._scope_to_client_environment(request, Verification.objects.all()),
@@ -339,7 +343,7 @@ class VerificationCancelView(VerificationAccessMixin, APIView):
             verification=verification,
             decision=VerificationStatus.CANCELLED,
         )
-        ensure_verification_evidence_report(verification)
+        schedule_verification_evidence_report_after_commit(verification)
         return success_response(
             {
                 "id": verification.public_id,
@@ -355,8 +359,7 @@ class VerificationResendLinkView(VerificationAccessMixin, APIView):
     def post(self, request, verification_id: str):
         verification = get_object_or_404(
             self._scope_to_client_environment(
-                request,
-                Verification.objects.select_related("verification_subject", "tenant"),
+                request, Verification.objects.select_related("verification_subject", "tenant")
             ),
             tenant=self._get_tenant(request),
             public_id=verification_id,
@@ -607,7 +610,7 @@ class ManualReviewDecisionView(APIView):
                     risk_assessment.risk_level if risk_assessment is not None else ""
                 ),
             )
-        ensure_verification_evidence_report(verification)
+        schedule_verification_evidence_report_after_commit(verification)
         response_data = {
             "verification_id": verification.public_id,
             "decision": decision_record.decision,
@@ -713,7 +716,7 @@ class ManualReviewApprovalView(APIView):
                     risk_assessment.risk_level if risk_assessment is not None else ""
                 ),
             )
-        ensure_verification_evidence_report(verification)
+        schedule_verification_evidence_report_after_commit(verification)
         return success_response(
             {
                 "verification_id": verification.public_id,
