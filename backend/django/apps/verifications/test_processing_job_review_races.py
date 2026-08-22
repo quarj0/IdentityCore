@@ -191,6 +191,7 @@ class ProcessingJobReviewRaceTests(TestCase):
             status=ProviderCheckStatus.COMPLETED,
             request_metadata={"liveness_check_id": liveness.public_id},
             normalized_result={
+                "capability": ProviderCheckType.LIVENESS,
                 "passed": True,
                 "score": 0.99,
                 "metrics": {"face_count": 1, "avg_detection_confidence": 0.99},

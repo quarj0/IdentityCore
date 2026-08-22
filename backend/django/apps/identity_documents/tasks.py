@@ -612,63 +612,67 @@ def process_identity_document_task(identity_document_id: str) -> str:
     except ProcessingJobOwnershipLost:
         raise
     except ProviderRouteExhausted as exc:
-        identity_document.status = (
-            IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED
-            if exc.final_action == ProviderRouteFinalAction.MANUAL_REVIEW
-            else IdentityDocumentStatus.FAILED
-        )
-        identity_document.save(update_fields=["status", "updated_at"])
-        complete_processing_job(processing_job)
-        return identity_document.status
+        with transaction.atomic():
+            lock_processing_job_for_finalization(processing_job)
+            identity_document.status = (
+                IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED
+                if exc.final_action == ProviderRouteFinalAction.MANUAL_REVIEW
+                else IdentityDocumentStatus.FAILED
+            )
+            identity_document.save(update_fields=["status", "updated_at"])
+            complete_processing_job(processing_job)
+            return identity_document.status
     except AIServiceUnavailable:
         defer_processing_job(processing_job, error_code="provider_unavailable")
         raise
     except Exception as exc:
-        logger.exception(
-            "Document processing failed for document %s and verification %s",
-            identity_document.public_id,
-            verification.public_id,
-        )
-        error_code = getattr(exc, "error_code", "provider_unavailable")
-        provider_check_status = getattr(
-            exc, "provider_check_status", ProviderCheckStatus.FAILED
-        )
-        internal_reason = getattr(exc, "reason", str(exc))
-        identity_document.status = IdentityDocumentStatus.FAILED
-        identity_document.save(update_fields=["status", "updated_at"])
-        transition_verification(verification, VerificationStatus.AWAITING_DOCUMENT)
-        for provider_check in (
-            quality_provider_check,
-            classification_provider_check,
-            ocr_provider_check,
-        ):
-            if provider_check is None:
-                continue
-            provider_check.status = provider_check_status
-            provider_check.error_code = error_code
-            provider_check.error_message = str(exc)
-            provider_check.completed_at = now
-            provider_check.save(
-                update_fields=[
-                    "status",
-                    "error_code",
-                    "error_message",
-                    "completed_at",
-                    "updated_at",
-                ]
+        with transaction.atomic():
+            lock_processing_job_for_finalization(processing_job)
+            logger.exception(
+                "Document processing failed for document %s and verification %s",
+                identity_document.public_id,
+                verification.public_id,
             )
-        record_audit_event(
-            tenant=verification.tenant,
-            actor=verification.verification_subject,
-            action="document.processing_failed",
-            target_type="verification",
-            target_id=verification.public_id,
-            metadata={"identity_document_id": identity_document.public_id},
-            sensitive_metadata={
-                "error": str(exc),
-                "reason": internal_reason,
-                "error_class": exc.__class__.__name__,
-            },
-        )
-        complete_processing_job(processing_job)
-        return identity_document.status
+            error_code = getattr(exc, "error_code", "provider_unavailable")
+            provider_check_status = getattr(
+                exc, "provider_check_status", ProviderCheckStatus.FAILED
+            )
+            internal_reason = getattr(exc, "reason", str(exc))
+            identity_document.status = IdentityDocumentStatus.FAILED
+            identity_document.save(update_fields=["status", "updated_at"])
+            transition_verification(verification, VerificationStatus.AWAITING_DOCUMENT)
+            for provider_check in (
+                quality_provider_check,
+                classification_provider_check,
+                ocr_provider_check,
+            ):
+                if provider_check is None:
+                    continue
+                provider_check.status = provider_check_status
+                provider_check.error_code = error_code
+                provider_check.error_message = str(exc)
+                provider_check.completed_at = now
+                provider_check.save(
+                    update_fields=[
+                        "status",
+                        "error_code",
+                        "error_message",
+                        "completed_at",
+                        "updated_at",
+                    ]
+                )
+            record_audit_event(
+                tenant=verification.tenant,
+                actor=verification.verification_subject,
+                action="document.processing_failed",
+                target_type="verification",
+                target_id=verification.public_id,
+                metadata={"identity_document_id": identity_document.public_id},
+                sensitive_metadata={
+                    "error": str(exc),
+                    "reason": internal_reason,
+                    "error_class": exc.__class__.__name__,
+                },
+            )
+            complete_processing_job(processing_job)
+            return identity_document.status
