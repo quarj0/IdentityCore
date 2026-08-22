@@ -71,7 +71,7 @@ async function assertNoSeriousViolations(page: Page) {
 }
 
 async function mockAdminBackend(page: Page) {
-  await page.route("http://localhost:8000/**", async (route: Route) => {
+  const handler = async (route: Route) => {
     const request = route.request();
     const corsHeaders = {
       "Access-Control-Allow-Credentials": "true",
@@ -82,14 +82,15 @@ async function mockAdminBackend(page: Page) {
     };
 
     if (request.method() === "OPTIONS") {
-      return route.fulfill({ status: 204, headers: corsHeaders });
+      await route.fulfill({ status: 204, headers: corsHeaders });
+      return;
     }
 
     if (new URL(request.url()).pathname.endsWith("/api/graphql")) {
       const payload = request.postDataJSON() as { query?: string };
       const query = payload.query ?? "";
       if (query.includes("mutation ReviewOrganization")) {
-        return route.fulfill({
+        await route.fulfill({
           status: 200,
           contentType: "application/json",
           headers: corsHeaders,
@@ -105,9 +106,10 @@ async function mockAdminBackend(page: Page) {
             },
           }),
         });
+        return;
       }
       if (query.includes("OrganizationReviewQueue")) {
-        return route.fulfill({
+        await route.fulfill({
           status: 200,
           contentType: "application/json",
           headers: corsHeaders,
@@ -115,16 +117,18 @@ async function mockAdminBackend(page: Page) {
             data: { organizationReviewQueue: [reviewItem] },
           }),
         });
+        return;
       }
-      return route.fulfill({
+      await route.fulfill({
         status: 200,
         contentType: "application/json",
         headers: corsHeaders,
         body: JSON.stringify({ data: { organizationReview: reviewItem } }),
       });
+      return;
     }
 
-    return route.fulfill({
+    await route.fulfill({
       status: 200,
       contentType: "application/json",
       headers: corsHeaders,
@@ -141,14 +145,22 @@ async function mockAdminBackend(page: Page) {
         request_id: "req_accessibility",
       }),
     });
-  });
+  };
+
+  await page.route("**/api/v1/**", handler);
+  await page.route("**/api/graphql", handler);
 }
 
 test("review queue and decision flow are WCAG-clean and keyboard operable", async ({
   page,
 }) => {
   await mockAdminBackend(page);
+  const currentUserResponse = page.waitForResponse((response) =>
+    response.url().includes("/api/v1/auth/me"),
+  );
   await page.goto("/review");
+  await expect((await currentUserResponse).status()).toBe(200);
+  await expect(page).toHaveURL(/\/review$/);
   await expect(
     page.getByRole("heading", { name: /organization review/i }),
   ).toBeVisible();
