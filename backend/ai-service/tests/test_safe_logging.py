@@ -35,8 +35,9 @@ def test_managed_ai_uses_shared_nested_redaction_corpus():
     assert redacted["request"]["email"] == REDACTED
     assert redacted["request"]["document_number"] == REDACTED
     assert redacted["request"]["safe_operation"] == "face_compare"
-    assert redacted["biometrics"]["face_embedding"] == REDACTED
-    assert redacted["biometrics"]["selfie_image"] == REDACTED
+    # A container explicitly named "biometrics" is sensitive as a whole. The
+    # redactor intentionally fails closed instead of retaining its structure.
+    assert redacted["biometrics"] == REDACTED
 
 
 def test_managed_ai_logger_redacts_structured_context_and_exception_text():
