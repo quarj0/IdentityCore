@@ -101,7 +101,9 @@ _SENSITIVE_FRAGMENTS = (
 )
 
 _BEARER_RE = re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]+")
-_JWT_RE = re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b")
+_JWT_RE = re.compile(
+    r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b"
+)
 _EMAIL_RE = re.compile(
     r"(?<![\w.+-])[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}(?![\w.-])",
     re.IGNORECASE,
@@ -117,6 +119,13 @@ _CREDENTIAL_ASSIGNMENT_RE = re.compile(
     r"\s*[:=]\s*([\"']?)([^\s,;\"'}]+)\2"
 )
 _AWS_ACCESS_KEY_RE = re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b")
+_STANDARD_LOG_RECORD_ATTRS = frozenset(
+    {
+        *logging.LogRecord(None, 0, "", 0, "", (), None).__dict__.keys(),
+        "asctime",
+        "message",
+    }
+)
 
 _INSTALL_LOCK = Lock()
 _INSTALLED = False
@@ -167,24 +176,27 @@ def redact_value(value: Any, *, key: object | None = None, _depth: int = 0) -> A
         return value
     if isinstance(value, str):
         return redact_text(value)
+    if isinstance(value, BaseException):
+        return f"{value.__class__.__name__}: {redact_text(str(value))}"
     if isinstance(value, (bytes, bytearray, memoryview)):
         return REDACTED_BINARY
     if isinstance(value, Mapping):
-        return {
-            str(item_key): redact_value(
+        redacted_mapping = {}
+        for item_key, item_value in value.items():
+            safe_key = redact_text(str(item_key))
+            redacted_mapping[safe_key] = redact_value(
                 item_value,
                 key=item_key,
                 _depth=_depth + 1,
             )
-            for item_key, item_value in value.items()
-        }
+        return redacted_mapping
     if isinstance(value, tuple):
         return tuple(redact_value(item, _depth=_depth + 1) for item in value)
     if isinstance(value, list):
         return [redact_value(item, _depth=_depth + 1) for item in value]
     if isinstance(value, (set, frozenset)):
         return [redact_value(item, _depth=_depth + 1) for item in value]
-    return value
+    return redact_text(str(value))
 
 
 def _redact_exception(
@@ -203,10 +215,8 @@ def sanitize_log_record(record: logging.LogRecord) -> logging.LogRecord:
         else:
             record.args = tuple(redact_value(item) for item in record.args)
 
-    standard = set(logging.LogRecord(None, 0, "", 0, "", (), None).__dict__)
-    standard.update({"message", "asctime"})
     for field, value in list(record.__dict__.items()):
-        if field in standard or field.startswith("_"):
+        if field in _STANDARD_LOG_RECORD_ATTRS or field.startswith("_"):
             continue
         record.__dict__[field] = redact_value(value, key=field)
 
