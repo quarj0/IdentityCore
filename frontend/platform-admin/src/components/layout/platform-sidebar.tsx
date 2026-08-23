@@ -31,7 +31,7 @@ export function PlatformSidebar({
 
         <div>
           <p className="text-sm font-semibold text-slate-950">IdentityCore</p>
-          <p className="text-xs text-slate-400">Platform Admin</p>
+          <p className="text-xs text-slate-600">Platform Admin</p>
         </div>
       </Link>
 
@@ -52,7 +52,7 @@ export function PlatformSidebar({
                 "focus-visible:ring-2 focus-visible:ring-cyan-300",
                 isActive
                   ? "bg-white text-slate-950"
-                  : "text-slate-400 hover:bg-white/5 hover:text-slate-950",
+                  : "text-slate-600 hover:bg-white/5 hover:text-slate-950",
               )}
             >
               <item.icon className="size-4" aria-hidden="true" />
