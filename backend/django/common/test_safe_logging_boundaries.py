@@ -3,7 +3,7 @@ import logging
 
 from django.test import SimpleTestCase
 
-from common.safe_logging import install_safe_logging
+from common.safe_logging import LOG_FORMAT_ERROR, install_safe_logging
 
 
 class SafeLoggingBoundaryTests(SimpleTestCase):
@@ -77,3 +77,16 @@ class SafeLoggingBoundaryTests(SimpleTestCase):
         self.assertNotIn("Ada Lovelace", output)
         self.assertNotIn("customer-4482", output)
         self.assertIn("status=pending", output)
+
+    def test_malformed_format_string_does_not_raise_or_render_arguments(self):
+        logger, stream = self._capture("identitycore.format-error-test")
+        logger.info(
+            "provider failed without placeholder",
+            "secret-that-must-not-render",
+            extra={"context": {"status": "failed"}},
+        )
+
+        output = stream.getvalue()
+        self.assertNotIn("secret-that-must-not-render", output)
+        self.assertIn(LOG_FORMAT_ERROR, output)
+        self.assertIn("failed", output)
