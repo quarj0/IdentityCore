@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
+import { safeLog } from "@identitycore/api-client";
 import { Button } from "@identitycore/ui";
 import { VerificationShell } from "@/components/layout/verification-shell";
 
@@ -13,10 +14,11 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Errors here are boundary-level render failures, not the flow's own
-    // handled error state. Avoid logging identity evidence or session
-    // tokens; only the error/digest are safe to surface.
-    console.error(error);
+    safeLog("error", "verification_portal_render_error", {
+      error_name: error.name,
+      error_message: error.message,
+      digest: error.digest ?? "",
+    });
   }, [error]);
 
   return (
