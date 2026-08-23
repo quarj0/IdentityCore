@@ -10,6 +10,7 @@ from typing import Any
 REDACTED = "[REDACTED]"
 REDACTED_BINARY = "[REDACTED_BINARY]"
 MAX_REDACTION_DEPTH = 12
+LOG_FORMAT_ERROR = "[LOG_FORMAT_ERROR]"
 
 _SENSITIVE_KEYS = frozenset(
     {
@@ -224,9 +225,13 @@ def sanitize_log_record(record: logging.LogRecord) -> logging.LogRecord:
     """Sanitize rendered messages, structured extras, stack text, and exceptions."""
     if record.args:
         # Render once using Python logging's normal interpolation rules, then redact
-        # the complete result. Redacting the template before interpolation can remove
-        # placeholders and cause handlers to fail with formatting errors.
-        record.msg = redact_text(record.getMessage())
+        # the complete result. If the caller supplied a malformed format string,
+        # discard the args instead of letting logging break request/worker execution.
+        try:
+            rendered_message = record.getMessage()
+        except (TypeError, ValueError):
+            rendered_message = f"{redact_value(record.msg)} {LOG_FORMAT_ERROR}"
+        record.msg = redact_text(str(rendered_message))
         record.args = ()
     else:
         record.msg = redact_value(record.msg)
@@ -264,6 +269,7 @@ def install_safe_logging() -> None:
 
 
 __all__ = [
+    "LOG_FORMAT_ERROR",
     "REDACTED",
     "REDACTED_BINARY",
     "install_safe_logging",
