@@ -71,6 +71,8 @@ async function assertNoSeriousViolations(page: Page) {
 }
 
 async function mockAdminBackend(page: Page) {
+  let currentReviewItem = { ...reviewItem };
+
   const handler = async (route: Route) => {
     const request = route.request();
     const corsHeaders = {
@@ -87,9 +89,19 @@ async function mockAdminBackend(page: Page) {
     }
 
     if (new URL(request.url()).pathname.endsWith("/api/graphql")) {
-      const payload = request.postDataJSON() as { query?: string };
+      const payload = request.postDataJSON() as {
+        query?: string;
+        variables?: { decision?: string; note?: string };
+      };
       const query = payload.query ?? "";
       if (query.includes("mutation ReviewOrganization")) {
+        const decision = payload.variables?.decision ?? "approved";
+        currentReviewItem = {
+          ...currentReviewItem,
+          organizationVerificationReviewStatus: decision,
+          organizationVerificationReviewNote:
+            payload.variables?.note ?? currentReviewItem.organizationVerificationReviewNote,
+        };
         await route.fulfill({
           status: 200,
           contentType: "application/json",
@@ -97,11 +109,8 @@ async function mockAdminBackend(page: Page) {
           body: JSON.stringify({
             data: {
               reviewOrganizationOnboarding: {
-                nextAction: "approved",
-                onboarding: {
-                  ...reviewItem,
-                  organizationVerificationReviewStatus: "approved",
-                },
+                nextAction: decision,
+                onboarding: currentReviewItem,
               },
             },
           }),
@@ -114,7 +123,7 @@ async function mockAdminBackend(page: Page) {
           contentType: "application/json",
           headers: corsHeaders,
           body: JSON.stringify({
-            data: { organizationReviewQueue: [reviewItem] },
+            data: { organizationReviewQueue: [currentReviewItem] },
           }),
         });
         return;
@@ -123,7 +132,7 @@ async function mockAdminBackend(page: Page) {
         status: 200,
         contentType: "application/json",
         headers: corsHeaders,
-        body: JSON.stringify({ data: { organizationReview: reviewItem } }),
+        body: JSON.stringify({ data: { organizationReview: currentReviewItem } }),
       });
       return;
     }
