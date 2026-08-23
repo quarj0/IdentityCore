@@ -32,16 +32,21 @@ _SENSITIVE_KEYS = frozenset(
         "session_token",
         "set_cookie",
         "token",
-        # Direct identifiers / PII.
+        # Direct identifiers / PII / correlation values that may identify a subject.
         "address",
         "birth_date",
+        "client_ip",
         "date_of_birth",
+        "device_fingerprint",
         "dob",
         "document_number",
         "email",
+        "external_reference",
         "first_name",
         "full_name",
         "ghana_card_number",
+        "ip",
+        "ip_address",
         "last_name",
         "middle_name",
         "national_id",
@@ -49,8 +54,12 @@ _SENSITIVE_KEYS = frozenset(
         "phone",
         "phone_number",
         "postal_address",
+        "remote_addr",
+        "subject_id",
         "tax_identification_number",
         "tin",
+        "user_agent",
+        "verification_subject_id",
         # Evidence locations and raw document / biometric material.
         "biometric_payload",
         "biometric_template",
@@ -82,13 +91,16 @@ _SENSITIVE_SUFFIXES = (
     "_client_secret",
     "_credential",
     "_credentials",
+    "_fingerprint",
     "_password",
     "_private_key",
     "_refresh_token",
     "_secret",
     "_session_token",
     "_storage_key",
+    "_subject_id",
     "_token",
+    "_user_agent",
 )
 
 _SENSITIVE_FRAGMENTS = (
@@ -114,9 +126,11 @@ _CREDENTIAL_ASSIGNMENT_RE = re.compile(
     r"(?i)\b(authorization|password|passcode|secret|token|api[_-]?key|client[_-]?secret|"
     r"access[_-]?key|refresh[_-]?token|session[_-]?token|cookie|email|phone(?:_number)?|"
     r"first[_-]?name|last[_-]?name|full[_-]?name|address|document[_-]?number|passport[_-]?number|"
-    r"national[_-]?id|date[_-]?of[_-]?birth|dob|selfie(?:_image)?|image[_-]?base64|ocr[_-]?text|mrz|"
+    r"national[_-]?id|date[_-]?of[_-]?birth|dob|external[_-]?reference|device[_-]?fingerprint|"
+    r"subject[_-]?id|verification[_-]?subject[_-]?id|client[_-]?ip|ip[_-]?address|remote[_-]?addr|"
+    r"user[_-]?agent|selfie(?:_image)?|image[_-]?base64|ocr[_-]?text|mrz|"
     r"biometric[_-]?(?:payload|template))\b"
-    r"\s*[:=]\s*([\"']?)([^\s,;\"'}]+)\2"
+    r"\s*[:=]\s*([\"']?)([^,;\n\r\"'}]+)\2"
 )
 _AWS_ACCESS_KEY_RE = re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b")
 _STANDARD_LOG_RECORD_ATTRS = frozenset(
