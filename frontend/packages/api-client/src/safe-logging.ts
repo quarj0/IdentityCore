@@ -12,17 +12,20 @@ const SENSITIVE_KEYS = new Set([
   "biometric_payload",
   "biometric_template",
   "birth_date",
+  "client_ip",
   "client_secret",
   "cookie",
   "credentials",
   "csrf_token",
   "date_of_birth",
+  "device_fingerprint",
   "dob",
   "document_bytes",
   "document_image",
   "document_number",
   "document_storage_key",
   "email",
+  "external_reference",
   "face_embedding",
   "face_image",
   "first_name",
@@ -32,6 +35,8 @@ const SENSITIVE_KEYS = new Set([
   "image",
   "image_base64",
   "image_bytes",
+  "ip",
+  "ip_address",
   "last_name",
   "liveness_video",
   "middle_name",
@@ -48,6 +53,7 @@ const SENSITIVE_KEYS = new Set([
   "raw_image",
   "raw_ocr",
   "refresh_token",
+  "remote_addr",
   "secret",
   "secret_access_key",
   "selfie",
@@ -56,9 +62,12 @@ const SENSITIVE_KEYS = new Set([
   "session_token",
   "set_cookie",
   "storage_key",
+  "subject_id",
   "tax_identification_number",
   "tin",
   "token",
+  "user_agent",
+  "verification_subject_id",
 ]);
 
 const SENSITIVE_SUFFIXES = [
@@ -68,13 +77,16 @@ const SENSITIVE_SUFFIXES = [
   "_client_secret",
   "_credential",
   "_credentials",
+  "_fingerprint",
   "_password",
   "_private_key",
   "_refresh_token",
   "_secret",
   "_session_token",
   "_storage_key",
+  "_subject_id",
   "_token",
+  "_user_agent",
 ];
 
 const SENSITIVE_FRAGMENTS = [
@@ -113,7 +125,7 @@ export function redactLogText(value: string): string {
     )
     .replace(/\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g, REDACTED)
     .replace(
-      /\b(authorization|password|passcode|secret|token|api[_-]?key|client[_-]?secret|access[_-]?key|refresh[_-]?token|session[_-]?token|cookie|email|phone(?:_number)?|first[_-]?name|last[_-]?name|full[_-]?name|address|document[_-]?number|passport[_-]?number|national[_-]?id|date[_-]?of[_-]?birth|dob|selfie(?:_image)?|image[_-]?base64|ocr[_-]?text|mrz|biometric[_-]?(?:payload|template))\b\s*[:=]\s*(["']?)([^\s,;"'}]+)\2/gi,
+      /\b(authorization|password|passcode|secret|token|api[_-]?key|client[_-]?secret|access[_-]?key|refresh[_-]?token|session[_-]?token|cookie|email|phone(?:_number)?|first[_-]?name|last[_-]?name|full[_-]?name|address|document[_-]?number|passport[_-]?number|national[_-]?id|date[_-]?of[_-]?birth|dob|external[_-]?reference|device[_-]?fingerprint|subject[_-]?id|verification[_-]?subject[_-]?id|client[_-]?ip|ip[_-]?address|remote[_-]?addr|user[_-]?agent|selfie(?:_image)?|image[_-]?base64|ocr[_-]?text|mrz|biometric[_-]?(?:payload|template))\b\s*[:=]\s*(["']?)([^,;\n\r"'}]+)\2/gi,
       (_match, label: string) => `${label}=${REDACTED}`,
     )
     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, REDACTED)
@@ -140,7 +152,11 @@ export function redactLogValue(
   if (typeof value === "object") {
     const output: Record<string, unknown> = {};
     for (const [entryKey, entryValue] of Object.entries(value)) {
-      output[entryKey] = redactLogValue(entryValue, entryKey, depth + 1);
+      output[redactLogText(entryKey)] = redactLogValue(
+        entryValue,
+        entryKey,
+        depth + 1,
+      );
     }
     return output;
   }
