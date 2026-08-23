@@ -374,6 +374,7 @@ export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
             description="Record the reason for the decision and guide the tenant if more information is needed."
           >
             <Textarea
+              aria-label="Review note"
               value={note}
               onChange={(event) => setNote(event.target.value)}
               placeholder="Add a reviewer note..."
