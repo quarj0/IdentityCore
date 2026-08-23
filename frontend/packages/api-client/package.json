@@ -7,6 +7,9 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "scripts": {
+    "lint": "tsc -p tsconfig.json && tsc -p tsconfig.safe-logging.json && node --test test/safe-logging.test.mjs && node ../../scripts/check-safe-logging.mjs"
+  },
   "devDependencies": {
     "typescript": "^5"
   }
