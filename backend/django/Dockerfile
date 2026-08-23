@@ -10,7 +10,7 @@ WORKDIR /app
 RUN apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends build-essential libpq-dev \
-    && rm -rf /var/lib/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
 COPY backend/pyproject.toml backend/uv.lock /app/backend/
 RUN uv export \
