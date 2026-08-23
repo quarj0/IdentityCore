@@ -25,6 +25,10 @@ test("redacts nested credentials, PII, evidence, and binary values", () => {
       email: "ada@example.test",
       phone_number: "+233241234567",
       document_number: "GHA-123456789",
+      external_reference: "customer-4482",
+      device_fingerprint: "device-secret",
+      user_agent: "browser-fingerprint",
+      verification_subject_id: "vs_sensitive",
       safe_status: "pending_review",
     },
     evidence: {
@@ -39,6 +43,10 @@ test("redacts nested credentials, PII, evidence, and binary values", () => {
   assert.equal(redacted.profile.email, REDACTED);
   assert.equal(redacted.profile.phone_number, REDACTED);
   assert.equal(redacted.profile.document_number, REDACTED);
+  assert.equal(redacted.profile.external_reference, REDACTED);
+  assert.equal(redacted.profile.device_fingerprint, REDACTED);
+  assert.equal(redacted.profile.user_agent, REDACTED);
+  assert.equal(redacted.profile.verification_subject_id, REDACTED);
   assert.equal(redacted.profile.safe_status, "pending_review");
   assert.equal(redacted.evidence.selfie_image, REDACTED);
   assert.equal(redacted.evidence.face_embedding, REDACTED);
@@ -46,14 +54,14 @@ test("redacts nested credentials, PII, evidence, and binary values", () => {
   assert.equal(redacted.binary, REDACTED_BINARY);
 });
 
-test("redacts secrets and identifiers embedded in free text", () => {
+test("redacts secrets and multiword identifiers embedded in free text", () => {
   const output = redactLogText(
-    "token=top-secret email=ada@example.test phone=+233241234567 document_number=GHA-123 Authorization: Bearer bearer-secret",
+    "full_name=Ada Lovelace; token=top-secret; email=ada@example.test; phone=+233241234567; external_reference=customer-4482; document_number=GHA-123; Authorization: Bearer bearer-secret",
   );
 
   assert.doesNotMatch(
     output,
-    /top-secret|ada@example\.test|233241234567|GHA-123|bearer-secret/,
+    /Ada Lovelace|top-secret|ada@example\.test|233241234567|customer-4482|GHA-123|bearer-secret/,
   );
   assert.match(output, /\[REDACTED\]/);
 });
