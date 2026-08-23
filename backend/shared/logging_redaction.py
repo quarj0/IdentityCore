@@ -221,13 +221,15 @@ def _redact_exception(
 
 
 def sanitize_log_record(record: logging.LogRecord) -> logging.LogRecord:
-    """Sanitize message args, structured extras, stack text, and exception text in place."""
-    record.msg = redact_value(record.msg)
+    """Sanitize rendered messages, structured extras, stack text, and exceptions."""
     if record.args:
-        if isinstance(record.args, Mapping):
-            record.args = redact_value(record.args)
-        else:
-            record.args = tuple(redact_value(item) for item in record.args)
+        # Render once using Python logging's normal interpolation rules, then redact
+        # the complete result. Redacting the template before interpolation can remove
+        # placeholders and cause handlers to fail with formatting errors.
+        record.msg = redact_text(record.getMessage())
+        record.args = ()
+    else:
+        record.msg = redact_value(record.msg)
 
     for field, value in list(record.__dict__.items()):
         if field in _STANDARD_LOG_RECORD_ATTRS or field.startswith("_"):
