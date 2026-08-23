@@ -1,8 +1,16 @@
 import { readFileSync, readdirSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const frontendRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const require = createRequire(import.meta.url);
+const ts = require(
+  resolve(
+    frontendRoot,
+    "packages/api-client/node_modules/typescript/lib/typescript.js",
+  ),
+);
 const allowedConsoleFile = resolve(
   frontendRoot,
   "packages/api-client/src/safe-logging.ts",
@@ -16,7 +24,7 @@ const sourceRoots = [
   "packages",
 ].map((path) => resolve(frontendRoot, path));
 const extensions = new Set([".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"]);
-const directConsole = /\bconsole\.(?:debug|info|log|warn|error|trace)\s*\(/;
+const consoleMethods = new Set(["debug", "info", "log", "warn", "error", "trace"]);
 const skipDirectories = new Set([
   ".next",
   ".safe-logging-test",
@@ -27,6 +35,42 @@ const skipDirectories = new Set([
   "test",
   "tests",
 ]);
+
+function scriptKind(path) {
+  if (path.endsWith(".tsx")) return ts.ScriptKind.TSX;
+  if (path.endsWith(".jsx")) return ts.ScriptKind.JSX;
+  if (path.endsWith(".ts")) return ts.ScriptKind.TS;
+  return ts.ScriptKind.JS;
+}
+
+function containsDirectConsoleCall(path, source) {
+  const sourceFile = ts.createSourceFile(
+    path,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    scriptKind(path),
+  );
+  let found = false;
+
+  function visit(node) {
+    if (found) return;
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      ts.isIdentifier(node.expression.expression) &&
+      node.expression.expression.text === "console" &&
+      consoleMethods.has(node.expression.name.text)
+    ) {
+      found = true;
+      return;
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return found;
+}
 
 function walk(path, findings) {
   for (const entry of readdirSync(path, { withFileTypes: true })) {
@@ -40,7 +84,9 @@ function walk(path, findings) {
     if (/\.(?:spec|test)\.[cm]?[jt]sx?$/.test(entry.name)) continue;
     if (absolute === allowedConsoleFile) continue;
     const source = readFileSync(absolute, "utf8");
-    if (directConsole.test(source)) findings.push(relative(frontendRoot, absolute));
+    if (containsDirectConsoleCall(absolute, source)) {
+      findings.push(relative(frontendRoot, absolute));
+    }
   }
 }
 
