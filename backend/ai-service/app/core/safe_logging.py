@@ -8,6 +8,7 @@ if str(_BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(_BACKEND_ROOT))
 
 from shared.logging_redaction import (  # noqa: E402
+    LOG_FORMAT_ERROR,
     REDACTED,
     REDACTED_BINARY,
     install_safe_logging,
@@ -18,6 +19,7 @@ from shared.logging_redaction import (  # noqa: E402
 )
 
 __all__ = [
+    "LOG_FORMAT_ERROR",
     "REDACTED",
     "REDACTED_BINARY",
     "install_safe_logging",
