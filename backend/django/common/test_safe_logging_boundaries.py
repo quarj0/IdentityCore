@@ -117,3 +117,38 @@ class SafeLoggingBoundaryTests(SimpleTestCase):
         self.assertNotIn("secret-that-must-not-render", output)
         self.assertIn(LOG_FORMAT_ERROR, output)
         self.assertIn("failed", output)
+
+    def test_all_sensitive_keys_are_redacted_in_serialized_text(self):
+        from common.safe_logging import redact_text
+        from shared.logging_redaction import _SENSITIVE_KEYS
+
+        for key in _SENSITIVE_KEYS:
+            for spelling in (key, key.replace("_", "-"), key.upper()):
+                for message in (
+                    f'{{"{spelling}":"private-value"}}',
+                    f"?{spelling}=private-value&status=failed",
+                    f"{spelling}='private-value'; status=failed",
+                ):
+                    with self.subTest(message=message):
+                        self.assertNotIn("private-value", redact_text(message))
+        for message in (
+            '{"context":{"access_token":"private-value"}}',
+            '{"face_embedding":["private-value", "second-private"]}',
+            '{"private_key":"private-value\\"still-private"}',
+        ):
+            self.assertNotIn("private-value", redact_text(message))
+            self.assertNotIn("second-private", redact_text(message))
+            self.assertNotIn("still-private", redact_text(message))
+
+    def test_underscore_prefixed_extras_are_sanitized(self):
+        logger, stream = self._capture("identitycore.private-extra-test")
+        logger.handlers[0].setFormatter(logging.Formatter("%(_password)s %(_context)s"))
+        logger.info(
+            "request failed",
+            extra={
+                "_password": "private-password",
+                "_context": {"token": "private-token"},
+            },
+        )
+        self.assertNotIn("private-password", stream.getvalue())
+        self.assertNotIn("private-token", stream.getvalue())

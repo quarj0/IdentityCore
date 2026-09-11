@@ -72,3 +72,34 @@ def test_managed_ai_logger_redacts_structured_context_and_exception_text():
     assert "raw OCR contents" not in output
     assert "document_ocr" in output
     assert "Traceback" in output
+
+
+def test_uvicorn_access_formatter_preserves_protocol_without_private_data():
+    from uvicorn.logging import AccessFormatter
+
+    install_safe_logging()
+    logger = logging.getLogger("uvicorn.access")
+    previous = (logger.handlers[:], logger.propagate, logger.level)
+    stream = _capture(logger)
+    logger.handlers[0].setFormatter(
+        AccessFormatter(
+            '%(client_addr)s - "%(request_line)s" %(status_code)s', use_colors=False
+        )
+    )
+    try:
+        logger.info(
+            '%s - "%s %s HTTP/%s" %d',
+            "192.0.2.1:1234",
+            "GET",
+            "/check?access_token=private-token",
+            "1.1",
+            200,
+        )
+        output = stream.getvalue()
+        assert "GET" in output
+        assert "200 OK" in output
+        assert "private-token" not in output
+        assert "192.0.2.1" not in output
+        assert "HTTP/1.1" in output
+    finally:
+        logger.handlers, logger.propagate, logger.level = previous

@@ -26,6 +26,7 @@ _SENSITIVE_KEYS = frozenset(
         "csrfmiddlewaretoken",
         "id_token",
         "password",
+        "passcode",
         "private_key",
         "refresh_token",
         "secret",
@@ -121,15 +122,9 @@ _EMAIL_RE = re.compile(
 )
 _IPV4_RE = re.compile(r"(?<!\d)(?:\d{1,3}\.){3}\d{1,3}(?!\d)")
 _PHONE_RE = re.compile(r"(?<!\w)(?:\+?\d[\d ().-]{7,}\d)(?!\w)")
-_CREDENTIAL_ASSIGNMENT_RE = re.compile(
-    r"(?i)\b(authorization|password|passcode|secret|token|api[_-]?key|client[_-]?secret|"
-    r"access[_-]?key|refresh[_-]?token|session[_-]?token|cookie|email|phone(?:_number)?|"
-    r"first[_-]?name|last[_-]?name|full[_-]?name|address|document[_-]?number|passport[_-]?number|"
-    r"national[_-]?id|date[_-]?of[_-]?birth|dob|external[_-]?reference|device[_-]?fingerprint|"
-    r"subject[_-]?id|verification[_-]?subject[_-]?id|client[_-]?ip|ip[_-]?address|remote[_-]?addr|"
-    r"user[_-]?agent|selfie(?:_image)?|image[_-]?base64|ocr[_-]?text|mrz|"
-    r"biometric[_-]?(?:payload|template))\b"
-    r"\s*[:=]\s*([\"']?)([^,;\n\r\"'}]+)\2"
+_CREDENTIAL_ASSIGNMENT_RE = re.compile(r"(?P<label>[\w.-]+)[\"']?\s*[:=]\s*")
+_ASSIGNMENT_VALUE_RE = re.compile(
+    r"\[REDACTED(?:_[A-Z_]+)?\][^,;\n\r&}]*|\[[^\n\r]*|\{[^\n\r]*|\"(?:\\.|[^\"\\])*\"|'(?:\\.|[^'\\])*'|[^,;\n\r&}]+"
 )
 _AWS_ACCESS_KEY_RE = re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b")
 _STANDARD_LOG_RECORD_ATTRS = frozenset(
@@ -166,9 +161,20 @@ def redact_text(value: str) -> str:
     redacted = _BEARER_RE.sub("Bearer [REDACTED]", value)
     redacted = _JWT_RE.sub(REDACTED, redacted)
     redacted = _AWS_ACCESS_KEY_RE.sub(REDACTED, redacted)
-    redacted = _CREDENTIAL_ASSIGNMENT_RE.sub(
-        lambda match: f"{match.group(1)}={REDACTED}", redacted
-    )
+    parts = []
+    cursor = 0
+    for match in _CREDENTIAL_ASSIGNMENT_RE.finditer(redacted):
+        if match.start() < cursor or not is_sensitive_key(match.group("label")):
+            continue
+        value_match = _ASSIGNMENT_VALUE_RE.match(redacted, match.end())
+        if value_match is None:
+            continue
+        parts.extend(
+            (redacted[cursor : match.start()], f"{match.group('label')}={REDACTED}")
+        )
+        cursor = value_match.end()
+    parts.append(redacted[cursor:])
+    redacted = "".join(parts)
     redacted = _EMAIL_RE.sub(REDACTED, redacted)
     redacted = _IPV4_RE.sub(REDACTED, redacted)
     redacted = _PHONE_RE.sub(REDACTED, redacted)
@@ -221,7 +227,23 @@ def _redact_exception(
 
 def sanitize_log_record(record: logging.LogRecord) -> logging.LogRecord:
     """Sanitize rendered messages, structured extras, stack text, and exceptions."""
-    if record.args:
+    if (
+        record.name == "uvicorn.access"
+        and isinstance(record.args, tuple)
+        and len(record.args) == 5
+    ):
+        # Uvicorn's AccessFormatter unpacks this tuple after getMessage(). Keep
+        # its protocol shape, but never expose client addresses or query strings.
+        client, method, path, version, status = record.args
+        record.args = (
+            REDACTED,
+            redact_value(method),
+            REDACTED,
+            redact_value(version),
+            status,
+        )
+        record.msg = '%s - "%s %s HTTP/%s" %d'
+    elif record.args:
         # Preserve structured redaction and exception types before interpolation
         # turns arguments into plain text. Numeric arguments retain their types.
         if isinstance(record.args, Mapping):
@@ -243,7 +265,7 @@ def sanitize_log_record(record: logging.LogRecord) -> logging.LogRecord:
         record.msg = redact_value(record.msg)
 
     for field, value in list(record.__dict__.items()):
-        if field in _STANDARD_LOG_RECORD_ATTRS or field.startswith("_"):
+        if field in _STANDARD_LOG_RECORD_ATTRS:
             continue
         record.__dict__[field] = redact_value(value, key=field)
 

@@ -65,3 +65,49 @@ test("redacts secrets and multiword identifiers embedded in free text", () => {
   );
   assert.match(output, /\[REDACTED\]/);
 });
+
+test("redacts quoted keys, credential spellings, and nested serialized values", () => {
+  for (const key of [
+    "access_token",
+    "id_token",
+    "private_key",
+    "secret_access_key",
+    "document_number",
+    "csrfmiddlewaretoken",
+    "storage_key",
+    "face_embedding",
+  ]) {
+    for (const spelling of [key, key.replaceAll("_", "-"), key.toUpperCase()]) {
+      for (const value of [
+        `{"${spelling}":"private-value"}`,
+        `?${spelling}=private-value&status=failed`,
+        `${spelling}='private-value'; status=failed`,
+      ]) {
+        assert.doesNotMatch(redactLogText(value), /private-value/);
+      }
+    }
+  }
+  for (const value of [
+    '{"context":{"access_token":"private-value"}}',
+    '{"face_embedding":["private-value", "second-private"]}',
+    '{"private_key":"private-value\\"still-private"}',
+  ]) {
+    assert.doesNotMatch(
+      redactLogText(value),
+      /private-value|second-private|still-private/,
+    );
+  }
+});
+
+test("redacts all binary array views before object traversal", () => {
+  for (const view of [
+    new Uint8ClampedArray([17]),
+    new Uint16Array([18]),
+    new Float32Array([0.25]),
+    new DataView(new ArrayBuffer(4)),
+  ]) {
+    assert.deepEqual(redactLogValue({ imageData: view }), {
+      imageData: REDACTED_BINARY,
+    });
+  }
+});

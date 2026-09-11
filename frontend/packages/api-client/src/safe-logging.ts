@@ -17,6 +17,7 @@ const SENSITIVE_KEYS = new Set([
   "cookie",
   "credentials",
   "csrf_token",
+  "csrfmiddlewaretoken",
   "date_of_birth",
   "device_fingerprint",
   "dob",
@@ -45,6 +46,7 @@ const SENSITIVE_KEYS = new Set([
   "ocr_text",
   "passport_number",
   "password",
+  "passcode",
   "phone",
   "phone_number",
   "postal_address",
@@ -117,17 +119,27 @@ export function isSensitiveLogKey(key: PropertyKey): boolean {
 }
 
 export function redactLogText(value: string): string {
-  return value
+  const redacted = value
     .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [REDACTED]")
     .replace(
       /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g,
       REDACTED,
     )
-    .replace(/\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g, REDACTED)
-    .replace(
-      /\b(authorization|password|passcode|secret|token|api[_-]?key|client[_-]?secret|access[_-]?key|refresh[_-]?token|session[_-]?token|cookie|email|phone(?:_number)?|first[_-]?name|last[_-]?name|full[_-]?name|address|document[_-]?number|passport[_-]?number|national[_-]?id|date[_-]?of[_-]?birth|dob|external[_-]?reference|device[_-]?fingerprint|subject[_-]?id|verification[_-]?subject[_-]?id|client[_-]?ip|ip[_-]?address|remote[_-]?addr|user[_-]?agent|selfie(?:_image)?|image[_-]?base64|ocr[_-]?text|mrz|biometric[_-]?(?:payload|template))\b\s*[:=]\s*(["']?)([^,;\n\r"'}]+)\2/gi,
-      (_match, label: string) => `${label}=${REDACTED}`,
-    )
+    .replace(/\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g, REDACTED);
+  const assignment = /([\w.-]+)["']?\s*[:=]\s*/g;
+  const valuePattern =
+    /^(?:\[REDACTED(?:_[A-Z_]+)?\][^,;\n\r&}]*|\[[^\n\r]*|\{[^\n\r]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^,;\n\r&}]+)/;
+  let output = "";
+  let cursor = 0;
+  for (const match of redacted.matchAll(assignment)) {
+    if (match.index < cursor || !isSensitiveLogKey(match[1])) continue;
+    const start = match.index + match[0].length;
+    const valueMatch = redacted.slice(start).match(valuePattern);
+    if (!valueMatch) continue;
+    output += redacted.slice(cursor, match.index) + `${match[1]}=${REDACTED}`;
+    cursor = start + valueMatch[0].length;
+  }
+  return (output + redacted.slice(cursor))
     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, REDACTED)
     .replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, REDACTED)
     .replace(/(?:\+?\d[\d ().-]{7,}\d)/g, REDACTED);
@@ -143,7 +155,7 @@ export function redactLogValue(
   if (value === null || value === undefined) return value;
   if (typeof value === "string") return redactLogText(value);
   if (typeof value === "number" || typeof value === "boolean") return value;
-  if (value instanceof Uint8Array || value instanceof ArrayBuffer) {
+  if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) {
     return REDACTED_BINARY;
   }
   if (Array.isArray(value)) {
