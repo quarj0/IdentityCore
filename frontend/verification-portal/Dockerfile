@@ -1,7 +1,8 @@
 FROM node:22-alpine AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
-RUN corepack enable
+RUN apk upgrade --no-cache libcrypto3 libssl3 \
+    && corepack enable
 
 FROM base AS build
 WORKDIR /app
@@ -16,7 +17,8 @@ ENV NODE_ENV=production
 ENV PORT=3002
 ENV HOSTNAME=0.0.0.0
 WORKDIR /app
-RUN rm -rf /usr/local/lib/node_modules/npm \
+RUN apk upgrade --no-cache libcrypto3 libssl3 \
+    && rm -rf /usr/local/lib/node_modules/npm \
     && rm -f /usr/local/bin/npm /usr/local/bin/npx \
     && addgroup --system --gid 1001 nodejs \
     && adduser --system --uid 1001 nextjs
