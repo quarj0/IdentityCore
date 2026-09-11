@@ -103,3 +103,23 @@ def test_uvicorn_access_formatter_preserves_protocol_without_private_data():
         assert "HTTP/1.1" in output
     finally:
         logger.handlers, logger.propagate, logger.level = previous
+
+
+def test_numpy_buffers_do_not_render_pixels_or_embeddings():
+    import numpy as np
+    from app.core.safe_logging import REDACTED_BINARY
+
+    for value in (
+        np.array([17, 18], dtype=np.uint8),
+        np.array([0.125, 0.25], dtype=np.float32),
+    ):
+        assert redact_value({"frame": value}) == {"frame": REDACTED_BINARY}
+
+
+def test_missing_media_error_does_not_expose_evidence_location():
+    from app.pipeline import MediaAssetNotFoundError
+
+    error = MediaAssetNotFoundError("tenant/evidence/private.jpg", "private-bucket")
+    assert "tenant/evidence/private.jpg" not in str(error)
+    assert "private-bucket" not in str(error)
+    assert "media_asset_not_found" in str(error)

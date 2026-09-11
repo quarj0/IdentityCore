@@ -111,3 +111,41 @@ test("redacts all binary array views before object traversal", () => {
     });
   }
 });
+
+test("redacts deployed credential names, signatures, and IPv6 addresses", () => {
+  for (const key of [
+    "SECRET_KEY",
+    "DJANGO_SECRET_KEY",
+    "object_storage_access_key_id",
+    "object_storage_secret_access_key",
+    "aws_access_key_id",
+    "aws_secret_access_key",
+    "X-Amz-Signature",
+    "X-IdentityCore-Signature",
+  ]) {
+    assert.equal(redactLogValue({ [key]: "private-value" })[key], REDACTED);
+    assert.doesNotMatch(
+      redactLogText(`?${key}=private-value&status=ok`),
+      /private-value/,
+    );
+  }
+  for (const address of [
+    "2001:db8:1234:5678:9abc:def0:1234:5678",
+    "2001:db8::1",
+    "::1",
+    "::ffff:192.0.2.1",
+    "fe80::1%eth0",
+  ]) {
+    assert.ok(
+      !redactLogText(`client connected from [${address}]`).includes(address),
+    );
+  }
+  assert.equal(
+    redactLogText("time 12:34:56; status=ok"),
+    "time 12:34:56; status=ok",
+  );
+  assert.doesNotMatch(
+    redactLogText("token=[REDACTED]private-value; status=ok"),
+    /private-value/,
+  );
+});

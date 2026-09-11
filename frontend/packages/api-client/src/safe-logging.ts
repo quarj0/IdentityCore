@@ -5,6 +5,9 @@ const MAX_REDACTION_DEPTH = 12;
 
 const SENSITIVE_KEYS = new Set([
   "access_key",
+  "access_key_id",
+  "secret_key",
+  "signature",
   "access_token",
   "address",
   "api_key",
@@ -73,6 +76,10 @@ const SENSITIVE_KEYS = new Set([
 ]);
 
 const SENSITIVE_SUFFIXES = [
+  "_secret_key",
+  "_access_key",
+  "_access_key_id",
+  "_signature",
   "_access_token",
   "_api_key",
   "_authorization",
@@ -118,6 +125,30 @@ export function isSensitiveLogKey(key: PropertyKey): boolean {
   );
 }
 
+function isIpv6(value: string): boolean {
+  const address = value.split("%")[0];
+  if (!address.includes(":")) return false;
+  let normalized = address;
+  if (address.includes(".")) {
+    const lastColon = address.lastIndexOf(":");
+    const octets = address.slice(lastColon + 1).split(".");
+    if (
+      octets.length !== 4 ||
+      octets.some((part) => !/^\d{1,3}$/.test(part) || Number(part) > 255)
+    )
+      return false;
+    normalized = address.slice(0, lastColon + 1) + "0:0";
+  }
+  const parts = normalized.split(":");
+  if (parts.some((part) => !/^[0-9a-f]{0,4}$/i.test(part))) return false;
+  if (!normalized.includes("::"))
+    return parts.length === 8 && parts.every(Boolean);
+  if (normalized.indexOf("::") !== normalized.lastIndexOf("::")) return false;
+  if (normalized.startsWith(":") && !normalized.startsWith("::")) return false;
+  if (normalized.endsWith(":") && !normalized.endsWith("::")) return false;
+  return parts.filter(Boolean).length < 8;
+}
+
 export function redactLogText(value: string): string {
   const redacted = value
     .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [REDACTED]")
@@ -141,6 +172,9 @@ export function redactLogText(value: string): string {
   }
   return (output + redacted.slice(cursor))
     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, REDACTED)
+    .replace(/(?<![\w:])[0-9a-f:]*:[0-9a-f:.]*(?:%[\w.-]+)?/gi, (address) =>
+      isIpv6(address) ? REDACTED : address,
+    )
     .replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, REDACTED)
     .replace(/(?:\+?\d[\d ().-]{7,}\d)/g, REDACTED);
 }

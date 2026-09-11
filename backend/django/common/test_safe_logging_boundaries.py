@@ -152,3 +152,45 @@ class SafeLoggingBoundaryTests(SimpleTestCase):
         )
         self.assertNotIn("private-password", stream.getvalue())
         self.assertNotIn("private-token", stream.getvalue())
+
+    def test_deployed_credentials_signatures_and_ipv6_are_redacted(self):
+        from common.safe_logging import REDACTED, redact_text, redact_value
+
+        for key in (
+            "SECRET_KEY",
+            "DJANGO_SECRET_KEY",
+            "object_storage_access_key_id",
+            "object_storage_secret_access_key",
+            "aws_access_key_id",
+            "aws_secret_access_key",
+            "X-Amz-Signature",
+            "X-IdentityCore-Signature",
+        ):
+            self.assertEqual(redact_value({key: "private-value"})[key], REDACTED)
+            self.assertNotIn(
+                "private-value", redact_text(f"?{key}=private-value&status=ok")
+            )
+        for address in (
+            "2001:db8:1234:5678:9abc:def0:1234:5678",
+            "2001:db8::1",
+            "::1",
+            "::ffff:192.0.2.1",
+            "fe80::1%eth0",
+        ):
+            self.assertNotIn(address, redact_text(f"client connected from [{address}]"))
+        self.assertEqual(
+            redact_text("time 12:34:56; status=ok"), "time 12:34:56; status=ok"
+        )
+        self.assertNotIn(
+            "private-value", redact_text("token=[REDACTED]private-value; status=ok")
+        )
+
+    def test_missing_mapping_key_and_overflow_do_not_escape_logging(self):
+        logger, stream = self._capture("identitycore.interpolation-failures-test")
+        for message, argument in (
+            ("%(missing)s", {"present": "private-value"}),
+            ("%c", 0x110000),
+        ):
+            logger.info(message, argument, extra={"context": {}})
+        self.assertEqual(stream.getvalue().count(LOG_FORMAT_ERROR), 2)
+        self.assertNotIn("private-value", stream.getvalue())

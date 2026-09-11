@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ipaddress
 import logging
 import re
 import traceback
@@ -16,6 +17,9 @@ _SENSITIVE_KEYS = frozenset(
     {
         # Credentials and session material.
         "access_key",
+        "access_key_id",
+        "secret_key",
+        "signature",
         "access_token",
         "api_key",
         "authorization",
@@ -87,6 +91,10 @@ _SENSITIVE_KEYS = frozenset(
 )
 
 _SENSITIVE_SUFFIXES = (
+    "_secret_key",
+    "_access_key",
+    "_access_key_id",
+    "_signature",
     "_access_token",
     "_api_key",
     "_authorization",
@@ -120,6 +128,7 @@ _EMAIL_RE = re.compile(
     r"(?<![\w.+-])[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}(?![\w.-])",
     re.IGNORECASE,
 )
+_IPV6_RE = re.compile(r"(?<![\w:])[0-9a-f:]*:[0-9a-f:.]*(?:%[\w.-]+)?", re.IGNORECASE)
 _IPV4_RE = re.compile(r"(?<!\d)(?:\d{1,3}\.){3}\d{1,3}(?!\d)")
 _PHONE_RE = re.compile(r"(?<!\w)(?:\+?\d[\d ().-]{7,}\d)(?!\w)")
 _CREDENTIAL_ASSIGNMENT_RE = re.compile(r"(?P<label>[\w.-]+)[\"']?\s*[:=]\s*")
@@ -176,6 +185,15 @@ def redact_text(value: str) -> str:
     parts.append(redacted[cursor:])
     redacted = "".join(parts)
     redacted = _EMAIL_RE.sub(REDACTED, redacted)
+
+    def redact_ipv6(match):
+        try:
+            ipaddress.IPv6Address(match.group())
+        except ValueError:
+            return match.group()
+        return REDACTED
+
+    redacted = _IPV6_RE.sub(redact_ipv6, redacted)
     redacted = _IPV4_RE.sub(REDACTED, redacted)
     redacted = _PHONE_RE.sub(REDACTED, redacted)
     return redacted
@@ -199,6 +217,11 @@ def redact_value(value: Any, *, key: object | None = None, _depth: int = 0) -> A
         return f"{value.__class__.__name__}: {redact_text(str(value))}"
     if isinstance(value, (bytes, bytearray, memoryview)):
         return REDACTED_BINARY
+    try:
+        with memoryview(value):
+            return REDACTED_BINARY
+    except TypeError:
+        pass
     if isinstance(value, Mapping):
         redacted_mapping = {}
         for item_key, item_value in value.items():
@@ -257,8 +280,8 @@ def sanitize_log_record(record: logging.LogRecord) -> logging.LogRecord:
         # discard the args instead of letting logging break request/worker execution.
         try:
             rendered_message = record.getMessage()
-        except (TypeError, ValueError):
-            rendered_message = f"{redact_value(record.msg)} {LOG_FORMAT_ERROR}"
+        except Exception:
+            rendered_message = LOG_FORMAT_ERROR
         record.msg = redact_text(str(rendered_message))
         record.args = ()
     else:
