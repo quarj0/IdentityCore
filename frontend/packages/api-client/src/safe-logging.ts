@@ -127,6 +127,42 @@ export function isSensitiveLogKey(key: PropertyKey): boolean {
   );
 }
 
+function assignmentValueEnd(value: string, start: number): number {
+  if (start >= value.length) return start;
+  const opener = value[start];
+  if (opener === '"' || opener === "'") {
+    let escaped = false;
+    for (let index = start + 1; index < value.length; index += 1) {
+      const character = value[index];
+      if (character === opener && !escaped) return index + 1;
+      escaped = character === "\\" && !escaped;
+      if (character !== "\\") escaped = false;
+    }
+  } else if ((opener === "[" || opener === "{") && !value.startsWith("[REDACTED", start)) {
+    const pairs: Record<string, string> = { "[": "]", "{": "}" };
+    const stack = [pairs[opener]];
+    let quote: string | undefined;
+    let escaped = false;
+    for (let index = start + 1; index < value.length; index += 1) {
+      const character = value[index];
+      if (quote) {
+        if (character === quote && !escaped) quote = undefined;
+        escaped = character === "\\" && !escaped;
+        if (character !== "\\") escaped = false;
+      } else if (character === '"' || character === "'") {
+        quote = character;
+      } else if (character in pairs) {
+        stack.push(pairs[character]);
+      } else if (character === stack.at(-1)) {
+        stack.pop();
+        if (stack.length === 0) return index + 1;
+      }
+    }
+  }
+  const boundary = value.slice(start).search(/[;&\n\r](?=\s*["']?[\w.-]+["']?\s*[:=])/);
+  return boundary === -1 ? value.length : start + boundary;
+}
+
 function isIpv6(value: string): boolean {
   const address = value.split("%")[0];
   if (!address.includes(":")) return false;
@@ -160,17 +196,12 @@ export function redactLogText(value: string): string {
     )
     .replace(/\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g, REDACTED);
   const assignment = /([\w.-]+)["']?\s*[:=]\s*/g;
-  const valuePattern =
-    /^(?:\[REDACTED(?:_[A-Z_]+)?\][^,;\n\r&}]*|\[[^\n\r]*|\{[^\n\r]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^,;\n\r&}]+)/;
   let output = "";
   let cursor = 0;
   for (const match of redacted.matchAll(assignment)) {
     if (match.index < cursor || !isSensitiveLogKey(match[1])) continue;
-    const start = match.index + match[0].length;
-    const valueMatch = redacted.slice(start).match(valuePattern);
-    if (!valueMatch) continue;
     output += redacted.slice(cursor, match.index) + `${match[1]}=${REDACTED}`;
-    cursor = start + valueMatch[0].length;
+    cursor = assignmentValueEnd(redacted, match.index + match[0].length);
   }
   return (output + redacted.slice(cursor))
     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, REDACTED)

@@ -11,6 +11,10 @@ for (const source of [
   'const { error } = console; error("secret")',
   'const { warn: report } = globalThis.console; report("secret")',
   'const report = console.error; report("secret")',
+  'console.table({ accessToken: "secret" })',
+  'console.dir({ credentials: "secret" })',
+  'console.assert(false, "secret")',
+  'console[method]("secret")',
 ]) {
   test(`rejects equivalent console use: ${source}`, () => {
     assert.equal(containsUnsafeConsoleUse("fixture.ts", source), true);

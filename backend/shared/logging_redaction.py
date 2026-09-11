@@ -132,8 +132,8 @@ _IPV6_RE = re.compile(r"(?<![\w:])[0-9a-f:]*:[0-9a-f:.]*(?:%[\w.-]+)?", re.IGNOR
 _IPV4_RE = re.compile(r"(?<!\d)(?:\d{1,3}\.){3}\d{1,3}(?!\d)")
 _PHONE_RE = re.compile(r"(?<!\w)(?:\+?\d[\d ().-]{7,}\d)(?!\w)")
 _CREDENTIAL_ASSIGNMENT_RE = re.compile(r"(?P<label>[\w.-]+)[\"']?\s*[:=]\s*")
-_ASSIGNMENT_VALUE_RE = re.compile(
-    r"\[REDACTED(?:_[A-Z_]+)?\][^,;\n\r&}]*|\[[^\n\r]*|\{[^\n\r]*|\"(?:\\.|[^\"\\])*\"|'(?:\\.|[^'\\])*'|[^,;\n\r&}]+"
+_NEXT_ASSIGNMENT_BOUNDARY_RE = re.compile(
+    r"[;&\n\r](?=\s*[\"']?[\w.-]+[\"']?\s*[:=])"
 )
 _AWS_ACCESS_KEY_RE = re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b")
 _STANDARD_LOG_RECORD_ATTRS = frozenset(
@@ -167,6 +167,44 @@ def is_sensitive_key(key: object) -> bool:
     return any(fragment in normalized for fragment in _SENSITIVE_FRAGMENTS)
 
 
+def _assignment_value_end(value: str, start: int) -> int:
+    if start >= len(value):
+        return start
+    opener = value[start]
+    if opener in "\"'":
+        escaped = False
+        for index in range(start + 1, len(value)):
+            character = value[index]
+            if character == opener and not escaped:
+                return index + 1
+            escaped = character == "\\" and not escaped
+            if character != "\\":
+                escaped = False
+    elif opener in "[{" and not value.startswith("[REDACTED", start):
+        pairs = {"[": "]", "{": "}"}
+        stack = [pairs[opener]]
+        quote = None
+        escaped = False
+        for index in range(start + 1, len(value)):
+            character = value[index]
+            if quote:
+                if character == quote and not escaped:
+                    quote = None
+                escaped = character == "\\" and not escaped
+                if character != "\\":
+                    escaped = False
+            elif character in "\"'":
+                quote = character
+            elif character in pairs:
+                stack.append(pairs[character])
+            elif stack and character == stack[-1]:
+                stack.pop()
+                if not stack:
+                    return index + 1
+    boundary = _NEXT_ASSIGNMENT_BOUNDARY_RE.search(value, start)
+    return boundary.start() if boundary else len(value)
+
+
 def redact_text(value: str) -> str:
     """Redact common secret and PII shapes from unstructured log text."""
     redacted = _BEARER_RE.sub("Bearer [REDACTED]", value)
@@ -177,13 +215,11 @@ def redact_text(value: str) -> str:
     for match in _CREDENTIAL_ASSIGNMENT_RE.finditer(redacted):
         if match.start() < cursor or not is_sensitive_key(match.group("label")):
             continue
-        value_match = _ASSIGNMENT_VALUE_RE.match(redacted, match.end())
-        if value_match is None:
-            continue
+        value_end = _assignment_value_end(redacted, match.end())
         parts.extend(
             (redacted[cursor : match.start()], f"{match.group('label')}={REDACTED}")
         )
-        cursor = value_match.end()
+        cursor = value_end
     parts.append(redacted[cursor:])
     redacted = "".join(parts)
     redacted = _EMAIL_RE.sub(REDACTED, redacted)

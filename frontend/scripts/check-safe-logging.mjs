@@ -24,7 +24,6 @@ const sourceRoots = [
   "packages",
 ].map((path) => resolve(frontendRoot, path));
 const extensions = new Set([".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"]);
-const consoleMethods = new Set(["debug", "info", "log", "warn", "error", "trace"]);
 const skipDirectories = new Set([
   ".next",
   ".safe-logging-test",
@@ -69,11 +68,10 @@ function isConsoleObject(node) {
 
 function isConsoleMethodReference(node) {
   if (ts.isPropertyAccessExpression(node)) {
-    return isConsoleObject(node.expression) && consoleMethods.has(node.name.text);
+    return isConsoleObject(node.expression);
   }
   if (ts.isElementAccessExpression(node)) {
-    const method = propertyName(node.argumentExpression);
-    return isConsoleObject(node.expression) && method !== null && consoleMethods.has(method);
+    return isConsoleObject(node.expression);
   }
   return false;
 }
@@ -82,8 +80,7 @@ function destructuresConsoleMethod(node) {
   if (!ts.isVariableDeclaration(node) || !ts.isObjectBindingPattern(node.name)) return false;
   if (!node.initializer || !isConsoleObject(node.initializer)) return false;
   return node.name.elements.some((element) => {
-    const name = propertyName(element.propertyName ?? element.name);
-    return name !== null && consoleMethods.has(name);
+    return propertyName(element.propertyName ?? element.name) !== null;
   });
 }
 

@@ -135,10 +135,15 @@ class SafeLoggingBoundaryTests(SimpleTestCase):
             '{"context":{"access_token":"private-value"}}',
             '{"face_embedding":["private-value", "second-private"]}',
             '{"private_key":"private-value\\"still-private"}',
+            "full_name=Doe, Jane",
+            'face_embedding=[\n  0.123,\n  0.456\n], "status":"failed"',
         ):
             self.assertNotIn("private-value", redact_text(message))
             self.assertNotIn("second-private", redact_text(message))
             self.assertNotIn("still-private", redact_text(message))
+            self.assertNotIn("Jane", redact_text(message))
+            self.assertNotIn("0.123", redact_text(message))
+            self.assertNotIn("0.456", redact_text(message))
 
     def test_underscore_prefixed_extras_are_sanitized(self):
         logger, stream = self._capture("identitycore.private-extra-test")

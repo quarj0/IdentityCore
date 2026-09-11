@@ -91,10 +91,12 @@ test("redacts quoted keys, credential spellings, and nested serialized values", 
     '{"context":{"access_token":"private-value"}}',
     '{"face_embedding":["private-value", "second-private"]}',
     '{"private_key":"private-value\\"still-private"}',
+    "full_name=Doe, Jane",
+    'face_embedding=[\n  0.123,\n  0.456\n], "status":"failed"',
   ]) {
     assert.doesNotMatch(
       redactLogText(value),
-      /private-value|second-private|still-private/,
+      /private-value|second-private|still-private|Jane|0\.123|0\.456/,
     );
   }
 });
