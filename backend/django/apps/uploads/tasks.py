@@ -1,8 +1,8 @@
 from datetime import timedelta
 
 from celery import shared_task
-from django.utils import timezone
 from django.db.models import Exists, OuterRef, Q
+from django.utils import timezone
 
 from apps.audit.services import record_audit_event
 from apps.uploads.models import Upload, UploadStatus
@@ -22,6 +22,31 @@ UPLOAD_RETENTION_WORKER = ServicePrincipal(
     allow_cross_tenant=True,
 )
 
+UPLOAD_DELETION_MAX_BACKOFF_HOURS = 24
+
+
+def _defer_failed_deletion(upload: Upload, *, now, reason: str) -> None:
+    upload.deletion_attempt_count += 1
+    backoff_hours = min(
+        2 ** max(upload.deletion_attempt_count - 1, 0),
+        UPLOAD_DELETION_MAX_BACKOFF_HOURS,
+    )
+    upload.deletion_retry_at = now + timedelta(hours=backoff_hours)
+    upload.save(
+        update_fields=["deletion_attempt_count", "deletion_retry_at", "updated_at"]
+    )
+    record_audit_event(
+        tenant=upload.tenant,
+        action="retention.temporary_upload_deletion_failed",
+        target_type="upload",
+        target_id=upload.public_id,
+        metadata={
+            "reason": reason,
+            "attempt_count": upload.deletion_attempt_count,
+            "retry_at": upload.deletion_retry_at.isoformat(),
+        },
+    )
+
 
 @shared_task(queue="retention")
 def cleanup_expired_uploads_task(limit: int = 200) -> int:
@@ -40,6 +65,7 @@ def cleanup_expired_uploads_task(limit: int = 200) -> int:
             )
         )
         .filter(held=False)
+        .filter(Q(deletion_retry_at__isnull=True) | Q(deletion_retry_at__lte=now))
     )
     initiated_uploads = list(
         eligible.filter(
@@ -73,29 +99,20 @@ def cleanup_expired_uploads_task(limit: int = 200) -> int:
         ):
             continue
         if not temp_bucket and upload.storage_provider != "local":
-            record_audit_event(
-                tenant=upload.tenant,
-                action="retention.temporary_upload_deletion_failed",
-                target_type="upload",
-                target_id=upload.public_id,
-                metadata={"reason": "storage_not_configured"},
-            )
+            _defer_failed_deletion(upload, now=now, reason="storage_not_configured")
             continue
         if temp_bucket:
             try:
                 delete_object(bucket_name=temp_bucket, key=upload.storage_key)
             except Exception:
-                record_audit_event(
-                    tenant=upload.tenant,
-                    action="retention.temporary_upload_deletion_failed",
-                    target_type="upload",
-                    target_id=upload.public_id,
-                    metadata={"reason": "storage_delete_failed"},
-                )
+                _defer_failed_deletion(upload, now=now, reason="storage_delete_failed")
                 continue
         upload.status = UploadStatus.EXPIRED
         upload.deleted_at = now
-        upload.save(update_fields=["status", "deleted_at", "updated_at"])
+        upload.deletion_retry_at = None
+        upload.save(
+            update_fields=["status", "deleted_at", "deletion_retry_at", "updated_at"]
+        )
         record_audit_event(
             tenant=upload.tenant,
             action="retention.temporary_upload_deleted",

@@ -1608,6 +1608,12 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorEnvelope"
+    Conflict:
+      description: The resource cannot perform the requested state transition.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
 paths:
   /health:
     get:
@@ -3704,6 +3710,49 @@ paths:
           $ref: "#/components/responses/PermissionDenied"
         "404":
           $ref: "#/components/responses/NotFound"
+  /webhook-endpoints/events/{event_id}/replay:
+    post:
+      summary: Requeue a failed webhook event with its stable event ID.
+      description: The endpoint must first be active. The replay is tenant-scoped, audited, and resets the event delivery budget while preserving delivery-attempt history.
+      security:
+        - platformUserBearer: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+      responses:
+        "200":
+          description: Failed event queued for replay.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    type: object
+                    required: [id, status, queued]
+                    properties:
+                      id:
+                        type: string
+                      status:
+                        const: pending
+                      queued:
+                        const: true
+                  request_id:
+                    type: string
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
   /webhook-endpoints/{webhook_id}/{action}:
     post:
       summary: Disable or reactivate a webhook endpoint.

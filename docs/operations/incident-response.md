@@ -88,6 +88,14 @@ bypassing terminal decisions, restoring over production, or opening evidence
 storage to broad access. Record the operator, approver, scope, rollback plan,
 and result before and after a consequential containment/recovery operation.
 
+After a webhook endpoint exhausts delivery attempts, IdentityCore marks both the
+event and endpoint failed. A tenant operator first fixes the receiver and uses the
+authenticated endpoint action to reactivate it. The operator can then call
+`POST /api/v1/webhook-endpoints/events/{event_id}/replay` with an idempotency key.
+The replay keeps the stable event ID, resets its delivery budget, and records an
+audit event. Receivers must atomically deduplicate by event ID because an accepted
+delivery whose response was lost can still be repeated.
+
 ## Notification decision
 
 The communications owner prepares a factual draft; the security/privacy owner

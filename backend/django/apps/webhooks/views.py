@@ -21,7 +21,8 @@ from apps.webhooks.serializers import (
 )
 from common.permissions import IsTenantUser
 from common.responses import success_response
-from apps.webhooks.models import WebhookEndpoint
+from apps.webhooks.models import WebhookEndpoint, WebhookEvent
+from apps.webhooks.services import requeue_failed_webhook_event
 
 
 class WebhookSecretRotationConflict(APIException):
@@ -34,6 +35,12 @@ class WebhookSecretRotationReplayConflict(APIException):
     status_code = status.HTTP_409_CONFLICT
     default_detail = "This rotation response is obsolete because the secret was rotated again."
     default_code = "webhook_secret_rotation_replay_conflict"
+
+
+class WebhookReplayConflict(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = "This webhook event cannot be replayed in its current state."
+    default_code = "webhook_replay_conflict"
 
 
 class WebhookEndpointListCreateView(APIView):
@@ -118,6 +125,55 @@ class WebhookEndpointTestView(APIView):
         return success_response(
             {"queued": True}, request=request, status=status.HTTP_200_OK
         )
+
+
+class WebhookEventReplayView(APIView):
+    permission_classes = [IsAuthenticated, IsTenantUser]
+
+    @transaction.atomic
+    def post(self, request, event_id: str):
+        idempotency_result = begin_idempotent_request(
+            request=request,
+            tenant=request.user.tenant,
+            operation="webhook_event.replay",
+        )
+        if idempotency_result.is_replay:
+            return success_response(
+                idempotency_result.response_data,
+                request=request,
+                status=idempotency_result.response_status,
+            )
+        webhook_event = get_object_or_404(
+            WebhookEvent.objects.select_for_update().select_related(
+                "webhook_endpoint", "tenant"
+            ),
+            tenant=request.user.tenant,
+            public_id=event_id,
+        )
+        if webhook_event.status != "failed":
+            raise WebhookReplayConflict("Only failed webhook events can be replayed.")
+        if webhook_event.webhook_endpoint.status != "active":
+            raise WebhookReplayConflict(
+                "Reactivate the webhook endpoint before replaying this event."
+            )
+        if not webhook_event.webhook_endpoint.signing_key:
+            raise WebhookReplayConflict("The webhook endpoint has no signing key.")
+        requeue_failed_webhook_event(
+            webhook_event=webhook_event,
+            actor=request.user,
+            request_context=request,
+        )
+        response_data = {
+            "id": webhook_event.public_id,
+            "status": webhook_event.status,
+            "queued": True,
+        }
+        complete_idempotent_request(
+            idempotency_result,
+            response_data=response_data,
+            response_status=status.HTTP_200_OK,
+        )
+        return success_response(response_data, request=request)
 
 
 class WebhookEndpointDetailView(APIView):

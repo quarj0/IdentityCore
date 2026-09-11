@@ -308,6 +308,9 @@ def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
     if webhook_event.attempt_count >= settings.WEBHOOK_MAX_ATTEMPTS:
         webhook_event.status = WebhookEventStatus.FAILED
         webhook_event.next_retry_at = None
+        endpoint = webhook_event.webhook_endpoint
+        endpoint.status = WebhookEndpointStatus.FAILED
+        endpoint.save(update_fields=["status", "updated_at"])
         record_audit_event(
             tenant=webhook_event.tenant,
             action="webhook.delivery_failed",
@@ -317,6 +320,13 @@ def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
                 "event_type": webhook_event.event_type,
                 "attempt_count": webhook_event.attempt_count,
             },
+        )
+        record_audit_event(
+            tenant=webhook_event.tenant,
+            action="webhook_endpoint.delivery_failed",
+            target_type="webhook_endpoint",
+            target_id=endpoint.public_id,
+            metadata={"event_id": webhook_event.public_id},
         )
     else:
         webhook_event.status = WebhookEventStatus.PENDING
@@ -335,6 +345,38 @@ def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
     return webhook_event
 
 
+def requeue_failed_webhook_event(
+    *, webhook_event: WebhookEvent, actor, request_context=None
+) -> WebhookEvent:
+    if webhook_event.status != WebhookEventStatus.FAILED:
+        raise ValueError("Only failed webhook events can be replayed.")
+    if webhook_event.webhook_endpoint.status != WebhookEndpointStatus.ACTIVE:
+        raise ValueError("Reactivate the webhook endpoint before replaying this event.")
+    if not webhook_event.webhook_endpoint.signing_key:
+        raise ValueError("The webhook endpoint has no signing key.")
+
+    previous_attempt_count = webhook_event.attempt_count
+    webhook_event.status = WebhookEventStatus.PENDING
+    webhook_event.attempt_count = 0
+    webhook_event.next_retry_at = timezone.now()
+    webhook_event.save(
+        update_fields=["status", "attempt_count", "next_retry_at", "updated_at"]
+    )
+    record_audit_event(
+        tenant=webhook_event.tenant,
+        actor=actor,
+        request=request_context,
+        action="webhook.replay_queued",
+        target_type="webhook_event",
+        target_id=webhook_event.public_id,
+        metadata={
+            "event_type": webhook_event.event_type,
+            "previous_attempt_count": previous_attempt_count,
+        },
+    )
+    return webhook_event
+
+
 def deliver_webhook_event_by_id(webhook_event_id: str) -> WebhookEvent:
     webhook_event = WebhookEvent.objects.select_related(
         "webhook_endpoint", "tenant"
@@ -346,7 +388,10 @@ def get_due_webhook_events(*, limit: int = 50):
     now = timezone.now()
     return (
         WebhookEvent.objects.select_related("webhook_endpoint", "tenant")
-        .filter(status=WebhookEventStatus.PENDING)
+        .filter(
+            status=WebhookEventStatus.PENDING,
+            webhook_endpoint__status=WebhookEndpointStatus.ACTIVE,
+        )
         .filter(Q(next_retry_at__isnull=True) | Q(next_retry_at__lte=now))
         .order_by("created_at")[:limit]
     )
