@@ -185,6 +185,24 @@ class SafeLoggingBoundaryTests(SimpleTestCase):
             "private-value", redact_text("token=[REDACTED]private-value; status=ok")
         )
 
+    def test_camel_case_sensitive_keys_are_redacted(self):
+        from common.safe_logging import REDACTED, redact_value
+
+        redacted = redact_value(
+            {
+                "accessToken": "access-private",
+                "sessionToken": "session-private",
+                "clientSecret": "client-private",
+                "fullName": "Ada Private",
+                "safeStatus": "ready",
+            }
+        )
+        self.assertEqual(redacted["accessToken"], REDACTED)
+        self.assertEqual(redacted["sessionToken"], REDACTED)
+        self.assertEqual(redacted["clientSecret"], REDACTED)
+        self.assertEqual(redacted["fullName"], REDACTED)
+        self.assertEqual(redacted["safeStatus"], "ready")
+
     def test_missing_mapping_key_and_overflow_do_not_escape_logging(self):
         logger, stream = self._capture("identitycore.interpolation-failures-test")
         for message, argument in (

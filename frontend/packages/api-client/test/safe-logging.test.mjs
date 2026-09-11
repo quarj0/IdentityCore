@@ -149,3 +149,18 @@ test("redacts deployed credential names, signatures, and IPv6 addresses", () => 
     /private-value/,
   );
 });
+
+test("redacts camelCase credential and identity keys", () => {
+  const redacted = redactLogValue({
+    accessToken: "access-private",
+    sessionToken: "session-private",
+    clientSecret: "client-private",
+    fullName: "Ada Private",
+    safeStatus: "ready",
+  });
+  assert.equal(redacted.accessToken, REDACTED);
+  assert.equal(redacted.sessionToken, REDACTED);
+  assert.equal(redacted.clientSecret, REDACTED);
+  assert.equal(redacted.fullName, REDACTED);
+  assert.equal(redacted.safeStatus, "ready");
+});

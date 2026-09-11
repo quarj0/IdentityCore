@@ -150,7 +150,9 @@ _ORIGINAL_MAKE_RECORD = logging.Logger.makeRecord
 
 
 def _normalize_key(key: object) -> str:
-    normalized = re.sub(r"[^a-z0-9]+", "_", str(key).strip().lower())
+    text = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", str(key).strip())
+    text = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", text)
+    normalized = re.sub(r"[^a-z0-9]+", "_", text.lower())
     return normalized.strip("_")
 
 

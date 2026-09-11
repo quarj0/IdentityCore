@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, extname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const frontendRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(import.meta.url);
@@ -43,7 +43,51 @@ function scriptKind(path) {
   return ts.ScriptKind.JS;
 }
 
-function containsDirectConsoleCall(path, source) {
+function propertyName(node) {
+  if (ts.isIdentifier(node) || ts.isStringLiteralLike(node)) return node.text;
+  return null;
+}
+
+function isConsoleObject(node) {
+  if (ts.isIdentifier(node)) return node.text === "console";
+  if (ts.isPropertyAccessExpression(node)) {
+    return (
+      ts.isIdentifier(node.expression) &&
+      ["window", "globalThis"].includes(node.expression.text) &&
+      node.name.text === "console"
+    );
+  }
+  if (ts.isElementAccessExpression(node)) {
+    return (
+      ts.isIdentifier(node.expression) &&
+      ["window", "globalThis"].includes(node.expression.text) &&
+      propertyName(node.argumentExpression) === "console"
+    );
+  }
+  return false;
+}
+
+function isConsoleMethodReference(node) {
+  if (ts.isPropertyAccessExpression(node)) {
+    return isConsoleObject(node.expression) && consoleMethods.has(node.name.text);
+  }
+  if (ts.isElementAccessExpression(node)) {
+    const method = propertyName(node.argumentExpression);
+    return isConsoleObject(node.expression) && method !== null && consoleMethods.has(method);
+  }
+  return false;
+}
+
+function destructuresConsoleMethod(node) {
+  if (!ts.isVariableDeclaration(node) || !ts.isObjectBindingPattern(node.name)) return false;
+  if (!node.initializer || !isConsoleObject(node.initializer)) return false;
+  return node.name.elements.some((element) => {
+    const name = propertyName(element.propertyName ?? element.name);
+    return name !== null && consoleMethods.has(name);
+  });
+}
+
+export function containsUnsafeConsoleUse(path, source) {
   const sourceFile = ts.createSourceFile(
     path,
     source,
@@ -56,11 +100,9 @@ function containsDirectConsoleCall(path, source) {
   function visit(node) {
     if (found) return;
     if (
-      ts.isCallExpression(node) &&
-      ts.isPropertyAccessExpression(node.expression) &&
-      ts.isIdentifier(node.expression.expression) &&
-      node.expression.expression.text === "console" &&
-      consoleMethods.has(node.expression.name.text)
+      ((ts.isCallExpression(node) && isConsoleMethodReference(node.expression)) ||
+        isConsoleMethodReference(node) ||
+        destructuresConsoleMethod(node))
     ) {
       found = true;
       return;
@@ -84,22 +126,24 @@ function walk(path, findings) {
     if (/\.(?:spec|test)\.[cm]?[jt]sx?$/.test(entry.name)) continue;
     if (absolute === allowedConsoleFile) continue;
     const source = readFileSync(absolute, "utf8");
-    if (containsDirectConsoleCall(absolute, source)) {
+    if (containsUnsafeConsoleUse(absolute, source)) {
       findings.push(relative(frontendRoot, absolute));
     }
   }
 }
 
-const findings = [];
-for (const root of sourceRoots) walk(root, findings);
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  const findings = [];
+  for (const root of sourceRoots) walk(root, findings);
 
-if (findings.length) {
-  console.error(
-    [
-      "Unsafe direct console logging is not allowed in frontend production source.",
-      "Use safeLog from @identitycore/api-client so sensitive context is redacted.",
-      ...findings.map((path) => ` - ${path}`),
-    ].join("\n"),
-  );
-  process.exitCode = 1;
+  if (findings.length) {
+    console.error(
+      [
+        "Unsafe direct console logging is not allowed in frontend production source.",
+        "Use safeLog from @identitycore/api-client so sensitive context is redacted.",
+        ...findings.map((path) => ` - ${path}`),
+      ].join("\n"),
+    );
+    process.exitCode = 1;
+  }
 }
