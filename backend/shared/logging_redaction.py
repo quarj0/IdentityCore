@@ -114,9 +114,7 @@ _SENSITIVE_FRAGMENTS = (
 )
 
 _BEARER_RE = re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]+")
-_JWT_RE = re.compile(
-    r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b"
-)
+_JWT_RE = re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b")
 _EMAIL_RE = re.compile(
     r"(?<![\w.+-])[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}(?![\w.-])",
     re.IGNORECASE,
@@ -224,6 +222,14 @@ def _redact_exception(
 def sanitize_log_record(record: logging.LogRecord) -> logging.LogRecord:
     """Sanitize rendered messages, structured extras, stack text, and exceptions."""
     if record.args:
+        # Preserve structured redaction and exception types before interpolation
+        # turns arguments into plain text. Numeric arguments retain their types.
+        if isinstance(record.args, Mapping):
+            record.args = {
+                key: redact_value(value, key=key) for key, value in record.args.items()
+            }
+        else:
+            record.args = redact_value(record.args)
         # Render once using Python logging's normal interpolation rules, then redact
         # the complete result. If the caller supplied a malformed format string,
         # discard the args instead of letting logging break request/worker execution.

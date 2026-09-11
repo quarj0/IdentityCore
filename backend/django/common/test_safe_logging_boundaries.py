@@ -66,6 +66,33 @@ class SafeLoggingBoundaryTests(SimpleTestCase):
         self.assertIn("RuntimeError", output)
         self.assertIn("failed", output)
 
+    def test_interpolated_structures_and_bytes_are_redacted(self):
+        logger, stream = self._capture("identitycore.structured-arguments-test")
+        logger.info(
+            "payload=%s binary=%s attempts=%03d",
+            {"storage_key": "tenant/private.jpg", "status": "failed"},
+            b"private-document-content",
+            7,
+            extra={"context": {}},
+        )
+        output = stream.getvalue()
+        self.assertNotIn("tenant/private.jpg", output)
+        self.assertNotIn("private-document-content", output)
+        self.assertIn("failed", output)
+        self.assertIn("attempts=007", output)
+
+    def test_mapping_interpolation_preserves_exception_type_and_numbers(self):
+        logger, stream = self._capture("identitycore.mapping-arguments-test")
+        logger.error(
+            "error=%(error)s; attempts=%(attempts)03d",
+            {"error": RuntimeError("token=private-token"), "attempts": 7},
+            extra={"context": {}},
+        )
+        output = stream.getvalue()
+        self.assertNotIn("private-token", output)
+        self.assertIn("RuntimeError", output)
+        self.assertIn("attempts=007", output)
+
     def test_multiword_pii_in_free_text_is_fully_removed(self):
         logger, stream = self._capture("identitycore.multiword-redaction-test")
         logger.info(
