@@ -74,8 +74,10 @@ before changing affected systems when that does not prolong active harm.
 | Credential/session exposure | Disable affected credential or session issuance and revoke implicated material using the approved administrative path; rotate dependent secrets from a clean responder environment | Old credentials fail, replacements work only for intended scopes, and unauthorized activity stops |
 | Tenant isolation or evidence disclosure | Disable the affected access path or feature; stop new exposed operations; restrict implicated provider/storage access | Regression reproducer is fixed; owner and non-owner access are tested in every affected environment |
 | Provider/biometric integrity | Stop unsafe automated decisions; use only an approved fallback or manual-review route | Provider checks, terminal decisions, and manual-review ownership reconcile; no blind bulk reprocessing |
-| Queue/webhook outage | Contain the failing dependency and preserve pending records; recover with the existing idempotent recovery runbooks | Backlog drains, stable event IDs remain intact, and no duplicate decisions or deliveries are introduced |
-| Consent/retention failure | Stop affected collection/deletion work with the responsible owner; establish approved preservation scope | Purpose/version and retention boundaries are verified before processing resumes |
+| Queue/webhook outage | Contain the failing dependency and preserve pending records; recover with the existing idempotent recovery runbooks | Backlog drains and stable event IDs remain intact; receivers atomically deduplicate by event ID so retries do not produce duplicate side effects |
+| Consent failure | Stop affected collection and processing with the responsible owner; establish approved preservation scope | Purpose/version boundaries are verified before processing resumes |
+| Premature or erroneous deletion | Pause the affected deletion path and preserve the approved scope | Correct retention policy and recovery are verified before deletion resumes |
+| Overdue or failed deletion | Stop affected collection or other processing as required; continue approved deletion remediation outside a valid preservation hold | Expired data is demonstrably deleted, failed operations are retried, and retention boundaries are restored |
 | Deployment regression | Halt rollout and decide whether an approved compatible rollback is safer than a forward fix | Health plus representative tenant-scoped journeys pass; data/schema compatibility is demonstrated |
 
 Use [processing recovery](processing-job-recovery.md),

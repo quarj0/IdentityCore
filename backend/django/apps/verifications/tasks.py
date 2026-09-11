@@ -2,7 +2,6 @@ from datetime import timedelta
 
 from celery import shared_task
 from django.db import transaction
-from django.db.models import Q
 from django.utils import timezone
 
 from apps.audit.services import record_audit_event
@@ -18,12 +17,12 @@ from common.storage import (
 from apps.notifications.services import queue_verification_status_notifications
 from apps.verifications.models import (
     Verification,
-    RetentionLegalHold,
     VerificationSession,
     VerificationSessionStatus,
     VerificationStatus,
 )
 from apps.verifications.processing_jobs import recover_stale_processing_jobs
+from apps.verifications.retention import has_active_retention_hold
 from apps.verifications.transitions import transition_verification
 from apps.webhooks.services import queue_webhook_events
 from common.authorization import ServicePrincipal, require_service_access
@@ -77,14 +76,8 @@ RETENTION_COMPLETED_VERIFICATION_STATUSES = {
 
 
 def _has_active_retention_hold(verification: Verification, now) -> bool:
-    return (
-        RetentionLegalHold.objects.filter(
-            tenant_id=verification.tenant_id,
-            verification_id__in=[None, verification.id],
-            released_at__isnull=True,
-        )
-        .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
-        .exists()
+    return has_active_retention_hold(
+        tenant_id=verification.tenant_id, verification_id=verification.id, now=now
     )
 
 

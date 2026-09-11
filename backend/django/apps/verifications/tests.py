@@ -2143,6 +2143,11 @@ class VerificationOperationsTaskTests(TestCase):
             ).exists()
         )
 
+        # A tenant-wide hold uses SQL IS NULL, not an IN list containing None.
+        RetentionLegalHold.objects.filter(tenant=self.tenant).update(verification=None)
+        self.assertEqual(cleanup_retained_media_task(limit=10), 0)
+        self.assertEqual(AuditEvent.objects.filter(action="retention.media_deletion_deferred", target_id=verification.public_id).count(), 2)
+
     @patch("apps.verifications.tasks.delete_object")
     @patch(
         "apps.verifications.tasks.get_object_storage_media_bucket_name",

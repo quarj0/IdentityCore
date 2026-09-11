@@ -12,6 +12,11 @@ purpose; incident handling is not permission for unrestricted data collection.
    privacy owner approve a narrowly scoped preservation hold. The application
    supports tenant-wide and verification-specific `RetentionLegalHold` records
    as described in [ADR-022](../decisions/ADR-022-retention-deletion-controls.md).
+   The application cleanup workers honor these holds for both retained media
+   and temporary uploads, including initiated, quarantined, and consumed uploads.
+   Before acquisition, pause the affected cleanup schedule and have its operator
+   confirm already-running deletion work has drained; a newly placed hold cannot
+   reverse an object deletion already in flight. Verify the fix is deployed.
    Validate the deployed administrative procedure, expiry, and actual cleanup
    behavior; do not assume that a database hold also pauses object-store
    lifecycle rules, provider deletion, or backup expiration. Coordinate each
