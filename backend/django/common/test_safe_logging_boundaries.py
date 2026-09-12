@@ -2,6 +2,7 @@ import io
 import logging
 
 from django.test import SimpleTestCase
+from django.test import RequestFactory, override_settings
 from django.utils.log import AdminEmailHandler
 
 from common.safe_logging import LOG_FORMAT_ERROR, install_safe_logging
@@ -93,9 +94,44 @@ class SafeLoggingBoundaryTests(SimpleTestCase):
 
         self.assertEqual(len(handler.sent_messages), 1)
         message = handler.sent_messages[0][1]
-        self.assertIn("test_admin_email_handler_receives_sanitized_exception_context", message)
+        self.assertIn(
+            "test_admin_email_handler_receives_sanitized_exception_context", message
+        )
         self.assertIn("RuntimeError", message)
         self.assertNotIn("email-secret", message)
+
+    @override_settings(INTERNAL_IPS=["10.0.0.1"])
+    def test_admin_email_handler_receives_safe_request_context(self):
+        handler = CapturingAdminEmailHandler()
+        logger = logging.getLogger("django.request.safe-request-email-test")
+        logger.handlers = [handler]
+        logger.propagate = False
+        logger.setLevel(logging.ERROR)
+        self.addCleanup(logger.handlers.clear)
+        request = RequestFactory().post(
+            "/api/v1/verifications/",
+            {"email": "subject@example.test", "token": "request-secret"},
+            HTTP_AUTHORIZATION="Bearer auth-secret",
+            REMOTE_ADDR="10.0.0.1",
+        )
+        request.user = "subject@example.test"
+
+        try:
+            raise RuntimeError("token=exception-secret")
+        except RuntimeError:
+            logger.exception("request failed", extra={"request": request})
+
+        self.assertEqual(len(handler.sent_messages), 1)
+        subject, message, html_message = handler.sent_messages[0]
+        self.assertIn("internal IP", subject)
+        self.assertIn("/api/v1/verifications/", message)
+        self.assertIn("POST", message)
+        self.assertIn("REMOTE_ADDR = '[REDACTED]'", message)
+        complete_report = message + (html_message or "")
+        self.assertNotIn("subject@example.test", complete_report)
+        self.assertNotIn("request-secret", complete_report)
+        self.assertNotIn("auth-secret", complete_report)
+        self.assertNotIn("exception-secret", complete_report)
 
     def test_interpolated_structures_and_bytes_are_redacted(self):
         logger, stream = self._capture("identitycore.structured-arguments-test")

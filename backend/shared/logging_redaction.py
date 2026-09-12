@@ -4,6 +4,7 @@ import ipaddress
 import logging
 import re
 import traceback
+from copy import copy
 from collections.abc import Mapping
 from threading import Lock
 from typing import Any
@@ -16,6 +17,18 @@ LOG_FORMAT_ERROR = "[LOG_FORMAT_ERROR]"
 
 class _SanitizedLogException(Exception):
     """Exception wrapper consumable by handlers without exposing live frames."""
+
+
+class _SanitizedRequestMeta(dict):
+    def __init__(self, *args, classification_ip: str, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._classification_ip = classification_ip
+
+    def get(self, key, default=None):
+        if key == "REMOTE_ADDR":
+            return self._classification_ip
+        return super().get(key, default)
+
 
 _SENSITIVE_KEYS = frozenset(
     {
@@ -136,9 +149,7 @@ _IPV6_RE = re.compile(r"(?<![\w:])[0-9a-f:]*:[0-9a-f:.]*(?:%[\w.-]+)?", re.IGNOR
 _IPV4_RE = re.compile(r"(?<!\d)(?:\d{1,3}\.){3}\d{1,3}(?!\d)")
 _PHONE_RE = re.compile(r"(?<!\w)(?:\+?\d[\d ().-]{7,}\d)(?!\w)")
 _CREDENTIAL_ASSIGNMENT_RE = re.compile(r"(?P<label>[\w.-]+)[\"']?\s*[:=]\s*")
-_NEXT_ASSIGNMENT_BOUNDARY_RE = re.compile(
-    r"[;&\n\r](?=\s*[\"']?[\w.-]+[\"']?\s*[:=])"
-)
+_NEXT_ASSIGNMENT_BOUNDARY_RE = re.compile(r"[;&\n\r](?=\s*[\"']?[\w.-]+[\"']?\s*[:=])")
 _AWS_ACCESS_KEY_RE = re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b")
 _STANDARD_LOG_RECORD_ATTRS = frozenset(
     {
@@ -290,6 +301,65 @@ def _redact_exception(
     return redact_text(rendered)
 
 
+def _sanitize_django_request(value: Any) -> Any:
+    """Return a shallow request copy that Django's error reporter can inspect safely."""
+    if not (
+        value.__class__.__module__.startswith("django.")
+        and hasattr(value, "META")
+        and hasattr(value, "method")
+        and hasattr(value, "path")
+    ):
+        return None
+
+    sanitized = copy(value)
+    safe_meta_keys = {
+        "PATH_INFO",
+        "REQUEST_METHOD",
+        "SCRIPT_NAME",
+        "SERVER_NAME",
+        "SERVER_PORT",
+        "SERVER_PROTOCOL",
+    }
+    remote_addr = value.META.get("REMOTE_ADDR", "")
+    try:
+        from django.conf import settings
+
+        internal_ips = set(settings.INTERNAL_IPS)
+    except Exception:
+        internal_ips = set()
+    classification_ip = (
+        next(iter(internal_ips))
+        if remote_addr in internal_ips and internal_ips
+        else REDACTED
+    )
+    sanitized.META = _SanitizedRequestMeta(
+        {
+            key: redact_text(str(item))
+            for key, item in value.META.items()
+            if key in safe_meta_keys
+        },
+        classification_ip=classification_ip,
+    )
+    sanitized.META["REMOTE_ADDR"] = REDACTED
+
+    for attribute in ("GET", "POST", "FILES"):
+        original = getattr(value, attribute, None)
+        if original is None:
+            continue
+        safe_values = original.copy()
+        if hasattr(safe_values, "setlist"):
+            for key in safe_values:
+                safe_values.setlist(key, [REDACTED])
+        else:
+            safe_values = {str(key): REDACTED for key in safe_values}
+        setattr(sanitized, f"_{attribute.lower()}", safe_values)
+
+    sanitized.COOKIES = {str(key): REDACTED for key in value.COOKIES}
+    sanitized.user = REDACTED
+    sanitized._body = b""
+    return sanitized
+
+
 def sanitize_log_record(record: logging.LogRecord) -> logging.LogRecord:
     """Sanitize rendered messages, structured extras, stack text, and exceptions."""
     if (
@@ -332,7 +402,14 @@ def sanitize_log_record(record: logging.LogRecord) -> logging.LogRecord:
     for field, value in list(record.__dict__.items()):
         if field in _STANDARD_LOG_RECORD_ATTRS:
             continue
-        record.__dict__[field] = redact_value(value, key=field)
+        sanitized_request = (
+            _sanitize_django_request(value) if field == "request" else None
+        )
+        record.__dict__[field] = (
+            sanitized_request
+            if sanitized_request is not None
+            else redact_value(value, key=field)
+        )
 
     if record.stack_info:
         record.stack_info = redact_text(record.stack_info)
