@@ -18,7 +18,13 @@ from apps.tenants.models import Tenant
 from apps.verification_policies.models import VerificationPolicy
 from apps.verifications.models import Verification, VerificationStatus
 from apps.verification_subjects.models import VerificationSubject
-from apps.webhooks.models import WebhookDeliveryAttempt, WebhookEndpoint, WebhookEvent, WebhookEventStatus
+from apps.webhooks.models import (
+    WebhookDeliveryAttempt,
+    WebhookEndpoint,
+    WebhookEndpointStatus,
+    WebhookEvent,
+    WebhookEventStatus,
+)
 from apps.webhooks.services import (
     _build_legacy_signature,
     _build_signature,
@@ -1125,6 +1131,29 @@ class WebhookOutboxTransactionTests(TransactionTestCase):
 
         self.endpoint.refresh_from_db()
         self.assertEqual(self.endpoint.description, "")
+        self.assertFalse(WebhookEvent.objects.exists())
+
+    def test_failed_endpoint_keeps_new_events_pending_for_recovery(self):
+        self.endpoint.status = WebhookEndpointStatus.FAILED
+        self.endpoint.save(update_fields=["status", "updated_at"])
+
+        with transaction.atomic():
+            queued = self.queue_event()
+
+        self.assertEqual(len(queued), 1)
+        self.assertEqual(queued[0].status, WebhookEventStatus.PENDING)
+        self.assertEqual(process_pending_webhook_events(limit=10), 0)
+        queued[0].refresh_from_db()
+        self.assertEqual(queued[0].status, WebhookEventStatus.PENDING)
+
+    def test_disabled_endpoint_does_not_queue_new_events(self):
+        self.endpoint.status = WebhookEndpointStatus.DISABLED
+        self.endpoint.save(update_fields=["status", "updated_at"])
+
+        with transaction.atomic():
+            queued = self.queue_event()
+
+        self.assertEqual(queued, [])
         self.assertFalse(WebhookEvent.objects.exists())
 
     @patch("apps.webhooks.services._send_webhook_request")

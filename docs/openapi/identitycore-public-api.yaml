@@ -3745,6 +3745,8 @@ paths:
                         const: true
                   request_id:
                     type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
         "401":
           $ref: "#/components/responses/PermissionDenied"
         "403":

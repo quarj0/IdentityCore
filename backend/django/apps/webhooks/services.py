@@ -27,7 +27,9 @@ def queue_webhook_events(
             "Webhook outbox events must be queued inside the domain transaction."
         )
     queued = []
-    endpoints = tenant.webhook_endpoints.filter(status="active")
+    endpoints = tenant.webhook_endpoints.filter(
+        status__in=[WebhookEndpointStatus.ACTIVE, WebhookEndpointStatus.FAILED]
+    )
     verification_id = payload.get("verification_id")
     if verification_id:
         from apps.verifications.models import Verification

@@ -2126,7 +2126,7 @@ class VerificationOperationsTaskTests(TestCase):
             status=VerificationStatus.VERIFIED,
             policy_snapshot_json={"media_retention_days": 30},
             expires_at=timezone.now() - timedelta(days=31),
-            completed_at=timezone.now() - timedelta(days=31),
+            completed_at=timezone.now() - timedelta(days=32),
         )
         RetentionLegalHold.objects.create(
             tenant=self.tenant,
@@ -2134,7 +2134,35 @@ class VerificationOperationsTaskTests(TestCase):
             reason="Regulatory investigation",
         )
 
-        self.assertEqual(cleanup_retained_media_task(limit=10), 0)
+        unheld_verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.subject,
+            purpose="Later unheld verification",
+            status=VerificationStatus.VERIFIED,
+            policy_snapshot_json={"media_retention_days": 30},
+            expires_at=timezone.now() - timedelta(days=31),
+            completed_at=timezone.now() - timedelta(days=31),
+        )
+        identity_document = IdentityDocument.objects.create(
+            tenant=self.tenant,
+            verification=unheld_verification,
+            verification_subject=self.subject,
+            document_type_id="passport",
+            country_profile_id="GH",
+            status="processed",
+        )
+        unheld_capture = DocumentCapture.objects.create(
+            tenant=self.tenant,
+            identity_document=identity_document,
+            side="front",
+            storage_key="uploads/documents/unheld-later",
+            captured_at=timezone.now() - timedelta(days=31),
+        )
+
+        self.assertEqual(cleanup_retained_media_task(limit=1), 1)
+        unheld_capture.refresh_from_db()
+        self.assertIsNotNone(unheld_capture.deleted_at)
         self.assertTrue(
             AuditEvent.objects.filter(
                 tenant=self.tenant,
@@ -2146,7 +2174,13 @@ class VerificationOperationsTaskTests(TestCase):
         # A tenant-wide hold uses SQL IS NULL, not an IN list containing None.
         RetentionLegalHold.objects.filter(tenant=self.tenant).update(verification=None)
         self.assertEqual(cleanup_retained_media_task(limit=10), 0)
-        self.assertEqual(AuditEvent.objects.filter(action="retention.media_deletion_deferred", target_id=verification.public_id).count(), 2)
+        self.assertEqual(
+            AuditEvent.objects.filter(
+                action="retention.media_deletion_deferred",
+                target_id=verification.public_id,
+            ).count(),
+            2,
+        )
 
     @patch("apps.verifications.tasks.delete_object")
     @patch(
