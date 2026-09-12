@@ -2,8 +2,20 @@ import io
 import logging
 
 from django.test import SimpleTestCase
+from django.utils.log import AdminEmailHandler
 
 from common.safe_logging import LOG_FORMAT_ERROR, install_safe_logging
+
+
+class CapturingAdminEmailHandler(AdminEmailHandler):
+    def __init__(self):
+        super().__init__()
+        self.sent_messages = []
+
+    def send_mail(
+        self, subject, message, *args, fail_silently=False, html_message=None, **kwargs
+    ):
+        self.sent_messages.append((subject, message, html_message))
 
 
 class SafeLoggingBoundaryTests(SimpleTestCase):
@@ -65,6 +77,25 @@ class SafeLoggingBoundaryTests(SimpleTestCase):
         self.assertNotIn("subject@example.test", output)
         self.assertIn("RuntimeError", output)
         self.assertIn("failed", output)
+
+    def test_admin_email_handler_receives_sanitized_exception_context(self):
+        handler = CapturingAdminEmailHandler()
+        logger = logging.getLogger("django.request.safe-email-test")
+        logger.handlers = [handler]
+        logger.propagate = False
+        logger.setLevel(logging.ERROR)
+        self.addCleanup(logger.handlers.clear)
+
+        try:
+            raise RuntimeError("token=email-secret; status=failed")
+        except RuntimeError:
+            logger.exception("request failed")
+
+        self.assertEqual(len(handler.sent_messages), 1)
+        message = handler.sent_messages[0][1]
+        self.assertIn("test_admin_email_handler_receives_sanitized_exception_context", message)
+        self.assertIn("RuntimeError", message)
+        self.assertNotIn("email-secret", message)
 
     def test_interpolated_structures_and_bytes_are_redacted(self):
         logger, stream = self._capture("identitycore.structured-arguments-test")

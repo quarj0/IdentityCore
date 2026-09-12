@@ -13,6 +13,10 @@ REDACTED_BINARY = "[REDACTED_BINARY]"
 MAX_REDACTION_DEPTH = 12
 LOG_FORMAT_ERROR = "[LOG_FORMAT_ERROR]"
 
+
+class _SanitizedLogException(Exception):
+    """Exception wrapper consumable by handlers without exposing live frames."""
+
 _SENSITIVE_KEYS = frozenset(
     {
         # Credentials and session material.
@@ -334,7 +338,11 @@ def sanitize_log_record(record: logging.LogRecord) -> logging.LogRecord:
         record.stack_info = redact_text(record.stack_info)
     if record.exc_info:
         record.exc_text = _redact_exception(record.exc_info)
-        record.exc_info = None
+        record.exc_info = (
+            _SanitizedLogException,
+            _SanitizedLogException(record.exc_text),
+            None,
+        )
     elif record.exc_text:
         record.exc_text = redact_text(record.exc_text)
     return record
