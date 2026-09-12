@@ -18,7 +18,13 @@ from apps.tenants.models import Tenant
 from apps.verification_policies.models import VerificationPolicy
 from apps.verifications.models import Verification, VerificationStatus
 from apps.verification_subjects.models import VerificationSubject
-from apps.webhooks.models import WebhookDeliveryAttempt, WebhookEndpoint, WebhookEvent, WebhookEventStatus
+from apps.webhooks.models import (
+    WebhookDeliveryAttempt,
+    WebhookEndpoint,
+    WebhookEndpointStatus,
+    WebhookEvent,
+    WebhookEventStatus,
+)
 from apps.webhooks.services import (
     _build_legacy_signature,
     _build_signature,
@@ -606,8 +612,10 @@ class WebhookEndpointTests(APITestCase):
             deliver_webhook_event(webhook_event)
 
         webhook_event.refresh_from_db()
+        endpoint.refresh_from_db()
         self.assertEqual(webhook_event.status, WebhookEventStatus.FAILED)
         self.assertEqual(webhook_event.attempt_count, 2)
+        self.assertEqual(endpoint.status, "failed")
         self.assertEqual(WebhookDeliveryAttempt.objects.filter(webhook_event=webhook_event).count(), 2)
         self.assertTrue(
             AuditEvent.objects.filter(
@@ -616,6 +624,134 @@ class WebhookEndpointTests(APITestCase):
                 target_id=webhook_event.public_id,
             ).exists()
         )
+
+    def test_failed_event_replay_is_tenant_scoped_audited_and_idempotent(self):
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/recovery",
+            events_json=["verification.verified"],
+            created_by=self.user,
+            status="active",
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={
+                "id": "placeholder",
+                "type": "verification.verified",
+                "data": {"status": "verified"},
+            },
+            status=WebhookEventStatus.FAILED,
+            attempt_count=5,
+            last_attempt_at=timezone.now(),
+        )
+        WebhookDeliveryAttempt.objects.create(
+            webhook_event=webhook_event,
+            status_code=500,
+            error_message="Non-success webhook response.",
+        )
+        replay_url = reverse(
+            "webhook-event-replay", kwargs={"event_id": webhook_event.public_id}
+        )
+
+        first = self.client.post(
+            replay_url, format="json", HTTP_IDEMPOTENCY_KEY="replay-failed-event"
+        )
+        replay = self.client.post(
+            replay_url, format="json", HTTP_IDEMPOTENCY_KEY="replay-failed-event"
+        )
+
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        self.assertEqual(replay.status_code, status.HTTP_200_OK)
+        self.assertEqual(first.data["data"], replay.data["data"])
+        self.assertEqual(first.data["data"]["id"], webhook_event.public_id)
+        webhook_event.refresh_from_db()
+        self.assertEqual(webhook_event.status, WebhookEventStatus.PENDING)
+        self.assertEqual(webhook_event.attempt_count, 0)
+        self.assertEqual(webhook_event.delivery_attempts.count(), 1)
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                tenant=self.tenant,
+                action="webhook.replay_queued",
+                target_id=webhook_event.public_id,
+                actor_type="platform_user",
+                actor_id=self.user.public_id,
+            ).exists()
+        )
+
+    def test_failed_event_replay_requires_active_endpoint(self):
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/failed",
+            events_json=["verification.verified"],
+            created_by=self.user,
+            status="failed",
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={},
+            status=WebhookEventStatus.FAILED,
+            attempt_count=5,
+        )
+
+        response = self.client.post(
+            reverse(
+                "webhook-event-replay", kwargs={"event_id": webhook_event.public_id}
+            ),
+            format="json",
+            HTTP_IDEMPOTENCY_KEY="inactive-endpoint-replay",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        webhook_event.refresh_from_db()
+        self.assertEqual(webhook_event.status, WebhookEventStatus.FAILED)
+
+    def test_failed_event_replay_cannot_cross_tenants(self):
+        other_org = Organization.objects.create(name="Other Replay", slug="other-replay")
+        other_tenant = Tenant.objects.create(
+            organization=other_org,
+            name="Other Replay",
+            slug="other-replay",
+            status="active",
+        )
+        other_user = PlatformUser.objects.create_user(
+            email="other-replay@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            tenant=other_tenant,
+        )
+        endpoint = WebhookEndpoint(
+            tenant=other_tenant,
+            url="https://other.example.com/webhooks/recovery",
+            events_json=["verification.verified"],
+            created_by=other_user,
+        )
+        endpoint.set_secret("other-secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=other_tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={},
+            status=WebhookEventStatus.FAILED,
+        )
+
+        response = self.client.post(
+            reverse(
+                "webhook-event-replay", kwargs={"event_id": webhook_event.public_id}
+            ),
+            format="json",
+            HTTP_IDEMPOTENCY_KEY="cross-tenant-event-replay",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_disabled_endpoint_cancels_delivery(self):
         endpoint = WebhookEndpoint(
@@ -639,6 +775,55 @@ class WebhookEndpointTests(APITestCase):
         webhook_event.refresh_from_db()
         self.assertEqual(webhook_event.status, WebhookEventStatus.CANCELLED)
         self.assertEqual(webhook_event.attempt_count, 0)
+
+    def test_pending_worker_cancels_events_for_disabled_endpoint(self):
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/disabled",
+            events_json=["verification.verified"],
+            created_by=self.user,
+            status=WebhookEndpointStatus.DISABLED,
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={},
+        )
+
+        self.assertEqual(process_pending_webhook_events(limit=10), 0)
+
+        webhook_event.refresh_from_db()
+        self.assertEqual(webhook_event.status, WebhookEventStatus.CANCELLED)
+
+    @patch("apps.webhooks.services._send_webhook_request")
+    def test_pending_events_wait_while_failed_endpoint_is_repaired(
+        self, mock_send_request
+    ):
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/repairing",
+            events_json=["verification.verified"],
+            created_by=self.user,
+            status="failed",
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={},
+            status=WebhookEventStatus.PENDING,
+        )
+
+        self.assertEqual(process_pending_webhook_events(limit=10), 0)
+
+        webhook_event.refresh_from_db()
+        self.assertEqual(webhook_event.status, WebhookEventStatus.PENDING)
+        mock_send_request.assert_not_called()
 
     @patch("apps.webhooks.services._send_webhook_request")
     def test_delivered_event_is_not_sent_twice(self, mock_send_request):
@@ -687,7 +872,9 @@ class WebhookEndpointTests(APITestCase):
         deliver_webhook_event(webhook_event)
 
         webhook_event.refresh_from_db()
+        endpoint.refresh_from_db()
         self.assertEqual(webhook_event.status, WebhookEventStatus.FAILED)
+        self.assertEqual(endpoint.status, WebhookEndpointStatus.FAILED)
         self.assertEqual(webhook_event.attempt_count, 1)
         self.assertIsNone(webhook_event.next_retry_at)
         attempt = WebhookDeliveryAttempt.objects.get(webhook_event=webhook_event)
@@ -968,6 +1155,29 @@ class WebhookOutboxTransactionTests(TransactionTestCase):
 
         self.endpoint.refresh_from_db()
         self.assertEqual(self.endpoint.description, "")
+        self.assertFalse(WebhookEvent.objects.exists())
+
+    def test_failed_endpoint_keeps_new_events_pending_for_recovery(self):
+        self.endpoint.status = WebhookEndpointStatus.FAILED
+        self.endpoint.save(update_fields=["status", "updated_at"])
+
+        with transaction.atomic():
+            queued = self.queue_event()
+
+        self.assertEqual(len(queued), 1)
+        self.assertEqual(queued[0].status, WebhookEventStatus.PENDING)
+        self.assertEqual(process_pending_webhook_events(limit=10), 0)
+        queued[0].refresh_from_db()
+        self.assertEqual(queued[0].status, WebhookEventStatus.PENDING)
+
+    def test_disabled_endpoint_does_not_queue_new_events(self):
+        self.endpoint.status = WebhookEndpointStatus.DISABLED
+        self.endpoint.save(update_fields=["status", "updated_at"])
+
+        with transaction.atomic():
+            queued = self.queue_event()
+
+        self.assertEqual(queued, [])
         self.assertFalse(WebhookEvent.objects.exists())
 
     @patch("apps.webhooks.services._send_webhook_request")

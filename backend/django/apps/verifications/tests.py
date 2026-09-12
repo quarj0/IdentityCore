@@ -1,8 +1,10 @@
 from datetime import timedelta
 from importlib import import_module
+from io import StringIO
 from unittest.mock import Mock, patch
 
 from django.apps import apps as django_apps
+from django.core.management import call_command
 from django.urls import reverse
 from django.db import connection
 from django.test import TestCase
@@ -1950,6 +1952,45 @@ class VerificationOperationsTaskTests(TestCase):
             email="akosua@example.com",
         )
 
+    def test_operator_can_place_and_release_audited_retention_hold(self):
+        output = StringIO()
+        call_command(
+            "manage_retention_hold",
+            tenant=self.tenant.slug,
+            place=True,
+            reason="INC-2026-0912 approved",
+            stdout=output,
+        )
+
+        hold = RetentionLegalHold.objects.get(tenant=self.tenant)
+        self.assertTrue(hold.is_active)
+        self.assertIn(hold.public_id, output.getvalue())
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                tenant=self.tenant,
+                action="retention.legal_hold_placed",
+                target_id=hold.public_id,
+            ).exists()
+        )
+
+        call_command(
+            "manage_retention_hold",
+            tenant=self.tenant.slug,
+            release=hold.public_id,
+            reason="INC-2026-0912 release approved",
+            stdout=StringIO(),
+        )
+
+        hold.refresh_from_db()
+        self.assertFalse(hold.is_active)
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                tenant=self.tenant,
+                action="retention.legal_hold_released",
+                target_id=hold.public_id,
+            ).exists()
+        )
+
     def test_expire_pending_verifications_task_expires_records_and_queues_follow_up_work(
         self,
     ):
@@ -2126,7 +2167,7 @@ class VerificationOperationsTaskTests(TestCase):
             status=VerificationStatus.VERIFIED,
             policy_snapshot_json={"media_retention_days": 30},
             expires_at=timezone.now() - timedelta(days=31),
-            completed_at=timezone.now() - timedelta(days=31),
+            completed_at=timezone.now() - timedelta(days=32),
         )
         RetentionLegalHold.objects.create(
             tenant=self.tenant,
@@ -2134,12 +2175,100 @@ class VerificationOperationsTaskTests(TestCase):
             reason="Regulatory investigation",
         )
 
-        self.assertEqual(cleanup_retained_media_task(limit=10), 0)
+        unheld_verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.subject,
+            purpose="Later unheld verification",
+            status=VerificationStatus.VERIFIED,
+            policy_snapshot_json={"media_retention_days": 30},
+            expires_at=timezone.now() - timedelta(days=31),
+            completed_at=timezone.now() - timedelta(days=31),
+        )
+        identity_document = IdentityDocument.objects.create(
+            tenant=self.tenant,
+            verification=unheld_verification,
+            verification_subject=self.subject,
+            document_type_id="passport",
+            country_profile_id="GH",
+            status="processed",
+        )
+        unheld_capture = DocumentCapture.objects.create(
+            tenant=self.tenant,
+            identity_document=identity_document,
+            side="front",
+            storage_key="uploads/documents/unheld-later",
+            captured_at=timezone.now() - timedelta(days=31),
+        )
+
+        self.assertEqual(cleanup_retained_media_task(limit=1), 1)
+        unheld_capture.refresh_from_db()
+        self.assertIsNotNone(unheld_capture.deleted_at)
         self.assertTrue(
             AuditEvent.objects.filter(
                 tenant=self.tenant,
                 action="retention.media_deletion_deferred",
                 target_id=verification.public_id,
+            ).exists()
+        )
+
+        # A tenant-wide hold uses SQL IS NULL, not an IN list containing None.
+        RetentionLegalHold.objects.filter(tenant=self.tenant).update(verification=None)
+        self.assertEqual(cleanup_retained_media_task(limit=10), 0)
+        self.assertEqual(
+            AuditEvent.objects.filter(
+                action="retention.media_deletion_deferred",
+                target_id=verification.public_id,
+            ).count(),
+            2,
+        )
+
+    @patch("apps.verifications.tasks.active_retention_holds")
+    def test_cleanup_rechecks_hold_immediately_before_deletion(self, active_holds):
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.subject,
+            purpose="Hold placed during cleanup",
+            status=VerificationStatus.VERIFIED,
+            policy_snapshot_json={"media_retention_days": 30},
+            expires_at=timezone.now() - timedelta(days=31),
+            completed_at=timezone.now() - timedelta(days=31),
+        )
+        identity_document = IdentityDocument.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            verification_subject=self.subject,
+            document_type_id="passport",
+            country_profile_id="GH",
+            status="processed",
+        )
+        capture = DocumentCapture.objects.create(
+            tenant=self.tenant,
+            identity_document=identity_document,
+            side="front",
+            storage_key="uploads/documents/newly-held",
+            captured_at=timezone.now() - timedelta(days=31),
+        )
+        unheld = RetentionLegalHold.objects.none()
+        held = RetentionLegalHold.objects.filter(
+            pk=RetentionLegalHold.objects.create(
+                tenant=self.tenant,
+                verification=verification,
+                reason="Placed while cleanup runs",
+            ).pk
+        )
+        active_holds.side_effect = [unheld, held]
+
+        self.assertEqual(cleanup_retained_media_task(limit=10), 0)
+
+        capture.refresh_from_db()
+        self.assertIsNone(capture.deleted_at)
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                action="retention.media_deletion_deferred",
+                target_id=verification.public_id,
+                metadata_json__reason="legal_hold_recheck",
             ).exists()
         )
 

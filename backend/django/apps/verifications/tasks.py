@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from celery import shared_task
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 
 from apps.audit.services import record_audit_event
@@ -18,12 +18,12 @@ from common.storage import (
 from apps.notifications.services import queue_verification_status_notifications
 from apps.verifications.models import (
     Verification,
-    RetentionLegalHold,
     VerificationSession,
     VerificationSessionStatus,
     VerificationStatus,
 )
 from apps.verifications.processing_jobs import recover_stale_processing_jobs
+from apps.verifications.retention import active_retention_holds
 from apps.verifications.transitions import transition_verification
 from apps.webhooks.services import queue_webhook_events
 from common.authorization import ServicePrincipal, require_service_access
@@ -74,18 +74,6 @@ RETENTION_COMPLETED_VERIFICATION_STATUSES = {
     VerificationStatus.EXPIRED,
     VerificationStatus.FAILED,
 }
-
-
-def _has_active_retention_hold(verification: Verification, now) -> bool:
-    return (
-        RetentionLegalHold.objects.filter(
-            tenant_id=verification.tenant_id,
-            verification_id__in=[None, verification.id],
-            released_at__isnull=True,
-        )
-        .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
-        .exists()
-    )
 
 
 @transaction.atomic
@@ -176,29 +164,53 @@ def cleanup_retained_media_task(limit: int = 100) -> int:
     )
     now = timezone.now()
     cleaned = 0
-    verifications = (
+    candidates = (
         Verification.objects.select_related("tenant")
+        .annotate(
+            held=Exists(
+                active_retention_holds(now)
+                .filter(tenant_id=OuterRef("tenant_id"))
+                .filter(
+                    Q(verification_id__isnull=True) | Q(verification_id=OuterRef("id"))
+                )
+            )
+        )
         .filter(
             status__in=RETENTION_COMPLETED_VERIFICATION_STATUSES,
             completed_at__isnull=False,
         )
-        .order_by("completed_at")[:limit]
     )
+    held_verifications = candidates.filter(held=True).order_by("completed_at")[:limit]
+    for verification in held_verifications:
+        record_audit_event(
+            tenant=verification.tenant,
+            action="retention.media_deletion_deferred",
+            target_type="verification",
+            target_id=verification.public_id,
+            metadata={"reason": "legal_hold"},
+        )
+    verifications = candidates.filter(held=False).order_by("completed_at")[:limit]
     for verification in verifications:
-        if _has_active_retention_hold(verification, now):
-            record_audit_event(
-                tenant=verification.tenant,
-                action="retention.media_deletion_deferred",
-                target_type="verification",
-                target_id=verification.public_id,
-                metadata={"reason": "legal_hold"},
-            )
-            continue
         retention_days = int(
             (verification.policy_snapshot_json or {}).get("media_retention_days", 30)
         )
         cutoff = verification.completed_at + timedelta(days=retention_days)
         if cutoff > now:
+            continue
+
+        if (
+            active_retention_holds(timezone.now())
+            .filter(tenant=verification.tenant)
+            .filter(Q(verification__isnull=True) | Q(verification=verification))
+            .exists()
+        ):
+            record_audit_event(
+                tenant=verification.tenant,
+                action="retention.media_deletion_deferred",
+                target_type="verification",
+                target_id=verification.public_id,
+                metadata={"reason": "legal_hold_recheck"},
+            )
             continue
 
         media_deleted = False
