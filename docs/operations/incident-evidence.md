@@ -12,6 +12,15 @@ purpose; incident handling is not permission for unrestricted data collection.
    privacy owner approve a narrowly scoped preservation hold. The application
    supports tenant-wide and verification-specific `RetentionLegalHold` records
    as described in [ADR-022](../decisions/ADR-022-retention-deletion-controls.md).
+   After recording approval in the restricted incident system, a production
+   operator places a tenant-wide hold with
+   `python manage.py manage_retention_hold --tenant <slug> --place --reason <incident-reference>`
+   or adds `--verification <verification-public-id>` for the narrow scope. Add
+   `--expires-at <timezone-aware-ISO-8601>` when approval has a fixed end. Confirm
+   the returned hold ID and `retention.legal_hold_placed` audit event before
+   resuming cleanup. Release it only after approval with
+   `python manage.py manage_retention_hold --tenant <slug> --release <hold-id> --reason <authorization-reference>`;
+   the command locks the tenant while changing the hold and records the release.
    The application cleanup workers honor these holds for both retained media
    and temporary uploads, including initiated, quarantined, and consumed uploads.
    Before acquisition, pause the affected cleanup schedule and have its operator

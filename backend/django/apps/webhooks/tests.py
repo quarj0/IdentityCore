@@ -776,6 +776,28 @@ class WebhookEndpointTests(APITestCase):
         self.assertEqual(webhook_event.status, WebhookEventStatus.CANCELLED)
         self.assertEqual(webhook_event.attempt_count, 0)
 
+    def test_pending_worker_cancels_events_for_disabled_endpoint(self):
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/disabled",
+            events_json=["verification.verified"],
+            created_by=self.user,
+            status=WebhookEndpointStatus.DISABLED,
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={},
+        )
+
+        self.assertEqual(process_pending_webhook_events(limit=10), 0)
+
+        webhook_event.refresh_from_db()
+        self.assertEqual(webhook_event.status, WebhookEventStatus.CANCELLED)
+
     @patch("apps.webhooks.services._send_webhook_request")
     def test_pending_events_wait_while_failed_endpoint_is_repaired(
         self, mock_send_request
@@ -850,7 +872,9 @@ class WebhookEndpointTests(APITestCase):
         deliver_webhook_event(webhook_event)
 
         webhook_event.refresh_from_db()
+        endpoint.refresh_from_db()
         self.assertEqual(webhook_event.status, WebhookEventStatus.FAILED)
+        self.assertEqual(endpoint.status, WebhookEndpointStatus.FAILED)
         self.assertEqual(webhook_event.attempt_count, 1)
         self.assertIsNone(webhook_event.next_retry_at)
         attempt = WebhookDeliveryAttempt.objects.get(webhook_event=webhook_event)

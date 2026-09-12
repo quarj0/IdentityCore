@@ -164,18 +164,21 @@ def cleanup_retained_media_task(limit: int = 100) -> int:
     )
     now = timezone.now()
     cleaned = 0
-    candidates = Verification.objects.select_related("tenant").annotate(
-        held=Exists(
-            active_retention_holds(now)
-            .filter(tenant_id=OuterRef("tenant_id"))
-            .filter(
-                Q(verification_id__isnull=True)
-                | Q(verification_id=OuterRef("id"))
+    candidates = (
+        Verification.objects.select_related("tenant")
+        .annotate(
+            held=Exists(
+                active_retention_holds(now)
+                .filter(tenant_id=OuterRef("tenant_id"))
+                .filter(
+                    Q(verification_id__isnull=True) | Q(verification_id=OuterRef("id"))
+                )
             )
         )
-    ).filter(
-        status__in=RETENTION_COMPLETED_VERIFICATION_STATUSES,
-        completed_at__isnull=False,
+        .filter(
+            status__in=RETENTION_COMPLETED_VERIFICATION_STATUSES,
+            completed_at__isnull=False,
+        )
     )
     held_verifications = candidates.filter(held=True).order_by("completed_at")[:limit]
     for verification in held_verifications:
@@ -186,16 +189,28 @@ def cleanup_retained_media_task(limit: int = 100) -> int:
             target_id=verification.public_id,
             metadata={"reason": "legal_hold"},
         )
-    verifications = (
-        candidates.filter(held=False)
-        .order_by("completed_at")[:limit]
-    )
+    verifications = candidates.filter(held=False).order_by("completed_at")[:limit]
     for verification in verifications:
         retention_days = int(
             (verification.policy_snapshot_json or {}).get("media_retention_days", 30)
         )
         cutoff = verification.completed_at + timedelta(days=retention_days)
         if cutoff > now:
+            continue
+
+        if (
+            active_retention_holds(timezone.now())
+            .filter(tenant=verification.tenant)
+            .filter(Q(verification__isnull=True) | Q(verification=verification))
+            .exists()
+        ):
+            record_audit_event(
+                tenant=verification.tenant,
+                action="retention.media_deletion_deferred",
+                target_type="verification",
+                target_id=verification.public_id,
+                metadata={"reason": "legal_hold_recheck"},
+            )
             continue
 
         media_deleted = False

@@ -206,13 +206,18 @@ def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
     }:
         return webhook_event
 
-    if webhook_event.webhook_endpoint.status != WebhookEndpointStatus.ACTIVE:
+    if webhook_event.webhook_endpoint.status == WebhookEndpointStatus.DISABLED:
         webhook_event.status = WebhookEventStatus.CANCELLED
         webhook_event.next_retry_at = None
         webhook_event.save(update_fields=["status", "next_retry_at", "updated_at"])
         return webhook_event
+    if webhook_event.webhook_endpoint.status == WebhookEndpointStatus.FAILED:
+        return webhook_event
 
     if not webhook_event.webhook_endpoint.signing_key:
+        endpoint = webhook_event.webhook_endpoint
+        endpoint.status = WebhookEndpointStatus.FAILED
+        endpoint.save(update_fields=["status", "updated_at"])
         webhook_event.status = WebhookEventStatus.FAILED
         webhook_event.attempt_count += 1
         webhook_event.last_attempt_at = timezone.now()
@@ -238,6 +243,16 @@ def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
             target_id=webhook_event.public_id,
             metadata={
                 "event_type": webhook_event.event_type,
+                "reason": "missing_signing_key",
+            },
+        )
+        record_audit_event(
+            tenant=webhook_event.tenant,
+            action="webhook_endpoint.delivery_failed",
+            target_type="webhook_endpoint",
+            target_id=endpoint.public_id,
+            metadata={
+                "event_id": webhook_event.public_id,
                 "reason": "missing_signing_key",
             },
         )
@@ -400,6 +415,17 @@ def get_due_webhook_events(*, limit: int = 50):
 
 
 def process_pending_webhook_events(*, limit: int = 50) -> int:
+    disabled_events = list(
+        WebhookEvent.objects.select_related("webhook_endpoint", "tenant")
+        .filter(
+            status=WebhookEventStatus.PENDING,
+            webhook_endpoint__status=WebhookEndpointStatus.DISABLED,
+        )
+        .order_by("created_at")[:limit]
+    )
+    for webhook_event in disabled_events:
+        deliver_webhook_event(webhook_event)
+
     processed = 0
     for webhook_event in get_due_webhook_events(limit=limit):
         deliver_webhook_event(webhook_event)
