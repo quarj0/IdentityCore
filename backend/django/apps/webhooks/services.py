@@ -13,6 +13,7 @@ from django.utils import timezone
 from apps.audit.services import record_audit_event
 from apps.webhooks.models import (
     WebhookDeliveryAttempt,
+    WebhookEndpoint,
     WebhookEndpointStatus,
     WebhookEvent,
     WebhookEventStatus,
@@ -200,19 +201,35 @@ def _record_delivery_attempt(
 
 
 def _mark_endpoint_failed_if_active(endpoint) -> bool:
-    updated = type(endpoint).objects.filter(
-        pk=endpoint.pk,
-        status=WebhookEndpointStatus.ACTIVE,
-    ).update(status=WebhookEndpointStatus.FAILED, updated_at=timezone.now())
+    updated = (
+        type(endpoint)
+        .objects.filter(
+            pk=endpoint.pk,
+            status=WebhookEndpointStatus.ACTIVE,
+        )
+        .update(status=WebhookEndpointStatus.FAILED, updated_at=timezone.now())
+    )
     endpoint.refresh_from_db(fields=["status"])
     return bool(updated)
 
 
 def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
-    if webhook_event.status in {
-        WebhookEventStatus.DELIVERED,
-        WebhookEventStatus.CANCELLED,
-    }:
+    """Serialize delivery per endpoint and event through the result commit."""
+    with transaction.atomic():
+        endpoint = WebhookEndpoint.objects.select_for_update().get(
+            pk=webhook_event.webhook_endpoint_id
+        )
+        locked_event = (
+            WebhookEvent.objects.select_for_update()
+            .select_related("tenant")
+            .get(pk=webhook_event.pk)
+        )
+        locked_event.webhook_endpoint = endpoint
+        return _deliver_webhook_event_locked(locked_event)
+
+
+def _deliver_webhook_event_locked(webhook_event: WebhookEvent) -> WebhookEvent:
+    if webhook_event.status != WebhookEventStatus.PENDING:
         return webhook_event
 
     webhook_event.webhook_endpoint.refresh_from_db(fields=["status", "signing_key"])
@@ -227,20 +244,23 @@ def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
 
     if not webhook_event.webhook_endpoint.signing_key:
         endpoint = webhook_event.webhook_endpoint
-        endpoint_failed = _mark_endpoint_failed_if_active(endpoint)
-        webhook_event.status = WebhookEventStatus.FAILED
-        webhook_event.attempt_count += 1
-        webhook_event.last_attempt_at = timezone.now()
-        webhook_event.next_retry_at = None
-        webhook_event.save(
-            update_fields=[
-                "status",
-                "attempt_count",
-                "last_attempt_at",
-                "next_retry_at",
-                "updated_at",
-            ]
+        attempted_at = timezone.now()
+        next_attempt_count = webhook_event.attempt_count + 1
+        updated = WebhookEvent.objects.filter(
+            pk=webhook_event.pk,
+            status=WebhookEventStatus.PENDING,
+            attempt_count=webhook_event.attempt_count,
+        ).update(
+            status=WebhookEventStatus.FAILED,
+            attempt_count=next_attempt_count,
+            last_attempt_at=attempted_at,
+            next_retry_at=None,
+            updated_at=attempted_at,
         )
+        webhook_event.refresh_from_db()
+        if not updated:
+            return webhook_event
+        endpoint_failed = _mark_endpoint_failed_if_active(endpoint)
         _record_delivery_attempt(
             webhook_event=webhook_event,
             status_code=None,
@@ -271,32 +291,35 @@ def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
 
     payload_bytes = _encode_payload(_versioned_payload(webhook_event))
     timestamp = str(int(timezone.now().timestamp()))
+    previous_attempt_count = webhook_event.attempt_count
+    attempted_at = timezone.now()
     try:
         status_code, response_body, duration_ms = _send_webhook_request(
             webhook_event=webhook_event,
             payload_bytes=payload_bytes,
             timestamp=timestamp,
         )
-        webhook_event.attempt_count += 1
-        webhook_event.last_attempt_at = timezone.now()
         if 200 <= status_code < 300:
-            webhook_event.status = WebhookEventStatus.DELIVERED
-            webhook_event.next_retry_at = None
-            webhook_event.save(
-                update_fields=[
-                    "status",
-                    "attempt_count",
-                    "last_attempt_at",
-                    "next_retry_at",
-                    "updated_at",
-                ]
-            )
             _record_delivery_attempt(
                 webhook_event=webhook_event,
                 status_code=status_code,
                 response_body=response_body,
                 duration_ms=duration_ms,
             )
+            updated = WebhookEvent.objects.filter(
+                pk=webhook_event.pk,
+                status=WebhookEventStatus.PENDING,
+                attempt_count=previous_attempt_count,
+            ).update(
+                status=WebhookEventStatus.DELIVERED,
+                attempt_count=previous_attempt_count + 1,
+                last_attempt_at=attempted_at,
+                next_retry_at=None,
+                updated_at=attempted_at,
+            )
+            webhook_event.refresh_from_db()
+            if not updated:
+                return webhook_event
             record_audit_event(
                 tenant=webhook_event.tenant,
                 action="webhook.delivered",
@@ -317,25 +340,45 @@ def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
             duration_ms=duration_ms,
         )
     except error.URLError as exc:
-        webhook_event.attempt_count += 1
-        webhook_event.last_attempt_at = timezone.now()
         _record_delivery_attempt(
             webhook_event=webhook_event,
             status_code=None,
             error_message=str(exc.reason if hasattr(exc, "reason") else exc),
         )
     except Exception as exc:
-        webhook_event.attempt_count += 1
-        webhook_event.last_attempt_at = timezone.now()
         _record_delivery_attempt(
             webhook_event=webhook_event,
             status_code=None,
             error_message=str(exc),
         )
 
-    if webhook_event.attempt_count >= settings.WEBHOOK_MAX_ATTEMPTS:
-        webhook_event.status = WebhookEventStatus.FAILED
-        webhook_event.next_retry_at = None
+    next_attempt_count = previous_attempt_count + 1
+    terminal_failure = next_attempt_count >= settings.WEBHOOK_MAX_ATTEMPTS
+    next_status = (
+        WebhookEventStatus.FAILED if terminal_failure else WebhookEventStatus.PENDING
+    )
+    next_retry_at = (
+        None
+        if terminal_failure
+        else _calculate_next_retry(attempt_count=next_attempt_count)
+    )
+    updated = WebhookEvent.objects.filter(
+        pk=webhook_event.pk,
+        status=WebhookEventStatus.PENDING,
+        attempt_count=previous_attempt_count,
+        webhook_endpoint__status=WebhookEndpointStatus.ACTIVE,
+    ).update(
+        status=next_status,
+        attempt_count=next_attempt_count,
+        last_attempt_at=attempted_at,
+        next_retry_at=next_retry_at,
+        updated_at=attempted_at,
+    )
+    webhook_event.refresh_from_db()
+    if not updated:
+        return webhook_event
+
+    if terminal_failure:
         endpoint = webhook_event.webhook_endpoint
         endpoint_failed = _mark_endpoint_failed_if_active(endpoint)
         record_audit_event(
@@ -356,20 +399,6 @@ def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
                 target_id=endpoint.public_id,
                 metadata={"event_id": webhook_event.public_id},
             )
-    else:
-        webhook_event.status = WebhookEventStatus.PENDING
-        webhook_event.next_retry_at = _calculate_next_retry(
-            attempt_count=webhook_event.attempt_count
-        )
-    webhook_event.save(
-        update_fields=[
-            "status",
-            "attempt_count",
-            "last_attempt_at",
-            "next_retry_at",
-            "updated_at",
-        ]
-    )
     return webhook_event
 
 

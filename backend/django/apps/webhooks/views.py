@@ -38,7 +38,9 @@ class WebhookSecretRotationConflict(APIException):
 
 class WebhookSecretRotationReplayConflict(APIException):
     status_code = status.HTTP_409_CONFLICT
-    default_detail = "This rotation response is obsolete because the secret was rotated again."
+    default_detail = (
+        "This rotation response is obsolete because the secret was rotated again."
+    )
     default_code = "webhook_secret_rotation_replay_conflict"
 
 
@@ -134,6 +136,7 @@ class WebhookEndpointTestView(APIView):
 
 class WebhookEventReplayView(APIView):
     permission_classes = [IsAuthenticated, IsTenantUser]
+    required_permission_code = "manage_webhooks"
 
     @transaction.atomic
     def post(self, request, event_id: str):
