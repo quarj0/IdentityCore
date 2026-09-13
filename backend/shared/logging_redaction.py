@@ -329,7 +329,6 @@ def _sanitize_django_request(value: Any) -> Any:
 
     sanitized = copy(value)
     safe_meta_keys = {
-        "PATH_INFO",
         "REQUEST_METHOD",
         "SCRIPT_NAME",
         "SERVER_NAME",
@@ -357,9 +356,29 @@ def _sanitize_django_request(value: Any) -> Any:
         classification_ip=classification_ip,
     )
     sanitized.META["REMOTE_ADDR"] = REDACTED
+    sanitized.META["PATH_INFO"] = REDACTED
+    sanitized.path = REDACTED
+    sanitized.path_info = REDACTED
     if hasattr(value, "environ"):
-        sanitized.environ = dict(value.environ)
+        sanitized.environ = dict(sanitized.META)
         sanitized.environ["QUERY_STRING"] = ""
+        scheme = value.environ.get("wsgi.url_scheme", "https")
+        sanitized.environ["wsgi.url_scheme"] = (
+            scheme if scheme in {"http", "https"} else "https"
+        )
+
+    resolver_match = getattr(value, "resolver_match", None)
+    if resolver_match is not None:
+        sanitized_match = copy(resolver_match)
+        for attribute in ("kwargs", "captured_kwargs", "extra_kwargs"):
+            original = getattr(resolver_match, attribute, None)
+            if original is not None:
+                setattr(
+                    sanitized_match,
+                    attribute,
+                    {str(key): REDACTED for key in original},
+                )
+        sanitized.resolver_match = sanitized_match
 
     for attribute in ("GET", "POST", "FILES"):
         original = getattr(value, attribute, None)

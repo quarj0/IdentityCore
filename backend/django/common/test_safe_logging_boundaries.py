@@ -124,7 +124,7 @@ class SafeLoggingBoundaryTests(SimpleTestCase):
         self.assertEqual(len(handler.sent_messages), 1)
         subject, message, html_message = handler.sent_messages[0]
         self.assertIn("internal IP", subject)
-        self.assertIn("/api/v1/verifications/", message)
+        self.assertIn("Request URL: http://testserver%5BREDACTED%5D", message)
         self.assertIn("POST", message)
         self.assertIn("REMOTE_ADDR = '[REDACTED]'", message)
         complete_report = message + (html_message or "")
@@ -132,6 +132,25 @@ class SafeLoggingBoundaryTests(SimpleTestCase):
         self.assertNotIn("request-secret", complete_report)
         self.assertNotIn("auth-secret", complete_report)
         self.assertNotIn("exception-secret", complete_report)
+
+    def test_admin_email_handler_redacts_identifiers_in_request_paths(self):
+        handler = CapturingAdminEmailHandler()
+        logger = logging.getLogger("django.request.safe-path-email-test")
+        logger.handlers = [handler]
+        logger.propagate = False
+        logger.setLevel(logging.ERROR)
+        self.addCleanup(logger.handlers.clear)
+        request = RequestFactory().get(
+            "/api/v1/subjects/sub_sensitive_identifier?token=query-secret"
+        )
+
+        logger.error("request failed", extra={"request": request})
+
+        subject, message, html_message = handler.sent_messages[0]
+        complete_report = subject + message + (html_message or "")
+        self.assertNotIn("sub_sensitive_identifier", complete_report)
+        self.assertNotIn("query-secret", complete_report)
+        self.assertIn("[REDACTED]", complete_report)
 
     def test_admin_email_handler_sanitizes_cached_and_lazy_query_data(self):
         for evaluate_get in (False, True):
