@@ -21,7 +21,12 @@ from apps.webhooks.serializers import (
 )
 from common.permissions import IsTenantUser
 from common.responses import success_response
-from apps.webhooks.models import WebhookEndpoint, WebhookEvent
+from apps.webhooks.models import (
+    WebhookEndpoint,
+    WebhookEndpointStatus,
+    WebhookEvent,
+    WebhookEventStatus,
+)
 from apps.webhooks.services import requeue_failed_webhook_event
 
 
@@ -230,11 +235,21 @@ class WebhookEndpointActionView(WebhookEndpointDetailView):
                     request=request,
                     status=idempotency_result.response_status,
                 )
-        endpoint = self.obj(request, webhook_id, for_update=action == "rotate")
+        endpoint = self.obj(
+            request, webhook_id, for_update=action in {"disable", "rotate"}
+        )
         if action == "disable":
-            endpoint.status = "disabled"
+            endpoint.status = WebhookEndpointStatus.DISABLED
+            WebhookEvent.objects.filter(
+                webhook_endpoint=endpoint,
+                status=WebhookEventStatus.PENDING,
+            ).update(
+                status=WebhookEventStatus.CANCELLED,
+                next_retry_at=None,
+                updated_at=timezone.now(),
+            )
         elif action == "reactivate":
-            endpoint.status = "active"
+            endpoint.status = WebhookEndpointStatus.ACTIVE
         elif action == "rotate":
             if endpoint.previous_secret_overlap_active:
                 raise WebhookSecretRotationConflict()

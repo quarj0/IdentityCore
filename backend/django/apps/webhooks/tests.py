@@ -30,6 +30,7 @@ from apps.webhooks.services import (
     _build_signature,
     _send_webhook_request,
     deliver_webhook_event,
+    get_due_webhook_events,
     process_pending_webhook_events,
     queue_webhook_events,
 )
@@ -101,6 +102,46 @@ class WebhookEndpointTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("idempotency_key", response.data["error"]["details"])
+
+    def test_disable_action_cancels_pending_events_before_reactivation(self):
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/disable",
+            events_json=["verification.verified"],
+            created_by=self.user,
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={},
+        )
+        action_url = reverse(
+            "webhook-endpoint-action",
+            kwargs={"webhook_id": endpoint.public_id, "action": "disable"},
+        )
+
+        response = self.client.post(action_url, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.client.post(
+            reverse(
+                "webhook-endpoint-action",
+                kwargs={
+                    "webhook_id": endpoint.public_id,
+                    "action": "reactivate",
+                },
+            ),
+            format="json",
+        )
+
+        webhook_event.refresh_from_db()
+        self.assertEqual(webhook_event.status, WebhookEventStatus.CANCELLED)
+        self.assertIsNone(webhook_event.next_retry_at)
+        self.assertNotIn(
+            webhook_event.pk, [event.pk for event in get_due_webhook_events()]
+        )
 
     def test_create_webhook_endpoint_replays_original_secret(self):
         payload = {
