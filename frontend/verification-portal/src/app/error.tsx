@@ -15,8 +15,7 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     safeLog("error", "verification_portal_render_error", {
-      error_name: error.name,
-      error_message: error.message,
+      error_code: "unexpected_render_error",
       digest: error.digest ?? "",
     });
   }, [error]);

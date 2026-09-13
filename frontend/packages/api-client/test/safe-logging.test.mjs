@@ -129,6 +129,10 @@ test("redacts deployed credential names, signatures, and IPv6 addresses", () => 
     "JWT_SIGNING_KEY",
     "previous_signing_key",
     "APPLICATION_ENCRYPTION_KEYRING",
+    "handoff",
+    "handoffUrl",
+    "recoveryCodes",
+    "mfaRecoveryCodes",
   ]) {
     assert.equal(redactLogValue({ [key]: "private-value" })[key], REDACTED);
     assert.doesNotMatch(

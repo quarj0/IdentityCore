@@ -11,6 +11,8 @@ for (const source of [
   'const { error } = console; error("secret")',
   'const { warn: report } = globalThis.console; report("secret")',
   'const report = console.error; report("secret")',
+  'const sink = console; sink.error("secret")',
+  'const sink = window.console; sink.log("secret")',
   'console.table({ accessToken: "secret" })',
   'console.dir({ credentials: "secret" })',
   'console.assert(false, "secret")',
@@ -22,6 +24,12 @@ for (const source of [
 }
 
 test("allows unrelated methods and safe logging", () => {
-  assert.equal(containsUnsafeConsoleUse("fixture.ts", 'safeLog("error", "event")'), false);
-  assert.equal(containsUnsafeConsoleUse("fixture.ts", 'reporter.error("safe code")'), false);
+  assert.equal(
+    containsUnsafeConsoleUse("fixture.ts", 'safeLog("error", "event")'),
+    false,
+  );
+  assert.equal(
+    containsUnsafeConsoleUse("fixture.ts", 'reporter.error("safe code")'),
+    false,
+  );
 });

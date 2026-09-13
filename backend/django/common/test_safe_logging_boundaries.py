@@ -289,6 +289,10 @@ class SafeLoggingBoundaryTests(SimpleTestCase):
             "JWT_SIGNING_KEY",
             "previous_signing_key",
             "APPLICATION_ENCRYPTION_KEYRING",
+            "handoff",
+            "handoff_url",
+            "recovery_codes",
+            "mfa_recovery_codes",
         ):
             self.assertEqual(redact_value({key: "private-value"})[key], REDACTED)
             self.assertNotIn(

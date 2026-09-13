@@ -77,7 +77,8 @@ function isConsoleMethodReference(node) {
 }
 
 function destructuresConsoleMethod(node) {
-  if (!ts.isVariableDeclaration(node) || !ts.isObjectBindingPattern(node.name)) return false;
+  if (!ts.isVariableDeclaration(node) || !ts.isObjectBindingPattern(node.name))
+    return false;
   if (!node.initializer || !isConsoleObject(node.initializer)) return false;
   return node.name.elements.some((element) => {
     return propertyName(element.propertyName ?? element.name) !== null;
@@ -97,9 +98,11 @@ export function containsUnsafeConsoleUse(path, source) {
   function visit(node) {
     if (found) return;
     if (
-      ((ts.isCallExpression(node) && isConsoleMethodReference(node.expression)) ||
-        isConsoleMethodReference(node) ||
-        destructuresConsoleMethod(node))
+      (ts.isCallExpression(node) &&
+        isConsoleMethodReference(node.expression)) ||
+      isConsoleObject(node) ||
+      isConsoleMethodReference(node) ||
+      destructuresConsoleMethod(node)
     ) {
       found = true;
       return;
@@ -129,7 +132,10 @@ function walk(path, findings) {
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(resolve(process.argv[1])).href
+) {
   const findings = [];
   for (const root of sourceRoots) walk(root, findings);
 
