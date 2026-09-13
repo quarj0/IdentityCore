@@ -22,6 +22,8 @@ async function activateWithKeyboard(
   activated: () => Promise<boolean> = async () =>
     (await locator.isHidden()) || !(await locator.isEnabled()),
 ) {
+  await expect(locator).toBeVisible();
+  await expect(locator).toBeEnabled();
   for (let attempt = 0; attempt < 3; attempt += 1) {
     if (await activated()) return;
     await expect(locator).toBeEnabled();

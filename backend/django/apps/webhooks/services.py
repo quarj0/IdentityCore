@@ -28,7 +28,9 @@ def queue_webhook_events(
             "Webhook outbox events must be queued inside the domain transaction."
         )
     queued = []
-    endpoints = tenant.webhook_endpoints.filter(
+    # Coordinate event creation with endpoint disablement. Delivery does not hold
+    # this row lock while performing outbound HTTP, so producers remain responsive.
+    endpoints = tenant.webhook_endpoints.select_for_update().filter(
         status__in=[WebhookEndpointStatus.ACTIVE, WebhookEndpointStatus.FAILED]
     )
     verification_id = payload.get("verification_id")
@@ -214,9 +216,9 @@ def _mark_endpoint_failed_if_active(endpoint) -> bool:
 
 
 def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
-    """Serialize delivery per endpoint and event through the result commit."""
+    """Lock one event through delivery without blocking endpoint producers."""
     with transaction.atomic():
-        endpoint = WebhookEndpoint.objects.select_for_update().get(
+        endpoint = WebhookEndpoint.objects.get(
             pk=webhook_event.webhook_endpoint_id
         )
         locked_event = (
