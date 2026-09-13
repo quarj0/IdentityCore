@@ -7,7 +7,7 @@
   <name>IdentityCore Java SDK</name>
   <description>Server-side Java SDK for the IdentityCore REST API.</description>
   <properties>
-    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.release>25</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <jackson.version>2.18.9</jackson.version>
     <junit.version>5.12.2</junit.version>
