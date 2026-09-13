@@ -199,12 +199,23 @@ def _record_delivery_attempt(
     )
 
 
+def _mark_endpoint_failed_if_active(endpoint) -> bool:
+    updated = type(endpoint).objects.filter(
+        pk=endpoint.pk,
+        status=WebhookEndpointStatus.ACTIVE,
+    ).update(status=WebhookEndpointStatus.FAILED, updated_at=timezone.now())
+    endpoint.refresh_from_db(fields=["status"])
+    return bool(updated)
+
+
 def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
     if webhook_event.status in {
         WebhookEventStatus.DELIVERED,
         WebhookEventStatus.CANCELLED,
     }:
         return webhook_event
+
+    webhook_event.webhook_endpoint.refresh_from_db(fields=["status", "signing_key"])
 
     if webhook_event.webhook_endpoint.status == WebhookEndpointStatus.DISABLED:
         webhook_event.status = WebhookEventStatus.CANCELLED
@@ -216,8 +227,7 @@ def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
 
     if not webhook_event.webhook_endpoint.signing_key:
         endpoint = webhook_event.webhook_endpoint
-        endpoint.status = WebhookEndpointStatus.FAILED
-        endpoint.save(update_fields=["status", "updated_at"])
+        endpoint_failed = _mark_endpoint_failed_if_active(endpoint)
         webhook_event.status = WebhookEventStatus.FAILED
         webhook_event.attempt_count += 1
         webhook_event.last_attempt_at = timezone.now()
@@ -246,16 +256,17 @@ def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
                 "reason": "missing_signing_key",
             },
         )
-        record_audit_event(
-            tenant=webhook_event.tenant,
-            action="webhook_endpoint.delivery_failed",
-            target_type="webhook_endpoint",
-            target_id=endpoint.public_id,
-            metadata={
-                "event_id": webhook_event.public_id,
-                "reason": "missing_signing_key",
-            },
-        )
+        if endpoint_failed:
+            record_audit_event(
+                tenant=webhook_event.tenant,
+                action="webhook_endpoint.delivery_failed",
+                target_type="webhook_endpoint",
+                target_id=endpoint.public_id,
+                metadata={
+                    "event_id": webhook_event.public_id,
+                    "reason": "missing_signing_key",
+                },
+            )
         return webhook_event
 
     payload_bytes = _encode_payload(_versioned_payload(webhook_event))
@@ -326,8 +337,7 @@ def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
         webhook_event.status = WebhookEventStatus.FAILED
         webhook_event.next_retry_at = None
         endpoint = webhook_event.webhook_endpoint
-        endpoint.status = WebhookEndpointStatus.FAILED
-        endpoint.save(update_fields=["status", "updated_at"])
+        endpoint_failed = _mark_endpoint_failed_if_active(endpoint)
         record_audit_event(
             tenant=webhook_event.tenant,
             action="webhook.delivery_failed",
@@ -338,13 +348,14 @@ def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
                 "attempt_count": webhook_event.attempt_count,
             },
         )
-        record_audit_event(
-            tenant=webhook_event.tenant,
-            action="webhook_endpoint.delivery_failed",
-            target_type="webhook_endpoint",
-            target_id=endpoint.public_id,
-            metadata={"event_id": webhook_event.public_id},
-        )
+        if endpoint_failed:
+            record_audit_event(
+                tenant=webhook_event.tenant,
+                action="webhook_endpoint.delivery_failed",
+                target_type="webhook_endpoint",
+                target_id=endpoint.public_id,
+                metadata={"event_id": webhook_event.public_id},
+            )
     else:
         webhook_event.status = WebhookEventStatus.PENDING
         webhook_event.next_retry_at = _calculate_next_retry(

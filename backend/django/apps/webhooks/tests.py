@@ -889,6 +889,71 @@ class WebhookEndpointTests(APITestCase):
         )
 
     @patch("apps.webhooks.services._send_webhook_request")
+    def test_final_failure_does_not_overwrite_concurrent_disable(self, send_request):
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/concurrent-disable",
+            events_json=["verification.verified"],
+            created_by=self.user,
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={},
+            attempt_count=4,
+        )
+
+        def disable_then_fail(**_kwargs):
+            WebhookEndpoint.objects.filter(pk=endpoint.pk).update(
+                status=WebhookEndpointStatus.DISABLED
+            )
+            return 500, "failed", 5
+
+        send_request.side_effect = disable_then_fail
+        with self.settings(WEBHOOK_MAX_ATTEMPTS=5):
+            deliver_webhook_event(webhook_event)
+
+        endpoint.refresh_from_db()
+        self.assertEqual(endpoint.status, WebhookEndpointStatus.DISABLED)
+
+    @patch("apps.webhooks.services._send_webhook_request")
+    def test_materialized_batch_stops_after_endpoint_failure(self, send_request):
+        send_request.return_value = (500, "failed", 5)
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/batch-failure",
+            events_json=["verification.verified"],
+            created_by=self.user,
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        first = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={},
+            attempt_count=4,
+        )
+        second = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={},
+        )
+
+        with self.settings(WEBHOOK_MAX_ATTEMPTS=5):
+            self.assertEqual(process_pending_webhook_events(limit=10), 2)
+
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertEqual(first.status, WebhookEventStatus.FAILED)
+        self.assertEqual(second.status, WebhookEventStatus.PENDING)
+        self.assertEqual(send_request.call_count, 1)
+
+    @patch("apps.webhooks.services._send_webhook_request")
     def test_process_pending_webhook_events_only_processes_due_events(self, mock_send_request):
         mock_send_request.return_value = (200, "ok", 10)
         endpoint = WebhookEndpoint(
