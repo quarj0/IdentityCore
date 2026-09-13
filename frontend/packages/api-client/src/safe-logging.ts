@@ -194,7 +194,8 @@ export function redactLogText(value: string): string {
       /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g,
       REDACTED,
     )
-    .replace(/\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g, REDACTED);
+    .replace(/\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g, REDACTED)
+    .replace(/(\b[a-z][a-z0-9+.-]*:\/\/)[^/@\s]+@/gi, `$1${REDACTED}@`);
   const assignment = /([\w.-]+)["']?\s*[:=]\s*/g;
   let output = "";
   let cursor = 0;

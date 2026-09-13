@@ -133,6 +133,54 @@ class SafeLoggingBoundaryTests(SimpleTestCase):
         self.assertNotIn("auth-secret", complete_report)
         self.assertNotIn("exception-secret", complete_report)
 
+    def test_admin_email_handler_sanitizes_cached_and_lazy_query_data(self):
+        for evaluate_get in (False, True):
+            with self.subTest(evaluate_get=evaluate_get):
+                handler = CapturingAdminEmailHandler()
+                logger = logging.getLogger(f"django.request.safe-query-{evaluate_get}")
+                logger.handlers = [handler]
+                logger.propagate = False
+                logger.setLevel(logging.ERROR)
+                self.addCleanup(logger.handlers.clear)
+                request = RequestFactory().get(
+                    "/fail?access_token=verysecret&email=person@example.test"
+                )
+                if evaluate_get:
+                    list(request.GET.items())
+
+                logger.error("request failed", extra={"request": request})
+
+                report = handler.sent_messages[0][1]
+                self.assertIn("access_token = '[REDACTED]'", report)
+                self.assertNotIn("verysecret", report)
+                self.assertNotIn("person@example.test", report)
+
+    def test_url_userinfo_is_redacted(self):
+        from common.safe_logging import redact_text
+
+        for value in (
+            "redis://user:s3cr3t@redis:6379/0",
+            "rediss://user:p%40ss@redis:6379/0",
+            "https://token@provider.example/path",
+        ):
+            self.assertNotIn(value.split("@")[0].split("//", 1)[1], redact_text(value))
+            self.assertIn("://[REDACTED]@", redact_text(value))
+        self.assertEqual(
+            redact_text("redis://redis:6379/0"),
+            "redis://redis:6379/0",
+        )
+
+    def test_lazy_logging_values_cannot_abort_record_creation(self):
+        class BrokenString:
+            def __str__(self):
+                raise RuntimeError("must not escape logging")
+
+        logger, stream = self._capture("identitycore.lazy-string-test")
+        logger.info("value=%s", BrokenString(), extra={"context": {}})
+        logger.info(BrokenString(), extra={"context": {}})
+
+        self.assertEqual(stream.getvalue().count(LOG_FORMAT_ERROR), 2)
+
     def test_interpolated_structures_and_bytes_are_redacted(self):
         logger, stream = self._capture("identitycore.structured-arguments-test")
         logger.info(

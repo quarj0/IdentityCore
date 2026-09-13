@@ -151,6 +151,10 @@ _PHONE_RE = re.compile(r"(?<!\w)(?:\+?\d[\d ().-]{7,}\d)(?!\w)")
 _CREDENTIAL_ASSIGNMENT_RE = re.compile(r"(?P<label>[\w.-]+)[\"']?\s*[:=]\s*")
 _NEXT_ASSIGNMENT_BOUNDARY_RE = re.compile(r"[;&\n\r](?=\s*[\"']?[\w.-]+[\"']?\s*[:=])")
 _AWS_ACCESS_KEY_RE = re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b")
+_URL_USERINFO_RE = re.compile(
+    r"(?P<scheme>\b[a-z][a-z0-9+.-]*://)[^/@\s]+@",
+    re.IGNORECASE,
+)
 _STANDARD_LOG_RECORD_ATTRS = frozenset(
     {
         *logging.LogRecord(None, 0, "", 0, "", (), None).__dict__.keys(),
@@ -225,6 +229,7 @@ def redact_text(value: str) -> str:
     redacted = _BEARER_RE.sub("Bearer [REDACTED]", value)
     redacted = _JWT_RE.sub(REDACTED, redacted)
     redacted = _AWS_ACCESS_KEY_RE.sub(REDACTED, redacted)
+    redacted = _URL_USERINFO_RE.sub(r"\g<scheme>[REDACTED]@", redacted)
     parts = []
     cursor = 0
     for match in _CREDENTIAL_ASSIGNMENT_RE.finditer(redacted):
@@ -341,6 +346,9 @@ def _sanitize_django_request(value: Any) -> Any:
         classification_ip=classification_ip,
     )
     sanitized.META["REMOTE_ADDR"] = REDACTED
+    if hasattr(value, "environ"):
+        sanitized.environ = dict(value.environ)
+        sanitized.environ["QUERY_STRING"] = ""
 
     for attribute in ("GET", "POST", "FILES"):
         original = getattr(value, attribute, None)
@@ -352,7 +360,10 @@ def _sanitize_django_request(value: Any) -> Any:
                 safe_values.setlist(key, [REDACTED])
         else:
             safe_values = {str(key): REDACTED for key in safe_values}
-        setattr(sanitized, f"_{attribute.lower()}", safe_values)
+        if attribute == "GET":
+            sanitized.__dict__["GET"] = safe_values
+        else:
+            setattr(sanitized, f"_{attribute.lower()}", safe_values)
 
     sanitized.COOKIES = {str(key): REDACTED for key in value.COOKIES}
     sanitized.user = REDACTED
@@ -362,54 +373,56 @@ def _sanitize_django_request(value: Any) -> Any:
 
 def sanitize_log_record(record: logging.LogRecord) -> logging.LogRecord:
     """Sanitize rendered messages, structured extras, stack text, and exceptions."""
-    if (
-        record.name == "uvicorn.access"
-        and isinstance(record.args, tuple)
-        and len(record.args) == 5
-    ):
-        # Uvicorn's AccessFormatter unpacks this tuple after getMessage(). Keep
-        # its protocol shape, but never expose client addresses or query strings.
-        client, method, path, version, status = record.args
-        record.args = (
-            REDACTED,
-            redact_value(method),
-            REDACTED,
-            redact_value(version),
-            status,
-        )
-        record.msg = '%s - "%s %s HTTP/%s" %d'
-    elif record.args:
-        # Preserve structured redaction and exception types before interpolation
-        # turns arguments into plain text. Numeric arguments retain their types.
-        if isinstance(record.args, Mapping):
-            record.args = {
-                key: redact_value(value, key=key) for key, value in record.args.items()
-            }
-        else:
-            record.args = redact_value(record.args)
-        # Render once using Python logging's normal interpolation rules, then redact
-        # the complete result. If the caller supplied a malformed format string,
-        # discard the args instead of letting logging break request/worker execution.
-        try:
+    try:
+        if (
+            record.name == "uvicorn.access"
+            and isinstance(record.args, tuple)
+            and len(record.args) == 5
+        ):
+            # Uvicorn's AccessFormatter unpacks this tuple after getMessage(). Keep
+            # its protocol shape, but never expose client addresses or query strings.
+            client, method, path, version, status = record.args
+            record.args = (
+                REDACTED,
+                redact_value(method),
+                REDACTED,
+                redact_value(version),
+                status,
+            )
+            record.msg = '%s - "%s %s HTTP/%s" %d'
+        elif record.args:
+            # Preserve structured redaction and exception types before interpolation
+            # turns arguments into plain text. Numeric arguments retain their types.
+            if isinstance(record.args, Mapping):
+                record.args = {
+                    key: redact_value(value, key=key)
+                    for key, value in record.args.items()
+                }
+            else:
+                record.args = redact_value(record.args)
             rendered_message = record.getMessage()
-        except Exception:
-            rendered_message = LOG_FORMAT_ERROR
-        record.msg = redact_text(str(rendered_message))
+            record.msg = redact_text(str(rendered_message))
+            record.args = ()
+        else:
+            record.msg = redact_value(record.msg)
+    except Exception:
+        record.msg = LOG_FORMAT_ERROR
         record.args = ()
-    else:
-        record.msg = redact_value(record.msg)
 
     for field, value in list(record.__dict__.items()):
         if field in _STANDARD_LOG_RECORD_ATTRS:
             continue
-        sanitized_request = (
-            _sanitize_django_request(value) if field == "request" else None
-        )
-        record.__dict__[field] = (
-            sanitized_request
-            if sanitized_request is not None
-            else redact_value(value, key=field)
-        )
+        try:
+            sanitized_request = (
+                _sanitize_django_request(value) if field == "request" else None
+            )
+            record.__dict__[field] = (
+                sanitized_request
+                if sanitized_request is not None
+                else redact_value(value, key=field)
+            )
+        except Exception:
+            record.__dict__[field] = LOG_FORMAT_ERROR
 
     if record.stack_info:
         record.stack_info = redact_text(record.stack_info)
@@ -427,7 +440,17 @@ def sanitize_log_record(record: logging.LogRecord) -> logging.LogRecord:
 
 def _safe_make_record(self, *args, **kwargs):
     record = _ORIGINAL_MAKE_RECORD(self, *args, **kwargs)
-    return sanitize_log_record(record)
+    try:
+        return sanitize_log_record(record)
+    except Exception:
+        record.msg = LOG_FORMAT_ERROR
+        record.args = ()
+        record.stack_info = None
+        record.exc_info = None
+        record.exc_text = None
+        for field in set(record.__dict__) - _STANDARD_LOG_RECORD_ATTRS:
+            record.__dict__[field] = LOG_FORMAT_ERROR
+        return record
 
 
 def install_safe_logging() -> None:

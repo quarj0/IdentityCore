@@ -152,6 +152,18 @@ test("redacts deployed credential names, signatures, and IPv6 addresses", () => 
   );
 });
 
+test("redacts credentials embedded in URL userinfo", () => {
+  for (const value of [
+    "redis://user:s3cr3t@redis:6379/0",
+    "rediss://user:p%40ss@redis:6379/0",
+    "https://token@provider.example/path",
+  ]) {
+    assert.match(redactLogText(value), /:\/\/\[REDACTED\]@/);
+    assert.ok(!redactLogText(value).includes(value.split("@")[0].split("//")[1]));
+  }
+  assert.equal(redactLogText("redis://redis:6379/0"), "redis://redis:6379/0");
+});
+
 test("redacts camelCase credential and identity keys", () => {
   const redacted = redactLogValue({
     accessToken: "access-private",
