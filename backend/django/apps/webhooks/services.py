@@ -28,7 +28,7 @@ def queue_webhook_events(
             "Webhook outbox events must be queued inside the domain transaction."
         )
     queued = []
-    endpoints = tenant.webhook_endpoints.select_for_update().filter(
+    endpoints = tenant.webhook_endpoints.filter(
         status__in=[WebhookEndpointStatus.ACTIVE, WebhookEndpointStatus.FAILED]
     )
     verification_id = payload.get("verification_id")
@@ -407,8 +407,11 @@ def requeue_failed_webhook_event(
 ) -> WebhookEvent:
     if webhook_event.status != WebhookEventStatus.FAILED:
         raise ValueError("Only failed webhook events can be replayed.")
-    if webhook_event.webhook_endpoint.status != WebhookEndpointStatus.ACTIVE:
-        raise ValueError("Reactivate the webhook endpoint before replaying this event.")
+    if webhook_event.webhook_endpoint.status not in {
+        WebhookEndpointStatus.ACTIVE,
+        WebhookEndpointStatus.FAILED,
+    }:
+        raise ValueError("Disabled webhook endpoints cannot replay events.")
     if not webhook_event.webhook_endpoint.signing_key:
         raise ValueError("The webhook endpoint has no signing key.")
 
@@ -419,6 +422,12 @@ def requeue_failed_webhook_event(
     webhook_event.save(
         update_fields=["status", "attempt_count", "next_retry_at", "updated_at"]
     )
+    endpoint_reactivated = (
+        webhook_event.webhook_endpoint.status == WebhookEndpointStatus.FAILED
+    )
+    if endpoint_reactivated:
+        webhook_event.webhook_endpoint.status = WebhookEndpointStatus.ACTIVE
+        webhook_event.webhook_endpoint.save(update_fields=["status", "updated_at"])
     record_audit_event(
         tenant=webhook_event.tenant,
         actor=actor,
@@ -429,6 +438,7 @@ def requeue_failed_webhook_event(
         metadata={
             "event_type": webhook_event.event_type,
             "previous_attempt_count": previous_attempt_count,
+            "endpoint_reactivated": endpoint_reactivated,
         },
     )
     return webhook_event

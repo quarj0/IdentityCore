@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from django_countries import countries
 
-from apps.access_control.models import Role, RoleScope, UserRole
+from apps.access_control.models import Permission, Role, RolePermission, RoleScope, UserRole
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.accounts.verification import issue_and_queue_email_verification
 from apps.audit.services import record_audit_event
@@ -336,6 +336,14 @@ def ensure_tenant_administrator_role(*, tenant: Tenant, user: PlatformUser) -> N
             "is_system_role": True,
         },
     )
+    permission, _ = Permission.objects.get_or_create(
+        code="manage_webhooks",
+        defaults={
+            "name": "Manage webhooks",
+            "description": "Replay failed webhook deliveries and manage webhook delivery controls.",
+        },
+    )
+    RolePermission.objects.get_or_create(role=role, permission=permission)
     UserRole.objects.get_or_create(user=user, role=role, tenant=tenant)
 
 

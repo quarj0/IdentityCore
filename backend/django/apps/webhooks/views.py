@@ -151,18 +151,26 @@ class WebhookEventReplayView(APIView):
                 request=request,
                 status=idempotency_result.response_status,
             )
-        webhook_event = get_object_or_404(
-            WebhookEvent.objects.select_for_update().select_related(
-                "webhook_endpoint", "tenant"
-            ),
+        event_reference = get_object_or_404(
+            WebhookEvent.objects.only("pk", "webhook_endpoint_id"),
             tenant=request.user.tenant,
             public_id=event_id,
         )
+        endpoint = get_object_or_404(
+            WebhookEndpoint.objects.select_for_update(),
+            pk=event_reference.webhook_endpoint_id,
+            tenant=request.user.tenant,
+        )
+        webhook_event = get_object_or_404(
+            WebhookEvent.objects.select_for_update().select_related("tenant"),
+            pk=event_reference.pk,
+        )
+        webhook_event.webhook_endpoint = endpoint
         if webhook_event.status != "failed":
             raise WebhookReplayConflict("Only failed webhook events can be replayed.")
-        if webhook_event.webhook_endpoint.status != "active":
+        if webhook_event.webhook_endpoint.status == WebhookEndpointStatus.DISABLED:
             raise WebhookReplayConflict(
-                "Reactivate the webhook endpoint before replaying this event."
+                "Disabled webhook endpoints cannot replay events."
             )
         if not webhook_event.webhook_endpoint.signing_key:
             raise WebhookReplayConflict("The webhook endpoint has no signing key.")
