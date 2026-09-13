@@ -5,6 +5,7 @@ import { after, test } from "node:test";
 
 const require = createRequire(import.meta.url);
 const {
+  LOG_FORMAT_ERROR,
   REDACTED,
   REDACTED_BINARY,
   redactLogText,
@@ -124,6 +125,10 @@ test("redacts deployed credential names, signatures, and IPv6 addresses", () => 
     "aws_secret_access_key",
     "X-Amz-Signature",
     "X-IdentityCore-Signature",
+    "SIGNING_KEY",
+    "JWT_SIGNING_KEY",
+    "previous_signing_key",
+    "APPLICATION_ENCRYPTION_KEYRING",
   ]) {
     assert.equal(redactLogValue({ [key]: "private-value" })[key], REDACTED);
     assert.doesNotMatch(
@@ -159,7 +164,9 @@ test("redacts credentials embedded in URL userinfo", () => {
     "https://token@provider.example/path",
   ]) {
     assert.match(redactLogText(value), /:\/\/\[REDACTED\]@/);
-    assert.ok(!redactLogText(value).includes(value.split("@")[0].split("//")[1]));
+    assert.ok(
+      !redactLogText(value).includes(value.split("@")[0].split("//")[1]),
+    );
   }
   assert.equal(redactLogText("redis://redis:6379/0"), "redis://redis:6379/0");
 });
@@ -177,4 +184,19 @@ test("redacts camelCase credential and identity keys", () => {
   assert.equal(redacted.clientSecret, REDACTED);
   assert.equal(redacted.fullName, REDACTED);
   assert.equal(redacted.safeStatus, "ready");
+});
+
+test("contains failures from hostile object traversal", () => {
+  const throwingGetter = {};
+  Object.defineProperty(throwingGetter, "value", {
+    enumerable: true,
+    get() {
+      throw new Error("private getter failure");
+    },
+  });
+  const { proxy, revoke } = Proxy.revocable({}, {});
+  revoke();
+
+  assert.equal(redactLogValue(throwingGetter), LOG_FORMAT_ERROR);
+  assert.equal(redactLogValue(proxy), LOG_FORMAT_ERROR);
 });

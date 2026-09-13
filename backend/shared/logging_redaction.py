@@ -46,6 +46,8 @@ _SENSITIVE_KEYS = frozenset(
         "csrf_token",
         "csrfmiddlewaretoken",
         "id_token",
+        "jwt_signing_key",
+        "keyring",
         "password",
         "passcode",
         "private_key",
@@ -53,6 +55,7 @@ _SENSITIVE_KEYS = frozenset(
         "secret",
         "secret_access_key",
         "session_token",
+        "signing_key",
         "set_cookie",
         "token",
         # Direct identifiers / PII / correlation values that may identify a subject.
@@ -121,6 +124,7 @@ _SENSITIVE_SUFFIXES = (
     "_fingerprint",
     "_password",
     "_private_key",
+    "_signing_key",
     "_refresh_token",
     "_secret",
     "_session_token",
@@ -128,6 +132,7 @@ _SENSITIVE_SUFFIXES = (
     "_subject_id",
     "_token",
     "_user_agent",
+    "_keyring",
 )
 
 _SENSITIVE_FRAGMENTS = (

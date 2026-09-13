@@ -285,6 +285,10 @@ class SafeLoggingBoundaryTests(SimpleTestCase):
             "aws_secret_access_key",
             "X-Amz-Signature",
             "X-IdentityCore-Signature",
+            "SIGNING_KEY",
+            "JWT_SIGNING_KEY",
+            "previous_signing_key",
+            "APPLICATION_ENCRYPTION_KEYRING",
         ):
             self.assertEqual(redact_value({key: "private-value"})[key], REDACTED)
             self.assertNotIn(

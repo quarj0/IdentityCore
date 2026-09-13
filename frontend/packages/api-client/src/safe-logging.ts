@@ -1,5 +1,6 @@
 export const REDACTED = "[REDACTED]";
 export const REDACTED_BINARY = "[REDACTED_BINARY]";
+export const LOG_FORMAT_ERROR = "[LOG_FORMAT_ERROR]";
 
 const MAX_REDACTION_DEPTH = 12;
 
@@ -36,6 +37,8 @@ const SENSITIVE_KEYS = new Set([
   "full_name",
   "ghana_card_number",
   "id_token",
+  "jwt_signing_key",
+  "keyring",
   "image",
   "image_base64",
   "image_bytes",
@@ -65,6 +68,7 @@ const SENSITIVE_KEYS = new Set([
   "selfie_image",
   "selfie_storage_key",
   "session_token",
+  "signing_key",
   "set_cookie",
   "storage_key",
   "subject_id",
@@ -89,6 +93,7 @@ const SENSITIVE_SUFFIXES = [
   "_fingerprint",
   "_password",
   "_private_key",
+  "_signing_key",
   "_refresh_token",
   "_secret",
   "_session_token",
@@ -96,6 +101,7 @@ const SENSITIVE_SUFFIXES = [
   "_subject_id",
   "_token",
   "_user_agent",
+  "_keyring",
 ];
 
 const SENSITIVE_FRAGMENTS = [
@@ -138,7 +144,10 @@ function assignmentValueEnd(value: string, start: number): number {
       escaped = character === "\\" && !escaped;
       if (character !== "\\") escaped = false;
     }
-  } else if ((opener === "[" || opener === "{") && !value.startsWith("[REDACTED", start)) {
+  } else if (
+    (opener === "[" || opener === "{") &&
+    !value.startsWith("[REDACTED", start)
+  ) {
     const pairs: Record<string, string> = { "[": "]", "{": "}" };
     const stack = [pairs[opener]];
     let quote: string | undefined;
@@ -159,7 +168,9 @@ function assignmentValueEnd(value: string, start: number): number {
       }
     }
   }
-  const boundary = value.slice(start).search(/[;&\n\r](?=\s*["']?[\w.-]+["']?\s*[:=])/);
+  const boundary = value
+    .slice(start)
+    .search(/[;&\n\r](?=\s*["']?[\w.-]+["']?\s*[:=])/);
   return boundary === -1 ? value.length : start + boundary;
 }
 
@@ -218,6 +229,18 @@ export function redactLogValue(
   key?: PropertyKey,
   depth = 0,
 ): unknown {
+  try {
+    return redactLogValueUnsafe(value, key, depth);
+  } catch {
+    return LOG_FORMAT_ERROR;
+  }
+}
+
+function redactLogValueUnsafe(
+  value: unknown,
+  key?: PropertyKey,
+  depth = 0,
+): unknown {
   if (key !== undefined && isSensitiveLogKey(key)) return REDACTED;
   if (depth >= MAX_REDACTION_DEPTH) return "[REDACTED_DEPTH_LIMIT]";
   if (value === null || value === undefined) return value;
@@ -257,8 +280,19 @@ export function safeLog(
   event: string,
   context: Record<string, unknown> = {},
 ): void {
-  LOG_METHODS[level]({
-    event: redactLogText(event),
-    context: redactLogValue(context),
-  });
+  try {
+    LOG_METHODS[level]({
+      event: redactLogText(event),
+      context: redactLogValue(context),
+    });
+  } catch {
+    try {
+      LOG_METHODS[level]({
+        event: LOG_FORMAT_ERROR,
+        context: LOG_FORMAT_ERROR,
+      });
+    } catch {
+      // Logging must never interrupt the caller, including when the sink fails.
+    }
+  }
 }
