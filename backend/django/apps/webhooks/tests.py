@@ -152,6 +152,37 @@ class WebhookEndpointTests(APITestCase):
             webhook_event.pk, [event.pk for event in get_due_webhook_events()]
         )
 
+    def test_reactivate_action_requires_manage_webhooks_permission(self):
+        endpoint = WebhookEndpoint.objects.create(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/reactivate-protected",
+            events_json=["verification.verified"],
+            created_by=self.user,
+            status=WebhookEndpointStatus.FAILED,
+        )
+        member = PlatformUser.objects.create_user(
+            email="member@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            tenant=self.tenant,
+        )
+        self.client.force_authenticate(member)
+
+        response = self.client.post(
+            reverse(
+                "webhook-endpoint-action",
+                kwargs={
+                    "webhook_id": endpoint.public_id,
+                    "action": "reactivate",
+                },
+            ),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        endpoint.refresh_from_db()
+        self.assertEqual(endpoint.status, WebhookEndpointStatus.FAILED)
+
     def test_create_webhook_endpoint_replays_original_secret(self):
         payload = {
             "url": "https://example.com/replay",

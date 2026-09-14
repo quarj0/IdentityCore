@@ -216,9 +216,9 @@ def _mark_endpoint_failed_if_active(endpoint) -> bool:
 
 
 def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
-    """Lock one event through delivery without blocking endpoint producers."""
+    """Lock the endpoint then one event, matching management-operation lock order."""
     with transaction.atomic():
-        endpoint = WebhookEndpoint.objects.get(
+        endpoint = WebhookEndpoint.objects.select_for_update().get(
             pk=webhook_event.webhook_endpoint_id
         )
         locked_event = (

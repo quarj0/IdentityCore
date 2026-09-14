@@ -221,6 +221,7 @@ class WebhookEndpointDetailView(APIView):
 
 class WebhookEndpointActionView(WebhookEndpointDetailView):
     fixed_action: str | None = None
+    required_permission_code = "manage_webhooks"
 
     @transaction.atomic
     def post(self, request, webhook_id, action=None):

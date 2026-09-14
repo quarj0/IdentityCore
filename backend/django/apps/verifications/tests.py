@@ -2223,6 +2223,32 @@ class VerificationOperationsTaskTests(TestCase):
             2,
         )
 
+    def test_cleanup_does_not_defer_held_media_before_retention_is_due(self):
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.subject,
+            purpose="Recently completed held verification",
+            status=VerificationStatus.VERIFIED,
+            policy_snapshot_json={"media_retention_days": 30},
+            expires_at=timezone.now() + timedelta(days=1),
+            completed_at=timezone.now() - timedelta(days=1),
+        )
+        RetentionLegalHold.objects.create(
+            tenant=self.tenant,
+            verification=verification,
+            reason="Regulatory investigation",
+        )
+
+        self.assertEqual(cleanup_retained_media_task(limit=10), 0)
+        self.assertFalse(
+            AuditEvent.objects.filter(
+                tenant=self.tenant,
+                action="retention.media_deletion_deferred",
+                target_id=verification.public_id,
+            ).exists()
+        )
+
     @patch("apps.verifications.tasks.active_retention_holds")
     def test_cleanup_rechecks_hold_immediately_before_deletion(self, active_holds):
         verification = Verification.objects.create(

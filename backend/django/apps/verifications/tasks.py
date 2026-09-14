@@ -180,8 +180,15 @@ def cleanup_retained_media_task(limit: int = 100) -> int:
             completed_at__isnull=False,
         )
     )
-    held_verifications = candidates.filter(held=True).order_by("completed_at")[:limit]
+    held_verifications = candidates.filter(held=True).order_by("completed_at")
+    deferred = 0
     for verification in held_verifications:
+        retention_days = int(
+            (verification.policy_snapshot_json or {}).get("media_retention_days", 30)
+        )
+        cutoff = verification.completed_at + timedelta(days=retention_days)
+        if cutoff > now:
+            continue
         record_audit_event(
             tenant=verification.tenant,
             action="retention.media_deletion_deferred",
@@ -189,6 +196,9 @@ def cleanup_retained_media_task(limit: int = 100) -> int:
             target_id=verification.public_id,
             metadata={"reason": "legal_hold"},
         )
+        deferred += 1
+        if deferred >= limit:
+            break
     verifications = candidates.filter(held=False).order_by("completed_at")[:limit]
     for verification in verifications:
         retention_days = int(
