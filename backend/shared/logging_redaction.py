@@ -6,6 +6,7 @@ import re
 import traceback
 from copy import copy
 from collections.abc import Mapping
+from decimal import Decimal
 from threading import Lock
 from typing import Any
 
@@ -107,6 +108,7 @@ _SENSITIVE_KEYS = frozenset(
         "raw_document",
         "raw_image",
         "raw_ocr",
+        "raw_text_lines",
         "selfie",
         "selfie_image",
         "selfie_storage_key",
@@ -268,17 +270,28 @@ def redact_text(value: str) -> str:
     return redacted
 
 
-def redact_value(value: Any, *, key: object | None = None, _depth: int = 0) -> Any:
+def redact_value(
+    value: Any,
+    *,
+    key: object | None = None,
+    _depth: int = 0,
+    _path: tuple[str, ...] = (),
+) -> Any:
     """Return a logging-safe copy of a nested value.
 
     Redaction is key-aware for structured payloads and shape-aware for free text.
     Bytes are never logged because they can contain document or biometric evidence.
     """
-    if key is not None and is_sensitive_key(key):
+    normalized_key = _normalize_key(key) if key is not None else ""
+    current_path = (*_path, normalized_key) if normalized_key else _path
+    if key is not None and (
+        is_sensitive_key(key)
+        or (normalized_key == "text" and current_path[-3:] == ("ocr", "lines", "text"))
+    ):
         return REDACTED
     if _depth >= MAX_REDACTION_DEPTH:
         return "[REDACTED_DEPTH_LIMIT]"
-    if value is None or isinstance(value, (bool, int, float)):
+    if value is None or isinstance(value, (bool, int, float, Decimal)):
         return value
     if isinstance(value, str):
         return redact_text(value)
@@ -299,14 +312,24 @@ def redact_value(value: Any, *, key: object | None = None, _depth: int = 0) -> A
                 item_value,
                 key=item_key,
                 _depth=_depth + 1,
+                _path=current_path,
             )
         return redacted_mapping
     if isinstance(value, tuple):
-        return tuple(redact_value(item, _depth=_depth + 1) for item in value)
+        return tuple(
+            redact_value(item, _depth=_depth + 1, _path=current_path)
+            for item in value
+        )
     if isinstance(value, list):
-        return [redact_value(item, _depth=_depth + 1) for item in value]
+        return [
+            redact_value(item, _depth=_depth + 1, _path=current_path)
+            for item in value
+        ]
     if isinstance(value, (set, frozenset)):
-        return [redact_value(item, _depth=_depth + 1) for item in value]
+        return [
+            redact_value(item, _depth=_depth + 1, _path=current_path)
+            for item in value
+        ]
     return redact_text(str(value))
 
 

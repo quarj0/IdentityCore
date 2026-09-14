@@ -1,5 +1,6 @@
 import io
 import logging
+from decimal import Decimal
 
 from django.test import SimpleTestCase
 from django.test import RequestFactory, override_settings
@@ -226,6 +227,43 @@ class SafeLoggingBoundaryTests(SimpleTestCase):
         self.assertNotIn("private-token", output)
         self.assertIn("RuntimeError", output)
         self.assertIn("attempts=007", output)
+
+    def test_decimal_values_preserve_numeric_log_formatting(self):
+        logger, stream = self._capture("identitycore.decimal-format-test")
+        logger.info(
+            "score=%.2f",
+            Decimal("0.976"),
+            extra={"context": {}},
+        )
+        output = stream.getvalue()
+        self.assertIn("score=0.98", output)
+        self.assertNotIn(LOG_FORMAT_ERROR, output)
+
+        extra_stream = io.StringIO()
+        handler = logging.StreamHandler(extra_stream)
+        handler.setFormatter(logging.Formatter("score=%(score).2f"))
+        logger.handlers = [handler]
+        logger.info("completed", extra={"score": Decimal("0.976")})
+        self.assertIn("score=0.98", extra_stream.getvalue())
+
+    def test_raw_ocr_result_shapes_are_redacted(self):
+        from common.safe_logging import REDACTED, redact_value
+
+        redacted = redact_value(
+            {
+                "raw_text_lines": ["ADA LOVELACE", "GHA-123456789"],
+                "ocr": {
+                    "lines": [
+                        {"text": "ADA LOVELACE", "confidence": Decimal("0.98")}
+                    ]
+                },
+                "summary": {"text": "safe operational summary"},
+            }
+        )
+        self.assertEqual(redacted["raw_text_lines"], REDACTED)
+        self.assertEqual(redacted["ocr"]["lines"][0]["text"], REDACTED)
+        self.assertEqual(redacted["ocr"]["lines"][0]["confidence"], Decimal("0.98"))
+        self.assertEqual(redacted["summary"]["text"], "safe operational summary")
 
     def test_multiword_pii_in_free_text_is_fully_removed(self):
         logger, stream = self._capture("identitycore.multiword-redaction-test")

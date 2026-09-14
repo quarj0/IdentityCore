@@ -55,6 +55,21 @@ test("redacts nested credentials, PII, evidence, and binary values", () => {
   assert.equal(redacted.binary, REDACTED_BINARY);
 });
 
+test("redacts raw OCR result shapes without hiding unrelated text", () => {
+  const redacted = redactLogValue({
+    raw_text_lines: ["ADA LOVELACE", "GHA-123456789"],
+    ocr: {
+      lines: [{ text: "ADA LOVELACE", confidence: 0.98 }],
+    },
+    summary: { text: "safe operational summary" },
+  });
+
+  assert.equal(redacted.raw_text_lines, REDACTED);
+  assert.equal(redacted.ocr.lines[0].text, REDACTED);
+  assert.equal(redacted.ocr.lines[0].confidence, 0.98);
+  assert.equal(redacted.summary.text, "safe operational summary");
+});
+
 test("redacts secrets and multiword identifiers embedded in free text", () => {
   const output = redactLogText(
     "full_name=Ada Lovelace; token=top-secret; email=ada@example.test; phone=+233241234567; external_reference=customer-4482; document_number=GHA-123; Authorization: Bearer bearer-secret",

@@ -64,6 +64,7 @@ const SENSITIVE_KEYS = new Set([
   "raw_document",
   "raw_image",
   "raw_ocr",
+  "raw_text_lines",
   "refresh_token",
   "remote_addr",
   "secret",
@@ -234,9 +235,10 @@ export function redactLogValue(
   value: unknown,
   key?: PropertyKey,
   depth = 0,
+  path: string[] = [],
 ): unknown {
   try {
-    return redactLogValueUnsafe(value, key, depth);
+    return redactLogValueUnsafe(value, key, depth, path);
   } catch {
     return LOG_FORMAT_ERROR;
   }
@@ -246,8 +248,17 @@ function redactLogValueUnsafe(
   value: unknown,
   key?: PropertyKey,
   depth = 0,
+  path: string[] = [],
 ): unknown {
-  if (key !== undefined && isSensitiveLogKey(key)) return REDACTED;
+  const normalizedKey = key === undefined ? "" : normalizeKey(key);
+  const currentPath = normalizedKey ? [...path, normalizedKey] : path;
+  if (
+    key !== undefined &&
+    (isSensitiveLogKey(key) ||
+      (normalizedKey === "text" &&
+        currentPath.slice(-3).join(".") === "ocr.lines.text"))
+  )
+    return REDACTED;
   if (depth >= MAX_REDACTION_DEPTH) return "[REDACTED_DEPTH_LIMIT]";
   if (value === null || value === undefined) return value;
   if (typeof value === "string") return redactLogText(value);
@@ -256,7 +267,9 @@ function redactLogValueUnsafe(
     return REDACTED_BINARY;
   }
   if (Array.isArray(value)) {
-    return value.map((item) => redactLogValue(item, undefined, depth + 1));
+    return value.map((item) =>
+      redactLogValue(item, undefined, depth + 1, currentPath),
+    );
   }
   if (typeof value === "object") {
     const output: Record<string, unknown> = {};
@@ -265,6 +278,7 @@ function redactLogValueUnsafe(
         entryValue,
         entryKey,
         depth + 1,
+        currentPath,
       );
     }
     return output;
