@@ -32,6 +32,7 @@ RUN uv export \
     && pip install --no-cache-dir -r /tmp/requirements-ai.txt \
     && pip install --no-cache-dir --force-reinstall opencv-contrib-python-headless==4.10.0.84
 
+COPY backend/shared /app/backend/shared
 COPY backend/ai-service /app/backend/ai-service
 
 WORKDIR /app/backend/ai-service
