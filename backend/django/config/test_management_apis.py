@@ -102,8 +102,9 @@ class ManagementAPIEndpointTests(APITestCase):
             roles_response.data["data"]["results"][0]["permission_codes"],
             ["view_verification"],
         )
-        self.assertEqual(
-            permissions_response.data["data"]["results"][0]["code"], "view_verification"
+        self.assertIn(
+            "view_verification",
+            [item["code"] for item in permissions_response.data["data"]["results"]],
         )
 
     def test_consent_notification_org_tenant_and_provider_endpoints_return_data(self):

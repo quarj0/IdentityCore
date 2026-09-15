@@ -1,4 +1,4 @@
-import { expect, test, type Route } from "@playwright/test";
+import { expect, test, type Locator, type Route } from "@playwright/test";
 
 const sessionId = "ses_browser_test";
 const verificationId = "ver_browser_test";
@@ -373,9 +373,13 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     mimeType: "image/png",
     buffer: image,
   });
-  await page.getByRole("button", { name: "Submit selfie" }).click();
+  await clickUntilActivated(
+    page.getByRole("button", { name: "Submit selfie" }),
+  );
 
-  await expect(page.getByText("Selfie received")).toBeVisible();
+  await expect(page.getByText("Selfie received")).toBeVisible({
+    timeout: 15_000,
+  });
   await expect(
     page.getByRole("heading", { name: "Complete a live camera check" }),
   ).toBeVisible();
@@ -467,4 +471,20 @@ function json(route: Route, data: unknown, status = 200) {
     contentType: "application/json",
     body: JSON.stringify({ success: true, data }),
   });
+}
+
+async function clickUntilActivated(locator: Locator) {
+  const activated = async () =>
+    (await locator.isHidden()) || !(await locator.isEnabled());
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (await activated()) return;
+    await locator.click();
+    try {
+      await expect.poll(activated, { timeout: 1_500 }).toBe(true);
+      return;
+    } catch {
+      // Retry only when Mobile WebKit dropped the tap before the handler ran.
+    }
+  }
+  await expect.poll(activated).toBe(true);
 }

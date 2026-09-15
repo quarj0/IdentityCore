@@ -43,6 +43,9 @@ media, biometric templates, signed upload URLs, or request bodies.
 
 ## Incident response
 
+Use the [incident response runbook](incident-response.md) for severity, roles,
+contacts, containment, notifications, evidence custody, and exercise records.
+
 1. **Credential exposure:** revoke affected sessions, disable link issuance,
    preserve redacted audit evidence, rotate signing material if implicated, and
    notify security/privacy leads.

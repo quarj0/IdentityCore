@@ -811,3 +811,86 @@ class UploadRetentionTaskTests(TestCase):
         self.assertEqual(cleaned, 1)
         self.assertEqual(consumed_upload.status, UploadStatus.EXPIRED)
         self.assertIsNotNone(consumed_upload.deleted_at)
+
+    def _expired_upload(self, status=UploadStatus.INITIATED):
+        return Upload.objects.create(
+            tenant=self.tenant, verification=self.verification,
+            verification_session=self.session, purpose=UploadPurpose.DOCUMENT_CAPTURE,
+            storage_key=f"private/{Upload.objects.count()}.jpg", storage_provider="s3",
+            mime_type="image/jpeg", file_size_bytes=100, status=status,
+            expires_at=timezone.now() - timedelta(days=2),
+            consumed_at=timezone.now() - timedelta(days=2) if status == UploadStatus.CONSUMED else None,
+        )
+
+    @patch("apps.uploads.tasks.get_object_storage_temp_bucket_name", return_value="temporary")
+    @patch("apps.uploads.tasks.delete_object")
+    def test_active_holds_protect_all_temporary_upload_states(self, delete, _bucket):
+        from apps.verifications.models import RetentionLegalHold
+
+        for scope in (None, self.verification):
+            hold = RetentionLegalHold.objects.create(tenant=self.tenant, verification=scope, reason="incident")
+            for upload_status in (UploadStatus.INITIATED, UploadStatus.UPLOADED, UploadStatus.QUARANTINED, UploadStatus.CONSUMED):
+                upload = self._expired_upload(upload_status)
+                self.assertEqual(cleanup_expired_uploads_task(limit=10), 0)
+                upload.refresh_from_db()
+                self.assertIsNone(upload.deleted_at)
+            delete.assert_not_called()
+            hold.released_at = timezone.now()
+            hold.save(update_fields=["released_at"])
+            self.assertEqual(cleanup_expired_uploads_task(limit=10), 4)
+            delete.reset_mock()
+
+    @patch("apps.uploads.tasks.get_object_storage_temp_bucket_name", return_value="temporary")
+    @patch("apps.uploads.tasks.delete_object")
+    def test_expired_and_other_tenant_holds_do_not_block_cleanup(self, delete, _bucket):
+        from apps.verifications.models import RetentionLegalHold
+
+        other_org = Organization.objects.create(name="Other", slug="other-retention")
+        other = Tenant.objects.create(organization=other_org, name="Other", slug="other-retention", status="active")
+        RetentionLegalHold.objects.create(tenant=other, reason="other tenant")
+        RetentionLegalHold.objects.create(tenant=self.tenant, reason="expired", expires_at=timezone.now() - timedelta(seconds=1))
+        upload = self._expired_upload()
+        self.assertEqual(cleanup_expired_uploads_task(limit=10), 1)
+        delete.assert_called_once_with(bucket_name="temporary", key=upload.storage_key)
+
+    @patch("apps.uploads.tasks.get_object_storage_temp_bucket_name", return_value="temporary")
+    @patch("apps.uploads.tasks.delete_object", side_effect=RuntimeError("private-storage-error"))
+    def test_storage_failure_remains_retryable(self, delete, _bucket):
+        upload = self._expired_upload()
+        self.assertEqual(cleanup_expired_uploads_task(limit=10), 0)
+        upload.refresh_from_db()
+        self.assertIsNone(upload.deleted_at)
+        self.assertEqual(upload.status, UploadStatus.INITIATED)
+        self.assertEqual(upload.deletion_attempt_count, 1)
+        self.assertGreater(upload.deletion_retry_at, timezone.now())
+        failure = AuditEvent.objects.get(action="retention.temporary_upload_deletion_failed", target_id=upload.public_id)
+        self.assertNotIn(upload.storage_key, str(failure.metadata_json))
+        delete.side_effect = None
+        upload.deletion_retry_at = timezone.now() - timedelta(seconds=1)
+        upload.save(update_fields=["deletion_retry_at", "updated_at"])
+        self.assertEqual(cleanup_expired_uploads_task(limit=10), 1)
+
+    @patch("apps.uploads.tasks.get_object_storage_temp_bucket_name", return_value="temporary")
+    @patch("apps.uploads.tasks.delete_object")
+    def test_failed_oldest_upload_does_not_monopolize_cleanup_batch(self, delete, _bucket):
+        oldest = self._expired_upload()
+        oldest.expires_at = timezone.now() - timedelta(days=3)
+        oldest.save(update_fields=["expires_at", "updated_at"])
+        later = self._expired_upload()
+        delete.side_effect = [RuntimeError("storage unavailable"), None]
+
+        self.assertEqual(cleanup_expired_uploads_task(limit=1), 0)
+        self.assertEqual(cleanup_expired_uploads_task(limit=1), 1)
+
+        oldest.refresh_from_db()
+        later.refresh_from_db()
+        self.assertIsNone(oldest.deleted_at)
+        self.assertIsNotNone(oldest.deletion_retry_at)
+        self.assertIsNotNone(later.deleted_at)
+
+    @patch("apps.uploads.tasks.get_object_storage_temp_bucket_name", return_value="")
+    def test_missing_remote_storage_configuration_does_not_claim_deletion(self, _bucket):
+        upload = self._expired_upload()
+        self.assertEqual(cleanup_expired_uploads_task(limit=10), 0)
+        upload.refresh_from_db()
+        self.assertIsNone(upload.deleted_at)
