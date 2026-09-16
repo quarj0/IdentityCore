@@ -437,7 +437,10 @@ class IdentityDocumentTaskTests(TestCase):
         }
         mock_promote.side_effect = RuntimeError("storage unavailable")
 
-        result = process_identity_document_task(self.identity_document.public_id)
+        with self.assertLogs("apps.identity_documents.tasks", level="WARNING") as captured:
+            result = process_identity_document_task(self.identity_document.public_id)
+        self.assertNotIn(self.upload.storage_key, " ".join(captured.output))
+        self.assertEqual(captured.records[0].storage_key, "[REDACTED]")
 
         self.assertEqual(result, IdentityDocumentStatus.PROCESSED)
         self.identity_document.refresh_from_db()

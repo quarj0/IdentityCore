@@ -563,10 +563,10 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 promote_upload_to_media_by_storage_key(capture.storage_key)
             except Exception as exc:
                 logger.warning(
-                    "Failed to promote document upload %s for verification %s: %s",
-                    capture.storage_key,
+                    "Failed to promote document upload for verification %s (%s)",
                     verification.public_id,
-                    exc,
+                    type(exc).__name__,
+                    extra={"storage_key": capture.storage_key},
                 )
                 record_audit_event(
                     tenant=verification.tenant,

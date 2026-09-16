@@ -31,9 +31,7 @@ class ProcessingError(RuntimeError):
 
 class MediaAssetNotFoundError(RuntimeError):
     def __init__(self, storage_key: str, bucket_name: str):
-        message = (
-            f"Media asset '{storage_key}' was not found in bucket '{bucket_name}'."
-        )
+        message = "Media asset was not found in configured storage (media_asset_not_found)."
         super().__init__(message)
         self.storage_key = storage_key
         self.bucket_name = bucket_name
