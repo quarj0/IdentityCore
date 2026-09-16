@@ -58,6 +58,8 @@ class Upload(PublicIdModel, BaseModel):
     )
     expires_at = models.DateTimeField(db_index=True)
     consumed_at = models.DateTimeField(null=True, blank=True)
+    deletion_attempt_count = models.PositiveIntegerField(default=0)
+    deletion_retry_at = models.DateTimeField(null=True, blank=True, db_index=True)
 
     class Meta:
         ordering = ["-created_at"]

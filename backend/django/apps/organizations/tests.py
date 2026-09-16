@@ -12,6 +12,8 @@ from apps.tenants.models import Tenant
 from apps.organizations.models import OrganizationSupportingDocument
 from apps.organizations.onboarding import resend_onboarding_email_verification, serialize_onboarding_state
 from apps.notifications.models import Notification
+from apps.access_control.models import RolePermission
+from apps.organizations.onboarding import ensure_tenant_administrator_role
 
 
 class OrganizationModelTests(TestCase):
@@ -24,6 +26,34 @@ class OrganizationModelTests(TestCase):
         self.assertTrue(organization.public_id.startswith("org_"))
         self.assertEqual(len(organization.public_id.split("_", maxsplit=1)[1]), 26)
         self.assertEqual(organization.status, OrganizationStatus.PENDING_REVIEW)
+
+class TenantAdministratorRoleTests(TestCase):
+    def test_default_administrator_can_manage_webhooks(self):
+        organization = Organization.objects.create(
+            name="Role Test Organization", slug="role-test-organization"
+        )
+        tenant = Tenant.objects.create(
+            organization=organization,
+            name="Role Test Tenant",
+            slug="role-test-tenant",
+            status="active",
+        )
+        user = PlatformUser.objects.create_user(
+            email="role-test@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            tenant=tenant,
+        )
+
+        ensure_tenant_administrator_role(tenant=tenant, user=user)
+
+        self.assertTrue(
+            RolePermission.objects.filter(
+                role__tenant=tenant,
+                role__name="Tenant Administrator",
+                permission__code="manage_webhooks",
+            ).exists()
+        )
 
 class OrganizationBrandingTests(APITestCase):
     def setUp(self):

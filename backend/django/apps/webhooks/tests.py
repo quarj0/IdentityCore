@@ -12,18 +12,26 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
+from apps.access_control.models import Permission, Role, RolePermission, RoleScope, UserRole
 from apps.audit.models import AuditEvent
 from apps.organizations.models import Organization
 from apps.tenants.models import Tenant
 from apps.verification_policies.models import VerificationPolicy
 from apps.verifications.models import Verification, VerificationStatus
 from apps.verification_subjects.models import VerificationSubject
-from apps.webhooks.models import WebhookDeliveryAttempt, WebhookEndpoint, WebhookEvent, WebhookEventStatus
+from apps.webhooks.models import (
+    WebhookDeliveryAttempt,
+    WebhookEndpoint,
+    WebhookEndpointStatus,
+    WebhookEvent,
+    WebhookEventStatus,
+)
 from apps.webhooks.services import (
     _build_legacy_signature,
     _build_signature,
     _send_webhook_request,
     deliver_webhook_event,
+    get_due_webhook_events,
     process_pending_webhook_events,
     queue_webhook_events,
 )
@@ -59,6 +67,14 @@ class WebhookEndpointTests(APITestCase):
             created_by=self.user,
         )
         self.client.force_authenticate(self.user)
+        manage_webhooks, _ = Permission.objects.get_or_create(
+            code="manage_webhooks", defaults={"name": "Manage webhooks"}
+        )
+        webhook_manager = Role.objects.create(
+            tenant=self.tenant, name="Webhook manager", scope=RoleScope.TENANT
+        )
+        RolePermission.objects.create(role=webhook_manager, permission=manage_webhooks)
+        UserRole.objects.create(user=self.user, role=webhook_manager, tenant=self.tenant)
 
     def test_create_webhook_endpoint_returns_secret_once(self):
         response = self.client.post(
@@ -95,6 +111,77 @@ class WebhookEndpointTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("idempotency_key", response.data["error"]["details"])
+
+    def test_disable_action_cancels_pending_events_before_reactivation(self):
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/disable",
+            events_json=["verification.verified"],
+            created_by=self.user,
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={},
+        )
+        action_url = reverse(
+            "webhook-endpoint-action",
+            kwargs={"webhook_id": endpoint.public_id, "action": "disable"},
+        )
+
+        response = self.client.post(action_url, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.client.post(
+            reverse(
+                "webhook-endpoint-action",
+                kwargs={
+                    "webhook_id": endpoint.public_id,
+                    "action": "reactivate",
+                },
+            ),
+            format="json",
+        )
+
+        webhook_event.refresh_from_db()
+        self.assertEqual(webhook_event.status, WebhookEventStatus.CANCELLED)
+        self.assertIsNone(webhook_event.next_retry_at)
+        self.assertNotIn(
+            webhook_event.pk, [event.pk for event in get_due_webhook_events()]
+        )
+
+    def test_reactivate_action_requires_manage_webhooks_permission(self):
+        endpoint = WebhookEndpoint.objects.create(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/reactivate-protected",
+            events_json=["verification.verified"],
+            created_by=self.user,
+            status=WebhookEndpointStatus.FAILED,
+        )
+        member = PlatformUser.objects.create_user(
+            email="member@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            tenant=self.tenant,
+        )
+        self.client.force_authenticate(member)
+
+        response = self.client.post(
+            reverse(
+                "webhook-endpoint-action",
+                kwargs={
+                    "webhook_id": endpoint.public_id,
+                    "action": "reactivate",
+                },
+            ),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        endpoint.refresh_from_db()
+        self.assertEqual(endpoint.status, WebhookEndpointStatus.FAILED)
 
     def test_create_webhook_endpoint_replays_original_secret(self):
         payload = {
@@ -606,8 +693,10 @@ class WebhookEndpointTests(APITestCase):
             deliver_webhook_event(webhook_event)
 
         webhook_event.refresh_from_db()
+        endpoint.refresh_from_db()
         self.assertEqual(webhook_event.status, WebhookEventStatus.FAILED)
         self.assertEqual(webhook_event.attempt_count, 2)
+        self.assertEqual(endpoint.status, "failed")
         self.assertEqual(WebhookDeliveryAttempt.objects.filter(webhook_event=webhook_event).count(), 2)
         self.assertTrue(
             AuditEvent.objects.filter(
@@ -616,6 +705,214 @@ class WebhookEndpointTests(APITestCase):
                 target_id=webhook_event.public_id,
             ).exists()
         )
+
+    def test_failed_event_replay_is_tenant_scoped_audited_and_idempotent(self):
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/recovery",
+            events_json=["verification.verified"],
+            created_by=self.user,
+            status="active",
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={
+                "id": "placeholder",
+                "type": "verification.verified",
+                "data": {"status": "verified"},
+            },
+            status=WebhookEventStatus.FAILED,
+            attempt_count=5,
+            last_attempt_at=timezone.now(),
+        )
+        WebhookDeliveryAttempt.objects.create(
+            webhook_event=webhook_event,
+            status_code=500,
+            error_message="Non-success webhook response.",
+        )
+        replay_url = reverse(
+            "webhook-event-replay", kwargs={"event_id": webhook_event.public_id}
+        )
+
+        first = self.client.post(
+            replay_url, format="json", HTTP_IDEMPOTENCY_KEY="replay-failed-event"
+        )
+        replay = self.client.post(
+            replay_url, format="json", HTTP_IDEMPOTENCY_KEY="replay-failed-event"
+        )
+
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        self.assertEqual(replay.status_code, status.HTTP_200_OK)
+        self.assertEqual(first.data["data"], replay.data["data"])
+        self.assertEqual(first.data["data"]["id"], webhook_event.public_id)
+        webhook_event.refresh_from_db()
+        self.assertEqual(webhook_event.status, WebhookEventStatus.PENDING)
+        self.assertEqual(webhook_event.attempt_count, 0)
+        self.assertEqual(webhook_event.delivery_attempts.count(), 1)
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                tenant=self.tenant,
+                action="webhook.replay_queued",
+                target_id=webhook_event.public_id,
+                actor_type="platform_user",
+                actor_id=self.user.public_id,
+            ).exists()
+        )
+
+    def test_failed_event_replay_reactivates_endpoint_and_preserves_queue_order(self):
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/failed",
+            events_json=["verification.verified"],
+            created_by=self.user,
+            status="failed",
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={},
+            status=WebhookEventStatus.FAILED,
+            attempt_count=5,
+        )
+        newer_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={},
+            status=WebhookEventStatus.PENDING,
+        )
+
+        response = self.client.post(
+            reverse(
+                "webhook-event-replay", kwargs={"event_id": webhook_event.public_id}
+            ),
+            format="json",
+            HTTP_IDEMPOTENCY_KEY="failed-endpoint-replay",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        endpoint.refresh_from_db()
+        webhook_event.refresh_from_db()
+        self.assertEqual(endpoint.status, WebhookEndpointStatus.ACTIVE)
+        self.assertEqual(webhook_event.status, WebhookEventStatus.PENDING)
+        self.assertEqual(
+            [webhook_event.pk, newer_event.pk],
+            [event.pk for event in get_due_webhook_events()],
+        )
+
+    def test_failed_event_replay_rejects_disabled_endpoint(self):
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/disabled",
+            events_json=["verification.verified"],
+            created_by=self.user,
+            status=WebhookEndpointStatus.DISABLED,
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={},
+            status=WebhookEventStatus.FAILED,
+            attempt_count=5,
+        )
+
+        response = self.client.post(
+            reverse(
+                "webhook-event-replay", kwargs={"event_id": webhook_event.public_id}
+            ),
+            format="json",
+            HTTP_IDEMPOTENCY_KEY="disabled-endpoint-replay",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        webhook_event.refresh_from_db()
+        self.assertEqual(webhook_event.status, WebhookEventStatus.FAILED)
+
+    def test_failed_event_replay_requires_webhook_management_permission(self):
+        member = PlatformUser.objects.create_user(
+            email="member@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            tenant=self.tenant,
+        )
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/restricted-replay",
+            events_json=["verification.verified"],
+            created_by=self.user,
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={},
+            status=WebhookEventStatus.FAILED,
+        )
+        self.client.force_authenticate(member)
+
+        response = self.client.post(
+            reverse(
+                "webhook-event-replay", kwargs={"event_id": webhook_event.public_id}
+            ),
+            format="json",
+            HTTP_IDEMPOTENCY_KEY="unauthorized-event-replay",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        webhook_event.refresh_from_db()
+        self.assertEqual(webhook_event.status, WebhookEventStatus.FAILED)
+
+    def test_failed_event_replay_cannot_cross_tenants(self):
+        other_org = Organization.objects.create(name="Other Replay", slug="other-replay")
+        other_tenant = Tenant.objects.create(
+            organization=other_org,
+            name="Other Replay",
+            slug="other-replay",
+            status="active",
+        )
+        other_user = PlatformUser.objects.create_user(
+            email="other-replay@example.com",
+            password="StrongPassword123!",
+            status=PlatformUserStatus.ACTIVE,
+            tenant=other_tenant,
+        )
+        endpoint = WebhookEndpoint(
+            tenant=other_tenant,
+            url="https://other.example.com/webhooks/recovery",
+            events_json=["verification.verified"],
+            created_by=other_user,
+        )
+        endpoint.set_secret("other-secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=other_tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={},
+            status=WebhookEventStatus.FAILED,
+        )
+
+        response = self.client.post(
+            reverse(
+                "webhook-event-replay", kwargs={"event_id": webhook_event.public_id}
+            ),
+            format="json",
+            HTTP_IDEMPOTENCY_KEY="cross-tenant-event-replay",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_disabled_endpoint_cancels_delivery(self):
         endpoint = WebhookEndpoint(
@@ -639,6 +936,55 @@ class WebhookEndpointTests(APITestCase):
         webhook_event.refresh_from_db()
         self.assertEqual(webhook_event.status, WebhookEventStatus.CANCELLED)
         self.assertEqual(webhook_event.attempt_count, 0)
+
+    def test_pending_worker_cancels_events_for_disabled_endpoint(self):
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/disabled",
+            events_json=["verification.verified"],
+            created_by=self.user,
+            status=WebhookEndpointStatus.DISABLED,
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={},
+        )
+
+        self.assertEqual(process_pending_webhook_events(limit=10), 0)
+
+        webhook_event.refresh_from_db()
+        self.assertEqual(webhook_event.status, WebhookEventStatus.CANCELLED)
+
+    @patch("apps.webhooks.services._send_webhook_request")
+    def test_pending_events_wait_while_failed_endpoint_is_repaired(
+        self, mock_send_request
+    ):
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/repairing",
+            events_json=["verification.verified"],
+            created_by=self.user,
+            status="failed",
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={},
+            status=WebhookEventStatus.PENDING,
+        )
+
+        self.assertEqual(process_pending_webhook_events(limit=10), 0)
+
+        webhook_event.refresh_from_db()
+        self.assertEqual(webhook_event.status, WebhookEventStatus.PENDING)
+        mock_send_request.assert_not_called()
 
     @patch("apps.webhooks.services._send_webhook_request")
     def test_delivered_event_is_not_sent_twice(self, mock_send_request):
@@ -687,7 +1033,9 @@ class WebhookEndpointTests(APITestCase):
         deliver_webhook_event(webhook_event)
 
         webhook_event.refresh_from_db()
+        endpoint.refresh_from_db()
         self.assertEqual(webhook_event.status, WebhookEventStatus.FAILED)
+        self.assertEqual(endpoint.status, WebhookEndpointStatus.FAILED)
         self.assertEqual(webhook_event.attempt_count, 1)
         self.assertIsNone(webhook_event.next_retry_at)
         attempt = WebhookDeliveryAttempt.objects.get(webhook_event=webhook_event)
@@ -700,6 +1048,140 @@ class WebhookEndpointTests(APITestCase):
                 target_id=webhook_event.public_id,
             ).exists()
         )
+
+    @patch("apps.webhooks.services._send_webhook_request")
+    def test_final_failure_does_not_overwrite_concurrent_disable(self, send_request):
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/concurrent-disable",
+            events_json=["verification.verified"],
+            created_by=self.user,
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={},
+            attempt_count=4,
+        )
+
+        def disable_then_fail(**_kwargs):
+            WebhookEndpoint.objects.filter(pk=endpoint.pk).update(
+                status=WebhookEndpointStatus.DISABLED
+            )
+            return 500, "failed", 5
+
+        send_request.side_effect = disable_then_fail
+        with self.settings(WEBHOOK_MAX_ATTEMPTS=5):
+            deliver_webhook_event(webhook_event)
+
+        endpoint.refresh_from_db()
+        self.assertEqual(endpoint.status, WebhookEndpointStatus.DISABLED)
+
+    @patch("apps.webhooks.services._send_webhook_request")
+    def test_retry_failure_does_not_revive_concurrently_cancelled_event(self, send_request):
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/concurrent-cancel",
+            events_json=["verification.verified"],
+            created_by=self.user,
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={},
+        )
+
+        def disable_then_fail(**_kwargs):
+            WebhookEndpoint.objects.filter(pk=endpoint.pk).update(
+                status=WebhookEndpointStatus.DISABLED
+            )
+            WebhookEvent.objects.filter(pk=webhook_event.pk).update(
+                status=WebhookEventStatus.CANCELLED, next_retry_at=None
+            )
+            return 500, "failed", 5
+
+        send_request.side_effect = disable_then_fail
+        deliver_webhook_event(webhook_event)
+
+        webhook_event.refresh_from_db()
+        self.assertEqual(webhook_event.status, WebhookEventStatus.CANCELLED)
+        self.assertEqual(webhook_event.attempt_count, 0)
+        self.assertIsNone(webhook_event.next_retry_at)
+
+    @patch("apps.webhooks.services._send_webhook_request")
+    def test_final_failure_does_not_overwrite_concurrent_success(self, send_request):
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/concurrent-success",
+            events_json=["verification.verified"],
+            created_by=self.user,
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        webhook_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={},
+            attempt_count=4,
+        )
+
+        def deliver_then_fail(**_kwargs):
+            WebhookEvent.objects.filter(pk=webhook_event.pk).update(
+                status=WebhookEventStatus.DELIVERED,
+                attempt_count=5,
+                next_retry_at=None,
+            )
+            return 500, "failed", 5
+
+        send_request.side_effect = deliver_then_fail
+        with self.settings(WEBHOOK_MAX_ATTEMPTS=5):
+            deliver_webhook_event(webhook_event)
+
+        webhook_event.refresh_from_db()
+        endpoint.refresh_from_db()
+        self.assertEqual(webhook_event.status, WebhookEventStatus.DELIVERED)
+        self.assertEqual(endpoint.status, WebhookEndpointStatus.ACTIVE)
+
+    @patch("apps.webhooks.services._send_webhook_request")
+    def test_materialized_batch_stops_after_endpoint_failure(self, send_request):
+        send_request.return_value = (500, "failed", 5)
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            url="https://example.com/webhooks/batch-failure",
+            events_json=["verification.verified"],
+            created_by=self.user,
+        )
+        endpoint.set_secret("secret")
+        endpoint.save()
+        first = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={},
+            attempt_count=4,
+        )
+        second = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="verification.verified",
+            payload_json={},
+        )
+
+        with self.settings(WEBHOOK_MAX_ATTEMPTS=5):
+            self.assertEqual(process_pending_webhook_events(limit=10), 2)
+
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertEqual(first.status, WebhookEventStatus.FAILED)
+        self.assertEqual(second.status, WebhookEventStatus.PENDING)
+        self.assertEqual(send_request.call_count, 1)
 
     @patch("apps.webhooks.services._send_webhook_request")
     def test_process_pending_webhook_events_only_processes_due_events(self, mock_send_request):
@@ -968,6 +1450,29 @@ class WebhookOutboxTransactionTests(TransactionTestCase):
 
         self.endpoint.refresh_from_db()
         self.assertEqual(self.endpoint.description, "")
+        self.assertFalse(WebhookEvent.objects.exists())
+
+    def test_failed_endpoint_keeps_new_events_pending_for_recovery(self):
+        self.endpoint.status = WebhookEndpointStatus.FAILED
+        self.endpoint.save(update_fields=["status", "updated_at"])
+
+        with transaction.atomic():
+            queued = self.queue_event()
+
+        self.assertEqual(len(queued), 1)
+        self.assertEqual(queued[0].status, WebhookEventStatus.PENDING)
+        self.assertEqual(process_pending_webhook_events(limit=10), 0)
+        queued[0].refresh_from_db()
+        self.assertEqual(queued[0].status, WebhookEventStatus.PENDING)
+
+    def test_disabled_endpoint_does_not_queue_new_events(self):
+        self.endpoint.status = WebhookEndpointStatus.DISABLED
+        self.endpoint.save(update_fields=["status", "updated_at"])
+
+        with transaction.atomic():
+            queued = self.queue_event()
+
+        self.assertEqual(queued, [])
         self.assertFalse(WebhookEvent.objects.exists())
 
     @patch("apps.webhooks.services._send_webhook_request")
