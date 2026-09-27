@@ -160,10 +160,16 @@ export function clearSessionCredentials(sessionId: string) {
   void fetch(`${API_BASE}/session`, { method: "DELETE", keepalive: true });
 }
 
-export function fetchVerificationSession(credentials: SessionCredentials) {
+export function fetchVerificationSession(
+  credentials: SessionCredentials,
+  locale?: string,
+) {
+  const headers = new Headers();
+  if (locale) headers.set("Accept-Language", locale);
   return request<VerificationSession>(
     credentials,
     `/sessions/${credentials.sessionId}`,
+    { headers },
   );
 }
 
