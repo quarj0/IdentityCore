@@ -25,7 +25,13 @@ export interface VerificationSession {
   session_id: string;
   verification_id: string;
   status: string;
-  organization: { name: string; logo_url: string };
+  organization: {
+    name: string;
+    logo_url: string;
+    primary_color: string;
+    primary_text_color: string;
+    background_color: string;
+  };
   purpose: string;
   redirect_url: string;
   required_steps: string[];
