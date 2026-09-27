@@ -113,7 +113,7 @@ export function EvidenceReview({
           className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
         >
           <RotateCcw className="h-3.5 w-3.5" />
-          Retake
+          {localizeText(locale, "Retake")}
         </Button>
       </div>
     </div>
@@ -213,7 +213,7 @@ export function TerminalPanel({
       <p className="mt-2 text-sm leading-6">{localizeText(locale, message || config.detail)}</p>
       {onFinish ? (
         <Button type="button" onClick={onFinish} className="mt-6">
-          Finish and return
+          {localizeText(locale, "Finish and return")}
         </Button>
       ) : null}
     </div>
