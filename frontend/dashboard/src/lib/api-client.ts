@@ -29,10 +29,35 @@ type ApiEnvelope<T> = ApiSuccess<T> | ApiErrorPayload;
 const REQUEST_TIMEOUT_MS = 30_000;
 let refreshInFlight: Promise<string> | null = null;
 
+function createRequestId() {
+  const value =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : String(Date.now()) + "-" + Math.random().toString(36).slice(2);
+  return "req_" + value.replace(/[^a-zA-Z0-9_-]/g, "");
+}
+
+function safeRequestId(value: string | null | undefined) {
+  return value && /^[a-zA-Z0-9_-]{1,80}$/.test(value) ? value : "";
+}
+
+function safeMessage(status: number) {
+  if (status === 401) return "Your session has expired. Sign in and try again.";
+  if (status === 403) return "You do not have permission to complete this action.";
+  if (status === 404) return "The requested item could not be found.";
+  if (status === 408 || status === 504)
+    return "The request took too long. Check your connection and try again.";
+  if (status === 429) return "Too many requests. Wait a moment and try again.";
+  if (status >= 500 || status === 0)
+    return "The service is temporarily unavailable. Please try again shortly.";
+  return "We could not complete your request. Check the information and try again.";
+}
+
 export class ApiError extends Error {
   code: string;
   details: Record<string, unknown>;
   status: number;
+  requestId: string;
 
   constructor(
     message: string,
@@ -40,16 +65,19 @@ export class ApiError extends Error {
       code = "request_failed",
       details = {},
       status = 500,
+      requestId = "",
     }: {
       code?: string;
       details?: Record<string, unknown>;
       status?: number;
+      requestId?: string;
     } = {},
   ) {
     super(message);
     this.code = code;
     this.details = details;
     this.status = status;
+    this.requestId = requestId;
   }
 }
 
@@ -60,6 +88,7 @@ function buildHeaders(
 ) {
   const headers = addDashboardSessionScope(new Headers(init));
   headers.set("Accept", "application/json");
+  headers.set("X-Request-Id", createRequestId());
 
   if (!(body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
@@ -82,7 +111,8 @@ async function fetchWithTimeout(
     REQUEST_TIMEOUT_MS,
   );
   const abort = () => controller.abort();
-  init.signal?.addEventListener("abort", abort, { once: true });
+  if (init.signal?.aborted) controller.abort();
+  else init.signal?.addEventListener("abort", abort, { once: true });
   try {
     return await fetch(input, {
       ...init,
@@ -90,6 +120,7 @@ async function fetchWithTimeout(
       cache: "no-store",
     });
   } catch (error) {
+    if (init.signal?.aborted) throw error;
     if (error instanceof DOMException && error.name === "AbortError") {
       throw new ApiError(
         "The request took too long. Check your connection and try again.",
@@ -112,21 +143,52 @@ async function fetchWithTimeout(
   }
 }
 
-async function parseJson<T>(response: Response) {
-  const payload = await readJsonResponse<ApiEnvelope<T>>(response);
+async function fetchWithRetry(input: RequestInfo | URL, init: RequestInit = {}) {
+  const method = (init.method ?? "GET").toUpperCase();
+  const retrySafe =
+    ["GET", "HEAD", "OPTIONS"].includes(method) ||
+    Boolean(new Headers(init.headers).get("Idempotency-Key")?.trim());
+
+  for (let attempt = 0; ; attempt += 1) {
+    let response: Response;
+    try {
+      response = await fetchWithTimeout(input, init);
+    } catch (error) {
+      if (init.signal?.aborted || !retrySafe || attempt >= 1) throw error;
+      await new Promise((resolve) => window.setTimeout(resolve, 250));
+      continue;
+    }
+    if (
+      !retrySafe ||
+      attempt >= 1 ||
+      !new Set([408, 425, 429, 502, 503, 504]).has(response.status)
+    )
+      return response;
+    const retryAfterHeader = response.headers.get("Retry-After");
+    const retryAfter =
+      retryAfterHeader === null ? Number.NaN : Number(retryAfterHeader);
+    const delay = Number.isFinite(retryAfter)
+      ? Math.min(Math.max(retryAfter * 1000, 0), 1000)
+      : 250;
+    await new Promise((resolve) => window.setTimeout(resolve, delay));
+  }
+}
+
+async function parseJson<T>(response: Response, fallbackRequestId = "") {
+  const payload = await readJsonResponse<ApiEnvelope<T>>(response, fallbackRequestId);
 
   if (!response.ok || !payload || payload.success !== true) {
-    const message =
-      payload && "error" in payload
-        ? payload.error.message
-        : "The request could not be processed.";
     const code =
       payload && "error" in payload ? payload.error.code : "request_failed";
-    const details = payload && "error" in payload ? payload.error.details : {};
-    throw new ApiError(message, {
+    const requestId =
+      payload && "request_id" in payload
+        ? safeRequestId(payload.request_id)
+        : safeRequestId(response.headers.get("X-Request-Id")) ||
+          safeRequestId(fallbackRequestId);
+    throw new ApiError(safeMessage(response.status), {
       code,
-      details,
       status: response.status,
+      requestId,
     });
   }
 
@@ -135,7 +197,7 @@ async function parseJson<T>(response: Response) {
 
 async function refreshAccessToken() {
   if (!refreshInFlight) {
-    refreshInFlight = fetchWithTimeout(`${getRestApiBaseUrl()}/auth/refresh`, {
+    refreshInFlight = fetchWithRetry(`${getRestApiBaseUrl()}/auth/refresh`, {
       method: "POST",
       credentials: "include",
       headers: buildHeaders(),
@@ -173,7 +235,7 @@ export async function restRequest<T>(
         : getAccessToken();
 
   const send = (access: string | null) =>
-    fetchWithTimeout(`${getRestApiBaseUrl()}${path}`, {
+    fetchWithRetry(`${getRestApiBaseUrl()}${path}`, {
       ...init,
       credentials: "include",
       headers: buildHeaders(init.headers, access, init.body),
@@ -194,7 +256,10 @@ interface GraphqlResponse<T> {
   errors?: Array<{ message: string }>;
 }
 
-async function readJsonResponse<T>(response: Response): Promise<T> {
+async function readJsonResponse<T>(
+  response: Response,
+  fallbackRequestId = "",
+): Promise<T> {
   const body = await response.text();
   try {
     return JSON.parse(body) as T;
@@ -203,7 +268,13 @@ async function readJsonResponse<T>(response: Response): Promise<T> {
       response.status >= 500
         ? "The service is temporarily unavailable. Please try again shortly."
         : "We could not complete your request. Please try again.",
-      { code: "invalid_response", status: response.status },
+      {
+        code: "invalid_response",
+        status: response.status,
+        requestId:
+          safeRequestId(response.headers.get("X-Request-Id")) ||
+          safeRequestId(fallbackRequestId),
+      },
     );
   }
 }
@@ -224,7 +295,7 @@ export async function graphqlRequest<T>(
         : getAccessToken();
 
   const send = (access: string | null) =>
-    fetchWithTimeout(getGraphqlApiUrl(), {
+    fetchWithRetry(getGraphqlApiUrl(), {
       method: "POST",
       headers: buildHeaders(undefined, access),
       body: JSON.stringify({ query, variables }),
@@ -254,10 +325,10 @@ export async function graphqlRequest<T>(
   }
 
   if (payload.errors?.length) {
-    throw new ApiError(payload.errors[0]?.message ?? "Request failed.", {
+    throw new ApiError("We could not complete your request. Please try again.", {
       code: "graphql_error",
-      details: { errors: payload.errors },
       status: response.status,
+      requestId: safeRequestId(response.headers.get("X-Request-Id")),
     });
   }
 
@@ -272,12 +343,14 @@ export async function graphqlRequest<T>(
 }
 
 export function getErrorMessage(error: unknown) {
-  if (error instanceof ApiError) {
-    return humanizeErrorMessage(error.message);
-  }
-
   if (error instanceof Error) {
-    return humanizeErrorMessage(error.message);
+    const message = humanizeErrorMessage(error.message);
+    const requestId = safeRequestId(
+      "requestId" in error && typeof error.requestId === "string"
+        ? error.requestId
+        : undefined,
+    );
+    return requestId ? message + " (Support ID: " + requestId + ")" : message;
   }
 
   return "Something went wrong. Please try again.";
