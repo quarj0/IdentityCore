@@ -2268,6 +2268,7 @@ paths:
           $ref: "#/components/responses/ValidationError"
         "401":
           $ref: "#/components/responses/PermissionDenied"
+        "403":
           $ref: "#/components/responses/PermissionDenied"
     patch:
       summary: Set the authenticated tenant's product metrics opt-out.
@@ -2295,6 +2296,7 @@ paths:
           $ref: "#/components/responses/ValidationError"
         "401":
           $ref: "#/components/responses/PermissionDenied"
+        "403":
           $ref: "#/components/responses/PermissionDenied"
   /audit-events/:
     get:
