@@ -50,25 +50,26 @@ def _request_locale(request, policy_snapshot: dict | None = None) -> str:
     supported_locales = [str(locale).lower() for locale in configured]
     if default_locale not in supported_locales:
         supported_locales.append(default_locale)
-    requested_languages = [
-        item.partition(";")[0].strip().lower()
-        for item in (
-            request.headers.get("Accept-Language", "").split(",")
-            if request is not None
-            else []
-        )
-        if item.partition(";")[0].strip()
-    ]
-    return next(
-        (
-            supported
-            for requested in requested_languages
-            for supported in supported_locales
-            if requested == supported
-            or requested.split("-", 1)[0] == supported.split("-", 1)[0]
-        ),
-        default_locale,
-    )
+    header = request.headers.get("Accept-Language", "") if request is not None else ""
+    candidates = []
+    for index, item in enumerate(header.split(",")):
+        tag, *parameters = item.strip().split(";")
+        quality = 1.0
+        for parameter in parameters:
+            parameter = parameter.strip()
+            if parameter.startswith("q="):
+                try:
+                    quality = float(parameter[2:])
+                except ValueError:
+                    quality = 0.0
+        if tag and quality > 0:
+            candidates.append((tag.lower(), quality, index))
+    candidates.sort(key=lambda candidate: (-candidate[1], candidate[2]))
+    for requested, _quality, _index in candidates:
+        for supported in supported_locales:
+            if requested == supported or requested.split("-", 1)[0] == supported.split("-", 1)[0]:
+                return supported
+    return default_locale
 
 
 def _resolve_consent_template(verification, locale: str):
