@@ -196,6 +196,7 @@ const arabicCopy: Record<string, string> = {
   "The verification service is temporarily unavailable. Check your connection and try again.": "خدمة التحقق غير متاحة مؤقتًا. تحقق من اتصالك وحاول مرة أخرى.",
   "Something went wrong. Please try again.": "حدث خطأ ما. حاول مرة أخرى.",
   "The secure verification link is missing its session credential. Request a new link from the organization.": "بيانات اعتماد جلسة التحقق الآمنة مفقودة من الرابط. اطلب رابطًا جديدًا من المؤسسة.",
+  "Mobile handoff QR code": "رمز QR للمتابعة على الهاتف",
 };
 
 export function localizeText(locale: string, text: string): string {
