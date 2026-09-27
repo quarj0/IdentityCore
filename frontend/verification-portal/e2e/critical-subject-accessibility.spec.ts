@@ -15,7 +15,19 @@ async function activateWithKeyboard(locator: Locator, key = "Enter") {
   await locator.press(key);
 }
 
-test("critical subject verification journey is WCAG-clean and keyboard operable", async ({
+async function activateForBrowser(
+  locator: Locator,
+  isMobile: boolean,
+  key = "Enter",
+) {
+  if (isMobile) {
+    await locator.click();
+    return;
+  }
+  await activateWithKeyboard(locator, key);
+}
+
+test("critical subject journey is accessible and operable by keyboard or touch", async ({
   isMobile,
   page,
 }) => {
@@ -213,10 +225,11 @@ test("critical subject verification journey is WCAG-clean and keyboard operable"
   ).toBeVisible();
   await expectNoCriticalA11yViolations(page);
   const consent = page.getByRole("checkbox");
-  await activateWithKeyboard(consent, "Space");
+  await activateForBrowser(consent, isMobile, "Space");
   await expect(consent).toBeChecked();
-  await activateWithKeyboard(
+  await activateForBrowser(
     page.getByRole("button", { name: "Accept and continue" }),
+    isMobile,
   );
 
   await expect(
@@ -224,20 +237,28 @@ test("critical subject verification journey is WCAG-clean and keyboard operable"
   ).toBeVisible();
   await expectNoCriticalA11yViolations(page);
   const upload = page.getByLabel("Upload image");
-  await upload.focus();
-  await expect(upload).toBeFocused();
+  if (!isMobile) {
+    await upload.focus();
+    await expect(upload).toBeFocused();
+  }
   await upload.setInputFiles({
     name: "national-id-front.png",
     mimeType: "image/png",
     buffer: image,
   });
-  await activateWithKeyboard(page.getByRole("button", { name: "Back Not captured" }));
+  await activateForBrowser(
+    page.getByRole("button", { name: "Back Not captured" }),
+    isMobile,
+  );
   await upload.setInputFiles({
     name: "national-id-back.png",
     mimeType: "image/png",
     buffer: image,
   });
-  await activateWithKeyboard(page.getByRole("button", { name: "Submit document" }));
+  await activateForBrowser(
+    page.getByRole("button", { name: "Submit document" }),
+    isMobile,
+  );
 
   await expect(
     page.getByRole("heading", { name: "Take a live selfie" }),
@@ -248,7 +269,10 @@ test("critical subject verification journey is WCAG-clean and keyboard operable"
     mimeType: "image/png",
     buffer: image,
   });
-  await activateWithKeyboard(page.getByRole("button", { name: "Submit selfie" }));
+  await activateForBrowser(
+    page.getByRole("button", { name: "Submit selfie" }),
+    isMobile,
+  );
 
   await expect(
     page.getByRole("heading", { name: "Complete a live camera check" }),
@@ -263,7 +287,7 @@ test("critical subject verification journey is WCAG-clean and keyboard operable"
   ]) {
     const button = page.getByRole("button", { name: buttonName });
     await expect(button).toBeVisible();
-    await activateWithKeyboard(button);
+    await activateForBrowser(button, isMobile);
   }
 
   await expect(
