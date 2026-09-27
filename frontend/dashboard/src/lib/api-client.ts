@@ -141,6 +141,35 @@ async function fetchWithTimeout(
   }
 }
 
+async function fetchWithRetry(input: RequestInfo | URL, init: RequestInit = {}) {
+  const method = (init.method ?? "GET").toUpperCase();
+  const retrySafe =
+    ["GET", "HEAD", "OPTIONS"].includes(method) ||
+    Boolean(new Headers(init.headers).get("Idempotency-Key")?.trim());
+
+  for (let attempt = 0; ; attempt += 1) {
+    let response: Response;
+    try {
+      response = await fetchWithTimeout(input, init);
+    } catch (error) {
+      if (!retrySafe || attempt >= 1) throw error;
+      await new Promise((resolve) => window.setTimeout(resolve, 250));
+      continue;
+    }
+    if (
+      !retrySafe ||
+      attempt >= 1 ||
+      !new Set([408, 425, 429, 502, 503, 504]).has(response.status)
+    )
+      return response;
+    const retryAfter = Number(response.headers.get("Retry-After"));
+    const delay = Number.isFinite(retryAfter)
+      ? Math.min(Math.max(retryAfter * 1000, 0), 1000)
+      : 250;
+    await new Promise((resolve) => window.setTimeout(resolve, delay));
+  }
+}
+
 async function parseJson<T>(response: Response, fallbackRequestId = "") {
   const payload = await readJsonResponse<ApiEnvelope<T>>(response, fallbackRequestId);
 
@@ -164,7 +193,7 @@ async function parseJson<T>(response: Response, fallbackRequestId = "") {
 
 async function refreshAccessToken() {
   if (!refreshInFlight) {
-    refreshInFlight = fetchWithTimeout(`${getRestApiBaseUrl()}/auth/refresh`, {
+    refreshInFlight = fetchWithRetry(`${getRestApiBaseUrl()}/auth/refresh`, {
       method: "POST",
       credentials: "include",
       headers: buildHeaders(),
@@ -202,7 +231,7 @@ export async function restRequest<T>(
         : getAccessToken();
 
   const send = (access: string | null) =>
-    fetchWithTimeout(`${getRestApiBaseUrl()}${path}`, {
+    fetchWithRetry(`${getRestApiBaseUrl()}${path}`, {
       ...init,
       credentials: "include",
       headers: buildHeaders(init.headers, access, init.body),
@@ -262,7 +291,7 @@ export async function graphqlRequest<T>(
         : getAccessToken();
 
   const send = (access: string | null) =>
-    fetchWithTimeout(getGraphqlApiUrl(), {
+    fetchWithRetry(getGraphqlApiUrl(), {
       method: "POST",
       headers: buildHeaders(undefined, access),
       body: JSON.stringify({ query, variables }),
