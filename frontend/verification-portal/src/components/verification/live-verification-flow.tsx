@@ -884,7 +884,7 @@ export function LiveVerificationFlow({
                 {activeLivenessFile ? (
                   <div className="space-y-3">
                     <p className="text-sm font-medium text-success">
-                      Live recording ready to submit.
+                      {t("Live recording ready to submit.")}
                     </p>
                     <div className="flex flex-wrap justify-center gap-3">
                       <Button
@@ -892,7 +892,7 @@ export function LiveVerificationFlow({
                         disabled={busy}
                         onClick={() => setActiveLivenessFile(null)}
                       >
-                        Record again
+                        {t("Record again")}
                       </Button>
                       <Button
                         disabled={busy}
@@ -1047,10 +1047,10 @@ function MobileHandoff({
               </div>
               <div>
                 <p className="text-sm font-medium text-foreground">
-                  Scan with your phone camera
+                  {localizeText(locale, "Scan with your phone camera")}
                 </p>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                  The one-time code expires shortly and cannot be reused.
+                  {localizeText(locale, "The one-time code expires shortly and cannot be reused.")}
                 </p>
               </div>
               <Button
@@ -1058,11 +1058,11 @@ function MobileHandoff({
                 onClick={() => navigator.clipboard.writeText(handoffUrl)}
               >
                 <Copy className="h-4 w-4" />
-                Copy mobile link
+                {localizeText(locale, "Copy mobile link")}
               </Button>
               <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Waiting for completion on your phone
+                {localizeText(locale, "Waiting for completion on your phone")}
               </p>
             </div>
           ) : (
@@ -1072,7 +1072,7 @@ function MobileHandoff({
               ) : (
                 <Smartphone className="h-4 w-4" />
               )}
-              Show secure QR code
+              {localizeText(locale, "Show secure QR code")}
             </Button>
           )}
           <div className="relative py-1 text-center text-xs text-muted-foreground before:absolute before:left-0 before:right-0 before:top-1/2 before:h-px before:bg-border">
@@ -1080,7 +1080,7 @@ function MobileHandoff({
           </div>
           <Button variant="outline" className="w-full" onClick={onContinue}>
             <Monitor className="h-4 w-4" />
-            Continue on this computer
+            {localizeText(locale, "Continue on this computer")}
           </Button>
         </CardContent>
       </Card>
@@ -1105,7 +1105,7 @@ function OpeningState({ title, message, locale }: { title: string; message?: str
             {localizeText(locale, title)}
           </h1>
           {message ? (
-            <p className="text-sm leading-6 text-muted-foreground">{message}</p>
+            <p className="text-sm leading-6 text-muted-foreground">{localizeText(locale, message)}</p>
           ) : (
             <p className="text-sm text-muted-foreground">
               {localizeText(locale, "Validating your one-time session credential…")}
