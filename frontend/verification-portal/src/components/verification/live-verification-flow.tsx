@@ -553,7 +553,7 @@ export function LiveVerificationFlow({
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block space-y-2">
               <span className="text-sm font-medium text-foreground">
-                Issuing country
+                {t("Issuing country")}
               </span>
               <select
                 value={selectedCountry.country_code}
@@ -746,12 +746,12 @@ export function LiveVerificationFlow({
 
       {step === "document_processing" ? (
         <StepCard
-          eyebrow=t("Secure document check")
+          eyebrow={t("Secure document check")}
           title={`Checking your ${session.document.label}`}
           description="IdentityCore is checking capture quality and reading the supported document evidence."
         >
           <ProcessingPanel
-            title=t("Document processing in progress")
+            title={t("Document processing in progress")}
             items={[
               t("Capture quality"),
               t("Document type"),
@@ -765,8 +765,8 @@ export function LiveVerificationFlow({
       {step === "selfie_capture" ? (
         <StepCard
           eyebrow="Step 3 of 5"
-          title=t("Take a live selfie")
-          description=t("Remove hats or dark glasses, face the camera directly, and use even lighting. Your selfie will be compared with the document portrait.")
+          title={t("Take a live selfie")}
+          description={t("Remove hats or dark glasses, face the camera directly, and use even lighting. Your selfie will be compared with the document portrait.")}
         >
           {file ? (
             <EvidenceReview file={file} onRetake={() => setFile(null)} />
@@ -941,11 +941,11 @@ export function LiveVerificationFlow({
       {step === "processing" ? (
         <StepCard
           eyebrow="Step 5 of 5"
-          title=t("Completing your verification")
+          title={t("Completing your verification")}
           description="The submitted evidence is being evaluated against the requesting organization’s verification policy."
         >
           <ProcessingPanel
-            title=t("Secure decision processing")
+            title={t("Secure decision processing")}
             items={[
               t("Liveness result"),
               t("Face comparison"),
