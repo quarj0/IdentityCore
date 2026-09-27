@@ -22,6 +22,12 @@ const DEFAULT_BRANDING: Branding = {
   background_color: "#ffffff",
 };
 
+function safeColor(value: unknown, fallback: string) {
+  return typeof value === "string" && /^#[0-9a-fA-F]{6}$/.test(value)
+    ? value
+    : fallback;
+}
+
 function toBranding(value: unknown): Branding {
   if (!value || typeof value !== "object") return DEFAULT_BRANDING;
   const source = value as Partial<Branding>;
@@ -29,12 +35,45 @@ function toBranding(value: unknown): Branding {
     logo_url: typeof source.logo_url === "string" ? source.logo_url : "",
     logo_storage_key:
       typeof source.logo_storage_key === "string" ? source.logo_storage_key : "",
-    primary_color: source.primary_color ?? DEFAULT_BRANDING.primary_color,
-    primary_text_color:
-      source.primary_text_color ?? DEFAULT_BRANDING.primary_text_color,
-    background_color:
-      source.background_color ?? DEFAULT_BRANDING.background_color,
+    primary_color: safeColor(source.primary_color, DEFAULT_BRANDING.primary_color),
+    primary_text_color: safeColor(
+      source.primary_text_color,
+      DEFAULT_BRANDING.primary_text_color,
+    ),
+    background_color: safeColor(
+      source.background_color,
+      DEFAULT_BRANDING.background_color,
+    ),
   };
+}
+
+type BrandingEnvironment = "sandbox" | "production";
+
+function environmentBranding(
+  settings: Record<string, unknown>,
+  environment: BrandingEnvironment,
+  version: "draft" | "published",
+) {
+  const configurations = settings.branding_environments as
+    | Record<string, { draft?: unknown; published?: unknown }>
+    | undefined;
+  const saved = configurations?.[environment]?.[version];
+  if (saved) return toBranding(saved);
+  if (environment === "sandbox") {
+    if (version === "draft" && settings.branding_draft) {
+      return toBranding(settings.branding_draft);
+    }
+    if (version === "published" && settings.branding_published) {
+      return toBranding(settings.branding_published);
+    }
+  }
+  return toBranding({
+    logo_url: settings.logo_url,
+    logo_storage_key: settings.logo_storage_key,
+    primary_color: settings.primary_color,
+    primary_text_color: settings.primary_text_color,
+    background_color: settings.background_color,
+  });
 }
 
 function luminance(color: string) {
@@ -59,26 +98,20 @@ export function LiveBrandingPage() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const environment =
-    process.env.NEXT_PUBLIC_RUNTIME_ENVIRONMENT?.trim() || "current environment";
+  const [environment, setEnvironment] =
+    useState<BrandingEnvironment>("sandbox");
+  const [organizationSettings, setOrganizationSettings] =
+    useState<Record<string, unknown>>({});
 
   useEffect(() => {
     dashboardApi.organization().then((organization) => {
-      const settings = organization.settings;
-      const savedDraft = toBranding(settings.branding_draft);
-      const savedPublished = toBranding(
-        settings.branding_published ?? {
-          logo_url: settings.logo_url,
-          logo_storage_key: settings.logo_storage_key,
-          primary_color: settings.primary_color,
-          primary_text_color: settings.primary_text_color,
-          background_color: settings.background_color,
-        },
+      setOrganizationSettings(organization.settings);
+      setDraft(environmentBranding(organization.settings, environment, "draft"));
+      setPublished(
+        environmentBranding(organization.settings, environment, "published"),
       );
-      setDraft(savedDraft);
-      setPublished(savedPublished);
     }).catch(() => setError("Unable to load organization branding."));
-  }, []);
+  }, [environment]);
 
   const primaryContrast = contrastRatio(
     draft.primary_color,
@@ -135,6 +168,7 @@ export function LiveBrandingPage() {
     setMessage("");
     try {
       const organization = await dashboardApi.updateBranding({
+        environment,
         ...(draft.logo_storage_key
           ? { logo_storage_key: draft.logo_storage_key }
           : {}),
@@ -143,10 +177,11 @@ export function LiveBrandingPage() {
         background_color: draft.background_color,
         publish,
       });
-      const saved = toBranding(
-        publish
-          ? organization.settings.branding_published
-          : organization.settings.branding_draft,
+      setOrganizationSettings(organization.settings);
+      const saved = environmentBranding(
+        organization.settings,
+        environment,
+        publish ? "published" : "draft",
       );
       setDraft(saved);
       if (publish) {
@@ -174,9 +209,20 @@ export function LiveBrandingPage() {
             <h2 id="branding-settings-title" className="text-lg font-semibold">
               Draft settings
             </h2>
-            <p className="text-sm text-muted-foreground">
-              Current environment: <strong>{environment}</strong>
-            </p>
+            <div>
+              <Label htmlFor="branding-environment">Environment</Label>
+              <select
+                id="branding-environment"
+                value={environment}
+                onChange={(event) =>
+                  setEnvironment(event.target.value as BrandingEnvironment)
+                }
+                className="mt-2 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm"
+              >
+                <option value="sandbox">Sandbox</option>
+                <option value="production">Production</option>
+              </select>
+            </div>
             <div>
               <Label htmlFor="branding-logo">Organization logo</Label>
               <input
