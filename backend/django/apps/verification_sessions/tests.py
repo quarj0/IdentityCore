@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from datetime import timedelta
 from unittest.mock import patch
 import hashlib
@@ -8,6 +9,8 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
+from apps.verification_sessions.serializers import _request_locale
+
 from apps.biometrics.models import (
     FaceMatch,
     LivenessChallenge,
@@ -1336,3 +1339,18 @@ class VerificationSessionPortalTests(APITestCase):
         mock_document_promote.assert_called()
         mock_selfie_promote.assert_called_once()
         mock_evidence_report.assert_called_once_with(self.verification)
+
+
+class ApplicantLocaleNegotiationTests(TestCase):
+    def test_accept_language_quality_weights_select_highest_supported_locale(self):
+        request = SimpleNamespace(
+            headers={"Accept-Language": "en;q=0.1, ar;q=1.0"}
+        )
+
+        self.assertEqual(
+            _request_locale(
+                request,
+                {"default_locale": "en", "supported_locales": ["en", "ar"]},
+            ),
+            "ar",
+        )
