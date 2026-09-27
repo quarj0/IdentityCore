@@ -223,10 +223,10 @@ export function LiveLivenessCapture({
           <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center text-slate-300">
             <Camera className="h-7 w-7" />
             <p className="mt-3 text-sm font-medium text-white">
-              Live camera check
+              {localizeText(locale, "Live camera check")}
             </p>
             <p className="mt-1 max-w-xs text-xs leading-5 text-slate-400">
-              A short video is recorded only after you start the challenge.
+              {localizeText(locale, "A short video is recorded only after you start the challenge.")}
             </p>
           </div>
         ) : null}
@@ -235,7 +235,7 @@ export function LiveLivenessCapture({
             <span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-destructive" />
             {currentAction
               ? localizeText(locale, ACTION_LABELS[currentAction] ?? currentAction)
-              : "Hold still while we finish recording"}
+              : localizeText(locale, "Hold still while we finish recording")}
           </div>
         ) : null}
         {active ? (
@@ -263,12 +263,12 @@ export function LiveLivenessCapture({
             ) : (
               <Camera className="h-4 w-4" />
             )}
-            {starting ? "Starting camera…" : "Enable camera"}
+            {starting ? localizeText(locale, "Starting camera…") : localizeText(locale, "Enable camera")}
           </Button>
         ) : !recording ? (
           <Button type="button" onClick={startRecording} className="flex-1">
             <Play className="h-4 w-4" />
-            Start live challenge
+            {localizeText(locale, "Start live challenge")}
           </Button>
         ) : (
           <Button
@@ -278,7 +278,7 @@ export function LiveLivenessCapture({
             className="flex-1"
           >
             <CircleStop className="h-4 w-4" />
-            Finish recording
+            {localizeText(locale, "Finish recording")}
           </Button>
         )}
         {active && !recording ? (
@@ -289,7 +289,7 @@ export function LiveLivenessCapture({
             className="text-white hover:bg-white/10 hover:text-white"
           >
             <RotateCcw className="h-4 w-4" />
-            Restart
+            {localizeText(locale, "Restart")}
           </Button>
         ) : null}
       </div>
