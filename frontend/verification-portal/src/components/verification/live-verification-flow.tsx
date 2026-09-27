@@ -672,6 +672,7 @@ export function LiveVerificationFlow({
               />
             ) : (
               <CameraCapture
+                locale={session.locale}
                 facingMode="environment"
                 label={`${selectedDocument.label} ${activeCaptureRequirement.label} camera`}
                 onCapture={(nextFile) =>
@@ -773,7 +774,7 @@ export function LiveVerificationFlow({
           description={t("Remove hats or dark glasses, face the camera directly, and use even lighting. Your selfie will be compared with the document portrait.")}
         >
           {file ? (
-            <EvidenceReview file={file} onRetake={() => setFile(null)} />
+            <EvidenceReview locale={session.locale} file={file} onRetake={() => setFile(null)} />
           ) : (
             <CameraCapture
               locale={session.locale}
@@ -951,6 +952,7 @@ export function LiveVerificationFlow({
           description="The submitted evidence is being evaluated against the requesting organization’s verification policy."
         >
           <ProcessingPanel
+            locale={session.locale}
             title={t("Secure decision processing")}
             items={[
               t("Liveness result"),
@@ -972,16 +974,17 @@ export function LiveVerificationFlow({
       ) : null}
       {step === "failed" ? (
         <TerminalPanel
+          locale={session.locale}
           state="failed"
           message={status.message}
           onFinish={finish}
         />
       ) : null}
       {step === "expired" ? (
-        <TerminalPanel state="expired" message={status.message} />
+        <TerminalPanel locale={session.locale} state="expired" message={status.message} />
       ) : null}
       {step === "cancelled" ? (
-        <TerminalPanel state="cancelled" message={status.message} />
+        <TerminalPanel locale={session.locale} state="cancelled" message={status.message} />
       ) : null}
 
       {busy ? (
