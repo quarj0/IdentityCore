@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
+from apps.audit.models import AuditEvent
 from apps.organizations.models import Organization
 from apps.tenants.models import Tenant
 from apps.verification_subjects.models import VerificationSubject
@@ -122,6 +123,12 @@ class ProductMetricsViewTests(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data["data"]["product_metrics_opt_out"])
+        audit_event = AuditEvent.objects.get(
+            tenant=self.tenant,
+            action="tenant.product_metrics.preference_changed",
+        )
+        self.assertEqual(audit_event.actor_id, self.user.public_id)
+        self.assertTrue(audit_event.metadata_json["product_metrics_opt_out"])
 
         metrics = self.client.get(self.url).data["data"]
         self.assertEqual(metrics, {"status": "disabled", "reason": "tenant_opt_out"})
