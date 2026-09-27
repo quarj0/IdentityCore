@@ -252,7 +252,15 @@ def serialize_verification_session(verification_session: VerificationSession, re
     verification = verification_session.verification
     organization = verification.organization
     organization_settings = organization.settings_json or {}
-    organization_logo_url = organization_settings.get("logo_url", "")
+    environment = verification.project.environment if verification.project_id else "sandbox"
+    environment_branding = (
+        organization_settings.get("branding_environments", {})
+        .get(environment, {})
+        .get("published", {})
+    )
+    organization_logo_url = environment_branding.get(
+        "logo_url", organization_settings.get("logo_url", "")
+    )
     metadata = verification.metadata_json or {}
     configured_country_code = str(metadata.get("country_code", "")).upper()
     supported_country_codes = {profile["code"] for profile in COUNTRY_PROFILES}
@@ -303,12 +311,16 @@ def serialize_verification_session(verification_session: VerificationSession, re
         "organization": {
             "name": organization.name,
             "logo_url": organization_logo_url,
-            "primary_color": organization_settings.get("primary_color", "#2563eb"),
-            "primary_text_color": organization_settings.get(
-                "primary_text_color", "#ffffff"
+            "primary_color": environment_branding.get(
+                "primary_color", organization_settings.get("primary_color", "#2563eb")
             ),
-            "background_color": organization_settings.get(
-                "background_color", "#ffffff"
+            "primary_text_color": environment_branding.get(
+                "primary_text_color",
+                organization_settings.get("primary_text_color", "#ffffff"),
+            ),
+            "background_color": environment_branding.get(
+                "background_color",
+                organization_settings.get("background_color", "#ffffff"),
             ),
         },
         "purpose": verification.purpose,
