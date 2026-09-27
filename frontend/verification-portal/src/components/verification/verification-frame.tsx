@@ -9,7 +9,7 @@ import {
 import { ThemeToggle } from "@identitycore/ui";
 
 import { VerificationProgress } from "./verification-progress";
-import { translate } from "@/lib/i18n";
+import { localizeText, translate } from "@/lib/i18n";
 
 interface VerificationFrameProps {
   organizationName: string;
@@ -117,7 +117,7 @@ export function VerificationFrame({
             </div>
           </section>
 
-          <VerificationProgress currentStep={currentStep} />
+          <VerificationProgress currentStep={currentStep} locale={locale} />
 
           <section className="rounded-3xl border border-info/20 bg-info/10 p-5">
             <div className="flex gap-3">
@@ -139,7 +139,7 @@ export function VerificationFrame({
 
           <div className="flex items-center gap-2 px-1 text-xs text-muted-foreground">
             <FileCheck2 className="h-3.5 w-3.5" aria-hidden="true" />
-            Reference {reference}
+            {localizeText(locale, "Reference")} {reference}
           </div>
         </aside>
 
