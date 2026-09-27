@@ -9,6 +9,7 @@ import {
 import { ThemeToggle } from "@identitycore/ui";
 
 import { VerificationProgress } from "./verification-progress";
+import { translate } from "@/lib/i18n";
 
 interface VerificationFrameProps {
   organizationName: string;
@@ -17,6 +18,9 @@ interface VerificationFrameProps {
   currentStep: string;
   reference: string;
   children: ReactNode;
+  locale: string;
+  supportedLocales: string[];
+  onLocaleChange: (locale: string) => void;
 }
 
 export function VerificationFrame({
@@ -26,6 +30,9 @@ export function VerificationFrame({
   currentStep,
   reference,
   children,
+  locale,
+  supportedLocales,
+  onLocaleChange,
 }: VerificationFrameProps) {
   return (
     <div className="verification-page min-h-screen">
@@ -52,6 +59,26 @@ export function VerificationFrame({
               />
               Encrypted session
             </div>
+            <label className="sr-only" htmlFor="applicant-language">
+              {translate(locale, "languageLabel")}
+            </label>
+            <select
+              id="applicant-language"
+              aria-label={translate(locale, "languageLabel")}
+              value={locale}
+              onChange={(event) => onLocaleChange(event.target.value)}
+              className="h-9 rounded-lg border border-border bg-background px-2 text-sm text-foreground"
+            >
+              {supportedLocales.map((supportedLocale) => (
+                <option key={supportedLocale} value={supportedLocale}>
+                  {supportedLocale === "ar"
+                    ? translate(locale, "arabic")
+                    : supportedLocale === "en"
+                      ? translate(locale, "english")
+                      : supportedLocale}
+                </option>
+              ))}
+            </select>
             <ThemeToggle />
           </div>
         </div>
