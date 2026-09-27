@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.db.models import Avg, DurationField, ExpressionWrapper, F, Q
+from django.db.models import Avg, Count, DurationField, ExpressionWrapper, F, Q
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -58,7 +58,18 @@ class ProductMetricsView(APIView):
             tenant=tenant,
             created_at__gte=timezone.now() - timedelta(days=days),
         )
-        cohort_size = verifications.count()
+        completed_statuses = (VerificationStatus.VERIFIED, VerificationStatus.REJECTED, VerificationStatus.MANUAL_REVIEW_REQUIRED)
+        failure_statuses = (VerificationStatus.REJECTED, VerificationStatus.FAILED)
+        aggregates = verifications.aggregate(
+            cohort_size=Count("id"),
+            completed_count=Count("id", filter=Q(completed_at__isnull=False) | Q(status__in=completed_statuses)),
+            abandoned_count=Count("id", filter=Q(status__in=(VerificationStatus.EXPIRED, VerificationStatus.CANCELLED))),
+            review_count=Count("id", filter=Q(status=VerificationStatus.MANUAL_REVIEW_REQUIRED)),
+            failure_count=Count("id", filter=Q(status__in=failure_statuses)),
+            latency=Avg(ExpressionWrapper(F("completed_at") - F("created_at"), output_field=DurationField()), filter=Q(completed_at__isnull=False)),
+            latency_count=Count("id", filter=Q(completed_at__isnull=False)),
+        )
+        cohort_size = aggregates["cohort_size"]
         response = {
             "status": "available",
             "window_days": days,
@@ -75,35 +86,13 @@ class ProductMetricsView(APIView):
         if cohort_size < MIN_COHORT_SIZE:
             return success_response(response, request=request)
 
-        completed_statuses = (
-            VerificationStatus.VERIFIED,
-            VerificationStatus.REJECTED,
-            VerificationStatus.MANUAL_REVIEW_REQUIRED,
-        )
-        completed = verifications.filter(
-            Q(completed_at__isnull=False) | Q(status__in=completed_statuses)
-        )
-        completed_count = completed.count()
-        abandoned_count = verifications.filter(
-            status__in=(VerificationStatus.EXPIRED, VerificationStatus.CANCELLED)
-        ).count()
-        review_count = verifications.filter(
-            status=VerificationStatus.MANUAL_REVIEW_REQUIRED
-        ).count()
-        failures = verifications.filter(
-            status__in=(VerificationStatus.REJECTED, VerificationStatus.FAILED)
-        )
-        failure_count = failures.count()
-
-        latency = completed.filter(completed_at__isnull=False).aggregate(
-            average=Avg(
-                ExpressionWrapper(
-                    F("completed_at") - F("created_at"),
-                    output_field=DurationField(),
-                )
-            )
-        )["average"]
-        latency_count = completed.filter(completed_at__isnull=False).count()
+        completed_count = aggregates["completed_count"]
+        abandoned_count = aggregates["abandoned_count"]
+        review_count = aggregates["review_count"]
+        failure_count = aggregates["failure_count"]
+        latency = aggregates["latency"]
+        latency_count = aggregates["latency_count"]
+        failures = verifications.filter(status__in=failure_statuses)
 
         grouped_reasons: dict[str, int] = {}
         for reason_code in failures.values_list(
