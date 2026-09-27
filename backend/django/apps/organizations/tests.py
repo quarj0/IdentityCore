@@ -105,7 +105,7 @@ class OrganizationBrandingTests(APITestCase):
         self.assertEqual(draft_response.status_code, status.HTTP_200_OK)
         self.organization.refresh_from_db()
         self.assertEqual(
-            self.organization.settings_json["branding_draft"]["primary_color"],
+            self.organization.settings_json["branding_environments"]["sandbox"]["draft"]["primary_color"],
             "#ff0000",
         )
         self.assertNotIn("primary_color", self.organization.settings_json)
@@ -130,10 +130,10 @@ class OrganizationBrandingTests(APITestCase):
         self.assertEqual(publish_response.status_code, status.HTTP_200_OK)
         self.organization.refresh_from_db()
         self.assertEqual(
-            self.organization.settings_json["branding_published"]["primary_color"],
+            self.organization.settings_json["branding_environments"]["sandbox"]["published"]["primary_color"],
             "#1d4ed8",
         )
-        self.assertEqual(self.organization.settings_json["primary_color"], "#1d4ed8")
+        self.assertNotIn("primary_color", self.organization.settings_json)
 
     def test_patch_organization_branding_sets_logo_url_from_public_storage_key(self):
         logo_storage_key = (
