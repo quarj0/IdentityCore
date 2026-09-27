@@ -34,7 +34,10 @@ body {
   background-color: var(--tenant-primary, #2563eb);
 }
 
-.verification-page .text-info,
+.verification-page .text-info {
+  color: var(--tenant-primary, #2563eb);
+}
+
 .verification-page .text-primary-foreground,
 .verification-page .text-info-foreground {
   color: var(--tenant-primary-text, #ffffff);
