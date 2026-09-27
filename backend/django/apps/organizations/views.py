@@ -49,6 +49,10 @@ class OrganizationDetailView(APIView):
             branding_image_storage_keys=serializer.validated_data.get(
                 "branding_image_storage_keys"
             ),
+            primary_color=serializer.validated_data.get("primary_color"),
+            primary_text_color=serializer.validated_data.get("primary_text_color"),
+            background_color=serializer.validated_data.get("background_color"),
+            publish=serializer.validated_data.get("publish", False),
         )
         return success_response(
             serialize_organization(organization),
