@@ -141,8 +141,8 @@ async function fetchWithTimeout(
   }
 }
 
-async function parseJson<T>(response: Response) {
-  const payload = await readJsonResponse<ApiEnvelope<T>>(response);
+async function parseJson<T>(response: Response, fallbackRequestId = "") {
+  const payload = await readJsonResponse<ApiEnvelope<T>>(response, fallbackRequestId);
 
   if (!response.ok || !payload || payload.success !== true) {
     const code =
@@ -150,7 +150,8 @@ async function parseJson<T>(response: Response) {
     const requestId =
       payload && "request_id" in payload
         ? safeRequestId(payload.request_id)
-        : safeRequestId(response.headers.get("X-Request-Id"));
+        : safeRequestId(response.headers.get("X-Request-Id")) ||
+          safeRequestId(fallbackRequestId);
     throw new ApiError(safeMessage(response.status), {
       code,
       status: response.status,
@@ -222,7 +223,10 @@ interface GraphqlResponse<T> {
   errors?: Array<{ message: string }>;
 }
 
-async function readJsonResponse<T>(response: Response): Promise<T> {
+async function readJsonResponse<T>(
+  response: Response,
+  fallbackRequestId = "",
+): Promise<T> {
   const body = await response.text();
   try {
     return JSON.parse(body) as T;
@@ -231,7 +235,13 @@ async function readJsonResponse<T>(response: Response): Promise<T> {
       response.status >= 500
         ? "The service is temporarily unavailable. Please try again shortly."
         : "We could not complete your request. Please try again.",
-      { code: "invalid_response", status: response.status },
+      {
+        code: "invalid_response",
+        status: response.status,
+        requestId:
+          safeRequestId(response.headers.get("X-Request-Id")) ||
+          safeRequestId(fallbackRequestId),
+      },
     );
   }
 }
@@ -300,12 +310,14 @@ export async function graphqlRequest<T>(
 }
 
 export function getErrorMessage(error: unknown) {
-  if (error instanceof ApiError) {
-    return humanizeErrorMessage(error.message);
-  }
-
   if (error instanceof Error) {
-    return humanizeErrorMessage(error.message);
+    const message = humanizeErrorMessage(error.message);
+    const requestId = safeRequestId(
+      "requestId" in error && typeof error.requestId === "string"
+        ? error.requestId
+        : undefined,
+    );
+    return requestId ? message + " (Support ID: " + requestId + ")" : message;
   }
 
   return "Something went wrong. Please try again.";
