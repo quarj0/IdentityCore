@@ -772,6 +772,7 @@ export function LiveVerificationFlow({
             <EvidenceReview file={file} onRetake={() => setFile(null)} />
           ) : (
             <CameraCapture
+              locale={session.locale}
               facingMode="user"
               label="Live selfie camera"
               onCapture={selectEvidence}
@@ -928,6 +929,7 @@ export function LiveVerificationFlow({
                   </div>
                 ) : (
                   <LiveLivenessCapture
+                    locale={session.locale}
                     actions={livenessChallenge.actions}
                     onCapture={setActiveLivenessFile}
                   />
