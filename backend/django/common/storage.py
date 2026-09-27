@@ -423,7 +423,7 @@ def build_signed_download_url(
     client = get_object_storage_client()
 
     if client and resolved_bucket_name:
-        params: dict[str, str] = {
+        params: dict[str, str | int] = {
             "Bucket": resolved_bucket_name,
             "Key": storage_key,
         }
