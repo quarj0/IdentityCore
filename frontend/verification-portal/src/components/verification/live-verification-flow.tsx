@@ -46,6 +46,7 @@ import {
 } from "@/lib/safe-navigation";
 import {
   direction,
+  localizeText,
   resolveLocale,
   supportedLocales as portalLocales,
   translate,
@@ -413,6 +414,8 @@ export function LiveVerificationFlow({
     window.location.assign(returnUrl);
   };
 
+  const t = (text: string) => localizeText(session.locale, text);
+
   return (
     <VerificationFrame
       organizationName={session.organization.name}
@@ -436,7 +439,7 @@ export function LiveVerificationFlow({
           role="alert"
           className="mb-4 rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive"
         >
-          <strong className="block font-semibold">We could not continue</strong>
+          <strong className="block font-semibold">{t("We could not continue")}</strong>
           <span className="mt-1 block">{error}</span>
         </div>
       ) : null}
@@ -466,18 +469,18 @@ export function LiveVerificationFlow({
             {[
               [
                 FileText,
-                "Identity document",
-                "Used to read and validate identity details",
+                t("Identity document"),
+                t("Used to read and validate identity details"),
               ],
               [
                 ScanFace,
-                "Live selfie",
-                "Compared with the portrait on your document",
+                t("Live selfie"),
+                t("Compared with the portrait on your document"),
               ],
               [
                 ShieldCheck,
-                "Security signals",
-                "Used for liveness, fraud risk, and audit",
+                t("Security signals"),
+                t("Used for liveness, fraud risk, and audit"),
               ],
             ].map(([Icon, title, detail]) => {
               const ItemIcon = Icon as typeof FileText;
@@ -540,11 +543,11 @@ export function LiveVerificationFlow({
       {step === "document_capture" ? (
         <StepCard
           eyebrow="Step 2 of 5"
-          title={`Capture your ${selectedDocument.label}`}
+          title={`${t("Capture your")} ${selectedDocument.label}`}
           description={
             captureRequirements.length > 1
-              ? "Choose the identity document you want to use, then capture the original physical document with all four edges visible."
-              : "Choose the identity document you want to use, then capture its photo page with all four edges visible."
+              ? t("Choose the identity document you want to use, then capture the original physical document with all four edges visible.")
+              : t("Choose the identity document you want to use, then capture its photo page with all four edges visible.")
           }
         >
           <div className="grid gap-4 sm:grid-cols-2">
@@ -638,8 +641,8 @@ export function LiveVerificationFlow({
                 </span>
                 <span className="mt-1 block text-xs text-foreground">
                   {documentFiles[requirement.side]
-                    ? "Captured — select to review"
-                    : "Not captured"}
+                    ? t("Captured — select to review")
+                    : t("Not captured")}
                 </span>
               </button>
             ))}
@@ -743,17 +746,17 @@ export function LiveVerificationFlow({
 
       {step === "document_processing" ? (
         <StepCard
-          eyebrow="Secure document check"
+          eyebrow=t("Secure document check")
           title={`Checking your ${session.document.label}`}
           description="IdentityCore is checking capture quality and reading the supported document evidence."
         >
           <ProcessingPanel
-            title="Document processing in progress"
+            title=t("Document processing in progress")
             items={[
-              "Capture quality",
-              "Document type",
-              "OCR evidence",
-              "Review signals",
+              t("Capture quality"),
+              t("Document type"),
+              t("OCR evidence"),
+              t("Review signals"),
             ]}
           />
         </StepCard>
@@ -762,8 +765,8 @@ export function LiveVerificationFlow({
       {step === "selfie_capture" ? (
         <StepCard
           eyebrow="Step 3 of 5"
-          title="Take a live selfie"
-          description="Remove hats or dark glasses, face the camera directly, and use even lighting. Your selfie will be compared with the document portrait."
+          title=t("Take a live selfie")
+          description=t("Remove hats or dark glasses, face the camera directly, and use even lighting. Your selfie will be compared with the document portrait.")
         >
           {file ? (
             <EvidenceReview file={file} onRetake={() => setFile(null)} />
@@ -798,7 +801,7 @@ export function LiveVerificationFlow({
               }
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {busy ? "Uploading selfie…" : "Submit selfie"}
+              {busy ? t("Uploading selfie…") : t("Submit selfie")}
             </Button>
           </div>
         </StepCard>
@@ -823,8 +826,7 @@ export function LiveVerificationFlow({
               Prove you are present, live
             </h3>
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-foreground">
-              Your challenge is single-use, randomized, and recorded directly
-              from this device in one short video.
+              {t("Your challenge is single-use, randomized, and recorded directly from this device in one short video.")}
             </p>
             {session.workflow.liveness_mode === "passive" ? (
               <div className="mt-5 flex justify-center">
@@ -839,9 +841,9 @@ export function LiveVerificationFlow({
                           { livenessType: "passive" },
                         ),
                       {
-                        title: "Presence check submitted",
-                        message: "Your live selfie is being checked.",
-                        busyMessage: "Checking your live selfie…",
+                        title: t("Presence check submitted"),
+                        message: t("Your live selfie is being checked."),
+                        busyMessage: t("Checking your live selfie…"),
                       },
                     )
                   }
@@ -861,9 +863,9 @@ export function LiveVerificationFlow({
                           await createLivenessChallenge(credentials),
                         ),
                       {
-                        title: "Live challenge ready",
+                        title: t("Live challenge ready"),
                         message:
-                          "Enable your camera and follow the on-screen instructions.",
+                          t("Enable your camera and follow the on-screen instructions."),
                       },
                     )
                   }
@@ -913,9 +915,9 @@ export function LiveVerificationFlow({
                             },
                             {
                               title: "Live check submitted",
-                              message: "Your live video is being checked.",
+                              message: t("Your live video is being checked."),
                               busyMessage:
-                                "Uploading and checking your live video…",
+                                t("Uploading and checking your live video…"),
                             },
                           )
                         }
@@ -939,16 +941,16 @@ export function LiveVerificationFlow({
       {step === "processing" ? (
         <StepCard
           eyebrow="Step 5 of 5"
-          title="Completing your verification"
+          title=t("Completing your verification")
           description="The submitted evidence is being evaluated against the requesting organization’s verification policy."
         >
           <ProcessingPanel
-            title="Secure decision processing"
+            title=t("Secure decision processing")
             items={[
-              "Liveness result",
-              "Face comparison",
-              "Risk rules",
-              "Final decision",
+              t("Liveness result"),
+              t("Face comparison"),
+              t("Risk rules"),
+              t("Final decision"),
             ]}
           />
         </StepCard>
