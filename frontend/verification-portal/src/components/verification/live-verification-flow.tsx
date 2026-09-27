@@ -44,7 +44,12 @@ import {
   resolveOrganizationLogoUrl,
   resolveReturnUrl,
 } from "@/lib/safe-navigation";
-import { translate } from "@/lib/i18n";
+import {
+  direction,
+  resolveLocale,
+  supportedLocales as portalLocales,
+  translate,
+} from "@/lib/i18n";
 
 import { CameraCapture } from "./camera-capture";
 import { LiveLivenessCapture } from "./live-liveness-capture";
@@ -104,13 +109,20 @@ export function LiveVerificationFlow({
   const [handoffBusy, setHandoffBusy] = useState(false);
 
   const load = useCallback(async (nextCredentials: SessionCredentials) => {
+    const storedLocale = window.localStorage.getItem(
+      `identitycore.locale:${nextCredentials.sessionId}`,
+    );
+    const preferredLocale = storedLocale
+      ? resolveLocale(storedLocale)
+      : undefined;
     const [nextSession, nextStatus] = await Promise.all([
-      fetchVerificationSession(nextCredentials),
+      fetchVerificationSession(nextCredentials, preferredLocale),
       fetchVerificationStatus(nextCredentials),
     ]);
     setSession(nextSession);
     document.documentElement.lang = nextSession.locale;
-    document.documentElement.dir = nextSession.direction;
+    document.documentElement.dir =
+      nextSession.direction || direction(resolveLocale(nextSession.locale));
     setSelectedCountryCode(
       (current) => current || nextSession.document.country_code,
     );
@@ -165,7 +177,9 @@ export function LiveVerificationFlow({
   useEffect(() => {
     if (!session?.locale) return;
     document.documentElement.lang = session.locale;
-  }, [session?.locale]);
+    document.documentElement.dir =
+      session.direction || direction(resolveLocale(session.locale));
+  }, [session?.direction, session?.locale]);
 
   useEffect(() => {
     if (!credentials || !status || !PROCESSING_STEPS.has(status.current_step)) {
@@ -291,6 +305,28 @@ export function LiveVerificationFlow({
     });
   }
 
+  async function changeLocale(locale: string) {
+    if (!credentials || !session) return;
+    const normalizedLocale = locale.toLowerCase();
+    if (!session.supported_locales.map((item) => item.toLowerCase()).includes(normalizedLocale)) {
+      return;
+    }
+    try {
+      setError(null);
+      const nextSession = await fetchVerificationSession(
+        credentials,
+        normalizedLocale,
+      );
+      setSession(nextSession);
+      window.localStorage.setItem(
+        `identitycore.locale:${credentials.sessionId}`,
+        normalizedLocale,
+      );
+    } catch (caught) {
+      setError(messageOf(caught));
+    }
+  }
+
   async function startMobileHandoff() {
     if (!credentials || handoffBusy) return;
     setHandoffBusy(true);
@@ -385,6 +421,14 @@ export function LiveVerificationFlow({
       purpose={session.purpose}
       currentStep={step}
       reference={status.verification_id}
+      locale={resolveLocale(session.locale)}
+      supportedLocales={(() => {
+        const configured = session.supported_locales
+          .map((locale) => locale.toLowerCase())
+          .filter((locale) => portalLocales.includes(locale as (typeof portalLocales)[number]));
+        return configured.length ? configured : [resolveLocale(session.locale)];
+      })()}
+      onLocaleChange={changeLocale}
     >
       {error ? (
         <div
