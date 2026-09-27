@@ -100,7 +100,9 @@ def _policy_locales(verification, policy_snapshot: dict) -> list[str]:
             status=ConsentTemplateStatus.ACTIVE,
         ).values_list("language", flat=True)
     )
-    return [locale for locale in configured if locale in available]
+    matched = [locale for locale in configured if locale in available]
+    default_locale = str(policy_snapshot.get("default_locale") or "en").lower()
+    return matched or [default_locale]
 
 
 def _consent_artifact(verification, locale: str) -> dict:
