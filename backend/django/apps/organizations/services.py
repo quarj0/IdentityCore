@@ -48,6 +48,7 @@ def build_organization_branding_upload(
 def update_organization_branding_settings(
     *,
     organization: Organization,
+    environment: str = "sandbox",
     logo_storage_key: str | None = None,
     branding_image_storage_keys: list[str] | None = None,
     primary_color: str | None = None,
@@ -56,9 +57,10 @@ def update_organization_branding_settings(
     publish: bool = False,
 ) -> Organization:
     settings_json = dict(organization.settings_json or {})
-    published = dict(settings_json.get("branding_published") or {})
+    environments = dict(settings_json.get("branding_environments") or {})
+    environment_state = dict(environments.get(environment) or {})
     draft = dict(
-        settings_json.get("branding_draft")
+        environment_state.get("draft")
         or {
             "logo_storage_key": settings_json.get("logo_storage_key", ""),
             "logo_url": settings_json.get("logo_url", ""),
@@ -83,16 +85,11 @@ def update_organization_branding_settings(
             for storage_key in branding_image_storage_keys
         ]
 
-    settings_json["branding_draft"] = draft
+    environment_state["draft"] = draft
     if publish:
-        published = dict(draft)
-        settings_json["branding_published"] = published
-        settings_json["primary_color"] = published["primary_color"]
-        settings_json["primary_text_color"] = published["primary_text_color"]
-        settings_json["background_color"] = published["background_color"]
-        if published.get("logo_storage_key"):
-            settings_json["logo_storage_key"] = published["logo_storage_key"]
-            settings_json["logo_url"] = published["logo_url"]
+        environment_state["published"] = dict(draft)
+    environments[environment] = environment_state
+    settings_json["branding_environments"] = environments
 
     organization.settings_json = settings_json
     organization.save(update_fields=["settings_json", "updated_at"])
