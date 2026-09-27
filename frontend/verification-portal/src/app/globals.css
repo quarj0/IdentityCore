@@ -26,7 +26,7 @@ body {
       hsl(var(--info) / 0.08),
       transparent 24rem
     ),
-    hsl(var(--background));
+    var(--tenant-background, hsl(var(--background)));
 }
 
 .verification-page .bg-info,
