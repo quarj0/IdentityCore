@@ -6,6 +6,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
+from apps.audit.services import record_audit_event
 from apps.verifications.models import Verification, VerificationStatus
 from common.permissions import IsTenantUser
 from common.responses import success_response
@@ -148,6 +149,7 @@ class ProductMetricsView(APIView):
         settings_json["product_metrics_opt_out"] = value
         tenant.settings_json = settings_json
         tenant.save(update_fields=["settings_json", "updated_at"])
+        record_audit_event(tenant=tenant, actor=request.user, request=request, action="tenant.product_metrics.preference_changed", target_type="tenant", target_id=tenant.public_id, metadata={"product_metrics_opt_out": value})
         return success_response(
             {"product_metrics_opt_out": value},
             request=request,
