@@ -84,7 +84,8 @@ export function createIdentityCoreClient({
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     const abort = () => controller.abort();
-    init.signal?.addEventListener("abort", abort, { once: true });
+    if (init.signal?.aborted) controller.abort();
+    else init.signal?.addEventListener("abort", abort, { once: true });
     return fetch(input, { ...init, signal: controller.signal, cache: "no-store" })
       .finally(() => {
         clearTimeout(timeout);
@@ -94,9 +95,12 @@ export function createIdentityCoreClient({
 
   async function fetchWithRetry(input: RequestInfo | URL, init: RequestInit) {
     const method = (init.method ?? "GET").toUpperCase();
+    const idempotencyKey = new Headers(init.headers)
+      .get("Idempotency-Key")
+      ?.trim();
     const retrySafe =
       ["GET", "HEAD", "OPTIONS"].includes(method) ||
-      new Headers(init.headers).has("Idempotency-Key");
+      Boolean(idempotencyKey);
     const requestId = safeRequestId(
       new Headers(init.headers).get("X-Request-Id"),
     );
@@ -106,6 +110,7 @@ export function createIdentityCoreClient({
       try {
         response = await fetchWithTimeout(input, init);
       } catch (error) {
+        if (init.signal?.aborted) throw error;
         if (!retrySafe || attempt >= 1) {
           const timedOut = error instanceof DOMException && error.name === "AbortError";
           throw new IdentityCoreApiError(
@@ -122,7 +127,8 @@ export function createIdentityCoreClient({
       if (!retrySafe || attempt >= 1 || !RETRYABLE_STATUS_CODES.has(response.status))
         return response;
 
-      const retryAfter = Number(response.headers.get("Retry-After"));
+      const retryAfterHeader = response.headers.get("Retry-After");
+      const retryAfter = retryAfterHeader === null ? Number.NaN : Number(retryAfterHeader);
       const delay = Number.isFinite(retryAfter)
         ? Math.min(Math.max(retryAfter * 1000, 0), 1000)
         : 250;
