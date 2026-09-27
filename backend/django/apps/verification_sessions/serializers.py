@@ -84,9 +84,46 @@ def _resolve_consent_template(verification, locale: str):
     )
 
 
+def _policy_locales(verification, policy_snapshot: dict) -> list[str]:
+    configured = [
+        str(item).lower()
+        for item in policy_snapshot.get("supported_locales") or [policy_snapshot.get("default_locale") or "en"]
+    ]
+    consent = policy_snapshot.get("consent") or {}
+    if not consent.get("name"):
+        return configured
+    available = set(
+        ConsentTemplate.objects.filter(
+            tenant=verification.tenant,
+            name=consent["name"],
+            version=consent.get("version"),
+            status=ConsentTemplateStatus.ACTIVE,
+        ).values_list("language", flat=True)
+    )
+    return [locale for locale in configured if locale in available]
+
+
 def _consent_artifact(verification, locale: str) -> dict:
     consent_snapshot = (verification.policy_snapshot_json or {}).get("consent") or {}
     if consent_snapshot:
+        template = None
+        if locale != str(consent_snapshot.get("language") or locale):
+            template = ConsentTemplate.objects.filter(
+                tenant=verification.tenant,
+                name=consent_snapshot.get("name", ""),
+                version=consent_snapshot.get("version"),
+                language=locale,
+                status=ConsentTemplateStatus.ACTIVE,
+            ).first()
+        if template is not None:
+            content = template.content
+            return {
+                "template_id": template.public_id,
+                "version": template.version,
+                "locale": template.language,
+                "content": content,
+                "content_hash": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+            }
         content = str(consent_snapshot.get("content") or "")
         return {
             "template_id": str(consent_snapshot.get("template_id") or "generated"),
@@ -289,7 +326,11 @@ def serialize_verification_session(verification_session: VerificationSession, re
         None,
     )
     policy_snapshot = verification.policy_snapshot_json or {}
-    locale = _request_locale(request, policy_snapshot)
+    session_locales = _policy_locales(verification, policy_snapshot)
+    locale_snapshot = dict(policy_snapshot)
+    if session_locales:
+        locale_snapshot["supported_locales"] = session_locales
+    locale = _request_locale(request, locale_snapshot)
     configured_liveness = str(
         policy_snapshot.get("required_liveness_level", "passive")
     )
@@ -314,8 +355,8 @@ def serialize_verification_session(verification_session: VerificationSession, re
         "locale": locale,
         "supported_locales": [
             str(item)
-            for item in policy_snapshot.get("supported_locales")
-            or sorted(SUPPORTED_LOCALES)
+            for item in session_locales
+            or [policy_snapshot.get("default_locale") or "en"]
         ],
         "direction": "rtl" if locale == "ar" else "ltr",
         "consent": _consent_artifact(verification, locale),
