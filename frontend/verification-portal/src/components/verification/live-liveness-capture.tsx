@@ -5,6 +5,7 @@ import { Camera, CircleStop, Loader2, Play, RotateCcw } from "lucide-react";
 
 import { Button } from "@identitycore/ui";
 import { selectRecordingFormat } from "@/lib/media-recording";
+import { localizeText } from "@/lib/i18n";
 
 const ACTION_LABELS: Record<string, string> = {
   turn_left: "Turn your head left",
@@ -17,9 +18,11 @@ const MAX_RECORDING_MS = 15_000;
 
 export function LiveLivenessCapture({
   actions,
+  locale,
   onCapture,
 }: {
   actions: string[];
+  locale: string;
   onCapture: (file: File) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -61,7 +64,7 @@ export function LiveLivenessCapture({
     const handleVisibilityChange = () => {
       if (document.hidden && recorderRef.current?.state === "recording") {
         cancelRecording(
-          "The live check was interrupted when this page became inactive. Start it again.",
+          localizeText(locale, "The live check was interrupted when this page became inactive. Start it again."),
         );
       }
     };
@@ -78,13 +81,13 @@ export function LiveLivenessCapture({
   async function startCamera() {
     if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
       setError(
-        "Live liveness requires a secure HTTPS connection and camera access.",
+        localizeText(locale, "Live liveness requires a secure HTTPS connection and camera access."),
       );
       return;
     }
     if (typeof MediaRecorder === "undefined") {
       setError(
-        "This browser cannot record a live liveness video. Use a current browser on your phone.",
+        localizeText(locale, "This browser cannot record a live liveness video. Use a current browser on your phone."),
       );
       return;
     }
@@ -108,12 +111,12 @@ export function LiveLivenessCapture({
           if (stoppingCameraRef.current) return;
           if (recorderRef.current?.state === "recording") {
             cancelRecording(
-              "The camera disconnected during the live check. Start it again.",
+              localizeText(locale, "The camera disconnected during the live check. Start it again."),
             );
           } else {
             stopCamera();
             setError(
-              "The camera is no longer available. Enable it and try again.",
+              localizeText(locale, "The camera is no longer available. Enable it and try again."),
             );
           }
         },
@@ -128,7 +131,7 @@ export function LiveLivenessCapture({
       setActive(true);
     } catch {
       setError(
-        "Camera access is required for this live check. Allow camera access and try again.",
+        localizeText(locale, "Camera access is required for this live check. Allow camera access and try again."),
       );
     } finally {
       setStarting(false);
@@ -146,7 +149,7 @@ export function LiveLivenessCapture({
     );
     if (!format) {
       setError(
-        "This browser cannot create a supported MP4 or WebM liveness video. Update your browser or use another current device.",
+        localizeText(locale, "This browser cannot create a supported MP4 or WebM liveness video. Update your browser or use another current device."),
       );
       return;
     }
@@ -168,10 +171,10 @@ export function LiveLivenessCapture({
       if (discardRecordingRef.current) {
         chunksRef.current = [];
       } else if (!blob.size) {
-        setError("No video was recorded. Please try again.");
+        setError(localizeText(locale, "No video was recorded. Please try again."));
       } else if (blob.size > MAX_RECORDING_BYTES) {
         setError(
-          "The live video is too large to upload. Move closer to a stable connection and try again.",
+          localizeText(locale, "The live video is too large to upload. Move closer to a stable connection and try again."),
         );
       } else {
         onCapture(
@@ -231,7 +234,7 @@ export function LiveLivenessCapture({
           <div className="absolute inset-x-4 top-4 rounded-2xl bg-info px-4 py-3 text-center text-sm font-semibold text-info-foreground shadow-lg">
             <span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-destructive" />
             {currentAction
-              ? (ACTION_LABELS[currentAction] ?? currentAction)
+              ? localizeText(locale, ACTION_LABELS[currentAction] ?? currentAction)
               : "Hold still while we finish recording"}
           </div>
         ) : null}
