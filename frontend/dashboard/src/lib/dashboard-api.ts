@@ -350,6 +350,7 @@ export const dashboardApi = {
   subjects: () => backend.rest<Page<VerificationSubject>>("/subjects/"),
   organization: () => backend.rest<Organization>("/organization/me/"),
   updateBranding: (input: {
+    environment: "sandbox" | "production";
     logo_storage_key?: string;
     primary_color?: string;
     primary_text_color?: string;
