@@ -45,6 +45,7 @@ class OrganizationDetailView(APIView):
         serializer.is_valid(raise_exception=True)
         organization = update_organization_branding_settings(
             organization=request.user.tenant.organization,
+            environment=serializer.validated_data.get("environment", "sandbox"),
             logo_storage_key=serializer.validated_data.get("logo_storage_key"),
             branding_image_storage_keys=serializer.validated_data.get(
                 "branding_image_storage_keys"
