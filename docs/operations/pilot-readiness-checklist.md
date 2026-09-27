@@ -7,6 +7,7 @@ Use one copy for each organization and environment. Complete it in the approved 
 - Organization ID:
 - Environment and region:
 - Planned go-live date/time (UTC):
+- Checklist version: `1.0`
 - Checklist owner:
 - Security reviewer:
 - Privacy reviewer:
