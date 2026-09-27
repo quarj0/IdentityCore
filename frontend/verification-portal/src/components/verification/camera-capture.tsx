@@ -175,11 +175,13 @@ export function CameraCapture({
           role="status"
           className="border-t border-warning/20 bg-warning/10 px-4 py-3 text-sm leading-6 text-warning"
         >
-          <strong className="font-semibold">HTTP testing mode:</strong> live
-          camera access is disabled by the browser on this address. File upload
-          still works—choose{" "}
-          <strong className="font-semibold">Upload image</strong> below—or open
-          the portal through HTTPS or localhost.
+          <strong className="font-semibold">
+            {localizeText(locale, "HTTP testing mode:")}
+          </strong>{" "}
+          {localizeText(
+            locale,
+            "Live camera access is disabled by the browser on this address. File upload still works. Choose Upload image below, or open the portal through HTTPS or localhost.",
+          )}
         </div>
       ) : null}
 
