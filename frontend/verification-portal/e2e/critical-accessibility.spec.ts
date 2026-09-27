@@ -70,7 +70,7 @@ async function pressFocused(
   await page.keyboard.press("Enter");
 }
 
-test("critical verification journey is WCAG-clean and keyboard operable", async ({
+test("critical verification journey is WCAG-clean and browser operable", async ({
   page,
   isMobile,
 }) => {
