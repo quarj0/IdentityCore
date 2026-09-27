@@ -125,12 +125,16 @@ export function createIdentityCoreClient({
 
   function refreshAccessToken() {
     if (!refreshInFlight) {
+      const headers = authHeaders();
+      const requestId = headers["X-Request-Id"];
       refreshInFlight = fetchWithRetry(`${origin}/api/v1/auth/refresh`, {
         method: "POST",
         credentials: "include",
-        headers: authHeaders(),
+        headers,
       })
-        .then((response) => parse<{ tokens: { access: string } }>(response))
+        .then((response) =>
+          parse<{ tokens: { access: string } }>(response, requestId),
+        )
         .then((data) => {
           setAccessToken(data.tokens.access);
           return data;
@@ -142,7 +146,10 @@ export function createIdentityCoreClient({
     return refreshInFlight;
   }
 
-  async function parse<T>(response: Response): Promise<T> {
+  async function parse<T>(
+    response: Response,
+    fallbackRequestId = "",
+  ): Promise<T> {
     const body = await response.text();
     let payload: ApiSuccess<T> | ApiFailure;
     try {
@@ -152,7 +159,8 @@ export function createIdentityCoreClient({
         safeMessage(response.status),
         "invalid_response",
         response.status,
-        safeRequestId(response.headers.get("X-Request-Id")),
+        safeRequestId(response.headers.get("X-Request-Id")) ||
+          safeRequestId(fallbackRequestId),
       );
     }
     if (!response.ok || !payload.success) {
@@ -162,7 +170,9 @@ export function createIdentityCoreClient({
         failure.error?.code ?? "request_failed",
         response.status,
         safeRequestId(
-          failure.request_id || response.headers.get("X-Request-Id"),
+          failure.request_id ||
+            response.headers.get("X-Request-Id") ||
+            fallbackRequestId,
         ),
       );
     }
@@ -178,6 +188,7 @@ export function createIdentityCoreClient({
       headers.set("Content-Type", "application/json");
     const token = getAccessToken();
     if (token) headers.set("Authorization", `Bearer ${token}`);
+    const requestId = headers.get("X-Request-Id") ?? "";
     const send = () =>
       fetchWithRetry(`${origin}/api/v1${path}`, {
         ...init,
@@ -198,7 +209,7 @@ export function createIdentityCoreClient({
         setAccessToken(null);
       }
     }
-    return parse<T>(response);
+    return parse<T>(response, requestId);
   }
 
   async function login(email: string, password: string) {
