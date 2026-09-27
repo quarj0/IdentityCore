@@ -87,19 +87,16 @@ def _resolve_consent_template(verification, locale: str):
 def _policy_locales(verification, policy_snapshot: dict) -> list[str]:
     configured = [
         str(item).lower()
-        for item in policy_snapshot.get("supported_locales") or [policy_snapshot.get("default_locale") or "en"]
+        for item in policy_snapshot.get("supported_locales")
+        or [policy_snapshot.get("default_locale") or "en"]
     ]
     consent = policy_snapshot.get("consent") or {}
-    if not consent.get("name"):
+    if not consent:
         return configured
-    available = set(
-        ConsentTemplate.objects.filter(
-            tenant=verification.tenant,
-            name=consent["name"],
-            version=consent.get("version"),
-            status=ConsentTemplateStatus.ACTIVE,
-        ).values_list("language", flat=True)
-    )
+    translations = consent.get("translations") or {
+        str(consent.get("language") or policy_snapshot.get("default_locale") or "en"): consent
+    }
+    available = {str(locale).lower() for locale in translations}
     matched = [locale for locale in configured if locale in available]
     default_locale = str(policy_snapshot.get("default_locale") or "en").lower()
     return matched or [default_locale]
@@ -108,29 +105,13 @@ def _policy_locales(verification, policy_snapshot: dict) -> list[str]:
 def _consent_artifact(verification, locale: str) -> dict:
     consent_snapshot = (verification.policy_snapshot_json or {}).get("consent") or {}
     if consent_snapshot:
-        template = None
-        if locale != str(consent_snapshot.get("language") or locale):
-            template = ConsentTemplate.objects.filter(
-                tenant=verification.tenant,
-                name=consent_snapshot.get("name", ""),
-                version=consent_snapshot.get("version"),
-                language=locale,
-                status=ConsentTemplateStatus.ACTIVE,
-            ).first()
-        if template is not None:
-            content = template.content
-            return {
-                "template_id": template.public_id,
-                "version": template.version,
-                "locale": template.language,
-                "content": content,
-                "content_hash": hashlib.sha256(content.encode("utf-8")).hexdigest(),
-            }
-        content = str(consent_snapshot.get("content") or "")
+        translations = consent_snapshot.get("translations") or {}
+        frozen = translations.get(locale) or consent_snapshot
+        content = str(frozen.get("content") or "")
         return {
-            "template_id": str(consent_snapshot.get("template_id") or "generated"),
-            "version": int(consent_snapshot.get("version") or 1),
-            "locale": str(consent_snapshot.get("locale") or locale),
+            "template_id": str(frozen.get("template_id") or "generated"),
+            "version": int(frozen.get("version") or 1),
+            "locale": str(frozen.get("language") or consent_snapshot.get("language") or locale),
             "content": content,
             "content_hash": hashlib.sha256(content.encode("utf-8")).hexdigest(),
         }
