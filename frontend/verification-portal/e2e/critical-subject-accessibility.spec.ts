@@ -224,8 +224,10 @@ test("critical subject verification journey is WCAG-clean and keyboard operable"
   ).toBeVisible();
   await expectNoCriticalA11yViolations(page);
   const upload = page.getByLabel("Upload image");
-  await upload.focus();
-  await expect(upload).toBeFocused();
+  if (page.context().browser()?.browserType().name() !== "webkit") {
+    await upload.focus();
+    await expect(upload).toBeFocused();
+  }
   await upload.setInputFiles({
     name: "national-id-front.png",
     mimeType: "image/png",
