@@ -124,8 +124,9 @@ test("applicant language selection fetches matching consent and records its loca
   await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "الموافقة والمتابعة" }).click();
   await expect.poll(() => consentPayload).not.toBeNull();
-  expect(consentPayload?.locale).toBe("ar");
-  expect(consentPayload?.version).toBe(4);
+  const submittedConsent = consentPayload as unknown as Record<string, unknown>;
+  expect(submittedConsent.locale).toBe("ar");
+  expect(submittedConsent.version).toBe(4);
 });
 
 function json(route: Route, data: unknown, status = 200) {
