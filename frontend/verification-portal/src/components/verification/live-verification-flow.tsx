@@ -591,7 +591,7 @@ export function LiveVerificationFlow({
             </label>
             <label className="block space-y-2">
               <span className="text-sm font-medium text-foreground">
-                Document type
+                {t("Document type")}
               </span>
               <select
                 value={selectedDocumentType}
@@ -651,7 +651,7 @@ export function LiveVerificationFlow({
           </div>
           <div>
             <p className="mb-3 text-sm font-semibold text-foreground">
-              Capture {activeCaptureRequirement.label.toLowerCase()}
+              {t("Capture")} {activeCaptureRequirement.label.toLowerCase()}
             </p>
             {activeDocumentFile ? (
               <EvidenceReview
@@ -690,7 +690,7 @@ export function LiveVerificationFlow({
                 disabled={busy}
                 onClick={() => setActiveDocumentSide(nextMissingCapture.side)}
               >
-                Capture {nextMissingCapture.label.toLowerCase()}
+                {t("Capture")} {nextMissingCapture.label.toLowerCase()}
               </Button>
             ) : null}
             <Button
@@ -734,7 +734,7 @@ export function LiveVerificationFlow({
                   {
                     title: "Document received",
                     message:
-                      "Your document was uploaded successfully and is now being checked. Keep this page open while processing completes.",
+                      t("Your document was uploaded successfully and is now being checked. Keep this page open while processing completes."),
                     busyMessage: "Uploading and submitting your document…",
                   },
                 )
@@ -799,7 +799,7 @@ export function LiveVerificationFlow({
                   {
                     title: "Selfie received",
                     message:
-                      "Your selfie was uploaded successfully. Continue to the presence check.",
+                      t("Your selfie was uploaded successfully. Continue to the presence check."),
                     busyMessage: "Uploading and submitting your selfie…",
                   },
                 )
@@ -828,7 +828,7 @@ export function LiveVerificationFlow({
               <ScanFace className="h-8 w-8" aria-hidden="true" />
             </span>
             <h3 className="mt-4 text-base font-semibold text-foreground">
-              Prove you are present, live
+              {t("Prove you are present, live")}
             </h3>
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-foreground">
               {t("Your challenge is single-use, randomized, and recorded directly from this device in one short video.")}
@@ -876,7 +876,7 @@ export function LiveVerificationFlow({
                   }
                 >
                   <ScanFace className="h-4 w-4" />
-                  Begin live camera check
+                  {t("Begin live camera check")}
                 </Button>
               </div>
             ) : (
