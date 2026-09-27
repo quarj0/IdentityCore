@@ -181,6 +181,21 @@ const arabicCopy: Record<string, string> = {
   "Continue on this computer": "المتابعة على هذا الكمبيوتر",
   "Review and give consent": "راجع الموافقة وقدّمها",
   "Understand what will be processed before you continue. You remain in control of whether to proceed.": "تعرّف على البيانات التي ستُعالج قبل المتابعة. يظل قرار المتابعة بيدك.",
+  "Turn your head left": "أدر رأسك إلى اليسار",
+  "Turn your head right": "أدر رأسك إلى اليمين",
+  "Look up": "انظر إلى الأعلى",
+  "Look down": "انظر إلى الأسفل",
+  "Choose a JPEG, PNG, or WebP image.": "اختر صورة بصيغة JPEG أو PNG أو WebP.",
+  "The image must be 10 MB or smaller.": "يجب ألا يتجاوز حجم الصورة 10 ميغابايت.",
+  "The selected image is empty. Choose another image.": "الصورة المحددة فارغة. اختر صورة أخرى.",
+  "Consent template version": "إصدار نموذج الموافقة",
+  "Verification was submitted and requires additional review.": "تم إرسال التحقق ويتطلب مراجعة إضافية.",
+  "Submitting securely…": "جارٍ الإرسال بأمان…",
+  "Action required": "يلزم اتخاذ إجراء",
+  "Upload a clear image to continue.": "ارفع صورة واضحة للمتابعة.",
+  "The verification service is temporarily unavailable. Check your connection and try again.": "خدمة التحقق غير متاحة مؤقتًا. تحقق من اتصالك وحاول مرة أخرى.",
+  "Something went wrong. Please try again.": "حدث خطأ ما. حاول مرة أخرى.",
+  "The secure verification link is missing its session credential. Request a new link from the organization.": "بيانات اعتماد جلسة التحقق الآمنة مفقودة من الرابط. اطلب رابطًا جديدًا من المؤسسة.",
 };
 
 export function localizeText(locale: string, text: string): string {
