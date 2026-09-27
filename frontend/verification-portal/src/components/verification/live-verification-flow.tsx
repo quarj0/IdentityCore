@@ -1037,12 +1037,16 @@ function MobileHandoff({
               role="alert"
               className="rounded-2xl bg-destructive/10 p-3 text-sm text-destructive"
             >
-              {error}
+              {localizeText(locale, error)}
             </p>
           ) : null}
           {handoffUrl ? (
             <div className="space-y-4 text-center">
-              <div className="mx-auto w-fit rounded-3xl border border-border bg-card p-4 shadow-sm">
+              <div
+                role="img"
+                aria-label={localizeText(locale, "Mobile handoff QR code")}
+                className="mx-auto w-fit rounded-3xl border border-border bg-card p-4 shadow-sm"
+              >
                 <QRCodeSVG value={handoffUrl} size={220} level="M" />
               </div>
               <div>
