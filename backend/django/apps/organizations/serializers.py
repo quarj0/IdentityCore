@@ -102,6 +102,7 @@ class OrganizationBrandingAssetUploadSerializer(serializers.Serializer):
             asset_type=validated_data["asset_type"],
             filename=validated_data["filename"],
             mime_type=validated_data["mime_type"],
+            file_size_bytes=validated_data["file_size_bytes"],
         )
 
 
@@ -150,7 +151,11 @@ class OrganizationBrandingUpdateSerializer(serializers.Serializer):
         environment_state = (
             settings_json.get("branding_environments", {}).get(environment, {})
         )
-        current = environment_state.get("draft") or {}
+        current = environment_state.get("draft") or {
+            "primary_color": settings_json.get("primary_color", "#2563eb"),
+            "primary_text_color": settings_json.get("primary_text_color", "#ffffff"),
+            "background_color": settings_json.get("background_color", "#ffffff"),
+        }
         candidate = {
             "primary_color": attrs.get("primary_color", current.get("primary_color", "#2563eb")),
             "primary_text_color": attrs.get("primary_text_color", current.get("primary_text_color", "#ffffff")),
