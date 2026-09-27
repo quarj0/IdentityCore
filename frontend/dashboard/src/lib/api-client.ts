@@ -29,10 +29,35 @@ type ApiEnvelope<T> = ApiSuccess<T> | ApiErrorPayload;
 const REQUEST_TIMEOUT_MS = 30_000;
 let refreshInFlight: Promise<string> | null = null;
 
+function createRequestId() {
+  const value =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : String(Date.now()) + "-" + Math.random().toString(36).slice(2);
+  return "req_" + value.replace(/[^a-zA-Z0-9_-]/g, "");
+}
+
+function safeRequestId(value: string | null | undefined) {
+  return value && /^[a-zA-Z0-9_-]{1,80}$/.test(value) ? value : "";
+}
+
+function safeMessage(status: number) {
+  if (status === 401) return "Your session has expired. Sign in and try again.";
+  if (status === 403) return "You do not have permission to complete this action.";
+  if (status === 404) return "The requested item could not be found.";
+  if (status === 408 || status === 504)
+    return "The request took too long. Check your connection and try again.";
+  if (status === 429) return "Too many requests. Wait a moment and try again.";
+  if (status >= 500 || status === 0)
+    return "The service is temporarily unavailable. Please try again shortly.";
+  return "We could not complete your request. Check the information and try again.";
+}
+
 export class ApiError extends Error {
   code: string;
   details: Record<string, unknown>;
   status: number;
+  requestId: string;
 
   constructor(
     message: string,
@@ -40,16 +65,19 @@ export class ApiError extends Error {
       code = "request_failed",
       details = {},
       status = 500,
+      requestId = "",
     }: {
       code?: string;
       details?: Record<string, unknown>;
       status?: number;
+      requestId?: string;
     } = {},
   ) {
     super(message);
     this.code = code;
     this.details = details;
     this.status = status;
+    this.requestId = requestId;
   }
 }
 
@@ -60,6 +88,7 @@ function buildHeaders(
 ) {
   const headers = addDashboardSessionScope(new Headers(init));
   headers.set("Accept", "application/json");
+  headers.set("X-Request-Id", createRequestId());
 
   if (!(body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
@@ -116,17 +145,16 @@ async function parseJson<T>(response: Response) {
   const payload = await readJsonResponse<ApiEnvelope<T>>(response);
 
   if (!response.ok || !payload || payload.success !== true) {
-    const message =
-      payload && "error" in payload
-        ? payload.error.message
-        : "The request could not be processed.";
     const code =
       payload && "error" in payload ? payload.error.code : "request_failed";
-    const details = payload && "error" in payload ? payload.error.details : {};
-    throw new ApiError(message, {
+    const requestId =
+      payload && "request_id" in payload
+        ? safeRequestId(payload.request_id)
+        : safeRequestId(response.headers.get("X-Request-Id"));
+    throw new ApiError(safeMessage(response.status), {
       code,
-      details,
       status: response.status,
+      requestId,
     });
   }
 
@@ -254,10 +282,10 @@ export async function graphqlRequest<T>(
   }
 
   if (payload.errors?.length) {
-    throw new ApiError(payload.errors[0]?.message ?? "Request failed.", {
+    throw new ApiError("We could not complete your request. Please try again.", {
       code: "graphql_error",
-      details: { errors: payload.errors },
       status: response.status,
+      requestId: safeRequestId(response.headers.get("X-Request-Id")),
     });
   }
 
