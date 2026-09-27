@@ -154,7 +154,44 @@ class OrganizationBrandingTests(APITestCase):
         environments = self.organization.settings_json["branding_environments"]
         self.assertEqual(environments["sandbox"]["draft"]["primary_color"], "#1d4ed8")
         self.assertEqual(environments["production"]["draft"]["primary_color"], "#15803d")
-        self.assertIsNone(environments["sandbox"]["published"])
+        self.assertIsNone(environments["sandbox"].get("published"))
+
+    def test_publishing_legacy_palette_validates_its_actual_fallback(self):
+        self.organization.settings_json = {
+            "primary_color": "#ffff00",
+            "primary_text_color": "#ffffff",
+            "background_color": "#ffffff",
+        }
+        self.organization.save(update_fields=["settings_json", "updated_at"])
+
+        response = self.client.patch(
+            reverse("organization-detail"),
+            {"publish": True, "environment": "sandbox"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_branding_uploads_use_distinct_object_keys(self):
+        payload = {
+            "asset_type": "logo",
+            "filename": "logo.png",
+            "mime_type": "image/png",
+            "file_size_bytes": 1024,
+        }
+        first = self.client.post(
+            reverse("organization-branding-asset-upload"), payload, format="json"
+        )
+        second = self.client.post(
+            reverse("organization-branding-asset-upload"), payload, format="json"
+        )
+
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(second.status_code, status.HTTP_201_CREATED)
+        self.assertNotEqual(
+            first.data["data"]["storage_key"],
+            second.data["data"]["storage_key"],
+        )
 
     def test_patch_organization_branding_sets_logo_url_from_public_storage_key(self):
         logo_storage_key = (
