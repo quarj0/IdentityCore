@@ -135,6 +135,27 @@ class OrganizationBrandingTests(APITestCase):
         )
         self.assertNotIn("primary_color", self.organization.settings_json)
 
+    def test_sandbox_and_production_branding_drafts_are_isolated(self):
+        for environment, color in (("sandbox", "#1d4ed8"), ("production", "#15803d")):
+            response = self.client.patch(
+                reverse("organization-detail"),
+                {
+                    "environment": environment,
+                    "primary_color": color,
+                    "primary_text_color": "#ffffff",
+                    "background_color": "#ffffff",
+                    "publish": False,
+                },
+                format="json",
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.organization.refresh_from_db()
+        environments = self.organization.settings_json["branding_environments"]
+        self.assertEqual(environments["sandbox"]["draft"]["primary_color"], "#1d4ed8")
+        self.assertEqual(environments["production"]["draft"]["primary_color"], "#15803d")
+        self.assertIsNone(environments["sandbox"]["published"])
+
     def test_patch_organization_branding_sets_logo_url_from_public_storage_key(self):
         logo_storage_key = (
             f"organizations/{self.organization.public_id}/branding/logos/{self.organization.public_id}.png"
