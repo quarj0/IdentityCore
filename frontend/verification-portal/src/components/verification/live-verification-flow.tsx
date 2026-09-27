@@ -1080,7 +1080,7 @@ function MobileHandoff({
             </Button>
           )}
           <div className="relative py-1 text-center text-xs text-muted-foreground before:absolute before:left-0 before:right-0 before:top-1/2 before:h-px before:bg-border">
-            <span className="relative bg-card px-3"{localizeText(locale, "or")}</span>
+            <span className="relative bg-card px-3">{localizeText(locale, "or")}</span>
           </div>
           <Button variant="outline" className="w-full" onClick={onContinue}>
             <Monitor className="h-4 w-4" />
