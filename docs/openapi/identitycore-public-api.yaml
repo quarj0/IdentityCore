@@ -2242,6 +2242,58 @@ paths:
           $ref: "#/components/responses/ValidationError"
         "401":
           $ref: "#/components/responses/PermissionDenied"
+  /analytics/product-metrics:
+    get:
+      summary: Read privacy-safe aggregate product metrics for the authenticated tenant.
+      description: Returns only coarse aggregates. Cohorts under 10 and individual buckets below 10 are suppressed. Tenant preferences can disable collection.
+      security:
+        - platformUserBearer: []
+      parameters:
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+            enum: [7, 30, 90]
+            default: 30
+      responses:
+        "200":
+          description: Tenant metrics or an explicit opt-out response.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
+    patch:
+      summary: Set the authenticated tenant's product metrics opt-out.
+      security:
+        - platformUserBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [product_metrics_opt_out]
+              properties:
+                product_metrics_opt_out:
+                  type: boolean
+      responses:
+        "200":
+          description: Updated tenant metrics preference.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
   /audit-events/:
     get:
       summary: List tenant audit events.
