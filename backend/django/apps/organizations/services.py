@@ -1,4 +1,5 @@
 from pathlib import Path
+import secrets
 
 from apps.organizations.models import Organization
 from common.storage import (
@@ -20,12 +21,17 @@ def build_public_branding_asset_key(
     extension = Path(filename).suffix.lower() or ".bin"
     return (
         f"organizations/{organization.public_id}/branding/"
-        f"{ORGANIZATION_BRANDING_SEGMENTS[asset_type]}/{organization.public_id}{extension}"
+        f"{ORGANIZATION_BRANDING_SEGMENTS[asset_type]}/{secrets.token_hex(16)}{extension}"
     )
 
 
 def build_organization_branding_upload(
-    *, organization: Organization, asset_type: str, filename: str, mime_type: str
+    *,
+    organization: Organization,
+    asset_type: str,
+    filename: str,
+    mime_type: str,
+    file_size_bytes: int,
 ) -> dict:
     storage_key = build_public_branding_asset_key(
         organization=organization,
@@ -39,6 +45,7 @@ def build_organization_branding_upload(
         "upload_url": build_signed_upload_url(
             storage_key=storage_key,
             mime_type=mime_type,
+            content_length=file_size_bytes,
             bucket_name=get_object_storage_public_bucket_name(),
         ),
         "asset_url": build_public_asset_url(storage_key),
