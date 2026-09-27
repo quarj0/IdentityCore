@@ -11,13 +11,20 @@ export interface ApiFailure {
 }
 
 export class IdentityCoreApiError extends Error {
+  readonly code: string;
+  readonly status: number;
+  readonly requestId: string;
+
   constructor(
     message: string,
-    public readonly code = "request_failed",
-    public readonly status = 500,
-    public readonly requestId = "",
+    code = "request_failed",
+    status = 500,
+    requestId = "",
   ) {
     super(message);
+    this.code = code;
+    this.status = status;
+    this.requestId = requestId;
   }
 }
 
