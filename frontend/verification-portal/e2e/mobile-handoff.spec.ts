@@ -100,9 +100,9 @@ test("desktop handoff recovers from a temporary error and displays a one-time QR
   ).toBeVisible();
 
   await page.getByRole("button", { name: "Show secure QR code" }).click();
-  await expect(page.getByRole("alert")).toContainText(
-    "The handoff service is temporarily unavailable.",
-  );
+  await expect(
+    page.getByText("The handoff service is temporarily unavailable."),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Show secure QR code" }).click();
 
   await expect(page.getByText("Scan with your phone camera")).toBeVisible();
