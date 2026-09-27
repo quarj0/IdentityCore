@@ -653,6 +653,7 @@ export function LiveVerificationFlow({
             </p>
             {activeDocumentFile ? (
               <EvidenceReview
+                locale={session.locale}
                 file={activeDocumentFile}
                 onRetake={() => {
                   setDocumentFiles((current) => {
@@ -751,6 +752,7 @@ export function LiveVerificationFlow({
           description="IdentityCore is checking capture quality and reading the supported document evidence."
         >
           <ProcessingPanel
+            locale={session.locale}
             title={t("Document processing in progress")}
             items={[
               t("Capture quality"),
@@ -960,6 +962,7 @@ export function LiveVerificationFlow({
 
       {step === "completed" ? (
         <TerminalPanel
+          locale={session.locale}
           state={status.status === "verified" ? "verified" : "review"}
           message={status.message}
           onFinish={finish}
