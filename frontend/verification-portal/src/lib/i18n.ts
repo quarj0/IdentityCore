@@ -179,15 +179,8 @@ const arabicCopy: Record<string, string> = {
   "Show secure QR code": "عرض رمز QR الآمن",
   "or": "أو",
   "Continue on this computer": "المتابعة على هذا الكمبيوتر",
-  "Verification unavailable": "التحقق غير متاح",
   "Review and give consent": "راجع الموافقة وقدّمها",
   "Understand what will be processed before you continue. You remain in control of whether to proceed.": "تعرّف على البيانات التي ستُعالج قبل المتابعة. يظل قرار المتابعة بيدك.",
-  "Checking your": "جارٍ التحقق من",
-  "Step 1 of 5": "الخطوة 1 من 5",
-  "Step 2 of 5": "الخطوة 2 من 5",
-  "Step 3 of 5": "الخطوة 3 من 5",
-  "Step 4 of 5": "الخطوة 4 من 5",
-  "Step 5 of 5": "الخطوة 5 من 5",
 };
 
 export function localizeText(locale: string, text: string): string {
