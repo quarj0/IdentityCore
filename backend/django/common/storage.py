@@ -459,6 +459,7 @@ def build_signed_upload_url(
     *,
     storage_key: str,
     mime_type: str | None = None,
+    content_length: int | None = None,
     bucket_name: str | None = None,
 ) -> str:
     resolved_bucket_name = _first_non_empty(
@@ -492,6 +493,8 @@ def build_signed_upload_url(
 
         if mime_type:
             params["ContentType"] = mime_type
+        if content_length is not None:
+            params["ContentLength"] = content_length
 
         params.update(_get_server_side_encryption_params())
 
@@ -508,6 +511,8 @@ def build_signed_upload_url(
 
     if mime_type:
         query["content_type"] = mime_type
+    if content_length is not None:
+        query["content_length"] = content_length
 
     base = _first_non_empty(
         getattr(settings, "UPLOAD_URL_BASE", ""),
