@@ -3,6 +3,7 @@ from datetime import timedelta
 from unittest.mock import patch
 import hashlib
 
+from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
