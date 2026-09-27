@@ -10,7 +10,11 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
-from apps.verification_sessions.serializers import _request_locale
+from apps.verification_sessions.serializers import (
+    _consent_artifact,
+    _policy_locales,
+    _request_locale,
+)
 
 from apps.biometrics.models import (
     FaceMatch,
@@ -1355,3 +1359,51 @@ class ApplicantLocaleNegotiationTests(TestCase):
             ),
             "ar",
         )
+
+    def test_policy_locales_include_only_frozen_consent_artifacts(self):
+        snapshot = {
+            "default_locale": "en",
+            "supported_locales": ["en", "ar"],
+            "consent": {
+                "language": "en",
+                "translations": {
+                    "en": {"language": "en", "content": "English"},
+                },
+            },
+        }
+
+        self.assertEqual(_policy_locales(None, snapshot), ["en"])
+
+    def test_consent_artifact_uses_the_frozen_selected_translation(self):
+        verification = SimpleNamespace(
+            purpose="identity verification",
+            policy_snapshot_json={
+                "consent": {
+                    "template_id": "ctm_english",
+                    "version": 3,
+                    "language": "en",
+                    "content": "English text",
+                    "translations": {
+                        "en": {
+                            "template_id": "ctm_english",
+                            "version": 3,
+                            "language": "en",
+                            "content": "English text",
+                        },
+                        "ar": {
+                            "template_id": "ctm_arabic",
+                            "version": 3,
+                            "language": "ar",
+                            "content": "نص عربي",
+                        },
+                    },
+                }
+            },
+        )
+
+        artifact = _consent_artifact(verification, "ar")
+
+        self.assertEqual(artifact["template_id"], "ctm_arabic")
+        self.assertEqual(artifact["locale"], "ar")
+        self.assertEqual(artifact["version"], 3)
+        self.assertEqual(artifact["content"], "نص عربي")
