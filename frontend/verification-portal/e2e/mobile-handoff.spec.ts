@@ -107,7 +107,9 @@ test("desktop handoff recovers from a temporary error and displays a one-time QR
 
   await expect(page.getByText("Scan with your phone camera")).toBeVisible();
   await expect(page.getByText("The one-time code expires shortly")).toBeVisible();
-  await expect(page.locator("svg")).toBeVisible();
+  await expect(
+    page.getByRole("img", { name: "Mobile handoff QR code" }).locator("svg"),
+  ).toBeVisible();
   expect(createAttempts).toBe(2);
 });
 
