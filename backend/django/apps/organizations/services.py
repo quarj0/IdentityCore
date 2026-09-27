@@ -50,17 +50,50 @@ def update_organization_branding_settings(
     organization: Organization,
     logo_storage_key: str | None = None,
     branding_image_storage_keys: list[str] | None = None,
+    primary_color: str | None = None,
+    primary_text_color: str | None = None,
+    background_color: str | None = None,
+    publish: bool = False,
 ) -> Organization:
     settings_json = dict(organization.settings_json or {})
+    published = dict(settings_json.get("branding_published") or {})
+    draft = dict(
+        settings_json.get("branding_draft")
+        or {
+            "logo_storage_key": settings_json.get("logo_storage_key", ""),
+            "logo_url": settings_json.get("logo_url", ""),
+            "primary_color": settings_json.get("primary_color", "#2563eb"),
+            "primary_text_color": settings_json.get("primary_text_color", "#ffffff"),
+            "background_color": settings_json.get("background_color", "#ffffff"),
+        }
+    )
     if logo_storage_key is not None:
-        settings_json["logo_storage_key"] = logo_storage_key
-        settings_json["logo_url"] = build_public_asset_url(logo_storage_key)
+        draft["logo_storage_key"] = logo_storage_key
+        draft["logo_url"] = build_public_asset_url(logo_storage_key)
+    if primary_color is not None:
+        draft["primary_color"] = primary_color
+    if primary_text_color is not None:
+        draft["primary_text_color"] = primary_text_color
+    if background_color is not None:
+        draft["background_color"] = background_color
     if branding_image_storage_keys is not None:
         settings_json["branding_image_storage_keys"] = branding_image_storage_keys
         settings_json["branding_image_urls"] = [
             build_public_asset_url(storage_key)
             for storage_key in branding_image_storage_keys
         ]
+
+    settings_json["branding_draft"] = draft
+    if publish:
+        published = dict(draft)
+        settings_json["branding_published"] = published
+        settings_json["primary_color"] = published["primary_color"]
+        settings_json["primary_text_color"] = published["primary_text_color"]
+        settings_json["background_color"] = published["background_color"]
+        if published.get("logo_storage_key"):
+            settings_json["logo_storage_key"] = published["logo_storage_key"]
+            settings_json["logo_url"] = published["logo_url"]
+
     organization.settings_json = settings_json
     organization.save(update_fields=["settings_json", "updated_at"])
     return organization
