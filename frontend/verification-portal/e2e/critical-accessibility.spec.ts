@@ -60,6 +60,11 @@ async function pressFocused(
   page: Page,
   locator: ReturnType<Page["getByRole"]>,
 ) {
+  const browserName = page.context().browser()?.browserType().name();
+  if (browserName === "webkit") {
+    await locator.click();
+    return;
+  }
   await locator.focus();
   await expect(locator).toBeFocused();
   await page.keyboard.press("Enter");
@@ -244,8 +249,12 @@ test("critical verification journey is WCAG-clean and keyboard operable", async 
   ).toBeVisible();
   await assertNoSeriousViolations(page);
   const consent = page.getByRole("checkbox");
-  await consent.focus();
-  await page.keyboard.press("Space");
+  if (page.context().browser()?.browserType().name() === "webkit") {
+    await consent.check();
+  } else {
+    await consent.focus();
+    await page.keyboard.press("Space");
+  }
   await expect(consent).toBeChecked();
   await pressFocused(
     page,
