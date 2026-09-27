@@ -116,6 +116,11 @@ class OrganizationBrandingUpdateSerializer(serializers.Serializer):
     primary_text_color = serializers.RegexField(r"^#[0-9a-fA-F]{6}$", required=False)
     background_color = serializers.RegexField(r"^#[0-9a-fA-F]{6}$", required=False)
     publish = serializers.BooleanField(default=False, required=False)
+    environment = serializers.ChoiceField(
+        choices=("sandbox", "production"),
+        default="sandbox",
+        required=False,
+    )
 
     def validate_logo_storage_key(self, value):
         organization = self.context["request"].user.tenant.organization
@@ -140,7 +145,12 @@ class OrganizationBrandingUpdateSerializer(serializers.Serializer):
         if not attrs.get("publish"):
             return attrs
         organization = self.context["request"].user.tenant.organization
-        current = (organization.settings_json or {}).get("branding_draft") or {}
+        settings_json = organization.settings_json or {}
+        environment = attrs.get("environment", "sandbox")
+        environment_state = (
+            settings_json.get("branding_environments", {}).get(environment, {})
+        )
+        current = environment_state.get("draft") or {}
         candidate = {
             "primary_color": attrs.get("primary_color", current.get("primary_color", "#2563eb")),
             "primary_text_color": attrs.get("primary_text_color", current.get("primary_text_color", "#ffffff")),
