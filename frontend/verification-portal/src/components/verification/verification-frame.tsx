@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import {
   BadgeCheck,
   Building2,
@@ -17,6 +17,9 @@ interface VerificationFrameProps {
   currentStep: string;
   reference: string;
   children: ReactNode;
+  primaryColor: string;
+  primaryTextColor: string;
+  backgroundColor: string;
 }
 
 export function VerificationFrame({
@@ -26,9 +29,19 @@ export function VerificationFrame({
   currentStep,
   reference,
   children,
+  primaryColor,
+  primaryTextColor,
+  backgroundColor,
 }: VerificationFrameProps) {
+  const safeColor = (value: string, fallback: string) =>
+    /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback;
+  const brandingStyle = {
+    "--tenant-primary": safeColor(primaryColor, "#2563eb"),
+    "--tenant-primary-text": safeColor(primaryTextColor, "#ffffff"),
+    "--tenant-background": safeColor(backgroundColor, "#ffffff"),
+  } as CSSProperties;
   return (
-    <div className="verification-page min-h-screen">
+    <div className="verification-page min-h-screen" style={brandingStyle}>
       <header className="border-b border-border/80 bg-card/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-3">
