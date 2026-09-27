@@ -180,6 +180,24 @@ Non-breaking changes may be added to the current version.
 
 ---
 
+### First-party frontend behavior
+
+First-party clients send an opaque `X-Request-Id` on each API request. The API
+returns the correlation ID in the response envelope; clients retain it on
+errors and may show it as a support reference. Request IDs must not contain
+account, tenant, applicant, or verification data.
+
+Clients display status-based safe messages and error codes. They do not render
+raw server messages, error details, or GraphQL exception text. A client may
+retry once after a network failure or a transient `408`, `425`, `429`, `502`,
+`503`, or `504` only for `GET`, `HEAD`, or `OPTIONS`, or when the request
+contains a non-empty `Idempotency-Key`. Respect `Retry-After` up to one second.
+Do not retry other writes, credential exchanges, uploads, or one-time secret
+responses automatically. A failed session refresh clears the local access
+session and returns the user to sign-in.
+
+---
+
 ## Common Error Codes
 
 ```text
