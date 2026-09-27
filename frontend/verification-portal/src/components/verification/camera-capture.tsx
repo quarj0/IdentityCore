@@ -152,17 +152,17 @@ export function CameraCapture({
               <Camera className="h-6 w-6" aria-hidden="true" />
             </span>
             <p className="mt-4 text-sm font-medium text-white">
-              Camera preview
+              {localizeText(locale, "Camera preview")}
             </p>
             <p className="mt-1 max-w-xs text-xs leading-5 text-slate-400">
-              Allow camera access when prompted. Nothing is submitted until you
-              review the image.
+              {localizeText(locale, "Allow camera access when prompted. Nothing is submitted until you review the image.")}
+
             </p>
           </div>
         ) : facingMode === "environment" ? (
           <div className="pointer-events-none absolute inset-[8%] rounded-2xl border-2 border-white/80 shadow-[0_0_0_999px_rgba(2,6,23,0.36)]">
             <span className="absolute -top-8 left-0 text-xs font-medium text-white">
-              Align the full document inside the frame
+              {localizeText(locale, "Align the full document inside the frame")}
             </span>
           </div>
         ) : (
@@ -210,13 +210,13 @@ export function CameraCapture({
         ) : (
           <Button type="button" onClick={capture} className="flex-1">
             <Camera className="h-4 w-4" />
-            Capture image
+            {localizeText(locale, "Capture image")}
           </Button>
         )}
 
         <label className="inline-flex min-h-10 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10">
           <Upload className="h-4 w-4" aria-hidden="true" />
-          Upload image
+          {localizeText(locale, "Upload image")}
           <Input
             className="sr-only"
             type="file"
@@ -237,7 +237,7 @@ export function CameraCapture({
         <div className="flex items-center justify-between border-t border-white/10 px-4 py-3">
           <p className="flex items-center gap-2 text-xs text-muted-foreground">
             <ImagePlus className="h-3.5 w-3.5" aria-hidden="true" />
-            Check focus and lighting before capture
+            {localizeText(locale, "Check focus and lighting before capture")}
           </p>
           <Button
             type="button"
@@ -247,7 +247,7 @@ export function CameraCapture({
             className="text-white hover:bg-white/10 hover:text-white"
           >
             <RefreshCw className="h-3.5 w-3.5" />
-            Restart
+            {localizeText(locale, "Restart")}
           </Button>
         </div>
       ) : null}
