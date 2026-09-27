@@ -318,6 +318,7 @@ export function LiveVerificationFlow({
         normalizedLocale,
       );
       setSession(nextSession);
+      setConsented(false);
       window.localStorage.setItem(
         `identitycore.locale:${credentials.sessionId}`,
         normalizedLocale,
@@ -522,7 +523,7 @@ export function LiveVerificationFlow({
             <Button
               disabled={!consented || busy}
               onClick={() =>
-                run(() => acceptConsent(credentials, session.consent))
+                run(() => acceptConsent(credentials, session.consent, session.locale))
               }
             >
               {busy ? (
