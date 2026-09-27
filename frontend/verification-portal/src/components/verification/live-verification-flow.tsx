@@ -343,19 +343,21 @@ export function LiveVerificationFlow({
     }
   }
 
+  const initialLocale = resolveLocale(typeof navigator === "undefined" ? "en" : navigator.language);
   if (!deviceReady) {
-    return <OpeningState title="Opening your secure session" />;
+    return <OpeningState locale={initialLocale} title={localizeText(initialLocale, "Opening your secure session")} />;
   }
   if (error && (!credentials || !session || !status)) {
-    return <OpeningState title="Verification unavailable" message={error} />;
+    return <OpeningState locale={initialLocale} title={localizeText(initialLocale, "Verification unavailable")} message={localizeText(initialLocale, error)} />;
   }
   if (!credentials || !session || !status) {
-    return <OpeningState title="Opening your secure session" />;
+    return <OpeningState locale={initialLocale} title={localizeText(initialLocale, "Opening your secure session")} />;
   }
 
   if (!continueOnDevice) {
     return (
       <MobileHandoff
+        locale={session.locale}
         organizationName={session.organization.name}
         handoffUrl={handoffUrl}
         busy={handoffBusy}
@@ -996,6 +998,7 @@ export function LiveVerificationFlow({
 }
 
 function MobileHandoff({
+  locale,
   organizationName,
   handoffUrl,
   busy,
@@ -1003,6 +1006,7 @@ function MobileHandoff({
   onCreate,
   onContinue,
 }: {
+  locale: string;
   organizationName: string;
   handoffUrl: string;
   busy: boolean;
@@ -1024,8 +1028,7 @@ function MobileHandoff({
             Continue securely on your phone
           </CardTitle>
           <p className="text-sm leading-6 text-muted-foreground">
-            {organizationName} requested this verification. A phone camera
-            usually gives clearer document and selfie captures.
+            {organizationName} {localizeText(locale, "requested this verification. A phone camera usually gives clearer document and selfie captures.")}
           </p>
         </CardHeader>
         <CardContent className="space-y-5 px-6 py-7 sm:px-8">
@@ -1073,7 +1076,7 @@ function MobileHandoff({
             </Button>
           )}
           <div className="relative py-1 text-center text-xs text-muted-foreground before:absolute before:left-0 before:right-0 before:top-1/2 before:h-px before:bg-border">
-            <span className="relative bg-card px-3">or</span>
+            <span className="relative bg-card px-3"{localizeText(locale, "or")}</span>
           </div>
           <Button variant="outline" className="w-full" onClick={onContinue}>
             <Monitor className="h-4 w-4" />
@@ -1085,7 +1088,7 @@ function MobileHandoff({
   );
 }
 
-function OpeningState({ title, message }: { title: string; message?: string }) {
+function OpeningState({ title, message, locale }: { title: string; message?: string; locale: string }) {
   return (
     <main
       id="main-content"
@@ -1099,13 +1102,13 @@ function OpeningState({ title, message }: { title: string; message?: string }) {
             <ShieldCheck className="h-8 w-8 text-muted-foreground" />
           )}
           <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            {title}
+            {localizeText(locale, title)}
           </h1>
           {message ? (
             <p className="text-sm leading-6 text-muted-foreground">{message}</p>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Validating your one-time session credential…
+              {localizeText(locale, "Validating your one-time session credential…")}
             </p>
           )}
         </CardContent>
