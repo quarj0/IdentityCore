@@ -219,9 +219,11 @@ export async function redeemMobileHandoff(handoff: string) {
 export function acceptConsent(
   credentials: SessionCredentials,
   consent: VerificationSession["consent"],
+  locale = consent.locale,
 ) {
   return request(credentials, `/sessions/${credentials.sessionId}/consent`, {
     method: "POST",
+    headers: { "Accept-Language": locale },
     body: JSON.stringify({
       accepted: true,
       template_id: consent.template_id,
