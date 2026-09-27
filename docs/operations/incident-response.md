@@ -161,8 +161,9 @@ require renewed consent; do not rewrite historical consent records.
 ## Exercises and post-incident review
 
 Before a pilot, exercise credential exposure and provider outage scenarios with
-synthetic data in a non-production environment. Repeat at least annually and
-after a major response-process change. Record participants by role, scenario,
+synthetic data in a non-production environment. Repeat at least twice yearly
+for verification-portal/provider response, and at least annually for other
+services or after a major response-process change. Record participants by role, scenario,
 timings, missed escalations, containment and recovery results, and corrective
 actions. Never use production applicant evidence for an exercise.
 
