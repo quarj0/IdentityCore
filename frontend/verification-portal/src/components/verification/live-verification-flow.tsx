@@ -440,7 +440,7 @@ export function LiveVerificationFlow({
           className="mb-4 rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive"
         >
           <strong className="block font-semibold">{t("We could not continue")}</strong>
-          <span className="mt-1 block">{error}</span>
+          <span className="mt-1 block">{localizeText(session.locale, error)}</span>
         </div>
       ) : null}
 
@@ -454,14 +454,14 @@ export function LiveVerificationFlow({
               : "border-info/30 bg-info/10 text-info"
           }`}
         >
-          <strong className="block font-semibold">{notice.title}</strong>
-          <span className="mt-1 block leading-6">{notice.message}</span>
+          <strong className="block font-semibold">{localizeText(session.locale, notice.title)}</strong>
+          <span className="mt-1 block leading-6">{localizeText(session.locale, notice.message)}</span>
         </div>
       ) : null}
 
       {step === "consent" ? (
         <StepCard
-          eyebrow="Step 1 of 5"
+          eyebrow={t("Step 1 of 5")}
           title={translate(session.locale, "consentTitle")}
           description={translate(session.locale, "consentDescription")}
         >
@@ -542,7 +542,7 @@ export function LiveVerificationFlow({
 
       {step === "document_capture" ? (
         <StepCard
-          eyebrow="Step 2 of 5"
+          eyebrow={t("Step 2 of 5")}
           title={`${t("Capture your")} ${selectedDocument.label}`}
           description={
             captureRequirements.length > 1
@@ -749,7 +749,7 @@ export function LiveVerificationFlow({
         <StepCard
           eyebrow={t("Secure document check")}
           title={`Checking your ${session.document.label}`}
-          description="IdentityCore is checking capture quality and reading the supported document evidence."
+          description={t("IdentityCore is checking capture quality and reading the supported document evidence.")}
         >
           <ProcessingPanel
             locale={session.locale}
@@ -766,7 +766,7 @@ export function LiveVerificationFlow({
 
       {step === "selfie_capture" ? (
         <StepCard
-          eyebrow="Step 3 of 5"
+          eyebrow={t("Step 3 of 5")}
           title={t("Take a live selfie")}
           description={t("Remove hats or dark glasses, face the camera directly, and use even lighting. Your selfie will be compared with the document portrait.")}
         >
@@ -812,7 +812,7 @@ export function LiveVerificationFlow({
 
       {step === "liveness_check" ? (
         <StepCard
-          eyebrow="Step 4 of 5"
+          eyebrow={t("Step 4 of 5")}
           title={translate(session.locale, "livenessTitle")}
           description={translate(
             session.locale,
@@ -944,7 +944,7 @@ export function LiveVerificationFlow({
 
       {step === "processing" ? (
         <StepCard
-          eyebrow="Step 5 of 5"
+          eyebrow={t("Step 5 of 5")}
           title={t("Completing your verification")}
           description="The submitted evidence is being evaluated against the requesting organization’s verification policy."
         >
@@ -988,7 +988,7 @@ export function LiveVerificationFlow({
           className="mt-4 flex items-center justify-end gap-2 text-xs text-muted-foreground"
         >
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          {busyMessage}
+          {localizeText(session.locale, busyMessage)}
         </p>
       ) : null}
     </VerificationFrame>
