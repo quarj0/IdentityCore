@@ -744,6 +744,28 @@ class VerificationSessionPortalTests(APITestCase):
         self.verification.refresh_from_db()
         self.assertEqual(self.verification.status, VerificationStatus.PROCESSING)
 
+        replay = self.client.post(
+            reverse(
+                "verification-session-selfies",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            {"capture_type": "image", "upload_id": selfie_upload.public_id},
+            format="json",
+            **self.session_headers(),
+        )
+        self.assertEqual(replay.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            replay.data["data"]["selfie_capture_id"],
+            response.data["data"]["selfie_capture_id"],
+        )
+        self.assertEqual(
+            SelfieCapture.objects.filter(
+                verification=self.verification,
+                storage_key=selfie_upload.storage_key,
+            ).count(),
+            1,
+        )
+
     def test_submit_selfie_rolls_back_when_verification_is_terminal(self):
         ConsentRecord.objects.create(
             tenant=self.tenant,
