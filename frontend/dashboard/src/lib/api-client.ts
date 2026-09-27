@@ -111,7 +111,8 @@ async function fetchWithTimeout(
     REQUEST_TIMEOUT_MS,
   );
   const abort = () => controller.abort();
-  init.signal?.addEventListener("abort", abort, { once: true });
+  if (init.signal?.aborted) controller.abort();
+  else init.signal?.addEventListener("abort", abort, { once: true });
   try {
     return await fetch(input, {
       ...init,
@@ -119,6 +120,7 @@ async function fetchWithTimeout(
       cache: "no-store",
     });
   } catch (error) {
+    if (init.signal?.aborted) throw error;
     if (error instanceof DOMException && error.name === "AbortError") {
       throw new ApiError(
         "The request took too long. Check your connection and try again.",
@@ -152,7 +154,7 @@ async function fetchWithRetry(input: RequestInfo | URL, init: RequestInit = {}) 
     try {
       response = await fetchWithTimeout(input, init);
     } catch (error) {
-      if (!retrySafe || attempt >= 1) throw error;
+      if (init.signal?.aborted || !retrySafe || attempt >= 1) throw error;
       await new Promise((resolve) => window.setTimeout(resolve, 250));
       continue;
     }
@@ -162,7 +164,9 @@ async function fetchWithRetry(input: RequestInfo | URL, init: RequestInit = {}) 
       !new Set([408, 425, 429, 502, 503, 504]).has(response.status)
     )
       return response;
-    const retryAfter = Number(response.headers.get("Retry-After"));
+    const retryAfterHeader = response.headers.get("Retry-After");
+    const retryAfter =
+      retryAfterHeader === null ? Number.NaN : Number(retryAfterHeader);
     const delay = Number.isFinite(retryAfter)
       ? Math.min(Math.max(retryAfter * 1000, 0), 1000)
       : 250;
