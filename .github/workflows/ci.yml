@@ -94,6 +94,8 @@ jobs:
         working-directory: frontend
       - run: pnpm --recursive build
         working-directory: frontend
+      - run: pnpm --filter @identitycore/api-client test
+        working-directory: frontend
       - run: pnpm --filter @identitycore/api-client exec tsc -p tsconfig.json
         working-directory: frontend
       - run: pnpm --filter verification-portal exec playwright install --with-deps chromium webkit

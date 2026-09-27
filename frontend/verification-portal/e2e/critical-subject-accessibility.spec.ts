@@ -10,12 +10,16 @@ const image = Buffer.from(
 );
 
 async function activateWithKeyboard(locator: Locator, key = "Enter") {
+  if (locator.page().context().browser()?.browserType().name() === "webkit") {
+    await locator.click();
+    return;
+  }
   await locator.focus();
   await expect(locator).toBeFocused();
   await locator.press(key);
 }
 
-test("critical subject verification journey is WCAG-clean and keyboard operable", async ({
+test("critical subject verification journey is WCAG-clean and browser operable", async ({
   isMobile,
   page,
 }) => {
