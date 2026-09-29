@@ -1023,7 +1023,13 @@ function MobileHandoff({
           {handoffUrl ? (
             <div className="space-y-4 text-center">
               <div className="mx-auto w-fit rounded-3xl border border-border bg-card p-4 shadow-sm">
-                <QRCodeSVG value={handoffUrl} size={220} level="M" />
+                <div
+                  role="img"
+                  aria-label="Mobile handoff QR code"
+                  className="rounded-2xl"
+                >
+                  <QRCodeSVG value={handoffUrl} size={220} level="M" />
+                </div>
               </div>
               <div>
                 <p className="text-sm font-medium text-foreground">
