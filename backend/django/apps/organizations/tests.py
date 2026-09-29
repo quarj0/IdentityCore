@@ -206,8 +206,14 @@ class OrganizationBrandingTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.organization.refresh_from_db()
-        self.assertEqual(self.organization.settings_json["logo_storage_key"], logo_storage_key)
-        self.assertTrue(response.data["data"]["settings"]["logo_url"])
+        draft = self.organization.settings_json["branding_environments"]["sandbox"]["draft"]
+        self.assertEqual(draft["logo_storage_key"], logo_storage_key)
+        self.assertTrue(draft["logo_url"])
+        self.assertEqual(
+            response.data["data"]["settings"]["branding_environments"]["sandbox"]["draft"]["logo_url"],
+            draft["logo_url"],
+        )
+        self.assertNotIn("logo_storage_key", self.organization.settings_json)
 
 
 class OrganizationSupportingDocumentTests(APITestCase):
