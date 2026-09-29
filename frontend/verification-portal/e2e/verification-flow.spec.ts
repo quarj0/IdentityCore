@@ -91,6 +91,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   let uploadNumber = 0;
   let uploadCreateRequests = 0;
   let failBackUploadOnce = true;
+  let failLivenessSubmissionOnce = true;
   let livenessUploadMimeType = "";
   let documentPayload: {
     captures?: Array<{ side: string; upload_id: string }>;
@@ -118,8 +119,20 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     Object.defineProperty(window, "MediaRecorder", {
       value: MockMediaRecorder,
     });
+    let denyFirstCameraRequest = true;
     Object.defineProperty(navigator, "mediaDevices", {
-      value: { getUserMedia: async () => new MediaStream() },
+      value: {
+        getUserMedia: async () => {
+          if (denyFirstCameraRequest) {
+            denyFirstCameraRequest = false;
+            throw new DOMException(
+              "Camera permission denied",
+              "NotAllowedError",
+            );
+          }
+          return new MediaStream();
+        },
+      },
     });
   });
 
@@ -303,6 +316,21 @@ test("subject completes consent, document, selfie, liveness, and review routing"
       path === `/api/verification/sessions/${sessionId}/liveness` &&
       method === "POST"
     ) {
+      if (failLivenessSubmissionOnce) {
+        failLivenessSubmissionOnce = false;
+        return route.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: JSON.stringify({
+            success: false,
+            error: {
+              code: "provider_unavailable",
+              message: "Temporary failure.",
+            },
+            request_id: "req_liveness_retry",
+          }),
+        });
+      }
       step = "completed";
       return json(route, {
         liveness_check_id: "liv_1",
@@ -381,13 +409,25 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   ).toBeVisible();
   await page.getByRole("button", { name: "Begin live camera check" }).click();
   await page.getByRole("button", { name: "Enable camera" }).click();
+  await expect(page.getByText(/Camera permission is blocked/)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Continue on another device" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Enable camera" }).click();
   await page.getByRole("button", { name: "Start live challenge" }).click();
   await page.getByRole("button", { name: "Finish recording" }).click();
   await expect(
     page.getByRole("button", { name: "Submit live check" }),
   ).toBeVisible();
+  expect(uploadCreateRequests).toBe(4);
   await page.getByRole("button", { name: "Submit live check" }).click();
   expect(livenessUploadMimeType).toBe("video/mp4");
+  expect(uploadCreateRequests).toBe(5);
+  await expect(
+    page.getByRole("button", { name: "Submit live check" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Submit live check" }).click();
+  expect(uploadCreateRequests).toBe(5);
 
   await expect(
     page.getByRole("heading", { name: "Submitted for review" }),
