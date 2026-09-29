@@ -44,7 +44,13 @@ import {
   resolveOrganizationLogoUrl,
   resolveReturnUrl,
 } from "@/lib/safe-navigation";
-import { translate } from "@/lib/i18n";
+import {
+  direction,
+  localizeText,
+  resolveLocale,
+  supportedLocales as portalLocales,
+  translate,
+} from "@/lib/i18n";
 
 import { CameraCapture } from "./camera-capture";
 import { LiveLivenessCapture } from "./live-liveness-capture";
@@ -106,13 +112,20 @@ export function LiveVerificationFlow({
   const [handoffBusy, setHandoffBusy] = useState(false);
 
   const load = useCallback(async (nextCredentials: SessionCredentials) => {
+    const storedLocale = window.localStorage.getItem(
+      `identitycore.locale:${nextCredentials.sessionId}`,
+    );
+    const preferredLocale = storedLocale
+      ? resolveLocale(storedLocale)
+      : undefined;
     const [nextSession, nextStatus] = await Promise.all([
-      fetchVerificationSession(nextCredentials),
+      fetchVerificationSession(nextCredentials, preferredLocale),
       fetchVerificationStatus(nextCredentials),
     ]);
     setSession(nextSession);
     document.documentElement.lang = nextSession.locale;
-    document.documentElement.dir = nextSession.direction;
+    document.documentElement.dir =
+      nextSession.direction || direction(resolveLocale(nextSession.locale));
     setSelectedCountryCode(
       (current) => current || nextSession.document.country_code,
     );
@@ -167,7 +180,9 @@ export function LiveVerificationFlow({
   useEffect(() => {
     if (!session?.locale) return;
     document.documentElement.lang = session.locale;
-  }, [session?.locale]);
+    document.documentElement.dir =
+      session.direction || direction(resolveLocale(session.locale));
+  }, [session?.direction, session?.locale]);
 
   useEffect(() => {
     if (!credentials || !status || !PROCESSING_STEPS.has(status.current_step)) {
@@ -313,6 +328,29 @@ export function LiveVerificationFlow({
     });
   }
 
+  async function changeLocale(locale: string) {
+    if (!credentials || !session) return;
+    const normalizedLocale = locale.toLowerCase();
+    if (!session.supported_locales.map((item) => item.toLowerCase()).includes(normalizedLocale)) {
+      return;
+    }
+    try {
+      setError(null);
+      const nextSession = await fetchVerificationSession(
+        credentials,
+        normalizedLocale,
+      );
+      setSession(nextSession);
+      setConsented(false);
+      window.localStorage.setItem(
+        `identitycore.locale:${credentials.sessionId}`,
+        normalizedLocale,
+      );
+    } catch (caught) {
+      setError(messageOf(caught));
+    }
+  }
+
   async function startMobileHandoff() {
     if (!credentials || handoffBusy) return;
     setHandoffBusy(true);
@@ -327,19 +365,21 @@ export function LiveVerificationFlow({
     }
   }
 
+  const initialLocale = resolveLocale(typeof navigator === "undefined" ? "en" : navigator.language);
   if (!deviceReady) {
-    return <OpeningState title="Opening your secure session" />;
+    return <OpeningState locale={initialLocale} title={localizeText(initialLocale, "Opening your secure session")} />;
   }
   if (error && (!credentials || !session || !status)) {
-    return <OpeningState title="Verification unavailable" message={error} />;
+    return <OpeningState locale={initialLocale} title={localizeText(initialLocale, "Verification unavailable")} message={localizeText(initialLocale, error)} />;
   }
   if (!credentials || !session || !status) {
-    return <OpeningState title="Opening your secure session" />;
+    return <OpeningState locale={initialLocale} title={localizeText(initialLocale, "Opening your secure session")} />;
   }
 
   if (!continueOnDevice) {
     return (
       <MobileHandoff
+        locale={session.locale}
         organizationName={session.organization.name}
         handoffUrl={handoffUrl}
         busy={handoffBusy}
@@ -398,6 +438,8 @@ export function LiveVerificationFlow({
     window.location.assign(returnUrl);
   };
 
+  const t = (text: string) => localizeText(session.locale, text);
+
   return (
     <VerificationFrame
       organizationName={session.organization.name}
@@ -407,6 +449,14 @@ export function LiveVerificationFlow({
       purpose={session.purpose}
       currentStep={step}
       reference={status.verification_id}
+      locale={resolveLocale(session.locale)}
+      supportedLocales={(() => {
+        const configured = session.supported_locales
+          .map((locale) => locale.toLowerCase())
+          .filter((locale) => portalLocales.includes(locale as (typeof portalLocales)[number]));
+        return configured.length ? configured : [resolveLocale(session.locale)];
+      })()}
+      onLocaleChange={changeLocale}
       primaryColor={session.organization.primary_color}
       primaryTextColor={session.organization.primary_text_color}
       backgroundColor={session.organization.background_color}
@@ -416,8 +466,8 @@ export function LiveVerificationFlow({
           role="alert"
           className="mb-4 rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive"
         >
-          <strong className="block font-semibold">We could not continue</strong>
-          <span className="mt-1 block">{error}</span>
+          <strong className="block font-semibold">{t("We could not continue")}</strong>
+          <span className="mt-1 block">{localizeText(session.locale, error)}</span>
         </div>
       ) : null}
 
@@ -431,14 +481,14 @@ export function LiveVerificationFlow({
               : "border-info/30 bg-info/10 text-info"
           }`}
         >
-          <strong className="block font-semibold">{notice.title}</strong>
-          <span className="mt-1 block leading-6">{notice.message}</span>
+          <strong className="block font-semibold">{localizeText(session.locale, notice.title)}</strong>
+          <span className="mt-1 block leading-6">{localizeText(session.locale, notice.message)}</span>
         </div>
       ) : null}
 
       {step === "consent" ? (
         <StepCard
-          eyebrow="Step 1 of 5"
+          eyebrow={t("Step 1 of 5")}
           title={translate(session.locale, "consentTitle")}
           description={translate(session.locale, "consentDescription")}
         >
@@ -446,18 +496,18 @@ export function LiveVerificationFlow({
             {[
               [
                 FileText,
-                "Identity document",
-                "Used to read and validate identity details",
+                t("Identity document"),
+                t("Used to read and validate identity details"),
               ],
               [
                 ScanFace,
-                "Live selfie",
-                "Compared with the portrait on your document",
+                t("Live selfie"),
+                t("Compared with the portrait on your document"),
               ],
               [
                 ShieldCheck,
-                "Security signals",
-                "Used for liveness, fraud risk, and audit",
+                t("Security signals"),
+                t("Used for liveness, fraud risk, and audit"),
               ],
             ].map(([Icon, title, detail]) => {
               const ItemIcon = Icon as typeof FileText;
@@ -503,7 +553,7 @@ export function LiveVerificationFlow({
             <Button
               disabled={!consented || busy}
               onClick={() =>
-                run(() => acceptConsent(credentials, session.consent))
+                run(() => acceptConsent(credentials, session.consent, session.locale))
               }
             >
               {busy ? (
@@ -519,18 +569,18 @@ export function LiveVerificationFlow({
 
       {step === "document_capture" ? (
         <StepCard
-          eyebrow="Step 2 of 5"
-          title={`Capture your ${selectedDocument.label}`}
+          eyebrow={t("Step 2 of 5")}
+          title={`${t("Capture your")} ${selectedDocument.label}`}
           description={
             captureRequirements.length > 1
-              ? "Choose the identity document you want to use, then capture the original physical document with all four edges visible."
-              : "Choose the identity document you want to use, then capture its photo page with all four edges visible."
+              ? t("Choose the identity document you want to use, then capture the original physical document with all four edges visible.")
+              : t("Choose the identity document you want to use, then capture its photo page with all four edges visible.")
           }
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block space-y-2">
               <span className="text-sm font-medium text-foreground">
-                Issuing country
+                {t("Issuing country")}
               </span>
               <select
                 value={selectedCountry.country_code}
@@ -566,7 +616,7 @@ export function LiveVerificationFlow({
             </label>
             <label className="block space-y-2">
               <span className="text-sm font-medium text-foreground">
-                Document type
+                {t("Document type")}
               </span>
               <select
                 value={selectedDocumentType}
@@ -618,18 +668,19 @@ export function LiveVerificationFlow({
                 </span>
                 <span className="mt-1 block text-xs text-foreground">
                   {documentFiles[requirement.side]
-                    ? "Captured — select to review"
-                    : "Not captured"}
+                    ? t("Captured — select to review")
+                    : t("Not captured")}
                 </span>
               </button>
             ))}
           </div>
           <div>
             <p className="mb-3 text-sm font-semibold text-foreground">
-              Capture {activeCaptureRequirement.label.toLowerCase()}
+              {t("Capture")} {activeCaptureRequirement.label.toLowerCase()}
             </p>
             {activeDocumentFile ? (
               <EvidenceReview
+                locale={session.locale}
                 file={activeDocumentFile}
                 onRetake={() => {
                   setDocumentFiles((current) => {
@@ -646,6 +697,7 @@ export function LiveVerificationFlow({
               />
             ) : (
               <CameraCapture
+                locale={session.locale}
                 facingMode="environment"
                 label={`${selectedDocument.label} ${activeCaptureRequirement.label} camera`}
                 onCapture={(nextFile) =>
@@ -664,7 +716,7 @@ export function LiveVerificationFlow({
                 disabled={busy}
                 onClick={() => setActiveDocumentSide(nextMissingCapture.side)}
               >
-                Capture {nextMissingCapture.label.toLowerCase()}
+                {t("Capture")} {nextMissingCapture.label.toLowerCase()}
               </Button>
             ) : null}
             <Button
@@ -708,7 +760,7 @@ export function LiveVerificationFlow({
                   {
                     title: "Document received",
                     message:
-                      "Your document was uploaded successfully and is now being checked. Keep this page open while processing completes.",
+                      t("Your document was uploaded successfully and is now being checked. Keep this page open while processing completes."),
                     busyMessage: "Uploading and submitting your document…",
                   },
                 )
@@ -723,17 +775,18 @@ export function LiveVerificationFlow({
 
       {step === "document_processing" ? (
         <StepCard
-          eyebrow="Secure document check"
+          eyebrow={t("Secure document check")}
           title={`Checking your ${session.document.label}`}
-          description="IdentityCore is checking capture quality and reading the supported document evidence."
+          description={t("IdentityCore is checking capture quality and reading the supported document evidence.")}
         >
           <ProcessingPanel
-            title="Document processing in progress"
+            locale={session.locale}
+            title={t("Document processing in progress")}
             items={[
-              "Capture quality",
-              "Document type",
-              "OCR evidence",
-              "Review signals",
+              t("Capture quality"),
+              t("Document type"),
+              t("OCR evidence"),
+              t("Review signals"),
             ]}
           />
         </StepCard>
@@ -741,14 +794,15 @@ export function LiveVerificationFlow({
 
       {step === "selfie_capture" ? (
         <StepCard
-          eyebrow="Step 3 of 5"
-          title="Take a live selfie"
-          description="Remove hats or dark glasses, face the camera directly, and use even lighting. Your selfie will be compared with the document portrait."
+          eyebrow={t("Step 3 of 5")}
+          title={t("Take a live selfie")}
+          description={t("Remove hats or dark glasses, face the camera directly, and use even lighting. Your selfie will be compared with the document portrait.")}
         >
           {file ? (
-            <EvidenceReview file={file} onRetake={() => setFile(null)} />
+            <EvidenceReview locale={session.locale} file={file} onRetake={() => setFile(null)} />
           ) : (
             <CameraCapture
+              locale={session.locale}
               facingMode="user"
               label="Live selfie camera"
               onCapture={selectEvidence}
@@ -771,14 +825,14 @@ export function LiveVerificationFlow({
                   {
                     title: "Selfie received",
                     message:
-                      "Your selfie was uploaded successfully. Continue to the presence check.",
+                      t("Your selfie was uploaded successfully. Continue to the presence check."),
                     busyMessage: "Uploading and submitting your selfie…",
                   },
                 )
               }
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {busy ? "Uploading selfie…" : "Submit selfie"}
+              {busy ? t("Uploading selfie…") : t("Submit selfie")}
             </Button>
           </div>
         </StepCard>
@@ -786,7 +840,7 @@ export function LiveVerificationFlow({
 
       {step === "liveness_check" ? (
         <StepCard
-          eyebrow="Step 4 of 5"
+          eyebrow={t("Step 4 of 5")}
           title={translate(session.locale, "livenessTitle")}
           description={translate(
             session.locale,
@@ -800,11 +854,10 @@ export function LiveVerificationFlow({
               <ScanFace className="h-8 w-8" aria-hidden="true" />
             </span>
             <h3 className="mt-4 text-base font-semibold text-foreground">
-              Prove you are present, live
+              {t("Prove you are present, live")}
             </h3>
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-foreground">
-              Your challenge is single-use, randomized, and recorded directly
-              from this device in one short video.
+              {t("Your challenge is single-use, randomized, and recorded directly from this device in one short video.")}
             </p>
             {session.workflow.liveness_mode === "passive" ? (
               <div className="mt-5 flex justify-center">
@@ -819,9 +872,9 @@ export function LiveVerificationFlow({
                           { livenessType: "passive" },
                         ),
                       {
-                        title: "Presence check submitted",
-                        message: "Your live selfie is being checked.",
-                        busyMessage: "Checking your live selfie…",
+                        title: t("Presence check submitted"),
+                        message: t("Your live selfie is being checked."),
+                        busyMessage: t("Checking your live selfie…"),
                       },
                     )
                   }
@@ -841,15 +894,15 @@ export function LiveVerificationFlow({
                           await createLivenessChallenge(credentials),
                         ),
                       {
-                        title: "Live challenge ready",
+                        title: t("Live challenge ready"),
                         message:
-                          "Enable your camera and follow the on-screen instructions.",
+                          t("Enable your camera and follow the on-screen instructions."),
                       },
                     )
                   }
                 >
                   <ScanFace className="h-4 w-4" />
-                  Begin live camera check
+                  {t("Begin live camera check")}
                 </Button>
               </div>
             ) : (
@@ -857,7 +910,7 @@ export function LiveVerificationFlow({
                 {activeLivenessFile ? (
                   <div className="space-y-3">
                     <p className="text-sm font-medium text-success">
-                      Live recording ready to submit.
+                      {t("Live recording ready to submit.")}
                     </p>
                     <div className="flex flex-wrap justify-center gap-3">
                       <Button
@@ -865,7 +918,7 @@ export function LiveVerificationFlow({
                         disabled={busy}
                         onClick={() => resetActiveLivenessAttempt()}
                       >
-                        Record again
+                        {t("Record again")}
                       </Button>
                       <Button
                         disabled={busy}
@@ -898,9 +951,9 @@ export function LiveVerificationFlow({
                             },
                             {
                               title: "Live check submitted",
-                              message: "Your live video is being checked.",
+                              message: t("Your live video is being checked."),
                               busyMessage:
-                                "Uploading and checking your live video…",
+                                t("Uploading and checking your live video…"),
                             },
                           );
                           if (submitted)
@@ -913,6 +966,7 @@ export function LiveVerificationFlow({
                   </div>
                 ) : (
                   <LiveLivenessCapture
+                    locale={session.locale}
                     actions={livenessChallenge.actions}
                     onCapture={(nextFile) => {
                       activeLivenessUploadIdRef.current = null;
@@ -931,17 +985,18 @@ export function LiveVerificationFlow({
 
       {step === "processing" ? (
         <StepCard
-          eyebrow="Step 5 of 5"
-          title="Completing your verification"
+          eyebrow={t("Step 5 of 5")}
+          title={t("Completing your verification")}
           description="The submitted evidence is being evaluated against the requesting organization’s verification policy."
         >
           <ProcessingPanel
-            title="Secure decision processing"
+            locale={session.locale}
+            title={t("Secure decision processing")}
             items={[
-              "Liveness result",
-              "Face comparison",
-              "Risk rules",
-              "Final decision",
+              t("Liveness result"),
+              t("Face comparison"),
+              t("Risk rules"),
+              t("Final decision"),
             ]}
           />
         </StepCard>
@@ -949,6 +1004,7 @@ export function LiveVerificationFlow({
 
       {step === "completed" ? (
         <TerminalPanel
+          locale={session.locale}
           state={status.status === "verified" ? "verified" : "review"}
           message={status.message}
           onFinish={finish}
@@ -956,16 +1012,17 @@ export function LiveVerificationFlow({
       ) : null}
       {step === "failed" ? (
         <TerminalPanel
+          locale={session.locale}
           state="failed"
           message={status.message}
           onFinish={finish}
         />
       ) : null}
       {step === "expired" ? (
-        <TerminalPanel state="expired" message={status.message} />
+        <TerminalPanel locale={session.locale} state="expired" message={status.message} />
       ) : null}
       {step === "cancelled" ? (
-        <TerminalPanel state="cancelled" message={status.message} />
+        <TerminalPanel locale={session.locale} state="cancelled" message={status.message} />
       ) : null}
 
       {busy ? (
@@ -974,7 +1031,7 @@ export function LiveVerificationFlow({
           className="mt-4 flex items-center justify-end gap-2 text-xs text-muted-foreground"
         >
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          {busyMessage}
+          {localizeText(session.locale, busyMessage)}
         </p>
       ) : null}
     </VerificationFrame>
@@ -982,6 +1039,7 @@ export function LiveVerificationFlow({
 }
 
 function MobileHandoff({
+  locale,
   organizationName,
   handoffUrl,
   busy,
@@ -989,6 +1047,7 @@ function MobileHandoff({
   onCreate,
   onContinue,
 }: {
+  locale: string;
   organizationName: string;
   handoffUrl: string;
   busy: boolean;
@@ -1010,8 +1069,7 @@ function MobileHandoff({
             Continue securely on your phone
           </CardTitle>
           <p className="text-sm leading-6 text-muted-foreground">
-            {organizationName} requested this verification. A phone camera
-            usually gives clearer document and selfie captures.
+            {organizationName} {localizeText(locale, "requested this verification. A phone camera usually gives clearer document and selfie captures.")}
           </p>
         </CardHeader>
         <CardContent className="space-y-5 px-6 py-7 sm:px-8">
@@ -1020,7 +1078,7 @@ function MobileHandoff({
               role="alert"
               className="rounded-2xl bg-destructive/10 p-3 text-sm text-destructive"
             >
-              {error}
+              {localizeText(locale, error)}
             </p>
           ) : null}
           {handoffUrl ? (
@@ -1028,7 +1086,7 @@ function MobileHandoff({
               <div className="mx-auto w-fit rounded-3xl border border-border bg-card p-4 shadow-sm">
                 <div
                   role="img"
-                  aria-label="Mobile handoff QR code"
+                  aria-label={localizeText(locale, "Mobile handoff QR code")}
                   className="rounded-2xl"
                 >
                   <QRCodeSVG value={handoffUrl} size={220} level="M" />
@@ -1036,10 +1094,10 @@ function MobileHandoff({
               </div>
               <div>
                 <p className="text-sm font-medium text-foreground">
-                  Scan with your phone camera
+                  {localizeText(locale, "Scan with your phone camera")}
                 </p>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                  The one-time code expires shortly and cannot be reused.
+                  {localizeText(locale, "The one-time code expires shortly and cannot be reused.")}
                 </p>
               </div>
               <Button
@@ -1047,11 +1105,11 @@ function MobileHandoff({
                 onClick={() => navigator.clipboard.writeText(handoffUrl)}
               >
                 <Copy className="h-4 w-4" />
-                Copy mobile link
+                {localizeText(locale, "Copy mobile link")}
               </Button>
               <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Waiting for completion on your phone
+                {localizeText(locale, "Waiting for completion on your phone")}
               </p>
             </div>
           ) : (
@@ -1061,15 +1119,15 @@ function MobileHandoff({
               ) : (
                 <Smartphone className="h-4 w-4" />
               )}
-              Show secure QR code
+              {localizeText(locale, "Show secure QR code")}
             </Button>
           )}
           <div className="relative py-1 text-center text-xs text-muted-foreground before:absolute before:left-0 before:right-0 before:top-1/2 before:h-px before:bg-border">
-            <span className="relative bg-card px-3">or</span>
+            <span className="relative bg-card px-3">{localizeText(locale, "or")}</span>
           </div>
           <Button variant="outline" className="w-full" onClick={onContinue}>
             <Monitor className="h-4 w-4" />
-            Continue on this computer
+            {localizeText(locale, "Continue on this computer")}
           </Button>
         </CardContent>
       </Card>
@@ -1077,7 +1135,7 @@ function MobileHandoff({
   );
 }
 
-function OpeningState({ title, message }: { title: string; message?: string }) {
+function OpeningState({ title, message, locale }: { title: string; message?: string; locale: string }) {
   return (
     <main
       id="main-content"
@@ -1091,13 +1149,13 @@ function OpeningState({ title, message }: { title: string; message?: string }) {
             <ShieldCheck className="h-8 w-8 text-muted-foreground" />
           )}
           <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            {title}
+            {localizeText(locale, title)}
           </h1>
           {message ? (
-            <p className="text-sm leading-6 text-muted-foreground">{message}</p>
+            <p className="text-sm leading-6 text-muted-foreground">{localizeText(locale, message)}</p>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Validating your one-time session credential…
+              {localizeText(locale, "Validating your one-time session credential…")}
             </p>
           )}
         </CardContent>

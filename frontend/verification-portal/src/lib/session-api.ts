@@ -166,10 +166,16 @@ export function clearSessionCredentials(sessionId: string) {
   void fetch(`${API_BASE}/session`, { method: "DELETE", keepalive: true });
 }
 
-export function fetchVerificationSession(credentials: SessionCredentials) {
+export function fetchVerificationSession(
+  credentials: SessionCredentials,
+  locale?: string,
+) {
+  const headers = new Headers();
+  if (locale) headers.set("Accept-Language", locale);
   return request<VerificationSession>(
     credentials,
     `/sessions/${credentials.sessionId}`,
+    { headers },
   );
 }
 
@@ -219,9 +225,11 @@ export async function redeemMobileHandoff(handoff: string) {
 export function acceptConsent(
   credentials: SessionCredentials,
   consent: VerificationSession["consent"],
+  locale = consent.locale,
 ) {
   return request(credentials, `/sessions/${credentials.sessionId}/consent`, {
     method: "POST",
+    headers: { "Accept-Language": locale },
     body: JSON.stringify({
       accepted: true,
       template_id: consent.template_id,

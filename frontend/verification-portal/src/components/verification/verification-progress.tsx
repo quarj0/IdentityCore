@@ -1,4 +1,5 @@
 import { Check, Circle } from "lucide-react";
+import { localizeText } from "@/lib/i18n";
 
 const STEPS = [
   {
@@ -41,12 +42,12 @@ const STEP_INDEX: Record<string, number> = {
   cancelled: 5,
 };
 
-export function VerificationProgress({ currentStep }: { currentStep: string }) {
+export function VerificationProgress({ currentStep, locale }: { currentStep: string; locale: string }) {
   const currentIndex = STEP_INDEX[currentStep] ?? 0;
 
   return (
     <nav
-      aria-label="Verification progress"
+      aria-label={localizeText(locale, "Verification progress")}
       className="rounded-3xl border border-border bg-card p-5 shadow-sm"
     >
       <ol className="space-y-1">
@@ -83,16 +84,16 @@ export function VerificationProgress({ currentStep }: { currentStep: string }) {
                 <p
                   className={`text-sm font-medium ${active ? "text-info" : complete ? "text-foreground" : "text-muted-foreground"}`}
                 >
-                  {step.label}
+                  {localizeText(locale, step.label)}
                   {active ? (
-                    <span className="sr-only">, current step</span>
+                    <span className="sr-only">{localizeText(locale, ", current step")}</span>
                   ) : null}
                   {complete ? (
-                    <span className="sr-only">, completed</span>
+                    <span className="sr-only">{localizeText(locale, ", completed")}</span>
                   ) : null}
                 </p>
                 <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
-                  {step.description}
+                  {localizeText(locale, step.description)}
                 </p>
               </div>
             </li>

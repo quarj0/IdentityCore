@@ -1,13 +1,21 @@
+from types import SimpleNamespace
 from datetime import timedelta
 from unittest.mock import patch
 import hashlib
 
+from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
+from apps.verification_sessions.serializers import (
+    _consent_artifact,
+    _policy_locales,
+    _request_locale,
+)
+
 from apps.biometrics.models import (
     FaceMatch,
     LivenessChallenge,
@@ -183,7 +191,7 @@ class VerificationSessionPortalTests(APITestCase):
             ["consent", "document_capture", "selfie_capture", "liveness_check"],
         )
         self.assertEqual(response.data["data"]["locale"], "en")
-        self.assertEqual(response.data["data"]["supported_locales"], ["ar", "en"])
+        self.assertEqual(response.data["data"]["supported_locales"], ["en"])
         self.assertEqual(
             response.data["data"]["document"],
             {
@@ -1408,3 +1416,66 @@ class VerificationSessionPortalTests(APITestCase):
         mock_document_promote.assert_called()
         mock_selfie_promote.assert_called_once()
         mock_evidence_report.assert_called_once_with(self.verification)
+
+
+class ApplicantLocaleNegotiationTests(TestCase):
+    def test_accept_language_quality_weights_select_highest_supported_locale(self):
+        request = SimpleNamespace(
+            headers={"Accept-Language": "en;q=0.1, ar;q=1.0"}
+        )
+
+        self.assertEqual(
+            _request_locale(
+                request,
+                {"default_locale": "en", "supported_locales": ["en", "ar"]},
+            ),
+            "ar",
+        )
+
+    def test_policy_locales_include_only_frozen_consent_artifacts(self):
+        snapshot = {
+            "default_locale": "en",
+            "supported_locales": ["en", "ar"],
+            "consent": {
+                "language": "en",
+                "translations": {
+                    "en": {"language": "en", "content": "English"},
+                },
+            },
+        }
+
+        self.assertEqual(_policy_locales(None, snapshot), ["en"])
+
+    def test_consent_artifact_uses_the_frozen_selected_translation(self):
+        verification = SimpleNamespace(
+            purpose="identity verification",
+            policy_snapshot_json={
+                "consent": {
+                    "template_id": "ctm_english",
+                    "version": 3,
+                    "language": "en",
+                    "content": "English text",
+                    "translations": {
+                        "en": {
+                            "template_id": "ctm_english",
+                            "version": 3,
+                            "language": "en",
+                            "content": "English text",
+                        },
+                        "ar": {
+                            "template_id": "ctm_arabic",
+                            "version": 3,
+                            "language": "ar",
+                            "content": "نص عربي",
+                        },
+                    },
+                }
+            },
+        )
+
+        artifact = _consent_artifact(verification, "ar")
+
+        self.assertEqual(artifact["template_id"], "ctm_arabic")
+        self.assertEqual(artifact["locale"], "ar")
+        self.assertEqual(artifact["version"], 3)
+        self.assertEqual(artifact["content"], "نص عربي")

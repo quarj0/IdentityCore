@@ -19,6 +19,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@identitycore/ui";
+import { localizeText } from "@/lib/i18n";
 
 export function StepCard({
   eyebrow,
@@ -64,9 +65,11 @@ export function StepCard({
 
 export function EvidenceReview({
   file,
+  locale,
   onRetake,
 }: {
   file: File;
+  locale: string;
   onRetake: () => void;
 }) {
   const url = useMemo(() => URL.createObjectURL(file), [file]);
@@ -83,7 +86,7 @@ export function EvidenceReview({
         <div className="flex min-h-72 flex-col items-center justify-center px-6 text-center text-warning">
           <AlertTriangle className="h-7 w-7" aria-hidden="true" />
           <p className="mt-3 text-sm">
-            This image cannot be previewed. Retake or choose another file.
+            {localizeText(locale, "This image cannot be previewed. Retake or choose another file.")}
           </p>
         </div>
       ) : (
@@ -91,7 +94,7 @@ export function EvidenceReview({
         <img
           src={url}
           onError={() => setFailedUrl(url)}
-          alt="Captured evidence preview"
+          alt={localizeText(locale, "Captured evidence preview")}
           className="max-h-128 min-h-72 w-full object-contain"
         />
       )}
@@ -110,7 +113,7 @@ export function EvidenceReview({
           className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
         >
           <RotateCcw className="h-3.5 w-3.5" />
-          Retake
+          {localizeText(locale, "Retake")}
         </Button>
       </div>
     </div>
@@ -120,9 +123,11 @@ export function EvidenceReview({
 export function ProcessingPanel({
   title,
   items,
+  locale,
 }: {
   title: string;
   items: string[];
+  locale: string;
 }) {
   return (
     <div className="rounded-3xl border border-info/20 bg-info/10 p-5">
@@ -133,7 +138,7 @@ export function ProcessingPanel({
         <div>
           <p className="text-sm font-semibold text-foreground">{title}</p>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Keep this page open. This usually takes less than a minute.
+            {localizeText(locale, "Keep this page open. This usually takes less than a minute.")}
           </p>
         </div>
       </div>
@@ -156,10 +161,12 @@ export function TerminalPanel({
   state,
   message,
   onFinish,
+  locale,
 }: {
   state: "verified" | "review" | "failed" | "expired" | "cancelled";
   message: string;
   onFinish?: () => void;
+  locale: string;
 }) {
   const config = {
     verified: {
@@ -202,11 +209,11 @@ export function TerminalPanel({
   return (
     <div className={`rounded-3xl border p-6 ${config.tone}`}>
       <Icon className="h-9 w-9" aria-hidden="true" />
-      <h2 className="mt-4 text-xl font-semibold">{config.title}</h2>
-      <p className="mt-2 text-sm leading-6">{message || config.detail}</p>
+      <h2 className="mt-4 text-xl font-semibold">{localizeText(locale, config.title)}</h2>
+      <p className="mt-2 text-sm leading-6">{localizeText(locale, message || config.detail)}</p>
       {onFinish ? (
         <Button type="button" onClick={onFinish} className="mt-6">
-          Finish and return
+          {localizeText(locale, "Finish and return")}
         </Button>
       ) : null}
     </div>

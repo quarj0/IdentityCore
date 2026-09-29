@@ -84,6 +84,40 @@ class VerificationPolicy(PublicIdModel, BaseModel):
         return list(self.required_document_types_json)
 
     def snapshot(self) -> dict:
+        consent = None
+        if self.consent_template_id:
+            base_template = self.consent_template
+            translations = {
+                base_template.language: {
+                    "template_id": base_template.public_id,
+                    "version": base_template.version,
+                    "language": base_template.language,
+                    "content": base_template.content,
+                }
+            }
+            configured_locales = self.supported_locales_json or [self.default_locale]
+            translated_templates = base_template.__class__.objects.filter(
+                tenant_id=self.tenant_id,
+                name=base_template.name,
+                version=base_template.version,
+                language__in=configured_locales,
+                status="active",
+            )
+            for template in translated_templates:
+                translations[template.language] = {
+                    "template_id": template.public_id,
+                    "version": template.version,
+                    "language": template.language,
+                    "content": template.content,
+                }
+            consent = {
+                "template_id": base_template.public_id,
+                "name": base_template.name,
+                "version": base_template.version,
+                "language": base_template.language,
+                "content": base_template.content,
+                "translations": translations,
+            }
         return {
             "id": self.public_id,
             "name": self.name,
@@ -91,17 +125,7 @@ class VerificationPolicy(PublicIdModel, BaseModel):
             "version": self.version,
             "default_locale": self.default_locale,
             "supported_locales": self.supported_locales_json or [self.default_locale],
-            "consent": (
-                {
-                    "template_id": self.consent_template.public_id,
-                    "name": self.consent_template.name,
-                    "version": self.consent_template.version,
-                    "language": self.consent_template.language,
-                    "content": self.consent_template.content,
-                }
-                if self.consent_template_id
-                else None
-            ),
+            "consent": consent,
             "status": self.status,
             "required_document_types": self.required_document_types,
             "required_liveness_level": self.required_liveness_level,
