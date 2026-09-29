@@ -407,6 +407,9 @@ export function LiveVerificationFlow({
       purpose={session.purpose}
       currentStep={step}
       reference={status.verification_id}
+      primaryColor={session.organization.primary_color}
+      primaryTextColor={session.organization.primary_text_color}
+      backgroundColor={session.organization.background_color}
     >
       {error ? (
         <div
