@@ -63,6 +63,31 @@ class StorageHelpersTests(TestCase):
         OBJECT_STORAGE_SECRET_ACCESS_KEY="secret",
         OBJECT_STORAGE_REGION="auto",
         OBJECT_STORAGE_SIGNATURE_VERSION="s3v4",
+    )
+    @patch("common.storage.boto3.client")
+    def test_signed_branding_upload_binds_content_length(self, mock_client_factory):
+        mock_client = Mock()
+        mock_client.generate_presigned_url.return_value = "https://r2.example/upload"
+        mock_client_factory.return_value = mock_client
+
+        build_signed_upload_url(
+            storage_key="organizations/org_01TEST/branding/logos/logo.png",
+            mime_type="image/png",
+            content_length=1024,
+            bucket_name="identitycore-public",
+        )
+
+        params = mock_client.generate_presigned_url.call_args.kwargs["Params"]
+        self.assertEqual(params["ContentLength"], 1024)
+
+    @override_settings(
+        OBJECT_STORAGE_PROVIDER="cloudflare_r2",
+        OBJECT_STORAGE_BUCKET="identitycore-media",
+        OBJECT_STORAGE_ENDPOINT_URL="https://example.r2.cloudflarestorage.com",
+        OBJECT_STORAGE_ACCESS_KEY_ID="key",
+        OBJECT_STORAGE_SECRET_ACCESS_KEY="secret",
+        OBJECT_STORAGE_REGION="auto",
+        OBJECT_STORAGE_SIGNATURE_VERSION="s3v4",
         OBJECT_STORAGE_PRESIGNED_UPLOAD_EXPIRES_SECONDS=600,
         MEDIA_DOWNLOAD_URL_EXPIRES_SECONDS=300,
     )

@@ -26,7 +26,25 @@ body {
       hsl(var(--info) / 0.08),
       transparent 24rem
     ),
-    hsl(var(--background));
+    var(--tenant-background, hsl(var(--background)));
+}
+
+.verification-page .bg-info,
+.verification-page .bg-primary {
+  background-color: var(--tenant-primary, #2563eb);
+}
+
+.verification-page .text-info {
+  color: var(--tenant-primary, #2563eb);
+}
+
+.verification-page .text-primary-foreground,
+.verification-page .text-info-foreground {
+  color: var(--tenant-primary-text, #ffffff);
+}
+
+.verification-page :focus-visible {
+  outline-color: var(--tenant-primary, #2563eb);
 }
 
 button,

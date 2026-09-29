@@ -20,10 +20,14 @@ export function LiveLivenessCapture({
   actions,
   locale,
   onCapture,
+  onRecoveryRequired,
+  onUseAnotherDevice,
 }: {
   actions: string[];
   locale: string;
   onCapture: (file: File) => void;
+  onRecoveryRequired: (message: string) => void;
+  onUseAnotherDevice: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -56,8 +60,9 @@ export function LiveLivenessCapture({
       }
       setRecording(false);
       setError(message);
+      onRecoveryRequired(message);
     },
-    [stopCamera],
+    [onRecoveryRequired, stopCamera],
   );
 
   useEffect(() => {
@@ -76,18 +81,18 @@ export function LiveLivenessCapture({
         recorderRef.current.stop();
       stopCamera();
     };
-  }, [cancelRecording, stopCamera]);
+  }, [cancelRecording, locale, stopCamera]);
 
   async function startCamera() {
     if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
       setError(
-        localizeText(locale, "Live liveness requires a secure HTTPS connection and camera access."),
+        localizeText(locale, "This browser cannot access a camera here. Open the secure link in a current browser or continue on another device."),
       );
       return;
     }
     if (typeof MediaRecorder === "undefined") {
       setError(
-        localizeText(locale, "This browser cannot record a live liveness video. Use a current browser on your phone."),
+        localizeText(locale, "This browser cannot record the live video. Continue on another device or update your browser."),
       );
       return;
     }
@@ -108,15 +113,15 @@ export function LiveLivenessCapture({
       stream.getVideoTracks()[0]?.addEventListener(
         "ended",
         () => {
-          if (stoppingCameraRef.current) return;
+          if (stoppingCameraRef.current || streamRef.current !== stream) return;
           if (recorderRef.current?.state === "recording") {
             cancelRecording(
-              localizeText(locale, "The camera disconnected during the live check. Start it again."),
+              localizeText(locale, "The camera disconnected. The unfinished video was discarded; start a new live challenge."),
             );
           } else {
             stopCamera();
             setError(
-              localizeText(locale, "The camera is no longer available. Enable it and try again."),
+              localizeText(locale, "The camera disconnected. Reconnect it and try again, or continue on another device."),
             );
           }
         },
@@ -129,9 +134,25 @@ export function LiveLivenessCapture({
         void videoRef.current.play().catch(() => undefined);
       }
       setActive(true);
-    } catch {
+    } catch (caught) {
+      const name = caught instanceof DOMException ? caught.name : "";
+      const messages: Record<string, string> = {
+        NotAllowedError:
+          "Camera permission is blocked. Allow camera access in your browser settings, then try again.",
+        PermissionDeniedError:
+          "Camera permission is blocked. Allow camera access in your browser settings, then try again.",
+        NotFoundError:
+          "No camera was found. Connect a camera or continue on another device.",
+        NotReadableError:
+          "The camera is busy or unavailable. Close other apps using it and try again.",
+        AbortError:
+          "The camera did not start. Check that it is available and try again.",
+        OverconstrainedError:
+          "This camera cannot provide the video format needed. Try another camera or device.",
+      };
       setError(
-        localizeText(locale, "Camera access is required for this live check. Allow camera access and try again."),
+        localizeText(locale, messages[name] ??
+          "Camera access is unavailable. Check your browser permissions or continue on another device."),
       );
     } finally {
       setStarting(false);
@@ -165,6 +186,11 @@ export function LiveLivenessCapture({
     recorderRef.current = recorder;
     recorder.ondataavailable = (event) => {
       if (event.data.size > 0) chunksRef.current.push(event.data);
+    };
+    recorder.onerror = () => {
+      cancelRecording(
+        "The recording was interrupted and discarded. Start a new live challenge.",
+      );
     };
     recorder.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: format.fileMimeType });
@@ -281,6 +307,16 @@ export function LiveLivenessCapture({
             {localizeText(locale, "Finish recording")}
           </Button>
         )}
+        {error ? (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onUseAnotherDevice}
+            className="text-white hover:bg-white/10 hover:text-white"
+          >
+            Continue on another device
+          </Button>
+        ) : null}
         {active && !recording ? (
           <Button
             type="button"

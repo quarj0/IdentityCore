@@ -349,7 +349,14 @@ export const dashboardApi = {
   team: () => backend.rest<{ results: DashboardUser[] }>("/auth/team"),
   subjects: () => backend.rest<Page<VerificationSubject>>("/subjects/"),
   organization: () => backend.rest<Organization>("/organization/me/"),
-  updateBranding: (input: { logo_storage_key: string }) =>
+  updateBranding: (input: {
+    environment: "sandbox" | "production";
+    logo_storage_key?: string;
+    primary_color?: string;
+    primary_text_color?: string;
+    background_color?: string;
+    publish?: boolean;
+  }) =>
     backend.rest<Organization>("/organization/me/", {
       method: "PATCH",
       body: JSON.stringify(input),
@@ -358,6 +365,7 @@ export const dashboardApi = {
     asset_type: "logo" | "branding_image";
     filename: string;
     mime_type: string;
+    file_size_bytes: number;
   }) =>
     backend.rest<{
       storage_key: string;

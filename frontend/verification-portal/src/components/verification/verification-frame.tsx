@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import {
   BadgeCheck,
   Building2,
@@ -21,6 +21,9 @@ interface VerificationFrameProps {
   locale: string;
   supportedLocales: string[];
   onLocaleChange: (locale: string) => void;
+  primaryColor: string;
+  primaryTextColor: string;
+  backgroundColor: string;
 }
 
 export function VerificationFrame({
@@ -33,9 +36,19 @@ export function VerificationFrame({
   locale,
   supportedLocales,
   onLocaleChange,
+  primaryColor,
+  primaryTextColor,
+  backgroundColor,
 }: VerificationFrameProps) {
+  const safeColor = (value: string, fallback: string) =>
+    /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback;
+  const brandingStyle = {
+    "--tenant-primary": safeColor(primaryColor, "#2563eb"),
+    "--tenant-primary-text": safeColor(primaryTextColor, "#ffffff"),
+    "--tenant-background": safeColor(backgroundColor, "#ffffff"),
+  } as CSSProperties;
   return (
-    <div className="verification-page min-h-screen">
+    <div className="verification-page min-h-screen" style={brandingStyle}>
       <header className="border-b border-border/80 bg-card/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-3">
@@ -44,10 +57,10 @@ export function VerificationFrame({
             </span>
             <div>
               <p className="text-sm font-semibold tracking-tight text-foreground">
-                IdentityCore Verify
+                {localizeText(locale, "IdentityCore Verify")}
               </p>
               <p className="text-xs text-muted-foreground">
-                Secure identity verification
+                {localizeText(locale, "Secure identity verification")}
               </p>
             </div>
           </div>
@@ -57,7 +70,7 @@ export function VerificationFrame({
                 className="h-4 w-4 text-success"
                 aria-hidden="true"
               />
-              Encrypted session
+              {localizeText(locale, "Encrypted session")}
             </div>
             <label className="sr-only" htmlFor="applicant-language">
               {translate(locale, "languageLabel")}
@@ -91,7 +104,7 @@ export function VerificationFrame({
         <aside className="order-2 space-y-5 lg:order-1 lg:sticky lg:top-8 lg:self-start">
           <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              Verification requested by
+              {localizeText(locale, "Verification requested by")}
             </p>
             <div className="mt-4 flex items-center gap-3">
               {organizationLogoUrl ? (
@@ -127,11 +140,10 @@ export function VerificationFrame({
               />
               <div>
                 <h2 className="text-sm font-semibold text-foreground">
-                  Your data stays protected
+                  {localizeText(locale, "Your data stays protected")}
                 </h2>
                 <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
-                  Evidence is encrypted, access is audited, and it is used only
-                  for this verification.
+                  {localizeText(locale, "Evidence is encrypted, access is audited, and it is used only for this verification.")}
                 </p>
               </div>
             </div>
