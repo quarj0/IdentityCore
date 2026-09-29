@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Check,
   Copy,
@@ -83,6 +83,8 @@ export function LiveVerificationFlow({
   const [activeLivenessFile, setActiveLivenessFile] = useState<File | null>(
     null,
   );
+  const activeLivenessUploadIdRef = useRef<string | null>(null);
+  const activeLivenessCaptureIdRef = useRef<string | null>(null);
   const [livenessChallenge, setLivenessChallenge] = useState<{
     challenge_id: string;
     actions: string[];
@@ -208,8 +210,8 @@ export function LiveVerificationFlow({
       message: string;
       busyMessage?: string;
     },
-  ) {
-    if (!credentials || busy) return;
+  ): Promise<boolean> {
+    if (!credentials || busy) return false;
     const previousStep = status?.current_step;
     setBusy(true);
     setBusyMessage(feedback?.busyMessage ?? "Submitting securely…");
@@ -238,11 +240,31 @@ export function LiveVerificationFlow({
               },
         );
       }
+      return true;
     } catch (caught) {
       setError(messageOf(caught));
+      return false;
     } finally {
       setBusy(false);
     }
+  }
+
+  function resetActiveLivenessAttempt(
+    message?: string,
+    clearNotice = true,
+  ) {
+    activeLivenessUploadIdRef.current = null;
+    activeLivenessCaptureIdRef.current = null;
+    setActiveLivenessFile(null);
+    setLivenessChallenge(null);
+    if (clearNotice) setNotice(null);
+    setError(message ?? null);
+  }
+
+  function useAnotherDevice() {
+    resetActiveLivenessAttempt();
+    setHandoffUrl("");
+    setContinueOnDevice(false);
   }
 
   function selectEvidence(nextFile: File) {
@@ -841,33 +863,38 @@ export function LiveVerificationFlow({
                       <Button
                         variant="outline"
                         disabled={busy}
-                        onClick={() => setActiveLivenessFile(null)}
+                        onClick={() => resetActiveLivenessAttempt()}
                       >
                         Record again
                       </Button>
                       <Button
                         disabled={busy}
-                        onClick={() =>
-                          run(
+                        onClick={async () => {
+                          const submitted = await run(
                             async () => {
-                              const uploadId = await createUpload(
-                                credentials,
-                                "liveness_capture",
-                                activeLivenessFile,
-                              );
-                              const capture = await submitSelfie(
-                                credentials,
-                                uploadId,
-                                "video",
-                              );
-                              await submitLiveness(
-                                credentials,
-                                capture.selfie_capture_id,
-                                {
-                                  livenessType: "active",
-                                  challengeId: livenessChallenge.challenge_id,
-                                },
-                              );
+                              let uploadId = activeLivenessUploadIdRef.current;
+                              if (!uploadId) {
+                                uploadId = await createUpload(
+                                  credentials,
+                                  "liveness_capture",
+                                  activeLivenessFile,
+                                );
+                                activeLivenessUploadIdRef.current = uploadId;
+                              }
+                              let captureId = activeLivenessCaptureIdRef.current;
+                              if (!captureId) {
+                                const capture = await submitSelfie(
+                                  credentials,
+                                  uploadId,
+                                  "video",
+                                );
+                                captureId = capture.selfie_capture_id;
+                                activeLivenessCaptureIdRef.current = captureId;
+                              }
+                              await submitLiveness(credentials, captureId, {
+                                livenessType: "active",
+                                challengeId: livenessChallenge.challenge_id,
+                              });
                             },
                             {
                               title: "Live check submitted",
@@ -875,8 +902,10 @@ export function LiveVerificationFlow({
                               busyMessage:
                                 "Uploading and checking your live video…",
                             },
-                          )
-                        }
+                          );
+                          if (submitted)
+                            resetActiveLivenessAttempt(undefined, false);
+                        }}
                       >
                         Submit live check
                       </Button>
@@ -885,7 +914,13 @@ export function LiveVerificationFlow({
                 ) : (
                   <LiveLivenessCapture
                     actions={livenessChallenge.actions}
-                    onCapture={setActiveLivenessFile}
+                    onCapture={(nextFile) => {
+                      activeLivenessUploadIdRef.current = null;
+                      activeLivenessCaptureIdRef.current = null;
+                      setActiveLivenessFile(nextFile);
+                    }}
+                    onRecoveryRequired={resetActiveLivenessAttempt}
+                    onUseAnotherDevice={useAnotherDevice}
                   />
                 )}
               </div>
@@ -991,7 +1026,13 @@ function MobileHandoff({
           {handoffUrl ? (
             <div className="space-y-4 text-center">
               <div className="mx-auto w-fit rounded-3xl border border-border bg-card p-4 shadow-sm">
-                <QRCodeSVG value={handoffUrl} size={220} level="M" />
+                <div
+                  role="img"
+                  aria-label="Mobile handoff QR code"
+                  className="rounded-2xl"
+                >
+                  <QRCodeSVG value={handoffUrl} size={220} level="M" />
+                </div>
               </div>
               <div>
                 <p className="text-sm font-medium text-foreground">

@@ -805,6 +805,24 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
             if attrs["capture_type"] == SelfieCaptureType.VIDEO
             else UploadPurpose.SELFIE_CAPTURE
         )
+        upload = Upload.objects.filter(
+            public_id=attrs["upload_id"],
+            tenant=verification_session.tenant,
+            verification=verification,
+            verification_session=verification_session,
+            purpose=expected_purpose,
+            deleted_at__isnull=True,
+        ).first()
+        if upload and upload.status in {UploadStatus.CONSUMED, UploadStatus.PROMOTED}:
+            existing_capture = verification.selfie_captures.filter(
+                storage_key=upload.storage_key,
+                capture_type=attrs["capture_type"],
+                deleted_at__isnull=True,
+            ).first()
+            if existing_capture:
+                attrs["existing_capture"] = existing_capture
+                return attrs
+
         attrs["resolved_upload"] = resolve_session_upload(
             verification_session=verification_session,
             upload_id=attrs["upload_id"],
@@ -814,6 +832,12 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
 
     @transaction.atomic
     def save(self, **kwargs):
+        existing_capture = self.validated_data.get("existing_capture")
+        if existing_capture:
+            self.created = False
+            return existing_capture
+
+        self.created = True
         request = self.context["request"]
         verification_session = request.verification_session
         verification = verification_session.verification

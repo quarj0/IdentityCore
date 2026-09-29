@@ -294,24 +294,25 @@ class VerificationSessionSelfieView(VerificationSessionBaseView):
         serializer.is_valid(raise_exception=True)
         selfie_capture = serializer.save()
         verification = request.verification_session.verification
-        record_audit_event(
-            tenant=request.tenant,
-            actor=verification.verification_subject,
-            request=request,
-            action="selfie.uploaded",
-            target_type="verification",
-            target_id=verification.public_id,
-            metadata={"selfie_capture_id": selfie_capture.public_id},
-        )
-        queue_webhook_events(
-            tenant=request.tenant,
-            event_type="verification.selfie_uploaded",
-            payload={
-                "verification_id": verification.public_id,
-                "external_reference": verification.external_reference,
-                "status": verification.status,
-            },
-        )
+        if serializer.created:
+            record_audit_event(
+                tenant=request.tenant,
+                actor=verification.verification_subject,
+                request=request,
+                action="selfie.uploaded",
+                target_type="verification",
+                target_id=verification.public_id,
+                metadata={"selfie_capture_id": selfie_capture.public_id},
+            )
+            queue_webhook_events(
+                tenant=request.tenant,
+                event_type="verification.selfie_uploaded",
+                payload={
+                    "verification_id": verification.public_id,
+                    "external_reference": verification.external_reference,
+                    "status": verification.status,
+                },
+            )
         return success_response(
             {
                 "selfie_capture_id": selfie_capture.public_id,
