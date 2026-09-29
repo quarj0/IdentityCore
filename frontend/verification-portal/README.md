@@ -57,6 +57,25 @@ VP8/VP9 for Chromium-based browsers. Recordings are capped at 15 seconds and
 component unmounts; an interrupted liveness challenge must be started again so
 partial video is never submitted as complete evidence.
 
+Permission denial, camera removal, recorder failure, or an interrupted recording
+shows a specific recovery message. Partial video is discarded and an interrupted
+challenge is replaced before another capture. A user can retry camera access or
+switch to the session's mobile handoff without repeating consent, document, or
+selfie steps. A failed live-video submission reuses its known upload and capture
+IDs instead of creating another evidence item.
+
+| Browser/device | Automated or manual check | Recovery expectation |
+| --- | --- | --- |
+| Desktop Chromium over HTTPS | Grant and deny camera permission; retry after denial; disconnect camera during capture | Error is actionable; denied capture creates no upload; interrupted capture is discarded and requires a fresh challenge |
+| Desktop WebKit | Verify permission handling and supported recording format | Unsupported recording shows the alternate-device handoff |
+| Physical iOS Safari | Check camera permission, app switching, orientation, and MP4 capture | Background interruption discards the partial video; return to the session or continue through a new handoff |
+| Physical Android Chrome | Check camera permission, app switching, orientation, and WebM/MP4 capture | Camera disconnection or interruption permits retry with a fresh challenge |
+| Insecure context or unsupported browser | Open the session without camera/recorder support | No capture is attempted; user receives browser guidance and an alternate-device option |
+
+Desktop/device emulation checks the interface and deterministic failure paths;
+it does not certify camera hardware or physical-device browser behavior. Record
+physical iOS and Android results in the pilot release evidence.
+
 ## Checks
 
 ```bash
