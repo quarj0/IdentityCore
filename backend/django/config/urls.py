@@ -49,6 +49,7 @@ urlpatterns = [
         methods=("GET",),
         name="country-list",
     ),
+    path("api/v1/analytics/", include("apps.analytics.urls")),
     path("api/v1/audit-events/", include("apps.audit.urls")),
     path("api/v1/auth/", include("apps.accounts.urls")),
     path("api/v1/api-clients/", include("apps.api_clients.urls")),
