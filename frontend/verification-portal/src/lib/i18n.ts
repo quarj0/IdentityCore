@@ -245,7 +245,11 @@ export function formatNumber(
   value: number,
   options?: Intl.NumberFormatOptions,
 ) {
-  return new Intl.NumberFormat(resolveLocale(locale), options).format(value);
+  const resolved = resolveLocale(locale);
+  return new Intl.NumberFormat(
+    resolved === "ar" ? "ar-EG-u-nu-arab" : resolved,
+    options,
+  ).format(value);
 }
 
 export function formatDate(
@@ -253,7 +257,11 @@ export function formatDate(
   value: Date | number | string,
   options: Intl.DateTimeFormatOptions = { dateStyle: "medium" },
 ) {
-  return new Intl.DateTimeFormat(resolveLocale(locale), options).format(
+  const resolved = resolveLocale(locale);
+  return new Intl.DateTimeFormat(
+    resolved === "ar" ? "ar-EG-u-nu-arab" : resolved,
+    options,
+  ).format(
     value instanceof Date || typeof value === "number" ? value : new Date(value),
   );
 }
