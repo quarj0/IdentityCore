@@ -190,3 +190,42 @@ class APIIdempotencyRecord(BaseModel):
             models.Index(fields=["api_client", "created_at"]),
             models.Index(fields=["user", "created_at"]),
         ]
+
+
+class APIUsageQuota(BaseModel):
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.PROTECT)
+    environment = models.CharField(
+        max_length=16, choices=[("sandbox", "Sandbox"), ("production", "Production")]
+    )
+    requests_per_minute = models.PositiveIntegerField(default=6000)
+    requests_per_month = models.PositiveIntegerField(default=1000000)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tenant", "environment"], name="api_quota_tenant_environment"
+            )
+        ]
+
+
+class APIUsageBucket(BaseModel):
+    quota = models.ForeignKey(
+        APIUsageQuota, on_delete=models.CASCADE, related_name="buckets"
+    )
+    client_key = models.CharField(max_length=64, blank=True)
+    period = models.CharField(
+        max_length=16, choices=[("minute", "Minute"), ("month", "Month")]
+    )
+    starts_at = models.DateTimeField()
+    ends_at = models.DateTimeField()
+    accepted = models.PositiveBigIntegerField(default=0)
+    denied = models.PositiveBigIntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["quota", "client_key", "period", "starts_at"],
+                name="api_usage_bucket_unique",
+            )
+        ]
+        indexes = [models.Index(fields=["ends_at"], name="api_usage_retention")]

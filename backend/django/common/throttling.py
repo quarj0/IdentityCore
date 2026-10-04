@@ -1,14 +1,20 @@
-from rest_framework.throttling import SimpleRateThrottle
+from rest_framework.throttling import BaseThrottle, SimpleRateThrottle
 
 
-class APIClientRateThrottle(SimpleRateThrottle):
-    scope = "api_client"
+class APIClientRateThrottle(BaseThrottle):
+    def allow_request(self, request, view):
+        from apps.api_clients.usage import reserve_request
 
-    def get_cache_key(self, request, view):
-        api_client = getattr(request, "api_client", None)
-        if api_client is None:
-            return None
-        return self.cache_format % {"scope": self.scope, "ident": api_client.client_id}
+        client = getattr(request, "api_client", None)
+        if client is None:
+            return True
+        allowed, headers, self.retry_seconds = reserve_request(client)
+        raw = getattr(request, "_request", request)
+        raw.api_usage_headers = headers
+        return allowed
+
+    def wait(self):
+        return getattr(self, "retry_seconds", None)
 
 
 class VerificationSessionRateThrottle(SimpleRateThrottle):
@@ -16,13 +22,12 @@ class VerificationSessionRateThrottle(SimpleRateThrottle):
 
     def get_cache_key(self, request, view):
         verification_session = getattr(request, "verification_session", None)
-        if verification_session is None:
-            session_id = request.headers.get("X-Session-Id")
-            if not session_id:
-                return None
-            ident = session_id
-        else:
-            ident = verification_session.public_id
+        if (
+            verification_session is None
+            or getattr(request, "api_client", None) is not None
+        ):
+            return None
+        ident = verification_session.public_id
         return self.cache_format % {"scope": self.scope, "ident": ident}
 
 
@@ -30,6 +35,11 @@ class DashboardUserRateThrottle(SimpleRateThrottle):
     scope = "dashboard_user"
 
     def get_cache_key(self, request, view):
+        if (
+            getattr(request, "api_client", None) is not None
+            or getattr(request, "verification_session", None) is not None
+        ):
+            return None
         user = getattr(request, "user", None)
         if not user or not getattr(user, "is_authenticated", False):
             return None

@@ -84,6 +84,7 @@ export const dashboardNav = [
         label: "Webhooks",
         icon: Webhook,
       },
+      { href: "/api-usage", label: "API usage", icon: ListChecks },
       {
         href: "/audit-logs",
         label: "Audit logs",

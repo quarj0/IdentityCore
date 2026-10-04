@@ -38,12 +38,16 @@ class APIClientAuthentication(BaseAuthentication):
 
         raw_secret = authorization[len(self.keyword) + 1 :].strip()
         try:
-            api_client = APIClient.objects.select_related("tenant").get(
-                client_id=client_id
+            api_client = APIClient.objects.select_related("tenant", "project").get(
+                client_id=client_id,
+                deleted_at__isnull=True,
+                tenant__deleted_at__isnull=True,
             )
         except APIClient.DoesNotExist as exc:
             raise AuthenticationFailed("Invalid API client credentials.") from exc
 
+        if api_client.project_id and api_client.project.deleted_at:
+            raise AuthenticationFailed("Invalid API client credentials.")
         if api_client.status != APIClientStatus.ACTIVE:
             raise AuthenticationFailed("API client is not active.")
         if not api_client.verify_client_secret(raw_secret):
