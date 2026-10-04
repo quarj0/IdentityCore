@@ -61,7 +61,7 @@ def locked_file(root, value):
 
 
 def finite(value):
-    require(type(value) in {int, float} and math.isfinite(value) and 0 <= value <= 1)
+    require(type(value) in {int, float} and 0 <= value <= 1 and math.isfinite(value))
     return value
 
 

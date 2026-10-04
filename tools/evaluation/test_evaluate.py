@@ -123,7 +123,7 @@ class LockedEvaluationTests(unittest.TestCase):
                 evaluation.evaluate(self.path)
 
     def test_nonfinite_and_unbounded_thresholds_fail(self):
-        for threshold in [True, float("nan"), float("inf"), -0.1, 1.1]:
+        for threshold in [True, float("nan"), float("inf"), -0.1, 1.1, 10**500]:
             self.manifest["tasks"]["liveness"]["threshold"] = threshold
             self.save()
             with self.assertRaises(evaluation.EvaluationError):
