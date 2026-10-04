@@ -63,6 +63,8 @@ class ProviderAdapter(Protocol):
 
     def risk_check(self, **kwargs) -> ProviderResult: ...
 
+    def document_authenticity(self, **kwargs) -> ProviderResult: ...
+
 
 class BuiltInAIServiceAdapter:
     """Adapter for the platform's internal AI HTTP service."""

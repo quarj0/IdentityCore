@@ -302,6 +302,7 @@ def activate_configuration(*, config, user):
 def assign_configuration(*, config, user, capability, countries=(), document_types=()):
     _require(user, config.provider)
     if capability not in {
+        "document_authenticity",
         "document_quality",
         "document_classification",
         "document_ocr",

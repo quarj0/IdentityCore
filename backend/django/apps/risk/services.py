@@ -42,6 +42,38 @@ def _document_requires_manual_review(classification: dict | None) -> bool:
     )
 
 
+def _safe_authenticity_evidence(bundle):
+    if not isinstance(bundle, dict):
+        return None
+    fields = {
+        "authenticity_version",
+        "status",
+        "verdict",
+        "confidence",
+        "model_name",
+        "model_version",
+        "source_size",
+        "coordinate_space",
+        "regions",
+    }
+    return {
+        "authenticity_version": bundle.get("authenticity_version"),
+        "requires_manual_review": bundle.get("requires_manual_review", True),
+        "captures": [
+            {
+                "capture_id": item.get("capture_id"),
+                "provider_check_id": item.get("provider_check_id"),
+                "result": {
+                    key: value
+                    for key, value in item.get("result", {}).items()
+                    if key in fields
+                },
+            }
+            for item in bundle.get("captures", [])[:20]
+        ],
+    }
+
+
 def evaluate_risk_assessment(verification, *, external_evidence=None) -> RiskAssessment:
     latest_liveness_check = verification.liveness_checks.order_by("-checked_at").first()
     latest_face_match = verification.face_matches.order_by("-matched_at").first()
@@ -57,12 +89,25 @@ def evaluate_risk_assessment(verification, *, external_evidence=None) -> RiskAss
     )
     face_match_threshold, manual_review_threshold = _get_policy_thresholds(verification)
 
+    authenticity = (
+        (latest_identity_document.extracted_data_json or {}).get(
+            "document_authenticity"
+        )
+        if latest_identity_document
+        else None
+    )
+    authenticity_review = bool(
+        verification.policy_snapshot_json.get("document_authenticity_required")
+        and (not authenticity or authenticity.get("requires_manual_review", True))
+    )
     signals = {
+        "document_authenticity": _safe_authenticity_evidence(authenticity),
         "document_submitted": verification.identity_documents.exists(),
         "document_classification": document_classification,
         "document_requires_manual_review": _document_requires_manual_review(
             document_classification
-        ),
+        )
+        or authenticity_review,
         "selfie_submitted": verification.selfie_captures.exists(),
         "liveness_status": (
             latest_liveness_check.status if latest_liveness_check else "missing"
@@ -119,7 +164,9 @@ def evaluate_risk_assessment(verification, *, external_evidence=None) -> RiskAss
             risk_score = Decimal("68.00")
             risk_level = RiskLevel.MEDIUM
             recommendation = RiskRecommendation.MANUAL_REVIEW
-    elif _document_requires_manual_review(document_classification):
+    elif (
+        _document_requires_manual_review(document_classification) or authenticity_review
+    ):
         # Strong biometric evidence must not automatically approve a document
         # that was inconclusive, mismatched, or unavailable. Preserve the full
         # evidence set and route the completed case to a human reviewer.

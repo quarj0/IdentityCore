@@ -54,6 +54,8 @@ class VerificationPolicyAPITests(APITestCase):
                 "face_match_threshold": "0.8500",
                 "manual_review_threshold": "0.6500",
                 "maker_checker_required": True,
+                "document_authenticity_required": True,
+                "document_authenticity_min_confidence": "0.97",
                 "external_risk_enabled": True,
                 "external_risk_failure_action": "ignore",
                 "external_risk_review_threshold": 85,
@@ -175,6 +177,8 @@ class VerificationPolicyAPITests(APITestCase):
                 "face_match_threshold": "0.8500",
                 "manual_review_threshold": "0.6500",
                 "maker_checker_required": True,
+                "document_authenticity_required": True,
+                "document_authenticity_min_confidence": "0.97",
                 "external_risk_enabled": True,
                 "external_risk_failure_action": "ignore",
                 "external_risk_review_threshold": "42.50",
@@ -202,6 +206,10 @@ class VerificationPolicyAPITests(APITestCase):
         self.assertEqual(clone.data["data"]["version"], 2)
         self.assertEqual(clone.data["data"]["status"], "draft")
         self.assertTrue(clone.data["data"]["maker_checker_required"])
+        self.assertTrue(clone.data["data"]["document_authenticity_required"])
+        self.assertEqual(
+            float(clone.data["data"]["document_authenticity_min_confidence"]), 0.97
+        )
         self.assertTrue(clone.data["data"]["external_risk_enabled"])
         self.assertEqual(clone.data["data"]["external_risk_failure_action"], "ignore")
         self.assertEqual(

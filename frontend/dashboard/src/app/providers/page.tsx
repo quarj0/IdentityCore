@@ -7,7 +7,7 @@ type Capability = { countries: string[]; document_types: string[]; input_schema:
 type Provider = { id: string; name: string; tenant_id: string | null; manifest: { capabilities?: Record<string, Capability> } };
 type Configuration = { id: string; environment: string; version: number; status: string; configuration: { endpoint_url: string }; diff: Record<string, { before: unknown; after: unknown }>; tested_at: string | null; test_succeeded: boolean; approved_by: string | null };
 const capabilitiesByType: Record<string, string[]> = {
-  document: ["document_quality", "document_classification", "document_ocr"],
+  document: ["document_quality", "document_classification", "document_ocr", "document_authenticity"],
   biometric: ["face_match", "liveness"], liveness: ["liveness"],
   risk: ["risk_check"],
 };

@@ -149,6 +149,14 @@ components:
           type: number
         manual_review_threshold:
           type: number
+        document_authenticity_required:
+          type: boolean
+          default: false
+        document_authenticity_min_confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+          default: 0.9
         external_risk_enabled:
           type: boolean
           default: false
@@ -397,6 +405,14 @@ components:
           minimum: 0
           maximum: 1
           description: Must be less than or equal to face_match_threshold.
+        document_authenticity_required:
+          type: boolean
+          default: false
+        document_authenticity_min_confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+          default: 0.9
         external_risk_enabled:
           type: boolean
           default: false

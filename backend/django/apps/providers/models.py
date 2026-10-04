@@ -22,6 +22,7 @@ class ProviderStatus(models.TextChoices):
 
 
 class ProviderCheckType(models.TextChoices):
+    DOCUMENT_AUTHENTICITY = "document_authenticity", "Document Authenticity"
     DOCUMENT_OCR = "document_ocr", "Document OCR"
     DOCUMENT_CLASSIFICATION = "document_classification", "Document Classification"
     DOCUMENT_QUALITY = "document_quality", "Document Quality"
@@ -41,6 +42,7 @@ class ProviderCheckStatus(models.TextChoices):
 
 
 CHECK_TYPE_PROVIDER_TYPES = {
+    ProviderCheckType.DOCUMENT_AUTHENTICITY: {ProviderType.DOCUMENT},
     ProviderCheckType.DOCUMENT_OCR: {ProviderType.DOCUMENT},
     ProviderCheckType.DOCUMENT_CLASSIFICATION: {ProviderType.DOCUMENT},
     ProviderCheckType.DOCUMENT_QUALITY: {ProviderType.DOCUMENT},
@@ -141,6 +143,10 @@ class ProviderAssignmentStatus(models.TextChoices):
 
 
 class ProviderAssignmentKey(models.TextChoices):
+    DOCUMENT_AUTHENTICITY = (
+        ProviderCheckType.DOCUMENT_AUTHENTICITY,
+        "Document Authenticity",
+    )
     DOCUMENT_OCR = ProviderCheckType.DOCUMENT_OCR, "Document OCR"
     DOCUMENT_CLASSIFICATION = (
         ProviderCheckType.DOCUMENT_CLASSIFICATION,
@@ -230,6 +236,7 @@ class ProviderAssignment(PublicIdModel, BaseModel):
             )
 
         allowed_types = {
+            ProviderAssignmentKey.DOCUMENT_AUTHENTICITY: {ProviderType.DOCUMENT},
             ProviderAssignmentKey.DOCUMENT_OCR: {ProviderType.DOCUMENT},
             ProviderAssignmentKey.DOCUMENT_CLASSIFICATION: {ProviderType.DOCUMENT},
             ProviderAssignmentKey.DOCUMENT_QUALITY: {ProviderType.DOCUMENT},

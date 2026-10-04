@@ -448,6 +448,16 @@ def process_identity_document_task(identity_document_id: str) -> str:
             or "document_media_missing" in set(ocr_result.get("issues") or [])
         ):
             manual_review_required = True
+        from apps.identity_documents.authenticity import collect_authenticity
+
+        authenticity = collect_authenticity(
+            verification=verification,
+            document=identity_document,
+            captures=captures,
+            processing_job=processing_job,
+        )
+        if authenticity and authenticity["requires_manual_review"]:
+            manual_review_required = True
         heartbeat_processing_job(processing_job)
 
         with transaction.atomic():
@@ -455,6 +465,7 @@ def process_identity_document_task(identity_document_id: str) -> str:
             identity_document.extracted_data_json = {
                 **ocr_result.get("extracted_fields", {}),
                 "document_classification": classification_result,
+                **({"document_authenticity": authenticity} if authenticity else {}),
                 "document_quality": {
                     "status": latest_quality_status,
                     "quality_score": (
