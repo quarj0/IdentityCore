@@ -16,8 +16,8 @@ through its stated day, plus any configured grace. Evaluation uses a UTC date.
 Country rules are customer policy configuration, not claims about local law.
 
 MRZ two-digit years are interpreted only when exactly one plausible century
-exists (birth age 0–120; expiry within 50 years). A matching full subject birth
-date may resolve the century. Ambiguous birth dates have no age and emit an
+exists (birth age 0–120; expiry within 50 years). A matching full birth date extracted from the document
+may resolve the century. An applicant-provided date cannot select a century. Ambiguous birth dates have no age and emit an
 explicit signal. Invalid calendar dates, unknown encodings and unsupported MRZs
 cannot establish age from MRZ evidence. A missing age emits
 `document_birth_date_unavailable` when a minimum age is configured. Original visual OCR evidence is retained beside

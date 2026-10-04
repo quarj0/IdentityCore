@@ -86,7 +86,7 @@ def _iso(value):
         return None
 
 
-def _mrz_date(value, today, *, birth=False, claimed=None):
+def _mrz_date(value, today, *, birth=False, document_date=None):
     if (
         not isinstance(value, str)
         or len(value) != 6
@@ -94,8 +94,8 @@ def _mrz_date(value, today, *, birth=False, claimed=None):
         or not value.isdigit()
     ):
         return None, False
-    if claimed and claimed.strftime("%y%m%d") == value:
-        return claimed, False
+    if document_date and document_date.strftime("%y%m%d") == value:
+        return document_date, False
     candidates = []
     for century in (today.year // 100 - 1, today.year // 100, today.year // 100 + 1):
         try:
@@ -172,7 +172,7 @@ def collect_consistency(document, verification, *, today=None):
         visual = extracted
     visible_birth = _iso(visual.get("date_of_birth"))
     birth, ambiguous = _mrz_date(
-        value("date_of_birth_mrz"), today, birth=True, claimed=claimed_birth
+        value("date_of_birth_mrz"), today, birth=True, document_date=visible_birth
     )
     if ambiguous:
         issues.add("document_birth_date_ambiguous")
@@ -196,7 +196,9 @@ def collect_consistency(document, verification, *, today=None):
                     raw,
                     today,
                     birth=key.startswith("date_of_birth"),
-                    claimed=claimed_birth if key.startswith("date_of_birth") else None,
+                    document_date=(
+                        visible_birth if key.startswith("date_of_birth") else None
+                    ),
                 )
                 == (None, False)
             ):
@@ -217,6 +219,15 @@ def collect_consistency(document, verification, *, today=None):
             and visible_birth != birth
         ):
             issues.add("document_birth_date_mismatch")
+        raw_birth = value("date_of_birth_mrz")
+        if (
+            claimed_birth
+            and raw_birth
+            and raw_birth.isdigit()
+            and len(raw_birth) == 6
+            and claimed_birth.strftime("%y%m%d") != raw_birth
+        ):
+            issues.add("document_birth_date_mismatch")
         visible_name = _name(visual.get("full_name"))
         mrz_name = _name(value("name"))
         claimed_name = _name(verification.verification_subject.full_name)
@@ -234,7 +245,7 @@ def collect_consistency(document, verification, *, today=None):
             issues.add("document_number_mismatch")
     elif isinstance(mrz, dict) and "mrz_checksum_invalid" in (mrz.get("issues") or []):
         issues.add("mrz_checksum_invalid")
-    if any(value and value > today for value in (birth, visible_birth, claimed_birth)):
+    if any(value and value > today for value in (birth, visible_birth)):
         issues.add("document_birth_date_future")
     if issued and issued > today:
         issues.add("document_issue_date_future")

@@ -127,14 +127,36 @@ class DocumentConsistencyTests(SimpleTestCase):
             )["issues"],
         )
 
-    def test_mrz_century_ambiguity_is_explicit_and_claim_can_resolve_it(self):
+    def test_mrz_century_requires_full_document_evidence(self):
         mrz = {"status": "valid", "fields": {"date_of_birth_mrz": {"value": "100101"}}}
         result = self.evaluate(mrz=mrz)
         self.assertIn("document_birth_date_ambiguous", result["issues"])
         self.assertIsNone(result["age_years"])
-        result = self.evaluate(mrz=mrz, birth=date(2010, 1, 1))
+        for claimed in (date(1910, 1, 1), date(2010, 1, 1)):
+            result = self.evaluate(
+                mrz=mrz,
+                birth=claimed,
+                rules={
+                    "version": 1,
+                    "countries": {
+                        "*": {
+                            "minimum_age": 18,
+                            "actions": {
+                                "document_birth_date_ambiguous": "manual_review"
+                            },
+                        }
+                    },
+                },
+            )
+            self.assertIn("document_birth_date_ambiguous", result["issues"])
+            self.assertIsNone(result["age_years"])
+            self.assertEqual(result["recommended_action"], "manual_review")
+        result = self.evaluate(
+            mrz=mrz, birth=date(1910, 1, 1), fields={"date_of_birth": "2010-01-01"}
+        )
         self.assertNotIn("document_birth_date_ambiguous", result["issues"])
         self.assertEqual(result["age_years"], 16)
+        self.assertIn("document_birth_date_mismatch", result["issues"])
 
     def test_cross_field_mismatch_and_country_do_not_expose_identity_values(self):
         mrz = {
@@ -227,3 +249,16 @@ class DocumentConsistencyTests(SimpleTestCase):
                 "document_expired",
                 collect_consistency(document, verification)["issues"],
             )
+
+    def test_claimed_future_date_is_not_document_future_evidence(self):
+        result = self.evaluate(
+            birth=date(2030, 1, 1),
+            rules={
+                "version": 1,
+                "countries": {
+                    "*": {"actions": {"document_birth_date_future": "reject"}}
+                },
+            },
+        )
+        self.assertNotIn("document_birth_date_future", result["issues"])
+        self.assertEqual(result["recommended_action"], "ignore")
