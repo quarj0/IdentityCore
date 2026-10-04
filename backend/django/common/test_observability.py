@@ -26,6 +26,8 @@ class ObservabilityTests(SimpleTestCase):
         with telemetry.operation("api", "request"):
             headers = {}
             telemetry.inject(headers)
+        headers["tracestate"] = "vendor=private-applicant"
+        headers["baggage"] = "applicant=private"
         with telemetry.operation("worker", "task", context=telemetry.extract(headers)):
             with telemetry.operation("provider", "invoke"):
                 outgoing = {}
