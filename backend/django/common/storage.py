@@ -1,17 +1,28 @@
 from common.observability import observed, inject
 from urllib.parse import urlencode
+import os
 
 import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
 from django.conf import settings
 
-from apps.platform_settings.services import get_platform_setting_value
+from apps.platform_settings.services import (
+    get_platform_setting_value as _runtime_setting,
+)
 from common.crypto import (
     decrypt_object_bytes,
     encrypt_object_bytes,
     is_encrypted_object_payload,
 )
+
+
+def get_platform_setting_value(key, default=""):
+    # Restored runtime settings may still contain production storage endpoints.
+    # An isolated drill must use only explicitly configured target storage.
+    if os.getenv("IDENTITYCORE_RESTORE_ISOLATED") == "1":
+        return default
+    return _runtime_setting(key, default)
 
 
 def _first_non_empty(*values: object) -> str:
