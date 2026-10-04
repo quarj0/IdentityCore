@@ -47,6 +47,7 @@ class PlatformUser(PublicIdModel, BaseModel, AbstractBaseUser, PermissionsMixin)
     )
     notification_preferences_json = models.JSONField(default=dict, blank=True)
     last_login_at = models.DateTimeField(null=True, blank=True)
+    auth_valid_after = models.DateTimeField(null=True, blank=True)
     is_staff = models.BooleanField(default=False)
 
     objects = PlatformUserManager()
@@ -83,6 +84,20 @@ class PlatformUser(PublicIdModel, BaseModel, AbstractBaseUser, PermissionsMixin)
         return self.email
 
 
+class DashboardSession(PublicIdModel, BaseModel):
+    public_id_prefix = "dss"
+    user = models.ForeignKey(
+        PlatformUser, on_delete=models.CASCADE, related_name="dashboard_sessions"
+    )
+    family_id = models.UUIDField(default=uuid.uuid4, unique=True)
+    scope = models.CharField(max_length=32, default="legacy")
+    device_label = models.CharField(max_length=80, default="Unknown device")
+    peer_network = models.CharField(max_length=64, blank=True)
+    last_seen_at = models.DateTimeField()
+    expires_at = models.DateTimeField(db_index=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+
 class RefreshTokenSession(BaseModel):
     """Server-side state used to make refresh-token rotation replay safe."""
 
@@ -93,6 +108,7 @@ class RefreshTokenSession(BaseModel):
     family_id = models.UUIDField(default=uuid.uuid4, db_index=True)
     consumed_at = models.DateTimeField(null=True, blank=True)
     revoked_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True, db_index=True)
 
     class Meta:
         indexes = [

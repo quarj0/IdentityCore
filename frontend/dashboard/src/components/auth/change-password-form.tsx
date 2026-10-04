@@ -1,5 +1,7 @@
 "use client";
 
+import { endAuthSession } from "@/lib/logout";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowRight, Loader2, ShieldCheck } from "lucide-react";
 import {
@@ -18,6 +20,7 @@ import { changePassword } from "@/lib/account-graphql";
 import { getErrorMessage } from "@/lib/api-client";
 
 export function ChangePasswordForm() {
+  const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -42,11 +45,16 @@ export function ChangePasswordForm() {
 
     setSubmitting(true);
     try {
-      const payload = await changePassword(currentPassword, newPassword);
+      await changePassword(currentPassword, newPassword);
+      try {
+        await endAuthSession();
+      } finally {
+        router.replace("/login?password_changed=1");
+      }
       setFeedback({
         kind: "success",
         title: "Password changed",
-        message: payload.message,
+        message: "Sign in again with your new password.",
       });
       setCurrentPassword("");
       setNewPassword("");

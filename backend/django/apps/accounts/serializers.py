@@ -80,7 +80,7 @@ class RefreshInputSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         try:
-            access, refresh = rotate_refresh_token(attrs["refresh"])
+            access, refresh = rotate_refresh_token(attrs["refresh"], request=self.context.get("request"))
         except TokenError as exc:
             raise serializers.ValidationError(
                 "Invalid or expired refresh token."
