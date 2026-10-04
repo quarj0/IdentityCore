@@ -131,7 +131,27 @@ class IdentityDocumentTaskTests(TestCase):
         mock_ocr.return_value = {
             "status": "completed",
             "confidence_score": 0.91,
-            "extracted_fields": {"full_name": "Kwame Mensah"},
+            "extracted_fields": {
+                "full_name": "Kwame Mensah",
+                "mrz_evidence": {
+                    "status": "valid",
+                    "format": "TD1",
+                    "rule_version": "icao-9303-v1",
+                },
+                "mrz_fields": {
+                    "document_number": {
+                        "value": "D23145890",
+                        "provenance": {
+                            "source": "icao_mrz",
+                            "format": "TD1",
+                            "ocr_line": 0,
+                            "start": 5,
+                            "end": 14,
+                            "rule_version": "icao-9303-v1",
+                        },
+                    }
+                },
+            },
             "model_name": "mock-ocr",
             "model_version": "v1",
         }
@@ -163,6 +183,10 @@ class IdentityDocumentTaskTests(TestCase):
         )
         self.assertEqual(
             self.identity_document.extracted_data_json["full_name"], "Kwame Mensah"
+        )
+        self.assertEqual(
+            self.identity_document.extracted_data_json["mrz_fields"],
+            mock_ocr.return_value["extracted_fields"]["mrz_fields"],
         )
         self.assertIn(
             "document_classification", self.identity_document.extracted_data_json
@@ -437,7 +461,9 @@ class IdentityDocumentTaskTests(TestCase):
         }
         mock_promote.side_effect = RuntimeError("storage unavailable")
 
-        with self.assertLogs("apps.identity_documents.tasks", level="WARNING") as captured:
+        with self.assertLogs(
+            "apps.identity_documents.tasks", level="WARNING"
+        ) as captured:
             result = process_identity_document_task(self.identity_document.public_id)
         self.assertNotIn(self.upload.storage_key, " ".join(captured.output))
         self.assertEqual(captured.records[0].storage_key, "[REDACTED]")

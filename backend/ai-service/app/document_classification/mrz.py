@@ -33,7 +33,9 @@ def _check_digit(value: str) -> str:
 def _candidate_lines(lines: list[str]) -> list[str]:
     candidates: list[str] = []
     for text in lines:
-        raw = "".join(character for character in text.upper() if not character.isspace())
+        raw = "".join(
+            character for character in text.upper() if not character.isspace()
+        )
         if raw:
             candidates.append(raw)
     return candidates
@@ -52,21 +54,26 @@ def evaluate_td3_mrz(lines: list[str]) -> MrzEvidence:
             second[9] == _check_digit(second[0:9]),
             second[19] == _check_digit(second[13:19]),
             second[27] == _check_digit(second[21:27]),
+            second[42] == _check_digit(second[28:42])
+            or (second[42] == "<" and set(second[28:42]) == {"<"}),
             second[43] == _check_digit(second[0:10] + second[13:20] + second[21:43]),
         ]
-        score = 0.55 + (0.1 * sum(1 for check in checks if check))
-        if all(checks):
+        score = 0.55 + (0.08 * sum(1 for check in checks if check))
+        from .mrz_parser import parse_mrz
+
+        structure_valid = parse_mrz([first, second])["status"] == "valid"
+        if all(checks) and structure_valid:
             score = 0.95
             return MrzEvidence(
                 valid=True,
                 score=score,
-                issuing_country=second[2:5].replace("<", "") or None,
+                issuing_country=first[2:5].replace("<", "") or None,
                 matched_lines=(first, second),
             )
         return MrzEvidence(
             valid=False,
             score=score,
-            issuing_country=second[2:5].replace("<", "") or None,
+            issuing_country=first[2:5].replace("<", "") or None,
             matched_lines=(first, second),
             reason_codes=("passport_mrz_invalid",),
         )

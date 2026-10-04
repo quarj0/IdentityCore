@@ -609,3 +609,39 @@ def test_real_paddle_ocr_disables_unstable_optional_classifiers(monkeypatch, tmp
     assert captured["use_textline_orientation"] is False
     assert captured["enable_mkldnn"] is False
     assert "textline_orientation_model_dir" not in captured
+
+
+def test_ocr_pipeline_retains_mrz_checksum_and_field_provenance(monkeypatch):
+    import numpy as np
+    from types import SimpleNamespace
+    from app import pipeline
+
+    lines = [
+        "P<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<",
+        "L898902C36UTO7408122F1204159ZE184226B<<<<<10",
+    ]
+    monkeypatch.setattr(
+        pipeline,
+        "load_media_asset",
+        lambda *args, **kwargs: SimpleNamespace(
+            primary_frame=np.zeros((4, 4, 3), dtype=np.uint8)
+        ),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "get_paddle_ocr_engine",
+        lambda: SimpleNamespace(
+            predict=lambda image: [{"rec_texts": lines, "rec_scores": [0.99, 0.99]}]
+        ),
+    )
+    result = pipeline.run_document_ocr_pipeline("synthetic/key", "passport", "GH")
+    assert result["mrz_evidence"]["status"] == "valid"
+    assert result["extracted_fields"]["document_number"] == "L898902C3"
+    field = result["extracted_fields"]["mrz_fields"]["document_number"]
+    assert field["provenance"]["ocr_line"] == 1
+    assert result["extracted_fields"]["mrz_evidence"] == result["mrz_evidence"]
+    lines[1] = "Z" + lines[1][1:]
+    result = pipeline.run_document_ocr_pipeline("synthetic/key", "passport", "GH")
+    assert result["mrz_evidence"]["status"] == "invalid"
+    assert "mrz_fields" not in result["extracted_fields"]
+    assert result["issues"] == ["mrz_checksum_invalid"]
