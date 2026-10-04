@@ -85,24 +85,36 @@ def security_headers(headers, *, html=False):
         headers.get("X-Frame-Options", "").upper() in {"DENY", "SAMEORIGIN"}, "framing"
     )
     if html:
-        directives = {
-            part.strip().split(" ", 1)[0]: part.strip()
-            for part in headers.get("Content-Security-Policy", "").split(";")
-            if part.strip()
-        }
+        directives = {}
+        for part in headers.get("Content-Security-Policy", "").split(";"):
+            tokens = part.split()
+            if tokens:
+                # Browsers use the first occurrence of a duplicate directive.
+                directives.setdefault(tokens[0].lower(), tokens[1:])
         require(
             "default-src" in directives
-            and "'none'" in directives.get("object-src", "")
+            and directives.get("object-src") == ["'none'"]
             and "frame-ancestors" in directives
             and "base-uri" in directives
             and "script-src" in directives,
             "csp_missing_directive",
         )
-        scripts = directives["script-src"].split()[1:]
         require(
-            "*" not in scripts
-            and "'unsafe-inline'" not in scripts
-            and "'unsafe-eval'" not in scripts,
+            directives["frame-ancestors"] in (["'none'"], ["'self'"])
+            and directives["base-uri"] in (["'none'"], ["'self'"]),
+            "csp_unsafe_boundary",
+        )
+        script_policies = [directives["script-src"]]
+        for name in ("script-src-elem", "script-src-attr"):
+            if name in directives:
+                script_policies.append(directives[name])
+        require(
+            all(
+                "*" not in scripts
+                and "'unsafe-inline'" not in scripts
+                and "'unsafe-eval'" not in scripts
+                for scripts in script_policies
+            ),
             "csp_unsafe_script",
         )
 
@@ -246,10 +258,11 @@ def run(config, credentials, *, ca_file=None):
             raw = SimpleCookie()
             for value in headers.get_all("Set-Cookie", []):
                 raw.load(value)
+            cookie = (
+                "; ".join(f"{key}={value.value}" for key, value in raw.items()) or None
+            )
             name = config.get("refresh_cookie_name", "identitycore_refresh_dashboard")
             require(bool(re.fullmatch(r"[A-Za-z0-9_-]{1,128}", name)), "cookie_name")
-            if name in raw:
-                cookie = f"{name}={raw[name].value}"
             require(status == 200, "login_or_mfa_required")
             checked_cookies(headers, [name], "/api/v1/auth/")
         finally:

@@ -9,7 +9,8 @@ import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from check_deployed_security import CheckFailed, origin, run
+from check_deployed_security import CheckFailed, origin, run, security_headers
+from email.message import Message
 
 
 class DeploymentChecksTests(unittest.TestCase):
@@ -85,7 +86,12 @@ class DeploymentChecksTests(unittest.TestCase):
                 self.send_header("X-Frame-Options", "DENY")
                 self.send_header(
                     "Content-Security-Policy",
-                    "default-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; script-src 'self' 'nonce-test'",
+                    "default-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; script-src 'self' 'nonce-test'"
+                    + (
+                        "; script-src-elem * 'unsafe-inline'"
+                        if owner.mode == "script_elements"
+                        else ""
+                    ),
                 )
                 if self.command == "OPTIONS":
                     incoming = self.headers.get("Origin")
@@ -180,6 +186,42 @@ class DeploymentChecksTests(unittest.TestCase):
                     )
                 )
                 self.assertEqual(type(self).revocations, before + 1)
+
+    def test_effective_script_element_override_blocks_promotion(self):
+        type(self).mode = "script_elements"
+        report = run(self.config, self.credentials, ca_file=str(self.cert))
+        self.assertFalse(report["passed"])
+        self.assertFalse(
+            next(
+                item["passed"]
+                for item in report["checks"]
+                if item["check"] == "dashboard_tls_headers"
+            )
+        )
+
+    def test_duplicate_script_and_framing_directives_follow_browser_semantics(self):
+        headers = Message()
+        headers["Strict-Transport-Security"] = "max-age=31536000"
+        headers["X-Content-Type-Options"] = "nosniff"
+        headers["Referrer-Policy"] = "no-referrer"
+        headers["X-Frame-Options"] = "DENY"
+        prefix = "default-src 'self'; object-src 'none'; base-uri 'self'; "
+        for suffix in [
+            "frame-ancestors 'none'; script-src *; script-src 'self'",
+            "frame-ancestors 'none'; script-src 'self'; script-src-attr 'unsafe-inline'",
+            "frame-ancestors *; script-src 'self'",
+        ]:
+            headers["Content-Security-Policy"] = prefix + suffix
+            with self.subTest(suffix=suffix), self.assertRaises(CheckFailed):
+                security_headers(headers, html=True)
+            del headers["Content-Security-Policy"]
+
+    def test_stale_cookie_policy_still_revokes_the_issued_session(self):
+        self.config["refresh_cookie_name"] = "wrong_cookie_name"
+        before = type(self).revocations
+        report = run(self.config, self.credentials, ca_file=str(self.cert))
+        self.assertFalse(report["passed"])
+        self.assertEqual(type(self).revocations, before + 1)
 
     def test_untrusted_certificate_fails_without_sensitive_error(self):
         report = run(self.config, self.credentials)

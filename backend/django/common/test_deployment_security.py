@@ -10,6 +10,7 @@ class ProductionCorsTests(SimpleTestCase):
         self.assertTrue(is_allowed_local_origin("https://dashboard.example.org"))
         for origin in [
             "https://localhost",
+            "https://[::1]",
             "http://127.0.0.1",
             "null",
             "https://dashboard.example.org.evil.invalid",
@@ -28,6 +29,7 @@ class ProductionCorsTests(SimpleTestCase):
         for value in [
             "http://dashboard.example.org",
             "https://localhost",
+            "https://[::1]",
             "https://*.example.org",
             "https://dashboard.example.org/path",
             "https://user:private@dashboard.example.org",

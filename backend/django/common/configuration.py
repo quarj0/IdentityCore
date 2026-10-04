@@ -14,7 +14,7 @@ PLACEHOLDER_PARTS = (
     "unsafe",
     "<your-",
 )
-LOCAL_HOSTS = {"localhost", "127.0.0.1", "[::1]", "django"}
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "[::1]", "::1", "django"}
 
 
 def validate_production_environment(environment: Mapping[str, str]) -> None:

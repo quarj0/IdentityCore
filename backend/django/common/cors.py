@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 from django.conf import settings
 from django.http import HttpResponse
 
-LOCAL_HOSTS = {"localhost", "127.0.0.1", "[::1]"}
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "[::1]", "::1"}
 
 
 def is_allowed_local_origin(origin: str) -> bool:
