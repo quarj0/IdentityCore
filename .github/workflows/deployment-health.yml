@@ -1,0 +1,50 @@
+name: Deployment readiness promotion gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        required: true
+        type: choice
+        options: [sandbox, production]
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Gate the environment candidate readiness
+        env:
+          DEPLOYMENT_SECURITY_CONFIG: ${{ vars.DEPLOYMENT_SECURITY_CONFIG }}
+          TARGET_ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          python - <<'PY'
+          import json, os, subprocess, sys
+          try:
+              policy = json.loads(os.environ['DEPLOYMENT_SECURITY_CONFIG'])
+              if policy['environment'] != os.environ['TARGET_ENVIRONMENT']:
+                  raise ValueError()
+              api = policy['api']
+          except Exception:
+              raise SystemExit('Deployment readiness policy is missing or inconsistent.')
+          raise SystemExit(subprocess.call([sys.executable, 'scripts/check_deployment_health.py', '--api', api, '--output', 'readiness-report.json']))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deployment-readiness-${{ inputs.environment }}
+          path: readiness-report.json
+          if-no-files-found: error
+          retention-days: 30

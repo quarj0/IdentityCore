@@ -13,7 +13,8 @@ from config.api_views import (
 from config.graphql import schema
 from config.graphql_view import AuthenticatedGraphQLView
 from common.responses import success_json_response
-from common.public_api import public_api_path
+from common.public_api import public_api_path, internal_api_path
+from common.deployment_health import ready
 
 
 @require_GET
@@ -24,8 +25,20 @@ def healthcheck(request):
     )
 
 
+@require_GET
+def readiness(request):
+    available = ready()
+    response = success_json_response(
+        {"status": "ready" if available else "unavailable"},
+        request=request, status=200 if available else 503,
+    )
+    response["Cache-Control"] = "no-store"
+    return response
+
+
 urlpatterns = [
     path("admin/", admin.site.urls),
+    internal_api_path("api/v1/ready", readiness, name="deployment-readiness"),
     public_api_path("api/v1/health", healthcheck, methods=("GET",)),
     public_api_path(
         "api/v1/document-types",

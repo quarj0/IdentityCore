@@ -365,6 +365,10 @@ def _provider_route_exhaustion_decision_for_job(
 
 def acquire_processing_job(*, job_type: str, resource) -> ProcessingJob | None:
     """Acquire one generation without allowing concurrent duplicate execution."""
+    from common.deployment_health import is_draining
+
+    if is_draining():
+        return None
     now = timezone.now()
     with transaction.atomic():
         job, _ = ProcessingJob.objects.select_for_update().get_or_create(
