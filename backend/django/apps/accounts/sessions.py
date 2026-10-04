@@ -231,6 +231,7 @@ def rotate_refresh_token(raw_token: str, *, request=None) -> tuple[str, str]:
             raise TokenError("Wrong session scope")
         if row and (row.consumed_at is not None or row.revoked_at is not None):
             _revoke_family(family_id)
+            PlatformUser.objects.filter(pk=user.pk).update(auth_valid_after=timezone.now())
             reused = True
         else:
             RefreshToken(raw_token)

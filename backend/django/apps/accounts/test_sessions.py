@@ -173,7 +173,9 @@ class DashboardSessionTests(APITestCase):
         self.assertEqual(DashboardSession.objects.count(), 1)
 
     def test_legacy_replay_revokes_its_migrated_successor(self):
-        original = str(RefreshToken.for_user(self.user))
+        original_token = RefreshToken.for_user(self.user)
+        legacy_access = str(original_token.access_token)
+        original = str(original_token)
         client = APIClient()
         client.cookies["identitycore_refresh"] = original
         response = client.post(
@@ -190,6 +192,8 @@ class DashboardSessionTests(APITestCase):
             401,
         )
         client.credentials(HTTP_AUTHORIZATION="Bearer " + access)
+        self.assertEqual(client.get("/api/v1/auth/me").status_code, 401)
+        client.credentials(HTTP_AUTHORIZATION="Bearer " + legacy_access)
         self.assertEqual(client.get("/api/v1/auth/me").status_code, 401)
 
     def test_scoped_cookie_cannot_fall_back_to_legacy_when_invalid(self):
