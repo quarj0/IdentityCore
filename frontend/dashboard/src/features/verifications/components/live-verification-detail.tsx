@@ -19,6 +19,8 @@ import {
   PendingIdempotentSubmission,
 } from "@/lib/idempotent-submission";
 
+import { AuthenticityEvidence } from "./authenticity-evidence";
+
 function messageOf(error: unknown) {
   return error instanceof Error
     ? error.message
@@ -262,6 +264,8 @@ export function LiveVerificationDetail({
           </CardContent>
         </Card>
       </div>
+
+      {review && <AuthenticityEvidence verificationId={id} />}
 
       {review &&
       (!item.decision || item.decision.approval_status === "pending") ? (

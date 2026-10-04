@@ -52,6 +52,16 @@ class VerificationPolicy(PublicIdModel, BaseModel):
     manual_review_threshold = models.DecimalField(
         max_digits=5, decimal_places=4, default=0.6500
     )
+    document_authenticity_required = models.BooleanField(
+        default=False, db_default=False
+    )
+    document_authenticity_min_confidence = models.DecimalField(
+        max_digits=5,
+        decimal_places=4,
+        default=0.9,
+        db_default=0.9,
+        validators=[MinValueValidator(0), MaxValueValidator(1)],
+    )
     external_risk_enabled = models.BooleanField(default=False, db_default=False)
     external_risk_failure_action = models.CharField(
         max_length=24,
@@ -147,6 +157,10 @@ class VerificationPolicy(PublicIdModel, BaseModel):
             "face_match_threshold": float(self.face_match_threshold),
             "manual_review_threshold": float(self.manual_review_threshold),
             "maker_checker_required": self.maker_checker_required,
+            "document_authenticity_required": self.document_authenticity_required,
+            "document_authenticity_min_confidence": float(
+                self.document_authenticity_min_confidence
+            ),
             "external_risk_enabled": self.external_risk_enabled,
             "external_risk_failure_action": self.external_risk_failure_action,
             "external_risk_review_threshold": float(

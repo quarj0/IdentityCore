@@ -24,6 +24,10 @@ def serialize_verification_policy(policy: VerificationPolicy) -> dict:
         "face_match_threshold": float(policy.face_match_threshold),
         "manual_review_threshold": float(policy.manual_review_threshold),
         "maker_checker_required": policy.maker_checker_required,
+        "document_authenticity_required": policy.document_authenticity_required,
+        "document_authenticity_min_confidence": float(
+            policy.document_authenticity_min_confidence
+        ),
         "external_risk_enabled": policy.external_risk_enabled,
         "external_risk_failure_action": policy.external_risk_failure_action,
         "external_risk_review_threshold": float(policy.external_risk_review_threshold),
@@ -53,6 +57,17 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
     )
     face_match_threshold = serializers.DecimalField(max_digits=5, decimal_places=4)
     manual_review_threshold = serializers.DecimalField(max_digits=5, decimal_places=4)
+    document_authenticity_required = serializers.BooleanField(
+        required=False, default=False
+    )
+    document_authenticity_min_confidence = serializers.DecimalField(
+        max_digits=5,
+        decimal_places=4,
+        min_value=0,
+        max_value=1,
+        required=False,
+        default=0.9,
+    )
     external_risk_enabled = serializers.BooleanField(required=False, default=False)
     external_risk_failure_action = serializers.ChoiceField(
         choices=["manual_review", "ignore"], required=False, default="manual_review"
@@ -135,6 +150,12 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
             face_match_threshold=validated_data["face_match_threshold"],
             manual_review_threshold=validated_data["manual_review_threshold"],
             maker_checker_required=validated_data["maker_checker_required"],
+            document_authenticity_required=validated_data[
+                "document_authenticity_required"
+            ],
+            document_authenticity_min_confidence=validated_data[
+                "document_authenticity_min_confidence"
+            ],
             external_risk_enabled=validated_data["external_risk_enabled"],
             external_risk_failure_action=validated_data["external_risk_failure_action"],
             external_risk_review_threshold=validated_data[
@@ -165,6 +186,10 @@ class VerificationPolicyUpdateSerializer(VerificationPolicyCreateSerializer):
     )
     manual_review_threshold = serializers.DecimalField(
         max_digits=5, decimal_places=4, required=False
+    )
+    document_authenticity_required = serializers.BooleanField(required=False)
+    document_authenticity_min_confidence = serializers.DecimalField(
+        max_digits=5, decimal_places=4, min_value=0, max_value=1, required=False
     )
     external_risk_enabled = serializers.BooleanField(required=False)
     external_risk_failure_action = serializers.ChoiceField(

@@ -38,6 +38,11 @@ from apps.core.models import generate_public_id
 from apps.tenants.models import Tenant
 
 SYSTEM_PROVIDER_DEFAULTS = {
+    ProviderCheckType.DOCUMENT_AUTHENTICITY: {
+        "code": "internal-document-authenticity",
+        "name": "Internal Document Authenticity",
+        "provider_type": ProviderType.DOCUMENT,
+    },
     ProviderCheckType.DOCUMENT_OCR: {
         "code": "internal-document-ocr",
         "name": "Internal Document OCR Engine",
@@ -84,6 +89,7 @@ SENSITIVE_METADATA_KEYS = frozenset(
 )
 
 PROVIDER_CAPABILITY_METHODS = {
+    ProviderCheckType.DOCUMENT_AUTHENTICITY: "document_authenticity",
     ProviderCheckType.DOCUMENT_OCR: "document_ocr",
     ProviderCheckType.DOCUMENT_CLASSIFICATION: "document_classification",
     ProviderCheckType.DOCUMENT_QUALITY: "document_quality",
