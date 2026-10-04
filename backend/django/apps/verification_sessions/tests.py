@@ -1,3 +1,4 @@
+from apps.uploads.test_helpers import seal_test_upload
 from types import SimpleNamespace
 from datetime import timedelta
 from unittest.mock import patch
@@ -147,7 +148,7 @@ class VerificationSessionPortalTests(APITestCase):
             UploadPurpose.SELFIE_CAPTURE: "selfies",
             UploadPurpose.LIVENESS_CAPTURE: "liveness",
         }[purpose]
-        return Upload.objects.create(
+        return seal_test_upload(Upload.objects.create(
             tenant=self.tenant,
             verification=self.verification,
             verification_session=self.session,
@@ -163,7 +164,7 @@ class VerificationSessionPortalTests(APITestCase):
             checksum_sha256=f"validated-{suffix}",
             status=UploadStatus.UPLOADED,
             expires_at=timezone.now() + timedelta(minutes=10),
-        )
+        ))
 
     def test_get_session_returns_portal_context_and_activates_session(self):
         response = self.client.get(

@@ -1,3 +1,4 @@
+from apps.uploads.test_helpers import seal_test_upload
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -61,7 +62,7 @@ class IdentityDocumentTaskTests(TestCase):
             storage_key="uploads/documents/doc_good",
             captured_at=timezone.now(),
         )
-        self.upload = Upload.objects.create(
+        self.upload = seal_test_upload(Upload.objects.create(
             tenant=self.tenant,
             verification=self.verification,
             verification_session=self.verification.sessions.create(
@@ -77,7 +78,7 @@ class IdentityDocumentTaskTests(TestCase):
             status=UploadStatus.CONSUMED,
             expires_at=timezone.now() + timedelta(minutes=10),
             consumed_at=timezone.now(),
-        )
+        ))
         create_provider_check(
             verification=self.verification,
             check_type=ProviderCheckType.DOCUMENT_OCR,

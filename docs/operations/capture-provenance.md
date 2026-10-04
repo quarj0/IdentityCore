@@ -13,7 +13,10 @@ The default signing key and configured fallback keys support deployment rotation
 retain fallback keys while receipts signed by them remain within evidence retention.
 
 Submission rejects missing or altered receipts on version 1 uploads. Version 0
-pre-existing uploads remain usable and explicitly unverified. Same-upload retries
+pre-existing uploads remain usable and explicitly unverified only with a signed
+legacy enrollment receipt issued by the rollout migration. New uploads default
+to version 1; clearing a receipt and changing its version cannot grant legacy
+status. The migration enrolls existing rows once in bounded batches. Same-upload retries
 preserve their receipt. The risk evidence `capture_provenance` contains bounded
 counts only: validated bindings, legacy evidence, invalid receipts, reported sources,
 and identical media found in another retained case in this tenant. An invalid receipt
@@ -26,3 +29,6 @@ A signed receipt attests what the server validated, not physical camera presence
 Virtual cameras and modified browsers can claim any capture method. Active liveness,
 randomized single-use challenges, PAD, and document authenticity retain their own
 controls. Neither another case identifier nor its media digest enters the risk report.
+
+Replay lookup uses a composite index on tenant, checksum, status and deletion time
+so peer matching does not scan the tenant's complete retained upload history.

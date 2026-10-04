@@ -10,7 +10,9 @@ cannot prove physical presence. Existing randomized active-liveness challenges a
 PAD remain the controls for presence and media injection.
 
 Newly completed uploads carry receipts. Legacy uploads remain usable and are
-reported as unverified rather than silently attested. Invalid receipts prevent
+reported as unverified rather than silently attested. The rollout migration signs
+legacy enrollment for existing rows; new uploads cannot claim legacy status by
+clearing their receipt or changing their version. Invalid receipts prevent
 submission. Identical validated media in another retained case in the same tenant is
 flagged without exposing the other case or digest. Retries of the same upload
 remain idempotent. Replay and unverified-source signals are available to reviewers;

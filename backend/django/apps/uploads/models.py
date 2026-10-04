@@ -49,7 +49,7 @@ class Upload(PublicIdModel, BaseModel):
     mime_type = models.CharField(max_length=100)
     file_size_bytes = models.PositiveBigIntegerField()
     checksum_sha256 = models.CharField(max_length=64, blank=True)
-    capture_provenance_version = models.PositiveSmallIntegerField(default=0)
+    capture_provenance_version = models.PositiveSmallIntegerField(default=1)
     capture_method = models.CharField(max_length=32, default="unreported")
     capture_receipt = models.TextField(blank=True)
     quarantine_reason = models.CharField(max_length=128, blank=True)
@@ -66,6 +66,12 @@ class Upload(PublicIdModel, BaseModel):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=["tenant", "checksum_sha256", "status", "deleted_at"],
+                name="upload_tenant_digest_status",
+            )
+        ]
 
     def clean(self):
         super().clean()
@@ -92,13 +98,23 @@ class Upload(PublicIdModel, BaseModel):
                     "verification_session": "Upload session must belong to the same verification."
                 }
             )
-        if self.status in {UploadStatus.CONSUMED, UploadStatus.PROMOTED} and self.consumed_at is None:
+        if (
+            self.status in {UploadStatus.CONSUMED, UploadStatus.PROMOTED}
+            and self.consumed_at is None
+        ):
             raise ValidationError(
-                {"consumed_at": "Consumed or promoted uploads must record when they were used."}
+                {
+                    "consumed_at": "Consumed or promoted uploads must record when they were used."
+                }
             )
-        if self.status not in {UploadStatus.CONSUMED, UploadStatus.PROMOTED} and self.consumed_at is not None:
+        if (
+            self.status not in {UploadStatus.CONSUMED, UploadStatus.PROMOTED}
+            and self.consumed_at is not None
+        ):
             raise ValidationError(
-                {"consumed_at": "Only consumed or promoted uploads may include consumed_at."}
+                {
+                    "consumed_at": "Only consumed or promoted uploads may include consumed_at."
+                }
             )
 
     @property

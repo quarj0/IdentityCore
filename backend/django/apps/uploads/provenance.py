@@ -10,7 +10,7 @@ SALT = "identitycore.capture-receipt.v1"
 
 def _binding(upload):
     return {
-        "version": 1,
+        "version": upload.capture_provenance_version,
         "tenant": str(upload.tenant_id),
         "verification": str(upload.verification_id),
         "session": str(upload.verification_session_id),
@@ -26,9 +26,7 @@ def issue_receipt(upload):
 
 
 def validate_receipt(upload):
-    if not upload.capture_receipt and upload.capture_provenance_version == 0:
-        return False  # Legacy evidence is unverified, never attested retroactively.
-    if upload.capture_provenance_version != 1:
+    if upload.capture_provenance_version not in {0, 1}:
         raise ValidationError(
             {"upload_id": "Capture provenance version is unsupported."}
         )
@@ -42,7 +40,7 @@ def validate_receipt(upload):
         raise ValidationError(
             {"upload_id": "Capture provenance does not match this evidence."}
         )
-    return True
+    return upload.capture_provenance_version == 1
 
 
 def capture_signals(verification):

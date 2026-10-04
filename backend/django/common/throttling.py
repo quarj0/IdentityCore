@@ -60,3 +60,44 @@ class SensitivePublicRateThrottle(SimpleRateThrottle):
             "scope": self.scope,
             "ident": ident,
         }
+
+
+class MobileHandoffRateThrottle(SensitivePublicRateThrottle):
+    """Verified 256-bit grants have individual buckets behind a shared BFF.
+
+    Unauthenticated guesses retain the peer-address limit. An arbitrary claimed
+    session, handoff ID or forwarded address can never select a fresh bucket.
+    """
+
+    def get_cache_key(self, request, view):
+        from django.utils import timezone
+        from apps.verifications.models import VerificationMobileHandoff
+
+        data = request.data
+        claim = data.get("handoff", "") if isinstance(data, dict) else ""
+        source = data.get("session_id", "") if isinstance(data, dict) else ""
+        if (
+            isinstance(claim, str)
+            and len(claim) <= 192
+            and isinstance(source, str)
+            and 0 < len(source) <= 64
+        ):
+            handoff_id, separator, secret = claim.partition(".")
+            if separator and 0 < len(secret) <= 128:
+                handoff = VerificationMobileHandoff.objects.filter(
+                    public_id=handoff_id,
+                    source_session__public_id=source,
+                    redeemed_at__isnull=True,
+                    expires_at__gt=timezone.now(),
+                    token_hash__startswith="bearer_sha256$",
+                ).first()
+                if handoff and handoff.matches_token(secret):
+                    return self.cache_format % {
+                        "scope": self.scope,
+                        "ident": f"handoff_verified:{handoff.pk}",
+                    }
+        peer = request.META.get("REMOTE_ADDR") or "unknown"
+        return self.cache_format % {
+            "scope": self.scope,
+            "ident": f"handoff_invalid:{peer}",
+        }

@@ -124,6 +124,7 @@ def _finalize_upload(
             locked.status = UploadStatus.UPLOADED
             locked.checksum_sha256 = checksum_sha256
             locked.quarantine_reason = ""
+            locked.capture_provenance_version = 1
             locked.capture_receipt = issue_receipt(locked)
             locked.save(
                 update_fields=[
@@ -132,6 +133,7 @@ def _finalize_upload(
                     "checksum_sha256",
                     "quarantine_reason",
                     "capture_receipt",
+                    "capture_provenance_version",
                     "updated_at",
                 ]
             )

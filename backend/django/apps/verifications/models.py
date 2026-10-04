@@ -326,11 +326,17 @@ class VerificationMobileHandoff(PublicIdModel):
     def generate_token(cls) -> str:
         return secrets.token_urlsafe(32)
 
-    def set_token(self, raw_token: str) -> None:
-        self.token_hash = make_password(raw_token)
+    def set_token(self, raw_token: str, *, generated: bool = False) -> None:
+        from common.credential_proofs import hash_generated_bearer
+
+        self.token_hash = (
+            hash_generated_bearer(raw_token) if generated else make_password(raw_token)
+        )
 
     def matches_token(self, raw_token: str) -> bool:
-        return check_password(raw_token, self.token_hash)
+        from common.credential_proofs import verify_bearer_secret
+
+        return verify_bearer_secret(raw_token, self.token_hash)
 
 
 class VerificationDecision(PublicIdModel, BaseModel):

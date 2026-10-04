@@ -160,7 +160,41 @@ class CaptureProvenanceTests(APITestCase):
         upload = self._complete()
         upload.capture_receipt = ""
         upload.capture_provenance_version = 0
+        upload.save(update_fields=["capture_provenance_version", "capture_receipt"])
+        from importlib import import_module
+        from django.apps import apps
+        from django.db import connection
+        from types import SimpleNamespace
+
+        migration = import_module(
+            "apps.uploads.migrations.0006_upload_capture_method_upload_capture_receipt"
+        )
+        migration.enroll_legacy_uploads(apps, SimpleNamespace(connection=connection))
+        upload.refresh_from_db()
+        self.assertTrue(upload.capture_receipt)
         self.assertFalse(validate_receipt(upload))
+        upload.checksum_sha256 = "b" * 64
+        with self.assertRaises(ValidationError):
+            validate_receipt(upload)
+
+    def test_downgrading_new_upload_to_legacy_is_invalid(self):
+        upload = self._complete()
+        Upload.objects.filter(pk=upload.pk).update(
+            capture_receipt="", capture_provenance_version=0
+        )
+        with self.assertRaises(ValidationError):
+            resolve_session_upload(
+                verification_session=self.session,
+                upload_id=upload.public_id,
+                purpose="document_capture",
+            )
+        from django.utils import timezone
+
+        Upload.objects.filter(pk=upload.pk).update(
+            status=UploadStatus.CONSUMED, consumed_at=timezone.now()
+        )
+        self.assertEqual(capture_signals(self.verification)["invalid"], 1)
+        self.assertEqual(capture_signals(self.verification)["legacy_unverified"], 0)
 
     def test_unsupported_receipt_version_is_rejected(self):
         upload = self._complete()
