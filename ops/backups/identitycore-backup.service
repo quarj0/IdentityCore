@@ -1,0 +1,20 @@
+[Unit]
+Description=IdentityCore encrypted consistent backup
+
+[Service]
+Type=oneshot
+User=identitycore-backup
+WorkingDirectory=/opt/identitycore
+EnvironmentFile=/etc/identitycore/backup.env
+ExecStart=/opt/identitycore/ops/backups/run-backup.sh
+ExecStopPost=/opt/identitycore/backend/.venv/bin/python /opt/identitycore/ops/backups/resume-writers.py
+TimeoutStopSec=10min
+Environment=IDENTITYCORE_SERVICE_NAME=identitycore-operations
+Environment=IDENTITYCORE_DEPLOYMENT_ENVIRONMENT=production
+UMask=0077
+TimeoutStartSec=2h
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/identitycore-backups

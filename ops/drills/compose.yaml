@@ -1,0 +1,36 @@
+# Isolated synthetic PostgreSQL and HTTP S3 fixture.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: identitycore-drill-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: identitycore_source
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256 --auth-local=trust
+    ports:
+    - 127.0.0.1:5444:5432
+    volumes:
+    - postgres-drill:/var/lib/postgresql/data
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 2s
+      timeout: 5s
+      retries: 30
+  storage:
+    image: motoserver/moto:5.2.2
+    ports:
+    - 127.0.0.1:9000:5000
+    healthcheck:
+      test:
+      - CMD
+      - python
+      - -c
+      - from urllib.request import urlopen; urlopen('http://127.0.0.1:5000/')
+      interval: 2s
+      timeout: 5s
+      retries: 30
+volumes:
+  postgres-drill: {}

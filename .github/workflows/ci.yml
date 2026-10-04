@@ -14,6 +14,28 @@ jobs:
           docker run --rm --entrypoint promtool -v "$PWD/ops/observability:/rules:ro" -w /rules prom/prometheus:v3.15.0 check rules alerts.yaml
           docker run --rm --entrypoint promtool -v "$PWD/ops/observability:/rules:ro" -w /rules prom/prometheus:v3.15.0 test rules alerts.test.yaml
 
+  operational-restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --project backend --group django --frozen
+      - name: Prepare private synthetic credentials
+        run: python scripts/prepare_operational_drill.py --directory "$RUNNER_TEMP/identitycore-drill"
+      - name: Start isolated PostgreSQL and HTTP S3 fixture
+        run: docker compose --env-file "$RUNNER_TEMP/identitycore-drill/drill.env" -p identitycore-drill -f ops/drills/compose.yaml up -d --wait
+      - name: Exercise encrypted archive round-trip, restore and tenant isolation
+        run: uv run --project backend python scripts/run_restore_drill.py --env-file "$RUNNER_TEMP/identitycore-drill/drill.env" --backup-key-file "$RUNNER_TEMP/identitycore-drill/backup.key" --report "$RUNNER_TEMP/restore-report.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: isolated-restore-evidence
+          path: ${{ runner.temp }}/restore-report.json
+          retention-days: 90
+      - name: Remove only the synthetic stack
+        if: always()
+        run: docker compose --env-file "$RUNNER_TEMP/identitycore-drill/drill.env" -p identitycore-drill -f ops/drills/compose.yaml down -v
+
   documentation:
     runs-on: ubuntu-latest
     steps:

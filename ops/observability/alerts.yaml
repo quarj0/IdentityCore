@@ -233,3 +233,24 @@ groups:
     annotations:
       summary: Less than 95% of production processing finishes within two minutes
       runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/slo-alerts.md#processing
+  - alert: IdentityCoreBackupFailed
+    expr: time() - max(identitycore_backup_failure_timestamp_seconds{environment="production"})
+      < 600
+    labels:
+      severity: critical
+      environment: production
+      service: identitycore
+    annotations:
+      summary: Encrypted backup or archive publication failed
+      runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/backup-restore.md
+  - alert: IdentityCoreBackupStale
+    expr: time() - max(max_over_time(identitycore_backup_last_success_seconds{environment="production"}[24h]))
+      > 64800 or absent_over_time(identitycore_backup_last_success_seconds{environment="production"}[24h])
+    for: 5m
+    labels:
+      severity: critical
+      environment: production
+      service: identitycore
+    annotations:
+      summary: Last successful encrypted archive is missing or older than 18 hours
+      runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/backup-restore.md

@@ -1,0 +1,12 @@
+{
+  "Rules": [
+    {
+      "ID": "approved-encrypted-backup-expiry",
+      "Status": "Enabled",
+      "Filter": {"Prefix": ""},
+      "Expiration": {"Days": 14},
+      "NoncurrentVersionExpiration": {"NoncurrentDays": 14},
+      "AbortIncompleteMultipartUpload": {"DaysAfterInitiation": 1}
+    }
+  ]
+}

@@ -169,6 +169,8 @@ records use a `## Status` section; both forms are valid, but every ADR must stat
 
 | [ADR-027](ADR-027-operational-telemetry.md) | Payload-free operational telemetry | Accepted |
 
+| [ADR-028](ADR-028-encrypted-consistent-backups.md) | Encrypted consistent backups and isolated restore | Accepted |
+
 ---
 
 ## Guiding Principles

@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-04",
+  "scope": "isolated synthetic PostgreSQL 17 and HTTP S3 fixture",
+  "backup": {
+    "backup_id": "162f746d05d048fd892adb663e147f91",
+    "created_at": "2026-10-04T04:51:16.192509+00:00",
+    "object_count": 6,
+    "required_object_count": 6,
+    "duration_seconds": 0.688
+  },
+  "restore": {
+    "backup_id": "162f746d05d048fd892adb663e147f91",
+    "restored_at": "2026-10-04T04:51:17.843425+00:00",
+    "object_count": 6,
+    "required_object_count": 6,
+    "database_object_consistency": "pass",
+    "duration_seconds": 1.265,
+    "backup_age_seconds": 2.33865
+  },
+  "archive_publication": "pass",
+  "tenant_access": "both tenants can read own verification and cannot read the other tenant",
+  "application_key_access": "encrypted tenant settings decoded correctly",
+  "rpo_target_hours": 24,
+  "rto_target_hours": 4,
+  "measured_data_recovery_seconds": 6.279,
+  "rto_pass": true,
+  "production_scale_claim": false
+}

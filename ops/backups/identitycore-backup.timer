@@ -1,0 +1,10 @@
+[Unit]
+Description=Capture encrypted IdentityCore backups twice daily
+
+[Timer]
+OnCalendar=*-*-* 00,12:00:00 UTC
+Persistent=true
+Unit=identitycore-backup.service
+
+[Install]
+WantedBy=timers.target

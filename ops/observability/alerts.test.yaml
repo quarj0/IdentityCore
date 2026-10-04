@@ -136,3 +136,18 @@ tests:
       exp_annotations:
         summary: storage error budget burning too quickly
         runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/slo-alerts.md#storage
+- interval: 1m
+  input_series:
+  - series: identitycore_backup_last_success_seconds{environment="production"}
+    values: 0+0x1250
+  alert_rule_test:
+  - eval_time: 20h
+    alertname: IdentityCoreBackupStale
+    exp_alerts:
+    - exp_labels:
+        severity: critical
+        environment: production
+        service: identitycore
+      exp_annotations:
+        summary: Last successful encrypted archive is missing or older than 18 hours
+        runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/backup-restore.md
