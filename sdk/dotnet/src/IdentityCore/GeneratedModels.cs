@@ -72,6 +72,8 @@ public sealed record Policy
     public double FaceMatchThreshold { get; init; }
     [JsonPropertyName("manual_review_threshold")]
     public double ManualReviewThreshold { get; init; }
+    [JsonPropertyName("document_consistency_rules")]
+    public JsonElement? DocumentConsistencyRules { get; init; }
     [JsonPropertyName("document_authenticity_required")]
     public bool? DocumentAuthenticityRequired { get; init; }
     [JsonPropertyName("document_authenticity_min_confidence")]
@@ -236,6 +238,8 @@ public sealed record VerificationPolicyCreateRequest
     public double FaceMatchThreshold { get; init; }
     [JsonPropertyName("manual_review_threshold")]
     public double ManualReviewThreshold { get; init; }
+    [JsonPropertyName("document_consistency_rules")]
+    public JsonElement? DocumentConsistencyRules { get; init; }
     [JsonPropertyName("document_authenticity_required")]
     public bool? DocumentAuthenticityRequired { get; init; }
     [JsonPropertyName("document_authenticity_min_confidence")]

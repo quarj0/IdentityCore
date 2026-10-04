@@ -3746,6 +3746,11 @@
     },
     {
       "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.document_consistency_rules_json",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
       "field": "VerificationPolicy.external_risk_enabled",
       "activity": "workflow-configuration-and-operations"
     },

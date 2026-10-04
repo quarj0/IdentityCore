@@ -158,6 +158,7 @@ class VerificationPolicyCloneView(VerificationPolicyDetailView):
             maker_checker_required=source.maker_checker_required,
             document_authenticity_required=source.document_authenticity_required,
             document_authenticity_min_confidence=source.document_authenticity_min_confidence,
+            document_consistency_rules_json=source.document_consistency_rules_json,
             external_risk_enabled=source.external_risk_enabled,
             external_risk_failure_action=source.external_risk_failure_action,
             external_risk_review_threshold=source.external_risk_review_threshold,

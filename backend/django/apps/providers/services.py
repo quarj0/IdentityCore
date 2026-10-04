@@ -1059,14 +1059,32 @@ def execute_provider_route(
 
 def get_or_create_system_provider(check_type: str) -> Provider:
     defaults = SYSTEM_PROVIDER_DEFAULTS[check_type]
-    provider, _ = Provider.objects.get_or_create(
-        code=defaults["code"],
-        defaults={
-            "name": defaults["name"],
-            "provider_type": defaults["provider_type"],
-            "status": ProviderStatus.ACTIVE,
-        },
-    )
+    try:
+        provider, _ = Provider.objects.get_or_create(
+            code=defaults["code"],
+            tenant=None,
+            defaults={
+                "name": defaults["name"],
+                "provider_type": defaults["provider_type"],
+                "status": ProviderStatus.ACTIVE,
+            },
+        )
+    except ValidationError as exc:
+        # Provider.save validates uniqueness before its insert. A competing
+        # transaction can commit between get_or_create's read and that check,
+        # raising ValidationError rather than the IntegrityError Django retries.
+        errors = getattr(exc, "error_dict", {})
+        if set(errors) != {"code"} or not all(
+            error.code == "unique" for error in errors["code"]
+        ):
+            raise
+        provider = Provider.objects.filter(
+            code=defaults["code"],
+            tenant__isnull=True,
+            provider_type=defaults["provider_type"],
+        ).first()
+        if provider is None:
+            raise
     return provider
 
 

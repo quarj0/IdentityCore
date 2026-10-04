@@ -645,3 +645,18 @@ def test_ocr_pipeline_retains_mrz_checksum_and_field_provenance(monkeypatch):
     assert result["mrz_evidence"]["status"] == "invalid"
     assert "mrz_fields" not in result["extracted_fields"]
     assert result["issues"] == ["mrz_checksum_invalid"]
+
+
+def test_labeled_document_dates_do_not_confuse_issue_date_with_birth():
+    from app.pipeline import _normalize_ocr_fields
+
+    result = _normalize_ocr_fields(
+        ["ISSUED 2020-01-02", "EXPIRES 2030/02/03", "DOB 2000-10-04"], "passport", "GH"
+    )
+    assert result["date_of_birth"] == "2000-10-04"
+    assert result["issue_date"] == "2020-01-02"
+    assert result["expiry_date"] == "2030-02-03"
+    assert (
+        _normalize_ocr_fields(["ISSUED 2020-01-02"], "passport", "GH")["date_of_birth"]
+        == ""
+    )
