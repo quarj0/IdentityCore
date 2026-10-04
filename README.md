@@ -222,6 +222,7 @@ infrastructure/
 - [Deployment](docs/architecture/deployment.md)
 - [Testing Strategy](docs/architecture/testing-strategy.md)
 - [Security Scanning](docs/operations/security-scanning.md)
+- [Incident Response](docs/operations/incident-response.md)
 - [Coding Standards](docs/architecture/coding-standards.md)
 - [Architecture Decision Records](docs/decisions/)
 - [Implementation Backlog](docs/planning/implementation-backlog.md)

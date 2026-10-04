@@ -5,7 +5,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from apps.access_control.models import Role, RoleScope, UserRole
+from apps.access_control.models import Permission, Role, RolePermission, RoleScope, UserRole
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.consent.models import ConsentTemplate, ConsentTemplateStatus
 from apps.organizations.models import Organization, OrganizationStatus
@@ -114,6 +114,12 @@ class Command(BaseCommand):
                 },
             )
             UserRole.objects.get_or_create(user=user, role=role, tenant=tenant)
+            if role_name == "Organization Administrator":
+                permission, _ = Permission.objects.get_or_create(
+                    code="manage_webhooks",
+                    defaults={"name": "Manage webhooks"},
+                )
+                RolePermission.objects.get_or_create(role=role, permission=permission)
 
         project, _ = Project.objects.update_or_create(
             tenant=tenant,

@@ -5,6 +5,7 @@ from apps.webhooks.views import (
     WebhookEndpointDetailView,
     WebhookEndpointListCreateView,
     WebhookEndpointTestView,
+    WebhookEventReplayView,
 )
 
 urlpatterns = [
@@ -13,6 +14,12 @@ urlpatterns = [
         WebhookEndpointListCreateView.as_view(),
         methods=("GET", "POST"),
         name="webhook-endpoint-list-create",
+    ),
+    public_api_path(
+        "events/<str:event_id>/replay",
+        WebhookEventReplayView.as_view(),
+        methods=("POST",),
+        name="webhook-event-replay",
     ),
     public_api_path(
         "<str:webhook_id>/test",

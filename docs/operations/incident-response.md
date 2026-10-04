@@ -1,174 +1,162 @@
 # Incident response and breach triage
 
-Last reviewed: 2026-09-27
+Owner: Security lead. Review at least every six months and after every SEV1/SEV2
+incident. This runbook defines repository procedures; a deployment is not ready
+until its private contact roster and exercise evidence are complete.
 
-This runbook covers suspected security, privacy, availability, integrity, and
-provider incidents affecting IdentityCore or its tenants. Use the incident
-record as the authoritative timeline and decision log. Do not put secrets,
-personal data, identity documents, consent content, or biometric data in the
-record, chat, tickets, or screenshots.
+Use this runbook for suspected unauthorized access, credential exposure, tenant
+isolation failures, consent or retention failures, unreliable decisions, outages,
+and suspected loss or disclosure of identity or biometric evidence. A credible
+report starts triage even when monitoring is unavailable. IC-087 supplies the
+observability integration; its completion is still a separate dependency.
 
-## Before an incident
+## Declare and assign
 
-The on-call owner maintains the contact directory in the organization’s access
-controlled incident system. Keep named contacts and phone numbers there rather
-than in this repository. Verify the directory and escalation paths quarterly
-and after role changes.
+1. Create an incident record in the organization's restricted incident system.
+   Assign an incident ID and record UTC detection time, reporter, affected
+   environment, known symptoms, and the source of the report. Put references in
+   the record; do not paste credentials, identities, documents, or biometric data.
+2. Page the on-call service owner and security lead using the private roster.
+   Assign a commander, technical lead, security/privacy lead, communications
+   owner, and scribe. A small team may combine roles, but the technical operator
+   must not be the only approver of evidence disclosure or destructive recovery.
+3. Open a restricted incident channel and a separate sanitized status thread.
+   Confirm who owns the next action, the next update time, and the escalation
+   route. Record every handoff; the outgoing owner remains responsible until
+   the incoming owner explicitly accepts.
+4. Classify severity using the highest applicable row. Unknown disclosure scope
+   is treated as suspected disclosure until security/privacy documents otherwise.
 
-| Role | Responsibility | Primary contact location |
+| Severity | Trigger | Initial response and update target |
 | --- | --- | --- |
-| Incident commander | Sets severity, assigns owners, coordinates response, and records decisions | On-call directory |
-| Security lead | Leads containment, credential handling, and technical investigation | On-call directory |
-| Privacy lead | Assesses personal-data impact, retention, and notification obligations | On-call directory |
-| Service owner | Restores service, evaluates rollback, and coordinates engineering | On-call directory |
-| Communications owner | Prepares approved internal and external updates | On-call directory |
-| Legal counsel | Advises on contractual and regulatory obligations | On-call directory |
-| Tenant contact owner | Coordinates affected-tenant communications through approved channels | On-call directory |
+| SEV1 | Suspected cross-tenant disclosure, active credential abuse, biometric/document exposure, widespread integrity failure, or production unavailability with no safe workaround | Page immediately; target acknowledgement within 15 minutes; updates every 30 minutes |
+| SEV2 | Material tenant/service degradation, stalled processing or delivery, suspected limited security incident, or lost redundancy threatening recovery | Page immediately; target acknowledgement within 30 minutes; updates hourly |
+| SEV3 | Contained defect with a safe workaround, no indication of unauthorized access, and no imminent data loss | Assign an owner within one business day; update daily until contained |
 
-One person may hold multiple roles for a small response, but the incident
-commander must explicitly assign each responsibility. Escalate to the backup
-contact if an owner does not acknowledge the page within the organization’s
-documented on-call response target.
+These are internal response targets, not contractual SLOs or notification
+periods. If acknowledgement misses its target, escalate to the secondary and
+engineering lead; do not wait for the next scheduled update. The commander may
+raise severity immediately. Downgrades require a recorded rationale and agreement
+from security/privacy when data exposure or integrity is implicated.
 
-## Severity and escalation
+## Private contact roster
 
-The incident commander sets the initial severity and records the rationale.
-Increase severity when the scope or impact is uncertain; lower it only after
-evidence supports the change.
+The deployment owner maintains a restricted, independently accessible on-call
+roster in the organization's incident system and an approved offline fallback.
+The deployment handover must name its exact location and verify access from a
+responder account. Do not put personal phone numbers or credentials in GitHub.
 
-| Severity | Examples | Response |
+| Role | Required roster entry | Fallback |
 | --- | --- | --- |
-| SEV-1 | Confirmed unauthorized disclosure of highly sensitive data; active compromise of signing or encryption keys; tenant isolation failure; broad loss of verification integrity | Page security, privacy, service owner, and legal immediately; stop affected processing or access; executive escalation |
-| SEV-2 | Suspected sensitive-data exposure with scope unknown; sustained major outage; provider compromise or widespread incorrect decisions | Page security and service owner immediately; engage privacy and legal while triaging; consider tenant-specific pause |
-| SEV-3 | Limited degradation or contained security event with no known sensitive-data impact | Assign an incident owner during the current support period; investigate and monitor |
-| SEV-4 | Low-impact defect or near miss with no service or data impact | Track to resolution in the normal engineering workflow |
+| Incident commander | Primary and secondary on-call engineering leads and paging routes | Executive incident sponsor |
+| Technical response | API/worker, AI/provider, database/storage, and frontend owners | Engineering lead assigns a qualified deputy |
+| Security/privacy | Security lead and privacy decision owner | Executive sponsor secures qualified coverage |
+| Communications | Customer communications owner and approver | Commander assigns a deputy |
+| External dependencies | Cloud/storage/provider support portal, account reference, escalation route | Procurement/vendor relationship owner |
+| Affected organizations | Verified contractual security/incident contact per tenant | Account owner verifies an alternate through an independent channel |
 
-Any suspected personal-data breach is escalated to the privacy lead and legal
-counsel regardless of severity. The privacy lead and counsel determine whether,
-when, and to whom notices are required. Do not infer a notification deadline
-from this runbook or send a notice before approval.
+Before a pilot, fill every entry, test primary/secondary reachability, and record
+who tested it and when. Missing contacts or inaccessible fallback routes block
+operational readiness. Never trust replacement bank, email, or support contacts
+provided only through the suspected compromised channel.
 
-## Response sequence
+## Triage, containment, and recovery
 
-1. **Open the incident.** Create a record with an opaque incident ID, reporter,
-   discovery time, affected service/environment, summary, initial severity, and
-   commander. Record links to restricted evidence locations, not evidence itself.
-2. **Assign roles and establish a channel.** Use an access-controlled channel.
-   Record the communications owner and the next update time. Avoid copying
-   personal or verification data into chat.
-3. **Contain safely.** Prefer reversible, narrowly scoped controls: revoke
-   exposed credentials, disable affected routes or providers, pause new sessions
-   for the affected tenant/environment, open a provider circuit, or roll back
-   the deployment. Preserve already completed workflow steps and avoid replaying
-   evidence submissions or decisions.
-4. **Preserve evidence.** Follow the evidence handling procedure below before
-   cleanup or rotation when that does not extend active exposure. Containment
-   takes priority when delay would increase harm.
-5. **Establish scope and impact.** Use request/correlation IDs, timestamps,
-   route templates, deployment versions, provider-check IDs, and tenant-scoped
-   audit records. Determine affected time range, environments, tenants, data
-   classes, workflow integrity, and whether access or exfiltration is evidenced.
-6. **Decide on notification.** The privacy lead and counsel evaluate applicable
-   legal, contractual, regulator, and tenant obligations using verified facts.
-   The communications owner prepares notices; authorized owners approve and
-   send them through the approved contact directory and channels. Record the
-   decision and rationale, including a decision not to notify.
-7. **Recover and monitor.** The service owner verifies the fix, data integrity,
-   tenant isolation, queues, provider health, and affected workflows before
-   resuming processing. Use a staged rollout and watch the relevant alerts.
-8. **Close and learn.** The commander confirms owners and due dates for follow-up
-   work, then schedules a blameless review. Do not close an incident while
-   notification decisions or evidence custody remain unassigned.
+The technical lead records facts separately from hypotheses: affected versions,
+environments, tenants, time window, entry point, provider/storage region, decision
+or delivery integrity, and whether access may still be active. Use authorized,
+tenant-scoped queries. An absence of logs is not evidence that no disclosure
+occurred. Preserve evidence using [the evidence procedure](incident-evidence.md)
+before changing affected systems when that does not prolong active harm.
 
-## Evidence preservation and decision log
+| Scenario | Immediate containment | Recovery evidence |
+| --- | --- | --- |
+| Credential/session exposure | Disable affected credential or session issuance and revoke implicated material using the approved administrative path; rotate dependent secrets from a clean responder environment | Old credentials fail, replacements work only for intended scopes, and unauthorized activity stops |
+| Tenant isolation or evidence disclosure | Disable the affected access path or feature; stop new exposed operations; restrict implicated provider/storage access | Regression reproducer is fixed; owner and non-owner access are tested in every affected environment |
+| Provider/biometric integrity | Stop unsafe automated decisions; use only an approved fallback or manual-review route | Provider checks, terminal decisions, and manual-review ownership reconcile; no blind bulk reprocessing |
+| Queue/webhook outage | Contain the failing dependency and preserve pending records; recover with the existing idempotent recovery runbooks | Backlog drains and stable event IDs remain intact; receivers atomically deduplicate by event ID so retries do not produce duplicate side effects |
+| Consent failure | Stop affected collection and processing with the responsible owner; establish approved preservation scope | Purpose/version boundaries are verified before processing resumes |
+| Premature or erroneous deletion | Pause the affected deletion path and preserve the approved scope | Correct retention policy and recovery are verified before deletion resumes |
+| Overdue or failed deletion | Stop affected collection or other processing as required; continue approved deletion remediation outside a valid preservation hold | Expired data is demonstrably deleted, failed operations are retried, and retention boundaries are restored |
+| Deployment regression | Halt rollout and decide whether an approved compatible rollback is safer than a forward fix | Health plus representative tenant-scoped journeys pass; data/schema compatibility is demonstrated |
 
-- Preserve only the minimum evidence needed to answer the incident questions.
-- Store exports, snapshots, and provider correspondence in the approved
-  restricted evidence location with encryption and access logging.
-- Record who collected or accessed an artifact, when, why, its source, a
-  cryptographic checksum where appropriate, and any transfer or transformation.
-- Preserve relevant audit events, deployment/configuration versions, access
-  logs, and provider incident identifiers. Keep original timestamps and note
-  clock uncertainty.
-- Never export raw identity documents, selfie/video captures, biometric
-  templates, session tokens, bearer cookies, API secrets, signed upload URLs,
-  or unredacted request/response bodies into an incident record. If direct
-  examination of highly sensitive data is necessary, the privacy and security
-  leads approve a time-limited, least-privilege procedure in the restricted
-  evidence system.
-- Preserve relevant logs before retention expiry. Do not disable audit logging
-  or alter production records to simplify investigation.
-- Record each material decision with timestamp (UTC), decision owner, options
-  considered, evidence references, rationale, and follow-up owner. Keep
-  notification decisions and approvals in the same log.
+Use [processing recovery](processing-job-recovery.md),
+[processing ownership](processing-job-ownership.md), and
+[provider route resilience](provider-route-resilience.md) for their supported
+procedures. This runbook does not authorize deleting production records,
+bypassing terminal decisions, restoring over production, or opening evidence
+storage to broad access. Record the operator, approver, scope, rollback plan,
+and result before and after a consequential containment/recovery operation.
 
-## Incident record template
+After a webhook endpoint exhausts delivery attempts, IdentityCore marks both the
+event and endpoint failed. A tenant operator first fixes the receiver while
+leaving the endpoint failed, then calls
+`POST /api/v1/webhook-endpoints/events/{event_id}/replay` with an idempotency key.
+The replay atomically requeues the failed event and reactivates its endpoint,
+keeps the stable event ID, resets its delivery budget, preserves attempt history,
+and records an audit event. Do not reactivate the endpoint in a separate request
+before replay: that allows newer pending events to become eligible before the
+failed event is requeued. Replay does not guarantee delivery ordering; receivers
+must atomically deduplicate by event ID because an accepted delivery whose
+response was lost can still be repeated. Workers claim an event with a bounded
+lease before sending HTTP, release database row locks before contacting the
+receiver, and finalize only the same claim. Expired claims are eligible for
+recovery after worker loss; a late response cannot replace a newer claim's
+result. A lease expiry can still cause duplicate transport delivery, so receiver
+deduplication remains required.
 
-Use the approved incident system and include:
+## Notification decision
 
-- Incident ID, severity, status, commander, role assignments, and timestamps.
-- Affected services, environments, tenant IDs, deployment versions, and data
-  classes. Do not include applicant names or evidence payloads.
-- Detection source, known facts, open questions, and confidence level.
-- Containment, recovery, rollback, and validation actions with owners and times.
-- Restricted evidence references and custody history.
-- Impact and notification assessment, decision owners, approvals, and rationale.
-- Stakeholder update times and approved message references.
-- Corrective actions, accountable owners, due dates, exercise/review date, and
-  closure approval.
+The communications owner prepares a factual draft; the security/privacy owner
+assesses disclosure and the applicable contractual/regulatory obligations with
+qualified counsel. Record each affected organization/jurisdiction, the time the
+relevant obligation was assessed to start, its basis, deadline, recipient,
+approver, and delivery evidence in the private decision log. Do not assume one
+universal deadline. Lack of complete scope must not silently postpone assessment.
 
-## Scenario playbooks
+Decide separately about internal leadership, affected organizations, providers,
+regulators, and individuals. Record an explicit notify / defer / not-required
+decision for each category with rationale, owner, and reassessment time. A
+notification draft states what is confirmed, what remains unknown, time window,
+affected service/data categories, containment, requested recipient actions, and
+the next update. Never attach raw evidence or an unverified list of subjects.
+Verify recipient identity and channel independently before sending. Sending is
+an authorized human communications action, not an automatic runbook step.
 
-### Credential or token exposure
+Use the [incident record template](incident-record-template.md) for decisions,
+evidence references, handoffs, and notification tracking.
 
-Revoke the affected credential/session family, disable issuance if necessary,
-rotate implicated signing material through the approved key-rotation process,
-and inspect access logs using request IDs. Check whether other tenants or
-environments share the affected credential. Do not paste the credential into a
-ticket, shell history, or chat. Validate revocation and resumed issuance with a
-synthetic request.
+## Resolve and learn
 
-### Biometric or identity-evidence/provider incident
+The commander declares resolution only after the technical lead demonstrates
+service recovery, security/privacy agrees that active harm is contained, and
+the communications owner has addressed outstanding updates. Distinguish service
+restoration from final investigation and notification closure. Record residual
+risk, monitoring owner, next review time, and any approved temporary controls.
 
-Pause the affected provider route and automatic adverse decisions. Use an
-approved fallback or manual review if its policy permits. Preserve provider
-check IDs, contract/version, timestamps, and decision metadata without copying
-payloads. Confirm evidence access, retention/deletion controls, replay status,
-and whether decisions need reprocessing or correction before resuming.
+Hold a blameless review within five business days for SEV1/SEV2. Capture root and
+contributing causes, detection gaps, affected scope, what worked, and corrective
+issues with priority, owner, due date, and verification evidence. Track unfinished
+notification, retention-hold, and deletion obligations to their owners rather than
+closing them with the incident. Update runbooks and exercise scenarios after
+material findings.
 
-### Tenant isolation or unauthorized access
+## Exercises and acceptance evidence
 
-Disable the affected access path, preserve authorization and audit events, and
-identify the boundary, time range, and potentially reachable tenant resources.
-Validate isolation with separate synthetic tenants before restoration. The
-privacy lead and counsel assess tenant notification with verified scope.
+Run credential-exposure and provider-outage tabletop exercises before the first
+pilot and at least twice yearly. Add a tenant-isolation/evidence-preservation
+scenario annually and after material access-control changes. Use synthetic
+records in an isolated environment and a simulated communications channel.
+Never exercise by exposing real customer data or contacting real recipients.
 
-### Availability or data-integrity incident
+The facilitator injects an unavailable primary contact, missing telemetry, a
+suspected cross-tenant impact, and a notification decision under incomplete
+information. Responders must demonstrate secondary escalation, explicit role
+handoff, UTC decision logging, tenant-scoped evidence custody, containment
+approval, recovery checks, and an approved simulated notification.
 
-Use the relevant service recovery and provider resilience runbooks. Stop
-operations that may duplicate uploads, decisions, or webhook side effects.
-Check queue ownership, idempotency, audit continuity, and database/object
-consistency before replay or restore. Record recovery-point and recovery-time
-observations for follow-up.
-
-### Consent or configuration mismatch
-
-Pause new sessions for the affected tenant, locale, environment, or consent
-version. Preserve the published configuration version and acceptance metadata.
-Have privacy/legal owners decide whether existing sessions may continue or
-require renewed consent; do not rewrite historical consent records.
-
-## Exercises and post-incident review
-
-Before a pilot, exercise credential exposure and provider outage scenarios with
-synthetic data in a non-production environment. Repeat at least twice yearly
-for verification-portal/provider response, and at least annually for other
-services or after a major response-process change. Record participants by role, scenario,
-timings, missed escalations, containment and recovery results, and corrective
-actions. Never use production applicant evidence for an exercise.
-
-Within five business days after closure, hold a blameless review unless the
-commander records a reason to schedule it later. Review detection, impact,
-containment, notification decisions, evidence handling, recovery, and whether
-existing controls worked. Assign every action an owner and due date, and track
-actions to verified completion.
+Pass only when every step has an owner and timestamp, evidence hashes validate,
+no synthetic sensitive payload reaches public logs, and every gap has a tracked
+corrective action. The security lead records pass/fail with an evidence reference;
+critical gaps require a repeat exercise before pilot approval. A checked-in
+runbook is not proof that an exercise has occurred.
