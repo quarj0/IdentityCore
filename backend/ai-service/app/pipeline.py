@@ -13,6 +13,7 @@ import numpy as np
 from botocore.exceptions import ClientError
 
 from app.document_classification import build_ocr_lines, classify_document
+from app.document_classification.mrz_parser import parse_mrz
 from app.settings import get_settings
 from app.storage import (
     fetch_object_bytes,
@@ -31,7 +32,9 @@ class ProcessingError(RuntimeError):
 
 class MediaAssetNotFoundError(RuntimeError):
     def __init__(self, storage_key: str, bucket_name: str):
-        message = "Media asset was not found in configured storage (media_asset_not_found)."
+        message = (
+            "Media asset was not found in configured storage (media_asset_not_found)."
+        )
         super().__init__(message)
         self.storage_key = storage_key
         self.bucket_name = bucket_name
@@ -649,9 +652,9 @@ def _normalize_ocr_fields(
         "document_type": document_type,
         "country_code": country_code,
         "full_name": uppercase_candidates[0].title() if uppercase_candidates else "",
-        "date_of_birth": date_candidates[0].replace("/", "-")
-        if date_candidates
-        else "",
+        "date_of_birth": (
+            date_candidates[0].replace("/", "-") if date_candidates else ""
+        ),
         "document_number": id_candidates[0] if id_candidates else "",
         "raw_text_lines": normalized_texts,
     }
@@ -688,11 +691,18 @@ def run_document_ocr_pipeline(
     prediction = predictions[0] if predictions else {}
     texts, scores = _extract_text_lines(prediction)
     extracted_fields = _normalize_ocr_fields(texts, document_type, country_code)
+    mrz = parse_mrz(texts)
+    extracted_fields["mrz_evidence"] = mrz
+    if mrz["status"] == "valid":
+        extracted_fields["document_number"] = mrz["fields"]["document_number"]["value"]
+        extracted_fields["mrz_fields"] = mrz["fields"]
     confidence_score = _safe_mean(scores)
 
     return {
         "confidence_score": round(confidence_score, 4),
         "extracted_fields": extracted_fields,
+        "mrz_evidence": mrz,
+        "issues": mrz["issues"],
         "raw_text_lines": texts,
         "model_name": "paddleocr",
         "model_version": "PP-OCRv5",
