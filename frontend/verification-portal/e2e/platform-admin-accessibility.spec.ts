@@ -100,7 +100,8 @@ async function mockAdminBackend(page: Page) {
           ...currentReviewItem,
           organizationVerificationReviewStatus: decision,
           organizationVerificationReviewNote:
-            payload.variables?.note ?? currentReviewItem.organizationVerificationReviewNote,
+            payload.variables?.note ??
+            currentReviewItem.organizationVerificationReviewNote,
         };
         await route.fulfill({
           status: 200,
@@ -132,7 +133,9 @@ async function mockAdminBackend(page: Page) {
         status: 200,
         contentType: "application/json",
         headers: corsHeaders,
-        body: JSON.stringify({ data: { organizationReview: currentReviewItem } }),
+        body: JSON.stringify({
+          data: { organizationReview: currentReviewItem },
+        }),
       });
       return;
     }
@@ -198,4 +201,5 @@ test("review queue and decision flow are WCAG-clean and keyboard operable", asyn
   await expect(approve).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.getByText(/approved/i).first()).toBeVisible();
+  await assertNoSeriousViolations(page);
 });

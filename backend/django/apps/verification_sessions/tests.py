@@ -1,13 +1,21 @@
+from types import SimpleNamespace
 from datetime import timedelta
 from unittest.mock import patch
 import hashlib
 
+from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
+from apps.verification_sessions.serializers import (
+    _consent_artifact,
+    _policy_locales,
+    _request_locale,
+)
+
 from apps.biometrics.models import (
     FaceMatch,
     LivenessChallenge,
@@ -183,7 +191,7 @@ class VerificationSessionPortalTests(APITestCase):
             ["consent", "document_capture", "selfie_capture", "liveness_check"],
         )
         self.assertEqual(response.data["data"]["locale"], "en")
-        self.assertEqual(response.data["data"]["supported_locales"], ["ar", "en"])
+        self.assertEqual(response.data["data"]["supported_locales"], ["en"])
         self.assertEqual(
             response.data["data"]["document"],
             {
@@ -743,6 +751,78 @@ class VerificationSessionPortalTests(APITestCase):
         self.assertEqual(selfie_upload.status, UploadStatus.CONSUMED)
         self.verification.refresh_from_db()
         self.assertEqual(self.verification.status, VerificationStatus.PROCESSING)
+
+        replay = self.client.post(
+            reverse(
+                "verification-session-selfies",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            {"capture_type": "image", "upload_id": selfie_upload.public_id},
+            format="json",
+            **self.session_headers(),
+        )
+        self.assertEqual(replay.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            replay.data["data"]["selfie_capture_id"],
+            response.data["data"]["selfie_capture_id"],
+        )
+        self.assertEqual(
+            SelfieCapture.objects.filter(
+                verification=self.verification,
+                storage_key=selfie_upload.storage_key,
+            ).count(),
+            1,
+        )
+
+    def test_video_selfie_retry_reuses_the_committed_capture(self):
+        ConsentRecord.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_subject=self.subject,
+            consent_text_snapshot="I consent to identity verification.",
+            accepted=True,
+            accepted_at=timezone.now(),
+        )
+        IdentityDocument.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_subject=self.subject,
+            document_type_id="national_id",
+            country_profile_id="GH",
+            status=IdentityDocumentStatus.PROCESSED,
+        )
+        self.verification.status = VerificationStatus.AWAITING_SELFIE
+        self.verification.save(update_fields=["status", "updated_at"])
+        video_upload = self.create_upload(
+            purpose=UploadPurpose.LIVENESS_CAPTURE, suffix="01JVIDEOSELFIE"
+        )
+        endpoint = reverse(
+            "verification-session-selfies",
+            kwargs={"session_id": self.session.public_id},
+        )
+        payload = {"capture_type": "video", "upload_id": video_upload.public_id}
+
+        first = self.client.post(
+            endpoint, payload, format="json", **self.session_headers()
+        )
+        replay = self.client.post(
+            endpoint, payload, format="json", **self.session_headers()
+        )
+
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        self.assertEqual(replay.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            replay.data["data"]["selfie_capture_id"],
+            first.data["data"]["selfie_capture_id"],
+        )
+        self.assertEqual(
+            SelfieCapture.objects.filter(
+                verification=self.verification,
+                storage_key=video_upload.storage_key,
+                capture_type="video",
+            ).count(),
+            1,
+        )
 
     def test_submit_selfie_rolls_back_when_verification_is_terminal(self):
         ConsentRecord.objects.create(
@@ -1336,3 +1416,66 @@ class VerificationSessionPortalTests(APITestCase):
         mock_document_promote.assert_called()
         mock_selfie_promote.assert_called_once()
         mock_evidence_report.assert_called_once_with(self.verification)
+
+
+class ApplicantLocaleNegotiationTests(TestCase):
+    def test_accept_language_quality_weights_select_highest_supported_locale(self):
+        request = SimpleNamespace(
+            headers={"Accept-Language": "en;q=0.1, ar;q=1.0"}
+        )
+
+        self.assertEqual(
+            _request_locale(
+                request,
+                {"default_locale": "en", "supported_locales": ["en", "ar"]},
+            ),
+            "ar",
+        )
+
+    def test_policy_locales_include_only_frozen_consent_artifacts(self):
+        snapshot = {
+            "default_locale": "en",
+            "supported_locales": ["en", "ar"],
+            "consent": {
+                "language": "en",
+                "translations": {
+                    "en": {"language": "en", "content": "English"},
+                },
+            },
+        }
+
+        self.assertEqual(_policy_locales(None, snapshot), ["en"])
+
+    def test_consent_artifact_uses_the_frozen_selected_translation(self):
+        verification = SimpleNamespace(
+            purpose="identity verification",
+            policy_snapshot_json={
+                "consent": {
+                    "template_id": "ctm_english",
+                    "version": 3,
+                    "language": "en",
+                    "content": "English text",
+                    "translations": {
+                        "en": {
+                            "template_id": "ctm_english",
+                            "version": 3,
+                            "language": "en",
+                            "content": "English text",
+                        },
+                        "ar": {
+                            "template_id": "ctm_arabic",
+                            "version": 3,
+                            "language": "ar",
+                            "content": "نص عربي",
+                        },
+                    },
+                }
+            },
+        )
+
+        artifact = _consent_artifact(verification, "ar")
+
+        self.assertEqual(artifact["template_id"], "ctm_arabic")
+        self.assertEqual(artifact["locale"], "ar")
+        self.assertEqual(artifact["version"], 3)
+        self.assertEqual(artifact["content"], "نص عربي")

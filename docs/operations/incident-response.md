@@ -89,12 +89,16 @@ storage to broad access. Record the operator, approver, scope, rollback plan,
 and result before and after a consequential containment/recovery operation.
 
 After a webhook endpoint exhausts delivery attempts, IdentityCore marks both the
-event and endpoint failed. A tenant operator first fixes the receiver and uses the
-authenticated endpoint action to reactivate it. The operator can then call
+event and endpoint failed. A tenant operator first fixes the receiver while
+leaving the endpoint failed, then calls
 `POST /api/v1/webhook-endpoints/events/{event_id}/replay` with an idempotency key.
-The replay keeps the stable event ID, resets its delivery budget, and records an
-audit event. Receivers must atomically deduplicate by event ID because an accepted
-delivery whose response was lost can still be repeated.
+The replay atomically requeues the failed event and reactivates its endpoint,
+keeps the stable event ID, resets its delivery budget, preserves attempt history,
+and records an audit event. Do not reactivate the endpoint in a separate request
+before replay: that allows newer pending events to become eligible before the
+failed event is requeued. Replay does not guarantee delivery ordering; receivers
+must atomically deduplicate by event ID because an accepted delivery whose
+response was lost can still be repeated.
 
 ## Notification decision
 
