@@ -59,6 +59,15 @@ class VerificationPolicyAPITests(APITestCase):
                 "external_risk_enabled": True,
                 "external_risk_failure_action": "ignore",
                 "external_risk_review_threshold": 85,
+                "document_consistency_rules": {
+                    "version": 1,
+                    "countries": {
+                        "GH": {
+                            "minimum_age": 18,
+                            "actions": {"document_expired": "manual_review"},
+                        }
+                    },
+                },
                 "verification_expiry_minutes": 1440,
                 "media_retention_days": 30,
                 "metadata_retention_days": 365,
@@ -72,6 +81,12 @@ class VerificationPolicyAPITests(APITestCase):
         self.assertEqual(policy.status, "draft")
         self.assertEqual(policy.required_document_types, ["national_id", "passport"])
         self.assertTrue(policy.external_risk_enabled)
+        self.assertEqual(
+            policy.snapshot()["document_consistency_rules"]["countries"]["GH"][
+                "minimum_age"
+            ],
+            18,
+        )
         self.assertEqual(policy.snapshot()["external_risk_failure_action"], "ignore")
         self.assertEqual(policy.snapshot()["external_risk_review_threshold"], 85)
         self.assertTrue(policy.maker_checker_required)
@@ -182,6 +197,15 @@ class VerificationPolicyAPITests(APITestCase):
                 "external_risk_enabled": True,
                 "external_risk_failure_action": "ignore",
                 "external_risk_review_threshold": "42.50",
+                "document_consistency_rules": {
+                    "version": 1,
+                    "countries": {
+                        "GH": {
+                            "minimum_age": 18,
+                            "actions": {"document_expired": "manual_review"},
+                        }
+                    },
+                },
                 "verification_expiry_minutes": 60,
                 "media_retention_days": 30,
                 "metadata_retention_days": 365,
@@ -209,6 +233,12 @@ class VerificationPolicyAPITests(APITestCase):
         self.assertTrue(clone.data["data"]["document_authenticity_required"])
         self.assertEqual(
             float(clone.data["data"]["document_authenticity_min_confidence"]), 0.97
+        )
+        self.assertEqual(
+            clone.data["data"]["document_consistency_rules"]["countries"]["GH"][
+                "minimum_age"
+            ],
+            18,
         )
         self.assertTrue(clone.data["data"]["external_risk_enabled"])
         self.assertEqual(clone.data["data"]["external_risk_failure_action"], "ignore")
@@ -371,3 +401,24 @@ class VerificationPolicyAPITests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_malformed_country_rules_are_rejected_without_creating_policy(self):
+        payload = {
+            "name": "Invalid rules",
+            "required_document_types": ["national_id"],
+            "required_liveness_level": "passive",
+            "face_match_threshold": "0.85",
+            "manual_review_threshold": "0.65",
+            "verification_expiry_minutes": 60,
+            "media_retention_days": 30,
+            "metadata_retention_days": 365,
+            "document_consistency_rules": {
+                "version": 1,
+                "countries": {"GH": {"minimum_age": True}},
+            },
+        }
+        response = self.client.post(
+            reverse("verification-policy-list-create"), payload, format="json"
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(VerificationPolicy.objects.exists())

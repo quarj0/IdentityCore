@@ -23,7 +23,6 @@ from apps.verifications.models import (
     VerificationDecision,
     VerificationStatus,
 )
-from apps.verifications.transitions import VerificationTransitionError
 
 
 class RiskDecisionTests(TestCase):
@@ -273,3 +272,56 @@ class RiskDecisionTests(TestCase):
             action="verification.automatic_decision_conflict"
         )
         self.assertEqual(conflict.metadata_json["reason"], "stale_revision")
+
+    def test_country_document_actions_apply_only_from_the_case_snapshot(self):
+        from apps.risk.services import evaluate_risk_assessment
+
+        self.identity_document.expires_at = timezone.now().date() - timedelta(days=1)
+        self.identity_document.save(update_fields=["expires_at"])
+        LivenessCheck.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            selfie_capture=self.selfie_capture,
+            liveness_type="passive",
+            status=LivenessCheckStatus.PASSED,
+            score=Decimal("0.97"),
+            checked_at=timezone.now(),
+        )
+        FaceMatch.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            selfie_capture=self.selfie_capture,
+            identity_document=self.identity_document,
+            document_capture=self.document_capture,
+            status=FaceMatchStatus.MATCHED,
+            match_score=Decimal("0.96"),
+            matched_at=timezone.now(),
+        )
+        for action, expected in (
+            ("ignore", RiskRecommendation.APPROVE),
+            ("manual_review", RiskRecommendation.MANUAL_REVIEW),
+            ("reject", RiskRecommendation.REJECT),
+        ):
+            with self.subTest(action=action):
+                self.verification.policy_snapshot_json = {
+                    "version": 5,
+                    "document_consistency_rules": {
+                        "version": 1,
+                        "countries": {"*": {"actions": {"document_expired": action}}},
+                    },
+                }
+                assessment = evaluate_risk_assessment(self.verification)
+                self.assertEqual(assessment.recommendation, expected)
+                self.assertEqual(
+                    assessment.signals_json["document_consistency"]["policy_version"], 5
+                )
+        LivenessCheck.objects.filter(verification=self.verification).update(
+            status=LivenessCheckStatus.FAILED
+        )
+        self.verification.policy_snapshot_json["document_consistency_rules"][
+            "countries"
+        ]["*"]["actions"]["document_expired"] = "manual_review"
+        self.assertEqual(
+            evaluate_risk_assessment(self.verification).recommendation,
+            RiskRecommendation.REJECT,
+        )

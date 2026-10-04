@@ -108,6 +108,8 @@ class VerificationPolicy(PublicIdModel, BaseModel):
     def required_document_types(self) -> list[str]:
         return list(self.required_document_types_json)
 
+    document_consistency_rules_json = models.JSONField(default=dict, blank=True)
+
     def snapshot(self) -> dict:
         consent = None
         if self.consent_template_id:
@@ -157,6 +159,7 @@ class VerificationPolicy(PublicIdModel, BaseModel):
             "face_match_threshold": float(self.face_match_threshold),
             "manual_review_threshold": float(self.manual_review_threshold),
             "maker_checker_required": self.maker_checker_required,
+            "document_consistency_rules": self.document_consistency_rules_json,
             "document_authenticity_required": self.document_authenticity_required,
             "document_authenticity_min_confidence": float(
                 self.document_authenticity_min_confidence

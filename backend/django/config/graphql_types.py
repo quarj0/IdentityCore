@@ -1,4 +1,5 @@
 import strawberry
+from strawberry.scalars import JSON
 
 
 @strawberry.type
@@ -68,6 +69,7 @@ class ManualReviewNode:
 
 @strawberry.type
 class VerificationPolicyNode:
+    document_consistency_rules: JSON
     document_authenticity_required: bool
     document_authenticity_min_confidence: float
     external_risk_enabled: bool

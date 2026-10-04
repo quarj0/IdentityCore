@@ -645,16 +645,27 @@ def _normalize_ocr_fields(
     uppercase_candidates = [
         text for text in normalized_texts if re.fullmatch(r"[A-Z][A-Z\s\-]{4,}", text)
     ]
-    date_candidates = re.findall(r"\b\d{4}[-/]\d{2}[-/]\d{2}\b", joined)
     id_candidates = re.findall(r"\b[A-Z0-9]{6,20}\b", joined)
 
+    labeled_dates = {}
+    for key, pattern in (
+        ("date_of_birth", r"(?:DATE OF BIRTH|BIRTH DATE|DOB)"),
+        ("issue_date", r"(?:DATE OF ISSUE|ISSUE DATE|ISSUED)"),
+        ("expiry_date", r"(?:DATE OF EXPIRY|EXPIRY DATE|EXPIRATION DATE|EXPIRES)"),
+    ):
+        match = re.search(
+            pattern + r"[^0-9]{0,30}(\d{4}[-/]\d{2}[-/]\d{2})",
+            joined,
+            flags=re.IGNORECASE,
+        )
+        if match:
+            labeled_dates[key] = match.group(1).replace("/", "-")
     return {
+        **labeled_dates,
         "document_type": document_type,
         "country_code": country_code,
         "full_name": uppercase_candidates[0].title() if uppercase_candidates else "",
-        "date_of_birth": (
-            date_candidates[0].replace("/", "-") if date_candidates else ""
-        ),
+        "date_of_birth": labeled_dates.get("date_of_birth", ""),
         "document_number": id_candidates[0] if id_candidates else "",
         "raw_text_lines": normalized_texts,
     }
@@ -692,6 +703,10 @@ def run_document_ocr_pipeline(
     texts, scores = _extract_text_lines(prediction)
     extracted_fields = _normalize_ocr_fields(texts, document_type, country_code)
     mrz = parse_mrz(texts)
+    extracted_fields["visual_ocr_fields"] = {
+        key: extracted_fields[key]
+        for key in ("full_name", "date_of_birth", "document_number")
+    }
     extracted_fields["mrz_evidence"] = mrz
     if mrz["status"] == "valid":
         extracted_fields["document_number"] = mrz["fields"]["document_number"]["value"]
