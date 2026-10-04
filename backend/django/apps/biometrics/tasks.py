@@ -288,7 +288,7 @@ def _finalize_unavailable_biometrics(
     return verification.status
 
 
-@shared_task(queue="ai_processing")
+@shared_task(queue="ai_processing", acks_late=True, reject_on_worker_lost=True)
 def process_verification_biometrics_task(liveness_check_id: str) -> str:
     liveness_check = LivenessCheck.objects.select_related(
         "verification", "selfie_capture", "tenant", "challenge"

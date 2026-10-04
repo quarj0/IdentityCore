@@ -39,6 +39,20 @@ class DrainProcessingTests(TestCase):
                 complete_processing_job(job)
                 self.assertEqual(ProcessingJob.objects.get().status, "completed")
 
+    def test_late_acknowledgement_is_limited_to_durable_processing(self):
+        from apps.biometrics.tasks import process_verification_biometrics_task
+        from apps.identity_documents.tasks import process_identity_document_task
+        from apps.notifications.tasks import deliver_notification_task
+
+        for task in (
+            process_verification_biometrics_task,
+            process_identity_document_task,
+        ):
+            self.assertTrue(task.acks_late)
+            self.assertTrue(task.reject_on_worker_lost)
+        self.assertFalse(deliver_notification_task.acks_late)
+        self.assertFalse(deliver_notification_task.reject_on_worker_lost)
+
     def test_migration_gate_rejects_operations_that_break_old_code(self):
         self.assertTrue(
             expand_safe(
@@ -73,6 +87,27 @@ class DrainProcessingTests(TestCase):
                 )
             )
         )
+
+    def test_implicit_indexes_relationships_and_null_defaults_block_promotion(self):
+        for field in [
+            models.CharField(max_length=32, null=True, db_index=True),
+            models.ForeignKey(
+                "verifications.Verification", on_delete=models.CASCADE, null=True
+            ),
+            models.ForeignKey(
+                "verifications.Verification",
+                on_delete=models.CASCADE,
+                null=True,
+                db_index=False,
+            ),
+            models.IntegerField(db_default=None),
+            models.IntegerField(db_default=models.Value(None)),
+            models.IntegerField(db_default=models.Value(0)),
+        ]:
+            with self.subTest(field=type(field).__name__):
+                self.assertFalse(
+                    expand_safe(migrations.AddField("fixture", "extra", field))
+                )
 
 
 class OldRolloutFixture(models.Model):

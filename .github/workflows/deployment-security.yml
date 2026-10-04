@@ -1,0 +1,58 @@
+name: Deployment security promotion gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment whose scoped origins and smoke credentials must pass
+        required: true
+        type: choice
+        options:
+          - sandbox
+          - production
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deployment-security:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Materialize environment-scoped policy
+        env:
+          DEPLOYMENT_SECURITY_CONFIG: ${{ vars.DEPLOYMENT_SECURITY_CONFIG }}
+          TARGET_ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          config = json.loads(os.environ['DEPLOYMENT_SECURITY_CONFIG'])
+          if config.get('environment') != os.environ['TARGET_ENVIRONMENT']:
+              raise SystemExit('Deployment security environment mismatch.')
+          Path('deployment-security-config.json').write_text(json.dumps(config))
+          PY
+      - name: Block unsafe deployed configuration
+        env:
+          DEPLOYMENT_SMOKE_EMAIL: ${{ secrets.DEPLOYMENT_SMOKE_EMAIL }}
+          DEPLOYMENT_SMOKE_PASSWORD: ${{ secrets.DEPLOYMENT_SMOKE_PASSWORD }}
+          DEPLOYMENT_SMOKE_SESSION_ID: ${{ secrets.DEPLOYMENT_SMOKE_SESSION_ID }}
+          DEPLOYMENT_SMOKE_SESSION_TOKEN: ${{ secrets.DEPLOYMENT_SMOKE_SESSION_TOKEN }}
+        run: python scripts/check_deployed_security.py --config deployment-security-config.json --output deployment-security-report.json
+      - name: Upload sanitized promotion evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-security-${{ inputs.environment }}
+          path: deployment-security-report.json
+          if-no-files-found: error
+          retention-days: 30

@@ -56,6 +56,28 @@ class DrainReadinessTests(SimpleTestCase):
         self.assertIn("Instance drained.", output.getvalue())
 
     @patch("apps.verifications.management.commands.deployment_drain.app")
+    def test_task_transition_between_inspections_resets_empty_confirmation(self, app):
+        worker = "worker@instance"
+        inspect = app.control.inspect.return_value
+        inspect.ping.return_value = {worker: {"ok": "pong"}}
+        inspect.active_queues.return_value = {worker: []}
+        inspect.active.side_effect = [
+            {worker: []},
+            {worker: [{"args": "private-synthetic-evidence"}]},
+            {worker: []},
+            {worker: []},
+        ]
+        inspect.reserved.return_value = {worker: []}
+        inspect.scheduled.return_value = {worker: []}
+        output = io.StringIO()
+        with patch(
+            "apps.verifications.management.commands.deployment_drain.time.sleep"
+        ):
+            call_command("deployment_drain", worker=worker, timeout=1, stdout=output)
+        self.assertEqual(inspect.active.call_count, 4)
+        self.assertNotIn("private-synthetic-evidence", output.getvalue())
+
+    @patch("apps.verifications.management.commands.deployment_drain.app")
     def test_unacknowledged_worker_retains_marker(self, app):
         app.control.inspect.return_value.ping.return_value = None
         with self.assertRaises(CommandError):

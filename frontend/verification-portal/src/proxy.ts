@@ -13,6 +13,9 @@ export function proxy(request: NextRequest) {
   for (const [name, value] of Object.entries(securityHeaders(nonce))) {
     response.headers.set(name, value);
   }
+  if (process.env.NODE_ENV === "production") {
+    response.headers.set("Strict-Transport-Security", "max-age=31536000");
+  }
   return response;
 }
 

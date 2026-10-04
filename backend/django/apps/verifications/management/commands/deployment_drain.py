@@ -76,6 +76,7 @@ class Command(BaseCommand):
                     "Consumer cancellation was not acknowledged; the marker is retained."
                 )
         deadline = time.monotonic() + timeout
+        empty_snapshots = 0
         while time.monotonic() < deadline:
             pending = 0
             for method in (inspect.active, inspect.reserved, inspect.scheduled):
@@ -85,7 +86,8 @@ class Command(BaseCommand):
                         "Worker drain state is unavailable; the marker is retained."
                     )
                 pending += len(tasks)
-            if pending == 0:
+            empty_snapshots = empty_snapshots + 1 if pending == 0 else 0
+            if empty_snapshots >= 2:
                 self.stdout.write(
                     "Instance drained. Stop the worker gracefully before replacing it."
                 )

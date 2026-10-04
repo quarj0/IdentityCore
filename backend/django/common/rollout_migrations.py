@@ -1,6 +1,6 @@
 """Conservative expand-only classification; ambiguous operations fail closed."""
 
-from django.db import migrations, models
+from django.db import migrations
 from django.contrib.postgres.operations import AddIndexConcurrently
 
 
@@ -12,9 +12,14 @@ def expand_safe(operation):
         return bool(
             not operation.field.unique
             and not operation.field.primary_key
+            and not operation.field.db_index
+            and not operation.field.is_relation
             and (
                 operation.field.null
-                or operation.field.db_default is not models.NOT_PROVIDED
+                or (
+                    operation.field.db_default is not None
+                    and isinstance(operation.field.db_default, (str, int, float, bool))
+                )
             )
         )
     if isinstance(
