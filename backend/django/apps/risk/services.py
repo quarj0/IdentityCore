@@ -100,6 +100,7 @@ def evaluate_risk_assessment(verification, *, external_evidence=None) -> RiskAss
         verification.policy_snapshot_json.get("document_authenticity_required")
         and (not authenticity or authenticity.get("requires_manual_review", True))
     )
+    from apps.uploads.provenance import capture_signals
     from apps.identity_documents.consistency import collect_consistency
 
     consistency = (
@@ -108,6 +109,7 @@ def evaluate_risk_assessment(verification, *, external_evidence=None) -> RiskAss
         else None
     )
     signals = {
+        "capture_provenance": capture_signals(verification),
         "document_consistency": consistency,
         "document_authenticity": _safe_authenticity_evidence(authenticity),
         "document_submitted": verification.identity_documents.exists(),
@@ -211,6 +213,14 @@ def evaluate_risk_assessment(verification, *, external_evidence=None) -> RiskAss
             RiskLevel.HIGH,
             RiskRecommendation.MANUAL_REVIEW,
         )
+
+    if (
+        signals["capture_provenance"]["invalid"]
+        or signals["capture_provenance"]["truncated"]
+    ) and recommendation != RiskRecommendation.REJECT:
+        risk_score = max(risk_score, Decimal("82.00"))
+        risk_level = RiskLevel.HIGH
+        recommendation = RiskRecommendation.MANUAL_REVIEW
 
     from apps.risk.external import (
         apply_external_risk,

@@ -5,6 +5,7 @@ import { Camera, CircleStop, Loader2, Play, RotateCcw } from "lucide-react";
 
 import { Button } from "@identitycore/ui";
 import { selectRecordingFormat } from "@/lib/media-recording";
+import { recordCapture } from "@/lib/capture-provenance";
 import { localizeText } from "@/lib/i18n";
 
 const ACTION_LABELS: Record<string, string> = {
@@ -69,7 +70,10 @@ export function LiveLivenessCapture({
     const handleVisibilityChange = () => {
       if (document.hidden && recorderRef.current?.state === "recording") {
         cancelRecording(
-          localizeText(locale, "The live check was interrupted when this page became inactive. Start it again."),
+          localizeText(
+            locale,
+            "The live check was interrupted when this page became inactive. Start it again.",
+          ),
         );
       }
     };
@@ -86,13 +90,19 @@ export function LiveLivenessCapture({
   async function startCamera() {
     if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
       setError(
-        localizeText(locale, "This browser cannot access a camera here. Open the secure link in a current browser or continue on another device."),
+        localizeText(
+          locale,
+          "This browser cannot access a camera here. Open the secure link in a current browser or continue on another device.",
+        ),
       );
       return;
     }
     if (typeof MediaRecorder === "undefined") {
       setError(
-        localizeText(locale, "This browser cannot record the live video. Continue on another device or update your browser."),
+        localizeText(
+          locale,
+          "This browser cannot record the live video. Continue on another device or update your browser.",
+        ),
       );
       return;
     }
@@ -116,12 +126,18 @@ export function LiveLivenessCapture({
           if (stoppingCameraRef.current || streamRef.current !== stream) return;
           if (recorderRef.current?.state === "recording") {
             cancelRecording(
-              localizeText(locale, "The camera disconnected. The unfinished video was discarded; start a new live challenge."),
+              localizeText(
+                locale,
+                "The camera disconnected. The unfinished video was discarded; start a new live challenge.",
+              ),
             );
           } else {
             stopCamera();
             setError(
-              localizeText(locale, "The camera disconnected. Reconnect it and try again, or continue on another device."),
+              localizeText(
+                locale,
+                "The camera disconnected. Reconnect it and try again, or continue on another device.",
+              ),
             );
           }
         },
@@ -151,8 +167,11 @@ export function LiveLivenessCapture({
           "This camera cannot provide the video format needed. Try another camera or device.",
       };
       setError(
-        localizeText(locale, messages[name] ??
-          "Camera access is unavailable. Check your browser permissions or continue on another device."),
+        localizeText(
+          locale,
+          messages[name] ??
+            "Camera access is unavailable. Check your browser permissions or continue on another device.",
+        ),
       );
     } finally {
       setStarting(false);
@@ -170,7 +189,10 @@ export function LiveLivenessCapture({
     );
     if (!format) {
       setError(
-        localizeText(locale, "This browser cannot create a supported MP4 or WebM liveness video. Update your browser or use another current device."),
+        localizeText(
+          locale,
+          "This browser cannot create a supported MP4 or WebM liveness video. Update your browser or use another current device.",
+        ),
       );
       return;
     }
@@ -197,16 +219,24 @@ export function LiveLivenessCapture({
       if (discardRecordingRef.current) {
         chunksRef.current = [];
       } else if (!blob.size) {
-        setError(localizeText(locale, "No video was recorded. Please try again."));
+        setError(
+          localizeText(locale, "No video was recorded. Please try again."),
+        );
       } else if (blob.size > MAX_RECORDING_BYTES) {
         setError(
-          localizeText(locale, "The live video is too large to upload. Move closer to a stable connection and try again."),
+          localizeText(
+            locale,
+            "The live video is too large to upload. Move closer to a stable connection and try again.",
+          ),
         );
       } else {
         onCapture(
-          new File([blob], `liveness-${Date.now()}.${format.extension}`, {
-            type: format.fileMimeType,
-          }),
+          recordCapture(
+            new File([blob], `liveness-${Date.now()}.${format.extension}`, {
+              type: format.fileMimeType,
+            }),
+            "live_recording",
+          ),
         );
       }
       setRecording(false);
@@ -252,7 +282,10 @@ export function LiveLivenessCapture({
               {localizeText(locale, "Live camera check")}
             </p>
             <p className="mt-1 max-w-xs text-xs leading-5 text-slate-400">
-              {localizeText(locale, "A short video is recorded only after you start the challenge.")}
+              {localizeText(
+                locale,
+                "A short video is recorded only after you start the challenge.",
+              )}
             </p>
           </div>
         ) : null}
@@ -260,7 +293,10 @@ export function LiveLivenessCapture({
           <div className="absolute inset-x-4 top-4 rounded-2xl bg-info px-4 py-3 text-center text-sm font-semibold text-info-foreground shadow-lg">
             <span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-destructive" />
             {currentAction
-              ? localizeText(locale, ACTION_LABELS[currentAction] ?? currentAction)
+              ? localizeText(
+                  locale,
+                  ACTION_LABELS[currentAction] ?? currentAction,
+                )
               : localizeText(locale, "Hold still while we finish recording")}
           </div>
         ) : null}
@@ -289,7 +325,9 @@ export function LiveLivenessCapture({
             ) : (
               <Camera className="h-4 w-4" />
             )}
-            {starting ? localizeText(locale, "Starting camera…") : localizeText(locale, "Enable camera")}
+            {starting
+              ? localizeText(locale, "Starting camera…")
+              : localizeText(locale, "Enable camera")}
           </Button>
         ) : !recording ? (
           <Button type="button" onClick={startRecording} className="flex-1">

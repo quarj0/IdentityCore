@@ -28,6 +28,7 @@ from apps.providers.models import ProviderCheckStatus, ProviderCheckType
 from apps.providers.services import create_provider_check
 from apps.uploads.models import Upload, UploadPurpose, UploadStatus
 from apps.uploads.services import consume_upload
+from apps.uploads.provenance import validate_receipt
 from apps.verifications.models import (
     VerificationSession,
     VerificationSessionStatus,
@@ -225,6 +226,7 @@ def resolve_session_upload(
         )
     if upload.is_expired or upload.status == UploadStatus.EXPIRED:
         raise serializers.ValidationError({"upload_id": "Upload URL has expired."})
+    validate_receipt(upload)
     return upload
 
 
@@ -839,6 +841,7 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
             deleted_at__isnull=True,
         ).first()
         if upload and upload.status in {UploadStatus.CONSUMED, UploadStatus.PROMOTED}:
+            validate_receipt(upload)
             existing_capture = verification.selfie_captures.filter(
                 storage_key=upload.storage_key,
                 capture_type=attrs["capture_type"],

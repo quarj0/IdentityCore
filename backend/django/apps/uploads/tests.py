@@ -1,3 +1,4 @@
+from apps.uploads.test_helpers import seal_test_upload
 from datetime import timedelta
 from unittest.mock import ANY, patch
 
@@ -740,7 +741,7 @@ class UploadRetentionTaskTests(TestCase):
         self.session.save()
 
     def test_cleanup_expired_uploads_marks_temporary_upload_expired_and_deleted(self):
-        expired_upload = Upload.objects.create(
+        expired_upload = seal_test_upload(Upload.objects.create(
             tenant=self.tenant,
             verification=self.verification,
             verification_session=self.session,
@@ -754,8 +755,8 @@ class UploadRetentionTaskTests(TestCase):
             file_size_bytes=1024,
             status=UploadStatus.INITIATED,
             expires_at=timezone.now() - timedelta(minutes=1),
-        )
-        active_upload = Upload.objects.create(
+        ))
+        active_upload = seal_test_upload(Upload.objects.create(
             tenant=self.tenant,
             verification=self.verification,
             verification_session=self.session,
@@ -769,7 +770,7 @@ class UploadRetentionTaskTests(TestCase):
             file_size_bytes=2048,
             status=UploadStatus.INITIATED,
             expires_at=timezone.now() + timedelta(minutes=10),
-        )
+        ))
 
         cleaned = cleanup_expired_uploads_task(limit=10)
 
@@ -788,7 +789,7 @@ class UploadRetentionTaskTests(TestCase):
         )
 
     def test_cleanup_expired_uploads_deletes_consumed_temp_upload_after_retention_window(self):
-        consumed_upload = Upload.objects.create(
+        consumed_upload = seal_test_upload(Upload.objects.create(
             tenant=self.tenant,
             verification=self.verification,
             verification_session=self.session,
@@ -803,7 +804,7 @@ class UploadRetentionTaskTests(TestCase):
             status=UploadStatus.CONSUMED,
             expires_at=timezone.now() + timedelta(minutes=10),
             consumed_at=timezone.now() - timedelta(hours=25),
-        )
+        ))
 
         cleaned = cleanup_expired_uploads_task(limit=10)
 
@@ -813,14 +814,14 @@ class UploadRetentionTaskTests(TestCase):
         self.assertIsNotNone(consumed_upload.deleted_at)
 
     def _expired_upload(self, status=UploadStatus.INITIATED):
-        return Upload.objects.create(
+        return seal_test_upload(Upload.objects.create(
             tenant=self.tenant, verification=self.verification,
             verification_session=self.session, purpose=UploadPurpose.DOCUMENT_CAPTURE,
             storage_key=f"private/{Upload.objects.count()}.jpg", storage_provider="s3",
             mime_type="image/jpeg", file_size_bytes=100, status=status,
             expires_at=timezone.now() - timedelta(days=2),
             consumed_at=timezone.now() - timedelta(days=2) if status == UploadStatus.CONSUMED else None,
-        )
+        ))
 
     @patch("apps.uploads.tasks.get_object_storage_temp_bucket_name", return_value="temporary")
     @patch("apps.uploads.tasks.delete_object")

@@ -586,6 +586,8 @@ public sealed record EvidenceReport
 
 public sealed record PortalUploadCreateRequest
 {
+    [JsonPropertyName("capture_method")]
+    public string? CaptureMethod { get; init; }
     [JsonPropertyName("purpose")]
     public string Purpose { get; init; }
     [JsonPropertyName("mime_type")]

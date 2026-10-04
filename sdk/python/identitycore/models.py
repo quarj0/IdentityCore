@@ -500,7 +500,7 @@ class _PortalUploadCreateRequestRequired(TypedDict):
 
 
 class PortalUploadCreateRequest(_PortalUploadCreateRequestRequired, total=False):
-    pass
+    capture_method: str
 
 
 class _PortalUploadCreateResponseRequired(TypedDict):
