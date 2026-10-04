@@ -6,6 +6,9 @@ import { DashboardSession } from "@/components/auth/dashboard-session";
 import { Toaster } from "@identitycore/ui";
 import { SessionExpiryBoundary } from "@/components/auth/session-expiry-boundary";
 
+// Per-request CSP nonces must also be present on the server-rendered scripts.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "IdentityCore Dashboard",
   description: "IdentityCore organization workspace dashboard.",

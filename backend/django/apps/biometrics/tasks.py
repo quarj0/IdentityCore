@@ -358,6 +358,11 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                     verification=verification,
                     check_type=ProviderCheckType.LIVENESS,
                     operation=lambda provider, timeout: invoke_selected_provider_operation(
+                        environment=(
+                            verification.project.environment
+                            if verification.project_id
+                            else "sandbox"
+                        ),
                         provider=provider,
                         check_type=ProviderCheckType.LIVENESS,
                         timeout_seconds=timeout,
@@ -498,6 +503,11 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                     verification=verification,
                     check_type=ProviderCheckType.FACE_MATCH,
                     operation=lambda provider, timeout: invoke_selected_provider_operation(
+                        environment=(
+                            verification.project.environment
+                            if verification.project_id
+                            else "sandbox"
+                        ),
                         provider=provider,
                         check_type=ProviderCheckType.FACE_MATCH,
                         timeout_seconds=timeout,

@@ -679,3 +679,96 @@ class ProviderCheck(PublicIdModel, BaseModel):
 
     def __str__(self) -> str:
         return self.public_id
+
+
+class ProviderEnvironmentConfiguration(PublicIdModel, BaseModel):
+    public_id_prefix = "pec"
+    provider = models.ForeignKey(
+        Provider, on_delete=models.PROTECT, related_name="environment_configurations"
+    )
+    environment = models.CharField(
+        max_length=16, choices=ProviderRouteEnvironment.choices
+    )
+    version = models.PositiveIntegerField()
+    status = models.CharField(
+        max_length=16,
+        default="draft",
+        choices=[("draft", "Draft"), ("active", "Active"), ("retired", "Retired")],
+    )
+    public_configuration_json = models.JSONField(default=dict)
+    credentials_json = EncryptedJSONField(
+        default=dict, encryption_purpose="providers.environment.credentials"
+    )
+    manifest_snapshot_json = models.JSONField(default=dict)
+    source = models.ForeignKey("self", null=True, blank=True, on_delete=models.PROTECT)
+    diff_json = models.JSONField(default=dict)
+    requested_by = models.ForeignKey(
+        "accounts.PlatformUser",
+        on_delete=models.PROTECT,
+        related_name="requested_provider_configurations",
+    )
+    approved_by = models.ForeignKey(
+        "accounts.PlatformUser",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="approved_provider_configurations",
+    )
+    tested_at = models.DateTimeField(null=True, blank=True)
+    tested_digest = models.CharField(max_length=64, blank=True)
+    test_succeeded = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["provider", "environment", "version"],
+                name="provider_environment_version_uniq",
+            ),
+            models.UniqueConstraint(
+                fields=["provider", "environment"],
+                condition=models.Q(status="active"),
+                name="provider_environment_active_uniq",
+            ),
+        ]
+        ordering = ["provider_id", "environment", "-version"]
+
+    def clean(self):
+        super().clean()
+        tenant_id = self.provider.tenant_id
+        if (
+            tenant_id is None
+            or self.requested_by.tenant_id != tenant_id
+            or (self.approved_by_id and self.approved_by.tenant_id != tenant_id)
+        ):
+            raise ValidationError(
+                "Provider configurations require users in the owning tenant."
+            )
+        if self.source_id and (
+            self.source.provider_id != self.provider_id
+            or self.source.environment != "sandbox"
+            or self.environment != "production"
+        ):
+            raise ValidationError(
+                "Promotion requires the same provider's sandbox configuration."
+            )
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            previous = type(self).objects.get(pk=self.pk)
+            immutable = (
+                "provider_id",
+                "environment",
+                "version",
+                "public_configuration_json",
+                "credentials_json",
+                "manifest_snapshot_json",
+                "requested_by_id",
+                "source_id",
+                "diff_json",
+            )
+            if any(getattr(previous, key) != getattr(self, key) for key in immutable):
+                raise ValidationError(
+                    "Configuration versions are immutable; create a new version."
+                )
+        self.full_clean()
+        return super().save(*args, **kwargs)

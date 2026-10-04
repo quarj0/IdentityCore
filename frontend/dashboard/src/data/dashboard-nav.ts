@@ -73,6 +73,7 @@ export const dashboardNav = [
   {
     title: "Developers",
     items: [
+      { href: "/providers", label: "Providers", icon: ShieldCheck },
       {
         href: "/api-keys",
         label: "API keys",
