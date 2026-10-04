@@ -7,7 +7,13 @@ from django.utils import timezone
 from django.utils.text import slugify
 from django_countries import countries
 
-from apps.access_control.models import Permission, Role, RolePermission, RoleScope, UserRole
+from apps.access_control.models import (
+    Permission,
+    Role,
+    RolePermission,
+    RoleScope,
+    UserRole,
+)
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.accounts.verification import issue_and_queue_email_verification
 from apps.audit.services import record_audit_event
@@ -218,8 +224,7 @@ def _organization_verification_has_changed(
             != business_registration_number.strip(),
             existing.get("registered_address", "").strip()
             != registered_address.strip(),
-            existing.get("official_website", "").strip()
-            != official_website.strip(),
+            existing.get("official_website", "").strip() != official_website.strip(),
             existing.get("tax_identification_number", "").strip()
             != tax_identification_number.strip(),
             _normalize_supporting_document_keys(
@@ -265,9 +270,7 @@ def assign_platform_review_reviewer(
             "assigned_reviewer_name": f"{reviewer.first_name} {reviewer.last_name}".strip()
             or reviewer.email,
             "assigned_at": timezone.now().isoformat(),
-            "required_approver_role": platform_review.get(
-                "required_approver_role", ""
-            ),
+            "required_approver_role": platform_review.get("required_approver_role", ""),
         }
     )
     onboarding["platform_review"] = platform_review
@@ -344,6 +347,14 @@ def ensure_tenant_administrator_role(*, tenant: Tenant, user: PlatformUser) -> N
         },
     )
     RolePermission.objects.get_or_create(role=role, permission=permission)
+    for code, name in (
+        ("manage_providers", "Manage providers"),
+        ("approve_provider_promotion", "Approve provider promotion"),
+    ):
+        permission, _ = Permission.objects.get_or_create(
+            code=code, defaults={"name": name}
+        )
+        RolePermission.objects.get_or_create(role=role, permission=permission)
     UserRole.objects.get_or_create(user=user, role=role, tenant=tenant)
 
 
@@ -542,7 +553,9 @@ def serialize_organization_review_state(organization: Organization) -> dict:
     user = tenant.platform_users.order_by("created_at").first()
     if user is None:
         raise ValidationError("Onboarding organization does not have an administrator.")
-    onboarding = serialize_onboarding_state(organization=organization, tenant=tenant, user=user)
+    onboarding = serialize_onboarding_state(
+        organization=organization, tenant=tenant, user=user
+    )
     review_status = onboarding["organization_verification_review_status"]
     review_notes = {
         ORGANIZATION_VERIFICATION_REVIEW_SUBMITTED: "Waiting for review.",
@@ -554,12 +567,15 @@ def serialize_organization_review_state(organization: Organization) -> dict:
         "critical"
         if onboarding["organization_verification_changed_after_approval"]
         or onboarding["platform_review_escalated"]
-        else "high"
-        if review_status in {
-            ORGANIZATION_VERIFICATION_REVIEW_NEEDS_INFORMATION,
-            ORGANIZATION_VERIFICATION_REVIEW_REJECTED,
-        }
-        else "medium"
+        else (
+            "high"
+            if review_status
+            in {
+                ORGANIZATION_VERIFICATION_REVIEW_NEEDS_INFORMATION,
+                ORGANIZATION_VERIFICATION_REVIEW_REJECTED,
+            }
+            else "medium"
+        )
     )
     onboarding["review_summary"] = review_notes.get(
         review_status, "Pending organization review."
@@ -624,8 +640,10 @@ def submit_organization_verification(
     tenant = user.tenant
     organization = tenant.organization
     documents = organization.supporting_documents.filter(
-        tenant=tenant, storage_key__in=supporting_document_keys,
-        status__in=["uploaded", "submitted"], deleted_at__isnull=True
+        tenant=tenant,
+        storage_key__in=supporting_document_keys,
+        status__in=["uploaded", "submitted"],
+        deleted_at__isnull=True,
     )
     if documents.count() != len(set(supporting_document_keys)):
         raise ValidationError("One or more supporting documents are invalid.")
@@ -784,18 +802,14 @@ def review_organization_onboarding(
         "reviewed_by": actor.public_id,
         "note": note.strip(),
         "assigned_reviewer_id": platform_review.get("assigned_reviewer_id", ""),
-        "assigned_reviewer_name": platform_review.get(
-            "assigned_reviewer_name", ""
-        ),
+        "assigned_reviewer_name": platform_review.get("assigned_reviewer_name", ""),
         "assigned_at": platform_review.get("assigned_at"),
         "escalated": bool(platform_review.get("escalated", False)),
         "escalation_reason": platform_review.get("escalation_reason", ""),
         "escalated_at": platform_review.get("escalated_at"),
         "required_approver_role": platform_review.get("required_approver_role", ""),
     }
-    organization_verification = dict(
-        onboarding.get("organization_verification") or {}
-    )
+    organization_verification = dict(onboarding.get("organization_verification") or {})
 
     if decision == "approved":
         if (

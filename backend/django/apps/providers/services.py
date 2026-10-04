@@ -463,11 +463,22 @@ def invoke_selected_provider_operation(
     timeout_seconds: int,
     operation_kwargs: dict,
     built_in_operation: Callable[..., dict],
+    environment: str | None = None,
 ) -> dict:
     """Invoke the adapter belonging to the provider selected by the route."""
     system_code = SYSTEM_PROVIDER_DEFAULTS.get(check_type, {}).get("code")
     if provider.code == system_code:
         return built_in_operation(**operation_kwargs)
+    if provider.environment_configurations.exists():
+        from apps.providers.configuration import invoke_configured_provider
+
+        return invoke_configured_provider(
+            provider=provider,
+            environment=environment,
+            capability=check_type,
+            inputs=operation_kwargs,
+            timeout_seconds=timeout_seconds,
+        )
     adapter = provider_adapter_registry.resolve(provider.code)
     method_name = PROVIDER_CAPABILITY_METHODS.get(check_type)
     if method_name is None:

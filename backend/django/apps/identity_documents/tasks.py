@@ -226,6 +226,11 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 verification=verification,
                 check_type=ProviderCheckType.DOCUMENT_QUALITY,
                 operation=lambda provider, timeout: invoke_selected_provider_operation(
+                    environment=(
+                        verification.project.environment
+                        if verification.project_id
+                        else "sandbox"
+                    ),
                     provider=provider,
                     check_type=ProviderCheckType.DOCUMENT_QUALITY,
                     timeout_seconds=timeout,
@@ -335,6 +340,11 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 verification=verification,
                 check_type=ProviderCheckType.DOCUMENT_CLASSIFICATION,
                 operation=lambda provider, timeout: invoke_selected_provider_operation(
+                    environment=(
+                        verification.project.environment
+                        if verification.project_id
+                        else "sandbox"
+                    ),
                     provider=provider,
                     check_type=ProviderCheckType.DOCUMENT_CLASSIFICATION,
                     timeout_seconds=timeout,
@@ -382,6 +392,11 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 verification=verification,
                 check_type=ProviderCheckType.DOCUMENT_OCR,
                 operation=lambda provider, timeout: invoke_selected_provider_operation(
+                    environment=(
+                        verification.project.environment
+                        if verification.project_id
+                        else "sandbox"
+                    ),
                     provider=provider,
                     check_type=ProviderCheckType.DOCUMENT_OCR,
                     timeout_seconds=timeout,
