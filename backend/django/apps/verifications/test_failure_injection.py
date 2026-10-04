@@ -14,6 +14,7 @@ from apps.providers.models import ProviderCheck
 from apps.verifications import test_processing_jobs as processing_tests
 from apps.verifications.models import ProcessingJob, VerificationDecision
 from apps.verifications.processing_jobs import (
+    COMMITTED_PROVIDER_RESULT_RECOVERY,
     queue_identity_document_processing,
     recover_stale_processing_jobs,
 )
@@ -124,8 +125,23 @@ class StorageAndAIOutageTests(TestCase):
                 resource_public_id=self.liveness_check.public_id
             )
             ProcessingJob.objects.filter(pk=job.pk).update(
-                lease_expires_at=timezone.now() - timedelta(seconds=1)
+                lease_expires_at=timezone.now() - timedelta(seconds=1),
+                attempt_count=job.max_attempts,
             )
+            with patch(
+                "apps.biometrics.tasks.process_verification_biometrics_task.delay",
+                side_effect=BrokerUnavailable(SENTINEL),
+            ):
+                self.assertEqual(recover_stale_processing_jobs(limit=10), (0, 0))
+            job.refresh_from_db()
+            self.assertEqual(job.error_code, COMMITTED_PROVIDER_RESULT_RECOVERY)
+            with patch(
+                "apps.biometrics.tasks.process_verification_biometrics_task.delay"
+            ) as publish:
+                self.assertEqual(recover_stale_processing_jobs(limit=10), (1, 0))
+                publish.assert_called_once_with(self.liveness_check.public_id)
+            job.refresh_from_db()
+            self.assertEqual(job.error_code, COMMITTED_PROVIDER_RESULT_RECOVERY)
             promote.side_effect = None
             liveness.reset_mock()
             face.reset_mock()

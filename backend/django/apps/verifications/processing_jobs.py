@@ -100,7 +100,8 @@ def dispatch_processing_job(job_public_id: str) -> bool:
         if job.status != ProcessingJobStatus.QUEUED:
             return False
         job.lease_expires_at = _lease_deadline()
-        job.error_code = ""
+        if job.error_code in {"dispatch_unavailable", "stale_processing_lease"}:
+            job.error_code = ""
         job.save(update_fields=["lease_expires_at", "error_code", "updated_at"])
 
     try:
@@ -118,7 +119,14 @@ def dispatch_processing_job(job_public_id: str) -> bool:
         ProcessingJob.objects.filter(
             pk=job.pk,
             status=ProcessingJobStatus.QUEUED,
-        ).update(lease_expires_at=timezone.now(), error_code="dispatch_unavailable")
+        ).update(
+            lease_expires_at=timezone.now(),
+            error_code=(
+                COMMITTED_PROVIDER_RESULT_RECOVERY
+                if job.error_code == COMMITTED_PROVIDER_RESULT_RECOVERY
+                else "dispatch_unavailable"
+            ),
+        )
         logger.warning(
             "Failed to dispatch processing job %s (%s).",
             job.public_id,
