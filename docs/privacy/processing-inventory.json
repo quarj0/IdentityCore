@@ -449,6 +449,71 @@
     },
     {
       "source": "backend/django/apps/accounts/models.py",
+      "field": "DashboardSession.created_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "DashboardSession.deleted_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "DashboardSession.device_label",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "DashboardSession.expires_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "DashboardSession.family_id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "DashboardSession.id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "DashboardSession.last_seen_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "DashboardSession.peer_network",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "DashboardSession.public_id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "DashboardSession.revoked_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "DashboardSession.scope",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "DashboardSession.updated_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "DashboardSession.user",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
       "field": "EmailVerificationToken.created_at",
       "activity": "account-and-tenant-administration"
     },
@@ -589,6 +654,11 @@
     },
     {
       "source": "backend/django/apps/accounts/models.py",
+      "field": "PlatformUser.auth_valid_after",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
       "field": "PlatformUser.created_at",
       "activity": "account-and-tenant-administration"
     },
@@ -710,6 +780,11 @@
     {
       "source": "backend/django/apps/accounts/models.py",
       "field": "RefreshTokenSession.deleted_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "RefreshTokenSession.expires_at",
       "activity": "account-and-tenant-administration"
     },
     {

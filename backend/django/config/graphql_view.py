@@ -1,7 +1,7 @@
 import json
 
 from django.http import JsonResponse
-from rest_framework_simplejwt.authentication import JWTAuthentication
+from apps.accounts.authentication import DashboardJWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken
 from strawberry.django.views import GraphQLView
 
@@ -16,7 +16,7 @@ class AuthenticatedGraphQLView(GraphQLView):
             authorization = request.headers.get("Authorization")
             if authorization:
                 try:
-                    authenticated = JWTAuthentication().authenticate(request)
+                    authenticated = DashboardJWTAuthentication().authenticate(request)
                 except InvalidToken:
                     return JsonResponse(
                         error_payload(

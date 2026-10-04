@@ -1,3 +1,4 @@
+import { OwnedSessions } from "@/components/auth/owned-sessions";
 import Link from "next/link";
 import { Button, Card, CardContent } from "@identitycore/ui";
 import { PageHeading } from "@/components/shared/page-heading";
@@ -15,14 +16,15 @@ export default function Page() {
           <h2 className="font-semibold">Password</h2>
           <p className="text-sm text-slate-600">
             Change your password through the shared IdentityCore account flow.
-            Existing refresh sessions are protected by rotation and token
-            blacklisting.
+            Changing your password signs out every device. Sign in again with
+            your new password.
           </p>
           <Button asChild>
             <Link href={`${home}/change-password`}>Change password</Link>
           </Button>
         </CardContent>
       </Card>
+      <OwnedSessions />
       <Card>
         <CardContent className="space-y-2 p-6">
           <h2 className="font-semibold">Workspace security</h2>

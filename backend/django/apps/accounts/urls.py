@@ -15,6 +15,7 @@ from apps.accounts.views import (
     MFAEnrollView,
     MFAResetView,
 )
+from apps.accounts.session_views import SessionListView, SessionRevokeView, SessionRevokeOthersView
 
 urlpatterns = [
     public_api_path("login", LoginView.as_view(), methods=("POST",), name="auth-login"),
@@ -43,6 +44,9 @@ urlpatterns = [
     internal_api_path("mfa/reset", MFAResetView.as_view(), name="auth-mfa-reset"),
     public_api_path("me", MeView.as_view(), methods=("GET",), name="auth-me"),
     internal_api_path("team", TeamListView.as_view(), name="auth-team"),
+    internal_api_path("sessions", SessionListView.as_view(), name="auth-sessions"),
+    internal_api_path("sessions/revoke-others", SessionRevokeOthersView.as_view(), name="auth-sessions-revoke-others"),
+    internal_api_path("sessions/<str:session_id>/revoke", SessionRevokeView.as_view(), name="auth-session-revoke"),
     internal_api_path("team/invitations", TeamInvitationListCreateView.as_view()),
     internal_api_path("team/invitations/accept", TeamInvitationAcceptView.as_view()),
     internal_api_path(
