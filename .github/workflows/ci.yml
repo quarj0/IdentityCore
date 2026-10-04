@@ -282,3 +282,12 @@ jobs:
           if [ -n "${IDENTITYCORE_COMPAT_SERVER_PID:-}" ]; then
             kill -- "-${IDENTITYCORE_COMPAT_SERVER_PID}" 2>/dev/null || kill "${IDENTITYCORE_COMPAT_SERVER_PID}" 2>/dev/null || true
           fi
+
+  deployment-security-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m unittest discover -s scripts -p test_deployed_security.py

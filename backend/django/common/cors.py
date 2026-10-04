@@ -15,7 +15,7 @@ def is_allowed_local_origin(origin: str) -> bool:
         return False
 
     hostname = parsed.hostname or parsed.netloc
-    if hostname in LOCAL_HOSTS:
+    if settings.DEBUG and hostname in LOCAL_HOSTS:
         return True
 
     return origin in set(getattr(settings, "CORS_ALLOWED_ORIGINS", []))
