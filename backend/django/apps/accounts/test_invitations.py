@@ -209,3 +209,22 @@ class InvitationLifecycleTests(APITestCase):
         Role.objects.filter(pk=self.role.pk).update(status="inactive")
         self.assertEqual(self.accept(token).status_code, 400)
         self.assertFalse(PlatformUser.objects.filter(email="new@example.test").exists())
+
+    def test_permission_migration_grants_both_system_administrator_roles(self):
+        import importlib
+        from django.apps import apps
+
+        roles = [
+            Role.objects.create(
+                tenant=self.tenant, scope="tenant", name=name, is_system_role=True
+            )
+            for name in ["Tenant Administrator", "Organization Administrator"]
+        ]
+        migration = importlib.import_module(
+            "apps.access_control.migrations.0005_manage_team_permission"
+        )
+        migration.grant(apps, None)
+        for role in roles:
+            self.assertTrue(
+                role.role_permissions.filter(permission__code="manage_team").exists()
+            )

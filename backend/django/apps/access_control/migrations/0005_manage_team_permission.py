@@ -9,7 +9,9 @@ def grant(apps, schema_editor):
         code="manage_team", defaults={"name": "Manage team invitations"}
     )
     for role in Role.objects.filter(
-        scope="tenant", name="Tenant Administrator", status="active"
+        scope="tenant",
+        is_system_role=True,
+        name__in=["Tenant Administrator", "Organization Administrator"],
     ):
         RolePermission.objects.get_or_create(role=role, permission=permission)
 
