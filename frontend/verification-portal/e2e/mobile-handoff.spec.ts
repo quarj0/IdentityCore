@@ -29,7 +29,10 @@ test("desktop handoff recovers from a temporary error and displays a one-time QR
         organization: { name: "Example Bank", logo_url: "" },
         purpose: "Customer onboarding",
         required_steps: ["consent", "document_capture"],
-        workflow: { steps: ["consent", "document_capture"], liveness_mode: "passive" },
+        workflow: {
+          steps: ["consent", "document_capture"],
+          liveness_mode: "passive",
+        },
         locale: "en",
         supported_locales: ["en"],
         direction: "ltr",
@@ -106,7 +109,9 @@ test("desktop handoff recovers from a temporary error and displays a one-time QR
   await page.getByRole("button", { name: "Show secure QR code" }).click();
 
   await expect(page.getByText("Scan with your phone camera")).toBeVisible();
-  await expect(page.getByText("The one-time code expires shortly")).toBeVisible();
+  await expect(
+    page.getByText("The one-time code expires shortly"),
+  ).toBeVisible();
   await expect(
     page.getByRole("img", { name: "Mobile handoff QR code" }).locator("svg"),
   ).toBeVisible();
@@ -120,3 +125,82 @@ function json(route: Route, data: unknown, status = 200) {
     body: JSON.stringify({ success: true, data }),
   });
 }
+
+test("fragment handoff binds the source, clears the claim before sending, and resumes mobile", async ({
+  page,
+}) => {
+  const mobileId = "ses_mobile_claim";
+  let redeemed = 0;
+  await page.route("**/api/verification/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === "/api/verification/handoff") {
+      expect(route.request().postDataJSON()).toEqual({
+        handoff: "hnd_test.one-time-claim",
+        session_id: sessionId,
+      });
+      expect(new URL(page.url()).hash).toBe("");
+      redeemed += 1;
+      return json(route, {
+        session_id: mobileId,
+        verification_id: verificationId,
+      });
+    }
+    if (path === `/api/verification/sessions/${mobileId}`)
+      return json(route, {
+        session_id: mobileId,
+        verification_id: verificationId,
+        status: "active",
+        organization: { name: "Example Bank", logo_url: "" },
+        purpose: "Customer onboarding",
+        required_steps: ["consent", "document_capture"],
+        workflow: {
+          steps: ["consent", "document_capture"],
+          liveness_mode: "passive",
+        },
+        locale: "en",
+        supported_locales: ["en"],
+        direction: "ltr",
+        consent: {
+          template_id: "ctm_test",
+          version: 1,
+          locale: "en",
+          content: "Consent text",
+          content_hash: "a".repeat(64),
+        },
+        document: {
+          country_code: "GH",
+          document_type: "national_id",
+          label: "National ID",
+          capture_requirements: [
+            { side: "front", label: "Front", required: true },
+          ],
+        },
+        expires_at: "2099-01-01T00:00:00Z",
+      });
+    if (path === `/api/verification/sessions/${mobileId}/status`)
+      return json(route, {
+        verification_id: verificationId,
+        status: "in_progress",
+        current_step: "consent",
+        message: "Continue your verification.",
+        evidence: {
+          identity_document_id: "",
+          selfie_capture_id: "",
+          liveness_check_id: "",
+        },
+      });
+    return route.abort("failed");
+  });
+  await page.goto(`/verify/${sessionId}#handoff=hnd_test.one-time-claim`);
+  await expect(page.getByText("Consent text", { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/verify/${mobileId}$`));
+  expect(redeemed).toBe(1);
+  expect(
+    await page.evaluate(
+      () => JSON.stringify(localStorage) + JSON.stringify(sessionStorage),
+    ),
+  ).not.toContain("one-time-claim");
+  await expect(
+    page.getByRole("heading", { name: "Continue securely on your phone" }),
+  ).toHaveCount(0);
+});

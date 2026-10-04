@@ -65,13 +65,7 @@ import { VerificationFrame } from "./verification-frame";
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const PROCESSING_STEPS = new Set(["document_processing", "processing"]);
 
-export function LiveVerificationFlow({
-  sessionId,
-  handoff,
-}: {
-  sessionId: string;
-  handoff?: string;
-}) {
+export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
   const [credentials, setCredentials] = useState<SessionCredentials | null>(
     null,
   );
@@ -107,7 +101,9 @@ export function LiveVerificationFlow({
     kind: "success" | "info";
   } | null>(null);
   const [deviceReady, setDeviceReady] = useState(false);
-  const [continueOnDevice, setContinueOnDevice] = useState(Boolean(handoff));
+  const [continueOnDevice, setContinueOnDevice] = useState(false);
+  const handoffClaim = useRef<string | null>(null);
+  const handoffRedemption = useRef<Promise<SessionCredentials> | null>(null);
   const [handoffUrl, setHandoffUrl] = useState("");
   const [handoffBusy, setHandoffBusy] = useState(false);
 
@@ -140,9 +136,24 @@ export function LiveVerificationFlow({
     let cancelled = false;
     void Promise.resolve().then(async () => {
       try {
+        if (cancelled) return;
+        if (new URLSearchParams(window.location.search).has("handoff")) {
+          window.history.replaceState(null, "", window.location.pathname);
+          throw new Error(
+            "This older handoff link must be replaced. Scan a new code from your desktop.",
+          );
+        }
+        const handoff =
+          handoffClaim.current ??
+          new URLSearchParams(window.location.hash.slice(1)).get("handoff");
+        if (handoff) {
+          handoffClaim.current = handoff;
+          window.history.replaceState(null, "", window.location.pathname);
+        }
         let nextCredentials: SessionCredentials | null;
         if (handoff) {
-          nextCredentials = await redeemMobileHandoff(handoff);
+          handoffRedemption.current ??= redeemMobileHandoff(handoff, sessionId);
+          nextCredentials = await handoffRedemption.current;
           if (!cancelled) {
             window.history.replaceState(
               null,
@@ -175,7 +186,7 @@ export function LiveVerificationFlow({
     return () => {
       cancelled = true;
     };
-  }, [handoff, load, sessionId]);
+  }, [load, sessionId]);
 
   useEffect(() => {
     if (!session?.locale) return;
@@ -264,10 +275,7 @@ export function LiveVerificationFlow({
     }
   }
 
-  function resetActiveLivenessAttempt(
-    message?: string,
-    clearNotice = true,
-  ) {
+  function resetActiveLivenessAttempt(message?: string, clearNotice = true) {
     activeLivenessUploadIdRef.current = null;
     activeLivenessCaptureIdRef.current = null;
     setActiveLivenessFile(null);
@@ -331,7 +339,11 @@ export function LiveVerificationFlow({
   async function changeLocale(locale: string) {
     if (!credentials || !session) return;
     const normalizedLocale = locale.toLowerCase();
-    if (!session.supported_locales.map((item) => item.toLowerCase()).includes(normalizedLocale)) {
+    if (
+      !session.supported_locales
+        .map((item) => item.toLowerCase())
+        .includes(normalizedLocale)
+    ) {
       return;
     }
     try {
@@ -365,15 +377,33 @@ export function LiveVerificationFlow({
     }
   }
 
-  const initialLocale = resolveLocale(typeof navigator === "undefined" ? "en" : navigator.language);
+  const initialLocale = resolveLocale(
+    typeof navigator === "undefined" ? "en" : navigator.language,
+  );
   if (!deviceReady) {
-    return <OpeningState locale={initialLocale} title={localizeText(initialLocale, "Opening your secure session")} />;
+    return (
+      <OpeningState
+        locale={initialLocale}
+        title={localizeText(initialLocale, "Opening your secure session")}
+      />
+    );
   }
   if (error && (!credentials || !session || !status)) {
-    return <OpeningState locale={initialLocale} title={localizeText(initialLocale, "Verification unavailable")} message={localizeText(initialLocale, error)} />;
+    return (
+      <OpeningState
+        locale={initialLocale}
+        title={localizeText(initialLocale, "Verification unavailable")}
+        message={localizeText(initialLocale, error)}
+      />
+    );
   }
   if (!credentials || !session || !status) {
-    return <OpeningState locale={initialLocale} title={localizeText(initialLocale, "Opening your secure session")} />;
+    return (
+      <OpeningState
+        locale={initialLocale}
+        title={localizeText(initialLocale, "Opening your secure session")}
+      />
+    );
   }
 
   if (!continueOnDevice) {
@@ -453,7 +483,9 @@ export function LiveVerificationFlow({
       supportedLocales={(() => {
         const configured = session.supported_locales
           .map((locale) => locale.toLowerCase())
-          .filter((locale) => portalLocales.includes(locale as (typeof portalLocales)[number]));
+          .filter((locale) =>
+            portalLocales.includes(locale as (typeof portalLocales)[number]),
+          );
         return configured.length ? configured : [resolveLocale(session.locale)];
       })()}
       onLocaleChange={changeLocale}
@@ -466,8 +498,12 @@ export function LiveVerificationFlow({
           role="alert"
           className="mb-4 rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive"
         >
-          <strong className="block font-semibold">{t("We could not continue")}</strong>
-          <span className="mt-1 block">{localizeText(session.locale, error)}</span>
+          <strong className="block font-semibold">
+            {t("We could not continue")}
+          </strong>
+          <span className="mt-1 block">
+            {localizeText(session.locale, error)}
+          </span>
         </div>
       ) : null}
 
@@ -481,8 +517,12 @@ export function LiveVerificationFlow({
               : "border-info/30 bg-info/10 text-info"
           }`}
         >
-          <strong className="block font-semibold">{localizeText(session.locale, notice.title)}</strong>
-          <span className="mt-1 block leading-6">{localizeText(session.locale, notice.message)}</span>
+          <strong className="block font-semibold">
+            {localizeText(session.locale, notice.title)}
+          </strong>
+          <span className="mt-1 block leading-6">
+            {localizeText(session.locale, notice.message)}
+          </span>
         </div>
       ) : null}
 
@@ -553,7 +593,9 @@ export function LiveVerificationFlow({
             <Button
               disabled={!consented || busy}
               onClick={() =>
-                run(() => acceptConsent(credentials, session.consent, session.locale))
+                run(() =>
+                  acceptConsent(credentials, session.consent, session.locale),
+                )
               }
             >
               {busy ? (
@@ -573,8 +615,12 @@ export function LiveVerificationFlow({
           title={`${t("Capture your")} ${selectedDocument.label}`}
           description={
             captureRequirements.length > 1
-              ? t("Choose the identity document you want to use, then capture the original physical document with all four edges visible.")
-              : t("Choose the identity document you want to use, then capture its photo page with all four edges visible.")
+              ? t(
+                  "Choose the identity document you want to use, then capture the original physical document with all four edges visible.",
+                )
+              : t(
+                  "Choose the identity document you want to use, then capture its photo page with all four edges visible.",
+                )
           }
         >
           <div className="grid gap-4 sm:grid-cols-2">
@@ -759,8 +805,9 @@ export function LiveVerificationFlow({
                   },
                   {
                     title: "Document received",
-                    message:
-                      t("Your document was uploaded successfully and is now being checked. Keep this page open while processing completes."),
+                    message: t(
+                      "Your document was uploaded successfully and is now being checked. Keep this page open while processing completes.",
+                    ),
                     busyMessage: "Uploading and submitting your document…",
                   },
                 )
@@ -777,7 +824,9 @@ export function LiveVerificationFlow({
         <StepCard
           eyebrow={t("Secure document check")}
           title={`Checking your ${session.document.label}`}
-          description={t("IdentityCore is checking capture quality and reading the supported document evidence.")}
+          description={t(
+            "IdentityCore is checking capture quality and reading the supported document evidence.",
+          )}
         >
           <ProcessingPanel
             locale={session.locale}
@@ -796,10 +845,16 @@ export function LiveVerificationFlow({
         <StepCard
           eyebrow={t("Step 3 of 5")}
           title={t("Take a live selfie")}
-          description={t("Remove hats or dark glasses, face the camera directly, and use even lighting. Your selfie will be compared with the document portrait.")}
+          description={t(
+            "Remove hats or dark glasses, face the camera directly, and use even lighting. Your selfie will be compared with the document portrait.",
+          )}
         >
           {file ? (
-            <EvidenceReview locale={session.locale} file={file} onRetake={() => setFile(null)} />
+            <EvidenceReview
+              locale={session.locale}
+              file={file}
+              onRetake={() => setFile(null)}
+            />
           ) : (
             <CameraCapture
               locale={session.locale}
@@ -824,8 +879,9 @@ export function LiveVerificationFlow({
                   },
                   {
                     title: "Selfie received",
-                    message:
-                      t("Your selfie was uploaded successfully. Continue to the presence check."),
+                    message: t(
+                      "Your selfie was uploaded successfully. Continue to the presence check.",
+                    ),
                     busyMessage: "Uploading and submitting your selfie…",
                   },
                 )
@@ -857,7 +913,9 @@ export function LiveVerificationFlow({
               {t("Prove you are present, live")}
             </h3>
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-foreground">
-              {t("Your challenge is single-use, randomized, and recorded directly from this device in one short video.")}
+              {t(
+                "Your challenge is single-use, randomized, and recorded directly from this device in one short video.",
+              )}
             </p>
             {session.workflow.liveness_mode === "passive" ? (
               <div className="mt-5 flex justify-center">
@@ -895,8 +953,9 @@ export function LiveVerificationFlow({
                         ),
                       {
                         title: t("Live challenge ready"),
-                        message:
-                          t("Enable your camera and follow the on-screen instructions."),
+                        message: t(
+                          "Enable your camera and follow the on-screen instructions.",
+                        ),
                       },
                     )
                   }
@@ -934,7 +993,8 @@ export function LiveVerificationFlow({
                                 );
                                 activeLivenessUploadIdRef.current = uploadId;
                               }
-                              let captureId = activeLivenessCaptureIdRef.current;
+                              let captureId =
+                                activeLivenessCaptureIdRef.current;
                               if (!captureId) {
                                 const capture = await submitSelfie(
                                   credentials,
@@ -952,8 +1012,9 @@ export function LiveVerificationFlow({
                             {
                               title: "Live check submitted",
                               message: t("Your live video is being checked."),
-                              busyMessage:
-                                t("Uploading and checking your live video…"),
+                              busyMessage: t(
+                                "Uploading and checking your live video…",
+                              ),
                             },
                           );
                           if (submitted)
@@ -1019,10 +1080,18 @@ export function LiveVerificationFlow({
         />
       ) : null}
       {step === "expired" ? (
-        <TerminalPanel locale={session.locale} state="expired" message={status.message} />
+        <TerminalPanel
+          locale={session.locale}
+          state="expired"
+          message={status.message}
+        />
       ) : null}
       {step === "cancelled" ? (
-        <TerminalPanel locale={session.locale} state="cancelled" message={status.message} />
+        <TerminalPanel
+          locale={session.locale}
+          state="cancelled"
+          message={status.message}
+        />
       ) : null}
 
       {busy ? (
@@ -1069,7 +1138,11 @@ function MobileHandoff({
             Continue securely on your phone
           </CardTitle>
           <p className="text-sm leading-6 text-muted-foreground">
-            {organizationName} {localizeText(locale, "requested this verification. A phone camera usually gives clearer document and selfie captures.")}
+            {organizationName}{" "}
+            {localizeText(
+              locale,
+              "requested this verification. A phone camera usually gives clearer document and selfie captures.",
+            )}
           </p>
         </CardHeader>
         <CardContent className="space-y-5 px-6 py-7 sm:px-8">
@@ -1097,7 +1170,10 @@ function MobileHandoff({
                   {localizeText(locale, "Scan with your phone camera")}
                 </p>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                  {localizeText(locale, "The one-time code expires shortly and cannot be reused.")}
+                  {localizeText(
+                    locale,
+                    "The one-time code expires shortly and cannot be reused.",
+                  )}
                 </p>
               </div>
               <Button
@@ -1123,7 +1199,9 @@ function MobileHandoff({
             </Button>
           )}
           <div className="relative py-1 text-center text-xs text-muted-foreground before:absolute before:left-0 before:right-0 before:top-1/2 before:h-px before:bg-border">
-            <span className="relative bg-card px-3">{localizeText(locale, "or")}</span>
+            <span className="relative bg-card px-3">
+              {localizeText(locale, "or")}
+            </span>
           </div>
           <Button variant="outline" className="w-full" onClick={onContinue}>
             <Monitor className="h-4 w-4" />
@@ -1135,7 +1213,15 @@ function MobileHandoff({
   );
 }
 
-function OpeningState({ title, message, locale }: { title: string; message?: string; locale: string }) {
+function OpeningState({
+  title,
+  message,
+  locale,
+}: {
+  title: string;
+  message?: string;
+  locale: string;
+}) {
   return (
     <main
       id="main-content"
@@ -1152,10 +1238,15 @@ function OpeningState({ title, message, locale }: { title: string; message?: str
             {localizeText(locale, title)}
           </h1>
           {message ? (
-            <p className="text-sm leading-6 text-muted-foreground">{localizeText(locale, message)}</p>
+            <p className="text-sm leading-6 text-muted-foreground">
+              {localizeText(locale, message)}
+            </p>
           ) : (
             <p className="text-sm text-muted-foreground">
-              {localizeText(locale, "Validating your one-time session credential…")}
+              {localizeText(
+                locale,
+                "Validating your one-time session credential…",
+              )}
             </p>
           )}
         </CardContent>
