@@ -41,7 +41,7 @@ export function providerRecordToAdminRecord(provider: Provider): AdminRecord {
     statusTone: tone(provider.status.toLowerCase()),
     primaryMeta: provider.providerType,
     secondaryMeta: provider.code,
-    tertiaryMeta: `Config keys: ${Object.keys(provider.configuration || {}).length}`,
+    tertiaryMeta: `Configuration: ${provider.configuration?.configured === true ? "configured" : "not configured"}`,
     owner: "Platform admin",
     updatedAt: formatDateTime(provider.updatedAt),
     href: `/providers/${provider.id}`,

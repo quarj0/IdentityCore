@@ -1,5 +1,5 @@
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 
 from apps.core.models import BaseModel, PublicIdModel
 from common.fields import EncryptedJSONField
@@ -112,7 +112,19 @@ class Provider(PublicIdModel, BaseModel):
                         document_types=route.document_type_ids_json,
                     )
 
+    @transaction.atomic
     def save(self, *args, **kwargs):
+        from apps.tenants.models import Tenant
+
+        if self.tenant_id:
+            Tenant.objects.select_for_update(no_key=True).get(pk=self.tenant_id)
+        if self.pk:
+            previous = type(self).objects.select_for_update(no_key=True).get(pk=self.pk)
+            if any(
+                getattr(previous, key) != getattr(self, key)
+                for key in ("tenant_id", "code", "provider_type")
+            ):
+                raise ValidationError("Provider identity and ownership are immutable.")
         self.full_clean()
         return super().save(*args, **kwargs)
 
@@ -250,7 +262,14 @@ class ProviderAssignment(PublicIdModel, BaseModel):
                 {"provider": "Active assignments require an active provider."}
             )
 
+    @transaction.atomic
     def save(self, *args, **kwargs):
+        from apps.tenants.models import Tenant
+
+        Tenant.objects.select_for_update(no_key=True).get(pk=self.tenant_id)
+        self.provider = Provider.objects.select_for_update(no_key=True).get(
+            pk=self.provider_id
+        )
         self.full_clean()
         return super().save(*args, **kwargs)
 

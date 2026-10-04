@@ -108,6 +108,27 @@ class ManifestTests(TestCase):
         with self.assertRaises(ValidationError):
             self.provider.save()
 
+    def test_global_assignment_requires_both_environments(self):
+        self.provider.manifest_json["capabilities"]["document_ocr"]["countries"] = ["*"]
+        self.provider.manifest_json["capabilities"]["document_ocr"][
+            "document_types"
+        ] = ["*"]
+        self.provider.save()
+        with self.assertRaises(ValidationError):
+            ProviderAssignment.objects.create(
+                tenant=self.tenant,
+                provider=self.provider,
+                assignment_key="document_ocr",
+            )
+        self.provider.manifest_json["environments"] = ["sandbox", "production"]
+        self.provider.save()
+        ProviderAssignment.objects.create(
+            tenant=self.tenant, provider=self.provider, assignment_key="document_ocr"
+        )
+        self.provider.manifest_json["environments"] = ["sandbox"]
+        with self.assertRaises(ValidationError):
+            self.provider.save()
+
     def test_tenant_listing_hides_foreign_providers_and_all_configuration(self):
         other_org = Organization.objects.create(name="Two", slug="two")
         other = Tenant.objects.create(organization=other_org, name="Two", slug="two")

@@ -103,6 +103,12 @@ def validate_compatibility(
     if not manifest:
         return
     validate_manifest(manifest, provider_type=provider.provider_type)
+    if environment is None and not {"sandbox", "production"} <= set(
+        manifest["environments"]
+    ):
+        raise ValidationError(
+            "Global assignments require sandbox and production support."
+        )
     coverage = manifest["capabilities"].get(capability)
     if coverage is None or (
         environment and environment not in manifest["environments"]
