@@ -139,3 +139,52 @@ class EncryptedBackupTests(SimpleTestCase):
                 restore_backup(directory, self.root)
             client.put_object.assert_not_called()
             run.assert_not_called()
+
+
+from django.test import TestCase
+from apps.organizations.models import Organization, OrganizationSupportingDocument
+from apps.tenants.models import Tenant
+from apps.accounts.models import PlatformUser
+from django.utils import timezone
+from common.backup import required_object_refs
+
+
+class BackupReferenceLifecycleTests(TestCase):
+    def test_uploaded_and_submitted_documents_require_objects_but_deleted_do_not(self):
+        organization = Organization.objects.create(
+            name="Synthetic", slug="backup-references"
+        )
+        tenant = Tenant.objects.create(
+            organization=organization, name="Synthetic", slug="backup-references"
+        )
+        user = PlatformUser.objects.create_user(
+            email="synthetic-backup@example.invalid",
+            password="SyntheticBackup123!",
+            tenant=tenant,
+        )
+        for status, deleted in [
+            ("uploaded", False),
+            ("submitted", False),
+            ("uploaded", True),
+            ("initiated", False),
+        ]:
+            OrganizationSupportingDocument.objects.create(
+                organization=organization,
+                tenant=tenant,
+                uploaded_by=user,
+                filename="synthetic.pdf",
+                file_size_bytes=1,
+                storage_key=f"{status}-{deleted}",
+                status=status,
+                deleted_at=timezone.now() if deleted else None,
+            )
+        with patch(
+            "common.backup.storage_buckets", return_value={"public": "synthetic-public"}
+        ):
+            self.assertEqual(
+                required_object_refs(),
+                {
+                    ("synthetic-public", "uploaded-False"),
+                    ("synthetic-public", "submitted-False"),
+                },
+            )

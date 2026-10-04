@@ -142,7 +142,7 @@ def required_object_refs():
         role = "media" if upload.status == "promoted" else "temp"
         refs.add((buckets.get(role, ""), upload.storage_key))
     for key in OrganizationSupportingDocument.objects.filter(
-        status="uploaded"
+        deleted_at__isnull=True, status__in=["uploaded", "submitted"]
     ).values_list("storage_key", flat=True):
         refs.add((buckets.get("public", ""), key))
     for metadata in Verification.objects.values_list("metadata_json", flat=True):

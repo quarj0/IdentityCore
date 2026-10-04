@@ -54,6 +54,8 @@ def main():
                     "docker",
                     "--host=unix:///var/run/docker.sock",
                     "exec",
+                    "--env",
+                    "PGPASSWORD",
                     "-i",
                     "identitycore-drill-postgres",
                 ]
@@ -77,7 +79,7 @@ def main():
     from django.utils import timezone
     from datetime import timedelta
     from apps.accounts.models import PlatformUser
-    from apps.organizations.models import Organization
+    from apps.organizations.models import Organization, OrganizationSupportingDocument
     from apps.tenants.models import Tenant
     from apps.projects.models import Project
     from apps.api_clients.models import APIClient
@@ -175,6 +177,33 @@ def main():
         )
         api.set_client_secret("synthetic-drill-client-secret")
         api.save()
+        supporting = OrganizationSupportingDocument.objects.create(
+            organization=organization,
+            tenant=tenant,
+            uploaded_by=user,
+            filename="synthetic.pdf",
+            mime_type="application/pdf",
+            file_size_bytes=13,
+            storage_key=f"synthetic/{index}/supporting.pdf",
+            status="uploaded" if index == 1 else "submitted",
+        )
+        client.put_object(
+            Bucket="source-public",
+            Key=supporting.storage_key,
+            Body=b"synthetic-pdf",
+            ContentType="application/pdf",
+            ServerSideEncryption="AES256",
+        )
+        OrganizationSupportingDocument.objects.create(
+            organization=organization,
+            tenant=tenant,
+            uploaded_by=user,
+            filename="deleted.pdf",
+            file_size_bytes=1,
+            storage_key=f"synthetic/{index}/deleted.pdf",
+            status="uploaded",
+            deleted_at=timezone.now(),
+        )
         verifications.append(verification.public_id)
         clients.append(api.client_id)
     prefix = [
