@@ -59,6 +59,9 @@ class _PolicyRequired(TypedDict):
 
 class Policy(_PolicyRequired, total=False):
     description: str
+    external_risk_enabled: bool
+    external_risk_failure_action: str
+    external_risk_review_threshold: float
 
 
 class _VerificationSubjectInputRequired(TypedDict):
@@ -184,6 +187,9 @@ class VerificationPolicyCreateRequest(
     consent_template_id: str
     default_locale: str
     supported_locales: list[str]
+    external_risk_enabled: bool
+    external_risk_failure_action: str
+    external_risk_review_threshold: float
     maker_checker_required: bool
 
 

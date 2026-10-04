@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from apps.biometrics.models import FaceMatchStatus, LivenessCheckStatus
 from apps.providers.models import ProviderCheckStatus, ProviderCheckType
-from apps.providers.services import create_provider_check
+from apps.providers.services import create_provider_check, get_or_create_system_provider
 from apps.risk.models import RiskAssessment, RiskLevel, RiskRecommendation
 from apps.verifications.models import (
     Verification,
@@ -140,7 +140,21 @@ def evaluate_risk_assessment(verification) -> RiskAssessment:
             risk_level = RiskLevel.MEDIUM
             recommendation = RiskRecommendation.MANUAL_REVIEW
 
+    from apps.risk.external import collect_external_risk, apply_external_risk
+
+    external = collect_external_risk(verification, signals)
+    if external is not None:
+        signals["external_risk"] = external
+        risk_score, risk_level, recommendation = apply_external_risk(
+            verification.policy_snapshot_json or {},
+            external,
+            score=risk_score,
+            level=risk_level,
+            recommendation=recommendation,
+        )
+
     create_provider_check(
+        provider_override=get_or_create_system_provider(ProviderCheckType.RISK_CHECK),
         verification=verification,
         check_type=ProviderCheckType.RISK_CHECK,
         status=ProviderCheckStatus.COMPLETED,

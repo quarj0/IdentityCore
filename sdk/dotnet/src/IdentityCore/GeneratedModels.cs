@@ -72,6 +72,12 @@ public sealed record Policy
     public double FaceMatchThreshold { get; init; }
     [JsonPropertyName("manual_review_threshold")]
     public double ManualReviewThreshold { get; init; }
+    [JsonPropertyName("external_risk_enabled")]
+    public bool? ExternalRiskEnabled { get; init; }
+    [JsonPropertyName("external_risk_failure_action")]
+    public string? ExternalRiskFailureAction { get; init; }
+    [JsonPropertyName("external_risk_review_threshold")]
+    public double? ExternalRiskReviewThreshold { get; init; }
     [JsonPropertyName("maker_checker_required")]
     public bool MakerCheckerRequired { get; init; }
     [JsonPropertyName("verification_expiry_minutes")]
@@ -226,6 +232,12 @@ public sealed record VerificationPolicyCreateRequest
     public double FaceMatchThreshold { get; init; }
     [JsonPropertyName("manual_review_threshold")]
     public double ManualReviewThreshold { get; init; }
+    [JsonPropertyName("external_risk_enabled")]
+    public bool? ExternalRiskEnabled { get; init; }
+    [JsonPropertyName("external_risk_failure_action")]
+    public string? ExternalRiskFailureAction { get; init; }
+    [JsonPropertyName("external_risk_review_threshold")]
+    public double? ExternalRiskReviewThreshold { get; init; }
     [JsonPropertyName("maker_checker_required")]
     public bool? MakerCheckerRequired { get; init; }
     [JsonPropertyName("verification_expiry_minutes")]

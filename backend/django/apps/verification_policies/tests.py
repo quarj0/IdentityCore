@@ -28,7 +28,9 @@ class VerificationPolicyAPITests(APITestCase):
         )
         self.client.force_authenticate(self.user)
 
-    def create_api_client(self, *, scopes=None, tenant=None, user=None, secret="secret"):
+    def create_api_client(
+        self, *, scopes=None, tenant=None, user=None, secret="secret"
+    ):
         api_client = APIClient(
             tenant=tenant or self.tenant,
             created_by=user or self.user,
@@ -52,6 +54,9 @@ class VerificationPolicyAPITests(APITestCase):
                 "face_match_threshold": "0.8500",
                 "manual_review_threshold": "0.6500",
                 "maker_checker_required": True,
+                "external_risk_enabled": True,
+                "external_risk_failure_action": "ignore",
+                "external_risk_review_threshold": 85,
                 "verification_expiry_minutes": 1440,
                 "media_retention_days": 30,
                 "metadata_retention_days": 365,
@@ -64,11 +69,16 @@ class VerificationPolicyAPITests(APITestCase):
         self.assertEqual(policy.version, 1)
         self.assertEqual(policy.status, "draft")
         self.assertEqual(policy.required_document_types, ["national_id", "passport"])
+        self.assertTrue(policy.external_risk_enabled)
+        self.assertEqual(policy.snapshot()["external_risk_failure_action"], "ignore")
+        self.assertEqual(policy.snapshot()["external_risk_review_threshold"], 85)
         self.assertTrue(policy.maker_checker_required)
         self.assertTrue(policy.snapshot()["maker_checker_required"])
 
         detail = self.client.get(
-            reverse("verification-policy-detail", kwargs={"policy_id": policy.public_id})
+            reverse(
+                "verification-policy-detail", kwargs={"policy_id": policy.public_id}
+            )
         )
         self.assertTrue(detail.data["data"]["maker_checker_required"])
 
@@ -168,7 +178,8 @@ class VerificationPolicyAPITests(APITestCase):
                 "verification_expiry_minutes": 60,
                 "media_retention_days": 30,
                 "metadata_retention_days": 365,
-            }, format="json",
+            },
+            format="json",
         )
         policy_id = create.data["data"]["id"]
         activate = self.client.post(
@@ -177,7 +188,8 @@ class VerificationPolicyAPITests(APITestCase):
         self.assertEqual(activate.data["data"]["status"], "active")
         update = self.client.patch(
             reverse("verification-policy-detail", kwargs={"policy_id": policy_id}),
-            {"description": "Changed"}, format="json",
+            {"description": "Changed"},
+            format="json",
         )
         self.assertEqual(update.status_code, status.HTTP_400_BAD_REQUEST)
         clone = self.client.post(
@@ -220,10 +232,14 @@ class VerificationPolicyAPITests(APITestCase):
         )
         _, headers = self.create_api_client()
 
-        response = self.client.get(reverse("verification-policy-list-create"), **headers)
+        response = self.client.get(
+            reverse("verification-policy-list-create"), **headers
+        )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual([item["id"] for item in response.data["data"]], [active.public_id])
+        self.assertEqual(
+            [item["id"] for item in response.data["data"]], [active.public_id]
+        )
 
     def test_api_client_policy_detail_requires_active_policy_in_same_tenant(self):
         self.client.force_authenticate(user=None)
@@ -285,15 +301,22 @@ class VerificationPolicyAPITests(APITestCase):
         _, headers = self.create_api_client()
 
         active_response = self.client.get(
-            reverse("verification-policy-detail", kwargs={"policy_id": active.public_id}),
+            reverse(
+                "verification-policy-detail", kwargs={"policy_id": active.public_id}
+            ),
             **headers,
         )
         archived_response = self.client.get(
-            reverse("verification-policy-detail", kwargs={"policy_id": archived.public_id}),
+            reverse(
+                "verification-policy-detail", kwargs={"policy_id": archived.public_id}
+            ),
             **headers,
         )
         other_response = self.client.get(
-            reverse("verification-policy-detail", kwargs={"policy_id": other_policy.public_id}),
+            reverse(
+                "verification-policy-detail",
+                kwargs={"policy_id": other_policy.public_id},
+            ),
             **headers,
         )
 
@@ -305,7 +328,9 @@ class VerificationPolicyAPITests(APITestCase):
         self.client.force_authenticate(user=None)
         _, headers = self.create_api_client(scopes=["verifications:read"])
 
-        response = self.client.get(reverse("verification-policy-list-create"), **headers)
+        response = self.client.get(
+            reverse("verification-policy-list-create"), **headers
+        )
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 

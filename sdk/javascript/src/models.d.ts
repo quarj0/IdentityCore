@@ -37,6 +37,9 @@ export interface Policy {
   required_liveness_level: string;
   face_match_threshold: number;
   manual_review_threshold: number;
+  external_risk_enabled?: boolean;
+  external_risk_failure_action?: string;
+  external_risk_review_threshold?: number;
   maker_checker_required: boolean;
   verification_expiry_minutes: number;
   media_retention_days: number;
@@ -124,6 +127,9 @@ export interface VerificationPolicyCreateRequest {
   required_liveness_level: string;
   face_match_threshold: number;
   manual_review_threshold: number;
+  external_risk_enabled?: boolean;
+  external_risk_failure_action?: string;
+  external_risk_review_threshold?: number;
   maker_checker_required?: boolean;
   verification_expiry_minutes: number;
   media_retention_days: number;

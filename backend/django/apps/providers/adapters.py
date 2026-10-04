@@ -10,7 +10,6 @@ from typing import NotRequired, Protocol, TypedDict
 
 from apps.providers import ai_service
 
-
 PROVIDER_CONTRACT_VERSION = "1"
 SUPPORTED_PROVIDER_STATUSES = {"completed", "failed", "inconclusive"}
 
@@ -61,6 +60,8 @@ class ProviderAdapter(Protocol):
     def liveness(self, **kwargs) -> ProviderResult: ...
 
     def face_compare(self, **kwargs) -> ProviderResult: ...
+
+    def risk_check(self, **kwargs) -> ProviderResult: ...
 
 
 class BuiltInAIServiceAdapter:

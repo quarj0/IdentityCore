@@ -68,6 +68,9 @@ class ManualReviewNode:
 
 @strawberry.type
 class VerificationPolicyNode:
+    external_risk_enabled: bool
+    external_risk_failure_action: str
+    external_risk_review_threshold: float
     id: str
     project_id: str | None
     name: str
