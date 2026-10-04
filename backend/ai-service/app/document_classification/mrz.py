@@ -59,7 +59,10 @@ def evaluate_td3_mrz(lines: list[str]) -> MrzEvidence:
             second[43] == _check_digit(second[0:10] + second[13:20] + second[21:43]),
         ]
         score = 0.55 + (0.08 * sum(1 for check in checks if check))
-        if all(checks):
+        from .mrz_parser import parse_mrz
+
+        structure_valid = parse_mrz([first, second])["status"] == "valid"
+        if all(checks) and structure_valid:
             score = 0.95
             return MrzEvidence(
                 valid=True,

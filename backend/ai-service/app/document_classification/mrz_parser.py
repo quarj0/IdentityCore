@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from .mrz import _check_digit
 
 VERSION = "icao-9303-v1"
@@ -92,7 +94,29 @@ def parse_mrz(lines: list[str]) -> dict:
                     "end": end,
                 },
             }
-        structure_valid = (
+        raw_country = text[positions["issuing_country"][0]][
+            positions["issuing_country"][1] : positions["issuing_country"][2]
+        ]
+        raw_nationality = text[positions["nationality"][0]][
+            positions["nationality"][1] : positions["nationality"][2]
+        ]
+        raw_name = text[positions["name"][0]][
+            positions["name"][1] : positions["name"][2]
+        ]
+        raw_number = text[positions["document_number"][0]][
+            positions["document_number"][1] : positions["document_number"][2]
+        ]
+        mandatory_valid = bool(
+            re.fullmatch(r"[A-Z0-9]+<*", raw_number)
+            and re.fullmatch(r"[A-Z<]+", raw_name)
+            and raw_name.split("<<", 1)[0].replace("<", "")
+            and "<<" in raw_name
+            and all(
+                re.fullmatch(r"[A-Z]{3}|D<<", code)
+                for code in (raw_country, raw_nationality)
+            )
+        )
+        structure_valid = mandatory_valid and (
             all(
                 set(fields[name]["value"].replace(" ", ""))
                 <= set("ABCDEFGHIJKLMNOPQRSTUVWXYZ")

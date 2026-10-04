@@ -57,3 +57,24 @@ def test_issuing_country_comes_from_header_not_document_number():
     assert evaluate_td3_mrz(lines).issuing_country == "UTO"
     lines[1] = lines[1][:42] + "2" + lines[1][43:]
     assert not evaluate_td3_mrz(lines).valid
+
+
+@pytest.mark.parametrize("field", ["issuer", "nationality", "name", "number"])
+def test_empty_mandatory_fields_are_not_trusted(field):
+    from app.document_classification.mrz import _check_digit
+
+    lines = list(TD3)
+    if field == "issuer":
+        lines[0] = lines[0][:2] + "<<<" + lines[0][5:]
+    elif field == "name":
+        lines[0] = lines[0][:5] + "<" * 39
+    elif field == "nationality":
+        lines[1] = lines[1][:10] + "<<<" + lines[1][13:]
+    else:
+        lines[1] = "<" * 9 + "0" + lines[1][10:]
+        lines[1] = lines[1][:-1] + _check_digit(
+            lines[1][:10] + lines[1][13:20] + lines[1][21:43]
+        )
+    assert parse_mrz(lines)["status"] == "invalid"
+    assert parse_mrz(lines)["issues"] == ["mrz_structure_invalid"]
+    assert not evaluate_td3_mrz(lines).valid
