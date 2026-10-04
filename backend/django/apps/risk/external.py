@@ -1,6 +1,8 @@
 """External risk v1 produces bounded evidence and can only escalate local policy."""
 
 import re
+import hashlib
+import json
 from decimal import Decimal, InvalidOperation
 
 from django.db import DatabaseError
@@ -36,6 +38,7 @@ def normalize_external_risk(result):
         or result["contract_version"] != "1"
         or result["risk_version"] != "1"
         or result["capability"] != "risk_check"
+        or not isinstance(result["status"], str)
         or result["status"] not in {"completed", "inconclusive"}
     ):
         invalid()
@@ -67,12 +70,22 @@ def normalize_external_risk(result):
     return {**result, "risk_score": score, "signals": sorted(signals)}
 
 
-def collect_external_risk(verification, local_signals):
-    policy = verification.policy_snapshot_json or {}
-    if policy.get("external_risk_enabled") is not True:
-        return None
-    # Explicit allowlist: no IDs, names, contact fields, OCR, media or raw device data.
-    inputs = {
+def risk_input_digest(verification, inputs):
+    return hashlib.sha256(
+        json.dumps(
+            {
+                "inputs": inputs,
+                "revision": verification.decision_revision,
+                "policy": verification.policy_snapshot_json,
+            },
+            sort_keys=True,
+            default=str,
+        ).encode()
+    ).hexdigest()
+
+
+def minimal_inputs(local_signals):
+    return {
         "input_version": "1",
         "document_submitted": bool(local_signals["document_submitted"]),
         "document_requires_manual_review": bool(
@@ -82,6 +95,56 @@ def collect_external_risk(verification, local_signals):
         "liveness_status": local_signals["liveness_status"],
         "face_match_status": local_signals["face_match_status"],
     }
+
+
+def prepare_external_risk(verification):
+    from apps.risk.services import _document_requires_manual_review
+
+    document = verification.identity_documents.order_by("-created_at").first()
+    liveness = verification.liveness_checks.order_by("-checked_at").first()
+    face = verification.face_matches.order_by("-matched_at").first()
+    return collect_external_risk(
+        verification,
+        {
+            "document_submitted": document is not None,
+            "document_requires_manual_review": _document_requires_manual_review(
+                (document.extracted_data_json or {}).get("document_classification")
+                if document
+                else None
+            ),
+            "selfie_submitted": verification.selfie_captures.exists(),
+            "liveness_status": liveness.status if liveness else "missing",
+            "face_match_status": face.status if face else "missing",
+        },
+    )
+
+
+def collect_external_risk(verification, local_signals):
+    policy = verification.policy_snapshot_json or {}
+    if policy.get("external_risk_enabled") is not True:
+        return None
+    # Explicit allowlist: no IDs, names, contact fields, OCR, media or raw device data.
+    inputs = minimal_inputs(local_signals)
+    digest = risk_input_digest(verification, inputs)
+    for check in verification.provider_checks.filter(check_type="risk_check").order_by(
+        "-created_at"
+    ):
+        if (check.request_metadata_json or {}).get("risk_input_digest") != digest:
+            continue
+        if check.status == "completed":
+            return {
+                **normalize_external_risk(check.normalized_result_json),
+                "provider_check_id": check.public_id,
+                "input_digest": digest,
+            }
+        if check.status == "failed":
+            return {
+                "risk_version": "1",
+                "status": "unavailable",
+                "risk_score": None,
+                "signals": [],
+                "input_digest": digest,
+            }
 
     def unavailable(**kwargs):
         raise ProviderContractError("A configured external risk provider is required.")
@@ -104,12 +167,13 @@ def collect_external_risk(verification, local_signals):
                     built_in_operation=unavailable,
                 )
             ),
-            request_metadata={"risk_input_version": "1"},
+            request_metadata={"risk_input_version": "1", "risk_input_digest": digest},
             finalize_exhaustion=False,
         )
         return {
             **execution.result,
             "provider_check_id": execution.provider_check.public_id,
+            "input_digest": digest,
         }
     except DatabaseError:
         raise
@@ -118,6 +182,7 @@ def collect_external_risk(verification, local_signals):
         return {
             "risk_version": "1",
             "status": "unavailable",
+            "input_digest": digest,
             "risk_score": None,
             "signals": [],
         }

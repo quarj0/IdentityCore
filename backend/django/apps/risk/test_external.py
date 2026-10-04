@@ -17,7 +17,7 @@ from apps.providers.models import (
     ProviderRouteStep,
 )
 from apps.providers.services import publish_provider_route
-from apps.risk.external import normalize_external_risk
+from apps.risk.external import normalize_external_risk, prepare_external_risk
 from apps.risk.services import (
     evaluate_risk_assessment,
     run_verification_risk_and_decision,
@@ -185,7 +185,10 @@ class ExternalRiskTests(TestCase):
         self.adapter.risk_check.side_effect = SecureHTTPAdapterError(
             "Synthetic timeout", error_code="provider_timeout", retryable=True
         )
-        assessment = evaluate_risk_assessment(self.verification)
+        assessment = evaluate_risk_assessment(
+            self.verification,
+            external_evidence=prepare_external_risk(self.verification),
+        )
         self.verification.refresh_from_db()
         self.assertEqual(self.verification.status, "processing")
         from apps.verifications.models import VerificationDecision
@@ -203,7 +206,10 @@ class ExternalRiskTests(TestCase):
         self.adapter.risk_check.side_effect = SecureHTTPAdapterError(
             "Synthetic error", error_code="provider_unavailable"
         )
-        assessment = evaluate_risk_assessment(self.verification)
+        assessment = evaluate_risk_assessment(
+            self.verification,
+            external_evidence=prepare_external_risk(self.verification),
+        )
         self.assertEqual(assessment.recommendation, "approve")
         self.assertEqual(
             assessment.signals_json["external_risk"]["status"], "unavailable"
@@ -213,13 +219,21 @@ class ExternalRiskTests(TestCase):
         self.adapter.risk_check.return_value = evidence(None, status="inconclusive")
         self.verification.policy_snapshot_json["external_risk_review_threshold"] = "NaN"
         self.assertEqual(
-            evaluate_risk_assessment(self.verification).recommendation, "manual_review"
+            evaluate_risk_assessment(
+                self.verification,
+                external_evidence=prepare_external_risk(self.verification),
+            ).recommendation,
+            "manual_review",
         )
 
     def test_disabled_policy_skips_external_transport(self):
         self.verification.policy_snapshot_json["external_risk_enabled"] = False
         self.assertEqual(
-            evaluate_risk_assessment(self.verification).recommendation, "approve"
+            evaluate_risk_assessment(
+                self.verification,
+                external_evidence=prepare_external_risk(self.verification),
+            ).recommendation,
+            "approve",
         )
         self.adapter.risk_check.assert_not_called()
 
@@ -237,3 +251,25 @@ class ExternalRiskTests(TestCase):
                 ProviderContractError
             ):
                 normalize_external_risk(payload)
+
+    def test_committed_provider_evidence_is_reused_after_finalization_rollback(self):
+        first = prepare_external_risk(self.verification)
+        with self.assertRaises(RuntimeError):
+            from django.db import transaction
+
+            with transaction.atomic():
+                evaluate_risk_assessment(self.verification, external_evidence=first)
+                raise RuntimeError("Synthetic finalization rollback")
+        second = prepare_external_risk(self.verification)
+        self.assertEqual(first, second)
+        self.assertEqual(self.adapter.risk_check.call_count, 1)
+
+    def test_stale_input_evidence_requires_review_without_network(self):
+        external = prepare_external_risk(self.verification)
+        self.liveness.status = "inconclusive"
+        self.liveness.save()
+        self.adapter.risk_check.reset_mock()
+        result = evaluate_risk_assessment(self.verification, external_evidence=external)
+        self.assertEqual(result.recommendation, "manual_review")
+        self.assertEqual(result.signals_json["external_risk"]["status"], "unavailable")
+        self.adapter.risk_check.assert_not_called()

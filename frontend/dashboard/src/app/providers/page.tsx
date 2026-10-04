@@ -9,7 +9,7 @@ type Configuration = { id: string; environment: string; version: number; status:
 const capabilitiesByType: Record<string, string[]> = {
   document: ["document_quality", "document_classification", "document_ocr"],
   biometric: ["face_match", "liveness"], liveness: ["liveness"],
-  risk: ["risk_check"], identity_database: ["identity_lookup"],
+  risk: ["risk_check"],
 };
 const split = (value: string) => value.split(",").map((part) => part.trim()).filter(Boolean);
 const inputClass = "w-full rounded-lg border border-slate-300 p-2";
@@ -87,7 +87,7 @@ export default function ProvidersPage() {
           })}>{action === "test" ? "Test connection" : selected.environment === "production" ? "Approve production" : "Activate sandbox"}</button>)}</div>}
           {selected.status === "active" && <form className="flex flex-wrap gap-3" onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); const key = String(data.get("capability")); const coverage = provider?.manifest.capabilities?.[key]; void perform(async () => {
             await restRequest(`/providers/configurations/${selected.id}/assign/`, { method: "POST", body: JSON.stringify({ capability: key, countries: coverage?.countries.filter((value) => value !== "*"), document_types: coverage?.document_types.filter((value) => value !== "*") }) }); setMessage("Environment-scoped route published.");
-          }); }}><label>Assign capability<select className={inputClass} name="capability">{Object.keys(provider?.manifest.capabilities || {}).map((key) => <option key={key}>{key}</option>)}</select></label><button disabled={busy} className="rounded-lg border p-2">Publish assignment</button></form>}
+          }); }}><label>Assign capability<select className={inputClass} name="capability">{Object.keys(provider?.manifest.capabilities || {}).filter((key) => Object.values(capabilitiesByType).flat().includes(key)).map((key) => <option key={key}>{key}</option>)}</select></label><button disabled={busy} className="rounded-lg border p-2">Publish assignment</button></form>}
         </div>}
         <form className="grid gap-3 sm:grid-cols-2" onSubmit={(event) => {
           event.preventDefault(); const data = new FormData(event.currentTarget); const environment = String(data.get("environment"));

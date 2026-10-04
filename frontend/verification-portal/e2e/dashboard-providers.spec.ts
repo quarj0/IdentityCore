@@ -4,7 +4,7 @@ test("provider setup keeps credentials private and requires a new production pro
   type Configuration = { id: string; environment: string; version: number; status: string; configuration: { endpoint_url: string }; diff: Record<string, unknown>; test_succeeded: boolean; tested_at: string | null; approved_by: string | null };
   const configs: Configuration[] = [];
   const submissions: Record<string, unknown>[] = [];
-  const provider = { id: "prv_browser", tenant_id: "ten_browser", name: "Synthetic Provider", manifest: { capabilities: { risk_check: { countries: ["*"], document_types: ["*"] } } } };
+  const provider = { id: "prv_browser", tenant_id: "ten_browser", name: "Synthetic Provider", manifest: { capabilities: { document_quality: { countries: ["*"], document_types: ["*"] } } } };
   await page.route("https://api.example.test/**", async (route) => {
     const request = route.request(), path = new URL(request.url()).pathname;
     const headers = { "Access-Control-Allow-Origin": "http://127.0.0.1:3005", "Access-Control-Allow-Credentials": "true", "Access-Control-Allow-Headers": "Authorization, Content-Type, X-Request-Id, X-IdentityCore-Session-Scope", "Access-Control-Allow-Methods": "GET, POST, OPTIONS" };
@@ -15,7 +15,7 @@ test("provider setup keeps credentials private and requires a new production pro
     else if (path.includes("/projects")) data = { results: [] };
     else if (path.includes("/organization/me")) data = { status: "active" };
     else if (path.endsWith("/providers/")) data = { results: [provider] };
-    else if (path.endsWith("/providers/setup/")) { const body = request.postDataJSON(); expect(body.manifest.capabilities).toHaveProperty("risk_check"); data = { ...provider, name: body.name }; }
+    else if (path.endsWith("/providers/setup/")) { const body = request.postDataJSON(); expect(body.manifest.capabilities).toHaveProperty("document_quality"); data = { ...provider, name: body.name }; }
     else if (path.endsWith("/configurations/")) {
       if (request.method() === "GET") data = { results: configs };
       else { const body = request.postDataJSON(); submissions.push(body); const config = { id: `pec_${configs.length + 1}`, environment: body.environment, version: 1, status: "draft", configuration: body.configuration, diff: {}, test_succeeded: false, tested_at: null, approved_by: null }; configs.push(config); data = config; }
@@ -30,9 +30,9 @@ test("provider setup keeps credentials private and requires a new production pro
   const response = await page.goto("/providers");
   expect(response?.headers()["content-security-policy"]).toContain("strict-dynamic");
   await expect(page.getByRole("heading", { name: "Providers", exact: true })).toBeVisible();
-  await page.getByRole("combobox", { name: "Provider type", exact: true }).selectOption("risk");
+  await page.getByRole("combobox", { name: "Provider type", exact: true }).selectOption("document");
   await page.getByLabel("Name", { exact: true }).fill("Synthetic New Provider");
-  await page.getByLabel("risk check", { exact: true }).check();
+  await page.getByLabel("document quality", { exact: true }).check();
   await page.getByLabel("Processing regions").fill("eu-west-1");
   await page.getByLabel("Provider retention in days").fill("0");
   await page.getByLabel("Processor name").fill("Synthetic processor");

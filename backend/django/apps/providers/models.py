@@ -701,7 +701,7 @@ class ProviderEnvironmentConfiguration(PublicIdModel, BaseModel):
     )
     manifest_snapshot_json = models.JSONField(default=dict)
     source = models.ForeignKey("self", null=True, blank=True, on_delete=models.PROTECT)
-    diff_json = models.JSONField(default=dict)
+    diff_json = models.JSONField(default=dict, blank=True)
     requested_by = models.ForeignKey(
         "accounts.PlatformUser",
         on_delete=models.PROTECT,

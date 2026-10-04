@@ -175,6 +175,9 @@ class VerificationPolicyAPITests(APITestCase):
                 "face_match_threshold": "0.8500",
                 "manual_review_threshold": "0.6500",
                 "maker_checker_required": True,
+                "external_risk_enabled": True,
+                "external_risk_failure_action": "ignore",
+                "external_risk_review_threshold": "42.50",
                 "verification_expiry_minutes": 60,
                 "media_retention_days": 30,
                 "metadata_retention_days": 365,
@@ -199,6 +202,11 @@ class VerificationPolicyAPITests(APITestCase):
         self.assertEqual(clone.data["data"]["version"], 2)
         self.assertEqual(clone.data["data"]["status"], "draft")
         self.assertTrue(clone.data["data"]["maker_checker_required"])
+        self.assertTrue(clone.data["data"]["external_risk_enabled"])
+        self.assertEqual(clone.data["data"]["external_risk_failure_action"], "ignore")
+        self.assertEqual(
+            float(clone.data["data"]["external_risk_review_threshold"]), 42.5
+        )
 
     def test_api_client_can_list_only_active_policies_with_read_scope(self):
         self.client.force_authenticate(user=None)
