@@ -53,7 +53,9 @@ jobs:
       - name: Validate locked evaluation harness
         run: python -m unittest discover -s tools/evaluation -p "test_*.py"
       - name: Validate records-of-processing inventory
-        run: python scripts/check_processing_inventory.py
+        run: |
+          python scripts/check_processing_inventory.py
+          python -m unittest discover -s scripts -p test_processing_inventory.py
 
   backend:
     runs-on: ubuntu-latest

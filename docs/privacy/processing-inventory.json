@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "owners": {
     "privacy": "Privacy lead",
     "security": "Security lead",
@@ -34,7 +34,11 @@
         "configured email/SMS provider"
       ],
       "transfers": "Notification contact data is sent only to the tenant-configured notification provider; deployment owner records region and safeguards.",
-      "owners": ["identity", "security", "privacy"]
+      "owners": [
+        "identity",
+        "security",
+        "privacy"
+      ]
     },
     {
       "id": "verification-subject-and-session",
@@ -63,7 +67,10 @@
         "tenant-selected verification providers"
       ],
       "transfers": "Only policy-required attributes/evidence are sent through enabled provider adapters; cross-border region and safeguards are deployment records.",
-      "owners": ["identity", "privacy"]
+      "owners": [
+        "identity",
+        "privacy"
+      ]
     },
     {
       "id": "document-and-biometric-evidence",
@@ -92,7 +99,11 @@
         "tenant-selected document/biometric providers"
       ],
       "transfers": "Media leaves the deployment only when the tenant policy selects an external provider; provider region, subprocessors, and transfer mechanism must be recorded before enablement.",
-      "owners": ["identity", "security", "privacy"]
+      "owners": [
+        "identity",
+        "security",
+        "privacy"
+      ]
     },
     {
       "id": "consent-audit-and-compliance",
@@ -117,7 +128,10 @@
         "S3-compatible evidence storage"
       ],
       "transfers": "Exports are disclosed only to authorized tenant users, auditors, regulators, or incident responders using approved secure channels.",
-      "owners": ["privacy", "security"]
+      "owners": [
+        "privacy",
+        "security"
+      ]
     },
     {
       "id": "integrations-billing-and-support",
@@ -144,7 +158,4539 @@
         "configured support and provider services"
       ],
       "transfers": "Webhook payloads and support/provider disclosures follow tenant configuration, data-minimization rules, and recorded destination safeguards.",
-      "owners": ["platform", "support", "security", "privacy"]
+      "owners": [
+        "platform",
+        "support",
+        "security",
+        "privacy"
+      ]
+    },
+    {
+      "id": "workflow-configuration-and-operations",
+      "fields": [
+        "policy snapshots",
+        "tenant/project configuration",
+        "catalogs",
+        "workflow configuration",
+        "notification and operational state",
+        "persisted identifiers and lifecycle timestamps"
+      ],
+      "purpose": "Configure tenant/environment-owned verification purposes, policies, catalogs and workflows; operate authorized processing and delivery.",
+      "locations": [
+        "backend/django/apps/analytics/models.py",
+        "backend/django/apps/core/models.py",
+        "backend/django/apps/feature_flags/models.py",
+        "backend/django/apps/notifications/models.py",
+        "backend/django/apps/platform_settings/models.py",
+        "backend/django/apps/projects/models.py",
+        "backend/django/apps/reviewers/models.py",
+        "backend/django/apps/templates/models.py",
+        "backend/django/apps/tenants/models.py",
+        "backend/django/apps/verification_policies/models.py",
+        "backend/django/apps/workflows/models.py"
+      ],
+      "retention": "Configuration lifetime and configured audit/security schedule; evidence and subject payloads in JSON containers follow their snapshotted purpose/environment retention and verified deletion controls.",
+      "processors": [
+        "IdentityCore Django",
+        "PostgreSQL",
+        "configured notification transport"
+      ],
+      "transfers": "Repository configuration stays in the controlled application/database environment. Notifications and provider-selected processing require deployment-specific approved regions and processor contracts.",
+      "owners": [
+        "identity",
+        "platform",
+        "security",
+        "privacy"
+      ]
+    },
+    {
+      "id": "api-usage-accounting",
+      "fields": [
+        "tenant/environment quota configuration",
+        "client minute and organization minute/month aggregate counters"
+      ],
+      "purpose": "Enforce atomic tenant/environment API quotas and display organization-only capacity and denial telemetry without request or evidence payloads.",
+      "locations": [
+        "backend/django/apps/api_clients/models.py",
+        "backend/django/apps/api_clients/usage.py",
+        "backend/django/apps/api_clients/tasks.py",
+        "backend/django/common/usage_headers.py"
+      ],
+      "retention": "Expired admitted/denied window counters are purged after 90 days by the retention worker. Quota configuration remains for the organization/environment lifetime.",
+      "processors": [
+        "IdentityCore Django",
+        "PostgreSQL"
+      ],
+      "transfers": "Counters remain in the controlled database and authenticated organization dashboard; no subjects, requests, secrets or evidence are sent to external processors.",
+      "owners": [
+        "platform",
+        "security",
+        "privacy"
+      ]
+    },
+    {
+      "id": "provider-runtime-and-credential-management",
+      "fields": [
+        "versioned capability/coverage/residency/retention declarations",
+        "encrypted environment credentials",
+        "approval/test and immutable configuration lineage",
+        "provider evidence envelopes and encrypted raw output"
+      ],
+      "purpose": "Select declared providers for an authorized tenant/environment capability, test and independently approve credentials, and preserve auditable versioned verification evidence.",
+      "locations": [
+        "backend/django/apps/providers/models.py",
+        "backend/django/apps/providers/configuration.py",
+        "backend/django/apps/providers/manifests.py",
+        "docs/architecture/provider-manifests.md",
+        "docs/operations/provider-setup.md"
+      ],
+      "retention": "Active configuration and approval versions follow the controlled organization configuration schedule; obsolete encrypted credentials must be retired and purged under deployment credential-retention controls. Provider-check evidence follows verification policy metadata/media retention, verified subject deletion, and legal holds. Vendor retention is declared per manifest and checked against the deployment processor register.",
+      "processors": [
+        "IdentityCore Django",
+        "PostgreSQL",
+        "internal AI service",
+        "environment-approved declared providers"
+      ],
+      "transfers": "Credentials use only the encrypted application store and authorized HTTPS endpoint headers. Document evidence references and minimal derived risk signals flow only to declared providers for the assigned environment. Manifest regions, retention and transfer notes must match approved controller/vendor agreements.",
+      "owners": [
+        "platform",
+        "identity",
+        "security",
+        "privacy"
+      ]
+    }
+  ],
+  "owner_register": "docs/privacy/processing-owners.json",
+  "field_catalog": [
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "Permission.code",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "Permission.created_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "Permission.description",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "Permission.id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "Permission.name",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "Permission.updated_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "Role.created_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "Role.deleted_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "Role.description",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "Role.id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "Role.is_system_role",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "Role.name",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "Role.public_id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "Role.scope",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "Role.status",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "Role.tenant",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "Role.updated_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "RolePermission.created_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "RolePermission.id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "RolePermission.permission",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "RolePermission.role",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "UserRole.created_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "UserRole.id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "UserRole.role",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "UserRole.tenant",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/access_control/models.py",
+      "field": "UserRole.user",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "ContactInquiry.business_email",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "ContactInquiry.created_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "ContactInquiry.deleted_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "ContactInquiry.full_name",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "ContactInquiry.id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "ContactInquiry.interest",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "ContactInquiry.message",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "ContactInquiry.organization_name",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "ContactInquiry.public_id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "ContactInquiry.status",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "ContactInquiry.updated_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "EmailVerificationToken.created_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "EmailVerificationToken.deleted_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "EmailVerificationToken.expires_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "EmailVerificationToken.id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "EmailVerificationToken.public_id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "EmailVerificationToken.revoked_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "EmailVerificationToken.token_hash",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "EmailVerificationToken.updated_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "EmailVerificationToken.used_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "EmailVerificationToken.user",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "MFARecoveryCode.code_hash",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "MFARecoveryCode.created_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "MFARecoveryCode.deleted_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "MFARecoveryCode.id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "MFARecoveryCode.public_id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "MFARecoveryCode.updated_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "MFARecoveryCode.used_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "MFARecoveryCode.user",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PasswordResetToken.created_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PasswordResetToken.deleted_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PasswordResetToken.expires_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PasswordResetToken.id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PasswordResetToken.public_id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PasswordResetToken.revoked_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PasswordResetToken.token_hash",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PasswordResetToken.updated_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PasswordResetToken.used_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PasswordResetToken.user",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PlatformUser.created_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PlatformUser.deleted_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PlatformUser.email",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PlatformUser.first_name",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PlatformUser.groups",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PlatformUser.id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PlatformUser.is_platform_admin",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PlatformUser.is_staff",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PlatformUser.is_superuser",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PlatformUser.last_login",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PlatformUser.last_login_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PlatformUser.last_name",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PlatformUser.mfa_config_json",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PlatformUser.mfa_enabled",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PlatformUser.notification_preferences_json",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PlatformUser.password",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PlatformUser.phone_number",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PlatformUser.public_id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PlatformUser.status",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PlatformUser.tenant",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PlatformUser.updated_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "PlatformUser.user_permissions",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "RefreshTokenSession.consumed_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "RefreshTokenSession.created_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "RefreshTokenSession.deleted_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "RefreshTokenSession.family_id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "RefreshTokenSession.id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "RefreshTokenSession.jti",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "RefreshTokenSession.revoked_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "RefreshTokenSession.updated_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "RefreshTokenSession.user",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "TeamInvitation.accepted_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "TeamInvitation.created_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "TeamInvitation.deleted_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "TeamInvitation.email",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "TeamInvitation.expires_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "TeamInvitation.id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "TeamInvitation.invited_by",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "TeamInvitation.public_id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "TeamInvitation.role",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "TeamInvitation.status",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "TeamInvitation.tenant",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "TeamInvitation.token_hash",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/accounts/models.py",
+      "field": "TeamInvitation.updated_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/analytics/models.py",
+      "field": "AnalyticsDashboard.code",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/analytics/models.py",
+      "field": "AnalyticsDashboard.config_json",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/analytics/models.py",
+      "field": "AnalyticsDashboard.created_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/analytics/models.py",
+      "field": "AnalyticsDashboard.deleted_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/analytics/models.py",
+      "field": "AnalyticsDashboard.description",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/analytics/models.py",
+      "field": "AnalyticsDashboard.id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/analytics/models.py",
+      "field": "AnalyticsDashboard.owner_team",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/analytics/models.py",
+      "field": "AnalyticsDashboard.primary_metric",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/analytics/models.py",
+      "field": "AnalyticsDashboard.public_id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/analytics/models.py",
+      "field": "AnalyticsDashboard.secondary_metric",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/analytics/models.py",
+      "field": "AnalyticsDashboard.status",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/analytics/models.py",
+      "field": "AnalyticsDashboard.tertiary_metric",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/analytics/models.py",
+      "field": "AnalyticsDashboard.time_window",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/analytics/models.py",
+      "field": "AnalyticsDashboard.title",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/analytics/models.py",
+      "field": "AnalyticsDashboard.updated_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIClient.allowed_ips_json",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIClient.client_id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIClient.client_secret_hash",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIClient.created_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIClient.created_by",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIClient.deleted_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIClient.id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIClient.last_used_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIClient.name",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIClient.previous_client_secret_expires_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIClient.previous_client_secret_hash",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIClient.project",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIClient.public_id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIClient.rate_limit_per_minute",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIClient.scopes_json",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIClient.status",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIClient.tenant",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIClient.updated_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIIdempotencyRecord.api_client",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIIdempotencyRecord.created_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIIdempotencyRecord.deleted_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIIdempotencyRecord.expires_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIIdempotencyRecord.id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIIdempotencyRecord.key",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIIdempotencyRecord.method",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIIdempotencyRecord.operation",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIIdempotencyRecord.path",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIIdempotencyRecord.request_hash",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIIdempotencyRecord.response_data_json",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIIdempotencyRecord.response_status",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIIdempotencyRecord.tenant",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIIdempotencyRecord.updated_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIIdempotencyRecord.user",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIUsageBucket.accepted",
+      "activity": "api-usage-accounting"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIUsageBucket.client_key",
+      "activity": "api-usage-accounting"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIUsageBucket.created_at",
+      "activity": "api-usage-accounting"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIUsageBucket.deleted_at",
+      "activity": "api-usage-accounting"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIUsageBucket.denied",
+      "activity": "api-usage-accounting"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIUsageBucket.ends_at",
+      "activity": "api-usage-accounting"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIUsageBucket.id",
+      "activity": "api-usage-accounting"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIUsageBucket.period",
+      "activity": "api-usage-accounting"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIUsageBucket.quota",
+      "activity": "api-usage-accounting"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIUsageBucket.starts_at",
+      "activity": "api-usage-accounting"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIUsageBucket.updated_at",
+      "activity": "api-usage-accounting"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIUsageQuota.created_at",
+      "activity": "api-usage-accounting"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIUsageQuota.deleted_at",
+      "activity": "api-usage-accounting"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIUsageQuota.environment",
+      "activity": "api-usage-accounting"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIUsageQuota.id",
+      "activity": "api-usage-accounting"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIUsageQuota.requests_per_minute",
+      "activity": "api-usage-accounting"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIUsageQuota.requests_per_month",
+      "activity": "api-usage-accounting"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIUsageQuota.tenant",
+      "activity": "api-usage-accounting"
+    },
+    {
+      "source": "backend/django/apps/api_clients/models.py",
+      "field": "APIUsageQuota.updated_at",
+      "activity": "api-usage-accounting"
+    },
+    {
+      "source": "backend/django/apps/audit/models.py",
+      "field": "AuditEvent.action",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/audit/models.py",
+      "field": "AuditEvent.actor_id",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/audit/models.py",
+      "field": "AuditEvent.actor_type",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/audit/models.py",
+      "field": "AuditEvent.created_at",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/audit/models.py",
+      "field": "AuditEvent.device_fingerprint",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/audit/models.py",
+      "field": "AuditEvent.id",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/audit/models.py",
+      "field": "AuditEvent.integrity_hash",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/audit/models.py",
+      "field": "AuditEvent.ip_address",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/audit/models.py",
+      "field": "AuditEvent.metadata_json",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/audit/models.py",
+      "field": "AuditEvent.previous_event_hash",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/audit/models.py",
+      "field": "AuditEvent.public_id",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/audit/models.py",
+      "field": "AuditEvent.sensitive_metadata_hash",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/audit/models.py",
+      "field": "AuditEvent.target_id",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/audit/models.py",
+      "field": "AuditEvent.target_type",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/audit/models.py",
+      "field": "AuditEvent.tenant",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/audit/models.py",
+      "field": "AuditEvent.user_agent",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRecord.billing_cycle",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRecord.created_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRecord.current_invoice",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRecord.deleted_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRecord.id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRecord.monthly_check_count",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRecord.monthly_recurring_revenue",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRecord.notes",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRecord.organization",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRecord.owner_team",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRecord.plan",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRecord.public_id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRecord.status",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRecord.subtitle",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRecord.tenant",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRecord.title",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRecord.updated_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "FaceMatch.confidence_level",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "FaceMatch.created_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "FaceMatch.deleted_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "FaceMatch.document_capture",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "FaceMatch.id",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "FaceMatch.identity_document",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "FaceMatch.match_score",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "FaceMatch.matched_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "FaceMatch.model_name",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "FaceMatch.model_version",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "FaceMatch.provider_check_id",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "FaceMatch.public_id",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "FaceMatch.selfie_capture",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "FaceMatch.status",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "FaceMatch.tenant",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "FaceMatch.threshold_used",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "FaceMatch.updated_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "FaceMatch.verification",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessChallenge.actions",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessChallenge.completed_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessChallenge.created_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessChallenge.deleted_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessChallenge.expires_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessChallenge.id",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessChallenge.public_id",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessChallenge.tenant",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessChallenge.updated_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessChallenge.verification",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessChallenge.verification_session",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessCheck.challenge",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessCheck.checked_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessCheck.confidence_level",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessCheck.created_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessCheck.deleted_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessCheck.failure_reason",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessCheck.id",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessCheck.liveness_type",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessCheck.model_name",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessCheck.model_version",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessCheck.provider_check_id",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessCheck.public_id",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessCheck.score",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessCheck.selfie_capture",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessCheck.status",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessCheck.tenant",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessCheck.updated_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "LivenessCheck.verification",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.capture_type",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.captured_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.checksum_sha256",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.created_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.deleted_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.face_count",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.face_detection_confidence",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.face_detection_model_name",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.face_detection_model_version",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.file_size_bytes",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.id",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.mime_type",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.public_id",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.quality_score",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.status",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.storage_key",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.storage_provider",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.storage_url",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.tenant",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.updated_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.verification",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.verification_subject",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentRecord.accepted",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentRecord.accepted_at",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentRecord.consent_content_hash",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentRecord.consent_locale",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentRecord.consent_template",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentRecord.consent_text_snapshot",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentRecord.created_at",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentRecord.deleted_at",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentRecord.device_fingerprint",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentRecord.id",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentRecord.ip_address",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentRecord.public_id",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentRecord.tenant",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentRecord.updated_at",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentRecord.user_agent",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentRecord.verification",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentRecord.verification_subject",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentRecord.withdrawn_at",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentTemplate.content",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentTemplate.created_at",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentTemplate.created_by",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentTemplate.deleted_at",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentTemplate.id",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentTemplate.language",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentTemplate.name",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentTemplate.public_id",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentTemplate.status",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentTemplate.tenant",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentTemplate.updated_at",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentTemplate.version",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/document_captures/models.py",
+      "field": "DocumentCapture.captured_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/document_captures/models.py",
+      "field": "DocumentCapture.checksum_sha256",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/document_captures/models.py",
+      "field": "DocumentCapture.created_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/document_captures/models.py",
+      "field": "DocumentCapture.deleted_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/document_captures/models.py",
+      "field": "DocumentCapture.file_size_bytes",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/document_captures/models.py",
+      "field": "DocumentCapture.id",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/document_captures/models.py",
+      "field": "DocumentCapture.identity_document",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/document_captures/models.py",
+      "field": "DocumentCapture.mime_type",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/document_captures/models.py",
+      "field": "DocumentCapture.public_id",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/document_captures/models.py",
+      "field": "DocumentCapture.quality_score",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/document_captures/models.py",
+      "field": "DocumentCapture.side",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/document_captures/models.py",
+      "field": "DocumentCapture.status",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/document_captures/models.py",
+      "field": "DocumentCapture.storage_key",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/document_captures/models.py",
+      "field": "DocumentCapture.storage_provider",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/document_captures/models.py",
+      "field": "DocumentCapture.storage_url",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/document_captures/models.py",
+      "field": "DocumentCapture.tenant",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/document_captures/models.py",
+      "field": "DocumentCapture.updated_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/feature_flags/models.py",
+      "field": "FeatureFlag.audience",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/feature_flags/models.py",
+      "field": "FeatureFlag.channel",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/feature_flags/models.py",
+      "field": "FeatureFlag.created_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/feature_flags/models.py",
+      "field": "FeatureFlag.created_by",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/feature_flags/models.py",
+      "field": "FeatureFlag.deleted_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/feature_flags/models.py",
+      "field": "FeatureFlag.description",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/feature_flags/models.py",
+      "field": "FeatureFlag.id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/feature_flags/models.py",
+      "field": "FeatureFlag.key",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/feature_flags/models.py",
+      "field": "FeatureFlag.metadata_json",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/feature_flags/models.py",
+      "field": "FeatureFlag.owner_team",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/feature_flags/models.py",
+      "field": "FeatureFlag.public_id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/feature_flags/models.py",
+      "field": "FeatureFlag.rollout_percent",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/feature_flags/models.py",
+      "field": "FeatureFlag.status",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/feature_flags/models.py",
+      "field": "FeatureFlag.title",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/feature_flags/models.py",
+      "field": "FeatureFlag.updated_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/identity_documents/models.py",
+      "field": "IdentityDocument.country_profile_id",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/identity_documents/models.py",
+      "field": "IdentityDocument.created_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/identity_documents/models.py",
+      "field": "IdentityDocument.deleted_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/identity_documents/models.py",
+      "field": "IdentityDocument.document_number_hash",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/identity_documents/models.py",
+      "field": "IdentityDocument.document_type_id",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/identity_documents/models.py",
+      "field": "IdentityDocument.expires_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/identity_documents/models.py",
+      "field": "IdentityDocument.extracted_data_json",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/identity_documents/models.py",
+      "field": "IdentityDocument.id",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/identity_documents/models.py",
+      "field": "IdentityDocument.issued_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/identity_documents/models.py",
+      "field": "IdentityDocument.issuing_authority",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/identity_documents/models.py",
+      "field": "IdentityDocument.local_document_name",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/identity_documents/models.py",
+      "field": "IdentityDocument.public_id",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/identity_documents/models.py",
+      "field": "IdentityDocument.status",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/identity_documents/models.py",
+      "field": "IdentityDocument.tenant",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/identity_documents/models.py",
+      "field": "IdentityDocument.updated_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/identity_documents/models.py",
+      "field": "IdentityDocument.verification",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/identity_documents/models.py",
+      "field": "IdentityDocument.verification_subject",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/incidents/models.py",
+      "field": "Incident.affected_surface",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/incidents/models.py",
+      "field": "Incident.created_at",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/incidents/models.py",
+      "field": "Incident.deleted_at",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/incidents/models.py",
+      "field": "Incident.detected_at",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/incidents/models.py",
+      "field": "Incident.id",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/incidents/models.py",
+      "field": "Incident.metadata_json",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/incidents/models.py",
+      "field": "Incident.owner_team",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/incidents/models.py",
+      "field": "Incident.public_id",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/incidents/models.py",
+      "field": "Incident.resolved_at",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/incidents/models.py",
+      "field": "Incident.severity",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/incidents/models.py",
+      "field": "Incident.status",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/incidents/models.py",
+      "field": "Incident.summary",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/incidents/models.py",
+      "field": "Incident.title",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/incidents/models.py",
+      "field": "Incident.updated_at",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/notifications/models.py",
+      "field": "Notification.body_preview",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/notifications/models.py",
+      "field": "Notification.channel",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/notifications/models.py",
+      "field": "Notification.created_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/notifications/models.py",
+      "field": "Notification.deleted_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/notifications/models.py",
+      "field": "Notification.id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/notifications/models.py",
+      "field": "Notification.provider_reference",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/notifications/models.py",
+      "field": "Notification.public_id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/notifications/models.py",
+      "field": "Notification.recipient",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/notifications/models.py",
+      "field": "Notification.recipient_type",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/notifications/models.py",
+      "field": "Notification.sent_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/notifications/models.py",
+      "field": "Notification.status",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/notifications/models.py",
+      "field": "Notification.subject",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/notifications/models.py",
+      "field": "Notification.template_code",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/notifications/models.py",
+      "field": "Notification.tenant",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/notifications/models.py",
+      "field": "Notification.updated_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "Organization.created_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "Organization.default_country_profile_id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "Organization.default_jurisdiction_id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "Organization.deleted_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "Organization.id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "Organization.industry",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "Organization.name",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "Organization.public_id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "Organization.settings_json",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "Organization.slug",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "Organization.status",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "Organization.updated_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "OrganizationSupportingDocument.created_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "OrganizationSupportingDocument.deleted_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "OrganizationSupportingDocument.file_size_bytes",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "OrganizationSupportingDocument.filename",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "OrganizationSupportingDocument.id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "OrganizationSupportingDocument.mime_type",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "OrganizationSupportingDocument.organization",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "OrganizationSupportingDocument.public_id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "OrganizationSupportingDocument.status",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "OrganizationSupportingDocument.storage_key",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "OrganizationSupportingDocument.tenant",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "OrganizationSupportingDocument.updated_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/organizations/models.py",
+      "field": "OrganizationSupportingDocument.uploaded_by",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSetting.created_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSetting.created_by",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSetting.current_value_json",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSetting.default_value_json",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSetting.deleted_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSetting.description",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSetting.group",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSetting.id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSetting.is_editable",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSetting.is_secret",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSetting.key",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSetting.public_id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSetting.requires_restart",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSetting.status",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSetting.title",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSetting.updated_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSetting.updated_by",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSetting.value_type",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSettingRevision.change_reason",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSettingRevision.changed_by",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSettingRevision.created_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSettingRevision.deleted_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSettingRevision.id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSettingRevision.new_value_json",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSettingRevision.old_value_json",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSettingRevision.public_id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSettingRevision.setting",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/platform_settings/models.py",
+      "field": "PlatformSettingRevision.updated_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/projects/models.py",
+      "field": "Project.allowed_origins_json",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/projects/models.py",
+      "field": "Project.created_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/projects/models.py",
+      "field": "Project.created_by",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/projects/models.py",
+      "field": "Project.deleted_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/projects/models.py",
+      "field": "Project.environment",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/projects/models.py",
+      "field": "Project.id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/projects/models.py",
+      "field": "Project.is_default",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/projects/models.py",
+      "field": "Project.name",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/projects/models.py",
+      "field": "Project.public_id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/projects/models.py",
+      "field": "Project.slug",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/projects/models.py",
+      "field": "Project.status",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/projects/models.py",
+      "field": "Project.tenant",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/projects/models.py",
+      "field": "Project.updated_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "Provider.code",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "Provider.configuration_json",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "Provider.created_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "Provider.deleted_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "Provider.id",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "Provider.manifest_json",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "Provider.name",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "Provider.provider_type",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "Provider.public_id",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "Provider.status",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "Provider.tenant",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "Provider.updated_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderAssignment.assignment_key",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderAssignment.created_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderAssignment.deleted_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderAssignment.id",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderAssignment.notes",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderAssignment.provider",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderAssignment.public_id",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderAssignment.status",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderAssignment.tenant",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderAssignment.updated_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCheck.check_type",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCheck.completed_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCheck.created_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCheck.deleted_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCheck.duration_ms",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCheck.error_code",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCheck.error_message",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCheck.id",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCheck.normalized_result_json",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCheck.provider",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCheck.provider_reference",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCheck.public_id",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCheck.request_metadata_json",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCheck.response_metadata_json",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCheck.started_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCheck.status",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCheck.tenant",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCheck.updated_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCheck.verification",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCircuitState.consecutive_failures",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCircuitState.created_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCircuitState.deleted_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCircuitState.id",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCircuitState.opened_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCircuitState.retry_after",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCircuitState.route_step",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCircuitState.status",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderCircuitState.updated_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderEnvironmentConfiguration.approved_by",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderEnvironmentConfiguration.created_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderEnvironmentConfiguration.credentials_json",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderEnvironmentConfiguration.deleted_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderEnvironmentConfiguration.diff_json",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderEnvironmentConfiguration.environment",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderEnvironmentConfiguration.id",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderEnvironmentConfiguration.manifest_snapshot_json",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderEnvironmentConfiguration.provider",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderEnvironmentConfiguration.public_configuration_json",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderEnvironmentConfiguration.public_id",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderEnvironmentConfiguration.requested_by",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderEnvironmentConfiguration.source",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderEnvironmentConfiguration.status",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderEnvironmentConfiguration.test_succeeded",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderEnvironmentConfiguration.tested_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderEnvironmentConfiguration.tested_digest",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderEnvironmentConfiguration.updated_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderEnvironmentConfiguration.version",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderExecutionAttempt.completed_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderExecutionAttempt.created_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderExecutionAttempt.deleted_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderExecutionAttempt.error_code",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderExecutionAttempt.execution_id",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderExecutionAttempt.fallback_reason",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderExecutionAttempt.id",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderExecutionAttempt.outcome",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderExecutionAttempt.provider_attempt",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderExecutionAttempt.provider_check",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderExecutionAttempt.public_id",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderExecutionAttempt.retryable",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderExecutionAttempt.route",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderExecutionAttempt.route_step",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderExecutionAttempt.sequence",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderExecutionAttempt.started_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderExecutionAttempt.timeout_seconds",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderExecutionAttempt.updated_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRoute.capability",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRoute.circuit_failure_threshold",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRoute.circuit_recovery_seconds",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRoute.country_codes_json",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRoute.created_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRoute.deleted_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRoute.document_type_ids_json",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRoute.environment",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRoute.final_action",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRoute.id",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRoute.max_attempts_per_provider",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRoute.name",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRoute.priority",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRoute.public_id",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRoute.route_key",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRoute.status",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRoute.tenant",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRoute.timeout_seconds",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRoute.updated_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRoute.version",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRoute.workflow_public_ids_json",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRouteStep.created_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRouteStep.deleted_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRouteStep.id",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRouteStep.position",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRouteStep.provider",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRouteStep.public_id",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRouteStep.route",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/providers/models.py",
+      "field": "ProviderRouteStep.updated_at",
+      "activity": "provider-runtime-and-credential-management"
+    },
+    {
+      "source": "backend/django/apps/reviewers/models.py",
+      "field": "PlatformAdminInvitation.accepted_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/reviewers/models.py",
+      "field": "PlatformAdminInvitation.created_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/reviewers/models.py",
+      "field": "PlatformAdminInvitation.deleted_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/reviewers/models.py",
+      "field": "PlatformAdminInvitation.email",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/reviewers/models.py",
+      "field": "PlatformAdminInvitation.expires_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/reviewers/models.py",
+      "field": "PlatformAdminInvitation.id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/reviewers/models.py",
+      "field": "PlatformAdminInvitation.invited_by",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/reviewers/models.py",
+      "field": "PlatformAdminInvitation.public_id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/reviewers/models.py",
+      "field": "PlatformAdminInvitation.role",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/reviewers/models.py",
+      "field": "PlatformAdminInvitation.status",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/reviewers/models.py",
+      "field": "PlatformAdminInvitation.token_hash",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/reviewers/models.py",
+      "field": "PlatformAdminInvitation.updated_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/risk/models.py",
+      "field": "RiskAssessment.created_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/risk/models.py",
+      "field": "RiskAssessment.deleted_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/risk/models.py",
+      "field": "RiskAssessment.id",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/risk/models.py",
+      "field": "RiskAssessment.public_id",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/risk/models.py",
+      "field": "RiskAssessment.recommendation",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/risk/models.py",
+      "field": "RiskAssessment.risk_level",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/risk/models.py",
+      "field": "RiskAssessment.risk_score",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/risk/models.py",
+      "field": "RiskAssessment.signals_json",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/risk/models.py",
+      "field": "RiskAssessment.tenant",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/risk/models.py",
+      "field": "RiskAssessment.updated_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/risk/models.py",
+      "field": "RiskAssessment.verification",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/security/models.py",
+      "field": "SecurityCase.affected_surface",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/security/models.py",
+      "field": "SecurityCase.created_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/security/models.py",
+      "field": "SecurityCase.deleted_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/security/models.py",
+      "field": "SecurityCase.detected_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/security/models.py",
+      "field": "SecurityCase.id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/security/models.py",
+      "field": "SecurityCase.metadata_json",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/security/models.py",
+      "field": "SecurityCase.owner_team",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/security/models.py",
+      "field": "SecurityCase.public_id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/security/models.py",
+      "field": "SecurityCase.resolved_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/security/models.py",
+      "field": "SecurityCase.severity",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/security/models.py",
+      "field": "SecurityCase.signal",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/security/models.py",
+      "field": "SecurityCase.status",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/security/models.py",
+      "field": "SecurityCase.summary",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/security/models.py",
+      "field": "SecurityCase.title",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/security/models.py",
+      "field": "SecurityCase.updated_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/support/models.py",
+      "field": "SupportTicket.created_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/support/models.py",
+      "field": "SupportTicket.deleted_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/support/models.py",
+      "field": "SupportTicket.id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/support/models.py",
+      "field": "SupportTicket.issue_type",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/support/models.py",
+      "field": "SupportTicket.metadata_json",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/support/models.py",
+      "field": "SupportTicket.organization",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/support/models.py",
+      "field": "SupportTicket.owner_team",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/support/models.py",
+      "field": "SupportTicket.priority",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/support/models.py",
+      "field": "SupportTicket.public_id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/support/models.py",
+      "field": "SupportTicket.requester_email",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/support/models.py",
+      "field": "SupportTicket.status",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/support/models.py",
+      "field": "SupportTicket.summary",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/support/models.py",
+      "field": "SupportTicket.title",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/support/models.py",
+      "field": "SupportTicket.updated_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/templates/models.py",
+      "field": "Template.category",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/templates/models.py",
+      "field": "Template.cloned_by_organizations",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/templates/models.py",
+      "field": "Template.countries_json",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/templates/models.py",
+      "field": "Template.created_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/templates/models.py",
+      "field": "Template.created_by",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/templates/models.py",
+      "field": "Template.deleted_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/templates/models.py",
+      "field": "Template.description",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/templates/models.py",
+      "field": "Template.id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/templates/models.py",
+      "field": "Template.name",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/templates/models.py",
+      "field": "Template.output_claims_json",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/templates/models.py",
+      "field": "Template.owner_team",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/templates/models.py",
+      "field": "Template.provider_requirements_json",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/templates/models.py",
+      "field": "Template.public_id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/templates/models.py",
+      "field": "Template.required_checks_json",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/templates/models.py",
+      "field": "Template.risk_level",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/templates/models.py",
+      "field": "Template.settings_json",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/templates/models.py",
+      "field": "Template.slug",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/templates/models.py",
+      "field": "Template.status",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/templates/models.py",
+      "field": "Template.steps_json",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/templates/models.py",
+      "field": "Template.updated_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/templates/models.py",
+      "field": "Template.usage_count",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/templates/models.py",
+      "field": "Template.version",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "Tenant.created_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "Tenant.deleted_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "Tenant.id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "Tenant.name",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "Tenant.organization",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "Tenant.public_id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "Tenant.settings_json",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "Tenant.slug",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "Tenant.status",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "Tenant.updated_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.checksum_sha256",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.consumed_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.created_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.deleted_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.deletion_attempt_count",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.deletion_retry_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.expires_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.file_size_bytes",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.id",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.mime_type",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.public_id",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.purpose",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.quarantine_reason",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.status",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.storage_key",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.storage_provider",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.tenant",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.updated_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.verification",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.verification_session",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.consent_template",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.created_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.created_by",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.default_locale",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.deleted_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.description",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.document_authenticity_min_confidence",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.document_authenticity_required",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.external_risk_enabled",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.external_risk_failure_action",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.external_risk_review_threshold",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.face_match_threshold",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.maker_checker_required",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.manual_review_threshold",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.media_retention_days",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.metadata_retention_days",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.name",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.project",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.public_id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.required_document_types_json",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.required_liveness_level",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.status",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.supported_locales_json",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.tenant",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.updated_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.verification_expiry_minutes",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.version",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_subjects/models.py",
+      "field": "VerificationSubject.created_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verification_subjects/models.py",
+      "field": "VerificationSubject.date_of_birth",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verification_subjects/models.py",
+      "field": "VerificationSubject.deleted_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verification_subjects/models.py",
+      "field": "VerificationSubject.email",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verification_subjects/models.py",
+      "field": "VerificationSubject.external_reference",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verification_subjects/models.py",
+      "field": "VerificationSubject.full_name",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verification_subjects/models.py",
+      "field": "VerificationSubject.id",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verification_subjects/models.py",
+      "field": "VerificationSubject.metadata_json",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verification_subjects/models.py",
+      "field": "VerificationSubject.phone_number",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verification_subjects/models.py",
+      "field": "VerificationSubject.public_id",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verification_subjects/models.py",
+      "field": "VerificationSubject.tenant",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verification_subjects/models.py",
+      "field": "VerificationSubject.updated_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verification_subjects/models.py",
+      "field": "VerificationSubjectExport.created_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verification_subjects/models.py",
+      "field": "VerificationSubjectExport.deleted_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verification_subjects/models.py",
+      "field": "VerificationSubjectExport.download_token_hash",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verification_subjects/models.py",
+      "field": "VerificationSubjectExport.downloaded_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verification_subjects/models.py",
+      "field": "VerificationSubjectExport.expires_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verification_subjects/models.py",
+      "field": "VerificationSubjectExport.id",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verification_subjects/models.py",
+      "field": "VerificationSubjectExport.payload_json",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verification_subjects/models.py",
+      "field": "VerificationSubjectExport.public_id",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verification_subjects/models.py",
+      "field": "VerificationSubjectExport.subject",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verification_subjects/models.py",
+      "field": "VerificationSubjectExport.tenant",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verification_subjects/models.py",
+      "field": "VerificationSubjectExport.updated_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ProcessingJob.attempt_count",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ProcessingJob.completed_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ProcessingJob.created_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ProcessingJob.deleted_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ProcessingJob.error_code",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ProcessingJob.heartbeat_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ProcessingJob.id",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ProcessingJob.job_type",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ProcessingJob.lease_expires_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ProcessingJob.max_attempts",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ProcessingJob.public_id",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ProcessingJob.resource_public_id",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ProcessingJob.status",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ProcessingJob.tenant",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ProcessingJob.updated_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ProcessingJob.verification",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "RetentionLegalHold.created_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "RetentionLegalHold.deleted_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "RetentionLegalHold.expires_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "RetentionLegalHold.id",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "RetentionLegalHold.public_id",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "RetentionLegalHold.reason",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "RetentionLegalHold.released_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "RetentionLegalHold.tenant",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "RetentionLegalHold.updated_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "RetentionLegalHold.verification",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.assigned_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.assigned_reviewer",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.cancelled_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.completed_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.created_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.created_by",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.decision_revision",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.deleted_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.expires_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.external_reference",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.id",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.metadata_json",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.organization",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.policy_public_id",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.policy_snapshot_json",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.project",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.public_id",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.purpose",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.redirect_url",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.review_owner",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.status",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.tenant",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.updated_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.verification_subject",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.workflow_snapshot_json",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationDecision.approval_status",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationDecision.approved_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationDecision.approved_by",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationDecision.contract_version",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationDecision.created_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationDecision.decided_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationDecision.decided_by",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationDecision.decision",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationDecision.decision_type",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationDecision.deleted_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationDecision.evidence_summary_json",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationDecision.id",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationDecision.input_snapshot_json",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationDecision.proposed_decision",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationDecision.public_id",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationDecision.reason_code",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationDecision.reason_codes_json",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationDecision.reason_detail",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationDecision.tenant",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationDecision.updated_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationDecision.verification",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationMobileHandoff.created_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationMobileHandoff.expires_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationMobileHandoff.id",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationMobileHandoff.public_id",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationMobileHandoff.redeemed_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationMobileHandoff.redeemed_session",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationMobileHandoff.source_session",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationMobileHandoff.token_hash",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationMobileHandoff.updated_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationSession.allowed_actions_json",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationSession.completed_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationSession.created_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationSession.device_fingerprint",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationSession.expires_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationSession.id",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationSession.ip_address",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationSession.last_seen_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationSession.public_id",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationSession.session_token_hash",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationSession.started_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationSession.status",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationSession.tenant",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationSession.updated_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationSession.user_agent",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "VerificationSession.verification",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookDeliveryAttempt.attempted_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookDeliveryAttempt.duration_ms",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookDeliveryAttempt.error_message",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookDeliveryAttempt.id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookDeliveryAttempt.response_body",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookDeliveryAttempt.status_code",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookDeliveryAttempt.webhook_event",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEndpoint.created_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEndpoint.created_by",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEndpoint.deleted_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEndpoint.description",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEndpoint.events_json",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEndpoint.id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEndpoint.previous_secret_expires_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEndpoint.previous_signing_key",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEndpoint.project",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEndpoint.public_id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEndpoint.secret_hash",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEndpoint.signing_key",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEndpoint.signing_secret_version",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEndpoint.status",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEndpoint.tenant",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEndpoint.updated_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEndpoint.url",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEvent.attempt_count",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEvent.created_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEvent.deleted_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEvent.delivery_claim",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEvent.delivery_claim_expires_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEvent.event_type",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEvent.id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEvent.last_attempt_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEvent.next_retry_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEvent.payload_json",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEvent.public_id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEvent.status",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEvent.tenant",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEvent.updated_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/webhooks/models.py",
+      "field": "WebhookEvent.webhook_endpoint",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "Workflow.created_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "Workflow.created_by",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "Workflow.current_version",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "Workflow.deleted_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "Workflow.description",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "Workflow.id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "Workflow.instantiation_key",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "Workflow.name",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "Workflow.project",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "Workflow.public_id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "Workflow.settings_json",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "Workflow.source_template",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "Workflow.source_template_version",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "Workflow.status",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "Workflow.steps_json",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "Workflow.tenant",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "Workflow.updated_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "WorkflowVersion.id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "WorkflowVersion.policy",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "WorkflowVersion.public_id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "WorkflowVersion.published_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "WorkflowVersion.published_by",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "WorkflowVersion.settings_json",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "WorkflowVersion.steps_json",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "WorkflowVersion.version",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "WorkflowVersion.workflow",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "WorkflowVersion.workflow_name",
+      "activity": "workflow-configuration-and-operations"
     }
   ]
 }
