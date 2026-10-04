@@ -100,7 +100,8 @@ def dispatch_processing_job(job_public_id: str) -> bool:
         if job.status != ProcessingJobStatus.QUEUED:
             return False
         job.lease_expires_at = _lease_deadline()
-        job.save(update_fields=["lease_expires_at", "updated_at"])
+        job.error_code = ""
+        job.save(update_fields=["lease_expires_at", "error_code", "updated_at"])
 
     try:
         if job.job_type == ProcessingJobType.IDENTITY_DOCUMENT:
@@ -113,12 +114,16 @@ def dispatch_processing_job(job_public_id: str) -> bool:
             process_verification_biometrics_task.delay(job.resource_public_id)
         else:  # pragma: no cover - protected by model choices
             raise ValueError("Unsupported processing job type.")
-    except Exception:
+    except Exception as exc:
         ProcessingJob.objects.filter(
             pk=job.pk,
             status=ProcessingJobStatus.QUEUED,
-        ).update(lease_expires_at=timezone.now())
-        logger.exception("Failed to dispatch processing job %s.", job.public_id)
+        ).update(lease_expires_at=timezone.now(), error_code="dispatch_unavailable")
+        logger.warning(
+            "Failed to dispatch processing job %s (%s).",
+            job.public_id,
+            type(exc).__name__,
+        )
         return False
     return True
 
