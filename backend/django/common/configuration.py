@@ -1,6 +1,7 @@
 """Startup validation for security-sensitive deployment configuration."""
 
 from collections.abc import Mapping
+from urllib.parse import urlsplit
 
 from django.core.exceptions import ImproperlyConfigured
 
@@ -65,6 +66,24 @@ def validate_production_environment(environment: Mapping[str, str]) -> None:
     }:
         errors.append("DJANGO_DEBUG must be disabled in production")
 
+    for name in ("DJANGO_CORS_ALLOWED_ORIGINS", "DJANGO_CSRF_TRUSTED_ORIGINS"):
+        for value in environment.get(name, "").split(","):
+            value = value.strip()
+            if not value:
+                continue
+            parsed = urlsplit(value)
+            if (
+                parsed.scheme != "https"
+                or not parsed.hostname
+                or parsed.hostname in LOCAL_HOSTS
+                or "*" in value
+                or parsed.username
+                or parsed.password
+                or parsed.path
+                or parsed.query
+                or parsed.fragment
+            ):
+                errors.append(f"{name} must contain explicit HTTPS production origins")
     if errors:
         details = "; ".join(errors)
         raise ImproperlyConfigured(f"Unsafe production configuration: {details}.")

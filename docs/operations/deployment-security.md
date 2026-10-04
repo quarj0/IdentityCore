@@ -23,7 +23,7 @@ The report contains environment, fixed check names, and pass/fail booleans. It e
 
 The gate checks one-year HSTS, nosniff, restricted referrer/framing policies, and frontend CSP directives without unsafe script execution. Issued refresh cookies must be host-only, HttpOnly, Secure, SameSite Lax/Strict, and scoped to `/api/v1/auth/`; portal `__Host-` cookies must use `/` and Strict/Lax. Frontend headers should remain present on the public routes used by the gate.
 
-Django production settings redirect HTTP to HTTPS and emit HSTS. If TLS terminates at a proxy, set `DJANGO_TRUST_PROXY_HEADERS=true` **only** when that trusted proxy strips incoming `X-Forwarded-Proto` and replaces it with the observed transport scheme. A direct client must never control this header. Configure HTTPS health checks at the proxy or an explicit trusted transport; repeated redirects fail the gate. Development keeps localhost CORS support; production uses explicit origins.
+Django production settings redirect HTTP to HTTPS and emit HSTS. If TLS terminates at a proxy, set `DJANGO_TRUST_PROXY_HEADERS=true` **only** when that trusted proxy strips incoming `X-Forwarded-Proto` and replaces it with the observed transport scheme. A direct client must never control this header. Configure HTTPS health checks at the proxy or an explicit trusted transport; repeated redirects fail the gate. Development keeps localhost CORS support; production uses explicit HTTPS origins and rejects localhost/wildcard/non-origin entries. Set `DJANGO_CORS_ALLOWED_ORIGINS` and `DJANGO_CSRF_TRUSTED_ORIGINS` explicitly for each environment. An empty list permits no browser origins; production never inherits the development lists. Refresh cookies are always Secure in production.
 
 Local validation:
 
