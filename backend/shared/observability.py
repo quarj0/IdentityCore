@@ -113,9 +113,9 @@ def inject(headers):
 
 
 def extract(headers):
-    # Case-insensitive headers from Django/Starlette work directly; Celery uses
-    # plain dictionaries. Only W3C traceparent/tracestate are extracted.
-    return PROPAGATOR.extract(headers)
+    # Vendor tracestate is free-form and may contain identifiers. Preserve only
+    # the fixed W3C traceparent fields; discard tracestate and baggage.
+    return PROPAGATOR.extract({"traceparent": headers.get("traceparent", "")})
 
 
 @contextmanager

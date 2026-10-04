@@ -64,12 +64,13 @@ class ObservabilityTests(SimpleTestCase):
             "api",
             "request",
             context=telemetry.extract(
-                {"traceparent": "broken", "baggage": "pii=value"}
+                {"traceparent": "broken", "baggage": "pii=value", "tracestate": "vendor=private-applicant"}
             ),
         ):
             outgoing = {}
             telemetry.inject(outgoing)
         self.assertNotIn("baggage", outgoing)
+        self.assertNotIn("tracestate", outgoing)
 
     def test_request_id_cannot_echo_pii_or_unbounded_values(self):
         for value in ["applicant@example.org", "x" * 65, "a\nb"]:
