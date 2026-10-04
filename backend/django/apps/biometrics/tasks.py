@@ -241,7 +241,7 @@ def _finalize_unavailable_biometrics(
                 "requires human review."
             ),
             "evidence_summary_json": {
-                "provider_error": str(error),
+                "provider_error": "provider_unavailable",
                 "liveness_status": liveness_check.status,
                 "face_match_status": (
                     face_match.status if face_match is not None else "missing"
@@ -636,7 +636,7 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             if processing_stage == "liveness" and liveness_provider_check is not None:
                 liveness_provider_check.status = ProviderCheckStatus.FAILED
                 liveness_provider_check.error_code = "provider_unavailable"
-                liveness_provider_check.error_message = str(exc)
+                liveness_provider_check.error_message = "Biometric processing was unavailable."
                 liveness_provider_check.completed_at = now
                 liveness_provider_check.save(
                     update_fields=[
@@ -650,7 +650,7 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             if processing_stage == "face_match" and face_provider_check is not None:
                 face_provider_check.status = ProviderCheckStatus.FAILED
                 face_provider_check.error_code = "provider_unavailable"
-                face_provider_check.error_message = str(exc)
+                face_provider_check.error_message = "Biometric processing was unavailable."
                 face_provider_check.completed_at = now
                 face_provider_check.save(
                     update_fields=[

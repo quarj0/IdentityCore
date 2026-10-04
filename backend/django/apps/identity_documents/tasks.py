@@ -656,10 +656,11 @@ def process_identity_document_task(identity_document_id: str) -> str:
     except Exception as exc:
         with transaction.atomic():
             lock_processing_job_for_finalization(processing_job)
-            logger.exception(
-                "Document processing failed for document %s and verification %s",
+            logger.warning(
+                "Document processing failed for document %s and verification %s (%s)",
                 identity_document.public_id,
                 verification.public_id,
+                type(exc).__name__,
             )
             error_code = getattr(exc, "error_code", "provider_unavailable")
             provider_check_status = getattr(
@@ -678,7 +679,7 @@ def process_identity_document_task(identity_document_id: str) -> str:
                     continue
                 provider_check.status = provider_check_status
                 provider_check.error_code = error_code
-                provider_check.error_message = str(exc)
+                provider_check.error_message = "Document processing was unavailable."
                 provider_check.completed_at = now
                 provider_check.save(
                     update_fields=[
