@@ -182,9 +182,7 @@ class RiskDecisionTests(TestCase):
         self.assertEqual(
             risk_assessment.recommendation, RiskRecommendation.MANUAL_REVIEW
         )
-        self.assertTrue(
-            risk_assessment.signals_json["document_requires_manual_review"]
-        )
+        self.assertTrue(risk_assessment.signals_json["document_requires_manual_review"])
         self.assertEqual(
             decision_record.decision, VerificationStatus.MANUAL_REVIEW_REQUIRED
         )
@@ -220,18 +218,58 @@ class RiskDecisionTests(TestCase):
         self.verification.refresh_from_db()
         self.assertEqual(self.verification.status, VerificationStatus.REJECTED)
 
-    def test_terminal_race_rolls_back_automatic_decision(self):
+    def test_terminal_race_rejects_automatic_write_and_audits_conflict(self):
         Verification.objects.filter(pk=self.verification.pk).update(
             status=VerificationStatus.CANCELLED,
             cancelled_at=timezone.now(),
             completed_at=timezone.now(),
         )
 
-        with self.assertRaises(VerificationTransitionError):
-            run_verification_risk_and_decision(self.verification)
+        assessment, decision = run_verification_risk_and_decision(self.verification)
+        self.assertIsNone(assessment)
+        self.assertIsNone(decision)
+        from apps.audit.models import AuditEvent
 
-        self.assertFalse(
-            VerificationDecision.objects.filter(
-                verification=self.verification
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                action="verification.automatic_decision_conflict"
             ).exists()
         )
+
+        self.assertFalse(
+            VerificationDecision.objects.filter(verification=self.verification).exists()
+        )
+
+    def test_stale_revision_cannot_replace_automatic_review_routing(self):
+        from apps.audit.models import AuditEvent
+        from apps.verifications.models import VerificationDecisionType
+        from apps.risk.services import apply_automatic_decision
+        from apps.risk.models import RiskAssessment
+
+        decision = VerificationDecision.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            decision="manual_review_required",
+            decision_type=VerificationDecisionType.AUTOMATIC,
+            reason_code="prior_route",
+            decided_at=timezone.now(),
+        )
+        Verification.objects.filter(pk=self.verification.pk).update(
+            decision_revision=1, status="manual_review_required"
+        )
+        assessment = RiskAssessment.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            risk_score=14,
+            risk_level="low",
+            recommendation="approve",
+        )
+        result = apply_automatic_decision(self.verification, assessment)
+        self.assertEqual(result.pk, decision.pk)
+        decision.refresh_from_db()
+        self.assertEqual(decision.reason_code, "prior_route")
+        self.assertEqual(decision.decision, "manual_review_required")
+        conflict = AuditEvent.objects.get(
+            action="verification.automatic_decision_conflict"
+        )
+        self.assertEqual(conflict.metadata_json["reason"], "stale_revision")

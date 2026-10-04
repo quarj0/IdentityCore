@@ -4,7 +4,7 @@ import hashlib
 from django.utils import timezone
 
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 
 from apps.core.models import PublicIdModel
 
@@ -25,7 +25,9 @@ class AuditEvent(PublicIdModel):
         on_delete=models.PROTECT,
         related_name="audit_events",
     )
-    actor_type = models.CharField(max_length=32, choices=AuditActorType.choices, db_index=True)
+    actor_type = models.CharField(
+        max_length=32, choices=AuditActorType.choices, db_index=True
+    )
     actor_id = models.CharField(max_length=64, blank=True, db_index=True)
     action = models.CharField(max_length=120, db_index=True)
     target_type = models.CharField(max_length=64, db_index=True)
@@ -36,19 +38,25 @@ class AuditEvent(PublicIdModel):
     metadata_json = models.JSONField(default=dict, blank=True)
     sensitive_metadata_hash = models.CharField(max_length=64, blank=True)
     previous_event_hash = models.CharField(max_length=64, blank=True, editable=False)
-    integrity_hash = models.CharField(max_length=64, blank=True, editable=False, db_index=True)
+    integrity_hash = models.CharField(
+        max_length=64, blank=True, editable=False, db_index=True
+    )
     created_at = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
         ordering = ["-created_at"]
 
+    @transaction.atomic
     def save(self, *args, **kwargs):
         if self.pk is not None:
-            raise ValidationError("Audit events are append-only and may not be updated.")
+            raise ValidationError(
+                "Audit events are append-only and may not be updated."
+            )
+        from apps.audit.services import lock_audit_chain
+
+        lock_audit_chain(self.tenant_id)
         previous = (
-            type(self).objects.filter(tenant_id=self.tenant_id)
-            .order_by("-id")
-            .first()
+            type(self).objects.filter(tenant_id=self.tenant_id).order_by("-id").first()
         )
         self.previous_event_hash = previous.integrity_hash if previous else ""
         payload = {
@@ -67,7 +75,9 @@ class AuditEvent(PublicIdModel):
             "created_at": self.created_at.isoformat(),
         }
         self.integrity_hash = hashlib.sha256(
-            json.dumps(payload, sort_keys=True, default=str, separators=(",", ":")).encode()
+            json.dumps(
+                payload, sort_keys=True, default=str, separators=(",", ":")
+            ).encode()
         ).hexdigest()
         return super().save(*args, **kwargs)
 

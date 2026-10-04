@@ -36,6 +36,32 @@ class APIClientModelTests(APITestCase):
             tenant=self.tenant,
         )
 
+    def test_generated_secret_authentication_checks_current_status(self):
+        from apps.api_clients.serializers import APIClientAuthenticationResultSerializer
+
+        secret = APIClient.generate_client_secret()
+        client = APIClient(
+            tenant=self.tenant, created_by=self.user, name="Synthetic generated"
+        )
+        client.set_client_secret(secret, generated=True)
+        client.save()
+        self.assertTrue(client.client_secret_hash.startswith("bearer_sha256$"))
+        self.assertTrue(client.verify_client_secret(secret))
+        valid = APIClientAuthenticationResultSerializer(
+            data={"client_id": client.client_id, "client_secret": secret}
+        )
+        self.assertTrue(valid.is_valid(), valid.errors)
+        wrong = APIClientAuthenticationResultSerializer(
+            data={"client_id": client.client_id, "client_secret": secret + "wrong"}
+        )
+        self.assertFalse(wrong.is_valid())
+        client.status = "revoked"
+        client.save(update_fields=["status"])
+        revoked = APIClientAuthenticationResultSerializer(
+            data={"client_id": client.client_id, "client_secret": secret}
+        )
+        self.assertFalse(revoked.is_valid())
+
     def test_generates_prefixed_public_and_client_ids(self):
         api_client = APIClient(
             tenant=self.tenant,

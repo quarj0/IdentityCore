@@ -25,9 +25,14 @@ def verify_audit_chain(*, tenant_id: int | str) -> tuple[bool, str]:
             "created_at": event.created_at.isoformat(),
         }
         expected = hashlib.sha256(
-            json.dumps(payload, sort_keys=True, default=str, separators=(",", ":")).encode()
+            json.dumps(
+                payload, sort_keys=True, default=str, separators=(",", ":")
+            ).encode()
         ).hexdigest()
-        if event.previous_event_hash != previous_hash or event.integrity_hash != expected:
+        if (
+            event.previous_event_hash != previous_hash
+            or event.integrity_hash != expected
+        ):
             return False, event.public_id
         previous_hash = event.integrity_hash
     return True, ""
@@ -60,7 +65,9 @@ def record_audit_event(
     actor_type, actor_id = infer_actor(actor)
     sensitive_hash = ""
     if sensitive_metadata:
-        encoded = json.dumps(sensitive_metadata, sort_keys=True, default=str).encode("utf-8")
+        encoded = json.dumps(sensitive_metadata, sort_keys=True, default=str).encode(
+            "utf-8"
+        )
         sensitive_hash = hashlib.sha256(encoded).hexdigest()
 
     if tenant_id is None:
@@ -75,7 +82,23 @@ def record_audit_event(
         target_id=target_id,
         ip_address=request.META.get("REMOTE_ADDR") if request is not None else None,
         user_agent=request.headers.get("User-Agent", "") if request is not None else "",
-        device_fingerprint=request.headers.get("X-Device-Fingerprint", "") if request is not None else "",
+        device_fingerprint=(
+            request.headers.get("X-Device-Fingerprint", "")
+            if request is not None
+            else ""
+        ),
         metadata_json=metadata or {},
         sensitive_metadata_hash=sensitive_hash,
     )
+
+
+def lock_audit_chain(tenant_id):
+    """Serialize chain appends without blocking FK key-share checks.
+
+    Webhook producers and endpoint mutations acquire this before endpoint locks,
+    so audit appends cannot invert their lock ordering.
+    """
+    from apps.tenants.models import Tenant
+
+    if tenant_id is not None:
+        Tenant.objects.select_for_update(no_key=True).only("pk").get(pk=tenant_id)

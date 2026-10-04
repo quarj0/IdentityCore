@@ -174,7 +174,7 @@ class VerificationMobileHandoffRedeemView(APIView):
             expires_at=source.expires_at,
             allowed_actions_json=list(source.allowed_actions),
         )
-        mobile_session.set_session_token(session_token)
+        mobile_session.set_session_token(session_token, generated=True)
         mobile_session.save()
         handoff.redeemed_session = mobile_session
         handoff.redeemed_at = timezone.now()

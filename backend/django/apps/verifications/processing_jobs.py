@@ -52,7 +52,9 @@ def lock_processing_job_for_finalization(job: ProcessingJob) -> ProcessingJob:
         raise RuntimeError(
             "Processing-job finalization ownership must be checked inside an atomic block."
         )
-    Verification.objects.select_for_update().get(pk=job.verification_id)
+    Verification.objects.select_for_update(of=("self",), no_key=True).get(
+        pk=job.verification_id
+    )
     locked = ProcessingJob.objects.select_for_update().get(pk=job.pk)
     _assert_processing_job_owner(locked, job)
     return locked
@@ -566,12 +568,12 @@ def exhaust_processing_job(job: ProcessingJob) -> None:
         # Finalizers already hold/lock the verification before completing the job;
         # using the same order here prevents the recovery path from deadlocking them.
         verification = (
-            Verification.objects.select_for_update()
+            Verification.objects.select_for_update(of=("self",), no_key=True)
             .select_related("verification_subject")
             .get(pk=job.verification_id)
         )
         locked = (
-            ProcessingJob.objects.select_for_update()
+            ProcessingJob.objects.select_for_update(of=("self",))
             .select_related(
                 "tenant", "verification", "verification__verification_subject"
             )
@@ -633,6 +635,8 @@ def exhaust_processing_job(job: ProcessingJob) -> None:
             )
             from apps.webhooks.services import queue_webhook_events
 
+            verification.decision_revision += 1
+            verification.save(update_fields=["decision_revision", "updated_at"])
             VerificationDecision.objects.update_or_create(
                 verification=verification,
                 defaults={

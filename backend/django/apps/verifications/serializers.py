@@ -369,7 +369,7 @@ class VerificationCreateSerializer(serializers.Serializer):
             expires_at=expires_at,
             allowed_actions_json=list(VERIFICATION_SESSION_ACTIONS),
         )
-        session.set_session_token(raw_session_token)
+        session.set_session_token(raw_session_token, generated=True)
         session.save()
         verification._initial_session = session
         verification._initial_session_token = raw_session_token
@@ -436,7 +436,7 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
     @transaction.atomic
     def save(self, *, verification: Verification, decided_by):
         verification = (
-            Verification.objects.select_for_update()
+            Verification.objects.select_for_update(of=("self",), no_key=True)
             .select_related("verification_subject")
             .get(pk=verification.pk)
         )
@@ -447,8 +447,19 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
             VerificationStatus.EXPIRED,
             VerificationStatus.CANCELLED,
         }
-        if verification.status in terminal_statuses or hasattr(
-            verification, "decision_record"
+        existing_decision = VerificationDecision.objects.filter(
+            verification=verification
+        ).first()
+        review_routing = bool(
+            existing_decision
+            and existing_decision.decision_type
+            in {VerificationDecisionType.AUTOMATIC, VerificationDecisionType.SYSTEM}
+            and existing_decision.decision == VerificationStatus.MANUAL_REVIEW_REQUIRED
+            and existing_decision.approval_status
+            == VerificationApprovalStatus.NOT_REQUIRED
+        )
+        if verification.status in terminal_statuses or (
+            existing_decision and not review_routing
         ):
             raise serializers.ValidationError(
                 {"decision": "This verification already has a final outcome."}
@@ -493,25 +504,24 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
                 and risk_assessment.risk_level in {"high", "critical"}
             )
         )
-        decision_record = VerificationDecision.objects.create(
-            verification=verification,
-            tenant=verification.tenant,
-            decision=self.validated_data["decision"],
-            proposed_decision=self.validated_data["decision"],
-            decision_type=VerificationDecisionType.MANUAL,
-            reason_code=self.validated_data["reason_code"],
-            reason_detail=self.validated_data.get("reason_detail", ""),
-            contract_version=DECISION_CONTRACT_VERSION,
-            reason_codes_json=[self.validated_data["reason_code"]],
-            input_snapshot_json=build_decision_input_snapshot(
+        decision_values = {
+            "tenant": verification.tenant,
+            "decision": self.validated_data["decision"],
+            "proposed_decision": self.validated_data["decision"],
+            "decision_type": VerificationDecisionType.MANUAL,
+            "reason_code": self.validated_data["reason_code"],
+            "reason_detail": self.validated_data.get("reason_detail", ""),
+            "contract_version": DECISION_CONTRACT_VERSION,
+            "reason_codes_json": [self.validated_data["reason_code"]],
+            "input_snapshot_json": build_decision_input_snapshot(
                 verification, risk_assessment=risk_assessment
             ),
-            approval_status=(
+            "approval_status": (
                 VerificationApprovalStatus.PENDING
                 if approval_required
                 else VerificationApprovalStatus.NOT_REQUIRED
             ),
-            evidence_summary_json={
+            "evidence_summary_json": {
                 "liveness_status": (
                     verification.liveness_checks.order_by("-checked_at").first().status
                     if verification.liveness_checks.exists()
@@ -523,9 +533,21 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
                     else "pending"
                 ),
             },
-            decided_by=decided_by,
-            decided_at=now,
+            "decided_by": decided_by,
+            "decided_at": now,
+        }
+        if review_routing:
+            decision_values["evidence_summary_json"]["automatic_review"] = {
+                "reason_code": existing_decision.reason_code,
+                "reason_codes": existing_decision.reason_codes_json,
+                "input_snapshot": existing_decision.input_snapshot_json,
+                "evidence_summary": existing_decision.evidence_summary_json,
+            }
+        decision_record, _ = VerificationDecision.objects.update_or_create(
+            verification=verification, defaults=decision_values
         )
+        verification.decision_revision += 1
+        verification.save(update_fields=["decision_revision", "updated_at"])
         if not approval_required:
             transition_verification(
                 verification,

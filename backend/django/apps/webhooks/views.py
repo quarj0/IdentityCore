@@ -9,7 +9,7 @@ from rest_framework.exceptions import APIException
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
-from apps.audit.services import record_audit_event
+from apps.audit.services import record_audit_event, lock_audit_chain
 from apps.api_clients.idempotency import (
     begin_idempotent_request,
     complete_idempotent_request,
@@ -140,6 +140,7 @@ class WebhookEventReplayView(APIView):
 
     @transaction.atomic
     def post(self, request, event_id: str):
+        lock_audit_chain(request.user.tenant_id)
         idempotency_result = begin_idempotent_request(
             request=request,
             tenant=request.user.tenant,
@@ -162,7 +163,9 @@ class WebhookEventReplayView(APIView):
             tenant=request.user.tenant,
         )
         webhook_event = get_object_or_404(
-            WebhookEvent.objects.select_for_update().select_related("tenant"),
+            WebhookEvent.objects.select_for_update(
+                of=("self",), no_key=True
+            ).select_related("tenant"),
             pk=event_reference.pk,
         )
         webhook_event.webhook_endpoint = endpoint
@@ -225,6 +228,7 @@ class WebhookEndpointActionView(WebhookEndpointDetailView):
 
     @transaction.atomic
     def post(self, request, webhook_id, action=None):
+        lock_audit_chain(request.user.tenant_id)
         action = self.fixed_action or action
         idempotency_result = None
         if action == "rotate":

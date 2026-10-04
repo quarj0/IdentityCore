@@ -722,7 +722,20 @@ def _apply_route_final_action(
     from apps.verifications.transitions import transition_verification
 
     # Canonical lifecycle lock order: Verification first, ProcessingJob second.
-    verification = Verification.objects.select_for_update().get(pk=verification.pk)
+    from apps.risk.services import _automatic_conflict
+
+    requested = verification
+    verification = Verification.objects.select_for_update(no_key=True).get(
+        pk=verification.pk
+    )
+    conflict, _ = _automatic_conflict(requested, verification)
+    if conflict:
+        # Preserve the final-action enum expected by exhaustion handlers.
+        return (
+            route.final_action
+            if route is not None
+            else ProviderRouteFinalAction.MANUAL_REVIEW
+        )
     resource_key, resource_public_id = _lock_route_final_action_processing_job(
         verification=verification,
         check_type=check_type,
@@ -740,6 +753,8 @@ def _apply_route_final_action(
         else VerificationStatus.FAILED
     )
     now = timezone.now()
+    verification.decision_revision += 1
+    verification.save(update_fields=["decision_revision", "updated_at"])
     transition_verification(
         verification,
         target_status,

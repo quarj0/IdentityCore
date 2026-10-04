@@ -92,6 +92,17 @@ BIOMETRIC_FINAL_VERIFICATION_STATUSES = frozenset(
 def _finalize_biometric_decision(
     *, verification, liveness_check, face_match, selfie_capture, processing_job
 ) -> str:
+    from apps.risk.services import _automatic_conflict
+
+    current = Verification.objects.select_for_update(of=("self",), no_key=True).get(
+        pk=verification.pk
+    )
+    conflict, _ = _automatic_conflict(verification, current)
+    if conflict:
+        complete_processing_job(processing_job)
+        return verification.status
+    verification = current
+
     # Keep the domain result, audit trail, decision, outbox, notification rows, and
     # durable processing completion in one transaction. Provider calls are kept
     # outside this transaction and their committed normalized results are reused
@@ -122,6 +133,11 @@ def _finalize_biometric_decision(
         )
 
     risk_assessment, decision_record = run_verification_risk_and_decision(verification)
+    if decision_record is None or getattr(
+        decision_record, "_automatic_conflict", False
+    ):
+        complete_processing_job(processing_job)
+        return verification.status
     if verification.metadata_json.get("workflow") == "administrator_onboarding":
         organization = verification.organization
         settings_json = dict(organization.settings_json or {})
@@ -176,7 +192,19 @@ def _finalize_biometric_decision(
 def _finalize_unavailable_biometrics(
     *, verification, liveness_check, face_match, processing_job, error
 ) -> str:
+    from apps.risk.services import _automatic_conflict
+
+    current = Verification.objects.select_for_update(of=("self",), no_key=True).get(
+        pk=verification.pk
+    )
+    conflict, _ = _automatic_conflict(verification, current)
+    if conflict:
+        complete_processing_job(processing_job)
+        return verification.status
+    verification = current
     now = timezone.now()
+    verification.decision_revision += 1
+    verification.save(update_fields=["decision_revision", "updated_at"])
     decision_record, _ = VerificationDecision.objects.update_or_create(
         verification=verification,
         defaults={

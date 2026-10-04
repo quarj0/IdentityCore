@@ -13,7 +13,8 @@ from apps.verifications.models import (
     VerificationDecisionType,
     VerificationStatus,
 )
-from apps.verifications.transitions import transition_verification
+from apps.verifications.transitions import transition_verification, TERMINAL_STATUSES
+from apps.audit.services import record_audit_event
 from apps.verifications.decision_contract import (
     DECISION_CONTRACT_VERSION,
     build_decision_input_snapshot,
@@ -44,9 +45,13 @@ def _document_requires_manual_review(classification: dict | None) -> bool:
 def evaluate_risk_assessment(verification) -> RiskAssessment:
     latest_liveness_check = verification.liveness_checks.order_by("-checked_at").first()
     latest_face_match = verification.face_matches.order_by("-matched_at").first()
-    latest_identity_document = verification.identity_documents.order_by("-created_at").first()
+    latest_identity_document = verification.identity_documents.order_by(
+        "-created_at"
+    ).first()
     document_classification = (
-        (latest_identity_document.extracted_data_json or {}).get("document_classification")
+        (latest_identity_document.extracted_data_json or {}).get(
+            "document_classification"
+        )
         if latest_identity_document is not None
         else None
     )
@@ -159,16 +164,50 @@ def evaluate_risk_assessment(verification) -> RiskAssessment:
     return assessment
 
 
+def _automatic_conflict(requested, current):
+    existing = VerificationDecision.objects.filter(verification=current).first()
+    reason = ""
+    if current.status in TERMINAL_STATUSES or (
+        existing and existing.decision in TERMINAL_STATUSES
+    ):
+        reason = "terminal_decision"
+    elif existing and existing.decision_type == VerificationDecisionType.MANUAL:
+        reason = "human_decision"
+    elif requested.decision_revision != current.decision_revision:
+        reason = "stale_revision"
+    if reason:
+        record_audit_event(
+            tenant=current.tenant,
+            action="verification.automatic_decision_conflict",
+            target_type="verification",
+            target_id=current.public_id,
+            metadata={
+                "reason": reason,
+                "expected_revision": requested.decision_revision,
+                "current_revision": current.decision_revision,
+            },
+        )
+        for field in ("status", "completed_at", "updated_at", "decision_revision"):
+            setattr(requested, field, getattr(current, field))
+        if existing:
+            existing._automatic_conflict = True
+        return True, existing
+    return False, None
+
+
 @transaction.atomic
 def apply_automatic_decision(
     verification, risk_assessment: RiskAssessment
-) -> VerificationDecision:
+) -> VerificationDecision | None:
     requested_verification = verification
     verification = (
-        Verification.objects.select_for_update()
+        Verification.objects.select_for_update(of=("self",), no_key=True)
         .select_related("tenant", "verification_subject")
         .get(pk=verification.pk)
     )
+    conflict, existing = _automatic_conflict(requested_verification, verification)
+    if conflict:
+        return existing
     now = timezone.now()
     decision_map = {
         RiskRecommendation.APPROVE: VerificationStatus.VERIFIED,
@@ -210,18 +249,30 @@ def apply_automatic_decision(
             "decided_at": now,
         },
     )
-    transitioned, _ = transition_verification(
-        verification, decision, completed_at=now
-    )
+    verification.decision_revision += 1
+    verification.save(update_fields=["decision_revision", "updated_at"])
+    transitioned, _ = transition_verification(verification, decision, completed_at=now)
+    requested_verification.decision_revision = transitioned.decision_revision
     requested_verification.status = transitioned.status
     requested_verification.completed_at = transitioned.completed_at
     requested_verification.updated_at = transitioned.updated_at
     return decision_record
 
 
+@transaction.atomic
 def run_verification_risk_and_decision(
     verification,
-) -> tuple[RiskAssessment, VerificationDecision]:
-    risk_assessment = evaluate_risk_assessment(verification)
+) -> tuple[RiskAssessment | None, VerificationDecision | None]:
+    current = (
+        Verification.objects.select_for_update(of=("self",), no_key=True)
+        .select_related("tenant", "verification_subject")
+        .get(pk=verification.pk)
+    )
+    conflict, existing = _automatic_conflict(verification, current)
+    if conflict:
+        return RiskAssessment.objects.filter(verification=current).first(), existing
+    # Hold the parent lock through evaluation and decision persistence. Human
+    # finalizers use the same lock; stale worker revisions cannot become writes.
+    risk_assessment = evaluate_risk_assessment(current)
     decision_record = apply_automatic_decision(verification, risk_assessment)
     return risk_assessment, decision_record

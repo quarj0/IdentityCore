@@ -108,6 +108,7 @@ class APIClientActionView(APIClientDetailView):
             secret = client.generate_client_secret()
             client.rotate_client_secret(
                 secret,
+                generated=True,
                 overlap_expires_at=timezone.now()
                 + timedelta(seconds=settings.API_CLIENT_ROTATION_OVERLAP_SECONDS),
             )
