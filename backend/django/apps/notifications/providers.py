@@ -90,13 +90,15 @@ class DjangoEmailNotificationProvider(BaseNotificationProvider):
         )
         message = EmailMultiAlternatives(
             subject=notification.subject or "IdentityCore notification",
-            body=notification.body_preview,
+            body=(notification.delivery_json or {}).get(
+                "body", notification.body_preview
+            ),
             from_email=from_email,
             to=[notification.recipient],
             connection=connection,
         )
         html_body = self.configuration.get("html_body")
-        if html_body:
+        if html_body and not notification.delivery_json:
             message.attach_alternative(html_body, "text/html")
 
         sent_count = message.send(fail_silently=False)
@@ -146,7 +148,9 @@ def _get_active_provider_configuration(channel: str) -> tuple[str, dict]:
 
 
 def get_notification_provider(notification: Notification) -> BaseNotificationProvider:
-    assignment = get_notification_provider_assignment(notification.tenant, notification.channel)
+    assignment = get_notification_provider_assignment(
+        notification.tenant, notification.channel
+    )
     if assignment is not None:
         provider_code = assignment.provider.code
         configuration = assignment.provider.configuration_json or {}
@@ -160,7 +164,9 @@ def get_notification_provider(notification: Notification) -> BaseNotificationPro
             provider_code = str(
                 get_platform_setting_value(
                     "notifications.email_provider_code",
-                    getattr(settings, "NOTIFICATION_EMAIL_PROVIDER_CODE", "default-email"),
+                    getattr(
+                        settings, "NOTIFICATION_EMAIL_PROVIDER_CODE", "default-email"
+                    ),
                 )
             )
             configuration = {

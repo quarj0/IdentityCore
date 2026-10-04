@@ -86,3 +86,21 @@ class RefreshInputSerializer(serializers.Serializer):
                 "Invalid or expired refresh token."
             ) from exc
         return {"access": access, "refresh": refresh}
+
+
+class TeamInvitationCreateInput(serializers.Serializer):
+    email = serializers.EmailField(max_length=254)
+    role_id = serializers.CharField(max_length=64)
+
+    def validate_email(self, value):
+        return value.strip().lower()
+
+
+class TeamInvitationAcceptInput(serializers.Serializer):
+    token = serializers.CharField(max_length=128, trim_whitespace=False)
+    password = serializers.CharField(
+        max_length=128, trim_whitespace=False, write_only=True
+    )
+    mfa_code = serializers.CharField(
+        max_length=128, required=False, allow_blank=True, write_only=True
+    )

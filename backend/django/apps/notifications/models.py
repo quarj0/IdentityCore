@@ -2,6 +2,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 from apps.core.models import BaseModel, PublicIdModel
+from common.fields import EncryptedJSONField
 
 
 class NotificationRecipientType(models.TextChoices):
@@ -50,6 +51,9 @@ class Notification(PublicIdModel, BaseModel):
     )
     subject = models.CharField(max_length=255, blank=True)
     body_preview = models.TextField(blank=True)
+    delivery_json = EncryptedJSONField(
+        default=dict, blank=True, encryption_purpose="notifications.delivery"
+    )
     provider_reference = models.CharField(max_length=255, blank=True)
     sent_at = models.DateTimeField(null=True, blank=True)
 

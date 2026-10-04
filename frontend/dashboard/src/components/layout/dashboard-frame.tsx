@@ -7,6 +7,7 @@ export function DashboardFrame({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const usesStandaloneLayout =
     pathname === "/login" ||
+    pathname === "/accept-invitation" ||
     pathname === "/register" ||
     pathname === "/forgot-password" ||
     pathname === "/reset-password" ||

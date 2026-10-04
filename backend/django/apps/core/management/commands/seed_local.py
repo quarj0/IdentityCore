@@ -5,7 +5,13 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from apps.access_control.models import Permission, Role, RolePermission, RoleScope, UserRole
+from apps.access_control.models import (
+    Permission,
+    Role,
+    RolePermission,
+    RoleScope,
+    UserRole,
+)
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.consent.models import ConsentTemplate, ConsentTemplateStatus
 from apps.organizations.models import Organization, OrganizationStatus
@@ -23,7 +29,6 @@ from apps.verifications.models import (
     VerificationStatus,
 )
 
-
 SEED_PASSWORD = "IdentityCoreLocal123!"
 FUTURE_EXPIRY = datetime(2099, 1, 1, tzinfo=datetime_timezone.utc)
 PAST_EXPIRY = datetime(2020, 1, 1, tzinfo=datetime_timezone.utc)
@@ -34,7 +39,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         if not settings.DEBUG:
-            raise CommandError("seed_local is restricted to DEBUG development settings.")
+            raise CommandError(
+                "seed_local is restricted to DEBUG development settings."
+            )
 
         with transaction.atomic():
             primary = self._seed_tenant(
@@ -115,11 +122,18 @@ class Command(BaseCommand):
             )
             UserRole.objects.get_or_create(user=user, role=role, tenant=tenant)
             if role_name == "Organization Administrator":
-                permission, _ = Permission.objects.get_or_create(
-                    code="manage_webhooks",
-                    defaults={"name": "Manage webhooks"},
-                )
-                RolePermission.objects.get_or_create(role=role, permission=permission)
+                for code, name in (
+                    ("manage_webhooks", "Manage webhooks"),
+                    ("manage_team", "Manage team invitations"),
+                    ("manage_providers", "Manage providers"),
+                    ("approve_provider_promotion", "Approve provider promotion"),
+                ):
+                    permission, _ = Permission.objects.get_or_create(
+                        code=code, defaults={"name": name}
+                    )
+                    RolePermission.objects.get_or_create(
+                        role=role, permission=permission
+                    )
 
         project, _ = Project.objects.update_or_create(
             tenant=tenant,
@@ -234,7 +248,9 @@ class Command(BaseCommand):
                 "purpose": "Local development verification",
                 "metadata_json": {"seeded": True, "scenario": status},
                 "expires_at": (
-                    PAST_EXPIRY if status == VerificationStatus.EXPIRED else FUTURE_EXPIRY
+                    PAST_EXPIRY
+                    if status == VerificationStatus.EXPIRED
+                    else FUTURE_EXPIRY
                 ),
                 "completed_at": PAST_EXPIRY if status in terminal_statuses else None,
                 "cancelled_at": (

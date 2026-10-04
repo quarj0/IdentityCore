@@ -126,8 +126,8 @@ class AntiEnumerationTests(APITestCase):
         self.assertEqual(existing_account.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(invalid_token.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(
-            existing_account.data["data"]["detail"],
-            invalid_token.data["data"]["detail"],
+            existing_account.data["error"],
+            invalid_token.data["error"],
         )
 
     def test_platform_invitation_uses_one_public_rejection(self):

@@ -28,3 +28,5 @@ CACHES = {
 }
 
 MIDDLEWARE = ["operational_load.profiling.LoadProfileMiddleware", *MIDDLEWARE]  # noqa: F405
+
+MIDDLEWARE = [*MIDDLEWARE, "operational_load.diagnostics.LoadExceptionDiagnostics"]  # noqa: F405
