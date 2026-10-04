@@ -8,6 +8,7 @@ from PIL import Image, ImageOps
 from django.db import DatabaseError
 
 from apps.providers.adapters import ProviderContractError
+from apps.audit.services import record_audit_event
 from apps.providers.models import ProviderCheckType
 from apps.providers.services import (
     execute_provider_route,
@@ -263,6 +264,18 @@ def collect_authenticity(*, verification, document, captures, processing_job):
                 finalize_exhaustion=False,
             )
             result = execution.result
+            record_audit_event(
+                tenant=verification.tenant,
+                action="document.authenticity_checked",
+                target_type="DocumentCapture",
+                target_id=capture.public_id,
+                metadata={
+                    "provider_check_id": execution.provider_check.public_id,
+                    "authenticity_version": "1",
+                    "model_name": result["model_name"],
+                    "model_version": result["model_version"],
+                },
+            )
             outcomes.append(
                 {
                     "capture_id": capture.public_id,

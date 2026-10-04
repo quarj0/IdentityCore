@@ -42,6 +42,38 @@ def _document_requires_manual_review(classification: dict | None) -> bool:
     )
 
 
+def _safe_authenticity_evidence(bundle):
+    if not isinstance(bundle, dict):
+        return None
+    fields = {
+        "authenticity_version",
+        "status",
+        "verdict",
+        "confidence",
+        "model_name",
+        "model_version",
+        "source_size",
+        "coordinate_space",
+        "regions",
+    }
+    return {
+        "authenticity_version": bundle.get("authenticity_version"),
+        "requires_manual_review": bundle.get("requires_manual_review", True),
+        "captures": [
+            {
+                "capture_id": item.get("capture_id"),
+                "provider_check_id": item.get("provider_check_id"),
+                "result": {
+                    key: value
+                    for key, value in item.get("result", {}).items()
+                    if key in fields
+                },
+            }
+            for item in bundle.get("captures", [])[:20]
+        ],
+    }
+
+
 def evaluate_risk_assessment(verification, *, external_evidence=None) -> RiskAssessment:
     latest_liveness_check = verification.liveness_checks.order_by("-checked_at").first()
     latest_face_match = verification.face_matches.order_by("-matched_at").first()
@@ -69,7 +101,7 @@ def evaluate_risk_assessment(verification, *, external_evidence=None) -> RiskAss
         and (not authenticity or authenticity.get("requires_manual_review", True))
     )
     signals = {
-        "document_authenticity": authenticity,
+        "document_authenticity": _safe_authenticity_evidence(authenticity),
         "document_submitted": verification.identity_documents.exists(),
         "document_classification": document_classification,
         "document_requires_manual_review": _document_requires_manual_review(

@@ -166,6 +166,11 @@ class AuthenticityTests(TestCase):
             check_type="document_authenticity"
         )
         self.assertEqual(check.provider, provider)
+        from apps.audit.models import AuditEvent
+
+        audit = AuditEvent.objects.get(action="document.authenticity_checked")
+        self.assertEqual(audit.metadata_json["provider_check_id"], check.public_id)
+        self.assertNotIn("synthetic_private", str(audit.metadata_json))
         self.assertEqual(check.normalized_result_json["model_version"], "fixture-1")
         self.assertEqual(result["captures"][0]["provider_check_id"], check.public_id)
         self.assertEqual(
@@ -270,3 +275,35 @@ class AuthenticityTests(TestCase):
             f"/api/v1/verifications/manual-reviews/{self.verification.public_id}/authenticity"
         )
         self.assertEqual(response.status_code, 404)
+
+    def test_risk_signals_exclude_raw_provider_debug_data(self):
+        from apps.risk.services import evaluate_risk_assessment
+
+        self.enable()
+        self.identity_document.extracted_data_json = {
+            "document_authenticity": {
+                "authenticity_version": "1",
+                "requires_manual_review": True,
+                "captures": [
+                    {
+                        "capture_id": self.capture.public_id,
+                        "result": normalize_authenticity(
+                            evidence(
+                                raw_output={"SYNTHETIC_PRIVATE_DEBUG": "never expose"}
+                            ),
+                            source_size=[1000, 600],
+                        ),
+                    }
+                ],
+            }
+        }
+        self.identity_document.save()
+        assessment = evaluate_risk_assessment(self.verification)
+        self.assertNotIn("SYNTHETIC_PRIVATE_DEBUG", str(assessment.signals_json))
+        self.assertNotIn("raw_output", str(assessment.signals_json))
+        self.assertEqual(
+            assessment.signals_json["document_authenticity"]["captures"][0]["result"][
+                "model_version"
+            ],
+            "fixture-1",
+        )
