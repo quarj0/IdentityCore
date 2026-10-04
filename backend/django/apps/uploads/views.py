@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 from apps.uploads.serializers import UploadCreateSerializer
 from apps.uploads.models import Upload, UploadStatus
 from apps.uploads.scanning import inspect_upload_content
+from apps.uploads.provenance import issue_receipt
 from common.authentication import (
     VerificationSessionAuthentication,
     require_verification_session_action,
@@ -123,12 +124,16 @@ def _finalize_upload(
             locked.status = UploadStatus.UPLOADED
             locked.checksum_sha256 = checksum_sha256
             locked.quarantine_reason = ""
+            locked.capture_provenance_version = 1
+            locked.capture_receipt = issue_receipt(locked)
             locked.save(
                 update_fields=[
                     "storage_key",
                     "status",
                     "checksum_sha256",
                     "quarantine_reason",
+                    "capture_receipt",
+                    "capture_provenance_version",
                     "updated_at",
                 ]
             )

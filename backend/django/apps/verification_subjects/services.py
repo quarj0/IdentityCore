@@ -74,11 +74,6 @@ def request_subject_deletion(
             ]
         )
 
-        from apps.risk.models import ReuseFingerprint
-
-        ReuseFingerprint.objects.filter(
-            tenant=subject.tenant, verification__verification_subject=subject
-        ).delete()
         documents = subject.identity_documents.all()
         document_count = documents.update(
             document_number_hash="",
@@ -96,6 +91,14 @@ def request_subject_deletion(
                     update_fields=["input_snapshot_json", "updated_at"]
                 )
                 decision_count += 1
+
+        from apps.risk.models import ReuseFingerprint
+        from apps.risk.reuse import lock_subject_fingerprints
+
+        lock_subject_fingerprints(subject.pk)
+        ReuseFingerprint.objects.filter(
+            tenant=subject.tenant, verification__verification_subject=subject
+        ).delete()
 
         report = {
             "status": "completed",

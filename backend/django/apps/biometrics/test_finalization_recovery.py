@@ -1,3 +1,4 @@
+from apps.uploads.test_helpers import seal_test_upload
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -87,7 +88,7 @@ class BiometricFinalizationRecoveryTests(TestCase):
             session_token_hash="finalization-recovery-token",
             expires_at=timezone.now() + timedelta(hours=1),
         )
-        Upload.objects.create(
+        seal_test_upload(Upload.objects.create(
             tenant=self.tenant,
             verification=self.verification,
             verification_session=session,
@@ -99,7 +100,7 @@ class BiometricFinalizationRecoveryTests(TestCase):
             status=UploadStatus.CONSUMED,
             expires_at=timezone.now() + timedelta(minutes=10),
             consumed_at=timezone.now(),
-        )
+        ))
         liveness_provider_check = create_provider_check(
             verification=self.verification,
             check_type=ProviderCheckType.LIVENESS,

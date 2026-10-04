@@ -237,7 +237,13 @@ test("subject completes consent, document, selfie, liveness, and review routing"
       const uploadPayload = request.postDataJSON() as {
         purpose?: string;
         mime_type?: string;
+        capture_method?: string;
       };
+      expect(uploadPayload.capture_method).toBe(
+        uploadPayload.purpose === "liveness_capture"
+          ? "live_recording"
+          : "file",
+      );
       if (uploadPayload.purpose === "liveness_capture") {
         livenessUploadMimeType = uploadPayload.mime_type ?? "";
       }

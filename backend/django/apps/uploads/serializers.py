@@ -6,7 +6,6 @@ from rest_framework import serializers
 
 from apps.uploads.services import build_signed_upload_url, create_upload
 
-
 UPLOAD_PURPOSE_CHOICES = (
     ("document_capture", "Document Capture"),
     ("selfie_capture", "Selfie Capture"),
@@ -37,6 +36,10 @@ class UploadCreateSerializer(serializers.Serializer):
     purpose = serializers.ChoiceField(choices=UPLOAD_PURPOSE_CHOICES)
     mime_type = serializers.CharField(max_length=100)
     file_size_bytes = serializers.IntegerField(min_value=1)
+    capture_method = serializers.ChoiceField(
+        choices=("camera", "live_recording", "file", "unreported"),
+        default="unreported",
+    )
 
     def validate(self, attrs):
         purpose = attrs["purpose"]
@@ -73,6 +76,7 @@ class UploadCreateSerializer(serializers.Serializer):
             mime_type=validated_data["mime_type"],
             file_size_bytes=validated_data["file_size_bytes"],
             expires_at=expires_at,
+            capture_method=validated_data["capture_method"],
         )
         upload_headers = {"Content-Type": upload.mime_type}
         if getattr(settings, "OBJECT_STORAGE_ENFORCE_SERVER_SIDE_ENCRYPTION", True):

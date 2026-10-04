@@ -1130,6 +1130,11 @@ components:
             file_size_bytes:
               maximum: 26214400
       properties:
+        capture_method:
+          type: string
+          enum: [camera, live_recording, file, unreported]
+          default: unreported
+          description: Untrusted client capture method; server media validation signs its binding.
         purpose:
           type: string
           enum: [document_capture, selfie_capture, liveness_capture]

@@ -1,5 +1,7 @@
 from celery import shared_task
 from django.utils import timezone
+from django.conf import settings
+import logging
 
 from apps.risk.models import ReuseFingerprint
 from common.authorization import ServicePrincipal, require_service_access
@@ -12,7 +14,9 @@ FINGERPRINT_RETENTION_WORKER = ServicePrincipal(
 
 
 @shared_task(queue="retention")
-def cleanup_reuse_fingerprints_task(limit=1000):
+def cleanup_reuse_fingerprints_task(limit=None):
+    if limit is None:
+        limit = getattr(settings, "REUSE_CLEANUP_BATCH_SIZE", 1000)
     require_service_access(
         FINGERPRINT_RETENTION_WORKER, action="risk.cleanup_fingerprints"
     )
@@ -23,4 +27,18 @@ def cleanup_reuse_fingerprints_task(limit=1000):
         .order_by("expires_at", "pk")
         .values_list("pk", flat=True)[:limit]
     )
-    return ReuseFingerprint.objects.filter(pk__in=ids).delete()[0] if ids else 0
+    deleted = ReuseFingerprint.objects.filter(pk__in=ids).delete()[0] if ids else 0
+    if (
+        deleted
+        and len(ids) == limit
+        and ReuseFingerprint.objects.filter(expires_at__lte=timezone.now()).exists()
+    ):
+        try:
+            cleanup_reuse_fingerprints_task.apply_async(
+                kwargs={"limit": limit}, countdown=1, queue="retention"
+            )
+        except Exception as exc:
+            logging.getLogger(__name__).warning(
+                "Fingerprint cleanup continuation unavailable (%s).", type(exc).__name__
+            )
+    return deleted

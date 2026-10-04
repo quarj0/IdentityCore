@@ -329,6 +329,7 @@ export interface EvidenceReport {
 }
 
 export interface PortalUploadCreateRequest {
+  capture_method?: string;
   purpose: string;
   mime_type: string;
   file_size_bytes: number;

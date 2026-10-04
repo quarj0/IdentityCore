@@ -49,6 +49,9 @@ SECRET_KEY = os.getenv(
     "DJANGO_SECRET_KEY", "unsafe-development-secret-key-for-identitycore"
 )
 DEBUG = env_bool("DJANGO_DEBUG", False)
+REUSE_CLEANUP_BATCH_SIZE = int(os.getenv("REUSE_CLEANUP_BATCH_SIZE", "1000"))
+if not 1 <= REUSE_CLEANUP_BATCH_SIZE <= 10000:
+    raise ValueError("REUSE_CLEANUP_BATCH_SIZE must be between 1 and 10000")
 GLOBAL_REUSE_SIGNALS_ENABLED = env_bool("GLOBAL_REUSE_SIGNALS_ENABLED", False)
 REUSE_SIGNAL_HASH_KEY = os.getenv("REUSE_SIGNAL_HASH_KEY", SECRET_KEY)
 ADMIN_MFA_REQUIRED_DEFAULT = env_bool("ADMIN_MFA_REQUIRED_DEFAULT", True)
@@ -266,7 +269,7 @@ CELERY_TASK_ROUTES = {
 CELERY_BEAT_SCHEDULE = {
     "cleanup-reuse-fingerprints": {
         "task": "apps.risk.tasks.cleanup_reuse_fingerprints_task",
-        "schedule": 3600.0,
+        "schedule": 60.0,
         "options": {"queue": "retention"},
     },
     "cleanup-dashboard-sessions": {

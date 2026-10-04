@@ -3653,6 +3653,21 @@
     },
     {
       "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.capture_method",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.capture_provenance_version",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
+      "field": "Upload.capture_receipt",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/uploads/models.py",
       "field": "Upload.checksum_sha256",
       "activity": "document-and-biometric-evidence"
     },

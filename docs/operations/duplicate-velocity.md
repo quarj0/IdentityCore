@@ -33,7 +33,7 @@ When global matching is requested but unavailable, the case routes to review.
 
 Retention is at most 90 days and is capped by metadata retention (and media retention for document/portrait),
 anchored to case
-creation. Retrying an assessment does not extend it. Hourly bounded cleanup removes
+creation. Retrying an assessment does not extend it. Minute-based bounded cleanup removes
 expired indexes. Subject erasure removes the indexes immediately when erasure is
 allowed; erased subjects cannot recreate them. Media cleanup removes document and
 portrait indexes. A legal hold on evidence does not prolong these ephemeral fraud
@@ -43,3 +43,11 @@ PostgreSQL transaction locks serialize matching fingerprints before writes and
 reads. Each case has one indexed observation per configured kind, preventing retries
 from increasing counts. A rejection from existing evidence remains a rejection;
 these signals can flag or require review but cannot automatically reject a subject.
+
+Collection and erasure share a subject advisory lock. Erasure takes that lock after
+its existing metadata/parent updates, and removes fingerprints before commit.
+Collection rechecks erasure in the database after acquiring the lock, including
+when its verification carries a previously cached subject. Cleanup runs every
+minute with `REUSE_CLEANUP_BATCH_SIZE` (1..10000, default 1000); remaining expired
+rows schedule another bounded batch after one second. Beat retries drainage after
+a broker outage, and expired indexes are excluded from matching immediately.

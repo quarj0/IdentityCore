@@ -187,9 +187,19 @@ class ReuseSignalTests(TestCase):
         ReuseFingerprint.objects.update(
             expires_at=timezone.now() - timedelta(seconds=1)
         )
-        self.assertEqual(cleanup_reuse_fingerprints_task(limit=2), 2)
-        self.assertEqual(ReuseFingerprint.objects.count(), 2)
-        self.assertEqual(cleanup_reuse_fingerprints_task(limit=2), 2)
+        from unittest.mock import patch
+
+        with patch(
+            "apps.risk.tasks.cleanup_reuse_fingerprints_task.apply_async"
+        ) as followup:
+            self.assertEqual(cleanup_reuse_fingerprints_task(limit=2), 2)
+            self.assertEqual(ReuseFingerprint.objects.count(), 2)
+            followup.assert_called_once_with(
+                kwargs={"limit": 2}, countdown=1, queue="retention"
+            )
+            self.assertEqual(cleanup_reuse_fingerprints_task(limit=2), 2)
+            self.assertEqual(ReuseFingerprint.objects.count(), 0)
+            self.assertEqual(followup.call_count, 1)
 
     def test_subject_erasure_removes_fingerprints_and_prevents_recreation(self):
         case = self._case()
@@ -241,3 +251,13 @@ class ReuseSignalTests(TestCase):
         second.save(update_fields=["project"])
         collect_reuse(first)
         self.assertEqual(collect_reuse(second)["signals"], [])
+
+    def test_cached_subject_cannot_recreate_indexes_after_erasure(self):
+        case = self._case()
+        stale = Verification.objects.select_related("verification_subject").get(
+            pk=case.pk
+        )
+        request_subject_deletion(subject=case.verification_subject)
+        self.assertIsNone(stale.verification_subject.deleted_at)
+        self.assertEqual(collect_reuse(stale)["status"], "erased")
+        self.assertFalse(ReuseFingerprint.objects.exists())

@@ -1,3 +1,4 @@
+from apps.uploads.test_helpers import seal_test_upload
 from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import patch
@@ -93,7 +94,7 @@ class BiometricsTaskTests(TestCase):
             session_token_hash="placeholder",
             expires_at=timezone.now() + timedelta(hours=1),
         )
-        self.selfie_upload = Upload.objects.create(
+        self.selfie_upload = seal_test_upload(Upload.objects.create(
             tenant=self.tenant,
             verification=self.verification,
             verification_session=self.session,
@@ -105,7 +106,7 @@ class BiometricsTaskTests(TestCase):
             status=UploadStatus.CONSUMED,
             expires_at=timezone.now() + timedelta(minutes=10),
             consumed_at=timezone.now(),
-        )
+        ))
         self.liveness_provider_check = create_provider_check(
             verification=self.verification,
             check_type=ProviderCheckType.LIVENESS,

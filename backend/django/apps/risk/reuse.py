@@ -131,6 +131,16 @@ def _lock_digests(digests):
                 cursor.execute("SELECT pg_advisory_xact_lock(%s)", [key])
 
 
+def lock_subject_fingerprints(subject_id):
+    # Erasure acquires this after its parent/metadata updates. That order lets a
+    # risk finalizer holding a verification row finish before erasure removes its
+    # indexes, avoiding subject-row/verification-row lock inversion.
+    digest = hashlib.sha256(
+        f"identitycore:reuse:subject:{subject_id}".encode()
+    ).hexdigest()
+    _lock_digests([digest])
+
+
 @transaction.atomic
 def collect_reuse(verification):
     rules = (verification.policy_snapshot_json or {}).get("reuse_rules", {})
@@ -161,7 +171,17 @@ def collect_reuse(verification):
             "signals": [],
             "recommended_action": "manual_review",
         }
-    if verification.deleted_at or verification.verification_subject.deleted_at:
+    from apps.verification_subjects.models import VerificationSubject
+
+    lock_subject_fingerprints(verification.verification_subject_id)
+    subject = (
+        VerificationSubject.objects.filter(
+            pk=verification.verification_subject_id, tenant=verification.tenant
+        )
+        .values("deleted_at")
+        .first()
+    )
+    if verification.deleted_at or subject is None or subject["deleted_at"]:
         return {
             "version": "duplicate-velocity-v1",
             "status": "erased",

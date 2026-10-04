@@ -18,6 +18,14 @@ claims and shared networks are explicitly weak evidence.
 Fingerprint writes are idempotent per case and kind. PostgreSQL transaction locks
 serialize matching fingerprints so simultaneous cases cannot both miss the signal.
 Expiry is anchored to case creation and never extended by risk reevaluation. The
-retention worker removes expired fingerprints; subject erasure removes them
+retention worker drains expired fingerprints in bounded continuing batches; subject erasure removes them
 immediately unless a legal hold defers erasure. Media cleanup removes media-derived
 fingerprints. New matching excludes erased cases and subjects.
+
+Collection and erasure share a subject advisory lock. Erasure takes that lock after
+its existing metadata/parent updates, and removes fingerprints before commit.
+Collection rechecks erasure in the database after acquiring the lock, including
+when its verification carries a previously cached subject. Cleanup runs every
+minute with `REUSE_CLEANUP_BATCH_SIZE` (1..10000, default 1000); remaining expired
+rows schedule another bounded batch after one second. Beat retries drainage after
+a broker outage, and expired indexes are excluded from matching immediately.

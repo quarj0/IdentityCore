@@ -154,7 +154,7 @@ public final class GeneratedModels {
 
     }
 
-    public record PortalUploadCreateRequest(@JsonProperty("purpose") String purpose, @JsonProperty("mime_type") String mime_type, @JsonProperty("file_size_bytes") Integer file_size_bytes) {
+    public record PortalUploadCreateRequest(@JsonProperty("capture_method") String capture_method, @JsonProperty("purpose") String purpose, @JsonProperty("mime_type") String mime_type, @JsonProperty("file_size_bytes") Integer file_size_bytes) {
 
     }
 
