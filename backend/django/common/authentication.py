@@ -2,7 +2,7 @@ from common.observability import ENVIRONMENT, environment, set_verification_envi
 import logging
 from ipaddress import ip_address, ip_network
 
-from django.contrib.auth.hashers import check_password
+from common.credential_proofs import verify_bearer_secret
 from django.utils import timezone
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
@@ -101,7 +101,7 @@ class VerificationSessionAuthentication(BaseAuthentication):
         except VerificationSession.DoesNotExist as exc:
             raise _verification_session_rejected("session_not_found") from exc
 
-        if not check_password(raw_token, verification_session.session_token_hash):
+        if not verify_bearer_secret(raw_token, verification_session.session_token_hash):
             raise _verification_session_rejected("token_mismatch")
 
         if verification_session.expires_at <= timezone.now():

@@ -1,7 +1,8 @@
 import secrets
 
 from django.conf import settings
-from django.contrib.auth.hashers import check_password, make_password
+from django.contrib.auth.hashers import make_password
+from common.credential_proofs import verify_bearer_secret
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
@@ -92,24 +93,32 @@ class APIClient(PublicIdModel, BaseModel):
         self.full_clean()
         return super().save(*args, **kwargs)
 
-    def set_client_secret(self, raw_secret: str) -> None:
-        self.client_secret_hash = make_password(raw_secret)
+    def set_client_secret(self, raw_secret: str, *, generated: bool = False) -> None:
+        from common.credential_proofs import hash_generated_bearer
 
-    def rotate_client_secret(self, raw_secret: str, *, overlap_expires_at) -> None:
+        self.client_secret_hash = (
+            hash_generated_bearer(raw_secret)
+            if generated
+            else make_password(raw_secret)
+        )
+
+    def rotate_client_secret(
+        self, raw_secret: str, *, overlap_expires_at, generated: bool = False
+    ) -> None:
         """Replace the secret while retaining its hash for a bounded overlap."""
         self.previous_client_secret_hash = self.client_secret_hash
         self.previous_client_secret_expires_at = overlap_expires_at
-        self.set_client_secret(raw_secret)
+        self.set_client_secret(raw_secret, generated=generated)
 
     def verify_client_secret(self, raw_secret: str) -> bool:
-        if check_password(raw_secret, self.client_secret_hash):
+        if verify_bearer_secret(raw_secret, self.client_secret_hash):
             return True
         if (
             self.previous_client_secret_hash
             and self.previous_client_secret_expires_at
             and self.previous_client_secret_expires_at > timezone.now()
         ):
-            return check_password(raw_secret, self.previous_client_secret_hash)
+            return verify_bearer_secret(raw_secret, self.previous_client_secret_hash)
         return False
 
     @classmethod

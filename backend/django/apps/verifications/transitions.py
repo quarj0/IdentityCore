@@ -25,7 +25,11 @@ TERMINAL_STATUSES = frozenset(
 
 ALLOWED_TRANSITIONS = {
     VerificationStatus.CREATED: frozenset(
-        {VerificationStatus.PENDING_CONSENT, VerificationStatus.CANCELLED, VerificationStatus.EXPIRED}
+        {
+            VerificationStatus.PENDING_CONSENT,
+            VerificationStatus.CANCELLED,
+            VerificationStatus.EXPIRED,
+        }
     ),
     VerificationStatus.PENDING_CONSENT: frozenset(
         {
@@ -111,7 +115,7 @@ def transition_verification(
 
     target = _status_value(target_status)
     current = (
-        Verification.objects.select_for_update()
+        Verification.objects.select_for_update(of=("self",), no_key=True)
         .select_related("tenant", "verification_subject")
         .get(pk=verification.pk)
     )

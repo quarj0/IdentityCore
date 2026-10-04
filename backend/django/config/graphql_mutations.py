@@ -556,7 +556,7 @@ class Mutation:
                 expires_at=latest.expires_at,
                 allowed_actions_json=list(VERIFICATION_SESSION_ACTIONS),
             )
-            session.set_session_token(raw_token)
+            session.set_session_token(raw_token, generated=True)
             session.save()
             verification_portal_base_url = str(
                 get_platform_setting_value(

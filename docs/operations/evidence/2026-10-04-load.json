@@ -1,0 +1,113 @@
+{
+  "date": "2026-10-04",
+  "scope": "isolated orchestration load; real HTTP/PostgreSQL/Redis/Celery and S3 HTTP fixture; synthetic AI latency",
+  "target": {
+    "verifications_per_minute": 30.0,
+    "concurrent_applicants": 20,
+    "duration_seconds": 60,
+    "status": "provisional pilot baseline"
+  },
+  "services": {
+    "gunicorn_workers": 2,
+    "gunicorn_threads_per_worker": 8,
+    "celery_threads": 4,
+    "cpu_count": 3,
+    "cpu_quota": "200000 100000",
+    "synthetic_ai_latency_seconds": 0.1,
+    "telemetry_enabled": true,
+    "poll_mode": "session",
+    "poll_interval_seconds": 3.5,
+    "profiling_enabled": false
+  },
+  "media_bytes_per_upload": 1102134,
+  "warmup": {
+    "authenticated_read_requests": 16,
+    "api_processes_ready": 2
+  },
+  "offered": 50,
+  "burst_offered": 20,
+  "steady_offered": 30,
+  "peak_active_applicants": 20,
+  "phases": {
+    "burst_seconds": 32.416,
+    "steady_seconds": 67.13,
+    "steady_completed": 30,
+    "steady_completed_per_minute_including_tail": 26.814
+  },
+  "completed": 50,
+  "elapsed_seconds": 99.551,
+  "completed_per_minute": 30.135,
+  "latency": {
+    "session": {
+      "count": 50,
+      "p95_seconds": 1.717,
+      "max_seconds": 2.011
+    },
+    "upload": {
+      "count": 150,
+      "p95_seconds": 3.425,
+      "max_seconds": 4.065
+    },
+    "document_processing": {
+      "count": 50,
+      "p95_seconds": 8.24,
+      "max_seconds": 11.356
+    },
+    "biometric_processing": {
+      "count": 50,
+      "p95_seconds": 11.468,
+      "max_seconds": 11.644
+    },
+    "review": {
+      "count": 50,
+      "p95_seconds": 1.173,
+      "max_seconds": 1.324
+    },
+    "journey": {
+      "count": 50,
+      "p95_seconds": 31.341,
+      "max_seconds": 32.416
+    },
+    "dispatch_wait": {
+      "count": 50,
+      "p95_seconds": 0.034,
+      "max_seconds": 0.036
+    }
+  },
+  "thresholds_seconds": {
+    "session": 2,
+    "upload": 5,
+    "document_processing": 30,
+    "biometric_processing": 30,
+    "review": 2,
+    "journey": 60,
+    "dispatch_wait": 2
+  },
+  "checks": {
+    "session": true,
+    "upload": true,
+    "document_processing": true,
+    "biometric_processing": true,
+    "review": true,
+    "journey": true,
+    "dispatch_wait": true,
+    "audit_chains_valid": true,
+    "zero_journey_failures": true,
+    "concurrent_burst_exercised": true,
+    "all_offered_work_completed": true,
+    "no_exhausted_jobs": true,
+    "no_processing_backlog": true,
+    "all_webhooks_delivered": true,
+    "fixture_transport_errors": true,
+    "review_decisions_preserved": true,
+    "evidence_reports_published": true
+  },
+  "failure_counts": {},
+  "webhook_deliveries": 100,
+  "pass": true,
+  "limitations": [
+    "S3 fixture does not benchmark production IAM or storage service limits",
+    "AI fixture measures configured latency and storage reads, not model inference capacity",
+    "Hardware/provider/quota target requires deployment-specific readiness approval"
+  ]
+}

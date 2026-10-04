@@ -32,6 +32,14 @@ jobs:
           name: isolated-restore-evidence
           path: ${{ runner.temp }}/restore-report.json
           retention-days: 90
+      - name: Gate the pilot load with concurrent applicants and sustained arrivals
+        run: uv run --project backend python scripts/run_operational_load.py --env-file "$RUNNER_TEMP/identitycore-drill/drill.env" --report "$RUNNER_TEMP/load-report.json" --duration-seconds 60 --rate-per-minute 30 --concurrency 20 --burst
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: isolated-load-evidence
+          path: ${{ runner.temp }}/load-report.json
+          retention-days: 90
       - name: Remove only the synthetic stack
         if: always()
         run: docker compose --env-file "$RUNNER_TEMP/identitycore-drill/drill.env" -p identitycore-drill -f ops/drills/compose.yaml down -v
@@ -93,8 +101,8 @@ jobs:
         run: uv run --project backend python backend/django/manage.py makemigrations --check --dry-run
       - name: Apply migrations to an empty PostgreSQL database
         run: uv run --project backend python backend/django/manage.py migrate --noinput
-      - name: Test concurrent idempotency locking on PostgreSQL
-        run: uv run --project backend python backend/django/manage.py test apps.api_clients.test_idempotency --verbosity 1
+      - name: Test concurrent idempotency, human decisions and audit chains on PostgreSQL
+        run: uv run --project backend python backend/django/manage.py test apps.api_clients.test_idempotency apps.risk.test_decision_races --verbosity 1
 
   ai-service:
     runs-on: ubuntu-latest

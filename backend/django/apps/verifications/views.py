@@ -359,7 +359,8 @@ class VerificationResendLinkView(VerificationAccessMixin, APIView):
     def post(self, request, verification_id: str):
         verification = get_object_or_404(
             self._scope_to_client_environment(
-                request, Verification.objects.select_related("verification_subject", "tenant")
+                request,
+                Verification.objects.select_related("verification_subject", "tenant"),
             ),
             tenant=self._get_tenant(request),
             public_id=verification_id,
@@ -377,7 +378,7 @@ class VerificationResendLinkView(VerificationAccessMixin, APIView):
             ),
             allowed_actions_json=list(VERIFICATION_SESSION_ACTIONS),
         )
-        session.set_session_token(raw_session_token)
+        session.set_session_token(raw_session_token, generated=True)
         session.save()
 
         verification_url = (
@@ -635,7 +636,9 @@ class ManualReviewApprovalView(APIView):
     @transaction.atomic
     def post(self, request, verification_id: str):
         verification = get_object_or_404(
-            manual_review_queryset_for_user(request.user),
+            manual_review_queryset_for_user(request.user).select_for_update(
+                of=("self",)
+            ),
             public_id=verification_id,
         )
         decision_record = get_object_or_404(
@@ -660,6 +663,8 @@ class ManualReviewApprovalView(APIView):
         approval = ManualReviewApprovalSerializer(data=request.data)
         approval.is_valid(raise_exception=True)
         now = timezone.now()
+        verification.decision_revision += 1
+        verification.save(update_fields=["decision_revision", "updated_at"])
         decision_record.decision = approval.validated_data["decision"]
         decision_record.reason_code = f"manual_review_{decision_record.decision}"
         decision_record.reason_codes_json = [decision_record.reason_code]

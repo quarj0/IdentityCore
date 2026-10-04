@@ -393,6 +393,17 @@ class VerificationSessionPortalTests(APITestCase):
         self.assertEqual(record.consent_text_snapshot, frozen_content)
 
     def test_expired_session_is_rejected_and_marked_expired(self):
+        # A warmed successful credential proof must not bypass database expiry.
+        self.assertEqual(
+            self.client.get(
+                reverse(
+                    "verification-session-detail",
+                    kwargs={"session_id": self.session.public_id},
+                ),
+                **self.session_headers(),
+            ).status_code,
+            status.HTTP_200_OK,
+        )
         self.session.expires_at = timezone.now() - timedelta(minutes=1)
         self.session.save(update_fields=["expires_at", "updated_at"])
 
@@ -407,6 +418,30 @@ class VerificationSessionPortalTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.session.refresh_from_db()
         self.assertEqual(self.session.status, "expired")
+
+    def test_warmed_credential_proof_does_not_bypass_revocation_or_rotation(self):
+        url = reverse(
+            "verification-session-detail", kwargs={"session_id": self.session.public_id}
+        )
+        self.assertEqual(
+            self.client.get(url, **self.session_headers()).status_code,
+            status.HTTP_200_OK,
+        )
+        self.session.status = "revoked"
+        self.session.save(update_fields=["status"])
+        self.assertEqual(
+            self.client.get(url, **self.session_headers()).status_code,
+            status.HTTP_401_UNAUTHORIZED,
+        )
+        self.session.status = "active"
+        self.session.set_session_token(
+            VerificationSession.generate_session_token(), generated=True
+        )
+        self.session.save(update_fields=["status", "session_token_hash"])
+        self.assertEqual(
+            self.client.get(url, **self.session_headers()).status_code,
+            status.HTTP_401_UNAUTHORIZED,
+        )
 
     def test_accept_consent_creates_record_and_advances_verification(self):
         ConsentTemplate.objects.create(
@@ -1420,9 +1455,7 @@ class VerificationSessionPortalTests(APITestCase):
 
 class ApplicantLocaleNegotiationTests(TestCase):
     def test_accept_language_quality_weights_select_highest_supported_locale(self):
-        request = SimpleNamespace(
-            headers={"Accept-Language": "en;q=0.1, ar;q=1.0"}
-        )
+        request = SimpleNamespace(headers={"Accept-Language": "en;q=0.1, ar;q=1.0"})
 
         self.assertEqual(
             _request_locale(

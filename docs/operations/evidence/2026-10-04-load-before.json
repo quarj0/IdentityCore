@@ -1,0 +1,86 @@
+{
+  "date": "2026-10-04",
+  "scope": "isolated orchestration load; real HTTP/PostgreSQL/Redis/Celery and S3 HTTP fixture; synthetic AI latency",
+  "target": {
+    "verifications_per_minute": 30.0,
+    "concurrent_applicants": 20,
+    "duration_seconds": 60,
+    "status": "provisional pilot baseline"
+  },
+  "services": {
+    "gunicorn_workers": 2,
+    "gunicorn_threads_per_worker": 4,
+    "celery_threads": 4,
+    "cpu_count": 3,
+    "synthetic_ai_latency_seconds": 0.1,
+    "telemetry_enabled": true
+  },
+  "media_bytes_per_upload": 1102134,
+  "offered": 30,
+  "completed": 30,
+  "elapsed_seconds": 129.598,
+  "completed_per_minute": 13.889,
+  "latency": {
+    "session": {
+      "count": 30,
+      "p95_seconds": 7.524,
+      "max_seconds": 8.057
+    },
+    "upload": {
+      "count": 90,
+      "p95_seconds": 12.105,
+      "max_seconds": 14.243
+    },
+    "document_processing": {
+      "count": 30,
+      "p95_seconds": 9.571,
+      "max_seconds": 10.647
+    },
+    "biometric_processing": {
+      "count": 30,
+      "p95_seconds": 9.876,
+      "max_seconds": 10.216
+    },
+    "review": {
+      "count": 30,
+      "p95_seconds": 6.288,
+      "max_seconds": 6.575
+    },
+    "journey": {
+      "count": 30,
+      "p95_seconds": 85.208,
+      "max_seconds": 85.521
+    }
+  },
+  "thresholds_seconds": {
+    "session": 2,
+    "upload": 5,
+    "document_processing": 30,
+    "biometric_processing": 30,
+    "review": 2,
+    "journey": 60
+  },
+  "checks": {
+    "session": false,
+    "upload": false,
+    "document_processing": true,
+    "biometric_processing": true,
+    "review": false,
+    "journey": false,
+    "zero_journey_failures": true,
+    "all_offered_work_completed": true,
+    "no_exhausted_jobs": true,
+    "no_processing_backlog": true,
+    "all_webhooks_delivered": true,
+    "fixture_transport_errors": true,
+    "review_decisions_preserved": true
+  },
+  "failure_counts": {},
+  "webhook_deliveries": 60,
+  "pass": false,
+  "limitations": [
+    "S3 fixture does not benchmark production IAM or storage service limits",
+    "AI fixture measures configured latency and storage reads, not model inference capacity",
+    "Hardware/provider/quota target requires deployment-specific readiness approval"
+  ]
+}

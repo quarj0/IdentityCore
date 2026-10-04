@@ -1,7 +1,7 @@
 from django.utils import timezone
 from rest_framework import serializers
 
-from apps.api_clients.models import APIClient
+from apps.api_clients.models import APIClient, APIClientStatus
 from apps.organizations.models import OrganizationStatus
 
 
@@ -51,10 +51,15 @@ class APIClientCreateSerializer(serializers.Serializer):
     def validate(self, attrs):
         tenant = self.context["request"].user.tenant
         organization = tenant.organization
-        project = tenant.projects.filter(public_id=attrs.get("project_id")).first() or tenant.projects.filter(is_default=True).first()
+        project = (
+            tenant.projects.filter(public_id=attrs.get("project_id")).first()
+            or tenant.projects.filter(is_default=True).first()
+        )
         if attrs.get("project_id") and project is None:
             raise serializers.ValidationError({"project_id": "Choose a valid project."})
-        if (project is None or project.environment == "production") and organization.status != OrganizationStatus.ACTIVE:
+        if (
+            project is None or project.environment == "production"
+        ) and organization.status != OrganizationStatus.ACTIVE:
             raise serializers.ValidationError(
                 {
                     "detail": (
@@ -62,13 +67,24 @@ class APIClientCreateSerializer(serializers.Serializer):
                     )
                 }
             )
-        if organization.status != OrganizationStatus.ACTIVE and tenant.api_clients.exclude(status="revoked").exists():
+        if (
+            organization.status != OrganizationStatus.ACTIVE
+            and tenant.api_clients.exclude(status="revoked").exists()
+        ):
             raise serializers.ValidationError(
-                {"detail": "Pending workspaces can have one sandbox test key. Revoke the existing key before creating another."}
+                {
+                    "detail": "Pending workspaces can have one sandbox test key. Revoke the existing key before creating another."
+                }
             )
         if organization.status != OrganizationStatus.ACTIVE:
-            attrs["rate_limit_per_minute"] = min(attrs.get("rate_limit_per_minute", 30), 30)
-            attrs["scopes"] = [scope for scope in attrs["scopes"] if scope in {"verifications:read", "verifications:create"}]
+            attrs["rate_limit_per_minute"] = min(
+                attrs.get("rate_limit_per_minute", 30), 30
+            )
+            attrs["scopes"] = [
+                scope
+                for scope in attrs["scopes"]
+                if scope in {"verifications:read", "verifications:create"}
+            ]
         attrs["resolved_project"] = project
         return attrs
 
@@ -86,7 +102,7 @@ class APIClientCreateSerializer(serializers.Serializer):
             allowed_ips_json=validated_data["allowed_networks"],
             rate_limit_per_minute=validated_data["rate_limit_per_minute"],
         )
-        api_client.set_client_secret(raw_secret)
+        api_client.set_client_secret(raw_secret, generated=True)
         api_client.save()
         api_client._raw_client_secret = raw_secret
         return api_client
@@ -106,7 +122,7 @@ class APIClientAuthenticationResultSerializer(serializers.Serializer):
                 {"detail": "Invalid API client credentials."}
             ) from exc
 
-        if api_client.status != api_client.APIClientStatus.ACTIVE:
+        if api_client.status != APIClientStatus.ACTIVE:
             raise serializers.ValidationError({"detail": "API client is not active."})
         if not api_client.verify_client_secret(attrs["client_secret"]):
             raise serializers.ValidationError(

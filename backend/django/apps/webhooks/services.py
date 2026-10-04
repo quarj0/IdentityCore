@@ -12,7 +12,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from apps.audit.services import record_audit_event
+from apps.audit.services import record_audit_event, lock_audit_chain
 from apps.webhooks.models import (
     WebhookDeliveryAttempt,
     WebhookEndpoint,
@@ -29,12 +29,13 @@ def queue_webhook_events(
         raise RuntimeError(
             "Webhook outbox events must be queued inside the domain transaction."
         )
+    lock_audit_chain(tenant.pk)
     queued = []
     # Coordinate event creation with endpoint disablement. Delivery does not hold
     # this row lock while performing outbound HTTP, so producers remain responsive.
-    endpoints = tenant.webhook_endpoints.select_for_update().filter(
-        status__in=[WebhookEndpointStatus.ACTIVE, WebhookEndpointStatus.FAILED]
-    )
+    endpoints = tenant.webhook_endpoints.select_for_update(
+        of=("self",), no_key=True
+    ).filter(status__in=[WebhookEndpointStatus.ACTIVE, WebhookEndpointStatus.FAILED])
     verification_id = payload.get("verification_id")
     if verification_id:
         from apps.verifications.models import Verification
@@ -119,7 +120,9 @@ def _build_signature_header(
     webhook_event: WebhookEvent, timestamp: str, payload_bytes: bytes
 ) -> str:
     endpoint = webhook_event.webhook_endpoint
-    ENVIRONMENT.set(environment(endpoint.project.environment if endpoint.project else "sandbox"))
+    ENVIRONMENT.set(
+        environment(endpoint.project.environment if endpoint.project else "sandbox")
+    )
     signing_keys = [endpoint.signing_key]
     if endpoint.previous_secret_overlap_active:
         signing_keys.append(endpoint.previous_signing_key)
@@ -223,7 +226,7 @@ def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
     """Claim briefly, perform HTTP without row locks, then finalize the claim."""
     now = timezone.now()
     with transaction.atomic():
-        endpoint = WebhookEndpoint.objects.select_for_update().get(
+        endpoint = WebhookEndpoint.objects.select_for_update(no_key=True).get(
             pk=webhook_event.webhook_endpoint_id
         )
         event = (
@@ -299,7 +302,7 @@ def _finish_webhook_delivery(
     terminal_failure = False
     delivered = status_code is not None and 200 <= status_code < 300
     with transaction.atomic():
-        endpoint = WebhookEndpoint.objects.select_for_update().get(
+        endpoint = WebhookEndpoint.objects.select_for_update(no_key=True).get(
             pk=claim.webhook_endpoint_id
         )
         event = (

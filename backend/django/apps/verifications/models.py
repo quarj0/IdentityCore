@@ -107,6 +107,7 @@ class RetentionLegalHold(PublicIdModel, BaseModel):
 
 class Verification(PublicIdModel, BaseModel):
     public_id_prefix = "ver"
+    decision_revision = models.PositiveIntegerField(default=0, db_default=0)
 
     tenant = models.ForeignKey(
         "tenants.Tenant",
@@ -281,8 +282,14 @@ class VerificationSession(PublicIdModel):
     def generate_session_token(cls) -> str:
         return secrets.token_urlsafe(32)
 
-    def set_session_token(self, raw_token: str) -> None:
-        self.session_token_hash = make_password(raw_token)
+    def set_session_token(self, raw_token: str, *, generated: bool = False) -> None:
+        # Only callers of generate_session_token opt into high-entropy hashing.
+        # Existing password hashes remain accepted until their sessions expire.
+        from common.credential_proofs import hash_generated_bearer
+
+        self.session_token_hash = (
+            hash_generated_bearer(raw_token) if generated else make_password(raw_token)
+        )
 
     @property
     def allowed_actions(self) -> list[str]:
