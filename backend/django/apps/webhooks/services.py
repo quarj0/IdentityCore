@@ -1,5 +1,6 @@
 import hmac
 import json
+import secrets
 import time
 from datetime import timedelta
 from hashlib import sha256
@@ -216,192 +217,189 @@ def _mark_endpoint_failed_if_active(endpoint) -> bool:
 
 
 def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
-    """Lock the endpoint then one event, matching management-operation lock order."""
+    """Claim briefly, perform HTTP without row locks, then finalize the claim."""
+    now = timezone.now()
     with transaction.atomic():
         endpoint = WebhookEndpoint.objects.select_for_update().get(
             pk=webhook_event.webhook_endpoint_id
         )
-        locked_event = (
+        event = (
             WebhookEvent.objects.select_for_update()
             .select_related("tenant")
             .get(pk=webhook_event.pk)
         )
-        locked_event.webhook_endpoint = endpoint
-        return _deliver_webhook_event_locked(locked_event)
-
-
-def _deliver_webhook_event_locked(webhook_event: WebhookEvent) -> WebhookEvent:
-    if webhook_event.status != WebhookEventStatus.PENDING:
-        return webhook_event
-
-    webhook_event.webhook_endpoint.refresh_from_db(fields=["status", "signing_key"])
-
-    if webhook_event.webhook_endpoint.status == WebhookEndpointStatus.DISABLED:
-        webhook_event.status = WebhookEventStatus.CANCELLED
-        webhook_event.next_retry_at = None
-        webhook_event.save(update_fields=["status", "next_retry_at", "updated_at"])
-        return webhook_event
-    if webhook_event.webhook_endpoint.status == WebhookEndpointStatus.FAILED:
-        return webhook_event
-
-    if not webhook_event.webhook_endpoint.signing_key:
-        endpoint = webhook_event.webhook_endpoint
-        attempted_at = timezone.now()
-        next_attempt_count = webhook_event.attempt_count + 1
-        updated = WebhookEvent.objects.filter(
-            pk=webhook_event.pk,
-            status=WebhookEventStatus.PENDING,
-            attempt_count=webhook_event.attempt_count,
-        ).update(
-            status=WebhookEventStatus.FAILED,
-            attempt_count=next_attempt_count,
-            last_attempt_at=attempted_at,
-            next_retry_at=None,
-            updated_at=attempted_at,
+        event.webhook_endpoint = endpoint
+        if event.status != WebhookEventStatus.PENDING:
+            return event
+        if endpoint.status == WebhookEndpointStatus.DISABLED:
+            event.status = WebhookEventStatus.CANCELLED
+            event.next_retry_at = None
+            event.save(update_fields=["status", "next_retry_at", "updated_at"])
+            return event
+        if endpoint.status == WebhookEndpointStatus.FAILED:
+            return event
+        if (
+            event.delivery_claim
+            and event.delivery_claim_expires_at
+            and event.delivery_claim_expires_at > now
+        ):
+            return event
+        event.delivery_claim = secrets.token_hex(16)
+        event.delivery_claim_expires_at = now + timedelta(
+            seconds=2 * settings.WEBHOOK_DELIVERY_TIMEOUT_SECONDS + 60
         )
-        webhook_event.refresh_from_db()
-        if not updated:
-            return webhook_event
-        endpoint_failed = _mark_endpoint_failed_if_active(endpoint)
+        event.save(
+            update_fields=["delivery_claim", "delivery_claim_expires_at", "updated_at"]
+        )
+
+    status_code = None
+    response_body = ""
+    error_message = ""
+    duration_ms = None
+    missing_key = not endpoint.signing_key
+    if missing_key:
+        error_message = "Webhook endpoint signing key is unavailable."
+    else:
+        payload_bytes = _encode_payload(_versioned_payload(event))
+        timestamp = str(int(timezone.now().timestamp()))
+        try:
+            status_code, response_body, duration_ms = _send_webhook_request(
+                webhook_event=event, payload_bytes=payload_bytes, timestamp=timestamp
+            )
+            if not 200 <= status_code < 300:
+                error_message = "Non-success webhook response."
+        except error.URLError as exc:
+            error_message = str(exc.reason if hasattr(exc, "reason") else exc)
+        except Exception as exc:
+            error_message = str(exc)
+
+    return _finish_webhook_delivery(
+        event,
+        status_code=status_code,
+        response_body=response_body,
+        error_message=error_message,
+        duration_ms=duration_ms,
+        missing_key=missing_key,
+    )
+
+
+def _finish_webhook_delivery(
+    claim: WebhookEvent,
+    *,
+    status_code,
+    response_body,
+    error_message,
+    duration_ms,
+    missing_key,
+) -> WebhookEvent:
+    endpoint_failed = False
+    terminal_failure = False
+    delivered = status_code is not None and 200 <= status_code < 300
+    with transaction.atomic():
+        endpoint = WebhookEndpoint.objects.select_for_update().get(
+            pk=claim.webhook_endpoint_id
+        )
+        event = (
+            WebhookEvent.objects.select_for_update()
+            .select_related("tenant")
+            .get(pk=claim.pk)
+        )
+        event.webhook_endpoint = endpoint
         _record_delivery_attempt(
-            webhook_event=webhook_event,
-            status_code=None,
-            error_message="Webhook endpoint signing key is unavailable.",
-        )
-        record_audit_event(
-            tenant=webhook_event.tenant,
-            action="webhook.delivery_failed",
-            target_type="webhook_event",
-            target_id=webhook_event.public_id,
-            metadata={
-                "event_type": webhook_event.event_type,
-                "reason": "missing_signing_key",
-            },
-        )
-        if endpoint_failed:
-            record_audit_event(
-                tenant=webhook_event.tenant,
-                action="webhook_endpoint.delivery_failed",
-                target_type="webhook_endpoint",
-                target_id=endpoint.public_id,
-                metadata={
-                    "event_id": webhook_event.public_id,
-                    "reason": "missing_signing_key",
-                },
-            )
-        return webhook_event
-
-    payload_bytes = _encode_payload(_versioned_payload(webhook_event))
-    timestamp = str(int(timezone.now().timestamp()))
-    previous_attempt_count = webhook_event.attempt_count
-    attempted_at = timezone.now()
-    try:
-        status_code, response_body, duration_ms = _send_webhook_request(
-            webhook_event=webhook_event,
-            payload_bytes=payload_bytes,
-            timestamp=timestamp,
-        )
-        if 200 <= status_code < 300:
-            _record_delivery_attempt(
-                webhook_event=webhook_event,
-                status_code=status_code,
-                response_body=response_body,
-                duration_ms=duration_ms,
-            )
-            updated = WebhookEvent.objects.filter(
-                pk=webhook_event.pk,
-                status=WebhookEventStatus.PENDING,
-                attempt_count=previous_attempt_count,
-            ).update(
-                status=WebhookEventStatus.DELIVERED,
-                attempt_count=previous_attempt_count + 1,
-                last_attempt_at=attempted_at,
-                next_retry_at=None,
-                updated_at=attempted_at,
-            )
-            webhook_event.refresh_from_db()
-            if not updated:
-                return webhook_event
-            record_audit_event(
-                tenant=webhook_event.tenant,
-                action="webhook.delivered",
-                target_type="webhook_event",
-                target_id=webhook_event.public_id,
-                metadata={
-                    "event_type": webhook_event.event_type,
-                    "status_code": status_code,
-                },
-            )
-            return webhook_event
-
-        _record_delivery_attempt(
-            webhook_event=webhook_event,
+            webhook_event=event,
             status_code=status_code,
             response_body=response_body,
-            error_message="Non-success webhook response.",
+            error_message=error_message,
             duration_ms=duration_ms,
         )
-    except error.URLError as exc:
-        _record_delivery_attempt(
-            webhook_event=webhook_event,
-            status_code=None,
-            error_message=str(exc.reason if hasattr(exc, "reason") else exc),
+        # A crashed worker's lease can be reclaimed. Its eventual result must not
+        # overwrite another worker's result or a tenant's explicit cancellation.
+        if event.delivery_claim != claim.delivery_claim:
+            return event
+        event.delivery_claim = ""
+        event.delivery_claim_expires_at = None
+        if (
+            event.status != WebhookEventStatus.PENDING
+            or endpoint.status != WebhookEndpointStatus.ACTIVE
+        ):
+            if (
+                event.status == WebhookEventStatus.PENDING
+                and endpoint.status == WebhookEndpointStatus.DISABLED
+            ):
+                event.status = WebhookEventStatus.CANCELLED
+                event.next_retry_at = None
+            event.save(
+                update_fields=[
+                    "status",
+                    "next_retry_at",
+                    "delivery_claim",
+                    "delivery_claim_expires_at",
+                    "updated_at",
+                ]
+            )
+            return event
+        event.attempt_count += 1
+        event.last_attempt_at = timezone.now()
+        terminal_failure = not delivered and (
+            missing_key or event.attempt_count >= settings.WEBHOOK_MAX_ATTEMPTS
         )
-    except Exception as exc:
-        _record_delivery_attempt(
-            webhook_event=webhook_event,
-            status_code=None,
-            error_message=str(exc),
+        event.status = (
+            WebhookEventStatus.DELIVERED
+            if delivered
+            else (
+                WebhookEventStatus.FAILED
+                if terminal_failure
+                else WebhookEventStatus.PENDING
+            )
         )
+        event.next_retry_at = (
+            None
+            if delivered or terminal_failure
+            else _calculate_next_retry(attempt_count=event.attempt_count)
+        )
+        event.save(
+            update_fields=[
+                "status",
+                "attempt_count",
+                "last_attempt_at",
+                "next_retry_at",
+                "delivery_claim",
+                "delivery_claim_expires_at",
+                "updated_at",
+            ]
+        )
+        if terminal_failure:
+            endpoint_failed = _mark_endpoint_failed_if_active(endpoint)
 
-    next_attempt_count = previous_attempt_count + 1
-    terminal_failure = next_attempt_count >= settings.WEBHOOK_MAX_ATTEMPTS
-    next_status = (
-        WebhookEventStatus.FAILED if terminal_failure else WebhookEventStatus.PENDING
-    )
-    next_retry_at = (
-        None
-        if terminal_failure
-        else _calculate_next_retry(attempt_count=next_attempt_count)
-    )
-    updated = WebhookEvent.objects.filter(
-        pk=webhook_event.pk,
-        status=WebhookEventStatus.PENDING,
-        attempt_count=previous_attempt_count,
-        webhook_endpoint__status=WebhookEndpointStatus.ACTIVE,
-    ).update(
-        status=next_status,
-        attempt_count=next_attempt_count,
-        last_attempt_at=attempted_at,
-        next_retry_at=next_retry_at,
-        updated_at=attempted_at,
-    )
-    webhook_event.refresh_from_db()
-    if not updated:
-        return webhook_event
-
-    if terminal_failure:
-        endpoint = webhook_event.webhook_endpoint
-        endpoint_failed = _mark_endpoint_failed_if_active(endpoint)
+    # Audit-chain locking must not keep the delivery endpoint locked against
+    # domain transactions that append to the outbox.
+    if delivered or terminal_failure:
+        metadata = {"event_type": event.event_type}
+        if delivered:
+            metadata["status_code"] = status_code
+        elif missing_key:
+            metadata["reason"] = "missing_signing_key"
+        else:
+            metadata["attempt_count"] = event.attempt_count
         record_audit_event(
-            tenant=webhook_event.tenant,
-            action="webhook.delivery_failed",
+            tenant=event.tenant,
+            action="webhook.delivered" if delivered else "webhook.delivery_failed",
             target_type="webhook_event",
-            target_id=webhook_event.public_id,
-            metadata={
-                "event_type": webhook_event.event_type,
-                "attempt_count": webhook_event.attempt_count,
-            },
+            target_id=event.public_id,
+            metadata=metadata,
         )
         if endpoint_failed:
             record_audit_event(
-                tenant=webhook_event.tenant,
+                tenant=event.tenant,
                 action="webhook_endpoint.delivery_failed",
                 target_type="webhook_endpoint",
                 target_id=endpoint.public_id,
-                metadata={"event_id": webhook_event.public_id},
+                metadata={
+                    "event_id": event.public_id,
+                    **({"reason": "missing_signing_key"} if missing_key else {}),
+                },
             )
-    return webhook_event
+    return event
 
 
 def requeue_failed_webhook_event(
@@ -420,9 +418,18 @@ def requeue_failed_webhook_event(
     previous_attempt_count = webhook_event.attempt_count
     webhook_event.status = WebhookEventStatus.PENDING
     webhook_event.attempt_count = 0
+    webhook_event.delivery_claim = ""
+    webhook_event.delivery_claim_expires_at = None
     webhook_event.next_retry_at = timezone.now()
     webhook_event.save(
-        update_fields=["status", "attempt_count", "next_retry_at", "updated_at"]
+        update_fields=[
+            "status",
+            "attempt_count",
+            "next_retry_at",
+            "delivery_claim",
+            "delivery_claim_expires_at",
+            "updated_at",
+        ]
     )
     endpoint_reactivated = (
         webhook_event.webhook_endpoint.status == WebhookEndpointStatus.FAILED
@@ -462,6 +469,11 @@ def get_due_webhook_events(*, limit: int = 50):
             webhook_endpoint__status=WebhookEndpointStatus.ACTIVE,
         )
         .filter(Q(next_retry_at__isnull=True) | Q(next_retry_at__lte=now))
+        .filter(
+            Q(delivery_claim="")
+            | Q(delivery_claim_expires_at__isnull=True)
+            | Q(delivery_claim_expires_at__lte=now)
+        )
         .order_by("created_at")[:limit]
     )
 

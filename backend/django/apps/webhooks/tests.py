@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from django.db import transaction
+from django.db import connection, transaction
 from django.test import TransactionTestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -1510,3 +1510,65 @@ class WebhookOutboxTransactionTests(TransactionTestCase):
         self.assertEqual(event.payload_json["id"], event.public_id)
         self.assertEqual(event.attempt_count, 2)
         self.assertEqual(event.status, WebhookEventStatus.DELIVERED)
+
+    @patch("apps.webhooks.services._send_webhook_request")
+    def test_http_runs_without_database_locks_and_duplicate_claim_is_skipped(
+        self, send_request
+    ):
+        with transaction.atomic():
+            event = self.queue_event()[0]
+
+        def send(**kwargs):
+            self.assertFalse(connection.in_atomic_block)
+            same_event = deliver_webhook_event(kwargs["webhook_event"])
+            self.assertEqual(same_event.status, WebhookEventStatus.PENDING)
+            with transaction.atomic():
+                self.assertEqual(len(self.queue_event()), 1)
+            return 200, "ok", 5
+
+        send_request.side_effect = send
+        delivered = deliver_webhook_event(event)
+        self.assertEqual(send_request.call_count, 1)
+        self.assertEqual(delivered.status, WebhookEventStatus.DELIVERED)
+        self.assertEqual(delivered.delivery_claim, "")
+        self.assertIsNone(delivered.delivery_claim_expires_at)
+
+    @patch("apps.webhooks.services._send_webhook_request")
+    def test_unexpired_delivery_claim_is_not_due(self, send_request):
+        with transaction.atomic():
+            event = self.queue_event()[0]
+        event.delivery_claim = "a" * 32
+        event.delivery_claim_expires_at = timezone.now() + timedelta(minutes=1)
+        event.save(update_fields=["delivery_claim", "delivery_claim_expires_at"])
+        self.assertEqual(list(get_due_webhook_events()), [])
+        deliver_webhook_event(event)
+        send_request.assert_not_called()
+
+    @patch("apps.webhooks.services._send_webhook_request")
+    def test_expired_claim_is_recovered_and_old_failure_cannot_replace_success(
+        self, send_request
+    ):
+        with transaction.atomic():
+            event = self.queue_event()[0]
+        event.attempt_count = 4
+        event.save(update_fields=["attempt_count"])
+
+        def send(**kwargs):
+            if send_request.call_count == 1:
+                WebhookEvent.objects.filter(pk=event.pk).update(
+                    delivery_claim_expires_at=timezone.now() - timedelta(seconds=1)
+                )
+                self.assertEqual(len(list(get_due_webhook_events())), 1)
+                recovered = deliver_webhook_event(kwargs["webhook_event"])
+                self.assertEqual(recovered.status, WebhookEventStatus.DELIVERED)
+                return 500, "late failure", 5
+            return 200, "ok", 5
+
+        send_request.side_effect = send
+        with self.settings(WEBHOOK_MAX_ATTEMPTS=5):
+            final = deliver_webhook_event(event)
+        self.endpoint.refresh_from_db()
+        self.assertEqual(final.status, WebhookEventStatus.DELIVERED)
+        self.assertEqual(final.attempt_count, 5)
+        self.assertEqual(self.endpoint.status, WebhookEndpointStatus.ACTIVE)
+        self.assertEqual(final.delivery_attempts.count(), 2)

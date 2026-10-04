@@ -165,6 +165,7 @@ records use a `## Status` section; both forms are valid, but every ADR must stat
 | [ADR-023](ADR-023-data-subject-deletion.md)              | Pseudonymize subject deletion while preserving required audit facts | Accepted |
 | [ADR-024](ADR-024-data-subject-export.md)                | Authorized, redacted, expiring subject exports                      | Accepted |
 | [ADR-025](ADR-025-centralized-object-authorization.md)   | Centralized Object Authorization                                    | Accepted |
+| [ADR-026](ADR-026-webhook-delivery-leases.md)             | Claim webhook delivery without locking producers during HTTP        | Accepted |
 
 ---
 

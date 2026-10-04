@@ -148,6 +148,10 @@ class WebhookEvent(PublicIdModel, BaseModel):
     attempt_count = models.PositiveIntegerField(default=0)
     next_retry_at = models.DateTimeField(null=True, blank=True, db_index=True)
     last_attempt_at = models.DateTimeField(null=True, blank=True)
+    delivery_claim = models.CharField(max_length=32, blank=True, default="")
+    delivery_claim_expires_at = models.DateTimeField(
+        null=True, blank=True, db_index=True
+    )
 
     class Meta:
         ordering = ["-created_at"]

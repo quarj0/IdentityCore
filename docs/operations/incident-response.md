@@ -98,7 +98,12 @@ and records an audit event. Do not reactivate the endpoint in a separate request
 before replay: that allows newer pending events to become eligible before the
 failed event is requeued. Replay does not guarantee delivery ordering; receivers
 must atomically deduplicate by event ID because an accepted delivery whose
-response was lost can still be repeated.
+response was lost can still be repeated. Workers claim an event with a bounded
+lease before sending HTTP, release database row locks before contacting the
+receiver, and finalize only the same claim. Expired claims are eligible for
+recovery after worker loss; a late response cannot replace a newer claim's
+result. A lease expiry can still cause duplicate transport delivery, so receiver
+deduplication remains required.
 
 ## Notification decision
 
