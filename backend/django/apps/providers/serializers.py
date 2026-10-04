@@ -10,7 +10,8 @@ def serialize_provider(provider: Provider) -> dict:
         "code": provider.code,
         "provider_type": provider.provider_type,
         "status": provider.status,
-        "configuration": provider.configuration_json,
+        "configuration": {"configured": bool(provider.configuration_json)},
+        "manifest": provider.manifest_json,
         "created_at": provider.created_at.isoformat(),
         "updated_at": provider.updated_at.isoformat(),
     }

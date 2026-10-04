@@ -1,5 +1,5 @@
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 
 from apps.core.models import BaseModel, PublicIdModel
 from common.fields import EncryptedJSONField
@@ -86,6 +86,47 @@ class Provider(PublicIdModel, BaseModel):
         blank=True,
         encryption_purpose="providers.configuration",
     )
+
+    manifest_json = models.JSONField(default=dict, blank=True)
+
+    def clean(self):
+        super().clean()
+        from apps.providers.manifests import validate_manifest
+
+        if self.manifest_json:
+            validate_manifest(self.manifest_json, provider_type=self.provider_type)
+            if self.pk:
+                from apps.providers.manifests import validate_compatibility
+
+                for assignment in self.assignments.filter(status="active"):
+                    validate_compatibility(self, assignment.assignment_key)
+                for step in self.route_steps.filter(
+                    route__status="active"
+                ).select_related("route"):
+                    route = step.route
+                    validate_compatibility(
+                        self,
+                        route.capability,
+                        environment=route.environment,
+                        countries=route.country_codes_json,
+                        document_types=route.document_type_ids_json,
+                    )
+
+    @transaction.atomic
+    def save(self, *args, **kwargs):
+        from apps.tenants.models import Tenant
+
+        if self.tenant_id:
+            Tenant.objects.select_for_update(no_key=True).get(pk=self.tenant_id)
+        if self.pk:
+            previous = type(self).objects.select_for_update(no_key=True).get(pk=self.pk)
+            if any(
+                getattr(previous, key) != getattr(self, key)
+                for key in ("tenant_id", "code", "provider_type")
+            ):
+                raise ValidationError("Provider identity and ownership are immutable.")
+        self.full_clean()
+        return super().save(*args, **kwargs)
 
     class Meta:
         ordering = ["provider_type", "name"]
@@ -209,6 +250,10 @@ class ProviderAssignment(PublicIdModel, BaseModel):
                     "provider": f"{self.assignment_key} requires provider types: {', '.join(sorted(allowed_types))}."
                 }
             )
+        from apps.providers.manifests import validate_compatibility
+
+        if self.status == ProviderAssignmentStatus.ACTIVE:
+            validate_compatibility(self.provider, self.assignment_key)
         if (
             self.status == ProviderAssignmentStatus.ACTIVE
             and self.provider.status != ProviderStatus.ACTIVE
@@ -217,7 +262,14 @@ class ProviderAssignment(PublicIdModel, BaseModel):
                 {"provider": "Active assignments require an active provider."}
             )
 
+    @transaction.atomic
     def save(self, *args, **kwargs):
+        from apps.tenants.models import Tenant
+
+        Tenant.objects.select_for_update(no_key=True).get(pk=self.tenant_id)
+        self.provider = Provider.objects.select_for_update(no_key=True).get(
+            pk=self.provider_id
+        )
         self.full_clean()
         return super().save(*args, **kwargs)
 

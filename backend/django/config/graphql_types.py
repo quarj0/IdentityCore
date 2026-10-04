@@ -136,6 +136,7 @@ class AuditEventNode:
 
 @strawberry.type
 class ProviderNode:
+    manifest: strawberry.scalars.JSON
     id: str
     name: str
     code: str

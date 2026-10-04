@@ -120,13 +120,21 @@ class ProviderRouteExhausted(RuntimeError):
 def publish_provider_route(route: ProviderRoute) -> ProviderRoute:
     """Publish one immutable version and retire the prior version of its route key."""
     with transaction.atomic():
-        Tenant.objects.select_for_update().get(pk=route.tenant_id)
+        Tenant.objects.select_for_update(no_key=True).get(pk=route.tenant_id)
         locked = ProviderRoute.objects.select_for_update().get(pk=route.pk)
         if locked.status != ProviderRouteStatus.DRAFT:
             raise ValidationError("Only draft provider routes can be published.")
         if locked.deleted_at is not None:
             raise ValidationError("Deleted provider routes cannot be published.")
         steps = list(locked.steps.select_related("provider").order_by("position"))
+        providers = {
+            provider.pk: provider
+            for provider in Provider.objects.select_for_update(no_key=True)
+            .filter(pk__in=[step.provider_id for step in steps])
+            .order_by("pk")
+        }
+        for step in steps:
+            step.provider = providers[step.provider_id]
         if not steps:
             raise ValidationError(
                 "A provider route requires at least one provider step."
@@ -135,8 +143,17 @@ def publish_provider_route(route: ProviderRoute) -> ProviderRoute:
             raise ValidationError("Every provider in a published route must be active.")
         if any(step.deleted_at is not None for step in steps):
             raise ValidationError("Deleted provider route steps cannot be published.")
+        from apps.providers.manifests import validate_compatibility
+
         for step in steps:
             step.full_clean()
+            validate_compatibility(
+                step.provider,
+                locked.capability,
+                environment=locked.environment,
+                countries=locked.country_codes_json,
+                document_types=locked.document_type_ids_json,
+            )
         latest_version = (
             ProviderRoute.objects.filter(
                 tenant=locked.tenant,

@@ -1,3 +1,5 @@
+from django.db.models import Q
+
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -14,7 +16,10 @@ class ProviderListView(APIView):
     permission_classes = [IsAuthenticated, IsTenantUser]
 
     def get(self, request):
-        providers = Provider.objects.order_by("provider_type", "name")
+        providers = Provider.objects.filter(
+            Q(tenant=request.user.tenant) | Q(tenant__isnull=True),
+            deleted_at__isnull=True,
+        ).order_by("provider_type", "name")
         return success_response(
             {"results": [serialize_provider(provider) for provider in providers]},
             request=request,

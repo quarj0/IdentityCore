@@ -97,7 +97,7 @@ export function providerToAdminRecord(provider: Provider): AdminRecord {
     statusTone: tone(provider.status),
     primaryMeta: provider.providerType,
     secondaryMeta: provider.code,
-    tertiaryMeta: `Config keys: ${Object.keys(provider.configuration || {}).length}`,
+    tertiaryMeta: `Configuration: ${provider.configuration?.configured === true ? "configured" : "not configured"}`,
     owner: "AI Platform",
     updatedAt: formatDateTime(provider.updatedAt),
     href: `/ai-providers/${provider.id}`,
