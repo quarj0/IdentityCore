@@ -1,4 +1,5 @@
 import uuid
+import re
 
 from django.http import JsonResponse
 from rest_framework.response import Response
@@ -13,7 +14,11 @@ def get_request_id(request=None) -> str:
         return existing
 
     header_value = request.headers.get("X-Request-Id")
-    request_id = header_value or f"req_{uuid.uuid4().hex}"
+    request_id = (
+        header_value
+        if header_value and re.fullmatch(r"[A-Za-z0-9_-]{1,64}", header_value)
+        else f"req_{uuid.uuid4().hex}"
+    )
     setattr(request, "_request_id", request_id)
     return request_id
 

@@ -1,3 +1,4 @@
+from common.observability import observed, inject
 from urllib.parse import urlencode
 
 import boto3
@@ -224,6 +225,7 @@ def _get_server_side_encryption_params() -> dict[str, str]:
     return params
 
 
+@observed("storage", "copy_object")
 def copy_object(
     source_bucket: str,
     source_key: str,
@@ -257,6 +259,7 @@ def _is_missing_object_error(exc: ClientError) -> bool:
     )
 
 
+@observed("storage", "object_exists")
 def object_exists(*, bucket_name: str, key: str) -> bool:
     client = get_object_storage_client()
     if not client:
@@ -270,6 +273,7 @@ def object_exists(*, bucket_name: str, key: str) -> bool:
     return True
 
 
+@observed("storage", "move_object")
 def move_object(
     source_bucket: str,
     source_key: str,
@@ -304,6 +308,7 @@ def move_object(
     )
 
 
+@observed("storage", "delete_object")
 def delete_object(
     bucket_name: str,
     key: str,
@@ -319,6 +324,7 @@ def delete_object(
     )
 
 
+@observed("storage", "put_object_bytes")
 def put_object_bytes(
     *,
     bucket_name: str,
@@ -359,6 +365,7 @@ def put_object_bytes(
     )
 
 
+@observed("storage", "get_object_bytes")
 def get_object_bytes(
     *,
     bucket_name: str,

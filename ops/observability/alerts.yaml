@@ -1,0 +1,235 @@
+groups:
+- name: identitycore-slos
+  rules:
+  - record: identitycore:slo_api:burn_5m
+    expr: (sum(rate(identitycore_responses_total{component="api",environment="production",outcome="error"}[5m]))
+      / clamp_min(sum(rate(identitycore_responses_total{component="api",environment="production"}[5m])),
+      1e-9)) / 0.001000
+  - record: identitycore:slo_api:burn_30m
+    expr: (sum(rate(identitycore_responses_total{component="api",environment="production",outcome="error"}[30m]))
+      / clamp_min(sum(rate(identitycore_responses_total{component="api",environment="production"}[30m])),
+      1e-9)) / 0.001000
+  - record: identitycore:slo_api:burn_1h
+    expr: (sum(rate(identitycore_responses_total{component="api",environment="production",outcome="error"}[1h]))
+      / clamp_min(sum(rate(identitycore_responses_total{component="api",environment="production"}[1h])),
+      1e-9)) / 0.001000
+  - record: identitycore:slo_api:burn_6h
+    expr: (sum(rate(identitycore_responses_total{component="api",environment="production",outcome="error"}[6h]))
+      / clamp_min(sum(rate(identitycore_responses_total{component="api",environment="production"}[6h])),
+      1e-9)) / 0.001000
+  - alert: IdentityCoreApiBudgetBurnCritical
+    expr: identitycore:slo_api:burn_5m > 14.4 and identitycore:slo_api:burn_1h > 14.4
+    for: 2m
+    labels:
+      severity: critical
+      environment: production
+      service: identitycore
+      sli: api
+    annotations:
+      summary: api error budget burning too quickly
+      runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/slo-alerts.md#api
+  - alert: IdentityCoreApiBudgetBurnWarning
+    expr: identitycore:slo_api:burn_30m > 6 and identitycore:slo_api:burn_6h > 6
+    for: 15m
+    labels:
+      severity: warning
+      environment: production
+      service: identitycore
+      sli: api
+    annotations:
+      summary: api error budget burning too quickly
+      runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/slo-alerts.md#api
+  - record: identitycore:slo_processing:burn_5m
+    expr: (sum(rate(identitycore_processing_completed_total{environment="production",outcome="error"}[5m]))
+      / clamp_min(sum(rate(identitycore_processing_completed_total{environment="production"}[5m])),
+      1e-9)) / 0.010000
+  - record: identitycore:slo_processing:burn_30m
+    expr: (sum(rate(identitycore_processing_completed_total{environment="production",outcome="error"}[30m]))
+      / clamp_min(sum(rate(identitycore_processing_completed_total{environment="production"}[30m])),
+      1e-9)) / 0.010000
+  - record: identitycore:slo_processing:burn_1h
+    expr: (sum(rate(identitycore_processing_completed_total{environment="production",outcome="error"}[1h]))
+      / clamp_min(sum(rate(identitycore_processing_completed_total{environment="production"}[1h])),
+      1e-9)) / 0.010000
+  - record: identitycore:slo_processing:burn_6h
+    expr: (sum(rate(identitycore_processing_completed_total{environment="production",outcome="error"}[6h]))
+      / clamp_min(sum(rate(identitycore_processing_completed_total{environment="production"}[6h])),
+      1e-9)) / 0.010000
+  - alert: IdentityCoreProcessingBudgetBurnCritical
+    expr: identitycore:slo_processing:burn_5m > 14.4 and identitycore:slo_processing:burn_1h
+      > 14.4
+    for: 2m
+    labels:
+      severity: critical
+      environment: production
+      service: identitycore
+      sli: processing
+    annotations:
+      summary: processing error budget burning too quickly
+      runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/slo-alerts.md#processing
+  - alert: IdentityCoreProcessingBudgetBurnWarning
+    expr: identitycore:slo_processing:burn_30m > 6 and identitycore:slo_processing:burn_6h
+      > 6
+    for: 15m
+    labels:
+      severity: warning
+      environment: production
+      service: identitycore
+      sli: processing
+    annotations:
+      summary: processing error budget burning too quickly
+      runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/slo-alerts.md#processing
+  - record: identitycore:slo_provider:burn_5m
+    expr: (sum(rate(identitycore_operations_total{component="provider",environment="production",outcome="error"}[5m]))
+      / clamp_min(sum(rate(identitycore_operations_total{component="provider",environment="production"}[5m])),
+      1e-9)) / 0.010000
+  - record: identitycore:slo_provider:burn_30m
+    expr: (sum(rate(identitycore_operations_total{component="provider",environment="production",outcome="error"}[30m]))
+      / clamp_min(sum(rate(identitycore_operations_total{component="provider",environment="production"}[30m])),
+      1e-9)) / 0.010000
+  - record: identitycore:slo_provider:burn_1h
+    expr: (sum(rate(identitycore_operations_total{component="provider",environment="production",outcome="error"}[1h]))
+      / clamp_min(sum(rate(identitycore_operations_total{component="provider",environment="production"}[1h])),
+      1e-9)) / 0.010000
+  - record: identitycore:slo_provider:burn_6h
+    expr: (sum(rate(identitycore_operations_total{component="provider",environment="production",outcome="error"}[6h]))
+      / clamp_min(sum(rate(identitycore_operations_total{component="provider",environment="production"}[6h])),
+      1e-9)) / 0.010000
+  - alert: IdentityCoreProviderBudgetBurnCritical
+    expr: identitycore:slo_provider:burn_5m > 14.4 and identitycore:slo_provider:burn_1h
+      > 14.4
+    for: 2m
+    labels:
+      severity: critical
+      environment: production
+      service: identitycore
+      sli: provider
+    annotations:
+      summary: provider error budget burning too quickly
+      runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/slo-alerts.md#provider
+  - alert: IdentityCoreProviderBudgetBurnWarning
+    expr: identitycore:slo_provider:burn_30m > 6 and identitycore:slo_provider:burn_6h
+      > 6
+    for: 15m
+    labels:
+      severity: warning
+      environment: production
+      service: identitycore
+      sli: provider
+    annotations:
+      summary: provider error budget burning too quickly
+      runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/slo-alerts.md#provider
+  - record: identitycore:slo_webhook:burn_5m
+    expr: (sum(rate(identitycore_operations_total{component="webhook",environment="production",outcome="error"}[5m]))
+      / clamp_min(sum(rate(identitycore_operations_total{component="webhook",environment="production"}[5m])),
+      1e-9)) / 0.010000
+  - record: identitycore:slo_webhook:burn_30m
+    expr: (sum(rate(identitycore_operations_total{component="webhook",environment="production",outcome="error"}[30m]))
+      / clamp_min(sum(rate(identitycore_operations_total{component="webhook",environment="production"}[30m])),
+      1e-9)) / 0.010000
+  - record: identitycore:slo_webhook:burn_1h
+    expr: (sum(rate(identitycore_operations_total{component="webhook",environment="production",outcome="error"}[1h]))
+      / clamp_min(sum(rate(identitycore_operations_total{component="webhook",environment="production"}[1h])),
+      1e-9)) / 0.010000
+  - record: identitycore:slo_webhook:burn_6h
+    expr: (sum(rate(identitycore_operations_total{component="webhook",environment="production",outcome="error"}[6h]))
+      / clamp_min(sum(rate(identitycore_operations_total{component="webhook",environment="production"}[6h])),
+      1e-9)) / 0.010000
+  - alert: IdentityCoreWebhookBudgetBurnCritical
+    expr: identitycore:slo_webhook:burn_5m > 14.4 and identitycore:slo_webhook:burn_1h
+      > 14.4
+    for: 2m
+    labels:
+      severity: critical
+      environment: production
+      service: identitycore
+      sli: webhook
+    annotations:
+      summary: webhook error budget burning too quickly
+      runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/slo-alerts.md#webhook
+  - alert: IdentityCoreWebhookBudgetBurnWarning
+    expr: identitycore:slo_webhook:burn_30m > 6 and identitycore:slo_webhook:burn_6h
+      > 6
+    for: 15m
+    labels:
+      severity: warning
+      environment: production
+      service: identitycore
+      sli: webhook
+    annotations:
+      summary: webhook error budget burning too quickly
+      runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/slo-alerts.md#webhook
+  - record: identitycore:slo_storage:burn_5m
+    expr: (sum(rate(identitycore_operations_total{component="storage",environment="production",outcome="error"}[5m]))
+      / clamp_min(sum(rate(identitycore_operations_total{component="storage",environment="production"}[5m])),
+      1e-9)) / 0.001000
+  - record: identitycore:slo_storage:burn_30m
+    expr: (sum(rate(identitycore_operations_total{component="storage",environment="production",outcome="error"}[30m]))
+      / clamp_min(sum(rate(identitycore_operations_total{component="storage",environment="production"}[30m])),
+      1e-9)) / 0.001000
+  - record: identitycore:slo_storage:burn_1h
+    expr: (sum(rate(identitycore_operations_total{component="storage",environment="production",outcome="error"}[1h]))
+      / clamp_min(sum(rate(identitycore_operations_total{component="storage",environment="production"}[1h])),
+      1e-9)) / 0.001000
+  - record: identitycore:slo_storage:burn_6h
+    expr: (sum(rate(identitycore_operations_total{component="storage",environment="production",outcome="error"}[6h]))
+      / clamp_min(sum(rate(identitycore_operations_total{component="storage",environment="production"}[6h])),
+      1e-9)) / 0.001000
+  - alert: IdentityCoreStorageBudgetBurnCritical
+    expr: identitycore:slo_storage:burn_5m > 14.4 and identitycore:slo_storage:burn_1h
+      > 14.4
+    for: 2m
+    labels:
+      severity: critical
+      environment: production
+      service: identitycore
+      sli: storage
+    annotations:
+      summary: storage error budget burning too quickly
+      runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/slo-alerts.md#storage
+  - alert: IdentityCoreStorageBudgetBurnWarning
+    expr: identitycore:slo_storage:burn_30m > 6 and identitycore:slo_storage:burn_6h
+      > 6
+    for: 15m
+    labels:
+      severity: warning
+      environment: production
+      service: identitycore
+      sli: storage
+    annotations:
+      summary: storage error budget burning too quickly
+      runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/slo-alerts.md#storage
+  - alert: IdentityCoreQueueStalled
+    expr: max by (queue, environment) (identitycore_backlog_oldest_seconds{environment="production"})
+      > 300
+    for: 2m
+    labels:
+      severity: critical
+      service: identitycore
+    annotations:
+      summary: Production durable work is older than five minutes
+      runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/processing-job-recovery.md
+  - alert: IdentityCoreMonitoringMissing
+    expr: absent(identitycore_backlog_heartbeat_seconds) or time() - max(identitycore_backlog_heartbeat_seconds)
+      > 60
+    for: 2m
+    labels:
+      severity: critical
+      environment: production
+      service: identitycore
+    annotations:
+      summary: Independent operations exporter is missing or stale
+      runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/slo-alerts.md#monitoring
+  - alert: IdentityCoreProcessingLatency
+    expr: (sum(rate(identitycore_processing_duration_seconds_bucket{environment="production",le="120"}[1h]))
+      / clamp_min(sum(rate(identitycore_processing_duration_seconds_count{environment="production"}[1h])),
+      1e-9)) < 0.95 and sum(increase(identitycore_processing_duration_seconds_count{environment="production"}[1h]))
+      > 20
+    for: 15m
+    labels:
+      severity: warning
+      environment: production
+      service: identitycore
+    annotations:
+      summary: Less than 95% of production processing finishes within two minutes
+      runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/slo-alerts.md#processing

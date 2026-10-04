@@ -167,6 +167,8 @@ records use a `## Status` section; both forms are valid, but every ADR must stat
 | [ADR-025](ADR-025-centralized-object-authorization.md)   | Centralized Object Authorization                                    | Accepted |
 | [ADR-026](ADR-026-webhook-delivery-leases.md)             | Claim webhook delivery without locking producers during HTTP        | Accepted |
 
+| [ADR-027](ADR-027-operational-telemetry.md) | Payload-free operational telemetry | Accepted |
+
 ---
 
 ## Guiding Principles

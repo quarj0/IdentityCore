@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-04",
+  "scope": "isolated synthetic environment",
+  "backend_tests": {
+    "passed": 544,
+    "skipped": 1,
+    "total": 545
+  },
+  "linked_trace_boundaries": [
+    "api",
+    "worker",
+    "provider",
+    "ai",
+    "storage"
+  ],
+  "stored_trace_lookup": "pass",
+  "prometheus_metric_names": "verified against live OTLP collector",
+  "processing_latency_bucket_seconds": 120,
+  "burn_rule_scenarios": [
+    "api above threshold",
+    "api below threshold",
+    "sandbox exclusion",
+    "short-window recovery",
+    "processing burn",
+    "provider burn",
+    "webhook burn",
+    "storage burn",
+    "durable queue stalled"
+  ],
+  "maintenance_silence": "Alertmanager API exercise passed; bounded silence expired after check",
+  "production_receiver": "requires environment-specific approved destination and notification exercise"
+}

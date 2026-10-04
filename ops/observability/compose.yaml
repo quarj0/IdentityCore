@@ -1,0 +1,47 @@
+services:
+  collector:
+    image: otel/opentelemetry-collector-contrib:0.140.0
+    command:
+    - --config=/etc/otelcol/config.yaml
+    volumes:
+    - ./collector.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+    - 127.0.0.1:4318:4318
+    environment:
+      NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1},collector,tempo,prometheus,alertmanager
+      no_proxy: ${NO_PROXY:-localhost,127.0.0.1},collector,tempo,prometheus,alertmanager
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    volumes:
+    - ./prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+    - ./alerts.yaml:/etc/prometheus/alerts.yaml:ro
+    - prometheus-data:/prometheus
+    ports:
+    - 127.0.0.1:9090:9090
+    environment:
+      NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1},collector,tempo,prometheus,alertmanager
+      no_proxy: ${NO_PROXY:-localhost,127.0.0.1},collector,tempo,prometheus,alertmanager
+  tempo:
+    image: grafana/tempo:2.10.8
+    command:
+    - -config.file=/etc/tempo.yaml
+    volumes:
+    - ./tempo.yaml:/etc/tempo.yaml:ro
+    - tempo-data:/var/tempo
+    ports:
+    - 127.0.0.1:3200:3200
+    environment:
+      NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1},collector,tempo,prometheus,alertmanager
+      no_proxy: ${NO_PROXY:-localhost,127.0.0.1},collector,tempo,prometheus,alertmanager
+  alertmanager:
+    image: prom/alertmanager:v0.31.0
+    volumes:
+    - ./alertmanager.yaml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+    - 127.0.0.1:9093:9093
+    environment:
+      NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1},collector,tempo,prometheus,alertmanager
+      no_proxy: ${NO_PROXY:-localhost,127.0.0.1},collector,tempo,prometheus,alertmanager
+volumes:
+  prometheus-data: {}
+  tempo-data: {}

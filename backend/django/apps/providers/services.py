@@ -1,3 +1,4 @@
+from common.observability import observed, inject
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -318,6 +319,7 @@ def _lock_processing_owner(processing_job) -> None:
     lock_processing_job_for_finalization(processing_job)
 
 
+@observed("provider", "invoke_provider_check")
 def invoke_provider_check(
     *,
     provider_check: ProviderCheck,

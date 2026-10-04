@@ -1,3 +1,4 @@
+from common.observability import observed, inject, ENVIRONMENT, environment
 import json
 import socket
 from urllib import error, request
@@ -43,6 +44,7 @@ def _safe_error_reason(response_body: bytes) -> str:
     return ""
 
 
+@observed("ai", "post_json")
 def _post_json(path: str, payload: dict) -> dict:
     base_url = str(
         get_platform_setting_value(
@@ -53,6 +55,8 @@ def _post_json(path: str, payload: dict) -> dict:
     url = f"{base_url.rstrip('/')}{path}"
     data = json.dumps(payload).encode("utf-8")
     headers = {"Content-Type": "application/json"}
+    inject(headers)
+    headers["X-IdentityCore-Environment"] = environment(ENVIRONMENT.get())
     shared_token = str(
         get_platform_setting_value(
             "integrations.ai_service_shared_token",

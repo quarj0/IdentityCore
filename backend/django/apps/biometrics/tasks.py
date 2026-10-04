@@ -1,3 +1,4 @@
+from common.observability import set_verification_environment
 import logging
 from decimal import Decimal
 
@@ -246,6 +247,7 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
         resource=liveness_check,
     )
     verification = liveness_check.verification
+    set_verification_environment(verification)
     processing_job = acquire_processing_job(
         job_type=ProcessingJobType.BIOMETRICS,
         resource=liveness_check,

@@ -1,3 +1,4 @@
+from common.observability import observed, ENVIRONMENT, environment
 import hmac
 import json
 import secrets
@@ -118,6 +119,7 @@ def _build_signature_header(
     webhook_event: WebhookEvent, timestamp: str, payload_bytes: bytes
 ) -> str:
     endpoint = webhook_event.webhook_endpoint
+    ENVIRONMENT.set(environment(endpoint.project.environment if endpoint.project else "sandbox"))
     signing_keys = [endpoint.signing_key]
     if endpoint.previous_secret_overlap_active:
         signing_keys.append(endpoint.previous_signing_key)
@@ -127,6 +129,7 @@ def _build_signature_header(
     )
 
 
+@observed("webhook", "send_webhook_request")
 def _send_webhook_request(
     *, webhook_event: WebhookEvent, payload_bytes: bytes, timestamp: str
 ):

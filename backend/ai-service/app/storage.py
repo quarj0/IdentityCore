@@ -1,3 +1,5 @@
+from app.core import safe_logging  # noqa: F401
+from shared.observability import observed
 from functools import lru_cache
 
 import boto3
@@ -59,6 +61,7 @@ def get_storage_client():
     return boto3.client(**client_kwargs)
 
 
+@observed("storage", "fetch_object_bytes")
 def fetch_object_bytes(storage_key: str, *, bucket_name: str | None = None) -> bytes:
     client = get_storage_client()
     resolved_bucket_name = bucket_name or get_object_storage_media_bucket_name()

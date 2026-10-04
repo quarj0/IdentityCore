@@ -1,3 +1,4 @@
+from common.observability import ENVIRONMENT, environment, set_verification_environment
 import logging
 from ipaddress import ip_address, ip_network
 
@@ -56,6 +57,11 @@ class APIClientAuthentication(BaseAuthentication):
         api_client.save(update_fields=["last_used_at", "updated_at"])
         request.api_client = api_client
         request.tenant = api_client.tenant
+        ENVIRONMENT.set(
+            environment(
+                api_client.project.environment if api_client.project else "sandbox"
+            )
+        )
         return (api_client, raw_secret)
 
     def _is_request_ip_allowed(self, request, allowed_networks: list[str]) -> bool:
@@ -113,6 +119,7 @@ class VerificationSessionAuthentication(BaseAuthentication):
 
         request.verification_session = verification_session
         request.verification = verification_session.verification
+        set_verification_environment(verification_session.verification)
         request.tenant = verification_session.tenant
         return (verification_session, raw_token)
 

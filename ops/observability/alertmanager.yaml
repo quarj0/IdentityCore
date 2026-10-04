@@ -1,0 +1,14 @@
+# Set a real approved receiver before pilot promotion. No outbound destination
+# is supplied by this repository. Silence planned maintenance with bounded TTL.
+route:
+  receiver: configure-before-pilot
+  group_by: [alertname, environment, sli, queue]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 1h
+receivers:
+  - name: configure-before-pilot
+inhibit_rules:
+  - source_matchers: ['severity="critical"']
+    target_matchers: ['severity="warning"']
+    equal: [service, environment, sli]

@@ -1,3 +1,4 @@
+from common.observability import set_verification_environment
 import logging
 from decimal import Decimal
 
@@ -151,6 +152,7 @@ def process_identity_document_task(identity_document_id: str) -> str:
         resource=identity_document,
     )
     verification = identity_document.verification
+    set_verification_environment(verification)
     processing_job = acquire_processing_job(
         job_type=ProcessingJobType.IDENTITY_DOCUMENT,
         resource=identity_document,

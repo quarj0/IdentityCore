@@ -1,0 +1,138 @@
+rule_files:
+- alerts.yaml
+evaluation_interval: 1m
+tests:
+- interval: 1m
+  input_series:
+  - series: identitycore_responses_total{component="api",environment="production",outcome="success"}
+    values: 0+9800x65
+  - series: identitycore_responses_total{component="api",environment="production",outcome="error"}
+    values: 0+200x65
+  alert_rule_test:
+  - eval_time: 60m
+    alertname: IdentityCoreApiBudgetBurnCritical
+    exp_alerts:
+    - exp_labels:
+        severity: critical
+        environment: production
+        service: identitycore
+        sli: api
+      exp_annotations:
+        summary: api error budget burning too quickly
+        runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/slo-alerts.md#api
+- interval: 1m
+  input_series:
+  - series: identitycore_responses_total{component="api",environment="production",outcome="success"}
+    values: 0+9860x65
+  - series: identitycore_responses_total{component="api",environment="production",outcome="error"}
+    values: 0+140x65
+  alert_rule_test:
+  - eval_time: 60m
+    alertname: IdentityCoreApiBudgetBurnCritical
+    exp_alerts: []
+- interval: 1m
+  input_series:
+  - series: identitycore_responses_total{component="api",environment="sandbox",outcome="error"}
+    values: 0+10000x65
+  alert_rule_test:
+  - eval_time: 60m
+    alertname: IdentityCoreApiBudgetBurnCritical
+    exp_alerts: []
+- interval: 1m
+  input_series:
+  - series: identitycore_responses_total{component="api",environment="production",outcome="success"}
+    values: 0+9800x55 549000+10000x10
+  - series: identitycore_responses_total{component="api",environment="production",outcome="error"}
+    values: 0+200x55 11000+0x10
+  alert_rule_test:
+  - eval_time: 65m
+    alertname: IdentityCoreApiBudgetBurnCritical
+    exp_alerts: []
+- interval: 1m
+  input_series:
+  - series: identitycore_backlog_oldest_seconds{queue="processing",environment="production"}
+    values: 400+0x10
+  alert_rule_test:
+  - eval_time: 5m
+    alertname: IdentityCoreQueueStalled
+    exp_alerts:
+    - exp_labels:
+        queue: processing
+        environment: production
+        severity: critical
+        service: identitycore
+      exp_annotations:
+        summary: Production durable work is older than five minutes
+        runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/processing-job-recovery.md
+- interval: 1m
+  input_series:
+  - series: identitycore_processing_completed_total{environment="production",outcome="success"}
+    values: 0+7500x65
+  - series: identitycore_processing_completed_total{environment="production",outcome="error"}
+    values: 0+2500x65
+  alert_rule_test:
+  - eval_time: 60m
+    alertname: IdentityCoreProcessingBudgetBurnCritical
+    exp_alerts:
+    - exp_labels:
+        severity: critical
+        environment: production
+        service: identitycore
+        sli: processing
+      exp_annotations:
+        summary: processing error budget burning too quickly
+        runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/slo-alerts.md#processing
+- interval: 1m
+  input_series:
+  - series: identitycore_operations_total{component="provider",environment="production",outcome="success"}
+    values: 0+7500x65
+  - series: identitycore_operations_total{component="provider",environment="production",outcome="error"}
+    values: 0+2500x65
+  alert_rule_test:
+  - eval_time: 60m
+    alertname: IdentityCoreProviderBudgetBurnCritical
+    exp_alerts:
+    - exp_labels:
+        severity: critical
+        environment: production
+        service: identitycore
+        sli: provider
+      exp_annotations:
+        summary: provider error budget burning too quickly
+        runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/slo-alerts.md#provider
+- interval: 1m
+  input_series:
+  - series: identitycore_operations_total{component="webhook",environment="production",outcome="success"}
+    values: 0+7500x65
+  - series: identitycore_operations_total{component="webhook",environment="production",outcome="error"}
+    values: 0+2500x65
+  alert_rule_test:
+  - eval_time: 60m
+    alertname: IdentityCoreWebhookBudgetBurnCritical
+    exp_alerts:
+    - exp_labels:
+        severity: critical
+        environment: production
+        service: identitycore
+        sli: webhook
+      exp_annotations:
+        summary: webhook error budget burning too quickly
+        runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/slo-alerts.md#webhook
+- interval: 1m
+  input_series:
+  - series: identitycore_operations_total{component="storage",environment="production",outcome="success"}
+    values: 0+7500x65
+  - series: identitycore_operations_total{component="storage",environment="production",outcome="error"}
+    values: 0+2500x65
+  alert_rule_test:
+  - eval_time: 60m
+    alertname: IdentityCoreStorageBudgetBurnCritical
+    exp_alerts:
+    - exp_labels:
+        severity: critical
+        environment: production
+        service: identitycore
+        sli: storage
+      exp_annotations:
+        summary: storage error budget burning too quickly
+        runbook_url: https://github.com/quarj0/IdentityCore/blob/main/docs/operations/slo-alerts.md#storage
