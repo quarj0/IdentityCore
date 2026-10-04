@@ -319,7 +319,7 @@ class VerificationSessionPortalTests(APITestCase):
 
         response = self.client.post(
             reverse("verification-mobile-handoff-redeem"),
-            {"handoff": f"{handoff.public_id}.{raw_handoff_token}"},
+            {"handoff": f"{handoff.public_id}.{raw_handoff_token}", "session_id":self.session.public_id},
             format="json",
         )
 

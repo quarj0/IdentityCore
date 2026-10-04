@@ -194,11 +194,14 @@ export function createMobileHandoff(credentials: SessionCredentials) {
   );
 }
 
-export async function redeemMobileHandoff(handoff: string) {
+export async function redeemMobileHandoff(
+  handoff: string,
+  sourceSessionId: string,
+) {
   const response = await fetch(`${API_BASE}/handoff`, {
     method: "POST",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
-    body: JSON.stringify({ handoff }),
+    body: JSON.stringify({ handoff, session_id: sourceSessionId }),
   });
   const body = await response.text();
   let payload: ApiEnvelope<{

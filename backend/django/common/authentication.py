@@ -105,6 +105,16 @@ class VerificationSessionAuthentication(BaseAuthentication):
         except VerificationSession.DoesNotExist as exc:
             raise _verification_session_rejected("session_not_found") from exc
 
+        if (
+            verification_session.tenant.deleted_at is not None
+            or verification_session.tenant.status in {"suspended", "closed"}
+            or verification_session.verification.deleted_at is not None
+            or verification_session.verification.organization.deleted_at is not None
+            or verification_session.tenant_id
+            != verification_session.verification.tenant_id
+        ):
+            raise _verification_session_rejected("source_inactive")
+
         if not verify_bearer_secret(raw_token, verification_session.session_token_hash):
             raise _verification_session_rejected("token_mismatch")
 

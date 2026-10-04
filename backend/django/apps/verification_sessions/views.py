@@ -1,13 +1,15 @@
 from datetime import timedelta
+from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
-from rest_framework.exceptions import APIException, NotFound, Throttled, ValidationError
+from rest_framework.exceptions import APIException, Throttled, ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 
-from apps.audit.services import record_audit_event
+from apps.audit.services import lock_audit_chain, record_audit_event
+from apps.verifications.transitions import TERMINAL_STATUSES
 from apps.verifications.processing_jobs import (
     queue_biometrics_processing,
     queue_identity_document_processing,
@@ -96,32 +98,74 @@ class VerificationSessionDetailView(VerificationSessionBaseView):
         )
 
 
+def _validate_handoff_source(source):
+    if (
+        source.expires_at <= timezone.now()
+        or source.status
+        not in {VerificationSessionStatus.CREATED, VerificationSessionStatus.ACTIVE}
+        or source.tenant_id != source.verification.tenant_id
+        or source.tenant.deleted_at is not None
+        or source.tenant.status in {"suspended", "closed"}
+        or source.verification.organization.deleted_at is not None
+        or source.verification.deleted_at is not None
+        or source.verification.status in TERMINAL_STATUSES
+        or source.verification.expires_at <= timezone.now()
+        or "mobile_handoff:create" not in source.allowed_actions
+    ):
+        raise ValidationError(
+            {"handoff": "This mobile handoff link is invalid or expired."}
+        )
+
+
 class VerificationMobileHandoffCreateView(VerificationSessionBaseView):
     required_session_action = "mobile_handoff:create"
 
-    def post(self, request, session_id: str):
+    @transaction.atomic
+    def post(self, request, session_id):
+        lock_audit_chain(request.tenant.pk)
+        source_session = (
+            VerificationSession.objects.select_for_update()
+            .select_related("tenant", "verification")
+            .get(pk=request.verification_session.pk)
+        )
+        _validate_handoff_source(source_session)
+        request.verification_session = source_session
         self._touch_session(request)
-        source_session = request.verification_session
-        if source_session.expires_at <= timezone.now():
-            raise ValidationError({"detail": "This verification session has expired."})
+        base = str(
+            get_platform_setting_value(
+                "integrations.verification_portal_base_url",
+                settings.VERIFICATION_PORTAL_BASE_URL,
+            )
+        ).rstrip("/")
+        parsed = urlsplit(base)
+        if (
+            not parsed.hostname
+            or parsed.username
+            or parsed.password
+            or parsed.query
+            or parsed.fragment
+            or parsed.scheme not in ({"http", "https"} if settings.DEBUG else {"https"})
+        ):
+            raise ValidationError(
+                {"detail": "The verification portal URL is unavailable."}
+            )
+        now = timezone.now()
         source_session.mobile_handoffs.filter(
-            redeemed_at__isnull=True, expires_at__gt=timezone.now()
-        ).update(expires_at=timezone.now())
+            redeemed_at__isnull=True, expires_at__gt=now
+        ).update(expires_at=now)
         raw_token = VerificationMobileHandoff.generate_token()
         expires_at = min(
             source_session.expires_at,
-            timezone.now() + timedelta(minutes=5),
+            source_session.verification.expires_at,
+            now + timedelta(minutes=5),
         )
         handoff = VerificationMobileHandoff(
-            source_session=source_session,
-            expires_at=expires_at,
-            token_hash="",
+            source_session=source_session, expires_at=expires_at, token_hash=""
         )
         handoff.set_token(raw_token)
         handoff.save()
         handoff_url = (
-            f"{str(get_platform_setting_value('integrations.verification_portal_base_url', settings.VERIFICATION_PORTAL_BASE_URL)).rstrip('/')}/{source_session.public_id}"
-            f"?handoff={handoff.public_id}.{raw_token}"
+            f"{base}/{source_session.public_id}#handoff={handoff.public_id}.{raw_token}"
         )
         record_audit_event(
             tenant=request.tenant,
@@ -144,34 +188,53 @@ class VerificationMobileHandoffCreateView(VerificationSessionBaseView):
 class VerificationMobileHandoffRedeemView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
+    throttle_classes = [SensitivePublicRateThrottle]
 
     @transaction.atomic
     def post(self, request):
-        handoff_value = str(request.data.get("handoff", ""))
-        handoff_id, separator, raw_token = handoff_value.partition(".")
-        if not separator or not raw_token:
+        handoff_value = request.data.get("handoff", "")
+        expected_session = request.data.get("session_id", "")
+        if (
+            not isinstance(handoff_value, str)
+            or len(handoff_value) > 192
+            or not isinstance(expected_session, str)
+            or not expected_session
+            or len(expected_session) > 64
+        ):
             raise ValidationError({"handoff": "This mobile handoff link is invalid."})
-        handoff = (
-            VerificationMobileHandoff.objects.select_for_update()
-            .select_related("source_session", "source_session__verification")
-            .filter(public_id=handoff_id)
+        handoff_id, separator, raw_token = handoff_value.partition(".")
+        if not separator or not raw_token or len(raw_token) > 128:
+            raise ValidationError({"handoff": "This mobile handoff link is invalid."})
+        candidate = (
+            VerificationMobileHandoff.objects.select_related("source_session")
+            .filter(public_id=handoff_id, source_session__public_id=expected_session)
             .first()
         )
-        if handoff is None or not handoff.matches_token(raw_token):
-            raise NotFound("This mobile handoff link is invalid.")
-        if handoff.redeemed_at is not None:
+        if candidate is None:
+            raise ValidationError({"handoff": "This mobile handoff link is invalid."})
+        lock_audit_chain(candidate.source_session.tenant_id)
+        source = (
+            VerificationSession.objects.select_for_update()
+            .select_related("tenant", "verification")
+            .get(pk=candidate.source_session_id)
+        )
+        handoff = VerificationMobileHandoff.objects.select_for_update().get(
+            pk=candidate.pk
+        )
+        if (
+            not handoff.matches_token(raw_token)
+            or handoff.redeemed_at is not None
+            or handoff.expires_at <= timezone.now()
+        ):
             raise ValidationError(
-                {"handoff": "This mobile handoff link has already been used."}
+                {"handoff": "This mobile handoff link is invalid or expired."}
             )
-        if handoff.expires_at <= timezone.now():
-            raise ValidationError({"handoff": "This mobile handoff link has expired."})
-
-        source = handoff.source_session
+        _validate_handoff_source(source)
         session_token = VerificationSession.generate_session_token()
         mobile_session = VerificationSession(
             verification=source.verification,
             tenant=source.tenant,
-            expires_at=source.expires_at,
+            expires_at=min(source.expires_at, source.verification.expires_at),
             allowed_actions_json=list(source.allowed_actions),
         )
         mobile_session.set_session_token(session_token, generated=True)

@@ -2012,10 +2012,15 @@ paths:
           application/json:
             schema:
               type: object
-              required: [handoff]
+              required: [handoff, session_id]
               properties:
+                session_id:
+                  type: string
+                  maxLength: 64
+                  description: The source session identified by the QR link.
                 handoff:
                   type: string
+                  maxLength: 192
       responses:
         "200":
           description: A new verification session was issued.
