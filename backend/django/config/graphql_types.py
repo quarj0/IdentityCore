@@ -70,6 +70,7 @@ class ManualReviewNode:
 @strawberry.type
 class VerificationPolicyNode:
     document_consistency_rules: JSON
+    reuse_rules: JSON
     document_authenticity_required: bool
     document_authenticity_min_confidence: float
     external_risk_enabled: bool

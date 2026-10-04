@@ -101,13 +101,16 @@ def evaluate_risk_assessment(verification, *, external_evidence=None) -> RiskAss
         and (not authenticity or authenticity.get("requires_manual_review", True))
     )
     from apps.identity_documents.consistency import collect_consistency
+    from apps.risk.reuse import collect_reuse
 
     consistency = (
         collect_consistency(latest_identity_document, verification)
         if latest_identity_document
         else None
     )
+    reuse = collect_reuse(verification)
     signals = {
+        "duplicate_velocity": reuse,
         "document_consistency": consistency,
         "document_authenticity": _safe_authenticity_evidence(authenticity),
         "document_submitted": verification.identity_documents.exists(),
@@ -211,6 +214,14 @@ def evaluate_risk_assessment(verification, *, external_evidence=None) -> RiskAss
             RiskLevel.HIGH,
             RiskRecommendation.MANUAL_REVIEW,
         )
+
+    if (
+        reuse["recommended_action"] == "manual_review"
+        and recommendation != RiskRecommendation.REJECT
+    ):
+        risk_score = max(risk_score, Decimal("75.00"))
+        risk_level = RiskLevel.HIGH
+        recommendation = RiskRecommendation.MANUAL_REVIEW
 
     from apps.risk.external import (
         apply_external_risk,

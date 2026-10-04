@@ -37,6 +37,7 @@ export interface Policy {
   required_liveness_level: string;
   face_match_threshold: number;
   manual_review_threshold: number;
+  reuse_rules?: Record<string, unknown>;
   document_consistency_rules?: Record<string, unknown>;
   document_authenticity_required?: boolean;
   document_authenticity_min_confidence?: number;
@@ -130,6 +131,7 @@ export interface VerificationPolicyCreateRequest {
   required_liveness_level: string;
   face_match_threshold: number;
   manual_review_threshold: number;
+  reuse_rules?: Record<string, unknown>;
   document_consistency_rules?: Record<string, unknown>;
   document_authenticity_required?: boolean;
   document_authenticity_min_confidence?: number;

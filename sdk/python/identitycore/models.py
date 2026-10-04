@@ -59,6 +59,7 @@ class _PolicyRequired(TypedDict):
 
 class Policy(_PolicyRequired, total=False):
     description: str
+    reuse_rules: dict[str, Any]
     document_consistency_rules: dict[str, Any]
     document_authenticity_required: bool
     document_authenticity_min_confidence: float
@@ -190,6 +191,7 @@ class VerificationPolicyCreateRequest(
     consent_template_id: str
     default_locale: str
     supported_locales: list[str]
+    reuse_rules: dict[str, Any]
     document_consistency_rules: dict[str, Any]
     document_authenticity_required: bool
     document_authenticity_min_confidence: float

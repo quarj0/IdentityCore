@@ -83,7 +83,8 @@
         "liveness video",
         "face embedding",
         "match/liveness scores",
-        "quality and fraud signals"
+        "quality and fraud signals",
+        "optional keyed document/portrait/device/network reuse fingerprints"
       ],
       "purpose": "Assess document authenticity, extract asserted identity data, and produce biometric match/liveness evidence.",
       "locations": [
@@ -91,7 +92,8 @@
         "backend/django/apps/document_captures/models.py",
         "backend/django/apps/biometrics/models.py",
         "backend/django/apps/uploads/models.py",
-        "backend/ai-service/app"
+        "backend/ai-service/app",
+        "backend/django/apps/risk/models.py"
       ],
       "retention": "Uploads begin in temporary storage, move to protected media/evidence storage when consumed, and are deleted by tenant policy; derived biometric data follows the shortest applicable media/biometric period.",
       "processors": [
@@ -3246,6 +3248,51 @@
     },
     {
       "source": "backend/django/apps/risk/models.py",
+      "field": "ReuseFingerprint.environment",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/risk/models.py",
+      "field": "ReuseFingerprint.expires_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/risk/models.py",
+      "field": "ReuseFingerprint.global_digest",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/risk/models.py",
+      "field": "ReuseFingerprint.id",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/risk/models.py",
+      "field": "ReuseFingerprint.kind",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/risk/models.py",
+      "field": "ReuseFingerprint.observed_at",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/risk/models.py",
+      "field": "ReuseFingerprint.tenant",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/risk/models.py",
+      "field": "ReuseFingerprint.tenant_digest",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/risk/models.py",
+      "field": "ReuseFingerprint.verification",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/risk/models.py",
       "field": "RiskAssessment.created_at",
       "activity": "verification-subject-and-session"
     },
@@ -3817,6 +3864,11 @@
     {
       "source": "backend/django/apps/verification_policies/models.py",
       "field": "VerificationPolicy.required_liveness_level",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.reuse_rules_json",
       "activity": "workflow-configuration-and-operations"
     },
     {
