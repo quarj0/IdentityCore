@@ -42,3 +42,9 @@ approved risk appetite and cohort requirements; use separate locked evaluations
 for cohorts and attack families, and retain uncertainty/sample-size analysis in
 the model review. The harness bounds JSON, row counts and text lengths and rejects
 missing/duplicate IDs, nonfinite scores, unsupported fields, and lineage drift.
+
+OCR disagreement comparisons are capped at 20 million aggregate character/token
+edit-distance cells before any distance calculation. Exact matching strings use
+a constant-result fast path. Split larger approved evaluations into locked cohorts;
+retain their separately locked aggregate reports rather than raising the runtime
+bound silently. Every gate is validated before pass/fail aggregation.

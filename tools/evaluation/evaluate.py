@@ -29,10 +29,15 @@ def unique_object(pairs):
     return result
 
 
-def read_json(path):
+def read_json(path, expected_sha=None):
     require(path.stat().st_size <= 32 * 1024 * 1024)
     try:
-        return json.loads(path.read_text(), object_pairs_hook=unique_object)
+        with path.open("rb") as source:
+            content = source.read(32 * 1024 * 1024 + 1)
+        require(len(content) <= 32 * 1024 * 1024)
+        if expected_sha is not None:
+            require(hashlib.sha256(content).hexdigest() == expected_sha)
+        return json.loads(content.decode("utf-8"), object_pairs_hook=unique_object)
     except (ValueError, UnicodeError):
         raise EvaluationError("Invalid evaluation JSON.") from None
 
@@ -76,6 +81,8 @@ def rows(value, field):
 
 
 def distance(left, right):
+    if left == right:
+        return 0
     previous = list(range(len(right) + 1))
     for i, a in enumerate(left, 1):
         current = [i]
@@ -112,9 +119,8 @@ def binary_metrics(truth, predictions, threshold):
 
 
 def ocr_metrics(truth, predictions):
-    characters = words = character_errors = word_errors = overlap = expected = (
-        actual
-    ) = 0
+    comparisons = []
+    work = 0
     for key, reference in truth.items():
         prediction = predictions[key]
         require(
@@ -125,6 +131,15 @@ def ocr_metrics(truth, predictions):
         )
         left, right = reference.split(), prediction.split()
         require(len(left) <= 256 and len(right) <= 256)
+        work += (len(reference) * len(prediction) if reference != prediction else 0) + (
+            len(left) * len(right) if left != right else 0
+        )
+        require(work <= 20_000_000)
+        comparisons.append((reference, prediction, left, right))
+    characters = words = character_errors = word_errors = overlap = expected = (
+        actual
+    ) = 0
+    for reference, prediction, left, right in comparisons:
         characters += len(reference)
         words += len(left)
         character_errors += distance(reference, prediction)
@@ -183,7 +198,10 @@ def evaluate(manifest_path):
         )
         model = locked_file(root, config["model"])
         dataset = locked_file(root, config["dataset"])
-        predictions = read_json(locked_file(root, config["predictions"]))
+        predictions = read_json(
+            locked_file(root, config["predictions"]),
+            expected_sha=config["predictions"]["sha256"],
+        )
         require(
             isinstance(predictions, dict)
             and set(predictions)
@@ -194,7 +212,10 @@ def evaluate(manifest_path):
             and predictions["model_version"] == version
             and predictions["dataset_sha256"] == digest(dataset)
         )
-        truth = rows(read_json(dataset), "text" if task == "ocr" else "label")
+        truth = rows(
+            read_json(dataset, expected_sha=config["dataset"]["sha256"]),
+            "text" if task == "ocr" else "label",
+        )
         outputs = rows(predictions["rows"], "text" if task == "ocr" else "score")
         require(set(truth) == set(outputs))
         threshold = config["threshold"]
@@ -217,11 +238,12 @@ def evaluate(manifest_path):
             }
         )
         require(isinstance(gates, dict) and set(gates) == required_gates)
+        gates = {name: finite(bound) for name, bound in gates.items()}
         passed = all(
             (
-                metrics[name] >= finite(bound)
+                metrics[name] >= bound
                 if name in {"precision", "recall"}
-                else metrics[name] <= finite(bound)
+                else metrics[name] <= bound
             )
             for name, bound in gates.items()
         )
@@ -247,7 +269,9 @@ def main():
     args = parser.parse_args()
     try:
         report = evaluate(args.manifest)
-        args.report.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n")
+        args.report.write_text(
+            json.dumps(report, sort_keys=True, indent=2, allow_nan=False) + "\n"
+        )
     except (EvaluationError, OSError, TypeError, KeyError, RecursionError):
         parser.exit(2, "Evaluation failed: invalid private inputs or lock mismatch.\n")
     return 0 if report["passed"] else 1

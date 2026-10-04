@@ -47,8 +47,10 @@ class LockedEvaluationTests(unittest.TestCase):
                     }
                 )
             )
+
             def lock(path):
                 return {"path": path.name, "sha256": evaluation.digest(path)}
+
             gates = (
                 {
                     "precision": 1,
@@ -142,6 +144,29 @@ class LockedEvaluationTests(unittest.TestCase):
         self.save()
         with self.assertRaises(evaluation.EvaluationError):
             evaluation.evaluate(self.path)
+
+    def test_failed_metric_cannot_hide_a_later_nonfinite_gate(self):
+        self.manifest["tasks"]["face_match"]["threshold"] = 0.99
+        self.manifest["tasks"]["face_match"]["gates"]["recall"] = float("nan")
+        self.save()
+        with self.assertRaises(evaluation.EvaluationError):
+            evaluation.evaluate(self.path)
+
+    def test_aggregate_ocr_work_is_rejected_before_distance_computation(self):
+        from unittest.mock import patch
+
+        truth = {str(i): "x" * 2048 for i in range(5)}
+        predictions = {str(i): "y" * 2048 for i in range(5)}
+        with patch.object(evaluation, "distance") as distance:
+            with self.assertRaises(evaluation.EvaluationError):
+                evaluation.ocr_metrics(truth, predictions)
+            distance.assert_not_called()
+
+    def test_large_identical_ocr_data_uses_exact_match_fast_path(self):
+        truth = {str(i): "x" * 2048 for i in range(100)}
+        self.assertEqual(
+            evaluation.ocr_metrics(truth, truth)["character_error_rate"], 0
+        )
 
 
 if __name__ == "__main__":
