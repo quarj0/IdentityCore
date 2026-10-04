@@ -3,8 +3,15 @@
 The machine-checked [`processing-inventory.json`](processing-inventory.json) is the
 repository record of processing activities (ROPA). It groups sensitive model fields by
 processing purpose and records their code/storage location, retention rule, processors,
-transfer boundary, and accountable roles. The grouping is intentional: migrations may
-split one logical attribute into several columns without changing its processing purpose.
+transfer boundary, and accountable roles. Schema v2 also catalogs every declared persisted model field (including encrypted
+JSON containers and inherited authentication state) by exact source, model and
+field. Each catalog entry resolves to its processing activity's purpose, locations,
+retention, processors, transfer notes and owner roles. This deliberately includes
+non-sensitive configuration/identifiers so a future sensitive field cannot escape
+coverage through a classification omission. JSON containers cover all nested
+payloads; versioned provider contracts and policy schemas define their contents.
+The linked owner register records accountable roles, responsibilities and actual
+repository paths; deployment personnel are assigned in the controlled register.
 
 ## Data flow
 
@@ -30,7 +37,20 @@ split one logical attribute into several columns without changing its processing
   incident controls. Deployment-specific processor names, regions, subprocessors, and
   transfer safeguards belong in the controlled deployment register.
 - Run `python scripts/check_processing_inventory.py`. CI rejects missing owner keys,
-  required metadata, duplicate activity IDs, and source paths that no longer exist.
+  required metadata, duplicate activity IDs/fields, missing/stale persisted fields,
+  owner-register drift and source/owner paths that no longer exist. Run
+  `python -m unittest discover -s scripts -p test_processing_inventory.py` for
+  validator regressions. Field additions/removals must update `field_catalog` in
+  the same PR; choose and review the processing activity rather than silently
+  auto-accepting newly discovered fields.
+- Approved provider manifests supply capability, environment, processor, residency,
+  retention and transfer declarations. Review those alongside provider configuration
+  approvals and the deployment processor register before assigning traffic. The
+  inventory links provider models/runtime/runbooks and explicitly distinguishes
+  encrypted credentials, provider evidence and minimal external risk inputs.
+- API quota records contain only tenant/environment/client-window counters, remain
+  in PostgreSQL/dashboard, and expire after 90 days. Workflow and operational model
+  fields have an explicit activity rather than falling outside the inventory.
 
 This inventory describes repository-controlled processing, not a claim of legal
 completeness for every deployment. Each controller must add lawful bases, local

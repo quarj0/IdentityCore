@@ -1,0 +1,42 @@
+{
+  "privacy": {
+    "role": "Privacy lead",
+    "responsibility": "Approve purposes, retention and transfer controls.",
+    "paths": [
+      "docs/privacy/records-of-processing.md",
+      "backend/django/apps/verification_subjects/models.py"
+    ]
+  },
+  "security": {
+    "role": "Security lead",
+    "responsibility": "Maintain access, encryption and incident controls.",
+    "paths": [
+      "docs/privacy/records-of-processing.md",
+      "backend/django/apps/security/models.py"
+    ]
+  },
+  "identity": {
+    "role": "Identity domain owner",
+    "responsibility": "Maintain subject and identity evidence processing.",
+    "paths": [
+      "docs/privacy/records-of-processing.md",
+      "backend/django/apps/identity_documents/models.py"
+    ]
+  },
+  "platform": {
+    "role": "Platform engineering owner",
+    "responsibility": "Maintain platform configuration and integrations.",
+    "paths": [
+      "docs/privacy/records-of-processing.md",
+      "backend/django/apps/providers/models.py"
+    ]
+  },
+  "support": {
+    "role": "Support operations owner",
+    "responsibility": "Maintain support processing and access.",
+    "paths": [
+      "docs/privacy/records-of-processing.md",
+      "backend/django/apps/support/models.py"
+    ]
+  }
+}

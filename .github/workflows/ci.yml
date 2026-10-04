@@ -51,7 +51,9 @@ jobs:
       - name: Validate implementation backlog
         run: python scripts/sync_github_issues.py
       - name: Validate records-of-processing inventory
-        run: python scripts/check_processing_inventory.py
+        run: |
+          python scripts/check_processing_inventory.py
+          python -m unittest discover -s scripts -p test_processing_inventory.py
 
   backend:
     runs-on: ubuntu-latest
