@@ -273,6 +273,21 @@ def activate_configuration(*, config, user):
         and locked.provider.tenant.organization.status != "active"
     ):
         raise ValidationError("Production requires an approved organization.")
+    if locked.environment == "production":
+        source = (
+            ProviderEnvironmentConfiguration.objects.select_for_update(no_key=True)
+            .filter(
+                pk=locked.source_id,
+                provider_id=locked.provider_id,
+                environment="sandbox",
+                status="active",
+            )
+            .first()
+        )
+        if source is None:
+            raise ValidationError(
+                "Production promotion requires its active sandbox source."
+            )
     locked.provider.environment_configurations.filter(
         environment=locked.environment, status="active"
     ).update(status="retired", updated_at=timezone.now())
@@ -286,6 +301,14 @@ def activate_configuration(*, config, user):
 @transaction.atomic
 def assign_configuration(*, config, user, capability, countries=(), document_types=()):
     _require(user, config.provider)
+    if capability not in {
+        "document_quality",
+        "document_classification",
+        "document_ocr",
+        "face_match",
+        "liveness",
+    }:
+        raise ValidationError("This capability has no supported verification runtime.")
     Tenant.objects.select_for_update(no_key=True).get(pk=config.provider.tenant_id)
     Provider.objects.select_for_update(no_key=True).get(pk=config.provider_id)
     config.refresh_from_db()

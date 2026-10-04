@@ -309,3 +309,30 @@ class ConfigurationTests(TestCase):
                 credentials=self.credentials,
                 source=sandbox,
             )
+
+    def test_retired_sandbox_source_cannot_be_promoted(self):
+        source = self.sandbox()
+        production = create_configuration(
+            provider=self.provider,
+            user=self.requester,
+            environment="production",
+            source=source,
+            public_configuration=self.public,
+            credentials={"api_key": "separate-production-credential"},
+        )
+        production = self.connection_checked(production)
+        self.sandbox()
+        with self.assertRaisesMessage(ValidationError, "active sandbox source"):
+            activate_configuration(config=production, user=self.approver)
+        production.refresh_from_db()
+        self.assertEqual(production.status, "draft")
+
+    def test_unsupported_runtime_cannot_be_assigned(self):
+        config = self.sandbox()
+        for capability in ("risk_check", "identity_lookup"):
+            with self.subTest(capability=capability), self.assertRaisesMessage(
+                ValidationError, "supported verification runtime"
+            ):
+                assign_configuration(
+                    config=config, user=self.requester, capability=capability
+                )
