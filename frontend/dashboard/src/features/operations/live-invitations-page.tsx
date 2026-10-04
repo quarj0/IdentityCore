@@ -22,19 +22,38 @@ export function LiveInvitationsPage() {
   const load = () =>
     dashboardApi.invitations().then((x) => setItems(x.results));
   useEffect(() => {
-    load();
-    dashboardApi.roles().then((x) => {
-      setRoles(x.results);
-      setRole(x.results[0]?.id ?? "");
-    });
+    load().catch(() =>
+      setMessage(
+        "Invitations could not be loaded. Organization management access is required.",
+      ),
+    );
+    dashboardApi
+      .roles()
+      .then((x) => {
+        setRoles(x.results);
+        setRole(x.results[0]?.id ?? "");
+      })
+      .catch(() => setMessage("Roles could not be loaded."));
   }, []);
   async function invite() {
     try {
+      setMessage("");
       await dashboardApi.createInvitation({ email, role_id: role });
       setEmail("");
       await load();
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "Invitation failed.");
+    }
+  }
+  async function change(id: string, action: "resend" | "revoke") {
+    try {
+      setMessage("");
+      await dashboardApi.invitationAction(id, action);
+      await load();
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Invitation action failed.",
+      );
     }
   }
   return (
@@ -44,29 +63,38 @@ export function LiveInvitationsPage() {
         description="Invite tenant members into an existing role."
       />
       <Card>
-        <CardContent className="grid gap-3 p-6 md:grid-cols-[1fr_220px_auto]">
-          <Input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="person@company.com"
-          />
-          <Select value={role} onValueChange={setRole}>
-            <SelectTrigger>
-              <SelectValue placeholder="Role" />
-            </SelectTrigger>
-            <SelectContent>
-              {roles.map((x) => (
-                <SelectItem value={x.id} key={x.id}>
-                  {x.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button onClick={invite} disabled={!email || !role}>
-            Send invitation
-          </Button>
-        </CardContent>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void invite();
+          }}
+        >
+          <CardContent className="grid gap-3 p-6 md:grid-cols-[1fr_220px_auto]">
+            <Input
+              type="email"
+              required
+              aria-label="Recipient email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="person@company.com"
+            />
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger>
+                <SelectValue placeholder="Role" />
+              </SelectTrigger>
+              <SelectContent>
+                {roles.map((x) => (
+                  <SelectItem value={x.id} key={x.id}>
+                    {x.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button type="submit" disabled={!email || !role}>
+              Send invitation
+            </Button>
+          </CardContent>
+        </form>
       </Card>
       {message ? <p className="text-sm text-red-700">{message}</p> : null}
       <div className="space-y-3">
@@ -77,6 +105,16 @@ export function LiveInvitationsPage() {
               <span className="capitalize text-slate-500">
                 {String(x.role)} · {String(x.status)}
               </span>
+              {(x.status === "pending" || x.status === "expired") && (
+                <div className="flex gap-2">
+                  <Button onClick={() => void change(String(x.id), "resend")}>
+                    Resend
+                  </Button>
+                  <Button onClick={() => void change(String(x.id), "revoke")}>
+                    Revoke
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
