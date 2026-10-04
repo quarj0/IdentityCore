@@ -1,8 +1,14 @@
-from fastapi import FastAPI
+from app.core.safe_logging import install_safe_logging
 
-from app.core.auth import enforce_internal_token as _enforce_internal_token
-from app.routers.health import healthcheck, readiness, router as health_router
-from app.routers.processing import (
+# Install before importing processing modules so initialization failures and
+# exception paths cannot emit raw evidence or credentials.
+install_safe_logging()
+
+from fastapi import FastAPI  # noqa: E402
+
+from app.core.auth import enforce_internal_token as _enforce_internal_token  # noqa: E402
+from app.routers.health import healthcheck, readiness, router as health_router  # noqa: E402
+from app.routers.processing import (  # noqa: E402
     document_classify,
     document_ocr,
     document_quality,
@@ -10,8 +16,8 @@ from app.routers.processing import (
     liveness_check,
     router as processing_router,
 )
-from app.runtime import configure_runtime_environment
-from app.schemas.processing import (
+from app.runtime import configure_runtime_environment  # noqa: E402
+from app.schemas.processing import (  # noqa: E402
     AIResultResponse,
     DocumentClassificationRequest,
     DocumentOCRRequest,
@@ -21,7 +27,7 @@ from app.schemas.processing import (
     LivenessCheckRequest,
     ReadinessResponse,
 )
-from app.settings import get_settings
+from app.settings import get_settings  # noqa: E402
 
 
 settings = get_settings()
