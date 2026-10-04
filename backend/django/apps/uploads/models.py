@@ -49,6 +49,9 @@ class Upload(PublicIdModel, BaseModel):
     mime_type = models.CharField(max_length=100)
     file_size_bytes = models.PositiveBigIntegerField()
     checksum_sha256 = models.CharField(max_length=64, blank=True)
+    capture_provenance_version = models.PositiveSmallIntegerField(default=0)
+    capture_method = models.CharField(max_length=32, default="unreported")
+    capture_receipt = models.TextField(blank=True)
     quarantine_reason = models.CharField(max_length=128, blank=True)
     status = models.CharField(
         max_length=32,

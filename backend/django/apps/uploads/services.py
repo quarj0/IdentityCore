@@ -50,6 +50,7 @@ def create_upload(
     mime_type: str,
     file_size_bytes: int,
     expires_at,
+    capture_method="unreported",
 ) -> Upload:
     verification = verification_session.verification
     upload = Upload(
@@ -62,6 +63,8 @@ def create_upload(
         mime_type=mime_type,
         file_size_bytes=file_size_bytes,
         status=UploadStatus.INITIATED,
+        capture_method=capture_method,
+        capture_provenance_version=1,
         expires_at=expires_at,
     )
     upload.ensure_public_id()

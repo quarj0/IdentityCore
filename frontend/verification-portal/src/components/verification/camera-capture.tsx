@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Camera, ImagePlus, Loader2, RefreshCw, Upload } from "lucide-react";
 
 import { Button, Input } from "@identitycore/ui";
+import { recordCapture } from "@/lib/capture-provenance";
 import { localizeText } from "@/lib/i18n";
 
 interface CameraCaptureProps {
@@ -55,7 +56,10 @@ export function CameraCapture({
   async function startCamera() {
     if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
       setError(
-        localizeText(locale, "Your browser blocks live camera access on this HTTP address. Upload an image below, or use HTTPS or localhost for camera capture."),
+        localizeText(
+          locale,
+          "Your browser blocks live camera access on this HTTP address. Upload an image below, or use HTTPS or localhost for camera capture.",
+        ),
       );
       return;
     }
@@ -79,7 +83,10 @@ export function CameraCapture({
           if (stoppingCameraRef.current) return;
           stopCamera();
           setError(
-            localizeText(locale, "The camera is no longer available. Enable it and try again."),
+            localizeText(
+              locale,
+              "The camera is no longer available. Enable it and try again.",
+            ),
           );
         },
         { once: true },
@@ -93,8 +100,14 @@ export function CameraCapture({
       const name = caught instanceof DOMException ? caught.name : "";
       setError(
         name === "NotAllowedError"
-          ? localizeText(locale, "Camera permission is blocked. Enable it in your browser settings or upload an image.")
-          : localizeText(locale, "We could not start a usable camera. Upload a clear image to continue."),
+          ? localizeText(
+              locale,
+              "Camera permission is blocked. Enable it in your browser settings or upload an image.",
+            )
+          : localizeText(
+              locale,
+              "We could not start a usable camera. Upload a clear image to continue.",
+            ),
       );
     } finally {
       setStarting(false);
@@ -104,7 +117,12 @@ export function CameraCapture({
   function capture() {
     const video = videoRef.current;
     if (!video?.videoWidth || !video.videoHeight) {
-      setError(localizeText(locale, "The camera is still preparing. Wait a moment and try again."));
+      setError(
+        localizeText(
+          locale,
+          "The camera is still preparing. Wait a moment and try again.",
+        ),
+      );
       return;
     }
     const canvas = document.createElement("canvas");
@@ -113,7 +131,10 @@ export function CameraCapture({
     const context = canvas.getContext("2d");
     if (!context) {
       setError(
-        localizeText(locale, "Your browser could not capture this image. Upload one instead."),
+        localizeText(
+          locale,
+          "Your browser could not capture this image. Upload one instead.",
+        ),
       );
       return;
     }
@@ -121,13 +142,21 @@ export function CameraCapture({
     canvas.toBlob(
       (blob) => {
         if (!blob) {
-          setError(localizeText(locale, "The image could not be created. Please try again."));
+          setError(
+            localizeText(
+              locale,
+              "The image could not be created. Please try again.",
+            ),
+          );
           return;
         }
         onCapture(
-          new File([blob], `${facingMode}-capture-${Date.now()}.jpg`, {
-            type: "image/jpeg",
-          }),
+          recordCapture(
+            new File([blob], `${facingMode}-capture-${Date.now()}.jpg`, {
+              type: "image/jpeg",
+            }),
+            "camera",
+          ),
         );
         stopCamera();
       },
@@ -155,8 +184,10 @@ export function CameraCapture({
               {localizeText(locale, "Camera preview")}
             </p>
             <p className="mt-1 max-w-xs text-xs leading-5 text-slate-400">
-              {localizeText(locale, "Allow camera access when prompted. Nothing is submitted until you review the image.")}
-
+              {localizeText(
+                locale,
+                "Allow camera access when prompted. Nothing is submitted until you review the image.",
+              )}
             </p>
           </div>
         ) : facingMode === "environment" ? (
@@ -207,7 +238,9 @@ export function CameraCapture({
             ) : (
               <Camera className="h-4 w-4" />
             )}
-            {starting ? localizeText(locale, "Starting camera…") : localizeText(locale, "Use camera")}
+            {starting
+              ? localizeText(locale, "Starting camera…")
+              : localizeText(locale, "Use camera")}
           </Button>
         ) : (
           <Button type="button" onClick={capture} className="flex-1">

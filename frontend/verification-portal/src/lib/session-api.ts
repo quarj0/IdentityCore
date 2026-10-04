@@ -1,5 +1,7 @@
 "use client";
 
+import { reportedCaptureMethod } from "@/lib/capture-provenance";
+
 const API_BASE = "/api/verification";
 const REQUEST_TIMEOUT_MS = 30_000;
 
@@ -260,6 +262,7 @@ export async function createUpload(
       purpose,
       mime_type: file.type,
       file_size_bytes: file.size,
+      capture_method: reportedCaptureMethod(file),
     }),
   });
   const uploadUrl = upload.upload_url.trim();
