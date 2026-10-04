@@ -9,16 +9,22 @@ export default function APIUsagePage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const load = useCallback(async () => {
-    setLoading(true); setError("");
     try { setUsage((await restRequest<{ results: Usage[] }>("/api-clients/usage")).results); }
     catch { setError("API usage could not be loaded. Organization access is required."); }
     finally { setLoading(false); }
   }, []);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    let active = true;
+    void restRequest<{ results: Usage[] }>("/api-clients/usage")
+      .then((response) => { if (active) setUsage(response.results); })
+      .catch(() => { if (active) setError("API usage could not be loaded. Organization access is required."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
   return <div className="space-y-6 p-6">
     <h1 className="text-2xl font-semibold">API usage</h1>
     <p>Organization quotas are shared by API clients within each environment. Counts include requests admitted by the quota check, even when a later operation fails.</p>
-    <button className="rounded-lg border p-2" disabled={loading} onClick={() => void load()}>{loading ? "Loading..." : "Refresh usage"}</button>
+    <button className="rounded-lg border p-2" disabled={loading} onClick={() => { setLoading(true); setError(""); void load(); }}>{loading ? "Loading..." : "Refresh usage"}</button>
     {error && <p role="alert">{error}</p>}
     {usage.map((item) => <section key={item.environment} className="rounded-xl border p-4">
       <h2 className="text-xl font-semibold capitalize">{item.environment}</h2>
