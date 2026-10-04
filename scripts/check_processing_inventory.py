@@ -52,42 +52,86 @@ def model_fields(root):
                     known_models.add(model.name)
         if known_models == before:
             break
-    for relative, tree in sources:
-        for model in (
-            node
-            for node in tree.body
-            if isinstance(node, ast.ClassDef) and node.name in known_models
-        ):
-            for node in model.body:
-                value = getattr(node, "value", None)
-                if not isinstance(value, ast.Call):
-                    continue
-                name = (
-                    value.func.attr
-                    if isinstance(value.func, ast.Attribute)
-                    else value.func.id if isinstance(value.func, ast.Name) else ""
+    definitions = {
+        node.name: (relative, node)
+        for relative, tree in sources
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name in known_models
+    }
+    framework_fields = {
+        "AbstractBaseUser": {"password", "last_login"},
+        "PermissionsMixin": {"is_superuser", "groups", "user_permissions"},
+    }
+
+    def abstract(model):
+        return any(
+            isinstance(meta, ast.ClassDef)
+            and meta.name == "Meta"
+            and any(
+                isinstance(item, ast.Assign)
+                and any(
+                    isinstance(target, ast.Name) and target.id == "abstract"
+                    for target in item.targets
                 )
-                if not (
-                    name.endswith("Field")
-                    or name in {"ForeignKey", "OneToOneField", "ManyToManyField"}
-                ):
-                    continue
-                targets = (
-                    node.targets
-                    if isinstance(node, ast.Assign)
-                    else [node.target] if isinstance(node, ast.AnnAssign) else []
-                )
-                for target in targets:
-                    if isinstance(target, ast.Name):
-                        result.add((relative, model.name + "." + target.id))
-            # Framework-inherited authentication state is persisted too.
-            base_names = {base.id for base in model.bases if isinstance(base, ast.Name)}
-            inherited = []
-            if "AbstractBaseUser" in base_names:
-                inherited += ["password", "last_login"]
-            if "PermissionsMixin" in base_names:
-                inherited += ["is_superuser", "groups", "user_permissions"]
-            result.update((relative, model.name + "." + field) for field in inherited)
+                and isinstance(item.value, ast.Constant)
+                and item.value.value is True
+                for item in meta.body
+            )
+            for meta in model.body
+        )
+
+    def fields(name, visiting=frozenset()):
+        if name in framework_fields:
+            return framework_fields[name], False
+        if name in visiting:
+            raise ValueError("cyclic model inheritance")
+        _, model = definitions[name]
+        found, primary_key = set(), False
+        for base in model.bases:
+            if isinstance(base, ast.Name) and (
+                base.id in framework_fields
+                or (base.id in definitions and abstract(definitions[base.id][1]))
+            ):
+                inherited, inherited_pk = fields(base.id, visiting | {name})
+                found.update(inherited)
+                primary_key |= inherited_pk
+        for node in model.body:
+            value = getattr(node, "value", None)
+            if not isinstance(value, ast.Call):
+                continue
+            field_type = (
+                value.func.attr
+                if isinstance(value.func, ast.Attribute)
+                else value.func.id if isinstance(value.func, ast.Name) else ""
+            )
+            if not (
+                field_type.endswith("Field")
+                or field_type in {"ForeignKey", "OneToOneField", "ManyToManyField"}
+            ):
+                continue
+            targets = (
+                node.targets
+                if isinstance(node, ast.Assign)
+                else [node.target] if isinstance(node, ast.AnnAssign) else []
+            )
+            found.update(
+                target.id for target in targets if isinstance(target, ast.Name)
+            )
+            primary_key |= any(
+                keyword.arg == "primary_key"
+                and isinstance(keyword.value, ast.Constant)
+                and keyword.value.value is True
+                for keyword in value.keywords
+            )
+        return found, primary_key
+
+    for name, (relative, model) in definitions.items():
+        if abstract(model):
+            continue
+        persisted, primary_key = fields(name)
+        if not primary_key:
+            persisted.add("id")
+        result.update((relative, name + "." + field) for field in persisted)
     return result
 
 

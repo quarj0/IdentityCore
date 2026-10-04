@@ -56,6 +56,7 @@ class InventoryTests(unittest.TestCase):
             self.assertEqual(
                 {field.split(".")[1] for _, field in fields},
                 {
+                    "id",
                     "secret",
                     "contact",
                     "password",
@@ -63,6 +64,32 @@ class InventoryTests(unittest.TestCase):
                     "is_superuser",
                     "groups",
                     "user_permissions",
+                },
+            )
+
+    def test_nested_abstract_fields_belong_to_each_concrete_model(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "backend/django/apps/example/records.py"
+            source.parent.mkdir(parents=True)
+            source.write_text(
+                "class Timestamp(models.Model):\n    created_at = models.DateTimeField()\n    class Meta:\n        abstract = True\n"
+                "class Base(Timestamp):\n    deleted_at = models.DateTimeField()\n    class Meta:\n        abstract = True\n"
+                "class Capture(Base):\n    evidence = EncryptedJSONField()\n"
+                "class Subject(Base):\n    identity = EncryptedJSONField()\n"
+            )
+            fields = {field for _, field in inventory.model_fields(root)}
+            self.assertEqual(
+                fields,
+                {
+                    "Capture.id",
+                    "Capture.created_at",
+                    "Capture.deleted_at",
+                    "Capture.evidence",
+                    "Subject.id",
+                    "Subject.created_at",
+                    "Subject.deleted_at",
+                    "Subject.identity",
                 },
             )
 
