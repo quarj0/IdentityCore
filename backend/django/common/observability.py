@@ -10,6 +10,7 @@ from shared.observability import (
     inject,
     metrics,
     observed,
+    process_instance,
     record_completion,
 )  # noqa: F401
 from shared import observability as telemetry
