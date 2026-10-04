@@ -1,4 +1,5 @@
-from common.public_api import public_api_path
+from common.public_api import internal_api_path, public_api_path
+from apps.api_clients.usage_views import APIUsageView
 
 from apps.api_clients.views import (
     APIClientActionView,
@@ -7,6 +8,7 @@ from apps.api_clients.views import (
 )
 
 urlpatterns = [
+    internal_api_path("usage", APIUsageView.as_view()),
     public_api_path(
         "",
         APIClientListCreateView.as_view(),

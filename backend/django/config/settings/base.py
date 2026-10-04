@@ -132,6 +132,7 @@ MIDDLEWARE = [
     "common.observability.ObservabilityMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "common.cors.LocalCorsMiddleware",
+    "common.usage_headers.APIUsageHeadersMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -261,6 +262,11 @@ CELERY_TASK_ROUTES = {
     "apps.notifications.tasks.deliver_notification_task": {"queue": "notifications"},
 }
 CELERY_BEAT_SCHEDULE = {
+    "cleanup-api-usage": {
+        "task": "apps.api_clients.tasks.cleanup_api_usage_task",
+        "schedule": 3600,
+        "kwargs": {"limit": 1000},
+    },
     "cleanup-expired-idempotency-records": {
         "task": "apps.api_clients.tasks.cleanup_expired_idempotency_records_task",
         "schedule": int(os.getenv("CELERY_IDEMPOTENCY_CLEANUP_BEAT_SECONDS", "300")),

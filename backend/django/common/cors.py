@@ -3,7 +3,6 @@ from urllib.parse import urlparse
 from django.conf import settings
 from django.http import HttpResponse
 
-
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "[::1]"}
 
 
@@ -61,6 +60,22 @@ class LocalCorsMiddleware:
                     "CORS_ALLOW_METHODS",
                     ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
                 )
+            )
+            response["Access-Control-Expose-Headers"] = ", ".join(
+                [
+                    "X-Request-Id",
+                    "Retry-After",
+                    "X-RateLimit-Limit",
+                    "X-RateLimit-Remaining",
+                    "X-RateLimit-Reset",
+                    "X-RateLimit-Environment",
+                    "X-RateLimit-Organization-Minute-Limit",
+                    "X-RateLimit-Organization-Minute-Remaining",
+                    "X-RateLimit-Organization-Month-Limit",
+                    "X-RateLimit-Organization-Month-Remaining",
+                    "X-RateLimit-Client-Minute-Limit",
+                    "X-RateLimit-Client-Minute-Remaining",
+                ]
             )
             response["Access-Control-Max-Age"] = str(
                 getattr(settings, "CORS_PREFLIGHT_MAX_AGE", 86400)

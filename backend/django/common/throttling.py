@@ -1,14 +1,20 @@
-from rest_framework.throttling import SimpleRateThrottle
+from rest_framework.throttling import BaseThrottle, SimpleRateThrottle
 
 
-class APIClientRateThrottle(SimpleRateThrottle):
-    scope = "api_client"
+class APIClientRateThrottle(BaseThrottle):
+    def allow_request(self, request, view):
+        from apps.api_clients.usage import reserve_request
 
-    def get_cache_key(self, request, view):
-        api_client = getattr(request, "api_client", None)
-        if api_client is None:
-            return None
-        return self.cache_format % {"scope": self.scope, "ident": api_client.client_id}
+        client = getattr(request, "api_client", None)
+        if client is None:
+            return True
+        allowed, headers, self.retry_seconds = reserve_request(client)
+        raw = getattr(request, "_request", request)
+        raw.api_usage_headers = headers
+        return allowed
+
+    def wait(self):
+        return getattr(self, "retry_seconds", None)
 
 
 class VerificationSessionRateThrottle(SimpleRateThrottle):
