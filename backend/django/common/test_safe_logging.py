@@ -74,6 +74,23 @@ class SafeLoggingTests(SimpleTestCase):
         )
         self.assertEqual(redact_value({"code": "123456"}), {"code": "123456"})
 
+    def test_mfa_codes_are_redacted_in_mapping_arguments_and_flat_extras(self):
+        logger = logging.getLogger("identitycore.mfa-context")
+        stream = self._capture(logger, "%(message)s")
+        logger.info(
+            "code=%(code)s; mfa_token=%(mfa_token)s",
+            {"code": "123456", "mfa_token": "private-token"},
+        )
+        self.assertNotIn("123456", stream.getvalue())
+        self.assertNotIn("private-token", stream.getvalue())
+        stream = self._capture(logger, "code=%(code)s")
+        logger.info(
+            "mfa confirmation", extra={"code": "123456", "mfa_token": "private-token"}
+        )
+        self.assertNotIn("123456", stream.getvalue())
+        logger.info("provider result", extra={"code": "provider_timeout"})
+        self.assertIn("provider_timeout", stream.getvalue())
+
     def test_django_logger_redacts_message_arguments_and_structured_extra(self):
         logger = logging.getLogger("django.identitycore.redaction-test")
         stream = self._capture(logger, "%(message)s payload=%(payload)s")

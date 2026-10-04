@@ -474,7 +474,14 @@ def sanitize_log_record(record: logging.LogRecord) -> logging.LogRecord:
             # turns arguments into plain text. Numeric arguments retain their types.
             if isinstance(record.args, Mapping):
                 record.args = {
-                    key: redact_value(value, key=key)
+                    key: redact_value(
+                        value,
+                        key=key,
+                        _mfa_context=any(
+                            _normalize_key(name) in _MFA_CONTEXT_KEYS
+                            for name in record.args
+                        ),
+                    )
                     for key, value in record.args.items()
                 }
             else:
@@ -488,6 +495,9 @@ def sanitize_log_record(record: logging.LogRecord) -> logging.LogRecord:
         record.msg = LOG_FORMAT_ERROR
         record.args = ()
 
+    mfa_context = any(
+        _normalize_key(field) in _MFA_CONTEXT_KEYS for field in record.__dict__
+    )
     for field, value in list(record.__dict__.items()):
         if field in _STANDARD_LOG_RECORD_ATTRS:
             continue
@@ -498,7 +508,7 @@ def sanitize_log_record(record: logging.LogRecord) -> logging.LogRecord:
             record.__dict__[field] = (
                 sanitized_request
                 if sanitized_request is not None
-                else redact_value(value, key=field)
+                else redact_value(value, key=field, _mfa_context=mfa_context)
             )
         except Exception:
             record.__dict__[field] = LOG_FORMAT_ERROR

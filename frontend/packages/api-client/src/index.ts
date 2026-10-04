@@ -1,4 +1,4 @@
-export * from "./safe-logging";
+export * from "./safe-logging.ts";
 
 export interface ApiSuccess<T> {
   success: true;
