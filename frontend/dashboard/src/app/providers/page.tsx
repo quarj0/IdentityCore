@@ -9,6 +9,7 @@ type Configuration = { id: string; environment: string; version: number; status:
 const capabilitiesByType: Record<string, string[]> = {
   document: ["document_quality", "document_classification", "document_ocr"],
   biometric: ["face_match", "liveness"], liveness: ["liveness"],
+  risk: ["risk_check"],
 };
 const split = (value: string) => value.split(",").map((part) => part.trim()).filter(Boolean);
 const inputClass = "w-full rounded-lg border border-slate-300 p-2";

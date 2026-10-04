@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from apps.biometrics.models import FaceMatchStatus, LivenessCheckStatus
 from apps.providers.models import ProviderCheckStatus, ProviderCheckType
-from apps.providers.services import create_provider_check
+from apps.providers.services import create_provider_check, get_or_create_system_provider
 from apps.risk.models import RiskAssessment, RiskLevel, RiskRecommendation
 from apps.verifications.models import (
     Verification,
@@ -42,7 +42,7 @@ def _document_requires_manual_review(classification: dict | None) -> bool:
     )
 
 
-def evaluate_risk_assessment(verification) -> RiskAssessment:
+def evaluate_risk_assessment(verification, *, external_evidence=None) -> RiskAssessment:
     latest_liveness_check = verification.liveness_checks.order_by("-checked_at").first()
     latest_face_match = verification.face_matches.order_by("-matched_at").first()
     latest_identity_document = verification.identity_documents.order_by(
@@ -140,7 +140,36 @@ def evaluate_risk_assessment(verification) -> RiskAssessment:
             risk_level = RiskLevel.MEDIUM
             recommendation = RiskRecommendation.MANUAL_REVIEW
 
+    from apps.risk.external import (
+        apply_external_risk,
+        minimal_inputs,
+        risk_input_digest,
+    )
+
+    external = external_evidence
+    if verification.policy_snapshot_json.get("external_risk_enabled") is True and (
+        external is None
+        or external.get("input_digest")
+        != risk_input_digest(verification, minimal_inputs(signals))
+    ):
+        external = {
+            "status": "unavailable",
+            "risk_score": None,
+            "signals": [],
+            "risk_version": "1",
+        }
+    if external is not None:
+        signals["external_risk"] = external
+        risk_score, risk_level, recommendation = apply_external_risk(
+            verification.policy_snapshot_json or {},
+            external,
+            score=risk_score,
+            level=risk_level,
+            recommendation=recommendation,
+        )
+
     create_provider_check(
+        provider_override=get_or_create_system_provider(ProviderCheckType.RISK_CHECK),
         verification=verification,
         check_type=ProviderCheckType.RISK_CHECK,
         status=ProviderCheckStatus.COMPLETED,
@@ -259,9 +288,20 @@ def apply_automatic_decision(
     return decision_record
 
 
+_UNPREPARED = object()
+
+
+def run_verification_risk_and_decision(verification, *, external_evidence=_UNPREPARED):
+    from apps.risk.external import prepare_external_risk
+
+    if external_evidence is _UNPREPARED:
+        external_evidence = prepare_external_risk(verification)
+    return _commit_risk_and_decision(verification, external_evidence=external_evidence)
+
+
 @transaction.atomic
-def run_verification_risk_and_decision(
-    verification,
+def _commit_risk_and_decision(
+    verification, *, external_evidence
 ) -> tuple[RiskAssessment | None, VerificationDecision | None]:
     current = (
         Verification.objects.select_for_update(of=("self",), no_key=True)
@@ -273,6 +313,8 @@ def run_verification_risk_and_decision(
         return RiskAssessment.objects.filter(verification=current).first(), existing
     # Hold the parent lock through evaluation and decision persistence. Human
     # finalizers use the same lock; stale worker revisions cannot become writes.
-    risk_assessment = evaluate_risk_assessment(current)
+    risk_assessment = evaluate_risk_assessment(
+        current, external_evidence=external_evidence
+    )
     decision_record = apply_automatic_decision(verification, risk_assessment)
     return risk_assessment, decision_record

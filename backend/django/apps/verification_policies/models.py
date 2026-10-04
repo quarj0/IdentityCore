@@ -1,4 +1,5 @@
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
 from apps.core.models import BaseModel, PublicIdModel
@@ -50,6 +51,20 @@ class VerificationPolicy(PublicIdModel, BaseModel):
     )
     manual_review_threshold = models.DecimalField(
         max_digits=5, decimal_places=4, default=0.6500
+    )
+    external_risk_enabled = models.BooleanField(default=False, db_default=False)
+    external_risk_failure_action = models.CharField(
+        max_length=24,
+        choices=[("manual_review", "Manual review"), ("ignore", "Ignore")],
+        default="manual_review",
+        db_default="manual_review",
+    )
+    external_risk_review_threshold = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=70,
+        db_default=70,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
     maker_checker_required = models.BooleanField(default=False)
     verification_expiry_minutes = models.PositiveIntegerField(default=1440)
@@ -132,6 +147,11 @@ class VerificationPolicy(PublicIdModel, BaseModel):
             "face_match_threshold": float(self.face_match_threshold),
             "manual_review_threshold": float(self.manual_review_threshold),
             "maker_checker_required": self.maker_checker_required,
+            "external_risk_enabled": self.external_risk_enabled,
+            "external_risk_failure_action": self.external_risk_failure_action,
+            "external_risk_review_threshold": float(
+                self.external_risk_review_threshold
+            ),
             "verification_expiry_minutes": self.verification_expiry_minutes,
             "media_retention_days": self.media_retention_days,
             "metadata_retention_days": self.metadata_retention_days,

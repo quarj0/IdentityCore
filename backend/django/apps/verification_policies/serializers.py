@@ -12,7 +12,9 @@ def serialize_verification_policy(policy: VerificationPolicy) -> dict:
         "project_id": policy.project.public_id if policy.project else None,
         "name": policy.name,
         "description": policy.description,
-        "consent_template_id": policy.consent_template.public_id if policy.consent_template else None,
+        "consent_template_id": (
+            policy.consent_template.public_id if policy.consent_template else None
+        ),
         "default_locale": policy.default_locale,
         "supported_locales": policy.supported_locales_json or [policy.default_locale],
         "version": policy.version,
@@ -22,6 +24,9 @@ def serialize_verification_policy(policy: VerificationPolicy) -> dict:
         "face_match_threshold": float(policy.face_match_threshold),
         "manual_review_threshold": float(policy.manual_review_threshold),
         "maker_checker_required": policy.maker_checker_required,
+        "external_risk_enabled": policy.external_risk_enabled,
+        "external_risk_failure_action": policy.external_risk_failure_action,
+        "external_risk_review_threshold": float(policy.external_risk_review_threshold),
         "verification_expiry_minutes": policy.verification_expiry_minutes,
         "media_retention_days": policy.media_retention_days,
         "metadata_retention_days": policy.metadata_retention_days,
@@ -48,6 +53,18 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
     )
     face_match_threshold = serializers.DecimalField(max_digits=5, decimal_places=4)
     manual_review_threshold = serializers.DecimalField(max_digits=5, decimal_places=4)
+    external_risk_enabled = serializers.BooleanField(required=False, default=False)
+    external_risk_failure_action = serializers.ChoiceField(
+        choices=["manual_review", "ignore"], required=False, default="manual_review"
+    )
+    external_risk_review_threshold = serializers.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        min_value=0,
+        max_value=100,
+        required=False,
+        default=70,
+    )
     maker_checker_required = serializers.BooleanField(required=False, default=False)
     verification_expiry_minutes = serializers.IntegerField(min_value=1)
     media_retention_days = serializers.IntegerField(min_value=1)
@@ -80,9 +97,14 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
         default_locale = attrs.get("default_locale", "en")
         if default_locale not in locales:
             locales.insert(0, default_locale)
-        if attrs.get("consent_template") and attrs["consent_template"].language != default_locale:
+        if (
+            attrs.get("consent_template")
+            and attrs["consent_template"].language != default_locale
+        ):
             raise serializers.ValidationError(
-                {"default_locale": "The default locale must match the consent template language."}
+                {
+                    "default_locale": "The default locale must match the consent template language."
+                }
             )
         attrs["supported_locales"] = locales
         return attrs
@@ -113,6 +135,11 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
             face_match_threshold=validated_data["face_match_threshold"],
             manual_review_threshold=validated_data["manual_review_threshold"],
             maker_checker_required=validated_data["maker_checker_required"],
+            external_risk_enabled=validated_data["external_risk_enabled"],
+            external_risk_failure_action=validated_data["external_risk_failure_action"],
+            external_risk_review_threshold=validated_data[
+                "external_risk_review_threshold"
+            ],
             verification_expiry_minutes=validated_data["verification_expiry_minutes"],
             media_retention_days=validated_data["media_retention_days"],
             metadata_retention_days=validated_data["metadata_retention_days"],
@@ -139,6 +166,13 @@ class VerificationPolicyUpdateSerializer(VerificationPolicyCreateSerializer):
     manual_review_threshold = serializers.DecimalField(
         max_digits=5, decimal_places=4, required=False
     )
+    external_risk_enabled = serializers.BooleanField(required=False)
+    external_risk_failure_action = serializers.ChoiceField(
+        choices=["manual_review", "ignore"], required=False
+    )
+    external_risk_review_threshold = serializers.DecimalField(
+        max_digits=5, decimal_places=2, min_value=0, max_value=100, required=False
+    )
     maker_checker_required = serializers.BooleanField(required=False)
     verification_expiry_minutes = serializers.IntegerField(min_value=1, required=False)
     media_retention_days = serializers.IntegerField(min_value=1, required=False)
@@ -164,9 +198,11 @@ class VerificationPolicyUpdateSerializer(VerificationPolicyCreateSerializer):
         if "consent_template_id" in attrs:
             template_id = attrs.get("consent_template_id", "")
             template = (
-                self.context["request"].user.tenant.consent_templates.filter(
+                self.context["request"]
+                .user.tenant.consent_templates.filter(
                     public_id=template_id, status="active"
-                ).first()
+                )
+                .first()
                 if template_id
                 else None
             )
@@ -186,7 +222,9 @@ class VerificationPolicyUpdateSerializer(VerificationPolicyCreateSerializer):
         template = attrs.get("consent_template", policy.consent_template)
         if template and template.language != default_locale:
             raise serializers.ValidationError(
-                {"default_locale": "The default locale must match the consent template language."}
+                {
+                    "default_locale": "The default locale must match the consent template language."
+                }
             )
         attrs["supported_locales"] = locales
         return attrs
@@ -202,9 +240,7 @@ class VerificationPolicyUpdateSerializer(VerificationPolicyCreateSerializer):
             model_field = (
                 "required_document_types_json"
                 if field == "required_document_types"
-                else "supported_locales_json"
-                if field == "supported_locales"
-                else field
+                else "supported_locales_json" if field == "supported_locales" else field
             )
             setattr(instance, model_field, value)
         instance.save()

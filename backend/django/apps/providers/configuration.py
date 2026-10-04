@@ -307,6 +307,7 @@ def assign_configuration(*, config, user, capability, countries=(), document_typ
         "document_ocr",
         "face_match",
         "liveness",
+        "risk_check",
     }:
         raise ValidationError("This capability has no supported verification runtime.")
     Tenant.objects.select_for_update(no_key=True).get(pk=config.provider.tenant_id)

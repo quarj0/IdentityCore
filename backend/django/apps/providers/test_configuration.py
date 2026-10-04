@@ -329,7 +329,7 @@ class ConfigurationTests(TestCase):
 
     def test_unsupported_runtime_cannot_be_assigned(self):
         config = self.sandbox()
-        for capability in ("risk_check", "identity_lookup"):
+        for capability in ("identity_lookup",):
             with self.subTest(capability=capability), self.assertRaisesMessage(
                 ValidationError, "supported verification runtime"
             ):

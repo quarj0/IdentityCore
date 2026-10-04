@@ -149,6 +149,20 @@ components:
           type: number
         manual_review_threshold:
           type: number
+        external_risk_enabled:
+          type: boolean
+          default: false
+          description: Collect external risk evidence using the configured environment route.
+        external_risk_failure_action:
+          type: string
+          enum: [manual_review, ignore]
+          default: manual_review
+        external_risk_review_threshold:
+          type: number
+          minimum: 0
+          maximum: 100
+          default: 70
+          description: Scores at or above this threshold require review; external evidence never directly approves.
         maker_checker_required:
           type: boolean
           description: Require an independent checker for every manual decision.
@@ -383,6 +397,20 @@ components:
           minimum: 0
           maximum: 1
           description: Must be less than or equal to face_match_threshold.
+        external_risk_enabled:
+          type: boolean
+          default: false
+          description: Collect external risk evidence using the configured environment route.
+        external_risk_failure_action:
+          type: string
+          enum: [manual_review, ignore]
+          default: manual_review
+        external_risk_review_threshold:
+          type: number
+          minimum: 0
+          maximum: 100
+          default: 70
+          description: Scores at or above this threshold require review; external evidence never directly approves.
         maker_checker_required:
           type: boolean
           default: false

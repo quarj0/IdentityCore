@@ -89,6 +89,7 @@ PROVIDER_CAPABILITY_METHODS = {
     ProviderCheckType.DOCUMENT_QUALITY: "document_quality",
     ProviderCheckType.FACE_MATCH: "face_compare",
     ProviderCheckType.LIVENESS: "liveness",
+    ProviderCheckType.RISK_CHECK: "risk_check",
 }
 
 
@@ -860,6 +861,7 @@ def execute_provider_route(
     request_metadata: dict | None = None,
     initial_provider_check: ProviderCheck | None = None,
     processing_job=None,
+    finalize_exhaustion: bool = True,
 ) -> ProviderRouteExecutionResult:
     """Execute bounded attempts across one resolved provider chain.
 
@@ -1033,6 +1035,12 @@ def execute_provider_route(
 
     if route is None and last_exception is not None:
         raise last_exception
+    if not finalize_exhaustion:
+        raise ProviderRouteExhausted(
+            final_action=(
+                route.final_action if route else ProviderRouteFinalAction.MANUAL_REVIEW
+            )
+        )
     final_action = _apply_route_final_action(
         verification=verification,
         route=route,
@@ -1107,12 +1115,17 @@ def create_provider_check(
     request_metadata: dict | None = None,
     response_metadata: dict | None = None,
     provider_reference: str = "",
+    provider_override: Provider | None = None,
 ) -> ProviderCheck:
     now = timezone.now()
-    resolution = resolve_provider_chain_for_verification(
-        verification=verification,
-        check_type=check_type,
-        request_metadata=request_metadata,
+    resolution = (
+        ProviderRouteResolution(route=None, providers=(provider_override,))
+        if provider_override is not None
+        else resolve_provider_chain_for_verification(
+            verification=verification,
+            check_type=check_type,
+            request_metadata=request_metadata,
+        )
     )
     provider = resolution.providers[0]
     persisted_request_metadata = dict(request_metadata or {})

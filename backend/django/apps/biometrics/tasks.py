@@ -88,9 +88,31 @@ BIOMETRIC_FINAL_VERIFICATION_STATUSES = frozenset(
 )
 
 
-@transaction.atomic
 def _finalize_biometric_decision(
     *, verification, liveness_check, face_match, selfie_capture, processing_job
+):
+    from apps.risk.external import prepare_external_risk
+
+    external = prepare_external_risk(verification)
+    return _commit_biometric_decision(
+        verification=verification,
+        liveness_check=liveness_check,
+        face_match=face_match,
+        selfie_capture=selfie_capture,
+        processing_job=processing_job,
+        external_evidence=external,
+    )
+
+
+@transaction.atomic
+def _commit_biometric_decision(
+    *,
+    verification,
+    liveness_check,
+    face_match,
+    selfie_capture,
+    processing_job,
+    external_evidence,
 ) -> str:
     from apps.risk.services import _automatic_conflict
 
@@ -132,7 +154,9 @@ def _finalize_biometric_decision(
             metadata={"face_match_id": face_match.public_id},
         )
 
-    risk_assessment, decision_record = run_verification_risk_and_decision(verification)
+    risk_assessment, decision_record = run_verification_risk_and_decision(
+        verification, external_evidence=external_evidence
+    )
     if decision_record is None or getattr(
         decision_record, "_automatic_conflict", False
     ):
