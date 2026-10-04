@@ -36,7 +36,7 @@ from common.authentication import (
     require_verification_session_action,
 )
 from common.responses import success_response
-from common.throttling import SensitivePublicRateThrottle
+from common.throttling import MobileHandoffRateThrottle, SensitivePublicRateThrottle
 
 
 class VerificationSessionBaseView(APIView):
@@ -162,7 +162,7 @@ class VerificationMobileHandoffCreateView(VerificationSessionBaseView):
         handoff = VerificationMobileHandoff(
             source_session=source_session, expires_at=expires_at, token_hash=""
         )
-        handoff.set_token(raw_token)
+        handoff.set_token(raw_token, generated=True)
         handoff.save()
         handoff_url = (
             f"{base}/{source_session.public_id}#handoff={handoff.public_id}.{raw_token}"
@@ -188,10 +188,12 @@ class VerificationMobileHandoffCreateView(VerificationSessionBaseView):
 class VerificationMobileHandoffRedeemView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
-    throttle_classes = [SensitivePublicRateThrottle]
+    throttle_classes = [MobileHandoffRateThrottle]
 
     @transaction.atomic
     def post(self, request):
+        if not isinstance(request.data, dict):
+            raise ValidationError({"handoff": "This mobile handoff link is invalid."})
         handoff_value = request.data.get("handoff", "")
         expected_session = request.data.get("session_id", "")
         if (

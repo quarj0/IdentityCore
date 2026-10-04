@@ -107,3 +107,29 @@ class HandoffLifecycleTests(APITestCase):
             f"/api/v1/sessions/{self.session.public_id}", **self.session_headers()
         )
         self.assertEqual(response.status_code, 401)
+
+    def test_verified_grants_do_not_share_the_bff_address_bucket(self):
+        from django.core.cache import cache
+        from unittest.mock import patch
+
+        cache.clear()
+        with patch(
+            "common.throttling.SensitivePublicRateThrottle.get_rate",
+            return_value="1/min",
+        ):
+            self.assertEqual(self.redeem("invalid").status_code, 400)
+            self.assertEqual(self.redeem("another-invalid").status_code, 429)
+            for _ in range(22):
+                claim = self.create()
+                handoff_id, _, _secret = claim.partition(".")
+                # A guessed public identifier cannot select an authenticated bucket.
+                self.assertEqual(
+                    self.redeem(handoff_id + ".wrong-proof").status_code, 429
+                )
+                response = self.redeem(claim)
+                self.assertEqual(response.status_code, 200, response.data)
+        cache.clear()
+
+    def test_non_object_claim_payload_is_rejected(self):
+        response = APIClient().post("/api/v1/sessions/mobile-handoff/redeem", ["invalid"], format="json")
+        self.assertEqual(response.status_code, 400)

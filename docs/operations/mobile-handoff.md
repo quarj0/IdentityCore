@@ -23,3 +23,10 @@ Clearing the mobile fragment leaves a safe session URL for reload/resume.
 Redemption failure requires a fresh QR; it cannot replay an already consumed claim.
 Anonymous redemption is rate limited and inputs are bounded before password-proof
 verification. Browser and PostgreSQL concurrency regressions cover these paths.
+
+Verified server-generated 256-bit handoff grants use individual throttle buckets,
+so a shared portal BFF address cannot exhaust the allowance for other valid grants.
+Invalid guesses use a separate peer-address bucket. Client-supplied session IDs,
+handoff IDs, and forwarded addresses cannot select an independent bucket without
+proving possession of a live grant. Older password-hashed grants use the invalid-
+attempt bucket; regenerate previously issued links during this rollout.
