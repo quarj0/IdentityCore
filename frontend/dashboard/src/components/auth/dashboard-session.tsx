@@ -21,6 +21,7 @@ export function DashboardSession({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const publicRoute =
     pathname === "/login" ||
+    pathname === "/accept-invitation" ||
     pathname === "/register" ||
     pathname === "/forgot-password" ||
     pathname === "/reset-password" ||

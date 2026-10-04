@@ -511,6 +511,8 @@ def main():
 
     try:
         with tempfile.TemporaryDirectory(prefix="identitycore-load-") as logs:
+            diagnostics_path = Path(logs) / "errors.jsonl"
+            env["IDENTITYCORE_LOAD_DIAGNOSTICS_FILE"] = str(diagnostics_path)
 
             def start_process(name, command, process_env):
                 output = open(Path(logs) / (name + ".log"), "w")
@@ -734,6 +736,7 @@ def main():
             )
             report = {
                 "date": time.strftime("%Y-%m-%d", time.gmtime()),
+                "exception_evidence": [json.loads(line) for line in diagnostics_path.read_text().splitlines()] if diagnostics_path.exists() else [],
                 "scope": "isolated orchestration load; real HTTP/PostgreSQL/Redis/Celery and S3 HTTP fixture; synthetic AI latency",
                 "target": {
                     "verifications_per_minute": args.rate_per_minute,

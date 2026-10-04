@@ -392,6 +392,9 @@ ACCOUNT_PASSWORD_RESET_BASE_URL = os.getenv(
     "ACCOUNT_PASSWORD_RESET_BASE_URL",
     "http://localhost:3001/reset-password",
 )
+TEAM_INVITATION_BASE_URL = os.getenv(
+    "TEAM_INVITATION_BASE_URL", "http://localhost:3000/accept-invitation"
+)
 WEBHOOK_DELIVERY_TIMEOUT_SECONDS = int(
     os.getenv("WEBHOOK_DELIVERY_TIMEOUT_SECONDS", "10")
 )

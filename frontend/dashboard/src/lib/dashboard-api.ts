@@ -452,6 +452,11 @@ export const dashboardApi = {
     backend.rest<{ results: Array<{ id: string; name: string }> }>(
       "/access-control/roles/",
     ),
+  invitationAction: (id: string, action: "resend" | "revoke") =>
+    backend.rest<Record<string, unknown>>(
+      `/auth/team/invitations/${encodeURIComponent(id)}/${action}`,
+      { method: "POST" },
+    ),
   suspendWorkspace: (confirmation: string) =>
     backend.rest<{ suspended: boolean }>("/organization/me/suspend", {
       method: "POST",

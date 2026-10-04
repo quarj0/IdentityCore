@@ -1,12 +1,8 @@
-import hashlib
 import logging
-import secrets
-from datetime import timedelta
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from django.contrib.auth import authenticate
-from django.contrib.auth.password_validation import validate_password
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.exceptions import AuthenticationFailed
@@ -15,11 +11,8 @@ from rest_framework.views import APIView
 from apps.audit.services import lock_audit_chain, record_audit_event
 from apps.accounts.models import (
     PlatformUser,
-    PlatformUserStatus,
     TeamInvitation,
-    TeamInvitationStatus,
 )
-from apps.access_control.models import Role, UserRole
 from apps.accounts.serializers import (
     LoginSerializer,
     RefreshInputSerializer,
@@ -48,6 +41,16 @@ from apps.accounts.sessions import (
 )
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework.exceptions import ValidationError
+from common.permissions import IsTenantUser
+from apps.accounts.invitations import (
+    create_invitation,
+    change_invitation,
+    accept_invitation,
+)
+from apps.accounts.serializers import (
+    TeamInvitationCreateInput,
+    TeamInvitationAcceptInput,
+)
 from common.responses import success_response
 from common.throttling import SensitivePublicRateThrottle
 
@@ -354,98 +357,50 @@ class TeamListView(APIView):
 
 
 def serialize_invitation(invitation):
+    state = invitation.status
+    if state == "pending" and invitation.expires_at <= timezone.now():
+        state = "expired"
     return {
         "id": invitation.public_id,
         "email": invitation.email,
         "role": invitation.role.name,
-        "status": invitation.status,
+        "status": state,
         "expires_at": invitation.expires_at.isoformat(),
         "created_at": invitation.created_at.isoformat(),
     }
 
 
 class TeamInvitationListCreateView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTenantUser]
+    required_permission_code = "manage_team"
 
     def get(self, request):
-        tenant_id = request.user.tenant_id
-        if tenant_id is None:
-            return success_response({"results": []}, request=request)
+        invitations = TeamInvitation.objects.filter(
+            tenant_id=request.user.tenant_id, deleted_at__isnull=True
+        ).select_related("role")
         return success_response(
-            {
-                "results": [
-                    serialize_invitation(x)
-                    for x in TeamInvitation.objects.filter(
-                        tenant_id=tenant_id
-                    ).select_related("role")
-                ]
-            },
-            request=request,
+            {"results": [serialize_invitation(x) for x in invitations]}, request=request
         )
 
     def post(self, request):
-        tenant_id = request.user.tenant_id
-        if tenant_id is None:
-            return success_response(
-                {"detail": "Tenant context is required."},
-                request=request,
-                status=400,
-            )
-        email = str(request.data.get("email", "")).strip().lower()
-        role_id = request.data.get("role_id")
-        if PlatformUser.objects.filter(tenant_id=tenant_id, email=email).exists():
-            return success_response(
-                {"detail": "This user is already a team member."},
-                request=request,
-                status=400,
-            )
-        role = Role.objects.get(tenant_id=tenant_id, public_id=role_id, status="active")
-        raw = secrets.token_urlsafe(32)
-        invitation = TeamInvitation.objects.create(
-            tenant_id=tenant_id,
-            email=email,
-            role=role,
-            token_hash=hashlib.sha256(raw.encode()).hexdigest(),
-            expires_at=timezone.now() + timedelta(days=7),
-            invited_by=request.user,
+        serializer = TeamInvitationCreateInput(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        invitation = create_invitation(
+            actor=request.user, request=request, **serializer.validated_data
         )
-        record_audit_event(
-            tenant_id=tenant_id,
-            actor=request.user,
-            request=request,
-            action="team.invitation_created",
-            target_type="team_invitation",
-            target_id=invitation.public_id,
+        return success_response(
+            serialize_invitation(invitation), request=request, status=201
         )
-        payload = serialize_invitation(invitation)
-        if settings.DEBUG:
-            payload["debug_accept_token"] = raw
-        return success_response(payload, request=request, status=201)
 
 
 class TeamInvitationActionView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTenantUser]
+    required_permission_code = "manage_team"
 
     def post(self, request, invitation_id, action):
-        tenant_id = request.user.tenant_id
-        if tenant_id is None:
-            return success_response(
-                {"detail": "Tenant context is required."},
-                request=request,
-                status=400,
-            )
-        invitation = TeamInvitation.objects.get(
-            tenant_id=tenant_id, public_id=invitation_id
+        invitation = change_invitation(
+            actor=request.user, public_id=invitation_id, action=action, request=request
         )
-        if action == "revoke":
-            invitation.status = TeamInvitationStatus.REVOKED
-        elif action == "resend":
-            invitation.expires_at = timezone.now() + timedelta(days=7)
-        else:
-            return success_response(
-                {"detail": "Unsupported action."}, request=request, status=400
-            )
-        invitation.save()
         return success_response(serialize_invitation(invitation), request=request)
 
 
@@ -455,44 +410,7 @@ class TeamInvitationAcceptView(APIView):
     throttle_classes = [SensitivePublicRateThrottle]
 
     def post(self, request):
-        token = str(request.data.get("token", ""))
-        password = str(request.data.get("password", ""))
-        digest = hashlib.sha256(token.encode()).hexdigest()
-        invitation = (
-            TeamInvitation.objects.select_related("role", "tenant")
-            .filter(
-                token_hash=digest,
-                status=TeamInvitationStatus.PENDING,
-                expires_at__gt=timezone.now(),
-            )
-            .first()
-        )
-        rejection_reason = None
-        if not invitation:
-            rejection_reason = "invitation_not_found"
-        elif PlatformUser.objects.filter(email=invitation.email).exists():
-            rejection_reason = "account_already_exists"
-        if rejection_reason:
-            logger.info(
-                "Team invitation acceptance rejected.",
-                extra={"reason": rejection_reason},
-            )
-            return success_response(
-                {"detail": "Invitation is invalid or cannot be accepted."},
-                request=request,
-                status=400,
-            )
-        validate_password(password)
-        user = PlatformUser.objects.create_user(
-            email=invitation.email,
-            password=password,
-            tenant=invitation.tenant,
-            status=PlatformUserStatus.ACTIVE,
-        )
-        UserRole.objects.create(
-            user=user, role=invitation.role, tenant=invitation.tenant
-        )
-        invitation.status = TeamInvitationStatus.ACCEPTED
-        invitation.accepted_at = timezone.now()
-        invitation.save()
+        serializer = TeamInvitationAcceptInput(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        accept_invitation(request=request, **serializer.validated_data)
         return success_response({"accepted": True}, request=request)

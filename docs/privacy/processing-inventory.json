@@ -18,14 +18,16 @@
         "MFA and recovery state",
         "membership and role",
         "IP address",
-        "user agent"
+        "user agent",
+        "Encrypted single-use invitation delivery payload; cleared after delivery or failure; pending capabilities expire after seven days."
       ],
       "purpose": "Authenticate users, administer tenants, enforce access, and investigate security events.",
       "locations": [
         "backend/django/apps/accounts/models.py",
         "backend/django/apps/organizations/models.py",
         "backend/django/apps/access_control/models.py",
-        "backend/django/apps/security/models.py"
+        "backend/django/apps/security/models.py",
+        "backend/django/apps/notifications/models.py"
       ],
       "retention": "Account and membership lifetime, followed by the configured legal/security deletion period; short-lived tokens expire and are purged.",
       "processors": [
@@ -2211,6 +2213,11 @@
       "source": "backend/django/apps/notifications/models.py",
       "field": "Notification.deleted_at",
       "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/notifications/models.py",
+      "field": "Notification.delivery_json",
+      "activity": "account-and-tenant-administration"
     },
     {
       "source": "backend/django/apps/notifications/models.py",

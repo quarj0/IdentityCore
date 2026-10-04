@@ -160,30 +160,85 @@ def deliver_notification(notification: Notification) -> Notification:
     if notification.status != NotificationStatus.PENDING:
         return notification
 
+    delivery = notification.delivery_json or {}
+    if delivery.get("team_invitation"):
+        import hashlib
+        from apps.accounts.models import TeamInvitation
+
+        live = TeamInvitation.objects.filter(
+            public_id=delivery["team_invitation"],
+            tenant_id=notification.tenant_id,
+            deleted_at__isnull=True,
+            status="pending",
+            expires_at__gt=timezone.now(),
+            token_hash=hashlib.sha256(delivery.get("token", "").encode()).hexdigest(),
+            tenant__deleted_at__isnull=True,
+            tenant__status="active",
+            role__deleted_at__isnull=True,
+            role__status="active",
+            role__scope="tenant",
+        ).exists()
+        if not live:
+            notification.status = NotificationStatus.CANCELLED
+            notification.delivery_json = {}
+            notification.save(update_fields=["status", "delivery_json", "updated_at"])
+            return notification
+
     try:
         provider = get_notification_provider(notification)
         result = provider.deliver(notification)
     except NotificationProviderNotConfigured:
         notification.status = NotificationStatus.FAILED
+        notification.delivery_json = {}
         notification.provider_reference = f"{notification.channel}:not_configured"
-        notification.save(update_fields=["status", "provider_reference", "updated_at"])
+        notification.save(
+            update_fields=[
+                "status",
+                "provider_reference",
+                "delivery_json",
+                "updated_at",
+            ]
+        )
         return notification
     except NotificationDeliveryError:
         notification.status = NotificationStatus.FAILED
+        notification.delivery_json = {}
         notification.provider_reference = f"{notification.channel}:delivery_failed"
-        notification.save(update_fields=["status", "provider_reference", "updated_at"])
+        notification.save(
+            update_fields=[
+                "status",
+                "provider_reference",
+                "delivery_json",
+                "updated_at",
+            ]
+        )
         return notification
     except Exception:
         notification.status = NotificationStatus.FAILED
+        notification.delivery_json = {}
         notification.provider_reference = f"{notification.channel}:unexpected_error"
-        notification.save(update_fields=["status", "provider_reference", "updated_at"])
+        notification.save(
+            update_fields=[
+                "status",
+                "provider_reference",
+                "delivery_json",
+                "updated_at",
+            ]
+        )
         return notification
 
     notification.status = NotificationStatus.SENT
+    notification.delivery_json = {}
     notification.sent_at = result.sent_at or timezone.now()
     notification.provider_reference = result.provider_reference
     notification.save(
-        update_fields=["status", "sent_at", "provider_reference", "updated_at"]
+        update_fields=[
+            "status",
+            "sent_at",
+            "provider_reference",
+            "delivery_json",
+            "updated_at",
+        ]
     )
     return notification
 
