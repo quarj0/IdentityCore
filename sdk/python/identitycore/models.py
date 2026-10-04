@@ -59,6 +59,8 @@ class _PolicyRequired(TypedDict):
 
 class Policy(_PolicyRequired, total=False):
     description: str
+    document_authenticity_required: bool
+    document_authenticity_min_confidence: float
     external_risk_enabled: bool
     external_risk_failure_action: str
     external_risk_review_threshold: float
@@ -187,6 +189,8 @@ class VerificationPolicyCreateRequest(
     consent_template_id: str
     default_locale: str
     supported_locales: list[str]
+    document_authenticity_required: bool
+    document_authenticity_min_confidence: float
     external_risk_enabled: bool
     external_risk_failure_action: str
     external_risk_review_threshold: float

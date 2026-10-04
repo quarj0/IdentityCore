@@ -5,7 +5,10 @@ from rest_framework.views import APIView
 from apps.document_captures.models import DocumentCapture
 from common.permissions import IsTenantUser
 from common.responses import success_response
-from common.storage import build_signed_download_url, get_object_storage_media_bucket_name
+from common.storage import (
+    build_signed_download_url,
+    get_object_storage_media_bucket_name,
+)
 
 
 class DocumentCaptureDownloadURLView(APIView):
@@ -13,9 +16,13 @@ class DocumentCaptureDownloadURLView(APIView):
 
     def get(self, request, capture_id: str):
         capture = get_object_or_404(
-            DocumentCapture.objects.select_related("tenant"),
+            DocumentCapture.objects.select_related("tenant").exclude(status="deleted"),
             tenant=request.user.tenant,
             public_id=capture_id,
+            deleted_at__isnull=True,
+            identity_document__deleted_at__isnull=True,
+            identity_document__verification__deleted_at__isnull=True,
+            identity_document__verification_subject__deleted_at__isnull=True,
         )
         return success_response(
             {

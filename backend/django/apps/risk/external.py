@@ -103,6 +103,15 @@ def prepare_external_risk(verification):
     document = verification.identity_documents.order_by("-created_at").first()
     liveness = verification.liveness_checks.order_by("-checked_at").first()
     face = verification.face_matches.order_by("-matched_at").first()
+    authenticity = (
+        (document.extracted_data_json or {}).get("document_authenticity")
+        if document
+        else None
+    )
+    authenticity_review = bool(
+        verification.policy_snapshot_json.get("document_authenticity_required")
+        and (not authenticity or authenticity.get("requires_manual_review", True))
+    )
     return collect_external_risk(
         verification,
         {
@@ -111,7 +120,8 @@ def prepare_external_risk(verification):
                 (document.extracted_data_json or {}).get("document_classification")
                 if document
                 else None
-            ),
+            )
+            or authenticity_review,
             "selfie_submitted": verification.selfie_captures.exists(),
             "liveness_status": liveness.status if liveness else "missing",
             "face_match_status": face.status if face else "missing",

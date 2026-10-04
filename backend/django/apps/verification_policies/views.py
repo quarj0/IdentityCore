@@ -156,6 +156,8 @@ class VerificationPolicyCloneView(VerificationPolicyDetailView):
             face_match_threshold=source.face_match_threshold,
             manual_review_threshold=source.manual_review_threshold,
             maker_checker_required=source.maker_checker_required,
+            document_authenticity_required=source.document_authenticity_required,
+            document_authenticity_min_confidence=source.document_authenticity_min_confidence,
             external_risk_enabled=source.external_risk_enabled,
             external_risk_failure_action=source.external_risk_failure_action,
             external_risk_review_threshold=source.external_risk_review_threshold,

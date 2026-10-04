@@ -37,6 +37,8 @@ export interface Policy {
   required_liveness_level: string;
   face_match_threshold: number;
   manual_review_threshold: number;
+  document_authenticity_required?: boolean;
+  document_authenticity_min_confidence?: number;
   external_risk_enabled?: boolean;
   external_risk_failure_action?: string;
   external_risk_review_threshold?: number;
@@ -127,6 +129,8 @@ export interface VerificationPolicyCreateRequest {
   required_liveness_level: string;
   face_match_threshold: number;
   manual_review_threshold: number;
+  document_authenticity_required?: boolean;
+  document_authenticity_min_confidence?: number;
   external_risk_enabled?: boolean;
   external_risk_failure_action?: string;
   external_risk_review_threshold?: number;

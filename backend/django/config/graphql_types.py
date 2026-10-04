@@ -68,6 +68,8 @@ class ManualReviewNode:
 
 @strawberry.type
 class VerificationPolicyNode:
+    document_authenticity_required: bool
+    document_authenticity_min_confidence: float
     external_risk_enabled: bool
     external_risk_failure_action: str
     external_risk_review_threshold: float
