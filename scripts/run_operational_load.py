@@ -293,7 +293,8 @@ def main():
     failures = []
     active = 0
     peak_active = 0
-    api = httpx.Client(timeout=30)
+    # Retire idle connections before Gunicorn does; never retry/reset failed journeys.
+    api = httpx.Client(timeout=30, limits=httpx.Limits(keepalive_expiry=1.0))
     process_logs = []
     processes = []
     fixtures = Fixtures(
@@ -543,6 +544,8 @@ def main():
                     "2",
                     "--threads",
                     "8",
+                    "--keep-alive",
+                    "2",
                 ],
                 env,
             )
@@ -751,6 +754,8 @@ def main():
                 "services": {
                     "gunicorn_workers": 2,
                     "gunicorn_threads_per_worker": 8,
+                    "gunicorn_keepalive_seconds": 2,
+                    "http_client_keepalive_seconds": 1.0,
                     "celery_threads": 4,
                     "cpu_count": os.cpu_count(),
                     "cpu_quota": (
