@@ -156,6 +156,41 @@ class UsageTests(TestCase):
             reserve_request(client, now=datetime(2027, 1, 1, 0, 0, tzinfo=utc.utc))[0]
         )
 
+    def test_api_clients_do_not_consume_dashboard_or_session_throttles(self):
+        from unittest.mock import patch
+        from common.throttling import (
+            DashboardUserRateThrottle,
+            VerificationSessionRateThrottle,
+        )
+
+        client = self.create_api_client(limit=3)
+        http = HTTPClient()
+        rates = {"dashboard_user": "1/min", "verification_session": "1/min"}
+        with patch.object(
+            DashboardUserRateThrottle, "THROTTLE_RATES", rates
+        ), patch.object(VerificationSessionRateThrottle, "THROTTLE_RATES", rates):
+            for _ in range(3):
+                response = http.get(
+                    "/api/v1/verifications/",
+                    HTTP_X_CLIENT_ID=client.client_id,
+                    HTTP_AUTHORIZATION="Bearer synthetic-test-secret",
+                    HTTP_X_SESSION_ID="unrelated-principal",
+                )
+                self.assertEqual(response.status_code, 200)
+            denied = http.get(
+                "/api/v1/verifications/",
+                HTTP_X_CLIENT_ID=client.client_id,
+                HTTP_AUTHORIZATION="Bearer synthetic-test-secret",
+            )
+            self.assertEqual(denied.status_code, 429)
+            self.assertEqual(denied["X-RateLimit-Client-Minute-Remaining"], "0")
+            http.force_authenticate(self.user)
+            self.assertEqual(http.get("/api/v1/api-clients/usage").status_code, 200)
+            self.assertEqual(http.get("/api/v1/api-clients/usage").status_code, 429)
+        self.assertEqual(
+            APIUsageBucket.objects.get(client_key="", period="minute").accepted, 3
+        )
+
 
 @skipUnless(connection.vendor == "postgresql", "Atomic quota races require PostgreSQL")
 class UsageRaceTests(TransactionTestCase):

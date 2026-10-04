@@ -22,13 +22,12 @@ class VerificationSessionRateThrottle(SimpleRateThrottle):
 
     def get_cache_key(self, request, view):
         verification_session = getattr(request, "verification_session", None)
-        if verification_session is None:
-            session_id = request.headers.get("X-Session-Id")
-            if not session_id:
-                return None
-            ident = session_id
-        else:
-            ident = verification_session.public_id
+        if (
+            verification_session is None
+            or getattr(request, "api_client", None) is not None
+        ):
+            return None
+        ident = verification_session.public_id
         return self.cache_format % {"scope": self.scope, "ident": ident}
 
 
@@ -36,6 +35,11 @@ class DashboardUserRateThrottle(SimpleRateThrottle):
     scope = "dashboard_user"
 
     def get_cache_key(self, request, view):
+        if (
+            getattr(request, "api_client", None) is not None
+            or getattr(request, "verification_session", None) is not None
+        ):
+            return None
         user = getattr(request, "user", None)
         if not user or not getattr(user, "is_authenticated", False):
             return None
