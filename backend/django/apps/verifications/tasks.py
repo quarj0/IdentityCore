@@ -268,6 +268,12 @@ def cleanup_retained_media_task(limit: int = 100) -> int:
         if not media_deleted:
             continue
 
+        from apps.risk.models import ReuseFingerprint
+
+        ReuseFingerprint.objects.filter(
+            verification=verification, kind__in=["document", "portrait"]
+        ).delete()
+
         record_audit_event(
             tenant=verification.tenant,
             action="retention.media_deleted",

@@ -25,6 +25,7 @@ def serialize_verification_policy(policy: VerificationPolicy) -> dict:
         "manual_review_threshold": float(policy.manual_review_threshold),
         "maker_checker_required": policy.maker_checker_required,
         "document_consistency_rules": policy.document_consistency_rules_json,
+        "reuse_rules": policy.reuse_rules_json,
         "document_authenticity_required": policy.document_authenticity_required,
         "document_authenticity_min_confidence": float(
             policy.document_authenticity_min_confidence
@@ -85,6 +86,16 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
     verification_expiry_minutes = serializers.IntegerField(min_value=1)
     media_retention_days = serializers.IntegerField(min_value=1)
     metadata_retention_days = serializers.IntegerField(min_value=1)
+
+    reuse_rules = serializers.JSONField(required=False, default=dict)
+
+    def validate_reuse_rules(self, value):
+        from apps.risk.reuse import validate_rules
+
+        try:
+            return validate_rules(value)
+        except (ValueError, TypeError) as exc:
+            raise serializers.ValidationError(str(exc)) from exc
 
     document_consistency_rules = serializers.JSONField(required=False, default=dict)
 
@@ -170,6 +181,7 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
             document_consistency_rules_json=validated_data[
                 "document_consistency_rules"
             ],
+            reuse_rules_json=validated_data["reuse_rules"],
             external_risk_enabled=validated_data["external_risk_enabled"],
             external_risk_failure_action=validated_data["external_risk_failure_action"],
             external_risk_review_threshold=validated_data[
@@ -183,6 +195,7 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
 
 
 class VerificationPolicyUpdateSerializer(VerificationPolicyCreateSerializer):
+    reuse_rules = serializers.JSONField(required=False)
     document_consistency_rules = serializers.JSONField(required=False)
     name = serializers.CharField(max_length=255, required=False)
     consent_template_id = serializers.CharField(required=False, allow_blank=True)
@@ -276,6 +289,9 @@ class VerificationPolicyUpdateSerializer(VerificationPolicyCreateSerializer):
             )
         for field, value in validated_data.items():
             if field == "consent_template_id":
+                continue
+            if field == "reuse_rules":
+                instance.reuse_rules_json = value
                 continue
             model_field = (
                 "document_consistency_rules_json"

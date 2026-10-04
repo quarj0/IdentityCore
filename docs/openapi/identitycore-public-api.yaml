@@ -149,6 +149,10 @@ components:
           type: number
         manual_review_threshold:
           type: number
+        reuse_rules:
+          type: object
+          description: Version 1 duplicate and velocity scope, retention, window, thresholds and flag/manual_review action; empty disables matching.
+          additionalProperties: true
         document_consistency_rules:
           type: object
           additionalProperties: true
@@ -410,6 +414,10 @@ components:
           minimum: 0
           maximum: 1
           description: Must be less than or equal to face_match_threshold.
+        reuse_rules:
+          type: object
+          description: Version 1 duplicate and velocity scope, retention, window, thresholds and flag/manual_review action; empty disables matching.
+          additionalProperties: true
         document_consistency_rules:
           type: object
           additionalProperties: true
