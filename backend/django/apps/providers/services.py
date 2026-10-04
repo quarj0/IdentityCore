@@ -135,8 +135,17 @@ def publish_provider_route(route: ProviderRoute) -> ProviderRoute:
             raise ValidationError("Every provider in a published route must be active.")
         if any(step.deleted_at is not None for step in steps):
             raise ValidationError("Deleted provider route steps cannot be published.")
+        from apps.providers.manifests import validate_compatibility
+
         for step in steps:
             step.full_clean()
+            validate_compatibility(
+                step.provider,
+                locked.capability,
+                environment=locked.environment,
+                countries=locked.country_codes_json,
+                document_types=locked.document_type_ids_json,
+            )
         latest_version = (
             ProviderRoute.objects.filter(
                 tenant=locked.tenant,
