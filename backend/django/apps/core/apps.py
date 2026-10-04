@@ -12,3 +12,14 @@ class CoreConfig(AppConfig):
         from common.safe_logging import install_safe_logging
 
         install_safe_logging()
+
+        from common.observability import configure
+        import os
+
+        name = os.getenv("IDENTITYCORE_SERVICE_NAME", "identitycore-api")
+        configure(
+            name
+            if name
+            in {"identitycore-api", "identitycore-worker", "identitycore-operations"}
+            else "identitycore-api"
+        )

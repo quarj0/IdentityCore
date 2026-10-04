@@ -5,6 +5,15 @@ on:
   pull_request:
 
 jobs:
+  operational-alerts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Validate SLO rules and synthetic burn scenarios
+        run: |
+          docker run --rm --entrypoint promtool -v "$PWD/ops/observability:/rules:ro" -w /rules prom/prometheus:v3.15.0 check rules alerts.yaml
+          docker run --rm --entrypoint promtool -v "$PWD/ops/observability:/rules:ro" -w /rules prom/prometheus:v3.15.0 test rules alerts.test.yaml
+
   documentation:
     runs-on: ubuntu-latest
     steps:

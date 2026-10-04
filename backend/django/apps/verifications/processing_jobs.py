@@ -1,3 +1,4 @@
+from common.observability import record_completion
 import logging
 from datetime import timedelta
 
@@ -494,6 +495,13 @@ def _repair_biometric_route_exhaustion(job: ProcessingJob, *, now) -> None:
             face_match.save(update_fields=["status", "matched_at", "updated_at"])
 
 
+def _record_job_completion(job, failed):
+    project = job.verification.project
+    environment_name = project.environment if project else "sandbox"
+    duration = max(0, (job.completed_at - job.created_at).total_seconds())
+    transaction.on_commit(lambda: record_completion(failed, duration, environment_name))
+
+
 @transaction.atomic
 def complete_processing_job(job: ProcessingJob) -> None:
     now = timezone.now()
@@ -521,6 +529,8 @@ def complete_processing_job(job: ProcessingJob) -> None:
             "updated_at",
         ]
     )
+
+    _record_job_completion(locked, False)
 
 
 def defer_processing_job(job: ProcessingJob, *, error_code: str) -> None:
@@ -591,6 +601,7 @@ def exhaust_processing_job(job: ProcessingJob) -> None:
                 "updated_at",
             ]
         )
+        _record_job_completion(locked, True)
 
         if locked.job_type == ProcessingJobType.IDENTITY_DOCUMENT:
             IdentityDocument.objects.filter(

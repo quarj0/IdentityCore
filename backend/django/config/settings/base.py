@@ -129,6 +129,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "common.observability.ObservabilityMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "common.cors.LocalCorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -425,4 +426,24 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
+}
+
+from common import safe_logging  # noqa: F401,E402
+from shared.observability import install_log_correlation  # noqa: E402
+
+install_log_correlation()
+
+# IDs originate in the SDK, not applicant headers; safe logging redacts messages.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "operational": {
+            "format": "%(levelname)s trace=%(ic_trace_id)s span=%(ic_span_id)s %(name)s %(message)s"
+        }
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "operational"}
+    },
+    "root": {"handlers": ["console"], "level": "INFO"},
 }
