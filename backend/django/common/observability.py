@@ -44,9 +44,8 @@ class ObservabilityMiddleware:
                     span.set_status(telemetry.Status(telemetry.StatusCode.ERROR))
                 response["X-Request-Id"] = request._request_id
                 # The random trace ID correlates support without exporting request IDs.
-                response["X-Trace-Id"] = format(
-                    span.get_span_context().trace_id, "032x"
-                )
+                if span.get_span_context().is_valid:
+                    response["X-Trace-Id"] = format(span.get_span_context().trace_id, "032x")
                 return response
         finally:
             telemetry.ENVIRONMENT.reset(token)

@@ -80,6 +80,13 @@ class ObservabilityTests(SimpleTestCase):
             "req_safe-123",
         )
 
+    def test_disabled_tracer_omits_trace_header_and_preserves_request_id(self):
+        with patch.object(telemetry.trace, "get_tracer", return_value=telemetry.trace.NoOpTracer()):
+            response = Client().get("/api/v1/health", HTTP_X_REQUEST_ID="req_support")
+        self.assertNotIn("X-Trace-Id", response)
+        self.assertEqual(response["X-Request-Id"], "req_support")
+        self.assertEqual(response.json()["request_id"], "req_support")
+
     def test_http_boundary_returns_trace_and_request_ids(self):
         response = Client().get("/api/v1/health", HTTP_X_REQUEST_ID="req_safe")
         self.assertEqual(response.status_code, 200)
