@@ -43,19 +43,8 @@ media, biometric templates, signed upload URLs, or request bodies.
 
 ## Incident response
 
-1. **Credential exposure:** revoke affected sessions, disable link issuance,
-   preserve redacted audit evidence, rotate signing material if implicated, and
-   notify security/privacy leads.
-2. **Biometric/provider incident:** open the circuit, route to the certified
-   fallback or manual review, stop automatic rejection, and preserve provider
-   check identifiers without copying biometric payloads.
-3. **Completion regression:** halt rollout, segment by deployment, locale,
-   browser, device and workflow, then roll back if the error budget is exceeded.
-4. **Consent mismatch:** stop new sessions for the affected tenant/locale,
-   preserve template versions and acceptance records, and require re-consent
-   where privacy/legal owners determine it is necessary.
-
-Every incident needs a commander, communications owner, privacy/security owner,
-timeline, affected-session query, rollback decision, and blameless review. Run
-credential-exposure and provider-outage exercises before the first pilot and at
-least twice yearly thereafter.
+Use the [incident response and breach triage runbook](incident-response.md) for
+severity, role assignment, evidence custody, containment, notification
+decisions, recovery, exercises, and post-incident review. Its scenario playbooks
+cover credential exposure, biometric/provider incidents, tenant isolation,
+availability/data integrity, and consent mismatch.

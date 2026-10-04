@@ -50,25 +50,26 @@ def _request_locale(request, policy_snapshot: dict | None = None) -> str:
     supported_locales = [str(locale).lower() for locale in configured]
     if default_locale not in supported_locales:
         supported_locales.append(default_locale)
-    requested_languages = [
-        item.partition(";")[0].strip().lower()
-        for item in (
-            request.headers.get("Accept-Language", "").split(",")
-            if request is not None
-            else []
-        )
-        if item.partition(";")[0].strip()
-    ]
-    return next(
-        (
-            supported
-            for requested in requested_languages
-            for supported in supported_locales
-            if requested == supported
-            or requested.split("-", 1)[0] == supported.split("-", 1)[0]
-        ),
-        default_locale,
-    )
+    header = request.headers.get("Accept-Language", "") if request is not None else ""
+    candidates = []
+    for index, item in enumerate(header.split(",")):
+        tag, *parameters = item.strip().split(";")
+        quality = 1.0
+        for parameter in parameters:
+            parameter = parameter.strip()
+            if parameter.startswith("q="):
+                try:
+                    quality = float(parameter[2:])
+                except ValueError:
+                    quality = 0.0
+        if tag and quality > 0:
+            candidates.append((tag.lower(), quality, index))
+    candidates.sort(key=lambda candidate: (-candidate[1], candidate[2]))
+    for requested, _quality, _index in candidates:
+        for supported in supported_locales:
+            if requested == supported or requested.split("-", 1)[0] == supported.split("-", 1)[0]:
+                return supported
+    return default_locale
 
 
 def _resolve_consent_template(verification, locale: str):
@@ -83,14 +84,34 @@ def _resolve_consent_template(verification, locale: str):
     )
 
 
+def _policy_locales(verification, policy_snapshot: dict) -> list[str]:
+    configured = [
+        str(item).lower()
+        for item in policy_snapshot.get("supported_locales")
+        or [policy_snapshot.get("default_locale") or "en"]
+    ]
+    consent = policy_snapshot.get("consent") or {}
+    if not consent:
+        return configured
+    translations = consent.get("translations") or {
+        str(consent.get("language") or policy_snapshot.get("default_locale") or "en"): consent
+    }
+    available = {str(locale).lower() for locale in translations}
+    matched = [locale for locale in configured if locale in available]
+    default_locale = str(policy_snapshot.get("default_locale") or "en").lower()
+    return matched or [default_locale]
+
+
 def _consent_artifact(verification, locale: str) -> dict:
     consent_snapshot = (verification.policy_snapshot_json or {}).get("consent") or {}
     if consent_snapshot:
-        content = str(consent_snapshot.get("content") or "")
+        translations = consent_snapshot.get("translations") or {}
+        frozen = translations.get(locale) or consent_snapshot
+        content = str(frozen.get("content") or "")
         return {
-            "template_id": str(consent_snapshot.get("template_id") or "generated"),
-            "version": int(consent_snapshot.get("version") or 1),
-            "locale": str(consent_snapshot.get("locale") or locale),
+            "template_id": str(frozen.get("template_id") or "generated"),
+            "version": int(frozen.get("version") or 1),
+            "locale": str(frozen.get("language") or consent_snapshot.get("language") or locale),
             "content": content,
             "content_hash": hashlib.sha256(content.encode("utf-8")).hexdigest(),
         }
@@ -251,7 +272,16 @@ STATUS_PRESENTATION = {
 def serialize_verification_session(verification_session: VerificationSession, request=None) -> dict:
     verification = verification_session.verification
     organization = verification.organization
-    organization_logo_url = organization.settings_json.get("logo_url", "")
+    organization_settings = organization.settings_json or {}
+    environment = verification.project.environment if verification.project_id else "sandbox"
+    environment_branding = (
+        organization_settings.get("branding_environments", {})
+        .get(environment, {})
+        .get("published", {})
+    )
+    organization_logo_url = environment_branding.get(
+        "logo_url", organization_settings.get("logo_url", "")
+    )
     metadata = verification.metadata_json or {}
     configured_country_code = str(metadata.get("country_code", "")).upper()
     supported_country_codes = {profile["code"] for profile in COUNTRY_PROFILES}
@@ -288,7 +318,11 @@ def serialize_verification_session(verification_session: VerificationSession, re
         None,
     )
     policy_snapshot = verification.policy_snapshot_json or {}
-    locale = _request_locale(request, policy_snapshot)
+    session_locales = _policy_locales(verification, policy_snapshot)
+    locale_snapshot = dict(policy_snapshot)
+    if session_locales:
+        locale_snapshot["supported_locales"] = session_locales
+    locale = _request_locale(request, locale_snapshot)
     configured_liveness = str(
         policy_snapshot.get("required_liveness_level", "passive")
     )
@@ -302,6 +336,17 @@ def serialize_verification_session(verification_session: VerificationSession, re
         "organization": {
             "name": organization.name,
             "logo_url": organization_logo_url,
+            "primary_color": environment_branding.get(
+                "primary_color", organization_settings.get("primary_color", "#2563eb")
+            ),
+            "primary_text_color": environment_branding.get(
+                "primary_text_color",
+                organization_settings.get("primary_text_color", "#ffffff"),
+            ),
+            "background_color": environment_branding.get(
+                "background_color",
+                organization_settings.get("background_color", "#ffffff"),
+            ),
         },
         "purpose": verification.purpose,
         "redirect_url": verification.redirect_url,
@@ -313,8 +358,8 @@ def serialize_verification_session(verification_session: VerificationSession, re
         "locale": locale,
         "supported_locales": [
             str(item)
-            for item in policy_snapshot.get("supported_locales")
-            or sorted(SUPPORTED_LOCALES)
+            for item in session_locales
+            or [policy_snapshot.get("default_locale") or "en"]
         ],
         "direction": "rtl" if locale == "ar" else "ltr",
         "consent": _consent_artifact(verification, locale),
@@ -785,6 +830,24 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
             if attrs["capture_type"] == SelfieCaptureType.VIDEO
             else UploadPurpose.SELFIE_CAPTURE
         )
+        upload = Upload.objects.filter(
+            public_id=attrs["upload_id"],
+            tenant=verification_session.tenant,
+            verification=verification,
+            verification_session=verification_session,
+            purpose=expected_purpose,
+            deleted_at__isnull=True,
+        ).first()
+        if upload and upload.status in {UploadStatus.CONSUMED, UploadStatus.PROMOTED}:
+            existing_capture = verification.selfie_captures.filter(
+                storage_key=upload.storage_key,
+                capture_type=attrs["capture_type"],
+                deleted_at__isnull=True,
+            ).first()
+            if existing_capture:
+                attrs["existing_capture"] = existing_capture
+                return attrs
+
         attrs["resolved_upload"] = resolve_session_upload(
             verification_session=verification_session,
             upload_id=attrs["upload_id"],
@@ -794,6 +857,12 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
 
     @transaction.atomic
     def save(self, **kwargs):
+        existing_capture = self.validated_data.get("existing_capture")
+        if existing_capture:
+            self.created = False
+            return existing_capture
+
+        self.created = True
         request = self.context["request"]
         verification_session = request.verification_session
         verification = verification_session.verification

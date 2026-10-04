@@ -59,13 +59,24 @@ test("redacts raw OCR result shapes without hiding unrelated text", () => {
   const redacted = redactLogValue({
     raw_text_lines: ["ADA LOVELACE", "GHA-123456789"],
     ocr: {
-      lines: [{ text: "ADA LOVELACE", confidence: 0.98 }],
+      lines: [
+        {
+          text: "ADA LOVELACE",
+          normalized_text: "ada lovelace",
+          confidence: 0.98,
+        },
+      ],
     },
     summary: { text: "safe operational summary" },
   });
 
   assert.equal(redacted.raw_text_lines, REDACTED);
   assert.equal(redacted.ocr.lines[0].text, REDACTED);
+  assert.equal(redacted.ocr.lines[0].normalized_text, REDACTED);
+  assert.equal(
+    redactLogValue({ normalizedText: "ada lovelace" }).normalizedText,
+    REDACTED,
+  );
   assert.equal(redacted.ocr.lines[0].confidence, 0.98);
   assert.equal(redacted.summary.text, "safe operational summary");
 });
@@ -218,4 +229,22 @@ test("contains failures from hostile object traversal", () => {
 
   assert.equal(redactLogValue(throwingGetter), LOG_FORMAT_ERROR);
   assert.equal(redactLogValue(proxy), LOG_FORMAT_ERROR);
+});
+
+test("redacts MFA codes in request context and preserves operational codes", () => {
+  for (const payload of [
+    { mfa_token: "private-token", code: "123456" },
+    { code: "123456", mfaToken: "private-token" },
+    { mfa_request: { code: "123456" } },
+    { mfaChallenge: { payload: [{ code: "123456" }] } },
+  ]) {
+    assert.doesNotMatch(
+      JSON.stringify(redactLogValue(payload)),
+      /123456|private-token/,
+    );
+  }
+  assert.deepEqual(redactLogValue({ code: "provider_timeout" }), {
+    code: "provider_timeout",
+  });
+  assert.deepEqual(redactLogValue({ code: "123456" }), { code: "123456" });
 });

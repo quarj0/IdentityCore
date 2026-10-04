@@ -4,7 +4,12 @@ import logging
 from celery.utils.log import get_task_logger
 from django.test import SimpleTestCase
 
-from common.safe_logging import REDACTED, REDACTED_BINARY, install_safe_logging, redact_value
+from common.safe_logging import (
+    REDACTED,
+    REDACTED_BINARY,
+    install_safe_logging,
+    redact_value,
+)
 
 
 class SafeLoggingTests(SimpleTestCase):
@@ -13,7 +18,9 @@ class SafeLoggingTests(SimpleTestCase):
         super().setUpClass()
         install_safe_logging()
 
-    def _capture(self, logger: logging.Logger, formatter: str = "%(levelname)s %(message)s"):
+    def _capture(
+        self, logger: logging.Logger, formatter: str = "%(levelname)s %(message)s"
+    ):
         stream = io.StringIO()
         handler = logging.StreamHandler(stream)
         handler.setFormatter(logging.Formatter(formatter))
@@ -51,6 +58,21 @@ class SafeLoggingTests(SimpleTestCase):
         self.assertEqual(redacted["evidence"]["face_embedding"], REDACTED)
         self.assertEqual(redacted["evidence"]["document_storage_key"], REDACTED)
         self.assertEqual(redacted["binary"], REDACTED_BINARY)
+
+    def test_mfa_codes_are_redacted_only_in_authentication_context(self):
+        for payload in [
+            {"mfa_token": "private-token", "code": "123456"},
+            {"code": "123456", "mfaToken": "private-token"},
+            {"mfa_request": {"code": "123456"}},
+            {"mfaChallenge": {"payload": [{"code": "123456"}]}},
+        ]:
+            with self.subTest(payload=payload):
+                self.assertNotIn("123456", str(redact_value(payload)))
+                self.assertNotIn("private-token", str(redact_value(payload)))
+        self.assertEqual(
+            redact_value({"code": "provider_timeout"}), {"code": "provider_timeout"}
+        )
+        self.assertEqual(redact_value({"code": "123456"}), {"code": "123456"})
 
     def test_django_logger_redacts_message_arguments_and_structured_extra(self):
         logger = logging.getLogger("django.identitycore.redaction-test")

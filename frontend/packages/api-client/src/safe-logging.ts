@@ -3,6 +3,14 @@ export const REDACTED_BINARY = "[REDACTED_BINARY]";
 export const LOG_FORMAT_ERROR = "[LOG_FORMAT_ERROR]";
 
 const MAX_REDACTION_DEPTH = 12;
+const MFA_CONTEXT_KEYS = new Set([
+  "mfa",
+  "mfa_token",
+  "mfa_request",
+  "mfa_challenge",
+  "mfa_enrollment",
+  "mfa_enroll_confirm",
+]);
 
 const SENSITIVE_KEYS = new Set([
   "access_key",
@@ -52,6 +60,7 @@ const SENSITIVE_KEYS = new Set([
   "mrz",
   "national_id",
   "ocr_text",
+  "normalized_text",
   "passport_number",
   "password",
   "passcode",
@@ -236,9 +245,10 @@ export function redactLogValue(
   key?: PropertyKey,
   depth = 0,
   path: string[] = [],
+  mfaContext = false,
 ): unknown {
   try {
-    return redactLogValueUnsafe(value, key, depth, path);
+    return redactLogValueUnsafe(value, key, depth, path, mfaContext);
   } catch {
     return LOG_FORMAT_ERROR;
   }
@@ -249,12 +259,16 @@ function redactLogValueUnsafe(
   key?: PropertyKey,
   depth = 0,
   path: string[] = [],
+  mfaContext = false,
 ): unknown {
   const normalizedKey = key === undefined ? "" : normalizeKey(key);
   const currentPath = normalizedKey ? [...path, normalizedKey] : path;
+  mfaContext =
+    mfaContext || currentPath.some((part) => MFA_CONTEXT_KEYS.has(part));
   if (
     key !== undefined &&
     (isSensitiveLogKey(key) ||
+      (normalizedKey === "code" && mfaContext) ||
       (normalizedKey === "text" &&
         currentPath.slice(-3).join(".") === "ocr.lines.text"))
   )
@@ -268,10 +282,15 @@ function redactLogValueUnsafe(
   }
   if (Array.isArray(value)) {
     return value.map((item) =>
-      redactLogValue(item, undefined, depth + 1, currentPath),
+      redactLogValue(item, undefined, depth + 1, currentPath, mfaContext),
     );
   }
   if (typeof value === "object") {
+    mfaContext =
+      mfaContext ||
+      Object.keys(value).some((entryKey) =>
+        MFA_CONTEXT_KEYS.has(normalizeKey(entryKey)),
+      );
     const output: Record<string, unknown> = {};
     for (const [entryKey, entryValue] of Object.entries(value)) {
       output[redactLogText(entryKey)] = redactLogValue(
@@ -279,6 +298,7 @@ function redactLogValueUnsafe(
         entryKey,
         depth + 1,
         currentPath,
+        mfaContext,
       );
     }
     return output;

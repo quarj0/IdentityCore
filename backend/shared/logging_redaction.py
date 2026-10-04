@@ -14,6 +14,16 @@ REDACTED = "[REDACTED]"
 REDACTED_BINARY = "[REDACTED_BINARY]"
 MAX_REDACTION_DEPTH = 12
 LOG_FORMAT_ERROR = "[LOG_FORMAT_ERROR]"
+_MFA_CONTEXT_KEYS = frozenset(
+    {
+        "mfa",
+        "mfa_token",
+        "mfa_request",
+        "mfa_challenge",
+        "mfa_enrollment",
+        "mfa_enroll_confirm",
+    }
+)
 
 
 class _SanitizedLogException(Exception):
@@ -105,6 +115,7 @@ _SENSITIVE_KEYS = frozenset(
         "liveness_video",
         "mrz",
         "ocr_text",
+        "normalized_text",
         "raw_document",
         "raw_image",
         "raw_ocr",
@@ -276,6 +287,7 @@ def redact_value(
     key: object | None = None,
     _depth: int = 0,
     _path: tuple[str, ...] = (),
+    _mfa_context: bool = False,
 ) -> Any:
     """Return a logging-safe copy of a nested value.
 
@@ -284,8 +296,12 @@ def redact_value(
     """
     normalized_key = _normalize_key(key) if key is not None else ""
     current_path = (*_path, normalized_key) if normalized_key else _path
+    mfa_context = _mfa_context or any(
+        part in _MFA_CONTEXT_KEYS for part in current_path
+    )
     if key is not None and (
         is_sensitive_key(key)
+        or (normalized_key == "code" and mfa_context)
         or (normalized_key == "text" and current_path[-3:] == ("ocr", "lines", "text"))
     ):
         return REDACTED
@@ -305,6 +321,9 @@ def redact_value(
     except TypeError:
         pass
     if isinstance(value, Mapping):
+        mfa_context = mfa_context or any(
+            _normalize_key(item_key) in _MFA_CONTEXT_KEYS for item_key in value
+        )
         redacted_mapping = {}
         for item_key, item_value in value.items():
             safe_key = redact_text(str(item_key))
@@ -313,21 +332,28 @@ def redact_value(
                 key=item_key,
                 _depth=_depth + 1,
                 _path=current_path,
+                _mfa_context=mfa_context,
             )
         return redacted_mapping
     if isinstance(value, tuple):
         return tuple(
-            redact_value(item, _depth=_depth + 1, _path=current_path)
+            redact_value(
+                item, _depth=_depth + 1, _path=current_path, _mfa_context=mfa_context
+            )
             for item in value
         )
     if isinstance(value, list):
         return [
-            redact_value(item, _depth=_depth + 1, _path=current_path)
+            redact_value(
+                item, _depth=_depth + 1, _path=current_path, _mfa_context=mfa_context
+            )
             for item in value
         ]
     if isinstance(value, (set, frozenset)):
         return [
-            redact_value(item, _depth=_depth + 1, _path=current_path)
+            redact_value(
+                item, _depth=_depth + 1, _path=current_path, _mfa_context=mfa_context
+            )
             for item in value
         ]
     return redact_text(str(value))

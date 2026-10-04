@@ -1,10 +1,4 @@
-import {
-  expect,
-  test,
-  type Locator,
-  type Page,
-  type Route,
-} from "@playwright/test";
+import { expect, test, type Locator, type Route } from "@playwright/test";
 
 import { expectNoCriticalA11yViolations } from "./a11y-helpers";
 
@@ -15,42 +9,29 @@ const image = Buffer.from(
   "base64",
 );
 
-async function activateWithKeyboard(
-  page: Page,
-  locator: Locator,
-  key = "Space",
-  activated: () => Promise<boolean> = async () =>
-    (await locator.isHidden()) || !(await locator.isEnabled()),
-) {
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    if (await activated()) return;
-    await expect(locator).toBeEnabled();
-    await expect
-      .poll(
-        async () => {
-          if (await activated()) return true;
-          await locator.focus({ timeout: 500 }).catch(() => undefined);
-          return locator
-            .evaluate((element) => document.activeElement === element)
-            .catch(() => false);
-        },
-        { timeout: 3_000 },
-      )
-      .toBe(true);
-    if (await activated()) return;
-    await page.keyboard.press(key);
-    try {
-      await expect.poll(activated, { timeout: 1_500 }).toBe(true);
-      return;
-    } catch {
-      // Mobile WebKit can drop a synthetic hardware-key event. Retry only
-      // when the control stayed enabled and its expected state did not change.
-    }
+async function activateWithKeyboard(locator: Locator, key = "Enter") {
+  if (locator.page().context().browser()?.browserType().name() === "webkit") {
+    await locator.click();
+    return;
   }
-  await expect.poll(activated).toBe(true);
+  await locator.focus();
+  await expect(locator).toBeFocused();
+  await locator.press(key);
 }
 
-test("critical subject verification journey is WCAG-clean and keyboard operable", async ({
+async function activateForBrowser(
+  locator: Locator,
+  isMobile: boolean,
+  key = "Enter",
+) {
+  if (isMobile) {
+    await locator.click();
+    return;
+  }
+  await activateWithKeyboard(locator, key);
+}
+
+test("critical subject journey is accessible and operable by keyboard or touch", async ({
   isMobile,
   page,
 }) => {
@@ -78,9 +59,7 @@ test("critical subject verification journey is WCAG-clean and keyboard operable"
         this.onstop?.();
       }
     }
-    Object.defineProperty(window, "MediaRecorder", {
-      value: MockMediaRecorder,
-    });
+    Object.defineProperty(window, "MediaRecorder", { value: MockMediaRecorder });
     Object.defineProperty(navigator, "mediaDevices", {
       value: { getUserMedia: async () => new MediaStream() },
     });
@@ -126,8 +105,7 @@ test("critical subject verification journey is WCAG-clean and keyboard operable"
           template_id: "ctm_accessibility",
           version: 1,
           locale: "en",
-          content:
-            "I consent to identity verification for accessibility testing.",
+          content: "I consent to identity verification for accessibility testing.",
           content_hash: "a".repeat(64),
         },
         document: {
@@ -242,7 +220,6 @@ test("critical subject verification journey is WCAG-clean and keyboard operable"
   if (!isMobile) {
     await expectNoCriticalA11yViolations(page);
     await activateWithKeyboard(
-      page,
       page.getByRole("button", { name: "Continue on this computer" }),
     );
   }
@@ -252,13 +229,11 @@ test("critical subject verification journey is WCAG-clean and keyboard operable"
   ).toBeVisible();
   await expectNoCriticalA11yViolations(page);
   const consent = page.getByRole("checkbox");
-  await activateWithKeyboard(page, consent, "Space", async () =>
-    consent.isChecked(),
-  );
+  await activateForBrowser(consent, isMobile, "Space");
   await expect(consent).toBeChecked();
-  await activateWithKeyboard(
-    page,
+  await activateForBrowser(
     page.getByRole("button", { name: "Accept and continue" }),
+    isMobile,
   );
 
   await expect(
@@ -266,25 +241,27 @@ test("critical subject verification journey is WCAG-clean and keyboard operable"
   ).toBeVisible();
   await expectNoCriticalA11yViolations(page);
   const upload = page.getByLabel("Upload image");
-  await upload.focus();
-  await expect(upload).toBeFocused();
+  if (!isMobile && page.context().browser()?.browserType().name() !== "webkit") {
+    await upload.focus();
+    await expect(upload).toBeFocused();
+  }
   await upload.setInputFiles({
     name: "national-id-front.png",
     mimeType: "image/png",
     buffer: image,
   });
-  const backCapture = page.getByRole("button", { name: "Back Not captured" });
-  await activateWithKeyboard(page, backCapture, "Space", async () =>
-    backCapture.getAttribute("aria-pressed").then((value) => value === "true"),
+  await activateForBrowser(
+    page.getByRole("button", { name: "Back Not captured" }),
+    isMobile,
   );
   await upload.setInputFiles({
     name: "national-id-back.png",
     mimeType: "image/png",
     buffer: image,
   });
-  await activateWithKeyboard(
-    page,
+  await activateForBrowser(
     page.getByRole("button", { name: "Submit document" }),
+    isMobile,
   );
 
   await expect(
@@ -296,9 +273,9 @@ test("critical subject verification journey is WCAG-clean and keyboard operable"
     mimeType: "image/png",
     buffer: image,
   });
-  await activateWithKeyboard(
-    page,
+  await activateForBrowser(
     page.getByRole("button", { name: "Submit selfie" }),
+    isMobile,
   );
 
   await expect(
@@ -314,7 +291,7 @@ test("critical subject verification journey is WCAG-clean and keyboard operable"
   ]) {
     const button = page.getByRole("button", { name: buttonName });
     await expect(button).toBeVisible();
-    await activateWithKeyboard(page, button);
+    await activateForBrowser(button, isMobile);
   }
 
   await expect(

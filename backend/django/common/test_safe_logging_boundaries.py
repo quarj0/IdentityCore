@@ -254,7 +254,11 @@ class SafeLoggingBoundaryTests(SimpleTestCase):
                 "raw_text_lines": ["ADA LOVELACE", "GHA-123456789"],
                 "ocr": {
                     "lines": [
-                        {"text": "ADA LOVELACE", "confidence": Decimal("0.98")}
+                        {
+                            "text": "ADA LOVELACE",
+                            "normalized_text": "ada lovelace",
+                            "confidence": Decimal("0.98"),
+                        }
                     ]
                 },
                 "summary": {"text": "safe operational summary"},
@@ -262,6 +266,10 @@ class SafeLoggingBoundaryTests(SimpleTestCase):
         )
         self.assertEqual(redacted["raw_text_lines"], REDACTED)
         self.assertEqual(redacted["ocr"]["lines"][0]["text"], REDACTED)
+        self.assertEqual(redacted["ocr"]["lines"][0]["normalized_text"], REDACTED)
+        self.assertEqual(
+            redact_value({"normalizedText": "ada lovelace"})["normalizedText"], REDACTED
+        )
         self.assertEqual(redacted["ocr"]["lines"][0]["confidence"], Decimal("0.98"))
         self.assertEqual(redacted["summary"]["text"], "safe operational summary")
 
