@@ -262,6 +262,10 @@ CELERY_TASK_ROUTES = {
     "apps.notifications.tasks.deliver_notification_task": {"queue": "notifications"},
 }
 CELERY_BEAT_SCHEDULE = {
+    "cleanup-dashboard-sessions": {
+        "task": "apps.accounts.tasks.purge_session_history_task",
+        "schedule": 3600,
+    },
     "cleanup-api-usage": {
         "task": "apps.api_clients.tasks.cleanup_api_usage_task",
         "schedule": 3600,
@@ -413,7 +417,7 @@ NOTIFICATION_SMS_PROVIDER_CODE = os.getenv(
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "apps.accounts.authentication.DashboardJWTAuthentication",
     ),
     "DEFAULT_THROTTLE_CLASSES": (
         "common.throttling.APIClientRateThrottle",

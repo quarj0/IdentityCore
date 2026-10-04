@@ -13,7 +13,8 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.models import PasswordResetToken, PlatformUser
-from apps.audit.services import record_audit_event
+from apps.accounts.sessions import revoke_user_sessions
+from apps.audit.services import lock_audit_chain, record_audit_event
 from apps.notifications.models import NotificationChannel, NotificationRecipientType
 from apps.notifications.services import (
     create_notification,
@@ -120,10 +121,19 @@ def reset_password_with_token(
     if reset_token.expires_at <= timezone.now():
         raise ValueError("This password reset token has expired.")
 
-    user = reset_token.user
+    lock_audit_chain(reset_token.user.tenant_id)
+    user = PlatformUser.objects.select_for_update().get(pk=reset_token.user_id)
+    reset_token = PasswordResetToken.objects.select_for_update().get(pk=reset_token.pk)
+    if (
+        reset_token.used_at is not None
+        or reset_token.revoked_at is not None
+        or reset_token.expires_at <= timezone.now()
+    ):
+        raise ValueError("Invalid password reset token.")
     validate_password(new_password, user=user)
     user.set_password(new_password)
     user.save(update_fields=["password", "updated_at"])
+    revoke_user_sessions(user)
 
     reset_token.used_at = timezone.now()
     reset_token.save(update_fields=["used_at", "updated_at"])
@@ -156,12 +166,15 @@ def change_password(
     new_password: str,
     request=None,
 ) -> PlatformUser:
+    lock_audit_chain(user.tenant_id)
+    user = PlatformUser.objects.select_for_update().get(pk=user.pk)
     if not user.check_password(current_password):
         raise ValidationError("Current password is incorrect.")
 
     validate_password(new_password, user=user)
     user.set_password(new_password)
     user.save(update_fields=["password", "updated_at"])
+    revoke_user_sessions(user)
     PasswordResetToken.objects.filter(
         user=user,
         used_at__isnull=True,

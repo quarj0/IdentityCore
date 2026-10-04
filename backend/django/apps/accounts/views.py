@@ -1,4 +1,6 @@
 import logging
+from django.conf import settings
+from django.db import transaction
 from django.utils import timezone
 from django.contrib.auth import authenticate
 from rest_framework import status
@@ -6,7 +8,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.views import APIView
 
-from apps.audit.services import record_audit_event
+from apps.audit.services import lock_audit_chain, record_audit_event
 from apps.accounts.models import (
     PlatformUser,
     TeamInvitation,
@@ -32,7 +34,13 @@ from apps.accounts.mfa import (
     verify_challenge,
     verify_totp,
 )
-from apps.accounts.sessions import issue_refresh_token, revoke_refresh_token
+from apps.accounts.sessions import (
+    issue_refresh_token,
+    revoke_refresh_token,
+    revoke_user_sessions,
+)
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework.exceptions import ValidationError
 from common.permissions import IsTenantUser
 from apps.accounts.invitations import (
     create_invitation,
@@ -73,8 +81,7 @@ class LoginView(APIView):
 
 
 def complete_login(request, user, *, mfa_method: str | None = None):
-    refresh = issue_refresh_token(user)
-    refresh["mfa_verified"] = bool(mfa_method) or not user.mfa_enabled
+    refresh = issue_refresh_token(user, request=request, mfa_verified=bool(mfa_method))
     now = timezone.now()
     PlatformUser.objects.filter(pk=user.pk).update(last_login_at=now, updated_at=now)
     user.last_login_at = now
@@ -193,8 +200,10 @@ class MFAChallengeView(APIView):
 class MFAResetView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @transaction.atomic
     def post(self, request):
-        user = request.user
+        lock_audit_chain(request.user.tenant_id)
+        user = PlatformUser.objects.select_for_update().get(pk=request.user.pk)
         password = str(request.data.get("password", ""))
         code = str(request.data.get("code", ""))
         if authenticate(request=request, email=user.email, password=password) != user:
@@ -205,6 +214,7 @@ class MFAResetView(APIView):
         user.mfa_config_json = {}
         user.save(update_fields=["mfa_enabled", "mfa_config_json", "updated_at"])
         user.mfa_recovery_codes.all().delete()
+        revoke_user_sessions(user)
         record_audit_event(
             tenant_id=user.tenant_id,
             actor=user,
@@ -223,11 +233,19 @@ class RefreshView(APIView):
     def post(self, request):
         require_trusted_cookie_origin(request)
         cookie_name = get_refresh_cookie_name(request)
-        refresh_token = request.COOKIES.get(cookie_name, "")
-        serializer = RefreshInputSerializer(data={"refresh": refresh_token})
+        migrated_legacy = (
+            cookie_name != settings.AUTH_REFRESH_COOKIE_NAME
+            and cookie_name not in request.COOKIES
+        )
+        refresh_token = request.COOKIES.get(
+            settings.AUTH_REFRESH_COOKIE_NAME if migrated_legacy else cookie_name, ""
+        )
+        serializer = RefreshInputSerializer(
+            data={"refresh": refresh_token}, context={"request": request}
+        )
         try:
             serializer.is_valid(raise_exception=True)
-        except Exception as exc:
+        except (TokenError, ValidationError) as exc:
             # SimpleJWT raises TokenError directly for blacklisted tokens instead of
             # consistently converting it to a DRF authentication response.
             auth_error = AuthenticationFailed(
@@ -244,6 +262,8 @@ class RefreshView(APIView):
         rotated_refresh = serializer.validated_data.get("refresh")
         if rotated_refresh:
             set_refresh_cookie(response, rotated_refresh, cookie_name=cookie_name)
+        if migrated_legacy:
+            clear_refresh_cookie(response)
         return response
 
 
@@ -258,7 +278,7 @@ class LogoutView(APIView):
         if raw_token:
             try:
                 revoke_refresh_token(raw_token)
-            except Exception:
+            except TokenError:
                 pass
         response = success_response(
             {"logged_out": True}, request=request, status=status.HTTP_200_OK
