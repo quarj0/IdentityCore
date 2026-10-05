@@ -19,7 +19,8 @@
         "membership and role",
         "IP address",
         "user agent",
-        "Encrypted single-use invitation delivery payload; cleared after delivery or failure; pending capabilities expire after seven days."
+        "Encrypted single-use invitation delivery payload; cleared after delivery or failure; pending capabilities expire after seven days.",
+        "Authenticated wrapped tenant/environment data encryption keys, key versions and bounded resumable rotation state. Plaintext DEKs exist only in memory."
       ],
       "purpose": "Authenticate users, administer tenants, enforce access, and investigate security events.",
       "locations": [
@@ -27,7 +28,8 @@
         "backend/django/apps/organizations/models.py",
         "backend/django/apps/access_control/models.py",
         "backend/django/apps/security/models.py",
-        "backend/django/apps/notifications/models.py"
+        "backend/django/apps/notifications/models.py",
+        "backend/django/apps/tenants/models.py"
       ],
       "retention": "Account and membership lifetime, followed by the configured legal/security deletion period; short-lived tokens expire and are purged.",
       "processors": [
@@ -3653,6 +3655,121 @@
       "source": "backend/django/apps/tenants/models.py",
       "field": "Tenant.updated_at",
       "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantDataKey.active",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantDataKey.created_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantDataKey.deleted_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantDataKey.environment",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantDataKey.id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantDataKey.public_id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantDataKey.tenant_scope",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantDataKey.updated_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantDataKey.version",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantDataKey.wrapped_key_json",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantDataKey.wrapping_provider",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.conflict_count",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.created_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.deleted_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.environment",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.migrated_count",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.positions_json",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.public_id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.status",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.target_key",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.tenant_scope",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.updated_at",
+      "activity": "account-and-tenant-administration"
     },
     {
       "source": "backend/django/apps/uploads/models.py",

@@ -149,6 +149,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "common.observability.ObservabilityMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "common.tenant_crypto_middleware.TenantKeyReadCacheMiddleware",
     "common.cors.LocalCorsMiddleware",
     "common.usage_headers.APIUsageHeadersMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",

@@ -10,7 +10,6 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from django.conf import settings
 
-
 FIELD_ENVELOPE_VERSION = "ic-field-v1"
 OBJECT_ENVELOPE_VERSION = "ic-object-v1"
 
@@ -35,7 +34,9 @@ def _parse_keyring(value: str) -> list[KeyMaterial]:
     for item in [part.strip() for part in value.split(",") if part.strip()]:
         key_id, _, encoded_key = item.partition(":")
         if not key_id or not encoded_key:
-            raise ValueError("APPLICATION_ENCRYPTION_KEYRING entries must use key_id:base64urlkey format.")
+            raise ValueError(
+                "APPLICATION_ENCRYPTION_KEYRING entries must use key_id:base64urlkey format."
+            )
         key_bytes = _b64decode(encoded_key.strip())
         if len(key_bytes) != 32:
             raise ValueError("Application encryption keys must decode to 32 bytes.")
@@ -63,7 +64,9 @@ def get_application_keyring() -> list[KeyMaterial]:
 
 def get_active_key() -> KeyMaterial:
     keyring = get_application_keyring()
-    active_key_id = getattr(settings, "APPLICATION_ENCRYPTION_ACTIVE_KEY_ID", "").strip()
+    active_key_id = getattr(
+        settings, "APPLICATION_ENCRYPTION_ACTIVE_KEY_ID", ""
+    ).strip()
     if active_key_id:
         for key in keyring:
             if key.key_id == active_key_id:
@@ -129,7 +132,21 @@ def encrypt_object_bytes(
     content: bytes,
     content_type: str,
     purpose: str,
+    tenant_scope: str | None = None,
+    environment: str = "shared",
 ) -> bytes:
+    if tenant_scope is not None:
+        from common.tenant_crypto import TENANT_OBJECT_VERSION, encrypt_tenant_bytes
+
+        envelope = encrypt_tenant_bytes(
+            content,
+            tenant_scope=tenant_scope,
+            environment=environment,
+            purpose=purpose,
+            kind=TENANT_OBJECT_VERSION,
+            content_type=content_type,
+        )
+        return json.dumps(envelope, separators=(",", ":")).encode("utf-8")
     active_key = get_active_key()
     nonce = os.urandom(12)
     ciphertext = AESGCM(active_key.key_bytes).encrypt(
@@ -152,8 +169,25 @@ def decrypt_object_bytes(
     *,
     payload: bytes,
     purpose: str,
+    tenant_scope: str | None = None,
+    environment: str = "shared",
 ) -> tuple[bytes, str]:
     envelope = json.loads(payload.decode("utf-8"))
+    if not isinstance(envelope, dict):
+        raise ValueError("Encrypted object is unavailable.")
+    from common.tenant_crypto import TENANT_OBJECT_VERSION, decrypt_tenant_bytes
+
+    if envelope.get("__enc__") == TENANT_OBJECT_VERSION:
+        if tenant_scope is None:
+            raise ValueError("Tenant ownership context is required.")
+        content = decrypt_tenant_bytes(
+            envelope,
+            tenant_scope=tenant_scope,
+            environment=environment,
+            purpose=purpose,
+            kind=TENANT_OBJECT_VERSION,
+        )
+        return content, envelope["content_type"]
     if envelope.get("__enc__") != OBJECT_ENVELOPE_VERSION:
         raise ValueError("Object payload is not an IdentityCore encrypted object.")
     key = get_key_by_id(envelope["kid"])
@@ -170,4 +204,7 @@ def is_encrypted_object_payload(payload: bytes) -> bool:
         envelope = json.loads(payload.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError):
         return False
-    return envelope.get("__enc__") == OBJECT_ENVELOPE_VERSION
+    return isinstance(envelope, dict) and envelope.get("__enc__") in {
+        OBJECT_ENVELOPE_VERSION,
+        "ic-tenant-object-v2",
+    }

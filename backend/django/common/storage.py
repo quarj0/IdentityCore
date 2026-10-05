@@ -1,4 +1,4 @@
-from common.observability import observed, inject
+from common.observability import observed
 from urllib.parse import urlencode
 import os
 
@@ -344,6 +344,8 @@ def put_object_bytes(
     content_type: str = "application/octet-stream",
     encrypt: bool = False,
     encryption_purpose: str = "",
+    tenant_scope: str | None = None,
+    environment: str = "shared",
 ) -> None:
     client = get_object_storage_client()
 
@@ -363,6 +365,8 @@ def put_object_bytes(
             content=content,
             content_type=content_type,
             purpose=encryption_purpose,
+            tenant_scope=tenant_scope,
+            environment=environment,
         )
 
         object_content_type = "application/vnd.identitycore.encrypted+json"
@@ -384,6 +388,8 @@ def get_object_bytes(
     decrypt: bool = False,
     encryption_purpose: str = "",
     max_bytes: int | None = None,
+    tenant_scope: str | None = None,
+    environment: str = "shared",
 ) -> tuple[bytes, str]:
     client = get_object_storage_client()
 
@@ -408,7 +414,9 @@ def get_object_bytes(
         "application/octet-stream",
     )
 
-    if decrypt and is_encrypted_object_payload(payload):
+    if decrypt and tenant_scope is not None and not is_encrypted_object_payload(payload):
+        raise ValueError("Tenant encrypted object is unavailable.")
+    if (decrypt or tenant_scope is not None) and is_encrypted_object_payload(payload):
         if not encryption_purpose:
             raise ValueError(
                 "An encryption purpose is required when decrypting " "object bytes."
@@ -417,6 +425,8 @@ def get_object_bytes(
         return decrypt_object_bytes(
             payload=payload,
             purpose=encryption_purpose,
+            tenant_scope=tenant_scope,
+            environment=environment,
         )
 
     return payload, content_type

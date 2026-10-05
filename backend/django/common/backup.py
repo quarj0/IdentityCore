@@ -145,7 +145,8 @@ def required_object_refs():
         deleted_at__isnull=True, status__in=["uploaded", "submitted"]
     ).values_list("storage_key", flat=True):
         refs.add((buckets.get("public", ""), key))
-    for metadata in Verification.objects.values_list("metadata_json", flat=True):
+    for verification in Verification.objects.select_related("tenant").only("metadata_json", "tenant__public_id").iterator():
+        metadata = verification.metadata_json
         for field in ("evidence_report_storage_key", "evidence_report_pdf_storage_key"):
             if metadata.get(field):
                 refs.add((buckets.get("evidence", ""), metadata[field]))

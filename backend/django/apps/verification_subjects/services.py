@@ -74,15 +74,19 @@ def request_subject_deletion(
             ]
         )
 
-        documents = subject.identity_documents.all()
-        document_count = documents.update(
-            document_number_hash="",
-            local_document_name="",
-            issuing_authority="",
-            extracted_data_json={},
-        )
-        verifications = subject.verifications.all()
-        verification_count = verifications.update(metadata_json={})
+        document_count = 0
+        for document in subject.identity_documents.select_related("tenant").all():
+            document.document_number_hash = ""
+            document.local_document_name = ""
+            document.issuing_authority = ""
+            document.extracted_data_json = {}
+            document.save(update_fields=["document_number_hash", "local_document_name", "issuing_authority", "extracted_data_json", "updated_at"])
+            document_count += 1
+        verification_count = 0
+        for verification in subject.verifications.select_related("tenant").all():
+            verification.metadata_json = {}
+            verification.save(update_fields=["metadata_json", "updated_at"])
+            verification_count += 1
         decision_count = 0
         for decision in subject.verifications.select_related("decision_record").all():
             if hasattr(decision, "decision_record"):

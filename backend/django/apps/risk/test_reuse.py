@@ -29,7 +29,7 @@ RULES = {
 class ReuseSignalTests(TestCase):
     setUp = risk_tests.RiskDecisionTests.setUp
 
-    def _case(self, tenant=None, scope="tenant", threshold=2):
+    def _case(self, tenant=None, scope="tenant", threshold=2, project=None):
         tenant = tenant or self.tenant
         subject = VerificationSubject.objects.create(
             tenant=tenant, full_name="Synthetic subject"
@@ -42,6 +42,7 @@ class ReuseSignalTests(TestCase):
             organization=tenant.organization,
             verification_subject=subject,
             purpose="Synthetic reuse check",
+            project=project,
             expires_at=timezone.now() + timedelta(hours=1),
             policy_snapshot_json={"reuse_rules": rules, "metadata_retention_days": 7},
         )
@@ -246,9 +247,7 @@ class ReuseSignalTests(TestCase):
             environment="production",
             created_by=user,
         )
-        first, second = self._case(), self._case()
-        second.project = project
-        second.save(update_fields=["project"])
+        first, second = self._case(), self._case(project=project)
         collect_reuse(first)
         self.assertEqual(collect_reuse(second)["signals"], [])
 
