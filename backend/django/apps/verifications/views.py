@@ -13,7 +13,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.settings import api_settings
 from rest_framework.views import APIView
 
-from apps.audit.services import record_audit_event
+from apps.audit.services import record_audit_event, lock_audit_chain
 from apps.api_clients.idempotency import (
     begin_idempotent_request,
     complete_idempotent_request,
@@ -356,6 +356,7 @@ class VerificationCancelView(VerificationAccessMixin, APIView):
 class VerificationResendLinkView(VerificationAccessMixin, APIView):
     required_scopes = ("verifications:create",)
 
+    @transaction.atomic
     def post(self, request, verification_id: str):
         verification = get_object_or_404(
             self._scope_to_client_environment(
@@ -365,6 +366,12 @@ class VerificationResendLinkView(VerificationAccessMixin, APIView):
             tenant=self._get_tenant(request),
             public_id=verification_id,
         )
+        lock_audit_chain(verification.tenant_id)
+        verification = Verification.objects.select_for_update().get(pk=verification.pk)
+        from apps.verifications.models import SandboxSimulation
+        from apps.verifications.transitions import TERMINAL_STATUSES
+        if verification.status in TERMINAL_STATUSES or SandboxSimulation.objects.filter(verification=verification).exists():
+            raise ValidationError("This case cannot issue a new capture session.")
         serializer = VerificationResendLinkSerializer(data=request.data or {})
         serializer.is_valid(raise_exception=True)
 
@@ -741,3 +748,18 @@ class ManualReviewApprovalView(APIView):
             },
             request=request,
         )
+
+
+class SandboxSimulationView(VerificationAccessMixin, APIView):
+    required_scopes = ("verifications:create",)
+
+    def post(self, request, verification_id):
+        from rest_framework import serializers
+        from apps.verifications.simulator import SCENARIOS, simulate_verification
+        class Input(serializers.Serializer):
+            scenario = serializers.ChoiceField(choices=list(SCENARIOS))
+        serializer = Input(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        case = get_object_or_404(self._scope_to_client_environment(request, Verification.objects.all()), tenant=self._get_tenant(request), public_id=verification_id)
+        data = simulate_verification(case, serializer.validated_data["scenario"], actor=self._get_actor(request), request=request)
+        return success_response(data, request=request)

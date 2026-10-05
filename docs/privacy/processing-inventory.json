@@ -4168,6 +4168,41 @@
     },
     {
       "source": "backend/django/apps/verifications/models.py",
+      "field": "SandboxSimulation.created_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "SandboxSimulation.deleted_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "SandboxSimulation.id",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "SandboxSimulation.scenario",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "SandboxSimulation.updated_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "SandboxSimulation.verification",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "SandboxSimulation.version",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
       "field": "Verification.assigned_at",
       "activity": "verification-subject-and-session"
     },

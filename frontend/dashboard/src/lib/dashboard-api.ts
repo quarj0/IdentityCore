@@ -40,6 +40,7 @@ export type VerificationSummary = {
 };
 
 export type VerificationDetail = {
+  simulation?: { scenario: string; version: number };
   id: string;
   status: string;
   purpose: string;

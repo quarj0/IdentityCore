@@ -176,6 +176,15 @@ export function LiveVerificationDetail({
         action={<StatusBadge status={item.status} />}
       />
 
+      {item.simulation ? (
+        <p
+          className="rounded-xl border border-amber-200 bg-amber-50 p-4"
+          role="status"
+        >
+          Sandbox simulation: {item.simulation.scenario}. This case contains
+          artificial results.
+        </p>
+      ) : null}
       {message ? (
         <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
           {message}

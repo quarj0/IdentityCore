@@ -6,6 +6,7 @@ from apps.identity_documents.review_views import (
 from common.public_api import public_api_path
 
 from apps.verifications.views import (
+    SandboxSimulationView,
     ManualReviewDecisionView,
     ManualReviewApprovalView,
     ManualReviewListView,
@@ -20,6 +21,7 @@ from apps.verifications.views import (
 )
 
 urlpatterns = [
+    public_api_path("<str:verification_id>/simulate", SandboxSimulationView.as_view(), methods=("POST",), name="verification-simulate"),
     internal_api_path(
         "manual-reviews/<str:verification_id>/authenticity",
         AuthenticityReviewView.as_view(),
