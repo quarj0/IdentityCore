@@ -95,3 +95,36 @@ class TenantKeyRotation(PublicIdModel, BaseModel):
     positions_json = models.JSONField(default=dict)
     migrated_count = models.PositiveIntegerField(default=0)
     conflict_count = models.PositiveIntegerField(default=0)
+
+
+class TenantKMSBinding(PublicIdModel, BaseModel):
+    public_id_prefix = "tkm"
+    tenant = models.ForeignKey(Tenant, on_delete=models.PROTECT)
+    environment = models.CharField(
+        max_length=16, choices=[("sandbox", "Sandbox"), ("production", "Production")]
+    )
+    key_arn = models.CharField(max_length=255)
+    status = models.CharField(
+        max_length=16,
+        default="pending",
+        choices=[
+            ("pending", "Pending"),
+            ("active", "Active"),
+            ("retired", "Retired"),
+            ("disabled", "Disabled"),
+        ],
+    )
+    active = models.BooleanField(default=False)
+    grant_tokens_json = EncryptedJSONField(
+        default=list, encryption_purpose="tenant.kms.grants", tenant_encryption=False
+    )
+    validated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tenant", "environment"],
+                condition=models.Q(active=True),
+                name="tenant_kms_unique_active",
+            )
+        ]

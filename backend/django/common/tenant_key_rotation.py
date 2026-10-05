@@ -40,12 +40,14 @@ def start_rotation(tenant_scope, environment, *, actor=None):
         + 1
     )
     TenantDataKey.objects.filter(pk=current.pk).update(active=False)
+    wrapped = wrap_key(tenant_scope, version, os.urandom(32), environment)
     target = TenantDataKey.objects.create(
         tenant_scope=tenant_scope,
         environment=environment,
         version=version,
         active=True,
-        wrapped_key_json=wrap_key(tenant_scope, version, os.urandom(32), environment),
+        wrapped_key_json=wrapped,
+        wrapping_provider=wrapped.get("__wrapper", "platform"),
     )
     job = TenantKeyRotation.objects.create(
         tenant_scope=tenant_scope, environment=environment, target_key=target
@@ -67,7 +69,7 @@ def rotation_fields():
         if not tenant_owned_model(model):
             continue
         for field in model._meta.fields:
-            if isinstance(field, EncryptedJSONField):
+            if isinstance(field, EncryptedJSONField) and field.tenant_encryption:
                 result.append((f"{model._meta.label_lower}.{field.name}", model, field))
     return sorted(result, key=lambda item: item[0])
 

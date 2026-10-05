@@ -34,6 +34,24 @@ def wrapping_purpose(scope, version, environment):
 
 
 def wrap_key(scope, version, key, environment):
+    if environment != "shared":
+        from apps.tenants.models import TenantKMSBinding
+        from common.customer_kms import wrap
+
+        binding = (
+            TenantKMSBinding.objects.filter(
+                tenant__public_id=scope,
+                environment=environment,
+                active=True,
+                deleted_at__isnull=True,
+            )
+            .select_related("tenant")
+            .first()
+        )
+        if binding is not None:
+            result = wrap(binding, key, version)
+            result["__wrapper"] = "aws_kms"
+            return result
     return encrypt_json_value(
         {"key": _b64encode(key)}, purpose=wrapping_purpose(scope, version, environment)
     )
@@ -45,6 +63,18 @@ def unwrap_key(record, expected_scope, environment):
         or record.environment != validate_environment(environment)
     ) or record.deleted_at is not None:
         raise ValueError("Tenant encryption key is unavailable.")
+    if record.wrapping_provider == "aws_kms":
+        from apps.tenants.models import TenantKMSBinding
+        from common.customer_kms import assert_binding, unwrap
+
+        try:
+            binding = TenantKMSBinding.objects.select_related("tenant").get(
+                public_id=record.wrapped_key_json["binding_id"]
+            )
+            assert_binding(binding, expected_scope, environment)
+            return unwrap(binding, record.wrapped_key_json, record.version)
+        except Exception:
+            raise ValueError("Tenant encryption key is unavailable.") from None
     if record.wrapping_provider != "platform":
         raise ValueError("Tenant key wrapping provider is unavailable.")
     if (
@@ -82,6 +112,7 @@ def active_key(scope, environment="shared"):
         tenant_scope=scope, environment=environment
     ).exists():
         raise ValueError("No active tenant encryption key is available.")
+    wrapped = wrap_key(scope, 1, os.urandom(32), environment)
     try:
         with transaction.atomic():
             record, _ = TenantDataKey.objects.get_or_create(
@@ -90,7 +121,8 @@ def active_key(scope, environment="shared"):
                 version=1,
                 defaults={
                     "active": True,
-                    "wrapped_key_json": wrap_key(scope, 1, os.urandom(32), environment),
+                    "wrapped_key_json": wrapped,
+                    "wrapping_provider": wrapped.get("__wrapper", "platform"),
                 },
             )
     except IntegrityError:
