@@ -281,3 +281,17 @@ def test_passport_mrz_cannot_authorize_a_different_expected_country():
         assert result["requires_manual_review"] is True
         assert result["matched_expected_document_type"] is not True
         assert "passport_mrz_country_mismatch" in result["issues"]
+
+
+def test_foreign_passport_mrz_overrides_weaker_matching_id_wording():
+    line1, line2 = _build_valid_td3_mrz()
+    line1 = line1.replace("P<UTO", "P<USA")
+    result = classify_document(
+        build_ocr_lines(["PASSPORT", "ECOWAS IDENTITY CARD", line1, line2], [0.99] * 4),
+        expected_document_type="national_id", country_code="GH",
+    )
+    assert result["requires_manual_review"] is True
+    assert result["matched_expected_document_type"] is not True
+    assert result["workflow_action"] == "continue_with_review"
+    assert result["recommendation"] == "continue_with_review"
+    assert "passport_mrz_country_mismatch" in result["manual_review"]["reason_codes"]

@@ -390,6 +390,15 @@ def classify_document(
             issues = ["document_type_mismatch"]
             manual_review_priority = "high"
 
+    # Conflicting structural evidence applies to the whole document, even when
+    # weaker printed wording produces a different country-specific candidate.
+    if "passport_mrz_country_mismatch" in skipped_issues:
+        status = "ambiguous"
+        predicted_type = "unknown"
+        matched_expected_document_type = None
+        issues.append("passport_mrz_country_mismatch")
+        manual_review_priority = "high"
+
     requires_manual_review = status != "recognized" or matched_expected_document_type is False
     workflow_action = (
         ClassificationWorkflowAction.CONTINUE.value
