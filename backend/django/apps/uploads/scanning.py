@@ -1,3 +1,4 @@
+from bisect import bisect_right
 from io import BytesIO
 import warnings
 
@@ -89,9 +90,10 @@ def _valid_full_box(
 
 
 def _range_in_media(offset, length, media_ranges):
-    return length > 0 and any(
-        start <= offset and offset + length <= end for start, end in media_ranges
-    )
+    # Top-level mdat payloads are ordered and disjoint. Locate the single
+    # possible containing range in logarithmic time, even with many chunks.
+    index = bisect_right(media_ranges, (offset, float("inf"))) - 1
+    return length > 0 and index >= 0 and offset + length <= media_ranges[index][1]
 
 
 def _iso_classic_samples_in_media(content, boxes, media_ranges, sample_budget):
@@ -206,6 +208,7 @@ def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
         moof_offset = moof_start - (
             8 if content[moof_start - 4 : moof_start] == b"moof" else 16
         )
+        implicit_base = moof_offset
         for child, start, end in (
             _iso_boxes(content, start=moof_start, end=moof_end) or []
         ):
@@ -228,7 +231,11 @@ def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
                 base = int.from_bytes(content[cursor : cursor + 8], "big")
                 cursor += 8
             elif not flags & 0x020000:
-                continue
+                # First traf inherits the moof position; later traf boxes
+                # inherit the end of the previous fragment's sample data.
+                if implicit_base is None:
+                    continue
+                base = implicit_base
             cursor += 4 * bool(flags & 2) + 4 * bool(flags & 8)
             size = defaults.get(track, 0)
             if flags & 0x10:
@@ -240,6 +247,7 @@ def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
             if cursor != b or flags & 0x010000:
                 continue
             previous_end = None
+            implicit_base = None
             for run_kind, a, b in fragment:
                 if run_kind != b"trun" or b - a < 8 or content[a] not in {0, 1}:
                     continue
@@ -279,6 +287,7 @@ def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
                 ):
                     valid_tracks.add(track)
                     previous_end = offset + sum(lengths)
+            implicit_base = previous_end
     return valid_tracks
 
 

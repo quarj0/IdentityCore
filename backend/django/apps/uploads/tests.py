@@ -86,7 +86,7 @@ def _iso_video(*, major_brand: bytes = b"isom", handler_type: bytes = b"vide") -
     return ftyp + movie + _iso_box(b"mdat", b"video-frame")
 
 
-def _fragmented_iso_video(*, invalid_offset=False):
+def _fragmented_iso_video(*, invalid_offset=False, implicit_base=False):
     from apps.uploads.scanning import _iso_boxes
 
     source = _iso_video()
@@ -125,7 +125,11 @@ def _fragmented_iso_video(*, invalid_offset=False):
             _iso_box(b"mfhd", b"\x00" * 4 + (1).to_bytes(4, "big"))
             + _iso_box(
                 b"traf",
-                _iso_box(b"tfhd", b"\x00\x02\x00\x00" + (1).to_bytes(4, "big"))
+                _iso_box(
+                    b"tfhd",
+                    (b"\x00" * 4 if implicit_base else b"\x00\x02\x00\x00")
+                    + (1).to_bytes(4, "big"),
+                )
                 + _iso_box(
                     b"trun",
                     b"\x00\x00\x02\x01"
@@ -189,6 +193,54 @@ def _webm_video(*, track_type: int = 1, codec_id: bytes = b"V_VP9") -> bytes:
 
 
 class UploadVideoInspectionTests(TestCase):
+    def test_media_range_lookup_is_logarithmic(self):
+        from apps.uploads.scanning import _range_in_media
+
+        class CountedRanges(list):
+            reads = 0
+
+            def __getitem__(self, index):
+                self.reads += 1
+                return super().__getitem__(index)
+
+        ranges = CountedRanges((i * 9 + 8, i * 9 + 9) for i in range(99_999))
+        for _ in range(100):
+            self.assertTrue(_range_in_media(ranges[-1][0], 1, ranges))
+        self.assertLess(ranges.reads, 2000)
+        self.assertFalse(_range_in_media(0, 1, ranges))
+        self.assertFalse(_range_in_media(ranges[-1][0], 2, ranges))
+        self.assertFalse(_range_in_media(ranges[1][0] - 1, 1, ranges))
+
+    def test_accepts_fragmented_mp4_with_implicit_moof_base(self):
+        self.assert_video_result(
+            _fragmented_iso_video(implicit_base=True), "video/mp4", expected_safe=True
+        )
+
+    def test_later_fragment_inherits_previous_sample_end(self):
+        from apps.uploads.scanning import _iso_boxes, _iso_fragment_track_ids
+
+        def traf(track, offset=None):
+            header = _iso_box(
+                b"tfhd",
+                b"\x00\x00\x00\x10" + track.to_bytes(4, "big") + (3).to_bytes(4, "big"),
+            )
+            payload = (b"\x00\x00\x00\x01" if offset is not None else b"\x00" * 4) + (
+                1
+            ).to_bytes(4, "big")
+            if offset is not None:
+                payload += offset.to_bytes(4, "big", signed=True)
+            return _iso_box(b"traf", header + _iso_box(b"trun", payload))
+
+        def movie(offset):
+            return _iso_box(b"moof", traf(1, offset) + traf(2))
+
+        content = movie(len(movie(0)) + 8) + _iso_box(b"mdat", b"abcdef")
+        boxes = _iso_boxes(content)
+        media_ranges = [(a, b) for kind, a, b in boxes if kind == b"mdat"]
+        self.assertEqual(
+            _iso_fragment_track_ids(content, boxes, media_ranges, [100_000]), {1, 2}
+        )
+
     def test_fragment_sample_budget_is_shared_across_runs(self):
         from apps.uploads.scanning import _iso_boxes, _iso_fragment_track_ids
 
