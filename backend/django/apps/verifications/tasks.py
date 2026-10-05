@@ -59,7 +59,6 @@ EXPIRABLE_VERIFICATION_STATUSES = {
     VerificationStatus.AWAITING_DOCUMENT,
     VerificationStatus.AWAITING_SELFIE,
     VerificationStatus.PROCESSING,
-    VerificationStatus.MANUAL_REVIEW_REQUIRED,
 }
 
 EXPIRABLE_SESSION_STATUSES = {
@@ -83,6 +82,8 @@ def _expire_pending_verification(verification_id: int, now) -> bool:
         .select_related("tenant", "verification_subject")
         .get(pk=verification_id)
     )
+    if verification.status not in EXPIRABLE_VERIFICATION_STATUSES or verification.expires_at > now:
+        return False
     verification, changed = transition_verification(
         verification,
         VerificationStatus.EXPIRED,

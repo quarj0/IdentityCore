@@ -13,6 +13,7 @@ from .models import (
     DocumentDefinition,
 )
 from .mrz import evaluate_td3_mrz
+from .mrz_countries import issuer_matches_country
 from .normalization import normalize_text
 from .registry import list_definitions
 from .scoring import combine_scores
@@ -279,6 +280,12 @@ def classify_document(
         if definition.document_type == "passport" and not has_valid_passport_mrz:
             skipped_issues.append("passport_mrz_invalid")
             continue
+        if has_valid_passport_mrz and not any(
+            item.get("valid") and issuer_matches_country(item.get("issuing_country"), country_code)
+            for item in scored["structural_evidence"]
+        ):
+            skipped_issues.append("passport_mrz_country_mismatch")
+            continue
         # A checksum-valid TD3 MRZ is stronger structural evidence than weak or
         # localized visible wording, so it may independently identify a passport.
         if (
@@ -320,6 +327,9 @@ def classify_document(
             and "passport_mrz_invalid" in skipped_issues
         ):
             issue = "passport_mrz_invalid"
+            status = "unknown"
+        if "passport_mrz_country_mismatch" in skipped_issues:
+            issue = "passport_mrz_country_mismatch"
             status = "unknown"
         return {
             "classification_status": status,
@@ -379,6 +389,15 @@ def classify_document(
         else:
             issues = ["document_type_mismatch"]
             manual_review_priority = "high"
+
+    # Conflicting structural evidence applies to the whole document, even when
+    # weaker printed wording produces a different country-specific candidate.
+    if "passport_mrz_country_mismatch" in skipped_issues:
+        status = "ambiguous"
+        predicted_type = "unknown"
+        matched_expected_document_type = None
+        issues.append("passport_mrz_country_mismatch")
+        manual_review_priority = "high"
 
     requires_manual_review = status != "recognized" or matched_expected_document_type is False
     workflow_action = (
