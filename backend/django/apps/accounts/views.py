@@ -9,6 +9,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.views import APIView
 
 from apps.audit.services import lock_audit_chain, record_audit_event
+from apps.accounts.mfa import prepare_password_login, is_mfa_required
 from apps.accounts.models import (
     PlatformUser,
     TeamInvitation,
@@ -26,13 +27,13 @@ from apps.accounts.cookies import (
 )
 from apps.accounts.mfa import (
     enable_mfa,
-    consume_mfa_token,
+    verify_login_challenge,
     generate_secret,
     issue_mfa_token,
     provisioning_uri,
     resolve_mfa_token,
     verify_challenge,
-    verify_totp,
+    verified_totp_step,
 )
 from apps.accounts.sessions import (
     issue_refresh_token,
@@ -52,7 +53,7 @@ from apps.accounts.serializers import (
     TeamInvitationAcceptInput,
 )
 from common.responses import success_response
-from common.throttling import SensitivePublicRateThrottle
+from common.throttling import SensitivePublicRateThrottle, MFATransactionRateThrottle
 
 logger = logging.getLogger(__name__)
 
@@ -62,11 +63,14 @@ class LoginView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [SensitivePublicRateThrottle]
 
+    @transaction.atomic
     def post(self, request):
         serializer = LoginSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
-        if serializer.validated_data["mfa_required"]:
+        lock_audit_chain(user.tenant_id)
+        user = prepare_password_login(user)
+        if is_mfa_required(user) or user.mfa_enabled:
             purpose = "challenge" if user.mfa_enabled else "enrollment"
             return success_response(
                 {
@@ -114,7 +118,11 @@ def complete_login(request, user, *, mfa_method: str | None = None):
 
 
 def _mfa_user(request, purpose):
-    token = str(request.data.get("mfa_token", ""))
+    if not isinstance(request.data, dict):
+        raise ValidationError("An MFA transaction object is required.")
+    token = request.data.get("mfa_token", "")
+    if not isinstance(token, str) or not 0 < len(token) <= 4096:
+        raise AuthenticationFailed("MFA transaction is invalid or expired.")
     try:
         return resolve_mfa_token(token, purpose=purpose)
     except ValueError as exc:
@@ -124,11 +132,18 @@ def _mfa_user(request, purpose):
 class MFAEnrollView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
+    throttle_classes = [MFATransactionRateThrottle]
+    mfa_purpose = "enrollment"
 
+    @transaction.atomic
     def post(self, request):
         user = _mfa_user(request, "enrollment")
+        lock_audit_chain(user.tenant_id)
+        user = PlatformUser.objects.select_for_update().get(pk=user.pk)
+        # Recheck the signed password/revocation binding after taking the user lock.
+        _mfa_user(request, "enrollment")
         secret = generate_secret()
-        user.mfa_config_json = {"pending_totp_secret": secret}
+        user.mfa_config_json = {"pending_totp_secret": secret, "enrollment_required": True}
         user.save(update_fields=["mfa_config_json", "updated_at"])
         record_audit_event(
             tenant_id=user.tenant_id,
@@ -147,13 +162,21 @@ class MFAEnrollView(APIView):
 class MFAEnrollConfirmView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
+    throttle_classes = [MFATransactionRateThrottle]
+    mfa_purpose = "enrollment"
 
+    @transaction.atomic
     def post(self, request):
         user = _mfa_user(request, "enrollment")
+        lock_audit_chain(user.tenant_id)
+        user = PlatformUser.objects.select_for_update().get(pk=user.pk)
+        # Recheck the signed password/revocation binding after taking the user lock.
+        _mfa_user(request, "enrollment")
         secret = user.mfa_config_json.get("pending_totp_secret", "")
-        if not secret or not verify_totp(secret, str(request.data.get("code", ""))):
+        step = verified_totp_step(secret, str(request.data.get("code", ""))) if secret else None
+        if step is None:
             raise AuthenticationFailed("Invalid authentication code.")
-        recovery_codes = enable_mfa(user, secret)
+        recovery_codes = enable_mfa(user, secret, accepted_step=step)
         record_audit_event(
             tenant_id=user.tenant_id,
             actor=user,
@@ -170,31 +193,32 @@ class MFAEnrollConfirmView(APIView):
 class MFAChallengeView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
+    throttle_classes = [MFATransactionRateThrottle]
+    mfa_purpose = "challenge"
 
     def post(self, request):
         user = _mfa_user(request, "challenge")
         token = str(request.data.get("mfa_token", ""))
-        method = verify_challenge(user, str(request.data.get("code", "")))
-        if method is None or not consume_mfa_token(user, token):
-            record_audit_event(
-                tenant_id=user.tenant_id,
-                actor=user,
-                request=request,
-                action="user.mfa_challenge_failed",
-                target_type="platform_user",
-                target_id=user.public_id,
-            )
+        with transaction.atomic():
+            lock_audit_chain(user.tenant_id)
+            user = PlatformUser.objects.select_for_update().get(pk=user.pk)
+            method = verify_login_challenge(user, token, str(request.data.get("code", "")))
+            if method is None:
+                record_audit_event(
+                    tenant_id=user.tenant_id, actor=user, request=request,
+                    action="user.mfa_challenge_failed", target_type="platform_user", target_id=user.public_id,
+                )
+                response = None
+            else:
+                record_audit_event(
+                    tenant_id=user.tenant_id, actor=user, request=request,
+                    action="user.mfa_challenge_succeeded", target_type="platform_user", target_id=user.public_id,
+                    metadata={"method": method},
+                )
+                response = complete_login(request, user, mfa_method=method)
+        if response is None:
             raise AuthenticationFailed("Invalid authentication code.")
-        record_audit_event(
-            tenant_id=user.tenant_id,
-            actor=user,
-            request=request,
-            action="user.mfa_challenge_succeeded",
-            target_type="platform_user",
-            target_id=user.public_id,
-            metadata={"method": method},
-        )
-        return complete_login(request, user, mfa_method=method)
+        return response
 
 
 class MFAResetView(APIView):

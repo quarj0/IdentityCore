@@ -1,9 +1,9 @@
 import { ApiClientDetailPage } from "@/features/api-clients/pages/api-client-detail-page";
 
 type PageProps = {
-  params: {
+  params: Promise<{
     clientId: string;
-  };
+  }>;
 };
 
 export default async function Page({ params }: PageProps) {

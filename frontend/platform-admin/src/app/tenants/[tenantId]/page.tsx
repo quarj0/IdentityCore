@@ -1,9 +1,9 @@
 import { TenantDetailPage } from "@/features/tenants/pages/tenant-detail-page";
 
 type PageProps = {
-  params: {
+  params: Promise<{
     tenantId: string;
-  };
+  }>;
 };
 
 export default async function Page({ params }: PageProps) {

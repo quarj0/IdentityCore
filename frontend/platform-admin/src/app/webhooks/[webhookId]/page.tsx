@@ -1,9 +1,9 @@
 import { WebhookDetailPage } from "@/features/webhooks/pages/webhook-detail-page";
 
 type PageProps = {
-  params: {
+  params: Promise<{
     webhookId: string;
-  };
+  }>;
 };
 
 export default async function Page({ params }: PageProps) {

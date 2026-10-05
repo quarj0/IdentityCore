@@ -1,6 +1,6 @@
 import { SettingDetailPage } from "@/features/settings/pages/setting-detail-page";
 
-type PageProps = { params: { settingId: string } };
+type PageProps = { params: Promise<{ settingId: string }> };
 
 export default async function Page({ params }: PageProps) {
   const { settingId } = await params;

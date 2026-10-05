@@ -1,9 +1,9 @@
 import { AiProviderDetailPage } from "@/features/ai-providers/pages/ai-provider-detail-page";
 
 type PageProps = {
-  params: {
+  params: Promise<{
     providerId: string;
-  };
+  }>;
 };
 
 export default async function Page({ params }: PageProps) {

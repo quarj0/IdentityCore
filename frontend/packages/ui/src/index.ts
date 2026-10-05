@@ -1,3 +1,5 @@
+export { MfaSignIn, type MfaTransaction } from "./components/mfa-sign-in";
+
 // Utility
 export { cn } from "./lib/utils";
 

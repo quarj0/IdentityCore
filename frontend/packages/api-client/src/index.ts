@@ -1,5 +1,16 @@
 export * from "./safe-logging.ts";
 
+export interface MfaLoginTransaction {
+  mfa_required: true;
+  mfa_enrollment_required: boolean;
+  mfa_token: string;
+}
+export interface LoginSuccess<T = unknown> {
+  tokens: { access: string };
+  user: T;
+  recovery_codes?: string[];
+}
+
 export interface ApiSuccess<T> {
   success: true;
   data: T;
@@ -47,7 +58,8 @@ function safeRequestId(value: string | null | undefined) {
 
 function safeMessage(status: number) {
   if (status === 401) return "Your session has expired. Sign in and try again.";
-  if (status === 403) return "You do not have permission to complete this action.";
+  if (status === 403)
+    return "You do not have permission to complete this action.";
   if (status === 404) return "The requested item could not be found.";
   if (status === 408 || status === 504)
     return "The request took too long. Check your connection and try again.";
@@ -88,11 +100,14 @@ export function createIdentityCoreClient({
     const abort = () => controller.abort();
     if (init.signal?.aborted) controller.abort();
     else init.signal?.addEventListener("abort", abort, { once: true });
-    return fetch(input, { ...init, signal: controller.signal, cache: "no-store" })
-      .finally(() => {
-        clearTimeout(timeout);
-        init.signal?.removeEventListener("abort", abort);
-      });
+    return fetch(input, {
+      ...init,
+      signal: controller.signal,
+      cache: "no-store",
+    }).finally(() => {
+      clearTimeout(timeout);
+      init.signal?.removeEventListener("abort", abort);
+    });
   }
 
   async function fetchWithRetry(input: RequestInfo | URL, init: RequestInit) {
@@ -101,8 +116,7 @@ export function createIdentityCoreClient({
       .get("Idempotency-Key")
       ?.trim();
     const retrySafe =
-      ["GET", "HEAD", "OPTIONS"].includes(method) ||
-      Boolean(idempotencyKey);
+      ["GET", "HEAD", "OPTIONS"].includes(method) || Boolean(idempotencyKey);
     const requestId = safeRequestId(
       new Headers(init.headers).get("X-Request-Id"),
     );
@@ -114,7 +128,8 @@ export function createIdentityCoreClient({
       } catch (error) {
         if (init.signal?.aborted) throw error;
         if (!retrySafe || attempt >= 1) {
-          const timedOut = error instanceof DOMException && error.name === "AbortError";
+          const timedOut =
+            error instanceof DOMException && error.name === "AbortError";
           throw new IdentityCoreApiError(
             safeMessage(timedOut ? 408 : 0),
             timedOut ? "request_timeout" : "network_error",
@@ -126,11 +141,16 @@ export function createIdentityCoreClient({
         continue;
       }
 
-      if (!retrySafe || attempt >= 1 || !RETRYABLE_STATUS_CODES.has(response.status))
+      if (
+        !retrySafe ||
+        attempt >= 1 ||
+        !RETRYABLE_STATUS_CODES.has(response.status)
+      )
         return response;
 
       const retryAfterHeader = response.headers.get("Retry-After");
-      const retryAfter = retryAfterHeader === null ? Number.NaN : Number(retryAfterHeader);
+      const retryAfter =
+        retryAfterHeader === null ? Number.NaN : Number(retryAfterHeader);
       const delay = Number.isFinite(retryAfter)
         ? Math.min(Math.max(retryAfter * 1000, 0), 1000)
         : 250;
@@ -214,7 +234,8 @@ export function createIdentityCoreClient({
     if (
       response.status === 401 &&
       path !== "/auth/refresh" &&
-      path !== "/auth/login"
+      path !== "/auth/login" &&
+      !path.startsWith("/auth/mfa/")
     ) {
       try {
         const refreshed = await refreshAccessToken();
@@ -227,14 +248,22 @@ export function createIdentityCoreClient({
     return parse<T>(response, requestId);
   }
 
+  async function beginLogin<T = unknown>(email: string, password: string) {
+    return rest<LoginSuccess<T> | MfaLoginTransaction>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+  }
+
   async function login(email: string, password: string) {
-    const data = await rest<{ tokens: { access: string }; user: unknown }>(
-      "/auth/login",
-      {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
-      },
-    );
+    const data = await beginLogin(email, password);
+    if ("mfa_required" in data) {
+      throw new IdentityCoreApiError(
+        "Complete MFA to sign in.",
+        "mfa_required",
+        202,
+      );
+    }
     setAccessToken(data.tokens.access);
     return data;
   }
@@ -253,5 +282,5 @@ export function createIdentityCoreClient({
     setAccessToken(null);
   }
 
-  return { rest, restoreSession, login, me, logout };
+  return { rest, restoreSession, beginLogin, login, me, logout };
 }

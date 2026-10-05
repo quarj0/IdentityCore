@@ -1,9 +1,9 @@
 import { OrganizationDetailPage } from "@/features/organizations/pages/organization-detail-page";
 
 type PageProps = {
-  params: {
+  params: Promise<{
     organizationId: string;
-  };
+  }>;
 };
 
 export default async function Page({ params }: PageProps) {

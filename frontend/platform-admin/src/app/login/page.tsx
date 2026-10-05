@@ -2,13 +2,26 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Input, Label } from "@identitycore/ui";
-import { loginPlatformAdmin } from "@/lib/admin-api";
+import {
+  Button,
+  Input,
+  Label,
+  MfaSignIn,
+  type MfaTransaction,
+} from "@identitycore/ui";
+import type { LoginSuccess } from "@identitycore/api-client";
+import {
+  completePlatformAdminLogin,
+  restRequest,
+  type PlatformUser,
+  loginPlatformAdmin,
+} from "@/lib/admin-api";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [transaction, setTransaction] = useState<MfaTransaction | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -17,8 +30,10 @@ export default function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await loginPlatformAdmin(email, password);
-      router.replace("/");
+      const response = await loginPlatformAdmin(email, password);
+      setPassword("");
+      if ("mfa_required" in response) setTransaction(response);
+      else await complete(response);
     } catch (loginError) {
       setError(
         loginError instanceof Error ? loginError.message : "Unable to sign in.",
@@ -27,6 +42,35 @@ export default function LoginPage() {
       setSubmitting(false);
     }
   }
+
+  async function complete(response: LoginSuccess<PlatformUser>) {
+    try {
+      await completePlatformAdminLogin(response);
+      setTransaction(null);
+      router.replace("/");
+    } catch {
+      setTransaction(null);
+      setError("This account cannot access Platform Admin.");
+    }
+  }
+
+  if (transaction)
+    return (
+      <main className="grid min-h-screen place-items-center bg-slate-50 p-6">
+        <section className="w-full max-w-md rounded-3xl bg-white p-8 shadow-sm">
+          <MfaSignIn<LoginSuccess<PlatformUser>>
+            transaction={transaction}
+            request={(path, body) =>
+              restRequest(path, { method: "POST", body: JSON.stringify(body) })
+            }
+            onComplete={(response) => {
+              void complete(response);
+            }}
+            onCancel={() => setTransaction(null)}
+          />
+        </section>
+      </main>
+    );
 
   return (
     <main className="grid min-h-screen place-items-center bg-slate-50 p-6">

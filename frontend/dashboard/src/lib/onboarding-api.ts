@@ -2,6 +2,7 @@
 
 import { graphqlRequest, restRequest } from "@/lib/api-client";
 import type { AuthSession } from "@/lib/auth";
+import type { MfaTransaction } from "@identitycore/ui";
 
 export interface OnboardingState {
   organizationId: string;
@@ -95,7 +96,8 @@ interface CreateAdministratorVerificationResponse {
   };
 }
 
-interface LoginResponse {
+export interface LoginResponse {
+  recovery_codes?: string[];
   tokens: {
     access: string;
   };
@@ -306,7 +308,7 @@ export async function verifyOrganizationOnboardingEmail(token: string) {
 }
 
 export async function login(email: string, password: string) {
-  return restRequest<LoginResponse>(
+  return restRequest<LoginResponse | MfaTransaction>(
     "/auth/login",
     {
       method: "POST",

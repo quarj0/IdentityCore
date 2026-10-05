@@ -21,6 +21,7 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
+      "@identitycore/api-client": ["../packages/api-client/src/index.ts"],
       "@identitycore/ui": ["../packages/ui/src/index.ts"],
       "@identitycore/ui/*": ["../packages/ui/src/*"]
     }

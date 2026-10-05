@@ -101,3 +101,30 @@ class MobileHandoffRateThrottle(SensitivePublicRateThrottle):
             "scope": self.scope,
             "ident": f"handoff_invalid:{peer}",
         }
+
+
+class MFATransactionRateThrottle(SensitivePublicRateThrottle):
+    """Password-verified live transactions share a user bucket; guesses use the peer."""
+
+    def get_cache_key(self, request, view):
+        from apps.accounts.mfa import resolve_mfa_token
+
+        data = request.data
+        token = data.get("mfa_token", "") if isinstance(data, dict) else ""
+        purpose = getattr(view, "mfa_purpose", None)
+        if (
+            isinstance(token, str)
+            and 0 < len(token) <= 4096
+            and purpose in {"enrollment", "challenge"}
+        ):
+            try:
+                user = resolve_mfa_token(token, purpose=purpose)
+            except ValueError:
+                pass
+            else:
+                return self.cache_format % {
+                    "scope": self.scope,
+                    "ident": f"mfa_verified:{user.pk}",
+                }
+        peer = request.META.get("REMOTE_ADDR") or "unknown"
+        return self.cache_format % {"scope": self.scope, "ident": f"mfa_invalid:{peer}"}
