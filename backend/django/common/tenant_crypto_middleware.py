@@ -1,6 +1,6 @@
 """Cache wrapped key records only for the duration of one HTTP request."""
 
-from common.tenant_crypto import read_key_records
+from common.tenant_crypto import key_operation, read_key_records
 
 
 class TenantKeyReadCacheMiddleware:
@@ -10,6 +10,7 @@ class TenantKeyReadCacheMiddleware:
     def __call__(self, request):
         token = read_key_records.set({})
         try:
-            return self.get_response(request)
+            with key_operation():
+                return self.get_response(request)
         finally:
             read_key_records.reset(token)

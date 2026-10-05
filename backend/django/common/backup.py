@@ -159,23 +159,24 @@ def required_object_refs():
         deleted_at__isnull=True, status__in=["uploaded", "submitted"]
     ).values_list("storage_key", flat=True):
         refs.add((buckets.get("public", ""), key))
-    from common.tenant_crypto import read_key_records
+    from common.tenant_crypto import key_operation, read_key_records
 
     # Cache wrapped records during the inventory only; never cache plaintext keys.
     token = read_key_records.set({})
     try:
-        for verification in (
-            Verification.objects.select_related("tenant", "project")
-            .only("metadata_json", "tenant__public_id", "project__environment")
-            .iterator()
-        ):
-            metadata = verification.metadata_json
-            for field in (
-                "evidence_report_storage_key",
-                "evidence_report_pdf_storage_key",
+        with key_operation():
+            for verification in (
+                Verification.objects.select_related("tenant", "project")
+                .only("metadata_json", "tenant__public_id", "project__environment")
+                .iterator()
             ):
-                if metadata.get(field):
-                    refs.add((buckets.get("evidence", ""), metadata[field]))
+                metadata = verification.metadata_json
+                for field in (
+                    "evidence_report_storage_key",
+                    "evidence_report_pdf_storage_key",
+                ):
+                    if metadata.get(field):
+                        refs.add((buckets.get("evidence", ""), metadata[field]))
     finally:
         read_key_records.reset(token)
     for metadata in Organization.objects.values_list("settings_json", flat=True):

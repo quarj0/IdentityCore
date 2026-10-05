@@ -19,6 +19,7 @@ ARN = "arn:aws:kms:us-east-1:000000000000:key/00000000-0000-0000-0000-0000000000
 class MemoryKMS:
     def __init__(self):
         self.store = {}
+        self.decrypt_calls = 0
         self.offline = False
         self.metadata = {
             "Arn": ARN,
@@ -52,6 +53,7 @@ class MemoryKMS:
         return {"CiphertextBlob": token, "KeyId": kwargs["KeyId"]}
 
     def decrypt(self, **kwargs):
+        self.decrypt_calls += 1
         self.allowed(kwargs)
         plaintext, context, arn = self.store[kwargs["CiphertextBlob"]]
         if context != kwargs["EncryptionContext"] or arn != kwargs["KeyId"]:
@@ -170,6 +172,72 @@ class CustomerKMSContractTests(TestCase):
                     environment="sandbox",
                     purpose="synthetic.customer",
                 )
+
+    def test_batch_reuses_two_customer_keys_and_clears_cache_at_exit(self):
+        from common.tenant_key_rotation import resume_database_batch, rotation_fields
+        from common.tenant_crypto import operation_deks
+
+        fake = MemoryKMS()
+        with patch("common.customer_kms.client_for", return_value=fake):
+            activate(self.binding())
+            for index in range(20):
+                self._create_case("Cache " + str(index), metadata={"synthetic": index})
+            _, job = activate(self.binding())
+            job.positions_json = {
+                label: "done"
+                for label, _, _ in rotation_fields()
+                if label != "verifications.verification.metadata_json"
+            }
+            job.save(update_fields=["positions_json"])
+            before = fake.decrypt_calls
+            result = resume_database_batch(job.public_id, batch_size=100)
+            self.assertEqual(fake.decrypt_calls - before, 2)
+            self.assertGreaterEqual(result.migrated_count, 20)
+            self.assertIsNone(operation_deks.get())
+
+    def test_operation_cache_rechecks_disable_expires_and_does_not_cross_requests(self):
+        from common.tenant_crypto import key_operation, operation_deks
+
+        fake = MemoryKMS()
+        binding = self.binding()
+        with patch("common.customer_kms.client_for", return_value=fake):
+            binding, _ = activate(binding)
+            value = encrypt_tenant_json(
+                {},
+                tenant_scope=self.tenant.public_id,
+                environment="sandbox",
+                purpose="synthetic.customer",
+            )
+
+            def read():
+                return decrypt_tenant_json(
+                    value,
+                    tenant_scope=self.tenant.public_id,
+                    environment="sandbox",
+                    purpose="synthetic.customer",
+                )
+
+            with key_operation(), patch(
+                "common.tenant_crypto.monotonic", return_value=0
+            ) as clock:
+                self.assertEqual(read(), {})
+                entries = operation_deks.get()
+                before = fake.decrypt_calls
+                self.assertEqual(read(), {})
+                self.assertEqual(fake.decrypt_calls, before)
+                fake.offline = True
+                clock.return_value = 6
+                with self.assertRaises(ValueError):
+                    read()
+            self.assertEqual(entries, {})
+            self.assertIsNone(operation_deks.get())
+            fake.offline = False
+            with key_operation():
+                self.assertEqual(read(), {})
+                disable(binding)
+                with self.assertRaises(ValueError):
+                    read()
+            self.assertIsNone(operation_deks.get())
 
     def test_missing_grants_or_disabled_provider_key_never_activate(self):
         binding = self.binding()

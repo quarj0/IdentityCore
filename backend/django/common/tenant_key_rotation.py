@@ -18,6 +18,7 @@ from common.fields import (
 from common.tenant_crypto import (
     TENANT_FIELD_VERSION,
     active_key,
+    bounded_key_operation,
     decrypt_tenant_json,
     encrypt_tenant_json,
     validate_environment,
@@ -97,6 +98,7 @@ def raw_batch(model, field, tenant, after_pk, batch_size):
         return cursor.fetchall()
 
 
+@bounded_key_operation
 @transaction.atomic
 def resume_database_batch(job_id, *, batch_size=100):
     if type(batch_size) is not int or not 1 <= batch_size <= 1000:
@@ -183,6 +185,7 @@ def resume_database_batch(job_id, *, batch_size=100):
     return job
 
 
+@bounded_key_operation
 @transaction.atomic
 def resume_object_batch(job_id, *, batch_size=25):
     if type(batch_size) is not int or not 1 <= batch_size <= 100:

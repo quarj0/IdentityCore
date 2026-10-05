@@ -4,6 +4,10 @@ import json
 import os
 import re
 from contextvars import ContextVar
+from contextlib import contextmanager
+from functools import wraps
+from hashlib import sha256
+from time import monotonic
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from django.db import IntegrityError, transaction
@@ -13,6 +17,29 @@ from common.crypto import _b64decode, _b64encode, decrypt_json_value, encrypt_js
 TENANT_FIELD_VERSION = "ic-tenant-field-v2"
 TENANT_OBJECT_VERSION = "ic-tenant-object-v2"
 read_key_records = ContextVar("tenant_decryption_key_records", default=None)
+operation_deks = ContextVar("tenant_operation_deks", default=None)
+
+
+@contextmanager
+def key_operation():
+    # One request or bounded rotation batch; never shared across operations.
+    values = {}
+    token = operation_deks.set(values)
+    try:
+        yield
+    finally:
+        values.clear()
+        operation_deks.reset(token)
+
+
+def bounded_key_operation(function):
+    @wraps(function)
+    def wrapped(*args, **kwargs):
+        with key_operation():
+            return function(*args, **kwargs)
+
+    return wrapped
+
 
 SCOPE = re.compile(r"^ten_[0-9A-HJKMNP-TV-Z]{26}$")
 
@@ -72,7 +99,30 @@ def unwrap_key(record, expected_scope, environment):
                 public_id=record.wrapped_key_json["binding_id"]
             )
             assert_binding(binding, expected_scope, environment)
-            return unwrap(binding, record.wrapped_key_json, record.version)
+            cache = operation_deks.get()
+            cache_id = (
+                expected_scope,
+                environment,
+                record.public_id,
+                record.version,
+                binding.public_id,
+                sha256(
+                    json.dumps(record.wrapped_key_json, sort_keys=True).encode()
+                ).digest(),
+            )
+            entry = cache.get(cache_id) if cache is not None else None
+            # Fresh binding checks above apply on cache hits too. Short TTL bounds
+            # remote revocation staleness inside an operation; the next operation
+            # always contacts KMS again.
+            now = monotonic()
+            if entry is not None and now - entry[0] < 5:
+                return entry[1]
+            key = unwrap(binding, record.wrapped_key_json, record.version)
+            if cache is not None:
+                if len(cache) >= 16:
+                    cache.clear()
+                cache[cache_id] = (monotonic(), key)
+            return key
         except Exception:
             raise ValueError("Tenant encryption key is unavailable.") from None
     if record.wrapping_provider != "platform":
@@ -111,6 +161,17 @@ def active_key(scope, environment="shared"):
     if TenantDataKey.objects.filter(
         tenant_scope=scope, environment=environment
     ).exists():
+        # A concurrent first writer may commit between the initial read and
+        # this existence check. Re-read before interpreting retained keys as
+        # a deliberately disabled scope.
+        record = TenantDataKey.objects.filter(
+            tenant_scope=scope,
+            environment=environment,
+            active=True,
+            deleted_at__isnull=True,
+        ).first()
+        if record is not None:
+            return record
         raise ValueError("No active tenant encryption key is available.")
     wrapped = wrap_key(scope, 1, os.urandom(32), environment)
     try:

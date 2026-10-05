@@ -97,6 +97,10 @@ def main():
     if connection.introspection.table_names():
         raise RuntimeError("Synthetic source must be empty; use a fresh drill volume.")
     call_command("migrate", verbosity=0, interactive=False)
+    settings.TENANT_STORAGE_DESTINATIONS = {
+        "source-tenant": "us-east-1",
+        "restore-tenant": "us-east-1",
+    }
     client = get_object_storage_client()
     for bucket in [
         *storage_buckets().values(),
@@ -105,6 +109,8 @@ def main():
         "restore-temp",
         "restore-evidence",
         "restore-public",
+        "source-tenant",
+        "restore-tenant",
     ]:
         client.create_bucket(Bucket=bucket)
     verifications, clients = [], []
@@ -145,11 +151,18 @@ def main():
                 "evidence_report_storage_key": f"synthetic/{index}/evidence.json"
             },
         )
+        from common.tenant_storage import configure_route, route_key
+
+        if index == 1:
+            configure_route(tenant, "production", "source-tenant", "us-east-1")
+        evidence_key = route_key(verification, f"synthetic/{index}/evidence.json")
+        verification.metadata_json = {"evidence_report_storage_key": evidence_key}
+        verification.save(update_fields=["metadata_json"])
         selfie = SelfieCapture.objects.create(
             tenant=tenant,
             verification=verification,
             verification_subject=subject,
-            storage_key=f"synthetic/{index}/selfie.jpg",
+            storage_key=route_key(verification, f"synthetic/{index}/selfie.jpg"),
             captured_at=timezone.now(),
             capture_type="image",
         )
@@ -162,7 +175,7 @@ def main():
         )
         client.put_object(
             Bucket="source-evidence",
-            Key=f"synthetic/{index}/evidence.json",
+            Key=evidence_key,
             Body=json.dumps({"synthetic": index}).encode(),
             ContentType="application/json",
             ServerSideEncryption="AES256",
@@ -249,7 +262,20 @@ def main():
                 "OBJECT_STORAGE_" + role + "_BUCKET",
                 "restore-" + role.lower(),
             )
+        settings.TENANT_STORAGE_BUCKET_REMAP = {"source-tenant": "restore-tenant"}
         restored = restore_backup(directory, workspace)
+        from common.tenant_storage import resolve_reference
+
+        routed = Verification.objects.get(public_id=verifications[0]).metadata_json[
+            "evidence_report_storage_key"
+        ]
+        assert (
+            resolve_reference(routed, "restore-evidence")["bucket"] == "restore-tenant"
+        )
+        assert (
+            resolve_reference(routed, "restore-evidence")["residency_region"]
+            == "us-east-1"
+        )
         # Verify decryption of application fields using separately provided keys.
         assert sorted(
             (tenant.settings_json for tenant in Tenant.objects.all()),

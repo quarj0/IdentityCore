@@ -523,3 +523,65 @@ class TenantEnvelopeRaceTests(TransactionTestCase):
                 ),
                 {"synthetic": number},
             )
+
+    @skipUnless(connection.vendor == "postgresql", "Requires PostgreSQL transactions")
+    def test_first_writer_commit_between_active_and_existence_reads_is_reused(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from threading import Event, current_thread
+        from django.db import close_old_connections
+        from django.db.models.query import QuerySet
+
+        missing, committed = Event(), Event()
+        real_first = QuerySet.first
+        scope = self.tenant.public_id
+        paused = False
+
+        def first(query):
+            nonlocal paused
+            value = real_first(query)
+            if (
+                query.model is TenantDataKey
+                and value is None
+                and current_thread().name.startswith("delayed")
+                and not paused
+            ):
+                paused = True
+                missing.set()
+                if not committed.wait(15):
+                    raise RuntimeError("Synthetic concurrency timeout")
+            return value
+
+        def write(number):
+            close_old_connections()
+            try:
+                if number == 2 and not missing.wait(15):
+                    raise RuntimeError("Synthetic concurrency timeout")
+                result = encrypt_tenant_json(
+                    {"synthetic": number},
+                    tenant_scope=scope,
+                    environment="production",
+                    purpose="synthetic.concurrent",
+                )
+                if number == 2:
+                    committed.set()
+                return result
+            finally:
+                close_old_connections()
+
+        with patch.object(QuerySet, "first", first), ThreadPoolExecutor(
+            max_workers=1, thread_name_prefix="delayed"
+        ) as delayed, ThreadPoolExecutor(
+            max_workers=1, thread_name_prefix="creator"
+        ) as creator:
+            waiting = delayed.submit(write, 1)
+            creating = creator.submit(write, 2)
+            second, first_value = creating.result(timeout=20), waiting.result(
+                timeout=20
+            )
+        self.assertEqual(first_value["kid"], second["kid"])
+        self.assertEqual(
+            TenantDataKey.objects.filter(
+                tenant_scope=scope, environment="production"
+            ).count(),
+            1,
+        )
