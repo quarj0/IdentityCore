@@ -1,6 +1,6 @@
 import { AuditDetailPage } from "@/features/audit/pages/audit-detail-page";
 
-type PageProps = { params: { auditId: string } };
+type PageProps = { params: Promise<{ auditId: string }> };
 
 export default async function Page({ params }: PageProps) {
   const { auditId } = await params;

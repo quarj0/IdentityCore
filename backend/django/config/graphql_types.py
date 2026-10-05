@@ -659,8 +659,11 @@ class AuthTokensNode:
 
 @strawberry.type
 class AuthPayload:
-    tokens: AuthTokensNode
+    tokens: AuthTokensNode | None = None
     user: AuthUserNode | None = None
+    mfa_required: bool = False
+    mfa_enrollment_required: bool = False
+    mfa_token: str | None = None
 
 
 @strawberry.type

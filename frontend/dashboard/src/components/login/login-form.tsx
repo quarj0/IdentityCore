@@ -13,13 +13,15 @@ import {
   CardTitle,
   Input,
   Label,
+  MfaSignIn,
+  type MfaTransaction,
 } from "@identitycore/ui";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { PasswordInput } from "@/components/auth/password-input";
 import { InlineStatus } from "@/components/feedback/inline-status";
 import { saveAuthSession } from "@/lib/auth";
-import { getErrorMessage } from "@/lib/api-client";
-import { login } from "@/lib/onboarding-api";
+import { getErrorMessage, restRequest } from "@/lib/api-client";
+import { login, type LoginResponse } from "@/lib/onboarding-api";
 
 const dashboardUrl =
   process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3000";
@@ -28,6 +30,7 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [transaction, setTransaction] = useState<MfaTransaction | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -38,16 +41,20 @@ export function LoginForm() {
 
     try {
       const payload = await login(email, password);
-      saveAuthSession({
-        accessToken: payload.tokens.access,
-        user: payload.user,
-      });
-      window.location.assign(dashboardUrl);
+      setPassword("");
+      if ("mfa_required" in payload) setTransaction(payload);
+      else complete(payload);
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function complete(payload: LoginResponse) {
+    setTransaction(null);
+    saveAuthSession({ accessToken: payload.tokens.access, user: payload.user });
+    window.location.assign(dashboardUrl);
   }
 
   return (
@@ -68,76 +75,94 @@ export function LoginForm() {
         </CardHeader>
 
         <CardContent>
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            {searchParams.get("reason") === "session_expired" ? (
-              <InlineStatus
-                kind="error"
-                title="Session expired"
-                message="Sign in again to continue where you left off."
-              />
-            ) : null}
-            {errorMessage ? (
-              <InlineStatus
-                kind="error"
-                title="Unable to sign in"
-                message={errorMessage}
-              />
-            ) : null}
+          {transaction ? (
+            <MfaSignIn<LoginResponse>
+              transaction={transaction}
+              request={(path, body) =>
+                restRequest(
+                  path,
+                  { method: "POST", body: JSON.stringify(body) },
+                  { useAuth: false },
+                )
+              }
+              onComplete={complete}
+              onCancel={() => setTransaction(null)}
+            />
+          ) : (
+            <form className="space-y-5" onSubmit={handleSubmit}>
+              {searchParams.get("reason") === "session_expired" ? (
+                <InlineStatus
+                  kind="error"
+                  title="Session expired"
+                  message="Sign in again to continue where you left off."
+                />
+              ) : null}
+              {errorMessage ? (
+                <InlineStatus
+                  kind="error"
+                  title="Unable to sign in"
+                  message={errorMessage}
+                />
+              ) : null}
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Business email</Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                placeholder="you@company.com"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                required
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Business email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@company.com"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  required
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <PasswordInput
-                id="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                required
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <PasswordInput
+                  id="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
+                />
+              </div>
 
-            <p className="text-right text-sm">
-              <Link
-                href="/forgot-password"
-                className="font-medium text-blue-600"
+              <p className="text-right text-sm">
+                <Link
+                  href="/forgot-password"
+                  className="font-medium text-blue-600"
+                >
+                  Forgot password?
+                </Link>
+              </p>
+
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full rounded-xl"
+                disabled={submitting}
               >
-                Forgot password?
-              </Link>
-            </p>
+                {submitting ? (
+                  <Loader2
+                    className="h-4 w-4 animate-spin"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                )}
+                Sign in
+              </Button>
 
-            <Button
-              type="submit"
-              size="lg"
-              className="w-full rounded-xl"
-              disabled={submitting}
-            >
-              {submitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              ) : (
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              )}
-              Sign in
-            </Button>
-
-            <p className="text-center text-sm text-muted-foreground">
-              New to IdentityCore?{" "}
-              <Link href="/register" className="font-medium text-blue-600">
-                Create workspace
-              </Link>
-            </p>
-          </form>
+              <p className="text-center text-sm text-muted-foreground">
+                New to IdentityCore?{" "}
+                <Link href="/register" className="font-medium text-blue-600">
+                  Create workspace
+                </Link>
+              </p>
+            </form>
+          )}
         </CardContent>
       </Card>
     </AuthShell>

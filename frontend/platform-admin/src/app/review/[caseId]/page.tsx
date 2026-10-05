@@ -1,9 +1,9 @@
 import { ReviewCaseDetailPage } from "@/features/review/pages/review-case-detail-page";
 
 type PageProps = {
-  params: {
+  params: Promise<{
     caseId: string;
-  };
+  }>;
 };
 
 export default async function Page({ params }: PageProps) {

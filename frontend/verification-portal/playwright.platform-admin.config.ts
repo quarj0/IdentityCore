@@ -10,7 +10,7 @@ for (const variable of ["GIO_MODULE_DIR", "GTK_PATH"]) {
 
 export default defineConfig({
   testDir: "./e2e",
-  testMatch: "platform-admin-accessibility.spec.ts",
+  testMatch: ["platform-admin-accessibility.spec.ts", "dashboard-mfa.spec.ts"],
   fullyParallel: false,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",

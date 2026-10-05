@@ -1,4 +1,5 @@
 import os
+import json
 from datetime import timedelta
 from pathlib import Path
 from decouple import config
@@ -16,6 +17,16 @@ def env_bool(name: str, default: bool = False) -> bool:
 def env_list(name: str, default: str = "") -> list[str]:
     value = os.getenv(name, default)
     return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def env_json_string_list(name: str) -> list[str]:
+    try:
+        value = json.loads(os.getenv(name, "[]"))
+    except (TypeError, json.JSONDecodeError):
+        raise ValueError(f"{name} must be a JSON array of strings") from None
+    if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+        raise ValueError(f"{name} must be a JSON array of strings")
+    return value
 
 
 def env_one_of(name: str, fallback_names: list[str], default: str = "") -> str:
@@ -48,6 +59,8 @@ LOCAL_FRONTEND_ORIGINS = [
 SECRET_KEY = os.getenv(
     "DJANGO_SECRET_KEY", "unsafe-development-secret-key-for-identitycore"
 )
+MFA_RECOVERY_PEPPER = os.getenv("MFA_RECOVERY_PEPPER") or SECRET_KEY
+MFA_RECOVERY_PEPPER_FALLBACKS = env_json_string_list("MFA_RECOVERY_PEPPER_FALLBACKS")
 DEBUG = env_bool("DJANGO_DEBUG", False)
 REUSE_CLEANUP_BATCH_SIZE = int(os.getenv("REUSE_CLEANUP_BATCH_SIZE", "1000"))
 if not 1 <= REUSE_CLEANUP_BATCH_SIZE <= 10000:

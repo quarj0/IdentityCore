@@ -3,6 +3,7 @@
 import {
   createIdentityCoreClient,
   IdentityCoreApiError,
+  type LoginSuccess,
 } from "@identitycore/api-client";
 import { getAccessToken, setAccessToken } from "@/lib/auth";
 import { getBackendOrigin, getGraphqlApiUrl } from "@/lib/config";
@@ -27,8 +28,13 @@ export async function getCurrentPlatformUser() {
 }
 
 export async function loginPlatformAdmin(email: string, password: string) {
-  const response = await client.login(email.trim(), password);
-  const user = response.user as PlatformUser;
+  return client.beginLogin<PlatformUser>(email.trim(), password);
+}
+
+export async function completePlatformAdminLogin(
+  response: LoginSuccess<PlatformUser>,
+) {
+  const user = response.user;
   if (!user.is_platform_admin) {
     await client.logout();
     throw new IdentityCoreApiError(
@@ -37,6 +43,7 @@ export async function loginPlatformAdmin(email: string, password: string) {
       403,
     );
   }
+  setAccessToken(response.tokens.access);
   return user;
 }
 

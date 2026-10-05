@@ -1,9 +1,9 @@
 import { WorkflowDetailPage } from "@/features/workflows/pages/workflow-detail-page";
 
 type PageProps = {
-  params: {
+  params: Promise<{
     workflowId: string;
-  };
+  }>;
 };
 
 export default async function Page({ params }: PageProps) {
