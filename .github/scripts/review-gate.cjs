@@ -1,4 +1,4 @@
-function assess({ head, reviewer, reviews, comments, threads, commits, runs }) {
+function assess({ head, reviewer, reviews, comments, threads, commits, runs, trustedWorkflows }) {
   const isReviewer = author => author?.login === reviewer || author?.login === `${reviewer}[bot]`;
   const finalReviews = reviews.filter(r => isReviewer(r.user) && r.commit_id === head);
   let changesRequested = false;
@@ -13,7 +13,8 @@ function assess({ head, reviewer, reviews, comments, threads, commits, runs }) {
     comments.some(c => isReviewer(c.user) && [...c.body.matchAll(/\*\*Reviewed commit:\*\*\s*`([0-9a-f]{10,40})`/g)].some(m => head.startsWith(m[1]))));
   const problems = [];
   for (const name of ['CI', 'Security']) {
-    const latest = runs.filter(r => r.name === name && r.head_sha === head && r.event === 'pull_request')
+    const trusted = trustedWorkflows?.[name];
+    const latest = runs.filter(r => trusted && r.workflow_id === trusted.id && r.path === trusted.path && r.head_sha === head && r.event === 'pull_request')
       .sort((a, b) => b.id - a.id)[0];
     if (!latest || latest.status !== 'completed' || latest.conclusion !== 'success') problems.push(`${name} has not passed for the final head.`);
   }
@@ -61,7 +62,12 @@ async function run({ github, context }) {
     cursor = page.pageInfo.hasNextPage ? page.pageInfo.endCursor : null;
   } while (cursor);
   const { data: workflowRuns } = await github.rest.actions.listWorkflowRunsForRepo({ owner, repo, head_sha: head, per_page: 100 });
-  const problems = assess({ head, runs: workflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews, comments, threads, commits });
+  const trustedWorkflows = {};
+  for (const [name, file] of [['CI', 'ci.yml'], ['Security', 'security.yml']]) {
+    const { data: workflow } = await github.rest.actions.getWorkflow({ owner, repo, workflow_id: file });
+    trustedWorkflows[name] = { id: workflow.id, path: `.github/workflows/${file}` };
+  }
+  const problems = assess({ head, trustedWorkflows, runs: workflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews, comments, threads, commits });
   if (threads.some(t => t.comments.pageInfo.hasNextPage)) problems.push('A thread exceeds the evidence page limit; review it explicitly.');
   const { data: current } = await github.rest.pulls.get({ owner, repo, pull_number: number });
   if (current.head.sha !== head) problems.push('Pull-request head moved during validation; rerun against its current head.');
