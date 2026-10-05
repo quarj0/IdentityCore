@@ -86,7 +86,14 @@ def _iso_video(*, major_brand: bytes = b"isom", handler_type: bytes = b"vide") -
     return ftyp + movie + _iso_box(b"mdat", b"video-frame")
 
 
-def _fragmented_iso_video(*, invalid_offset=False, implicit_base=False):
+def _fragmented_iso_video(
+    *,
+    invalid_offset=False,
+    implicit_base=False,
+    description_index=1,
+    tfhd_description=None,
+    supported_entry=1,
+):
     from apps.uploads.scanning import _iso_boxes
 
     source = _iso_video()
@@ -104,13 +111,23 @@ def _fragmented_iso_video(*, invalid_offset=False, implicit_base=False):
                     _iso_box(
                         b"trex",
                         b"\x00" * 4
-                        + (1).to_bytes(4, "big") * 2
+                        + (1).to_bytes(4, "big")
+                        + description_index.to_bytes(4, "big")
                         + (1000).to_bytes(4, "big")
                         + (11).to_bytes(4, "big")
                         + b"\x00" * 4,
                     ),
                 )
             return _iso_box(kind, payload)
+        if kind == b"stsd":
+            original = source[start + 8 : end]
+            unsupported = _iso_box(b"mp4a", b"\x00" * 78)
+            entries = (
+                original + unsupported
+                if supported_entry == 1
+                else unsupported + original
+            )
+            return _iso_box(kind, b"\x00" * 4 + (2).to_bytes(4, "big") + entries)
         if kind in {b"stts", b"stsc", b"stco"}:
             return _iso_box(kind, b"\x00" * 8)
         if kind == b"stsz":
@@ -127,8 +144,16 @@ def _fragmented_iso_video(*, invalid_offset=False, implicit_base=False):
                 b"traf",
                 _iso_box(
                     b"tfhd",
-                    (b"\x00" * 4 if implicit_base else b"\x00\x02\x00\x00")
-                    + (1).to_bytes(4, "big"),
+                    (
+                        (0 if implicit_base else 0x020000)
+                        | (2 if tfhd_description is not None else 0)
+                    ).to_bytes(4, "big")
+                    + (1).to_bytes(4, "big")
+                    + (
+                        b""
+                        if tfhd_description is None
+                        else tfhd_description.to_bytes(4, "big")
+                    ),
                 )
                 + _iso_box(
                     b"trun",
@@ -238,8 +263,28 @@ class UploadVideoInspectionTests(TestCase):
         boxes = _iso_boxes(content)
         media_ranges = [(a, b) for kind, a, b in boxes if kind == b"mdat"]
         self.assertEqual(
-            _iso_fragment_track_ids(content, boxes, media_ranges, [100_000]), {1, 2}
+            _iso_fragment_track_ids(content, boxes, media_ranges, [100_000]), {1: {1}, 2: {1}}
         )
+
+    def test_fragment_resolves_selected_sample_description(self):
+        for tfhd in (False, True):
+            for supported_entry in (1, 2):
+                for selected in (0, 1, 2, 3):
+                    with self.subTest(
+                        tfhd=tfhd, supported_entry=supported_entry, selected=selected
+                    ):
+                        kwargs = (
+                            {"tfhd_description": selected}
+                            if tfhd
+                            else {"description_index": selected}
+                        )
+                        self.assert_video_result(
+                            _fragmented_iso_video(
+                                supported_entry=supported_entry, **kwargs
+                            ),
+                            "video/mp4",
+                            expected_safe=selected == supported_entry,
+                        )
 
     def test_fragment_sample_budget_is_shared_across_runs(self):
         from apps.uploads.scanning import _iso_boxes, _iso_fragment_track_ids

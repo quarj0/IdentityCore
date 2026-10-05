@@ -198,10 +198,15 @@ def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
                     track = int.from_bytes(
                         content[entry_start + 4 : entry_start + 8], "big"
                     )
-                    defaults[track] = int.from_bytes(
-                        content[entry_start + 16 : entry_start + 20], "big"
+                    defaults[track] = (
+                        int.from_bytes(
+                            content[entry_start + 16 : entry_start + 20], "big"
+                        ),
+                        int.from_bytes(
+                            content[entry_start + 8 : entry_start + 12], "big"
+                        ),
                     )
-    valid_tracks = set()
+    valid_tracks = {}
     for kind, moof_start, moof_end in boxes:
         if kind != b"moof":
             continue
@@ -236,8 +241,13 @@ def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
                 if implicit_base is None:
                     continue
                 base = implicit_base
-            cursor += 4 * bool(flags & 2) + 4 * bool(flags & 8)
-            size = defaults.get(track, 0)
+            size, description = defaults.get(track, (0, 1))
+            if flags & 2:
+                if cursor + 4 > b:
+                    continue
+                description = int.from_bytes(content[cursor : cursor + 4], "big")
+                cursor += 4
+            cursor += 4 * bool(flags & 8)
             if flags & 0x10:
                 if cursor + 4 > b:
                     continue
@@ -285,7 +295,7 @@ def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
                 if all(length > 0 for length in lengths) and _range_in_media(
                     offset, sum(lengths), media_ranges
                 ):
-                    valid_tracks.add(track)
+                    valid_tracks.setdefault(track, set()).add(description)
                     previous_end = offset + sum(lengths)
             implicit_base = previous_end
     return valid_tracks
@@ -297,7 +307,7 @@ def _iso_stbl_has_video_sample_entry(
     end: int,
     *,
     media_ranges,
-    fragmented: bool,
+    fragment_descriptions,
     sample_budget,
 ) -> bool:
     boxes = _iso_boxes(content, start=start, end=end)
@@ -309,7 +319,7 @@ def _iso_stbl_has_video_sample_entry(
         {b"co64", b"stco"}
     ):
         return False
-    if not fragmented and not _iso_classic_samples_in_media(
+    if not fragment_descriptions and not _iso_classic_samples_in_media(
         content, boxes, media_ranges, sample_budget
     ):
         return False
@@ -321,14 +331,18 @@ def _iso_stbl_has_video_sample_entry(
     entries = _iso_boxes(content, start=stsd_start + 8, end=stsd_end)
     if not entries or entry_count != len(entries):
         return False
-    for sample_type, sample_start, sample_end in entries[:1]:
+    descriptions = fragment_descriptions or {1}
+    if any(index < 1 or index > len(entries) for index in descriptions):
+        return False
+    for index in descriptions:
+        sample_type, sample_start, sample_end = entries[index - 1]
         config_type = ISO_VIDEO_SAMPLE_CONFIGS.get(sample_type)
         if config_type is None or sample_end - sample_start < 78:
-            continue
+            return False
         width = int.from_bytes(content[sample_start + 24 : sample_start + 26], "big")
         height = int.from_bytes(content[sample_start + 26 : sample_start + 28], "big")
         codec_boxes = _iso_boxes(content, start=sample_start + 78, end=sample_end)
-        if (
+        if not (
             width > 0
             and height > 0
             and codec_boxes
@@ -337,8 +351,8 @@ def _iso_stbl_has_video_sample_entry(
                 for box_type, payload_start, payload_end in codec_boxes
             )
         ):
-            return True
-    return False
+            return False
+    return True
 
 
 def _iso_has_video_track(
@@ -436,7 +450,7 @@ def _iso_has_video_track(
                         child_start,
                         child_end,
                         media_ranges=media_ranges,
-                        fragmented=track_id in fragment_tracks,
+                        fragment_descriptions=fragment_tracks.get(track_id),
                         sample_budget=sample_budget,
                     )
                     for child_type, child_start, child_end in minf_boxes
