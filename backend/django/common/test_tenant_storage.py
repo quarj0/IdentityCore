@@ -67,6 +67,15 @@ class TenantStorageTests(TestCase):
         with self.assertRaises(ValidationError):
             first.save()
 
+    def test_bulk_deletion_retains_routes_and_object_resolution(self):
+        route = self.route()
+        key = build_verification_evidence_storage_key(self.tenant_case)
+        with self.assertRaises(ValidationError):
+            TenantStorageRoute.objects.filter(pk=route.pk).delete()
+        with self.assertRaises(ValidationError):
+            route.delete()
+        self.assertEqual(resolve_reference(key, "legacy")["route_id"], route.public_id)
+
     def test_reads_writes_deletion_and_metadata_use_retained_bucket(self):
         self.route()
         key = build_verification_evidence_storage_key(self.tenant_case)

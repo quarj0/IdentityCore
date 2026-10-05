@@ -295,19 +295,15 @@ def main():
             )
             assert own.status_code == 200, own.status_code
             assert other.status_code in {403, 404}, other.status_code
-        for index in (1, 2):
-            assert (
-                client.head_object(
-                    Bucket="restore-media", Key=f"synthetic/{index}/selfie.jpg"
-                )["ContentType"]
-                == "image/jpeg"
-            )
-            assert (
-                client.head_object(
-                    Bucket="restore-evidence", Key=f"synthetic/{index}/evidence.json"
-                )["ContentType"]
-                == "application/json"
-            )
+        for verification_id in verifications:
+            verification = Verification.objects.get(public_id=verification_id)
+            selfie = SelfieCapture.objects.get(verification=verification)
+            for key, fallback, content_type in (
+                (selfie.storage_key, "restore-media", "image/jpeg"),
+                (verification.metadata_json["evidence_report_storage_key"], "restore-evidence", "application/json"),
+            ):
+                destination = resolve_reference(key, fallback, tenant_scope=verification.tenant.public_id, environment="production")
+                assert client.head_object(Bucket=destination["bucket"], Key=key)["ContentType"] == content_type
         report = {
             "date": timezone.now().date().isoformat(),
             "scope": "isolated synthetic PostgreSQL 17 and HTTP S3 fixture",

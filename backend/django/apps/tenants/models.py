@@ -130,7 +130,14 @@ class TenantKMSBinding(PublicIdModel, BaseModel):
         ]
 
 
+class RetainedStorageRouteQuerySet(models.QuerySet):
+    def delete(self):
+        from django.core.exceptions import ValidationError
+        raise ValidationError("Retain storage routes for object and backup recovery.")
+
+
 class TenantStorageRoute(PublicIdModel, BaseModel):
+    objects = RetainedStorageRouteQuerySet.as_manager()
     public_id_prefix = "tsr"
     tenant = models.ForeignKey(Tenant, on_delete=models.PROTECT)
     environment = models.CharField(max_length=16, choices=[("sandbox", "Sandbox"), ("production", "Production")])
