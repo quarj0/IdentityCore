@@ -131,6 +131,12 @@ class TenantKMSBinding(PublicIdModel, BaseModel):
 
 
 class RetainedStorageRouteQuerySet(models.QuerySet):
+    def bulk_create(self, objs, batch_size=None, ignore_conflicts=False, update_conflicts=False, update_fields=None, unique_fields=None):
+        if update_conflicts and set(update_fields or ()) - {"active", "updated_at"}:
+            from django.core.exceptions import ValidationError
+            raise ValidationError("Storage routes are immutable; create a replacement route.")
+        return super().bulk_create(objs, batch_size=batch_size, ignore_conflicts=ignore_conflicts, update_conflicts=update_conflicts, update_fields=update_fields, unique_fields=unique_fields)
+
     def update(self, **kwargs):
         if set(kwargs) - {"active", "updated_at"}:
             from django.core.exceptions import ValidationError

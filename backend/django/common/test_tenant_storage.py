@@ -89,6 +89,17 @@ class TenantStorageTests(TestCase):
             TenantStorageRoute.objects.bulk_update([route], ["bucket"])
         self.assertEqual(resolve_reference(key, "legacy"), original)
 
+    def test_conflict_upsert_cannot_redirect_a_retained_route(self):
+        route = self.route()
+        key = build_verification_evidence_storage_key(self.tenant_case)
+        original = resolve_reference(key, "legacy")
+        replacement = TenantStorageRoute(pk=route.pk, public_id=route.public_id, tenant=route.tenant, environment=route.environment, bucket="synthetic-route-two", residency_region=route.residency_region)
+        with self.assertRaises(ValidationError), transaction.atomic():
+            TenantStorageRoute.objects.bulk_create([replacement], update_conflicts=True, update_fields=["bucket"], unique_fields=["pk"])
+        route.refresh_from_db()
+        self.assertEqual(route.bucket, "synthetic-route-one")
+        self.assertEqual(resolve_reference(key, "legacy"), original)
+
     def test_reads_writes_deletion_and_metadata_use_retained_bucket(self):
         self.route()
         key = build_verification_evidence_storage_key(self.tenant_case)
