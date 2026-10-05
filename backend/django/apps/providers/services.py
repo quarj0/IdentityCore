@@ -348,6 +348,15 @@ def _lock_processing_owner(processing_job) -> None:
     lock_processing_job_for_finalization(processing_job)
 
 
+def _lock_provider_consent(provider_check):
+    from apps.audit.services import lock_audit_chain
+    from apps.consent.services import require_active_consent, scope_for_check
+    from apps.verifications.models import Verification
+    lock_audit_chain(provider_check.tenant_id)
+    case = Verification.objects.select_for_update(no_key=True).get(pk=provider_check.verification_id, tenant_id=provider_check.tenant_id)
+    require_active_consent(case, scope_for_check(provider_check.check_type))
+
+
 @observed("provider", "invoke_provider_check")
 def invoke_provider_check(
     *,
@@ -376,6 +385,7 @@ def invoke_provider_check(
         merged_request_metadata
     )
     with transaction.atomic():
+        _lock_provider_consent(provider_check)
         _lock_processing_owner(processing_job)
         provider_check.save(
             update_fields=[
@@ -420,6 +430,7 @@ def invoke_provider_check(
             },
         }
         with transaction.atomic():
+            _lock_provider_consent(provider_check)
             _lock_processing_owner(processing_job)
             provider_check.save(
                 update_fields=[
@@ -452,6 +463,7 @@ def invoke_provider_check(
     )
     provider_check.normalized_result_json = normalized
     with transaction.atomic():
+        _lock_provider_consent(provider_check)
         _lock_processing_owner(processing_job)
         provider_check.save(
             update_fields=[
@@ -764,10 +776,14 @@ def _apply_route_final_action(
     # Canonical lifecycle lock order: Verification first, ProcessingJob second.
     from apps.risk.services import _automatic_conflict
 
+    from apps.audit.services import lock_audit_chain
+    from apps.consent.services import require_active_consent, scope_for_check
+    lock_audit_chain(verification.tenant_id)
     requested = verification
     verification = Verification.objects.select_for_update(no_key=True).get(
         pk=verification.pk
     )
+    require_active_consent(verification, scope_for_check(check_type))
     conflict, _ = _automatic_conflict(requested, verification)
     if conflict:
         # Preserve the final-action enum expected by exhaustion handlers.

@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from datetime import timedelta
 import hashlib
 import secrets
@@ -115,6 +116,7 @@ def _consent_artifact(verification, locale: str) -> dict:
             "locale": str(frozen.get("language") or consent_snapshot.get("language") or locale),
             "content": content,
             "content_hash": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+            "evidence_scope": frozen.get("evidence_scope") if frozen.get("evidence_scope") is not None else ["document", "biometrics"],
         }
     template = _resolve_consent_template(verification, locale)
     content = (
@@ -128,6 +130,8 @@ def _consent_artifact(verification, locale: str) -> dict:
         "locale": template.language if template is not None else locale,
         "content": content,
         "content_hash": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+        "evidence_scope": template.evidence_scope_json if template is not None and template.evidence_scope_json is not None else ["document", "biometrics"],
+
     }
 
 
@@ -518,8 +522,17 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
                 "The consent notice changed. Review the current notice before accepting."
             )
 
-        existing_record = verification.consent_records.order_by("-accepted_at").first()
+        existing_record = verification.consent_records.order_by("-accepted_at", "-pk").first()
         if existing_record:
+            from apps.consent.services import require_active_consent
+            try:
+                require_active_consent(verification)
+            except DjangoValidationError:
+                raise serializers.ValidationError("Active consent is unavailable; a withdrawn proof cannot be reused.") from None
+            proof = existing_record.proof_json
+            if (proof["notice_version"], proof["locale"], proof["content_hash"]) != (artifact["version"], artifact["locale"], artifact["content_hash"]):
+                raise serializers.ValidationError("A different notice requires a new consent proof.")
+            existing_record._already_existing = True
             if verification.status == VerificationStatus.PENDING_CONSENT:
                 transition_verification(verification, VerificationStatus.IN_PROGRESS)
             return existing_record
@@ -550,7 +563,7 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
         consent_text_snapshot = artifact["content"]
 
         now = timezone.now()
-        consent_record = ConsentRecord.objects.create(
+        consent_record = ConsentRecord(
             tenant=verification.tenant,
             verification=verification,
             verification_subject=verification.verification_subject,
@@ -564,6 +577,10 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
             user_agent=request.headers.get("User-Agent", ""),
             device_fingerprint=request.headers.get("X-Device-Fingerprint", ""),
         )
+
+        consent_record._notice_template_id = artifact["template_id"]
+        consent_record._notice_version = artifact["version"]
+        consent_record.save()
 
         update_session_fields = ["last_seen_at", "updated_at"]
         verification_session.last_seen_at = now
@@ -600,7 +617,8 @@ class VerificationSessionDocumentSerializer(serializers.Serializer):
         verification_session = request.verification_session
         verification = verification_session.verification
 
-        if not verification.consent_records.filter(accepted=True).exists():
+        from apps.consent.services import active_consent
+        if active_consent(verification, "document") is None:
             raise serializers.ValidationError(
                 {"detail": "Consent must be accepted before document submission."}
             )
@@ -807,7 +825,8 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
         verification_session = request.verification_session
         verification = verification_session.verification
 
-        if not verification.consent_records.filter(accepted=True).exists():
+        from apps.consent.services import active_consent
+        if active_consent(verification, "biometrics") is None:
             raise serializers.ValidationError(
                 {"detail": "Consent must be accepted before selfie submission."}
             )

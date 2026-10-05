@@ -8,6 +8,7 @@ def serialize_consent_template(template: ConsentTemplate) -> dict:
         "version": template.version,
         "language": template.language,
         "content": template.content,
+        "evidence_scope": template.evidence_scope_json if template.evidence_scope_json is not None else ["document", "biometrics"],
         "status": template.status,
         "created_at": template.created_at.isoformat(),
         "updated_at": template.updated_at.isoformat(),
@@ -15,6 +16,7 @@ def serialize_consent_template(template: ConsentTemplate) -> dict:
 
 
 def serialize_consent_record(record: ConsentRecord) -> dict:
+    proof = record.proof_json or {}
     return {
         "id": record.public_id,
         "verification_id": record.verification.public_id,
@@ -22,6 +24,11 @@ def serialize_consent_record(record: ConsentRecord) -> dict:
         "consent_template_id": (
             record.consent_template.public_id if record.consent_template else None
         ),
+        "notice_version": proof.get("notice_version"),
+        "purpose": proof.get("purpose"),
+        "environment": proof.get("environment"),
+        "evidence_scope": proof.get("evidence_scope"),
+        "binding_source": proof.get("binding_source"),
         "consent_locale": record.consent_locale,
         "consent_content_hash": record.consent_content_hash,
         "accepted": record.accepted,

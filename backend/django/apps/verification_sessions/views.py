@@ -271,6 +271,12 @@ class VerificationSessionConsentView(VerificationSessionBaseView):
 
     @transaction.atomic
     def post(self, request, session_id: str):
+        from apps.verifications.models import Verification
+        lock_audit_chain(request.tenant.pk)
+        Verification.objects.select_for_update(no_key=True).get(pk=request.verification_session.verification_id)
+        request.verification_session = VerificationSession.objects.select_for_update(no_key=True).select_related("verification").get(pk=request.verification_session.pk)
+        if request.verification_session.status not in {VerificationSessionStatus.CREATED, VerificationSessionStatus.ACTIVE} or request.verification_session.expires_at <= timezone.now():
+            raise ValidationError("This consent session is unavailable.")
         self._touch_session(request)
         serializer = VerificationSessionConsentSerializer(
             data=request.data, context={"request": request}
@@ -278,6 +284,8 @@ class VerificationSessionConsentView(VerificationSessionBaseView):
         serializer.is_valid(raise_exception=True)
         consent_record = serializer.save()
         verification = request.verification_session.verification
+        if getattr(consent_record, "_already_existing", False):
+            return success_response({"consent_record_id": consent_record.public_id, "next_step": "document_capture"}, request=request)
         record_audit_event(
             tenant=request.tenant,
             actor=verification.verification_subject,
@@ -460,3 +468,19 @@ class VerificationSessionStatusView(VerificationSessionBaseView):
             serialize_verification_session_status(request.verification_session),
             request=request,
         )
+
+
+class VerificationSessionConsentWithdrawView(VerificationSessionBaseView):
+    required_session_action = "consent:accept"
+
+    def post(self, request, session_id):
+        from apps.consent.services import withdraw
+        from django.core.exceptions import ValidationError as ConsentError
+        record = request.verification_session.verification.consent_records.filter(accepted=True).order_by("-accepted_at", "-pk").first()
+        if record is None:
+            raise ValidationError("No consent proof is available.")
+        try:
+            record = withdraw(record, actor=request.verification_session.verification.verification_subject, request=request)
+        except ConsentError:
+            raise ValidationError("Consent withdrawal is unavailable.") from None
+        return success_response({"consent_record_id": record.public_id, "withdrawn_at": record.withdrawn_at.isoformat()}, request=request)

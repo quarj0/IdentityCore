@@ -57,6 +57,10 @@ def lock_processing_job_for_finalization(job: ProcessingJob) -> ProcessingJob:
     )
     locked = ProcessingJob.objects.select_for_update().get(pk=job.pk)
     _assert_processing_job_owner(locked, job)
+    from apps.consent.services import active_consent
+    scope = "document" if locked.job_type == ProcessingJobType.IDENTITY_DOCUMENT else "biometrics"
+    if active_consent(locked.verification, scope) is None:
+        raise ProcessingJobOwnershipLost("Processing consent is unavailable.")
     return locked
 
 
@@ -370,6 +374,13 @@ def acquire_processing_job(*, job_type: str, resource) -> ProcessingJob | None:
     if is_draining():
         return None
     now = timezone.now()
+    from apps.consent.services import active_consent
+    scope = "document" if job_type == ProcessingJobType.IDENTITY_DOCUMENT else "biometrics"
+    if active_consent(resource.verification, scope) is None:
+        ProcessingJob.objects.filter(job_type=job_type, resource_public_id=resource.public_id,
+            status=ProcessingJobStatus.QUEUED).update(status=ProcessingJobStatus.EXHAUSTED,
+                error_code="consent_unavailable", completed_at=now, heartbeat_at=now, lease_expires_at=now)
+        return None
     with transaction.atomic():
         job, _ = ProcessingJob.objects.select_for_update().get_or_create(
             job_type=job_type,

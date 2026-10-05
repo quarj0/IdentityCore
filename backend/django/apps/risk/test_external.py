@@ -1,3 +1,4 @@
+from apps.consent.test_helpers import accept_test_consent
 from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import Mock, patch
@@ -111,6 +112,7 @@ class ExternalRiskTests(TestCase):
         )
         registry.start()
         self.addCleanup(registry.stop)
+        accept_test_consent(self.verification)
 
     def test_high_score_is_evidence_then_policy_review_and_inputs_are_minimal(self):
         self.adapter.risk_check.return_value = evidence(90)

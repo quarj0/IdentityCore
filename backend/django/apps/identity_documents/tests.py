@@ -1,3 +1,4 @@
+from apps.consent.test_helpers import accept_test_consent
 from apps.uploads.test_helpers import seal_test_upload
 from datetime import timedelta
 from unittest.mock import patch
@@ -91,6 +92,7 @@ class IdentityDocumentTaskTests(TestCase):
             status=ProviderCheckStatus.PENDING,
             request_metadata={"identity_document_id": self.identity_document.public_id},
         )
+        accept_test_consent(self.verification)
 
     @patch("apps.identity_documents.tasks.run_document_classification")
     @patch("apps.identity_documents.tasks.run_document_ocr")

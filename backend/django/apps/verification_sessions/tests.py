@@ -92,6 +92,21 @@ class VerificationSessionPortalTests(APITestCase):
         self.session.set_session_token(self.raw_session_token)
         self.session.save()
 
+    def test_applicant_withdrawal_revokes_only_own_case_session(self):
+        record = ConsentRecord.objects.create(
+            tenant=self.tenant, verification=self.verification,
+            verification_subject=self.subject, consent_text_snapshot="Synthetic notice",
+            accepted_at=timezone.now(),
+        )
+        url = reverse("verification-session-consent-withdraw", kwargs={"session_id": self.session.public_id})
+        response = self.client.post(url, {}, format="json", **self.session_headers())
+        self.assertEqual(response.status_code, 200)
+        record.refresh_from_db()
+        self.session.refresh_from_db()
+        self.assertIsNotNone(record.withdrawn_at)
+        self.assertEqual(self.session.status, "revoked")
+        self.assertEqual(self.client.post(url, {}, format="json", **self.session_headers()).status_code, 401)
+
     def session_headers(self, token=None):
         return {
             "HTTP_AUTHORIZATION": f"Bearer {token or self.raw_session_token}",

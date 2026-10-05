@@ -7,7 +7,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.access_control.models import Permission, Role, RolePermission, RoleScope
+from apps.access_control.models import Permission, Role, RolePermission, RoleScope, UserRole
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.biometrics.models import SelfieCapture
 from apps.consent.models import ConsentRecord, ConsentTemplate, ConsentTemplateStatus
@@ -163,6 +163,10 @@ class ManagementAPIEndpointTests(APITestCase):
             self.client.get(reverse("consent-template-list")).status_code,
             status.HTTP_200_OK,
         )
+        permission = Permission.objects.create(code="manage_consent", name="Manage consent")
+        role = Role.objects.create(tenant=self.tenant, name="Privacy", scope=RoleScope.TENANT)
+        RolePermission.objects.create(role=role, permission=permission)
+        UserRole.objects.create(user=self.user, tenant=self.tenant, role=role)
         self.assertEqual(
             self.client.get(reverse("consent-record-list")).status_code,
             status.HTTP_200_OK,

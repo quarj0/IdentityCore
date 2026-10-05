@@ -1,7 +1,8 @@
-from common.public_api import public_api_path
+from common.public_api import public_api_path, internal_api_path
 
 from apps.verification_sessions.views import (
     VerificationSessionConsentView,
+    VerificationSessionConsentWithdrawView,
     VerificationSessionDetailView,
     VerificationSessionDocumentView,
     VerificationSessionLivenessView,
@@ -14,6 +15,7 @@ from apps.verification_sessions.views import (
 
 
 urlpatterns = [
+    internal_api_path("<str:session_id>/consent/withdraw", VerificationSessionConsentWithdrawView.as_view(), name="verification-session-consent-withdraw"),
     public_api_path(
         "mobile-handoff/redeem",
         VerificationMobileHandoffRedeemView.as_view(),

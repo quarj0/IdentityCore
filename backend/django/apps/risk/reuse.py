@@ -251,7 +251,7 @@ def collect_reuse(verification):
             verification__verification_subject__deleted_at__isnull=True,
             tenant__deleted_at__isnull=True,
             tenant__status="active",
-        ).exclude(verification=verification)
+        ).exclude(verification=verification).exclude(verification__consent_records__withdrawn_at__isnull=False)
         if scope == "global":
             matches = matches.filter(global_digest=shared)
         else:

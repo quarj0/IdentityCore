@@ -1795,6 +1795,11 @@
     },
     {
       "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentRecord.proof_json",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
       "field": "ConsentRecord.public_id",
       "activity": "consent-audit-and-compliance"
     },
@@ -1846,6 +1851,11 @@
     {
       "source": "backend/django/apps/consent/models.py",
       "field": "ConsentTemplate.deleted_at",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentTemplate.evidence_scope_json",
       "activity": "consent-audit-and-compliance"
     },
     {
