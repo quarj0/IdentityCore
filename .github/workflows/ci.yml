@@ -48,6 +48,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - name: Validate review evidence gate
+        run: node .github/scripts/review-gate.test.cjs
       - name: Validate implementation backlog
         run: python scripts/sync_github_issues.py
       - name: Validate locked evaluation harness

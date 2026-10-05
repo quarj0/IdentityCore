@@ -10,3 +10,11 @@ Before merging a pull request:
 6. Refresh the pull-request head and unresolved threads immediately before merging. Merge with the expected head SHA so concurrent updates cannot be silently included.
 
 Delayed feedback on an already merged pull request must be audited against current main and addressed through a follow-up pull request. Preserve links to original findings and evidence. Historical issue #281 remains open until every inventory finding has a supported disposition; counting resolved threads is insufficient.
+
+## Required repository setting
+
+After the workflow is on the default branch, configure `review-evidence` as a required status check in the ruleset or branch protection for `main`, and prohibit bypass for ordinary merges. The workflow publishes this check directly against the pull-request head SHA; it does not treat the workflow run's base-branch SHA as reviewed. Only the configured reviewer can attest to final-head review, and resolved threads must have a fixing commit and validation evidence from their resolver.
+
+The connected GitHub integration cannot read or change branch protection (GitHub returns `Resource not accessible by integration`). A repository administrator must enable the required check. Until that setting is enabled, the workflow reports failures but does not make GitHub reject a merge. This limitation remains part of the review-gate finding; Markdown checkboxes alone do not enforce it.
+
+Resolve threads before requesting the final review. If a thread is resolved after the last review/comment event, rerun `Review evidence gate` with its pull-request number. The workflow reads trusted default-branch validator source, never PR-controlled source with its write-capable check token.
