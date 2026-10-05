@@ -282,7 +282,17 @@ export interface VerificationDetail {
   expires_at: string;
 }
 
+export interface SandboxSimulationRequest {
+  scenario: string;
+}
+
+export interface SandboxSimulationMarker {
+  scenario: string;
+  version: number;
+}
+
 export interface VerificationResult {
+  simulation?: SandboxSimulationMarker;
   schema_version: string;
   verification_id: string;
   status: string;

@@ -506,8 +506,24 @@ public sealed record VerificationDetail
     public string ExpiresAt { get; init; }
 }
 
+public sealed record SandboxSimulationRequest
+{
+    [JsonPropertyName("scenario")]
+    public string Scenario { get; init; }
+}
+
+public sealed record SandboxSimulationMarker
+{
+    [JsonPropertyName("scenario")]
+    public string Scenario { get; init; }
+    [JsonPropertyName("version")]
+    public int Version { get; init; }
+}
+
 public sealed record VerificationResult
 {
+    [JsonPropertyName("simulation")]
+    public SandboxSimulationMarker? Simulation { get; init; }
     [JsonPropertyName("schema_version")]
     public string SchemaVersion { get; init; }
     [JsonPropertyName("verification_id")]

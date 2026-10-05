@@ -1,4 +1,4 @@
-from common.observability import observed, inject
+from common.observability import observed
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -38,6 +38,11 @@ from apps.core.models import generate_public_id
 from apps.tenants.models import Tenant
 
 SYSTEM_PROVIDER_DEFAULTS = {
+    "sandbox_simulation": {
+        "code": "sandbox-simulator-v1",
+        "name": "Sandbox Simulator",
+        "provider_type": ProviderType.RISK,
+    },
     ProviderCheckType.DOCUMENT_AUTHENTICITY: {
         "code": "internal-document-authenticity",
         "name": "Internal Document Authenticity",

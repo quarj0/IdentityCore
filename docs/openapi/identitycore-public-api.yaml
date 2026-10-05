@@ -852,6 +852,24 @@ components:
         expires_at:
           type: string
           format: date-time
+    SandboxSimulationRequest:
+      type: object
+      required: [scenario]
+      properties:
+        scenario:
+          type: string
+          enum: [approved, declined, review, timeout, provider_error]
+    SandboxSimulationMarker:
+      type: object
+      additionalProperties: false
+      required: [scenario, version]
+      properties:
+        scenario:
+          type: string
+          enum: [approved, declined, review, timeout, provider_error]
+        version:
+          type: integer
+          const: 1
     VerificationResult:
       type: object
       additionalProperties: false
@@ -865,6 +883,8 @@ components:
         - check_provenance
         - timestamps
       properties:
+        simulation:
+          $ref: "#/components/schemas/SandboxSimulationMarker"
         schema_version:
           type: string
           const: "1"
@@ -2712,6 +2732,43 @@ paths:
                     $ref: "#/components/schemas/VerificationResult"
                   request_id:
                     type: string
+        "403":
+          $ref: "#/components/responses/PermissionDenied"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /verifications/{verification_id}/simulate:
+    post:
+      summary: Simulate a fixed outcome on a pristine sandbox verification.
+      parameters:
+        - name: verification_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SandboxSimulationRequest"
+      responses:
+        "200":
+          description: Versioned verification result with allowlisted evidence lineage.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    const: true
+                  data:
+                    $ref: "#/components/schemas/VerificationResult"
+                  request_id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/PermissionDenied"
         "403":
           $ref: "#/components/responses/PermissionDenied"
         "404":

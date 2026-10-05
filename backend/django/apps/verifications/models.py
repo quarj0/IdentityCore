@@ -1,6 +1,6 @@
 import secrets
 
-from django.contrib.auth.hashers import check_password, make_password
+from django.contrib.auth.hashers import make_password
 from django.db import models
 from django.utils import timezone
 
@@ -65,6 +65,18 @@ class VerificationReviewOwner(models.TextChoices):
 class ProcessingJobType(models.TextChoices):
     IDENTITY_DOCUMENT = "identity_document", "Identity Document"
     BIOMETRICS = "biometrics", "Biometrics"
+
+
+class SandboxSimulation(BaseModel):
+    """Server-created scenario marker; applicant metadata cannot forge simulation."""
+
+    verification = models.OneToOneField(
+        "Verification", on_delete=models.CASCADE, related_name="sandbox_simulation"
+    )
+    scenario = models.CharField(max_length=24, choices=[
+        (value, value) for value in ("approved", "declined", "review", "timeout", "provider_error")
+    ])
+    version = models.PositiveSmallIntegerField(default=1)
 
 
 class ProcessingJobStatus(models.TextChoices):

@@ -57,6 +57,8 @@ SAFE_DECISION_REASON_CODES = frozenset(
         "manual_review_verified",
         "processing_retries_exhausted",
         "provider_route_exhausted",
+        "provider_timeout",
+        "provider_unavailable",
         "risk_rules_approved",
         "risk_rules_rejected",
         "risk_rules_review",
@@ -199,7 +201,7 @@ def serialize_verification_result(verification: Verification) -> dict:
     checks = verification.provider_checks.select_related("provider").order_by(
         "started_at", "public_id"
     )
-    return {
+    result = {
         "schema_version": VERIFICATION_RESULT_SCHEMA_VERSION,
         "verification_id": verification.public_id,
         "status": verification.status,
@@ -238,3 +240,8 @@ def serialize_verification_result(verification: Verification) -> dict:
             "expires_at": verification.expires_at.isoformat(),
         },
     }
+    from apps.verifications.models import SandboxSimulation
+    simulation = SandboxSimulation.objects.filter(verification=verification).first()
+    if simulation is not None:
+        result["simulation"] = {"scenario": simulation.scenario, "version": simulation.version}
+    return result

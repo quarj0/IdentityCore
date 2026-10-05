@@ -134,7 +134,15 @@ public final class GeneratedModels {
 
     }
 
-    public record VerificationResult(@JsonProperty("schema_version") String schema_version, @JsonProperty("verification_id") String verification_id, @JsonProperty("status") String status, @JsonProperty("decision") JsonNode decision, @JsonProperty("policy") JsonNode policy, @JsonProperty("workflow") JsonNode workflow, @JsonProperty("check_provenance") List<JsonNode> check_provenance, @JsonProperty("timestamps") JsonNode timestamps) {
+    public record SandboxSimulationRequest(@JsonProperty("scenario") String scenario) {
+
+    }
+
+    public record SandboxSimulationMarker(@JsonProperty("scenario") String scenario, @JsonProperty("version") Integer version) {
+
+    }
+
+    public record VerificationResult(@JsonProperty("simulation") SandboxSimulationMarker simulation, @JsonProperty("schema_version") String schema_version, @JsonProperty("verification_id") String verification_id, @JsonProperty("status") String status, @JsonProperty("decision") JsonNode decision, @JsonProperty("policy") JsonNode policy, @JsonProperty("workflow") JsonNode workflow, @JsonProperty("check_provenance") List<JsonNode> check_provenance, @JsonProperty("timestamps") JsonNode timestamps) {
 
     }
 

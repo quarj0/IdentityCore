@@ -429,6 +429,23 @@ class VerificationDetail(_VerificationDetailRequired, total=False):
     pass
 
 
+class _SandboxSimulationRequestRequired(TypedDict):
+    scenario: str
+
+
+class SandboxSimulationRequest(_SandboxSimulationRequestRequired, total=False):
+    pass
+
+
+class _SandboxSimulationMarkerRequired(TypedDict):
+    scenario: str
+    version: int
+
+
+class SandboxSimulationMarker(_SandboxSimulationMarkerRequired, total=False):
+    pass
+
+
 class _VerificationResultRequired(TypedDict):
     schema_version: str
     verification_id: str
@@ -441,7 +458,7 @@ class _VerificationResultRequired(TypedDict):
 
 
 class VerificationResult(_VerificationResultRequired, total=False):
-    pass
+    simulation: SandboxSimulationMarker
 
 
 class _CursorPaginationRequired(TypedDict):

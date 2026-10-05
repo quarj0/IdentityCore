@@ -94,7 +94,7 @@ def serialize_verification(verification: Verification, request=None) -> dict:
     latest_identity_document = verification.identity_documents.order_by(
         "-created_at"
     ).first()
-    return {
+    result = {
         "id": verification.public_id,
         "status": verification.status,
         "purpose": verification.purpose,
@@ -184,6 +184,11 @@ def serialize_verification(verification: Verification, request=None) -> dict:
         ),
         "expires_at": verification.expires_at.isoformat(),
     }
+    from apps.verifications.models import SandboxSimulation
+    marker = SandboxSimulation.objects.filter(verification=verification).first()
+    if marker is not None:
+        result["simulation"] = {"scenario": marker.scenario, "version": marker.version}
+    return result
 
 
 def serialize_verification_summary(verification: Verification) -> dict:
