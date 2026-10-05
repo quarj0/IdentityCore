@@ -1999,7 +1999,7 @@ class VerificationOperationsTaskTests(TestCase):
             organization=self.organization,
             verification_subject=self.subject,
             purpose="Customer onboarding",
-            status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
+            status=VerificationStatus.AWAITING_SELFIE,
             external_reference="ext-123",
             expires_at=timezone.now() - timedelta(minutes=5),
         )
@@ -2049,6 +2049,21 @@ class VerificationOperationsTaskTests(TestCase):
                 recipient="akosua@example.com",
             ).exists()
         )
+
+    def test_expiry_preserves_submitted_review_and_rechecks_locked_state(self):
+        from apps.verifications.tasks import _expire_pending_verification
+        verification = Verification.objects.create(
+            tenant=self.tenant, organization=self.organization,
+            verification_subject=self.subject, purpose="Submitted review",
+            status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
+            expires_at=timezone.now() - timedelta(minutes=5),
+        )
+        self.assertEqual(expire_pending_verifications_task(limit=10), 0)
+        self.assertFalse(_expire_pending_verification(verification.pk, timezone.now()))
+        verification.refresh_from_db()
+        self.assertEqual(verification.status, VerificationStatus.MANUAL_REVIEW_REQUIRED)
+        self.assertFalse(AuditEvent.objects.filter(target_id=verification.public_id, action="verification.expired").exists())
+        self.assertFalse(WebhookEvent.objects.filter(event_type="verification.expired").exists())
 
     def test_cleanup_expired_verification_sessions_task_marks_due_sessions_expired(
         self,

@@ -228,6 +228,7 @@ def _finalize_unavailable_biometrics(
         complete_processing_job(processing_job)
         return verification.status
     verification = current
+    promote_upload_to_media_by_storage_key(liveness_check.selfie_capture.storage_key)
     now = timezone.now()
     verification.decision_revision += 1
     verification.save(update_fields=["decision_revision", "updated_at"])
