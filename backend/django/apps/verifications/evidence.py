@@ -424,6 +424,8 @@ def download_verification_evidence_object(
         key=storage_key,
         decrypt=encrypted,
         encryption_purpose=EVIDENCE_OBJECT_ENCRYPTION_PURPOSE,
+        tenant_scope=verification.tenant.public_id,
+        environment=verification.project.environment if verification.project_id else "sandbox",
     )
     return content, content_type, filename
 
@@ -445,6 +447,8 @@ def ensure_verification_evidence_report(verification: Verification) -> str | Non
         content_type="application/json",
         encrypt=should_encrypt_evidence_objects(),
         encryption_purpose=EVIDENCE_OBJECT_ENCRYPTION_PURPOSE,
+        tenant_scope=verification.tenant.public_id,
+        environment=verification.project.environment if verification.project_id else "sandbox",
     )
     put_object_bytes(
         bucket_name=bucket_name,
@@ -453,6 +457,8 @@ def ensure_verification_evidence_report(verification: Verification) -> str | Non
         content_type="application/pdf",
         encrypt=should_encrypt_evidence_objects(),
         encryption_purpose=EVIDENCE_OBJECT_ENCRYPTION_PURPOSE,
+        tenant_scope=verification.tenant.public_id,
+        environment=verification.project.environment if verification.project_id else "sandbox",
     )
     metadata_json = dict(verification.metadata_json or {})
     metadata_json["evidence_report_storage_key"] = storage_key

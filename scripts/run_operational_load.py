@@ -316,7 +316,9 @@ def main():
         try:
             response = api.request(method, BASE + path, headers=headers, json=body)
         except httpx.HTTPError as error:
-            raise LoadFailure(f"{type(error).__name__} at {method} {path.split('/')[1]}") from error
+            raise LoadFailure(
+                f"{type(error).__name__} at {method} {path.split('/')[1]}"
+            ) from error
         if response.status_code not in (200, 201, 202):
             # Report only status and fixed route template; response bodies may
             # contain tokens or evidence and are excluded from load artifacts.
@@ -674,6 +676,12 @@ def main():
                             key=json_key,
                             decrypt=metadata.get("evidence_report_encrypted", False),
                             encryption_purpose="evidence.reports",
+                            tenant_scope=verification.tenant.public_id,
+                            environment=(
+                                verification.project.environment
+                                if verification.project_id
+                                else "sandbox"
+                            ),
                         )
                         payload = json.loads(content)
                         if (
@@ -742,8 +750,25 @@ def main():
             )
             report = {
                 "date": time.strftime("%Y-%m-%d", time.gmtime()),
-                "service_events": {name: sum(Path(logs, "api.log").read_text().count(marker) for marker in markers) for name, markers in {"worker_timeout": ["WORKER TIMEOUT"], "worker_killed": ["was sent SIGKILL", "Worker exited"], "listen_failure": ["Connection in use", "Can't connect"]}.items()},
-                "exception_evidence": [json.loads(line) for line in diagnostics_path.read_text().splitlines()] if diagnostics_path.exists() else [],
+                "service_events": {
+                    name: sum(
+                        Path(logs, "api.log").read_text().count(marker)
+                        for marker in markers
+                    )
+                    for name, markers in {
+                        "worker_timeout": ["WORKER TIMEOUT"],
+                        "worker_killed": ["was sent SIGKILL", "Worker exited"],
+                        "listen_failure": ["Connection in use", "Can't connect"],
+                    }.items()
+                },
+                "exception_evidence": (
+                    [
+                        json.loads(line)
+                        for line in diagnostics_path.read_text().splitlines()
+                    ]
+                    if diagnostics_path.exists()
+                    else []
+                ),
                 "scope": "isolated orchestration load; real HTTP/PostgreSQL/Redis/Celery and S3 HTTP fixture; synthetic AI latency",
                 "target": {
                     "verifications_per_minute": args.rate_per_minute,
