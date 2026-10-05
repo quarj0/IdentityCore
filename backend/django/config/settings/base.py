@@ -487,3 +487,7 @@ LOGGING = {
     },
     "root": {"handlers": ["console"], "level": "INFO"},
 }
+
+# Deployment-approved bucket -> residency region. No tenant-supplied endpoints.
+TENANT_STORAGE_DESTINATIONS = json.loads(os.getenv("TENANT_STORAGE_DESTINATIONS", "{}"))
+TENANT_STORAGE_BUCKET_REMAP = json.loads(os.getenv("TENANT_STORAGE_BUCKET_REMAP", "{}"))

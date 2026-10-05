@@ -1,3 +1,5 @@
+from common.tenant_storage import resolve_reference
+from common.fields import environment_for_instance
 from common.observability import set_verification_environment
 import logging
 from decimal import Decimal
@@ -370,7 +372,7 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                     "verification_id": verification.public_id,
                     "selfie_storage_key": selfie_capture.storage_key,
                     "liveness_type": liveness_check.liveness_type,
-                    "selfie_storage_bucket": temp_bucket,
+                    "selfie_storage_bucket": resolve_reference(selfie_capture.storage_key, temp_bucket, tenant_scope=verification.tenant.public_id, environment=environment_for_instance(verification))["bucket"],
                     "selfie_mime_type": selfie_capture.mime_type,
                     "challenge_actions": (
                         liveness_check.challenge.actions
@@ -514,14 +516,14 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                     "selfie_storage_key": selfie_capture.storage_key,
                     "document_storage_key": document_storage_key,
                     "threshold": threshold,
-                    "selfie_storage_bucket": temp_bucket,
+                    "selfie_storage_bucket": resolve_reference(selfie_capture.storage_key, temp_bucket, tenant_scope=verification.tenant.public_id, environment=environment_for_instance(verification))["bucket"],
                     "selfie_mime_type": selfie_capture.mime_type,
-                    "document_storage_bucket": (
+                    "document_storage_bucket": resolve_reference(document_storage_key, (
                         media_bucket
                         if source_document_capture
                         and source_document_capture.status != "uploaded"
                         else temp_bucket
-                    ),
+                    ), tenant_scope=verification.tenant.public_id, environment=environment_for_instance(verification))["bucket"],
                 }
                 face_execution = execute_provider_route(
                     verification=verification,

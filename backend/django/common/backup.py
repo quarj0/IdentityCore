@@ -106,7 +106,7 @@ def decrypt_file(source, destination, key, context):
 
 
 def storage_buckets():
-    return {
+    buckets = {
         role: bucket
         for role, bucket in {
             "media": get_object_storage_media_bucket_name(),
@@ -116,6 +116,20 @@ def storage_buckets():
         }.items()
         if bucket
     }
+    from apps.tenants.models import TenantStorageRoute
+    from common.tenant_storage import validate_destination, remapped_bucket
+
+    if TenantStorageRoute._meta.db_table in connection.introspection.table_names():
+        for route in TenantStorageRoute.objects.filter(deleted_at__isnull=True):
+            validate_destination(route.bucket, route.residency_region)
+            buckets["tenant:" + route.bucket] = remapped_bucket(route.bucket)
+    elif os.getenv("IDENTITYCORE_RESTORE_ISOLATED") == "1":
+        mapping = getattr(settings, "TENANT_STORAGE_BUCKET_REMAP", {})
+        approved = getattr(settings, "TENANT_STORAGE_DESTINATIONS", {})
+        for source, target in mapping.items():
+            validate_destination(source, approved.get(target))
+            buckets["tenant:" + source] = target
+    return buckets
 
 
 def required_object_refs():
@@ -177,7 +191,9 @@ def required_object_refs():
         refs.update((buckets.get("public", ""), key) for key in keys if key)
     if any(not bucket for bucket, _ in refs):
         raise BackupError("Referenced storage bucket is not configured.")
-    return refs
+    from common.tenant_storage import resolve_reference
+
+    return {(resolve_reference(key, bucket)["bucket"], key) for bucket, key in refs}
 
 
 def postgres_command(tool):

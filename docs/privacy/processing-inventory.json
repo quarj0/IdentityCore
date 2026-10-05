@@ -21,7 +21,8 @@
         "user agent",
         "Encrypted single-use invitation delivery payload; cleared after delivery or failure; pending capabilities expire after seven days.",
         "Authenticated wrapped tenant/environment data encryption keys, key versions and bounded resumable rotation state. Plaintext DEKs exist only in memory.",
-        "Tenant/environment customer key ARNs, binding lifecycle and encrypted write-only KMS grant tokens; authenticated customer-wrapped DEKs contain no applicant plaintext."
+        "Tenant/environment customer key ARNs, binding lifecycle and encrypted write-only KMS grant tokens; authenticated customer-wrapped DEKs contain no applicant plaintext.",
+        "Immutable tenant/environment storage bucket routing and approved residency metadata; retained versions support deletion and restore."
       ],
       "purpose": "Authenticate users, administer tenants, enforce access, and investigate security events.",
       "locations": [
@@ -3831,6 +3832,56 @@
     {
       "source": "backend/django/apps/tenants/models.py",
       "field": "TenantKeyRotation.updated_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantStorageRoute.active",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantStorageRoute.bucket",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantStorageRoute.created_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantStorageRoute.deleted_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantStorageRoute.environment",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantStorageRoute.id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantStorageRoute.public_id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantStorageRoute.residency_region",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantStorageRoute.tenant",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantStorageRoute.updated_at",
       "activity": "account-and-tenant-administration"
     },
     {

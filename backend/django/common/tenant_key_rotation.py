@@ -248,7 +248,8 @@ def resume_object_batch(job_id, *, batch_size=25):
             key = metadata.get(key_field)
             if not key:
                 continue
-            bucket = get_object_storage_evidence_bucket_name()
+            from common.tenant_storage import resolve_reference
+            bucket = resolve_reference(key, get_object_storage_evidence_bucket_name(), tenant_scope=job.tenant_scope, environment=job.environment)["bucket"]
             if not bucket:
                 raise ValueError("Evidence storage is unavailable for rotation.")
             if client is None:
