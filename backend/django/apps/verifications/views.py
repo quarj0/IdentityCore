@@ -13,7 +13,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.settings import api_settings
 from rest_framework.views import APIView
 
-from apps.audit.services import record_audit_event, lock_audit_chain
+from apps.audit.services import lock_audit_chain, record_audit_event
 from apps.api_clients.idempotency import (
     begin_idempotent_request,
     complete_idempotent_request,
@@ -540,6 +540,7 @@ class ManualReviewDecisionView(APIView):
             manual_review_queryset_for_user(request.user),
             public_id=verification_id,
         )
+        lock_audit_chain(verification.tenant_id)
         idempotency_result = begin_idempotent_request(
             request=request,
             tenant=verification.tenant,
@@ -643,10 +644,13 @@ class ManualReviewApprovalView(APIView):
     @transaction.atomic
     def post(self, request, verification_id: str):
         verification = get_object_or_404(
-            manual_review_queryset_for_user(request.user).select_for_update(
-                of=("self",)
-            ),
+            manual_review_queryset_for_user(request.user),
             public_id=verification_id,
+        )
+        lock_audit_chain(verification.tenant_id)
+        verification = get_object_or_404(
+            manual_review_queryset_for_user(request.user).select_for_update(of=("self",), no_key=True),
+            pk=verification.pk,
         )
         decision_record = get_object_or_404(
             VerificationDecision.objects.select_for_update(), verification=verification

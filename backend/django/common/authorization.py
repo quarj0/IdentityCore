@@ -116,6 +116,7 @@ def _has_role_permission(
         role__tenant_id=tenant_id,
         role__scope=RoleScope.TENANT,
         role__status=RoleStatus.ACTIVE,
+        role__deleted_at__isnull=True,
         role__role_permissions__permission__code=permission_code,
     ).exists()
     return _allow() if allowed else _deny("permission_required")
