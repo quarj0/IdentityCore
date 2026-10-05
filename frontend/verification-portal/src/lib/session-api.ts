@@ -245,6 +245,14 @@ export function acceptConsent(
   });
 }
 
+export function withdrawConsent(credentials: SessionCredentials) {
+  return request<{ consent_record_id: string; withdrawn_at: string }>(
+    credentials,
+    `/sessions/${credentials.sessionId}/consent/withdraw`,
+    { method: "POST" },
+  );
+}
+
 export async function createUpload(
   credentials: SessionCredentials,
   purpose: "document_capture" | "selfie_capture" | "liveness_capture",
