@@ -131,6 +131,12 @@ class TenantKMSBinding(PublicIdModel, BaseModel):
 
 
 class RetainedStorageRouteQuerySet(models.QuerySet):
+    def update(self, **kwargs):
+        if set(kwargs) - {"active", "updated_at"}:
+            from django.core.exceptions import ValidationError
+            raise ValidationError("Storage routes are immutable; create a replacement route.")
+        return super().update(**kwargs)
+
     def delete(self):
         from django.core.exceptions import ValidationError
         raise ValidationError("Retain storage routes for object and backup recovery.")

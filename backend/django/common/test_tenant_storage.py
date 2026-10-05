@@ -2,6 +2,7 @@ from datetime import timedelta
 from io import BytesIO
 from unittest.mock import Mock, patch
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from apps.tenants.models import TenantStorageRoute
@@ -75,6 +76,18 @@ class TenantStorageTests(TestCase):
         with self.assertRaises(ValidationError):
             route.delete()
         self.assertEqual(resolve_reference(key, "legacy")["route_id"], route.public_id)
+
+    def test_bulk_updates_cannot_redirect_retained_object_references(self):
+        route = self.route()
+        key = build_verification_evidence_storage_key(self.tenant_case)
+        original = resolve_reference(key, "legacy")
+        for field, value in {"bucket": "synthetic-route-two", "residency_region": "us-east-1", "tenant_id": self.tenant.pk + 100, "environment": "production", "deleted_at": timezone.now()}.items():
+            with self.assertRaises(ValidationError):
+                TenantStorageRoute.objects.filter(pk=route.pk).update(**{field: value})
+        route.bucket = "synthetic-route-two"
+        with self.assertRaises(ValidationError), transaction.atomic():
+            TenantStorageRoute.objects.bulk_update([route], ["bucket"])
+        self.assertEqual(resolve_reference(key, "legacy"), original)
 
     def test_reads_writes_deletion_and_metadata_use_retained_bucket(self):
         self.route()
