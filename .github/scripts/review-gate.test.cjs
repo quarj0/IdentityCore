@@ -73,9 +73,21 @@ test('a head change during validation fails the check for the inspected SHA', as
 });
 
 test('blocking final-head review cannot be bypassed by a bot comment', () => {
-  for (const state of ['CHANGES_REQUESTED', 'PENDING', 'DISMISSED']) {
+  for (const state of ['CHANGES_REQUESTED', 'PENDING']) {
     const input = baseline(); input.reviews[0].state = state;
     input.comments = [{user: {login: reviewer}, body: `**Reviewed commit:** \`${head.slice(0, 10)}\``}];
     assert.equal(assess(input).length, 1);
   }
+});
+
+test('comments do not clear change requests; approval or dismissal does', () => {
+  const input = baseline();
+  input.reviews = [{user: {login: reviewer}, commit_id: head, state: 'CHANGES_REQUESTED'}, ...input.reviews];
+  assert.equal(assess(input).length, 1);
+  input.reviews.push({user: {login: reviewer}, commit_id: head, state: 'APPROVED'});
+  assert.deepEqual(assess(input), []);
+  input.reviews.pop(); input.reviews[0].state = 'DISMISSED';
+  assert.deepEqual(assess(input), []);
+  input.reviews[0].state = 'CHANGES_REQUESTED'; input.reviews[0].commit_id = fixed;
+  assert.equal(assess(input).length, 1);
 });

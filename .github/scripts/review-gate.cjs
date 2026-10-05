@@ -1,8 +1,14 @@
 function assess({ head, reviewer, reviews, comments, threads, commits, runs }) {
   const isReviewer = author => author?.login === reviewer || author?.login === `${reviewer}[bot]`;
   const finalReviews = reviews.filter(r => isReviewer(r.user) && r.commit_id === head);
-  const latestReview = finalReviews.at(-1);
-  const blockingReview = latestReview && ['CHANGES_REQUESTED', 'PENDING', 'DISMISSED'].includes(latestReview.state);
+  let changesRequested = false;
+  for (const review of reviews.filter(r => isReviewer(r.user))) {
+    // COMMENTED does not clear a review decision. The API replaces the
+    // original state with DISMISSED when an authorized dismissal occurs.
+    if (review.state === 'CHANGES_REQUESTED') changesRequested = true;
+    if (review.state === 'APPROVED') changesRequested = false;
+  }
+  const blockingReview = changesRequested || finalReviews.some(r => r.state === 'PENDING');
   const reviewed = !blockingReview && (reviews.some(r => isReviewer(r.user) && r.commit_id === head && ['APPROVED', 'COMMENTED'].includes(r.state)) ||
     comments.some(c => isReviewer(c.user) && [...c.body.matchAll(/\*\*Reviewed commit:\*\*\s*`([0-9a-f]{10,40})`/g)].some(m => head.startsWith(m[1]))));
   const problems = [];
