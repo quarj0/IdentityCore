@@ -65,6 +65,7 @@ class LoginView(APIView):
 
     @transaction.atomic
     def post(self, request):
+        require_trusted_cookie_origin(request)
         serializer = LoginSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
