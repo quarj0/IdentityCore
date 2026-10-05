@@ -19,6 +19,8 @@ from strawberry.types import Info
 from apps.access_control.models import Role, RoleScope, UserRole
 from apps.accounts.contact import submit_contact_inquiry
 from apps.accounts.models import PlatformUser, PlatformUserStatus
+from apps.accounts.mfa import is_mfa_required, issue_mfa_token, prepare_password_login
+from apps.accounts.cookies import get_refresh_cookie_name, set_refresh_cookie, require_trusted_cookie_origin
 from apps.accounts.passwords import (
     request_password_reset,
     reset_password_with_token,
@@ -30,7 +32,7 @@ from apps.accounts.verification import (
     build_email_verification_url,
     verify_email_token_with_status,
 )
-from apps.audit.services import record_audit_event
+from apps.audit.services import record_audit_event, lock_audit_chain
 from apps.platform_settings.services import (
     get_platform_setting_value,
     reset_platform_setting,
@@ -695,6 +697,7 @@ class Mutation:
         )
 
     @strawberry.mutation
+    @transaction.atomic
     def accept_platform_admin_invitation(
         self,
         info: Info,
@@ -704,9 +707,10 @@ class Mutation:
         last_name: str = "",
     ) -> AuthPayload:
         request = info.context["request"]
+        require_trusted_cookie_origin(request)
         digest = PlatformAdminInvitation.digest_token(token.strip())
         invitation = (
-            PlatformAdminInvitation.objects.select_related("role")
+            PlatformAdminInvitation.objects.select_for_update(of=("self",)).select_related("role")
             .filter(
                 token_hash=digest,
                 status=PlatformAdminInvitationStatus.PENDING,
@@ -741,7 +745,15 @@ class Mutation:
         invitation.status = PlatformAdminInvitationStatus.ACCEPTED
         invitation.accepted_at = timezone.now()
         invitation.save(update_fields=["status", "accepted_at", "updated_at"])
-        refresh = issue_refresh_token(user)
+        if is_mfa_required(user) or user.mfa_enabled:
+            return AuthPayload(
+                user=AuthUserNode(**serialize_user(user)),
+                mfa_required=True,
+                mfa_enrollment_required=not user.mfa_enabled,
+                mfa_token=issue_mfa_token(user, purpose="enrollment"),
+            )
+        refresh = issue_refresh_token(user, request=request)
+        set_refresh_cookie(info.context["response"], str(refresh), cookie_name=get_refresh_cookie_name(request))
         if getattr(user, "tenant_id", None) is not None:
             record_audit_event(
                 tenant=user.tenant,
@@ -1011,8 +1023,10 @@ class Mutation:
         )
 
     @strawberry.mutation
+    @transaction.atomic
     def login(self, info: Info, email: str, password: str) -> AuthPayload:
         request = info.context["request"]
+        require_trusted_cookie_origin(request)
         serializer = LoginSerializer(
             data={"email": email, "password": password},
             context={"request": request},
@@ -1022,6 +1036,16 @@ class Mutation:
         except (DRFValidationError, AuthenticationFailed) as exc:
             raise GraphQLError(str(exc.detail))
         user = serializer.validated_data["user"]
+        lock_audit_chain(user.tenant_id)
+        user = prepare_password_login(user)
+        if is_mfa_required(user) or user.mfa_enabled:
+            return AuthPayload(
+                mfa_required=True,
+                mfa_enrollment_required=not user.mfa_enabled,
+                mfa_token=issue_mfa_token(user, purpose="challenge" if user.mfa_enabled else "enrollment"),
+            )
+        refresh = issue_refresh_token(user, request=request)
+        set_refresh_cookie(info.context["response"], str(refresh), cookie_name=get_refresh_cookie_name(request))
         if user.tenant is not None:
             record_audit_event(
                 tenant=user.tenant,
@@ -1034,7 +1058,7 @@ class Mutation:
                 sensitive_metadata={"email": user.email},
             )
         return AuthPayload(
-            tokens=AuthTokensNode(access=serializer.validated_data["tokens"]["access"]),
+            tokens=AuthTokensNode(access=str(refresh.access_token)),
             user=AuthUserNode(**serialize_user(user)),
         )
 

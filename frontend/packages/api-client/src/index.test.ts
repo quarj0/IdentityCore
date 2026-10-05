@@ -13,7 +13,11 @@ function client() {
   return createIdentityCoreClient({ apiOrigin: "https://api.example.test" });
 }
 
-function failure(status: number, requestId: string, message = "internal secret") {
+function failure(
+  status: number,
+  requestId: string,
+  message = "internal secret",
+) {
   return new Response(
     JSON.stringify({
       success: false,
@@ -42,7 +46,11 @@ test("GET retries one transient failure", async () => {
     return attempts === 1
       ? failure(503, "req_retry")
       : new Response(
-          JSON.stringify({ success: true, data: { ok: true }, request_id: "req_retry" }),
+          JSON.stringify({
+            success: true,
+            data: { ok: true },
+            request_id: "req_retry",
+          }),
           { status: 200 },
         );
   };
@@ -71,7 +79,11 @@ test("POST with an idempotency key may retry once", async () => {
     return attempts === 1
       ? failure(503, "req_idempotent")
       : new Response(
-          JSON.stringify({ success: true, data: { id: "verification" }, request_id: "req_idempotent" }),
+          JSON.stringify({
+            success: true,
+            data: { id: "verification" },
+            request_id: "req_idempotent",
+          }),
           { status: 200 },
         );
   };
@@ -134,11 +146,61 @@ test("missing Retry-After uses the bounded fallback delay", async () => {
     }
     assert.ok(Date.now() - startedAt >= 200);
     return new Response(
-      JSON.stringify({ success: true, data: { ok: true }, request_id: "req_backoff" }),
+      JSON.stringify({
+        success: true,
+        data: { ok: true },
+        request_id: "req_backoff",
+      }),
       { status: 200 },
     );
   };
 
   assert.deepEqual(await client().rest("/profile"), { ok: true });
   assert.equal(attempts, 2);
+});
+
+test("MFA password login returns a transaction without persisting access", async () => {
+  const writes: Array<string | null> = [];
+  const transaction = {
+    mfa_required: true,
+    mfa_enrollment_required: false,
+    mfa_token: "synthetic-proof",
+  };
+  globalThis.fetch = async () =>
+    new Response(JSON.stringify({ success: true, data: transaction }), {
+      status: 202,
+    });
+  const api = createIdentityCoreClient({
+    apiOrigin: "https://api.example.test",
+    setAccessToken: (value) => {
+      writes.push(value);
+    },
+  });
+  assert.deepEqual(
+    await api.beginLogin("staff@example.test", "synthetic-password"),
+    transaction,
+  );
+  await assert.rejects(
+    api.login("staff@example.test", "synthetic-password"),
+    (error: unknown) => {
+      assert.ok(error instanceof IdentityCoreApiError);
+      assert.equal(error.code, "mfa_required");
+      return true;
+    },
+  );
+  assert.deepEqual(writes, []);
+});
+
+test("failed MFA verification never refreshes or retries a factor", async () => {
+  const paths: string[] = [];
+  globalThis.fetch = async (input) => {
+    paths.push(String(input));
+    return failure(401, "req_mfa");
+  };
+  await assert.rejects(
+    client().rest("/auth/mfa/challenge", { method: "POST", body: "{}" }),
+  );
+  assert.deepEqual(paths, [
+    "https://api.example.test/api/v1/auth/mfa/challenge",
+  ]);
 });

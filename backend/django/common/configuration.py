@@ -1,5 +1,6 @@
 """Startup validation for security-sensitive deployment configuration."""
 
+import json
 from collections.abc import Mapping
 from urllib.parse import urlsplit
 
@@ -22,8 +23,10 @@ def validate_production_environment(environment: Mapping[str, str]) -> None:
 
     errors: list[str] = []
 
-    def require_secret(name: str, *, minimum_length: int = 32) -> str:
-        value = environment.get(name, "").strip()
+    def require_secret(
+        name: str, *, minimum_length: int = 32, value: str | None = None
+    ) -> str:
+        value = (environment.get(name, "") if value is None else value).strip()
         normalized = value.lower()
         if not value:
             errors.append(f"{name} is required")
@@ -39,6 +42,23 @@ def validate_production_environment(environment: Mapping[str, str]) -> None:
     jwt_key = require_secret("JWT_SIGNING_KEY", minimum_length=64)
     require_secret("AI_SERVICE_SHARED_TOKEN", minimum_length=32)
     require_secret("POSTGRES_PASSWORD", minimum_length=16)
+
+    if environment.get("MFA_RECOVERY_PEPPER"):
+        require_secret("MFA_RECOVERY_PEPPER")
+    if environment.get("MFA_RECOVERY_PEPPER_FALLBACKS"):
+        try:
+            fallbacks = json.loads(environment["MFA_RECOVERY_PEPPER_FALLBACKS"])
+        except (TypeError, json.JSONDecodeError):
+            fallbacks = None
+        if not isinstance(fallbacks, list) or any(
+            not isinstance(key, str) for key in fallbacks
+        ):
+            errors.append(
+                "MFA_RECOVERY_PEPPER_FALLBACKS must be a JSON array of secret strings"
+            )
+        else:
+            for key in fallbacks:
+                require_secret("MFA_RECOVERY_PEPPER_FALLBACKS", value=key)
 
     if django_key and jwt_key and django_key == jwt_key:
         errors.append("JWT_SIGNING_KEY must be different from DJANGO_SECRET_KEY")
