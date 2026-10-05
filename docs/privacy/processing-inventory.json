@@ -20,7 +20,8 @@
         "IP address",
         "user agent",
         "Encrypted single-use invitation delivery payload; cleared after delivery or failure; pending capabilities expire after seven days.",
-        "Authenticated wrapped tenant/environment data encryption keys, key versions and bounded resumable rotation state. Plaintext DEKs exist only in memory."
+        "Authenticated wrapped tenant/environment data encryption keys, key versions and bounded resumable rotation state. Plaintext DEKs exist only in memory.",
+        "Tenant/environment customer key ARNs, binding lifecycle and encrypted write-only KMS grant tokens; authenticated customer-wrapped DEKs contain no applicant plaintext."
       ],
       "purpose": "Authenticate users, administer tenants, enforce access, and investigate security events.",
       "locations": [
@@ -35,9 +36,10 @@
       "processors": [
         "IdentityCore Django",
         "PostgreSQL",
-        "configured email/SMS provider"
+        "configured email/SMS provider",
+        "Customer-approved AWS KMS, including CloudHSM-backed customer keys"
       ],
-      "transfers": "Notification contact data is sent only to the tenant-configured notification provider; deployment owner records region and safeguards.",
+      "transfers": "Notification contact data is sent only to the tenant-configured notification provider; deployment owner records region and safeguards. Only random DEKs and connection probes are sent to the customer-approved KMS region; applicant plaintext stays in the application. Deployment records document region and safeguards.",
       "owners": [
         "identity",
         "security",
@@ -3709,6 +3711,66 @@
     {
       "source": "backend/django/apps/tenants/models.py",
       "field": "TenantDataKey.wrapping_provider",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.active",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.created_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.deleted_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.environment",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.grant_tokens_json",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.key_arn",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.public_id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.status",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.tenant",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.updated_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.validated_at",
       "activity": "account-and-tenant-administration"
     },
     {

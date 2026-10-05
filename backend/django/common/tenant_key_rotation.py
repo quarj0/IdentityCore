@@ -18,6 +18,7 @@ from common.fields import (
 from common.tenant_crypto import (
     TENANT_FIELD_VERSION,
     active_key,
+    bounded_key_operation,
     decrypt_tenant_json,
     encrypt_tenant_json,
     validate_environment,
@@ -40,12 +41,14 @@ def start_rotation(tenant_scope, environment, *, actor=None):
         + 1
     )
     TenantDataKey.objects.filter(pk=current.pk).update(active=False)
+    wrapped = wrap_key(tenant_scope, version, os.urandom(32), environment)
     target = TenantDataKey.objects.create(
         tenant_scope=tenant_scope,
         environment=environment,
         version=version,
         active=True,
-        wrapped_key_json=wrap_key(tenant_scope, version, os.urandom(32), environment),
+        wrapped_key_json=wrapped,
+        wrapping_provider=wrapped.get("__wrapper", "platform"),
     )
     job = TenantKeyRotation.objects.create(
         tenant_scope=tenant_scope, environment=environment, target_key=target
@@ -67,7 +70,7 @@ def rotation_fields():
         if not tenant_owned_model(model):
             continue
         for field in model._meta.fields:
-            if isinstance(field, EncryptedJSONField):
+            if isinstance(field, EncryptedJSONField) and field.tenant_encryption:
                 result.append((f"{model._meta.label_lower}.{field.name}", model, field))
     return sorted(result, key=lambda item: item[0])
 
@@ -95,6 +98,7 @@ def raw_batch(model, field, tenant, after_pk, batch_size):
         return cursor.fetchall()
 
 
+@bounded_key_operation
 @transaction.atomic
 def resume_database_batch(job_id, *, batch_size=100):
     if type(batch_size) is not int or not 1 <= batch_size <= 1000:
@@ -181,6 +185,7 @@ def resume_database_batch(job_id, *, batch_size=100):
     return job
 
 
+@bounded_key_operation
 @transaction.atomic
 def resume_object_batch(job_id, *, batch_size=25):
     if type(batch_size) is not int or not 1 <= batch_size <= 100:

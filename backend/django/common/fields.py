@@ -91,13 +91,18 @@ class TenantEncryptedAttribute(DeferredAttribute):
 class EncryptedJSONField(models.JSONField):
     descriptor_class = TenantEncryptedAttribute
 
-    def __init__(self, *args, encryption_purpose: str, **kwargs):
+    def __init__(
+        self, *args, encryption_purpose: str, tenant_encryption: bool = True, **kwargs
+    ):
         self.encryption_purpose = encryption_purpose
+        self.tenant_encryption = tenant_encryption
         super().__init__(*args, **kwargs)
 
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
         kwargs["encryption_purpose"] = self.encryption_purpose
+        if not self.tenant_encryption:
+            kwargs["tenant_encryption"] = False
         return name, path, args, kwargs
 
     def pre_save(self, model_instance, add):
@@ -106,7 +111,11 @@ class EncryptedJSONField(models.JSONField):
             return None
         # Historical migrations must not query key tables that did not exist yet.
         historical = model_instance.__class__.__module__ == "__fake__"
-        scope = None if historical else tenant_scope_for_instance(model_instance)
+        scope = (
+            None
+            if historical or not self.tenant_encryption
+            else tenant_scope_for_instance(model_instance)
+        )
         envelope = (
             encrypt_tenant_json(
                 value,
@@ -127,7 +136,11 @@ class EncryptedJSONField(models.JSONField):
         prepared = super().get_prep_value(value)
         if prepared is None:
             return None
-        if tenant_owned_model(self.model) and self.model.__module__ != "__fake__":
+        if (
+            self.tenant_encryption
+            and tenant_owned_model(self.model)
+            and self.model.__module__ != "__fake__"
+        ):
             raise ValueError(
                 "Tenant encrypted writes require an owning model instance."
             )

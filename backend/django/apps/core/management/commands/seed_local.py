@@ -125,6 +125,7 @@ class Command(BaseCommand):
                 for code, name in (
                     ("manage_webhooks", "Manage webhooks"),
                     ("manage_team", "Manage team invitations"),
+                    ("manage_encryption", "Manage customer encryption keys"),
                     ("manage_providers", "Manage providers"),
                     ("approve_provider_promotion", "Approve provider promotion"),
                 ):
