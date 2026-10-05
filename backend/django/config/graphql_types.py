@@ -69,6 +69,7 @@ class ManualReviewNode:
 
 @strawberry.type
 class VerificationPolicyNode:
+    review_reason_rules: JSON
     document_consistency_rules: JSON
     reuse_rules: JSON
     document_authenticity_required: bool

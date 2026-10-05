@@ -25,7 +25,16 @@ export type VerificationSummary = {
   purpose: string;
   external_reference: string;
   subject: { id: string; full_name: string; email: string };
-  policy: { id: string; name: string; version: number | null };
+  policy: {
+    id: string;
+    name: string;
+    version: number | null;
+    review_reason_rules?: {
+      version: 1;
+      outcomes: Record<string, { codes: string[]; notes_required: boolean }>;
+      organization_facing_codes: string[];
+    };
+  };
   created_at: string;
   completed_at?: string | null;
 };
@@ -42,7 +51,16 @@ export type VerificationDetail = {
     phone_number?: string;
   };
   subject?: VerificationSummary["subject"];
-  policy: { id: string; name: string; version: number | null };
+  policy: {
+    id: string;
+    name: string;
+    version: number | null;
+    review_reason_rules?: {
+      version: 1;
+      outcomes: Record<string, { codes: string[]; notes_required: boolean }>;
+      organization_facing_codes: string[];
+    };
+  };
   checks: Record<string, { status: string; score?: number | null }>;
   risk_assessment: {
     id: string;
@@ -276,6 +294,7 @@ export const dashboardApi = {
     decision: string,
     reason_detail: string,
     idempotencyKey: string,
+    reason_code = "dashboard_manual_review",
   ) =>
     backend.rest<{
       verification_id: string;
@@ -287,18 +306,23 @@ export const dashboardApi = {
       headers: idempotencyHeaders(idempotencyKey),
       body: JSON.stringify({
         decision,
-        reason_code: "dashboard_manual_review",
+        reason_code,
         reason_detail,
       }),
     }),
-  approveReview: (id: string, decision: string) =>
+  approveReview: (
+    id: string,
+    decision: string,
+    reason_code?: string,
+    reason_detail?: string,
+  ) =>
     backend.rest<{
       verification_id: string;
       decision: string;
       approval_status: string;
     }>(`/verifications/manual-reviews/${id}/approval`, {
       method: "POST",
-      body: JSON.stringify({ decision }),
+      body: JSON.stringify({ decision, reason_code, reason_detail }),
     }),
   auditEvents: () => backend.rest<Page<AuditEvent>>("/audit-events/"),
   webhooks: () =>

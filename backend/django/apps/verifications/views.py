@@ -662,11 +662,20 @@ class ManualReviewApprovalView(APIView):
             )
         approval = ManualReviewApprovalSerializer(data=request.data)
         approval.is_valid(raise_exception=True)
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        from apps.verifications.review_reasons import validate_reviewer_input
+        reason = approval.validated_data.get("reason_code", f"manual_review_{approval.validated_data['decision']}")
+        notes = approval.validated_data.get("reason_detail", "")
+        try:
+            validate_reviewer_input(verification, approval.validated_data["decision"], reason, notes)
+        except DjangoValidationError as exc:
+            raise ValidationError({"reason_code": exc.messages}) from exc
         now = timezone.now()
         verification.decision_revision += 1
         verification.save(update_fields=["decision_revision", "updated_at"])
         decision_record.decision = approval.validated_data["decision"]
-        decision_record.reason_code = f"manual_review_{decision_record.decision}"
+        decision_record.reason_code = reason
+        decision_record.reason_detail = notes
         decision_record.reason_codes_json = [decision_record.reason_code]
         decision_record.approval_status = VerificationApprovalStatus.APPROVED
         decision_record.approved_by = request.user
@@ -676,6 +685,7 @@ class ManualReviewApprovalView(APIView):
                 "decision",
                 "reason_code",
                 "reason_codes_json",
+                "reason_detail",
                 "approval_status",
                 "approved_by",
                 "approved_at",
@@ -697,6 +707,7 @@ class ManualReviewApprovalView(APIView):
                 "proposed_decision": decision_record.proposed_decision,
                 "final_decision": decision_record.decision,
             },
+            sensitive_metadata={"reason_detail": notes},
         )
         if decision_record.decision in {
             VerificationStatus.VERIFIED,

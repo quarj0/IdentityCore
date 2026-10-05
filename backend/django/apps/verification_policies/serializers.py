@@ -26,6 +26,7 @@ def serialize_verification_policy(policy: VerificationPolicy) -> dict:
         "maker_checker_required": policy.maker_checker_required,
         "document_consistency_rules": policy.document_consistency_rules_json,
         "reuse_rules": policy.reuse_rules_json,
+        "review_reason_rules": policy.review_reason_rules_json or {},
         "document_authenticity_required": policy.document_authenticity_required,
         "document_authenticity_min_confidence": float(
             policy.document_authenticity_min_confidence
@@ -86,6 +87,16 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
     verification_expiry_minutes = serializers.IntegerField(min_value=1)
     media_retention_days = serializers.IntegerField(min_value=1)
     metadata_retention_days = serializers.IntegerField(min_value=1)
+
+    review_reason_rules = serializers.JSONField(required=False, default=dict)
+
+    def validate_review_reason_rules(self, value):
+        from django.core.exceptions import ValidationError
+        from apps.verifications.review_reasons import validate_reason_rules
+        try:
+            return validate_reason_rules(value)
+        except ValidationError as exc:
+            raise serializers.ValidationError("Invalid reviewer reason rules.") from exc
 
     reuse_rules = serializers.JSONField(required=False, default=dict)
 
@@ -182,6 +193,7 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
                 "document_consistency_rules"
             ],
             reuse_rules_json=validated_data["reuse_rules"],
+            review_reason_rules_json=validated_data["review_reason_rules"],
             external_risk_enabled=validated_data["external_risk_enabled"],
             external_risk_failure_action=validated_data["external_risk_failure_action"],
             external_risk_review_threshold=validated_data[
@@ -195,6 +207,9 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
 
 
 class VerificationPolicyUpdateSerializer(VerificationPolicyCreateSerializer):
+    review_reason_rules = serializers.JSONField(required=False)
+    validate_review_reason_rules = VerificationPolicyCreateSerializer.validate_review_reason_rules
+
     reuse_rules = serializers.JSONField(required=False)
     document_consistency_rules = serializers.JSONField(required=False)
     name = serializers.CharField(max_length=255, required=False)
@@ -289,6 +304,9 @@ class VerificationPolicyUpdateSerializer(VerificationPolicyCreateSerializer):
             )
         for field, value in validated_data.items():
             if field == "consent_template_id":
+                continue
+            if field == "review_reason_rules":
+                instance.review_reason_rules_json = value
                 continue
             if field == "reuse_rules":
                 instance.reuse_rules_json = value

@@ -188,6 +188,12 @@ def serialize_verification_result(verification: Verification) -> dict:
         if not reason_codes and fallback_reason is not None:
             reason_codes = [fallback_reason]
 
+    if decision is not None:
+        from apps.verifications.review_reasons import organization_reason_codes
+        manual_codes = organization_reason_codes(verification, decision)
+        if manual_codes is not None:
+            reason_codes = manual_codes
+
     policy_snapshot = verification.policy_snapshot_json or {}
     workflow_snapshot = verification.workflow_snapshot_json or {}
     checks = verification.provider_checks.select_related("provider").order_by(

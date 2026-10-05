@@ -44,6 +44,13 @@ export function LiveVerificationDetail({
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [reason, setReason] = useState("");
+  const [reasonCode, setReasonCode] = useState("");
+  const reasonRules = item?.policy.review_reason_rules;
+  const codes = [
+    ...new Set(
+      Object.values(reasonRules?.outcomes ?? {}).flatMap((rule) => rule.codes),
+    ),
+  ];
   const [busy, setBusy] = useState("");
   const pendingDecision = useRef<PendingIdempotentSubmission | null>(null);
 
@@ -101,13 +108,28 @@ export function LiveVerificationDetail({
     setMessage("");
     setError("");
     try {
+      const rule = reasonRules?.outcomes?.[decision];
+      if (
+        rule &&
+        (!rule.codes.includes(reasonCode) ||
+          (rule.notes_required && !reason.trim()))
+      ) {
+        throw new Error(
+          "Choose a reason configured for this outcome and provide required notes.",
+        );
+      }
       if (item?.decision?.approval_status === "pending") {
-        await dashboardApi.approveReview(id, decision);
+        await dashboardApi.approveReview(
+          id,
+          decision,
+          reasonCode || undefined,
+          reason.trim(),
+        );
         setMessage("Independent review completed.");
       } else {
-        const reasonDetail = reason.trim() || "Reviewed from dashboard.";
+        const reasonDetail = reason.trim();
         pendingDecision.current = idempotentSubmission(
-          { verificationId: id, decision, reasonDetail },
+          { verificationId: id, decision, reasonDetail, reasonCode },
           pendingDecision.current,
         );
         const result = await dashboardApi.decideReview(
@@ -115,6 +137,7 @@ export function LiveVerificationDetail({
           decision,
           reasonDetail,
           pendingDecision.current.key,
+          reasonCode || "dashboard_manual_review",
         );
         pendingDecision.current = null;
         setMessage(
@@ -285,17 +308,35 @@ export function LiveVerificationDetail({
                 final outcome below; your decision is recorded separately from
                 the proposal.
               </p>
-            ) : (
+            ) : null}
+            {codes.length ? (
               <div>
-                <Label htmlFor="decision_reason">Decision reason</Label>
-                <Input
-                  id="decision_reason"
-                  value={reason}
-                  onChange={(event) => setReason(event.target.value)}
-                  placeholder="Explain the review decision"
-                />
+                <Label htmlFor="decision_code">Reason code</Label>
+                <select
+                  id="decision_code"
+                  className="w-full rounded-lg border p-2"
+                  value={reasonCode}
+                  onChange={(event) => setReasonCode(event.target.value)}
+                >
+                  <option value="">Choose a reason</option>
+                  {codes.map((code) => (
+                    <option key={code} value={code}>
+                      {code}
+                    </option>
+                  ))}
+                </select>
               </div>
-            )}
+            ) : null}
+            <div>
+              <Label htmlFor="decision_reason">Reviewer notes</Label>
+              <Input
+                id="decision_reason"
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+                maxLength={4000}
+                placeholder="Explain the review decision"
+              />
+            </div>
             <div className="flex flex-wrap gap-2">
               <Button
                 onClick={() => decide("verified")}
