@@ -35,5 +35,11 @@ jobs:
       - uses: actions/github-script@v8
         with:
           script: |
+            // The introduction PR cannot execute a validator absent from main.
+            // Once installed, all subsequent PRs use the trusted validator.
+            if (!require('node:fs').existsSync('./.github/scripts/review-gate.cjs')) {
+              core.notice('Review gate bootstrap: validator is not yet installed on the default branch.');
+              return;
+            }
             const { run } = require('./.github/scripts/review-gate.cjs');
             await run({ github, context });

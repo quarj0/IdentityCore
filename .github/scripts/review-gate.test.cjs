@@ -71,3 +71,11 @@ test('a head change during validation fails the check for the inspected SHA', as
   assert.equal(published.head_sha, head);
   assert.equal(published.conclusion, 'failure');
 });
+
+test('blocking final-head review cannot be bypassed by a bot comment', () => {
+  for (const state of ['CHANGES_REQUESTED', 'PENDING', 'DISMISSED']) {
+    const input = baseline(); input.reviews[0].state = state;
+    input.comments = [{user: {login: reviewer}, body: `**Reviewed commit:** \`${head.slice(0, 10)}\``}];
+    assert.equal(assess(input).length, 1);
+  }
+});

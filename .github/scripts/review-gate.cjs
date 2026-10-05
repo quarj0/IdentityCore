@@ -1,7 +1,10 @@
 function assess({ head, reviewer, reviews, comments, threads, commits, runs }) {
   const isReviewer = author => author?.login === reviewer || author?.login === `${reviewer}[bot]`;
-  const reviewed = reviews.some(r => isReviewer(r.user) && r.commit_id === head && ['APPROVED', 'COMMENTED'].includes(r.state)) ||
-    comments.some(c => isReviewer(c.user) && [...c.body.matchAll(/\*\*Reviewed commit:\*\*\s*`([0-9a-f]{10,40})`/g)].some(m => head.startsWith(m[1])));
+  const finalReviews = reviews.filter(r => isReviewer(r.user) && r.commit_id === head);
+  const latestReview = finalReviews.at(-1);
+  const blockingReview = latestReview && ['CHANGES_REQUESTED', 'PENDING', 'DISMISSED'].includes(latestReview.state);
+  const reviewed = !blockingReview && (reviews.some(r => isReviewer(r.user) && r.commit_id === head && ['APPROVED', 'COMMENTED'].includes(r.state)) ||
+    comments.some(c => isReviewer(c.user) && [...c.body.matchAll(/\*\*Reviewed commit:\*\*\s*`([0-9a-f]{10,40})`/g)].some(m => head.startsWith(m[1]))));
   const problems = [];
   for (const name of ['CI', 'Security']) {
     const latest = runs.filter(r => r.name === name && r.head_sha === head && r.event === 'pull_request')
