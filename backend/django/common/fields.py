@@ -32,13 +32,19 @@ def tenant_scope_for_instance(instance):
         return instance.public_id
     if getattr(instance, "tenant_id", None) is not None:
         return instance.tenant.public_id
+    if instance._meta.label_lower == "providers.providerenvironmentconfiguration":
+        provider = instance.provider
+        return provider.tenant.public_id if provider.tenant_id else None
     return None
 
 
 def environment_for_instance(instance, depth=0):
     if depth > 4:
         raise ValueError("Encryption environment could not be established.")
-    if instance._meta.label_lower == "projects.project":
+    if instance._meta.label_lower in {
+        "projects.project",
+        "providers.providerenvironmentconfiguration",
+    }:
         return instance.environment
     if getattr(instance, "project_id", None) is not None:
         return instance.project.environment
@@ -56,9 +62,10 @@ def environment_for_instance(instance, depth=0):
 
 
 def tenant_owned_model(model):
-    return model._meta.label_lower == "tenants.tenant" or any(
-        field.name == "tenant" for field in model._meta.fields
-    )
+    return model._meta.label_lower in {
+        "tenants.tenant",
+        "providers.providerenvironmentconfiguration",
+    } or any(field.name == "tenant" for field in model._meta.fields)
 
 
 class TenantEncryptedAttribute(DeferredAttribute):

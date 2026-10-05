@@ -46,6 +46,123 @@ class TenantEnvelopeTests(TestCase):
                 [json.dumps(envelope), case.pk],
             )
 
+    def test_provider_credentials_are_owned_scoped_and_rotated(self):
+        from apps.providers.models import Provider, ProviderEnvironmentConfiguration
+
+        provider = Provider.objects.create(
+            tenant=self.tenant,
+            name="Synthetic",
+            code="synthetic-crypto",
+            provider_type="document",
+        )
+        configs = [
+            ProviderEnvironmentConfiguration.objects.create(
+                provider=provider,
+                environment=environment,
+                version=1,
+                requested_by=self.tenant_reviewer,
+                public_configuration_json={"synthetic": True},
+                manifest_snapshot_json={"synthetic": True},
+                credentials_json={"synthetic": environment},
+            )
+            for environment in ("sandbox", "production")
+        ]
+        quote = connection.ops.quote_name
+        table = quote(ProviderEnvironmentConfiguration._meta.db_table)
+
+        def raw(config):
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT credentials_json FROM {table} WHERE id = %s", [config.pk]
+                )
+                value = cursor.fetchone()[0]
+            return json.loads(value) if isinstance(value, str) else value
+
+        sandbox, production = configs
+        original = raw(sandbox)
+        self.assertEqual(original["tenant"], self.tenant.public_id)
+        self.assertEqual(original["environment"], "sandbox")
+        self.assertNotEqual(original["kid"], raw(production)["kid"])
+        production_before = raw(production)
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"UPDATE {table} SET credentials_json = %s WHERE id = %s",
+                [json.dumps(original), production.pk],
+            )
+        with self.assertRaises(ValueError):
+            ProviderEnvironmentConfiguration.objects.get(
+                pk=production.pk
+            ).credentials_json
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"UPDATE {table} SET credentials_json = %s WHERE id = %s",
+                [json.dumps(production_before), production.pk],
+            )
+        legacy = encrypt_json_value(
+            {"synthetic": "legacy"}, purpose="providers.environment.credentials"
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"UPDATE {table} SET credentials_json = %s WHERE id = %s",
+                [json.dumps(legacy), sandbox.pk],
+            )
+        job = start_rotation(self.tenant.public_id, "sandbox")
+        for _ in range(100):
+            job = resume_database_batch(job.public_id, batch_size=100)
+            if job.status == "objects_pending":
+                break
+        self.assertEqual(job.status, "objects_pending")
+        self.assertEqual(raw(sandbox)["kid"], job.target_key.public_id)
+        self.assertEqual(
+            ProviderEnvironmentConfiguration.objects.get(
+                pk=sandbox.pk
+            ).credentials_json,
+            {"synthetic": "legacy"},
+        )
+        self.assertEqual(raw(production), production_before)
+
+    def test_backup_inventory_queries_are_bounded_for_shared_keys(self):
+        from common.backup import required_object_refs
+        from django.test.utils import CaptureQueriesContext
+        from common.tenant_crypto import read_key_records
+
+        project = Project.objects.create(
+            tenant=self.tenant,
+            name="Inventory",
+            slug="inventory",
+            environment="sandbox",
+            created_by=self.tenant_reviewer,
+        )
+        for case in Verification.objects.all():
+            # Re-encrypt each field when assigning an environment.
+            case.metadata_json = {
+                "evidence_report_storage_key": "synthetic/" + case.public_id
+            }
+            case.project = project if case.tenant_id == self.tenant.pk else None
+            case.save(update_fields=["metadata_json", "project"])
+        buckets = {
+            role: "synthetic-" + role
+            for role in ("media", "temp", "evidence", "public")
+        }
+        with patch("common.backup.storage_buckets", return_value=buckets):
+            with CaptureQueriesContext(connection) as queries:
+                before = required_object_refs()
+            baseline = len(queries)
+            for index in range(8):
+                case = self._create_case(
+                    "Inventory " + str(index),
+                    metadata={
+                        "evidence_report_storage_key": "synthetic/extra-" + str(index)
+                    },
+                )
+                case.project = project
+                case.save(update_fields=["project", "metadata_json"])
+            with CaptureQueriesContext(connection) as queries:
+                after = required_object_refs()
+        self.assertEqual(len(queries), baseline)
+        self.assertEqual(len(after), len(before) + 8)
+        self.assertIsNone(read_key_records.get())
+
     def test_database_fields_bind_owning_tenant_environment_and_purpose(self):
         self.tenant_case.metadata_json = {"synthetic": "isolated"}
         self.tenant_case.save(update_fields=["metadata_json"])

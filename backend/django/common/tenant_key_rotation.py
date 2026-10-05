@@ -13,6 +13,7 @@ from common.fields import (
     EncryptedJSONField,
     PreparedEncryptedValue,
     environment_for_instance,
+    tenant_owned_model,
 )
 from common.tenant_crypto import (
     TENANT_FIELD_VERSION,
@@ -63,9 +64,7 @@ def start_rotation(tenant_scope, environment, *, actor=None):
 def rotation_fields():
     result = []
     for model in apps.get_models():
-        if model._meta.label_lower != "tenants.tenant" and not any(
-            field.name == "tenant" for field in model._meta.fields
-        ):
+        if not tenant_owned_model(model):
             continue
         for field in model._meta.fields:
             if isinstance(field, EncryptedJSONField):
@@ -75,8 +74,22 @@ def rotation_fields():
 
 def raw_batch(model, field, tenant, after_pk, batch_size):
     quote = connection.ops.quote_name
-    owner = model._meta.pk if model is Tenant else model._meta.get_field("tenant")
-    sql = f"SELECT {quote(model._meta.pk.column)}, {quote(field.column)} FROM {quote(model._meta.db_table)} WHERE {quote(owner.column)} = %s AND {quote(model._meta.pk.column)} > %s ORDER BY {quote(model._meta.pk.column)} LIMIT %s"
+    indirect = model._meta.label_lower == "providers.providerenvironmentconfiguration"
+    owner = (
+        model._meta.get_field("provider")
+        if indirect
+        else (model._meta.pk if model is Tenant else model._meta.get_field("tenant"))
+    )
+    ownership = f"{quote(owner.column)} = %s"
+    if indirect:
+        provider = model._meta.get_field("provider").remote_field.model
+        tenant_column = quote(provider._meta.get_field("tenant").column)
+        ownership = (
+            f"{quote(owner.column)} IN (SELECT {quote(provider._meta.pk.column)} "
+            f"FROM {quote(provider._meta.db_table)} "
+            f"WHERE {tenant_column} = %s)"
+        )
+    sql = f"SELECT {quote(model._meta.pk.column)}, {quote(field.column)} FROM {quote(model._meta.db_table)} WHERE {ownership} AND {quote(model._meta.pk.column)} > %s ORDER BY {quote(model._meta.pk.column)} LIMIT %s"
     with connection.cursor() as cursor:
         cursor.execute(sql, [tenant.pk, after_pk, batch_size])
         return cursor.fetchall()
