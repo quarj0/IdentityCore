@@ -97,6 +97,8 @@ class VerificationPolicy(PublicIdModel, BaseModel):
 
     def clean(self):
         super().clean()
+        from apps.verifications.review_reasons import validate_reason_rules
+        validate_reason_rules({} if self.review_reason_rules_json is None else self.review_reason_rules_json)
         if self.created_by_id and self.created_by.tenant_id != self.tenant_id:
             raise ValidationError(
                 {
@@ -104,10 +106,16 @@ class VerificationPolicy(PublicIdModel, BaseModel):
                 }
             )
 
+    def save(self, *args, **kwargs):
+        from apps.verifications.review_reasons import validate_reason_rules
+        validate_reason_rules({} if self.review_reason_rules_json is None else self.review_reason_rules_json)
+        return super().save(*args, **kwargs)
+
     @property
     def required_document_types(self) -> list[str]:
         return list(self.required_document_types_json)
 
+    review_reason_rules_json = models.JSONField(default=dict, blank=True, null=True)
     reuse_rules_json = models.JSONField(default=dict, blank=True)
     document_consistency_rules_json = models.JSONField(default=dict, blank=True)
 
@@ -162,6 +170,7 @@ class VerificationPolicy(PublicIdModel, BaseModel):
             "maker_checker_required": self.maker_checker_required,
             "document_consistency_rules": self.document_consistency_rules_json,
             "reuse_rules": self.reuse_rules_json,
+            "review_reason_rules": self.review_reason_rules_json or {},
             "document_authenticity_required": self.document_authenticity_required,
             "document_authenticity_min_confidence": float(
                 self.document_authenticity_min_confidence

@@ -102,6 +102,7 @@ def serialize_verification(verification: Verification, request=None) -> dict:
             "id": verification.policy_public_id,
             "name": verification.policy_snapshot_json.get("name", ""),
             "version": verification.policy_snapshot_json.get("version"),
+            "review_reason_rules": verification.policy_snapshot_json.get("review_reason_rules", {}),
         },
         "workflow": {
             "id": verification.workflow_snapshot_json.get("workflow_id"),
@@ -430,8 +431,8 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
             (VerificationStatus.FAILED, "Failed"),
         ]
     )
-    reason_code = serializers.CharField(max_length=120)
-    reason_detail = serializers.CharField(required=False, allow_blank=True)
+    reason_code = serializers.CharField(max_length=80)
+    reason_detail = serializers.CharField(required=False, allow_blank=True, max_length=4000)
 
     @transaction.atomic
     def save(self, *, verification: Verification, decided_by):
@@ -494,6 +495,13 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"decision": "You cannot review your own verification."}
             )
+
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        from apps.verifications.review_reasons import validate_reviewer_input
+        try:
+            validate_reviewer_input(verification, self.validated_data["decision"], self.validated_data["reason_code"], self.validated_data.get("reason_detail", ""))
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({"reason_code": exc.messages}) from exc
 
         now = timezone.now()
         risk_assessment = getattr(verification, "risk_assessment", None)
@@ -559,6 +567,8 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
 
 
 class ManualReviewApprovalSerializer(serializers.Serializer):
+    reason_code = serializers.CharField(max_length=80, required=False)
+    reason_detail = serializers.CharField(required=False, allow_blank=True, max_length=4000)
     decision = serializers.ChoiceField(
         choices=[
             (VerificationStatus.VERIFIED, "Verified"),

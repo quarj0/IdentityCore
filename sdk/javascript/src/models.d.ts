@@ -37,6 +37,7 @@ export interface Policy {
   required_liveness_level: string;
   face_match_threshold: number;
   manual_review_threshold: number;
+  review_reason_rules?: Record<string, unknown>;
   reuse_rules?: Record<string, unknown>;
   document_consistency_rules?: Record<string, unknown>;
   document_authenticity_required?: boolean;
@@ -131,6 +132,7 @@ export interface VerificationPolicyCreateRequest {
   required_liveness_level: string;
   face_match_threshold: number;
   manual_review_threshold: number;
+  review_reason_rules?: Record<string, unknown>;
   reuse_rules?: Record<string, unknown>;
   document_consistency_rules?: Record<string, unknown>;
   document_authenticity_required?: boolean;
@@ -551,6 +553,8 @@ export interface ManualReviewPendingDecisionResponse {
 
 export interface ManualReviewApprovalRequest {
   decision: string;
+  reason_code?: string;
+  reason_detail?: string;
 }
 
 export interface ManualReviewApprovalResponse {

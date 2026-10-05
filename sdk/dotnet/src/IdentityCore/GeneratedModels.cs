@@ -72,6 +72,8 @@ public sealed record Policy
     public double FaceMatchThreshold { get; init; }
     [JsonPropertyName("manual_review_threshold")]
     public double ManualReviewThreshold { get; init; }
+    [JsonPropertyName("review_reason_rules")]
+    public JsonElement? ReviewReasonRules { get; init; }
     [JsonPropertyName("reuse_rules")]
     public JsonElement? ReuseRules { get; init; }
     [JsonPropertyName("document_consistency_rules")]
@@ -240,6 +242,8 @@ public sealed record VerificationPolicyCreateRequest
     public double FaceMatchThreshold { get; init; }
     [JsonPropertyName("manual_review_threshold")]
     public double ManualReviewThreshold { get; init; }
+    [JsonPropertyName("review_reason_rules")]
+    public JsonElement? ReviewReasonRules { get; init; }
     [JsonPropertyName("reuse_rules")]
     public JsonElement? ReuseRules { get; init; }
     [JsonPropertyName("document_consistency_rules")]
@@ -984,6 +988,10 @@ public sealed record ManualReviewApprovalRequest
 {
     [JsonPropertyName("decision")]
     public string Decision { get; init; }
+    [JsonPropertyName("reason_code")]
+    public string? ReasonCode { get; init; }
+    [JsonPropertyName("reason_detail")]
+    public string? ReasonDetail { get; init; }
 }
 
 public sealed record ManualReviewApprovalResponse

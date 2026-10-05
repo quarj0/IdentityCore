@@ -3888,6 +3888,11 @@
     },
     {
       "source": "backend/django/apps/verification_policies/models.py",
+      "field": "VerificationPolicy.review_reason_rules_json",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verification_policies/models.py",
       "field": "VerificationPolicy.status",
       "activity": "workflow-configuration-and-operations"
     },

@@ -59,6 +59,7 @@ class _PolicyRequired(TypedDict):
 
 class Policy(_PolicyRequired, total=False):
     description: str
+    review_reason_rules: dict[str, Any]
     reuse_rules: dict[str, Any]
     document_consistency_rules: dict[str, Any]
     document_authenticity_required: bool
@@ -191,6 +192,7 @@ class VerificationPolicyCreateRequest(
     consent_template_id: str
     default_locale: str
     supported_locales: list[str]
+    review_reason_rules: dict[str, Any]
     reuse_rules: dict[str, Any]
     document_consistency_rules: dict[str, Any]
     document_authenticity_required: bool
@@ -826,7 +828,8 @@ class _ManualReviewApprovalRequestRequired(TypedDict):
 
 
 class ManualReviewApprovalRequest(_ManualReviewApprovalRequestRequired, total=False):
-    pass
+    reason_code: str
+    reason_detail: str
 
 
 class _ManualReviewApprovalResponseRequired(TypedDict):
