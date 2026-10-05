@@ -40,7 +40,11 @@ def case_environment(case):
 
 def document_country(case):
     document = (
-        case.identity_documents.filter(deleted_at__isnull=True)
+        case.identity_documents.filter(
+            deleted_at__isnull=True,
+            tenant_id=case.tenant_id,
+            verification_subject_id=case.verification_subject_id,
+        )
         .order_by("-created_at", "-pk")
         .first()
     )
@@ -119,7 +123,10 @@ def admit_tenant(tenant_id, environment):
 def eligible(member, case, skills):
     user = member.user
     return (
-        member.available
+        case.deleted_at is None
+        and case.verification_subject.deleted_at is None
+        and (not case.project_id or case.project.tenant_id == case.tenant_id)
+        and member.available
         and member.deleted_at is None
         and user.is_active
         and user.status == "active"
@@ -178,7 +185,10 @@ def assign_next(queue, *, actor, request=None):
             .get(pk=entry.verification_id)
         )
         if (
-            case.assigned_reviewer_id is not None
+            case.tenant_id != queue.tenant_id
+            or case.deleted_at is not None
+            or case.verification_subject.deleted_at is not None
+            or case.assigned_reviewer_id is not None
             or case.status != VerificationStatus.MANUAL_REVIEW_REQUIRED
             or case.review_owner != VerificationReviewOwner.TENANT
             or case_environment(case) != queue.environment

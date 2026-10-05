@@ -198,6 +198,14 @@ class ReviewQueueTests(TestCase):
         client.force_authenticate(self.platform_reviewer)
         self.assertEqual(client.get(url).status_code, 403)
 
+    def test_deleted_subject_is_not_assigned(self):
+        queue = self.queue()
+        self.member(queue)
+        self.tenant_case.verification_subject.soft_delete()
+        self.assertIsNone(assign_next(queue, actor=self.tenant_reviewer))
+        self.tenant_case.refresh_from_db()
+        self.assertIsNone(self.tenant_case.assigned_reviewer_id)
+
     def test_deleted_manager_role_cannot_configure_queues(self):
         from rest_framework.test import APIClient
 
