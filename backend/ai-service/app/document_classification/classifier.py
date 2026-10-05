@@ -13,7 +13,6 @@ from .models import (
     DocumentDefinition,
 )
 from .mrz import evaluate_td3_mrz
-from .issuer_codes import PASSPORT_ISSUER_CODES
 from .normalization import normalize_text
 from .registry import list_definitions
 from .scoring import combine_scores
@@ -280,16 +279,6 @@ def classify_document(
         if definition.document_type == "passport" and not has_valid_passport_mrz:
             skipped_issues.append("passport_mrz_invalid")
             continue
-        if has_valid_passport_mrz:
-            expected_issuer = PASSPORT_ISSUER_CODES.get(
-                (definition.country_code or country_code or "").upper()
-            )
-            if not expected_issuer or not any(
-                item.get("valid") and item.get("issuing_country") == expected_issuer
-                for item in scored["structural_evidence"]
-            ):
-                skipped_issues.append("passport_issuing_country_mismatch")
-                continue
         # A checksum-valid TD3 MRZ is stronger structural evidence than weak or
         # localized visible wording, so it may independently identify a passport.
         if (
@@ -331,9 +320,6 @@ def classify_document(
             and "passport_mrz_invalid" in skipped_issues
         ):
             issue = "passport_mrz_invalid"
-            status = "unknown"
-        if expected_document_type == "passport" and "passport_issuing_country_mismatch" in skipped_issues:
-            issue = "passport_issuing_country_mismatch"
             status = "unknown"
         return {
             "classification_status": status,
