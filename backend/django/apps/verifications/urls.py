@@ -24,7 +24,13 @@ from apps.verifications.queue_views import (
     ReviewQueueListView, ReviewQueueDetailView, ReviewQueueMembersView, ReviewQueueCasesView,
 )
 
+from apps.verifications.quality_views import (ReviewQualityListView, ReviewQualityDetailView, ReviewQualityAllocateView, ReviewQualityReportView)
+
 urlpatterns = [
+    internal_api_path("review-quality", ReviewQualityListView.as_view(), name="review-quality-list"),
+    internal_api_path("review-quality/report", ReviewQualityReportView.as_view(), name="review-quality-report"),
+    internal_api_path("review-quality/<str:sample_id>/allocate", ReviewQualityAllocateView.as_view(), name="review-quality-allocate"),
+    internal_api_path("review-quality/<str:sample_id>", ReviewQualityDetailView.as_view(), name="review-quality-detail"),
     internal_api_path("review-queues", ReviewQueueListView.as_view(), name="review-queue-list"),
     internal_api_path("review-queues/<str:queue_id>", ReviewQueueDetailView.as_view(), name="review-queue-detail"),
     internal_api_path("review-queues/<str:queue_id>/members", ReviewQueueMembersView.as_view(), name="review-queue-members"),

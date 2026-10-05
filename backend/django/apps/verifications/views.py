@@ -706,6 +706,8 @@ class ManualReviewApprovalView(APIView):
         transition_verification(
             verification, decision_record.decision, completed_at=now
         )
+        from apps.verifications.review_quality import sample_final_decision
+        sample_final_decision(verification, decision_record)
         record_audit_event(
             tenant=verification.tenant,
             actor=request.user,

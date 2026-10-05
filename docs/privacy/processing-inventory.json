@@ -178,7 +178,8 @@
         "workflow configuration",
         "notification and operational state",
         "persisted identifiers and lifecycle timestamps",
-        "Environment-scoped review queue configuration, reviewer skills and availability, frozen priorities and SLA deadlines, and fair assignment timestamps."
+        "Environment-scoped review queue configuration, reviewer skills and availability, frozen priorities and SLA deadlines, and fair assignment timestamps.",
+        "Independent quality sampling percentage, frozen original decision and revision, maker/checker exclusions, reviewer assignments, encrypted assessment notes and disagreement outcomes."
       ],
       "purpose": "Configure tenant/environment-owned verification purposes, policies, catalogs and workflows; operate authorized processing and delivery.",
       "locations": [
@@ -4170,6 +4171,106 @@
     },
     {
       "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQualityAssignment.checker",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQualityAssignment.completed_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQualityAssignment.created_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQualityAssignment.decision_revision",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQualityAssignment.deleted_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQualityAssignment.id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQualityAssignment.maker",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQualityAssignment.notes_json",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQualityAssignment.original_outcome",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQualityAssignment.original_reason_codes",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQualityAssignment.outcome",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQualityAssignment.public_id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQualityAssignment.queue",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQualityAssignment.reason_code",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQualityAssignment.required_skills",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQualityAssignment.reviewer",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQualityAssignment.sampling_percent",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQualityAssignment.tenant",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQualityAssignment.updated_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQualityAssignment.verification",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
       "field": "ReviewQueue.active",
       "activity": "workflow-configuration-and-operations"
     },
@@ -4216,6 +4317,11 @@
     {
       "source": "backend/django/apps/verifications/models.py",
       "field": "ReviewQueue.required_skills",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueue.sampling_percent",
       "activity": "workflow-configuration-and-operations"
     },
     {

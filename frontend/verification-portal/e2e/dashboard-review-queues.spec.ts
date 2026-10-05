@@ -63,7 +63,11 @@ test("queue shows overdue priority and assigns the next case", async ({
         queries.push(url.search);
         data = { results: [entry], pagination: {} };
       }
-    } else if (url.pathname.endsWith("/manual-reviews"))
+    } else if (url.pathname.endsWith("/review-quality"))
+      data = { results: [], pagination: {} };
+    else if (url.pathname.endsWith("/review-quality/report"))
+      data = { completed: 0, agreements: 0, disagreements: 0, pending: 0 };
+    else if (url.pathname.endsWith("/manual-reviews"))
       data = { results: [], pagination: {} };
     await route.fulfill({
       status: 200,

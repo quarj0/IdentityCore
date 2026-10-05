@@ -1,6 +1,22 @@
 import { backend } from "./backend";
 import { idempotencyHeaders } from "./idempotent-submission";
 
+export type QualitySample = {
+  id: string;
+  verification_id: string;
+  original_outcome: string;
+  original_reason_codes: string[];
+  reviewer_id: string | null;
+  outcome: string | null;
+  reason_code: string | null;
+  completed_at: string | null;
+  agrees: boolean | null;
+  can_review: boolean;
+  reason_rules: {
+    outcomes?: Record<string, { codes: string[]; notes_required: boolean }>;
+  };
+};
+
 export type ReviewQueue = {
   queue_id: string;
   name: string;
@@ -308,6 +324,33 @@ export const dashboardApi = {
     backend.rest<{ verification_url: string; expires_at: string }>(
       `/verifications/${id}/resend-link`,
       { method: "POST", body: JSON.stringify({ channel: "email" }) },
+    ),
+  qualitySamples: (environment: string) =>
+    backend.rest<Page<QualitySample>>(
+      `/verifications/review-quality?environment=${environment}&pending=true`,
+    ),
+  qualityReport: (environment: string) =>
+    backend.rest<{
+      completed: number;
+      agreements: number;
+      disagreements: number;
+      pending: number;
+    }>(`/verifications/review-quality/report?environment=${environment}`),
+  decideQuality: (
+    id: string,
+    environment: string,
+    outcome: string,
+    reason_code: string,
+    notes: string,
+  ) =>
+    backend.rest<QualitySample>(
+      `/verifications/review-quality/${id}?environment=${environment}`,
+      { method: "POST", body: JSON.stringify({ outcome, reason_code, notes }) },
+    ),
+  allocateQuality: (id: string, environment: string) =>
+    backend.rest<QualitySample>(
+      `/verifications/review-quality/${id}/allocate?environment=${environment}`,
+      { method: "POST", body: "{}" },
     ),
   reviewQueues: () =>
     backend.rest<{ queues: ReviewQueue[] }>("/verifications/review-queues"),

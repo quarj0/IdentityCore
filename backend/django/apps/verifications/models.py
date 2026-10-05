@@ -430,6 +430,7 @@ class ReviewQueue(PublicIdModel, BaseModel):
     name = models.CharField(max_length=100)
     priority = models.PositiveSmallIntegerField(default=0)
     sla_minutes = models.PositiveIntegerField(default=60)
+    sampling_percent = models.PositiveSmallIntegerField(default=0, null=True, blank=True)
     country_codes = models.JSONField(default=list)
     required_skills = models.JSONField(default=list)
     active = models.BooleanField(default=True)
@@ -453,3 +454,25 @@ class ReviewQueueEntry(BaseModel):
     due_at = models.DateTimeField()
     required_skills = models.JSONField(default=list)
     country_code = models.CharField(max_length=3, blank=True)
+
+
+class ReviewQualityAssignment(PublicIdModel, BaseModel):
+    public_id_prefix = "rqa"
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.PROTECT)
+    verification = models.ForeignKey(Verification, on_delete=models.PROTECT, related_name="quality_assignments")
+    queue = models.ForeignKey(ReviewQueue, on_delete=models.PROTECT)
+    decision_revision = models.PositiveIntegerField()
+    sampling_percent = models.PositiveSmallIntegerField()
+    original_outcome = models.CharField(max_length=32)
+    original_reason_codes = models.JSONField(default=list)
+    maker = models.ForeignKey("accounts.PlatformUser", on_delete=models.PROTECT, related_name="made_quality_samples")
+    checker = models.ForeignKey("accounts.PlatformUser", on_delete=models.PROTECT, related_name="checked_quality_samples", null=True, blank=True)
+    reviewer = models.ForeignKey("accounts.PlatformUser", on_delete=models.PROTECT, related_name="quality_assignments", null=True, blank=True)
+    required_skills = models.JSONField(default=list)
+    outcome = models.CharField(max_length=32, blank=True)
+    reason_code = models.CharField(max_length=80, blank=True)
+    notes_json = EncryptedJSONField(default=dict, blank=True, encryption_purpose="review.quality.notes")
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["verification", "decision_revision"], name="review_quality_unique_revision")]
