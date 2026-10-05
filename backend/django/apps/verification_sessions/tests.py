@@ -941,6 +941,8 @@ class VerificationSessionPortalTests(APITestCase):
     def test_submit_liveness_creates_provider_checks_and_queues_background_processing(
         self, mock_delay
     ):
+        from apps.consent.test_helpers import accept_test_consent
+        accept_test_consent(self.verification)
         identity_document = IdentityDocument.objects.create(
             tenant=self.tenant,
             verification=self.verification,
@@ -977,7 +979,8 @@ class VerificationSessionPortalTests(APITestCase):
         )
         self.verification.status = VerificationStatus.PROCESSING
         self.verification.metadata_json = {"workflow": "administrator_onboarding"}
-        self.verification.save(update_fields=["status", "metadata_json", "updated_at"])
+        self.verification.review_owner = "platform"
+        self.verification.save(update_fields=["status", "metadata_json", "review_owner", "updated_at"])
 
         challenge = LivenessChallenge.objects.create(
             tenant=self.tenant,

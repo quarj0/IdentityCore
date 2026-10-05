@@ -537,29 +537,9 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
                 transition_verification(verification, VerificationStatus.IN_PROGRESS)
             return existing_record
 
-        consent_snapshot = (verification.policy_snapshot_json or {}).get("consent") or {}
-        consent_template = (
-            ConsentTemplate.objects.filter(
-                tenant=verification.tenant,
-                public_id=consent_snapshot.get("template_id"),
-            ).first()
-            if consent_snapshot.get("template_id")
-            else None
-        )
-        if consent_template is None and not consent_snapshot:
-            consent_template = (
-                ConsentTemplate.objects.filter(
-                    tenant=verification.tenant,
-                    status="active",
-                )
-                .order_by("-version", "-created_at")
-                .first()
-            )
-        consent_text_snapshot = consent_snapshot.get("content") or (
-            consent_template.content
-            if consent_template is not None
-            else f"I consent to the identity verification process for {verification.purpose}."
-        )
+        consent_template = ConsentTemplate.objects.filter(
+            tenant=verification.tenant, public_id=artifact["template_id"]
+        ).first()
         consent_text_snapshot = artifact["content"]
 
         now = timezone.now()
@@ -580,6 +560,7 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
 
         consent_record._notice_template_id = artifact["template_id"]
         consent_record._notice_version = artifact["version"]
+        consent_record._notice_scope = artifact["evidence_scope"]
         consent_record.save()
 
         update_session_fields = ["last_seen_at", "updated_at"]

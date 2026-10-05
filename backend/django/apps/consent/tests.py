@@ -4,9 +4,11 @@ from io import StringIO
 from django.core.management import call_command, CommandError
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+from django.db import connection, transaction
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIClient
+from rest_framework.test import APITestCase
 from apps.audit.models import AuditEvent
 from apps.access_control.models import Permission, Role, RolePermission, UserRole
 from apps.consent.models import ConsentRecord, ConsentTemplate
@@ -21,9 +23,181 @@ from apps.verifications.models import (
 from apps.providers.services import create_provider_check, invoke_provider_check
 
 
+class PortalConsentBoundaryTests(APITestCase):
+    from apps.verification_sessions import tests as portal_fixtures
+
+    setUp = portal_fixtures.VerificationSessionPortalTests.setUp
+    session_headers = portal_fixtures.VerificationSessionPortalTests.session_headers
+
+    def test_liveness_and_challenges_require_active_biometric_scope(self):
+        template = ConsentTemplate.objects.create(
+            tenant=self.tenant,
+            name="Document only",
+            content="Document only",
+            evidence_scope_json=["document"],
+        )
+        ConsentRecord.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_subject=self.subject,
+            consent_template=template,
+            consent_text_snapshot=template.content,
+            accepted_at=timezone.now(),
+        )
+        for name in (
+            "verification-session-liveness",
+            "verification-session-liveness-challenge",
+        ):
+            response = self.client.post(
+                reverse(name, kwargs={"session_id": self.session.public_id}),
+                {},
+                format="json",
+                **self.session_headers(),
+            )
+            self.assertEqual(response.status_code, 400)
+        self.assertFalse(self.verification.liveness_checks.exists())
+        self.assertFalse(self.verification.provider_checks.exists())
+
+    def test_withdrawal_after_authentication_prevents_artifact_creation(self):
+        from apps.verification_sessions.views import require_verification_session_action
+
+        record = accept_test_consent(self.verification)
+
+        def withdraw_after_authentication(request, action):
+            require_verification_session_action(request, action)
+            withdraw(record)
+
+        with patch(
+            "apps.verification_sessions.views.require_verification_session_action",
+            side_effect=withdraw_after_authentication,
+        ):
+            response = self.client.post(
+                reverse(
+                    "verification-session-liveness",
+                    kwargs={"session_id": self.session.public_id},
+                ),
+                {},
+                format="json",
+                **self.session_headers(),
+            )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(self.verification.liveness_checks.exists())
+        self.assertFalse(self.verification.provider_checks.exists())
+
+
 class ConsentPurposeTests(TestCase):
     setUp = fixtures.ManualReviewOwnershipTests.setUp
     _create_case = fixtures.ManualReviewOwnershipTests._create_case
+
+    def test_acceptance_uses_scope_and_template_from_the_displayed_locale(self):
+        from types import SimpleNamespace
+        from apps.verification_sessions.serializers import (
+            VerificationSessionConsentSerializer,
+        )
+        from apps.verifications.models import VerificationStatus
+
+        self.tenant_case.status = VerificationStatus.PENDING_CONSENT
+        self.tenant_case.policy_snapshot_json = {
+            "supported_locales": ["en", "fr"],
+            "default_locale": "fr",
+        }
+        self.tenant_case.save(update_fields=["status", "policy_snapshot_json"])
+        french = ConsentTemplate.objects.create(
+            tenant=self.tenant,
+            name="French",
+            version=1,
+            language="fr",
+            content="Document only",
+            status="active",
+            evidence_scope_json=["document"],
+        )
+        ConsentTemplate.objects.create(
+            tenant=self.tenant,
+            name="English",
+            version=9,
+            language="en",
+            content="Document and biometrics",
+            status="active",
+            evidence_scope_json=["document", "biometrics"],
+        )
+        session = VerificationSession.objects.create(
+            tenant=self.tenant,
+            verification=self.tenant_case,
+            session_token_hash="synthetic",
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+        request = SimpleNamespace(
+            verification_session=session,
+            headers={"Accept-Language": "fr"},
+            query_params={},
+            META={},
+        )
+        serializer = VerificationSessionConsentSerializer(
+            data={"accepted": True}, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        record = serializer.save()
+        self.assertEqual(record.consent_template_id, french.pk)
+        self.assertEqual(record.proof_json["evidence_scope"], ["document"])
+        self.assertIsNone(active_consent(self.tenant_case, "biometrics"))
+
+    def test_only_platform_onboarding_can_process_while_tenant_is_pending(self):
+        accept_test_consent(self.platform_case)
+        accept_test_consent(self.tenant_case)
+        for tenant_status in ("pending", "pending_review", "suspended", "closed"):
+            self.tenant.status = tenant_status
+            self.tenant.save(update_fields=["status"])
+            self.assertIsNone(active_consent(self.tenant_case))
+            if tenant_status in {"pending", "pending_review"}:
+                self.assertIsNotNone(active_consent(self.platform_case))
+            else:
+                self.assertIsNone(active_consent(self.platform_case))
+        self.tenant.status = "pending_review"
+        self.tenant.save(update_fields=["status"])
+        self.tenant_case.metadata_json = {"workflow": "administrator_onboarding"}
+        self.tenant_case.save(update_fields=["metadata_json"])
+        self.assertIsNone(active_consent(self.tenant_case))
+
+    def _make_legacy(self, record, *, content_hash=None):
+        # Simulate persisted rows from the old schema without opening a mutation
+        # bypass in the production manager.
+        quote = connection.ops.quote_name
+        sql = f"UPDATE {quote(ConsentRecord._meta.db_table)} SET proof_json = NULL"
+        params = []
+        if content_hash is not None:
+            sql += ", consent_content_hash = %s"
+            params.append(content_hash)
+        sql += " WHERE id = %s"
+        params.append(record.pk)
+        with connection.cursor() as cursor:
+            cursor.execute(sql, params)
+
+    def test_bulk_mutation_and_deletion_cannot_erase_or_reactivate_proof(self):
+        record = withdraw(accept_test_consent(self.tenant_case))
+        for operation in (
+            lambda: ConsentRecord.objects.bulk_create(
+                [record],
+                update_conflicts=True,
+                update_fields=["withdrawn_at"],
+                unique_fields=["pk"],
+            ),
+            lambda: ConsentRecord.objects.filter(pk=record.pk).update(
+                withdrawn_at=None
+            ),
+            lambda: ConsentRecord.objects.filter(pk=record.pk).update(
+                consent_text_snapshot="Changed notice"
+            ),
+            lambda: ConsentRecord.objects.filter(pk=record.pk).delete(),
+            record.delete,
+        ):
+            with self.assertRaises(ValidationError), transaction.atomic():
+                operation()
+        record.withdrawn_at = None
+        with self.assertRaises(ValidationError), transaction.atomic():
+            ConsentRecord.objects.bulk_update([record], ["withdrawn_at"])
+        record.refresh_from_db()
+        self.assertIsNotNone(record.withdrawn_at)
+        self.assertIsNone(active_consent(self.tenant_case))
 
     def test_proof_freezes_context_and_cannot_be_rewritten(self):
         template = ConsentTemplate.objects.create(
@@ -141,7 +315,9 @@ class ConsentPurposeTests(TestCase):
     def test_withdrawal_does_not_require_decrypting_the_acceptance_proof(self):
         record = accept_test_consent(self.tenant_case)
         original = record.proof_json
-        with patch("common.fields.decrypt_tenant_json", side_effect=ValueError("unavailable")):
+        with patch(
+            "common.fields.decrypt_tenant_json", side_effect=ValueError("unavailable")
+        ):
             self.assertIsNone(active_consent(self.tenant_case))
             withdrawn = withdraw(ConsentRecord.objects.get(pk=record.pk))
             self.assertIsNotNone(withdrawn.withdrawn_at)
@@ -150,23 +326,40 @@ class ConsentPurposeTests(TestCase):
 
     def test_legacy_binding_requires_explicit_reviewed_version_and_scope(self):
         record = accept_test_consent(self.tenant_case)
-        ConsentRecord.objects.filter(pk=record.pk).update(proof_json=None)
+        self._make_legacy(record)
         self.assertIsNone(active_consent(self.tenant_case))
         output = StringIO()
-        call_command("bind_legacy_consent", tenant=self.tenant.public_id, notice_version=4, evidence_scope=["document"], batch_size=1, stdout=output)
+        call_command(
+            "bind_legacy_consent",
+            tenant=self.tenant.public_id,
+            notice_version=4,
+            evidence_scope=["document"],
+            batch_size=1,
+            stdout=output,
+        )
         record.refresh_from_db()
         self.assertEqual(record.proof_json["binding_source"], "legacy-reviewed")
         self.assertEqual(record.proof_json["notice_version"], 4)
         self.assertEqual(record.proof_json["evidence_scope"], ["document"])
         self.assertIsNotNone(active_consent(self.tenant_case, "document"))
         self.assertIsNone(active_consent(self.tenant_case, "biometrics"))
-        self.assertEqual(AuditEvent.objects.filter(action="consent.legacy_proof_bound").count(), 1)
+        self.assertEqual(
+            AuditEvent.objects.filter(action="consent.legacy_proof_bound").count(), 1
+        )
 
     def test_legacy_binding_rejects_notice_hash_mismatch(self):
         record = accept_test_consent(self.tenant_case)
-        ConsentRecord.objects.filter(pk=record.pk).update(proof_json=None, consent_content_hash="0" * 64)
+        self._make_legacy(record, content_hash="0" * 64)
         with self.assertRaises(CommandError):
-            call_command("bind_legacy_consent", tenant=self.tenant.public_id, notice_version=1, evidence_scope=["document"], stdout=StringIO())
+            call_command(
+                "bind_legacy_consent",
+                tenant=self.tenant.public_id,
+                notice_version=1,
+                evidence_scope=["document"],
+                stdout=StringIO(),
+            )
         record.refresh_from_db()
         self.assertIsNone(record.proof_json)
-        self.assertFalse(AuditEvent.objects.filter(action="consent.legacy_proof_bound").exists())
+        self.assertFalse(
+            AuditEvent.objects.filter(action="consent.legacy_proof_bound").exists()
+        )

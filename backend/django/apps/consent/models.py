@@ -51,7 +51,21 @@ class ConsentTemplate(PublicIdModel, BaseModel):
         return f"{self.name} v{self.version}"
 
 
+class RetainedConsentQuerySet(models.QuerySet):
+    def bulk_create(self, *args, **kwargs):
+        raise ValidationError("Create consent proofs through the owning instance.")
+
+    def update(self, **kwargs):
+        raise ValidationError(
+            "Consent proof changes require an audited instance transition."
+        )
+
+    def delete(self):
+        raise ValidationError("Consent proof must be retained.")
+
+
 class ConsentRecord(PublicIdModel, BaseModel):
+    objects = RetainedConsentQuerySet.as_manager()
     public_id_prefix = "con"
 
     tenant = models.ForeignKey(
@@ -98,7 +112,9 @@ class ConsentRecord(PublicIdModel, BaseModel):
         if not self.pk:
             self.ensure_public_id()
             self.proof_json = build_proof(
-                self, notice_version=getattr(self, "_notice_version", None)
+                self,
+                notice_version=getattr(self, "_notice_version", None),
+                evidence_scope_override=getattr(self, "_notice_scope", None),
             )
             self.consent_content_hash = self.proof_json["content_hash"]
         else:
@@ -148,3 +164,6 @@ class ConsentRecord(PublicIdModel, BaseModel):
 
     def __str__(self) -> str:
         return self.public_id
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError("Consent proof must be retained.")

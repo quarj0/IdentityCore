@@ -12,6 +12,7 @@ from apps.verifications.models import (
     ProcessingJob,
     ProcessingJobStatus,
     VerificationSessionStatus,
+    VerificationReviewOwner,
 )
 from common.fields import environment_for_instance
 
@@ -99,11 +100,16 @@ def active_consent(verification, scope=None):
     case = Verification.objects.select_related(
         "tenant", "project", "verification_subject"
     ).get(pk=verification.pk)
+    onboarding_pending = (
+        case.tenant.status in {"pending", "pending_review"}
+        and case.review_owner == VerificationReviewOwner.PLATFORM
+        and (case.metadata_json or {}).get("workflow") == "administrator_onboarding"
+    )
     if (
         case.deleted_at
         or case.verification_subject.deleted_at
         or case.tenant.deleted_at
-        or case.tenant.status != "active"
+        or (case.tenant.status != "active" and not onboarding_pending)
     ):
         return None
     record = (
