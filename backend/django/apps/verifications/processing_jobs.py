@@ -6,7 +6,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
-from apps.audit.services import record_audit_event
+from apps.audit.services import lock_audit_chain, record_audit_event
 from apps.verifications.models import (
     ProcessingJob,
     ProcessingJobStatus,
@@ -47,11 +47,12 @@ def _assert_processing_job_owner(locked: ProcessingJob, owner: ProcessingJob) ->
 
 
 def lock_processing_job_for_finalization(job: ProcessingJob) -> ProcessingJob:
-    """Lock Verification then ProcessingJob and validate the exact acquisition."""
+    """Lock audit chain, Verification, then ProcessingJob and validate ownership."""
     if not transaction.get_connection().in_atomic_block:
         raise RuntimeError(
             "Processing-job finalization ownership must be checked inside an atomic block."
         )
+    lock_audit_chain(job.tenant_id)
     Verification.objects.select_for_update(of=("self",), no_key=True).get(
         pk=job.verification_id
     )
@@ -592,9 +593,8 @@ def exhaust_processing_job(job: ProcessingJob) -> None:
 
     now = timezone.now()
     with transaction.atomic():
-        # Canonical lifecycle lock order is Verification first, ProcessingJob second.
-        # Finalizers already hold/lock the verification before completing the job;
-        # using the same order here prevents the recovery path from deadlocking them.
+        # All audited lifecycle paths take the tenant chain before case/job rows.
+        lock_audit_chain(job.tenant_id)
         verification = (
             Verification.objects.select_for_update(of=("self",), no_key=True)
             .select_related("verification_subject")

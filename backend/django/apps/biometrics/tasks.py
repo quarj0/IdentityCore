@@ -6,7 +6,7 @@ from celery import shared_task
 from django.db import transaction
 from django.utils import timezone
 
-from apps.audit.services import record_audit_event
+from apps.audit.services import lock_audit_chain, record_audit_event
 from apps.biometrics.models import (
     FaceMatchStatus,
     LivenessCheck,
@@ -116,6 +116,7 @@ def _commit_biometric_decision(
 ) -> str:
     from apps.risk.services import _automatic_conflict
 
+    lock_audit_chain(verification.tenant_id)
     current = Verification.objects.select_for_update(of=("self",), no_key=True).get(
         pk=verification.pk
     )
@@ -218,6 +219,7 @@ def _finalize_unavailable_biometrics(
 ) -> str:
     from apps.risk.services import _automatic_conflict
 
+    lock_audit_chain(verification.tenant_id)
     current = Verification.objects.select_for_update(of=("self",), no_key=True).get(
         pk=verification.pk
     )

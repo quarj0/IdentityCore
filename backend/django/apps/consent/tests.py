@@ -312,6 +312,36 @@ class ConsentPurposeTests(TestCase):
         client.force_authenticate(self.platform_reviewer)
         self.assertEqual(client.post(url, {}, format="json").status_code, 403)
 
+    def test_old_withdrawn_record_still_withdraws_a_new_active_proof(self):
+        old = accept_test_consent(self.tenant_case)
+        old.withdrawn_at = timezone.now()
+        old._withdrawal_authorized = True
+        old.save(update_fields=["withdrawn_at", "updated_at"])
+        active = accept_test_consent(self.tenant_case)
+        self.assertIsNotNone(active_consent(self.tenant_case))
+        session = VerificationSession.objects.create(
+            tenant=self.tenant,
+            verification=self.tenant_case,
+            session_token_hash="legacy-new-consent",
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+        job = ProcessingJob.objects.create(
+            tenant=self.tenant,
+            verification=self.tenant_case,
+            job_type=ProcessingJobType.IDENTITY_DOCUMENT,
+            resource_public_id="doc_legacy_new_consent",
+            status="queued",
+            lease_expires_at=timezone.now(),
+        )
+        withdraw(old)
+        active.refresh_from_db()
+        session.refresh_from_db()
+        job.refresh_from_db()
+        self.assertIsNotNone(active.withdrawn_at)
+        self.assertEqual(session.status, "revoked")
+        self.assertEqual(job.status, "exhausted")
+        self.assertIsNone(active_consent(self.tenant_case))
+
     def test_withdrawal_does_not_require_decrypting_the_acceptance_proof(self):
         record = accept_test_consent(self.tenant_case)
         original = record.proof_json

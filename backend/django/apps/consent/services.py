@@ -186,7 +186,12 @@ def withdraw(record, *, actor=None, request=None):
     )
     if not record.accepted:
         raise ValidationError(ERROR)
-    if record.withdrawn_at is not None:
+    if (
+        record.withdrawn_at is not None
+        and not ConsentRecord.objects.filter(
+            verification=case, accepted=True, withdrawn_at__isnull=True
+        ).exists()
+    ):
         return record
     now = timezone.now()
     # Every proof in this verification is withdrawn, so an older accepted record
