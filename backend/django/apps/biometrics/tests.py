@@ -305,13 +305,15 @@ class BiometricsTaskTests(TestCase):
     @patch("apps.biometrics.tasks.queue_verification_status_notifications")
     @patch("apps.biometrics.tasks.queue_webhook_events")
     @patch("apps.biometrics.tasks.run_liveness_check")
+    @patch("apps.biometrics.tasks.promote_upload_to_media_by_storage_key")
     def test_provider_failure_preserves_evidence_and_routes_to_manual_review(
-        self, mock_liveness, mock_queue_webhooks, mock_queue_notifications
+        self, mock_promote, mock_liveness, mock_queue_webhooks, mock_queue_notifications
     ):
         mock_liveness.side_effect = RuntimeError("AI service unavailable")
 
         result = process_verification_biometrics_task(self.liveness_check.public_id)
 
+        mock_promote.assert_called_once_with(self.selfie_capture.storage_key)
         self.assertEqual(result, VerificationStatus.MANUAL_REVIEW_REQUIRED)
         self.verification.refresh_from_db()
         self.liveness_check.refresh_from_db()

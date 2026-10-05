@@ -520,11 +520,15 @@ class UploadCreateTests(APITestCase):
         get_object_bytes.assert_called_once_with(
             bucket_name=ANY,
             key=original_key,
+            tenant_scope=upload.tenant.public_id,
+            environment="sandbox",
             max_bytes=4,
         )
         put_object_bytes.assert_called_once_with(
             bucket_name=ANY,
             key=upload.storage_key,
+            tenant_scope=upload.tenant.public_id,
+            environment="sandbox",
             content=b"test",
             content_type="image/jpeg",
         )

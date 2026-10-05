@@ -1,3 +1,4 @@
+from common.fields import environment_for_instance
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -22,6 +23,8 @@ class SelfieCaptureDownloadURLView(APIView):
                 "id": selfie_capture.public_id,
                 "download_url": build_signed_download_url(
                     storage_key=selfie_capture.storage_key,
+                    tenant_scope=selfie_capture.tenant.public_id,
+                    environment=environment_for_instance(selfie_capture),
                     bucket_name=get_object_storage_media_bucket_name(),
                 ),
                 "expires_in_seconds": 300,

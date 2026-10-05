@@ -133,6 +133,40 @@ class BiometricFinalizationRecoveryTests(TestCase):
         )
         accept_test_consent(self.verification)
 
+    @patch("apps.biometrics.tasks.queue_verification_status_notifications")
+    @patch("apps.biometrics.tasks.queue_webhook_events")
+    @patch("apps.uploads.services._move_upload_to_media_bucket")
+    @patch("apps.biometrics.tasks.run_liveness_check")
+    def test_unavailable_retry_preserves_durable_selfie_promotion(
+        self, mock_liveness, mock_move, mock_webhooks, _mock_notifications
+    ):
+        mock_liveness.side_effect = RuntimeError("provider unavailable")
+        mock_webhooks.side_effect = RuntimeError("outbox insert failed")
+        with self.assertRaisesRegex(RuntimeError, "outbox insert failed"):
+            process_verification_biometrics_task(self.liveness_check.public_id)
+
+        upload = Upload.objects.get(storage_key=self.selfie_capture.storage_key)
+        self.assertEqual(upload.status, UploadStatus.PROMOTED)
+        self.verification.refresh_from_db()
+        self.liveness_check.refresh_from_db()
+        self.assertEqual(self.verification.status, VerificationStatus.PROCESSING)
+        self.assertEqual(self.liveness_check.status, LivenessCheckStatus.ERROR)
+        self.assertFalse(VerificationDecision.objects.filter(verification=self.verification).exists())
+        mock_move.assert_called_once()
+
+        job = ProcessingJob.objects.get(resource_public_id=self.liveness_check.public_id)
+        job.lease_expires_at = timezone.now() - timedelta(seconds=1)
+        job.save(update_fields=["lease_expires_at", "updated_at"])
+        mock_webhooks.side_effect = None
+        mock_webhooks.return_value = []
+        mock_liveness.reset_mock()
+        result = process_verification_biometrics_task(self.liveness_check.public_id)
+        self.assertEqual(result, VerificationStatus.MANUAL_REVIEW_REQUIRED)
+        job.refresh_from_db()
+        self.assertEqual(job.status, ProcessingJobStatus.COMPLETED)
+        mock_move.assert_called_once()
+        mock_liveness.assert_not_called()
+
     @patch("apps.biometrics.tasks.ensure_verification_evidence_report")
     @patch("apps.biometrics.tasks.queue_verification_status_notifications")
     @patch("apps.biometrics.tasks.queue_webhook_events")

@@ -5,7 +5,7 @@ from django.db import transaction
 from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 
-from apps.audit.services import record_audit_event
+from apps.audit.services import lock_audit_chain, record_audit_event
 from apps.biometrics.models import SelfieCaptureStatus
 from apps.document_captures.models import DocumentCaptureStatus
 from apps.verifications.evidence_commit import (
@@ -59,7 +59,6 @@ EXPIRABLE_VERIFICATION_STATUSES = {
     VerificationStatus.AWAITING_DOCUMENT,
     VerificationStatus.AWAITING_SELFIE,
     VerificationStatus.PROCESSING,
-    VerificationStatus.MANUAL_REVIEW_REQUIRED,
 }
 
 EXPIRABLE_SESSION_STATUSES = {
@@ -78,11 +77,15 @@ RETENTION_COMPLETED_VERIFICATION_STATUSES = {
 
 @transaction.atomic
 def _expire_pending_verification(verification_id: int, now) -> bool:
+    tenant_id = Verification.objects.values_list("tenant_id", flat=True).get(pk=verification_id)
+    lock_audit_chain(tenant_id)
     verification = (
         Verification.objects.select_for_update()
         .select_related("tenant", "verification_subject")
         .get(pk=verification_id)
     )
+    if verification.status not in EXPIRABLE_VERIFICATION_STATUSES or verification.expires_at > now:
+        return False
     verification, changed = transition_verification(
         verification,
         VerificationStatus.EXPIRED,

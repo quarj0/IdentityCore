@@ -1,3 +1,4 @@
+from common.fields import environment_for_instance
 import hashlib
 import logging
 
@@ -114,6 +115,8 @@ def _finalize_upload(
     put_object_bytes(
         bucket_name=bucket_name,
         key=finalized_storage_key,
+        tenant_scope=upload.tenant.public_id,
+        environment=environment_for_instance(upload),
         content=content,
         content_type=upload.mime_type,
     )
@@ -226,6 +229,8 @@ class UploadCompleteView(UploadTransferView):
             content, content_type = get_object_bytes(
                 bucket_name=get_object_storage_temp_bucket_name(),
                 key=upload.storage_key,
+                tenant_scope=upload.tenant.public_id,
+                environment=environment_for_instance(upload),
                 max_bytes=upload.file_size_bytes,
             )
         except ValueError as exc:

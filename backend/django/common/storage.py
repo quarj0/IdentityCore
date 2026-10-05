@@ -182,7 +182,9 @@ def get_object_storage_client():
     if not access_key or not secret_key:
         return None
 
-    return boto3.client(
+    from common.tenant_storage import RoutedS3Client
+
+    client = boto3.client(
         "s3",
         endpoint_url=endpoint_url,
         aws_access_key_id=access_key,
@@ -192,6 +194,12 @@ def get_object_storage_client():
             signature_version=signature_version,
             s3={"addressing_style": ("path" if use_path_style else "virtual")},
         ),
+    )
+    # Isolated restore addresses only prevalidated empty destination buckets.
+    return (
+        client
+        if os.getenv("IDENTITYCORE_RESTORE_ISOLATED") == "1"
+        else RoutedS3Client(client)
     )
 
 
@@ -243,7 +251,15 @@ def copy_object(
     destination_bucket: str,
     destination_key: str | None = None,
 ) -> None:
-    if source_bucket == destination_bucket:
+    from common.tenant_storage import resolve_reference
+
+    source_bucket = resolve_reference(source_key, source_bucket)["bucket"]
+    destination_bucket = resolve_reference(
+        destination_key or source_key, destination_bucket
+    )["bucket"]
+    if source_bucket == destination_bucket and (
+        destination_key is None or destination_key == source_key
+    ):
         return
 
     client = get_object_storage_client()
@@ -275,6 +291,9 @@ def object_exists(*, bucket_name: str, key: str) -> bool:
     client = get_object_storage_client()
     if not client:
         raise RuntimeError("Object storage is not configured for checking objects.")
+    from common.tenant_storage import resolve_reference
+
+    bucket_name = resolve_reference(key, bucket_name)["bucket"]
     try:
         client.head_object(Bucket=bucket_name, Key=key)
     except ClientError as exc:
@@ -291,7 +310,15 @@ def move_object(
     destination_bucket: str,
     destination_key: str | None = None,
 ) -> None:
-    if source_bucket == destination_bucket:
+    from common.tenant_storage import resolve_reference
+
+    source_bucket = resolve_reference(source_key, source_bucket)["bucket"]
+    destination_bucket = resolve_reference(
+        destination_key or source_key, destination_bucket
+    )["bucket"]
+    if source_bucket == destination_bucket and (
+        destination_key is None or destination_key == source_key
+    ):
         return
 
     target_key = destination_key or source_key
@@ -329,6 +356,9 @@ def delete_object(
     if not client:
         raise RuntimeError("Object storage is not configured for deleting objects.")
 
+    from common.tenant_storage import resolve_reference
+
+    bucket_name = resolve_reference(key, bucket_name)["bucket"]
     client.delete_object(
         Bucket=bucket_name,
         Key=key,
@@ -351,6 +381,15 @@ def put_object_bytes(
 
     if not client:
         raise RuntimeError("Object storage is not configured for writing objects.")
+
+    from common.tenant_storage import resolve_reference
+
+    bucket_name = resolve_reference(
+        key,
+        bucket_name,
+        tenant_scope=tenant_scope,
+        environment=environment if tenant_scope else None,
+    )["bucket"]
 
     object_content = content
     object_content_type = content_type
@@ -396,6 +435,15 @@ def get_object_bytes(
     if not client:
         raise RuntimeError("Object storage is not configured for reading objects.")
 
+    from common.tenant_storage import resolve_reference
+
+    bucket_name = resolve_reference(
+        key,
+        bucket_name,
+        tenant_scope=tenant_scope,
+        environment=environment if tenant_scope else None,
+    )["bucket"]
+
     response = client.get_object(
         Bucket=bucket_name,
         Key=key,
@@ -414,7 +462,11 @@ def get_object_bytes(
         "application/octet-stream",
     )
 
-    if decrypt and tenant_scope is not None and not is_encrypted_object_payload(payload):
+    if (
+        decrypt
+        and tenant_scope is not None
+        and not is_encrypted_object_payload(payload)
+    ):
         raise ValueError("Tenant encrypted object is unavailable.")
     if (decrypt or tenant_scope is not None) and is_encrypted_object_payload(payload):
         if not encryption_purpose:
@@ -437,16 +489,22 @@ def build_signed_download_url(
     storage_key: str,
     filename: str | None = None,
     bucket_name: str | None = None,
+    tenant_scope: str | None = None,
+    environment: str | None = None,
 ) -> str:
     resolved_bucket_name = _get_object_storage_bucket(bucket_name)
 
-    expires_in = int(
-        getattr(
-            settings,
-            "MEDIA_DOWNLOAD_URL_EXPIRES_SECONDS",
-            300,
-        )
+    expires_in = max(
+        1, min(300, int(getattr(settings, "MEDIA_DOWNLOAD_URL_EXPIRES_SECONDS", 300)))
     )
+    from common.tenant_storage import resolve_reference
+
+    resolved_bucket_name = resolve_reference(
+        storage_key,
+        resolved_bucket_name,
+        tenant_scope=tenant_scope,
+        environment=environment,
+    )["bucket"]
 
     client = get_object_storage_client()
 
@@ -464,6 +522,9 @@ def build_signed_download_url(
             Params=params,
             ExpiresIn=expires_in,
         )
+
+    if storage_key.startswith("tenants/"):
+        raise ValueError("Tenant storage grants require configured object storage.")
 
     query: dict[str, str | int] = {
         "expires_in": expires_in,
@@ -489,6 +550,9 @@ def build_signed_upload_url(
     mime_type: str | None = None,
     content_length: int | None = None,
     bucket_name: str | None = None,
+    expires_in_seconds: int | None = None,
+    tenant_scope: str | None = None,
+    environment: str | None = None,
 ) -> str:
     resolved_bucket_name = _first_non_empty(
         bucket_name,
@@ -511,6 +575,16 @@ def build_signed_upload_url(
         )
     )
 
+    if expires_in_seconds is not None:
+        if expires_in_seconds <= 0:
+            raise ValueError("Upload grant has expired.")
+        expires_in = min(expires_in, expires_in_seconds)
+    expires_in = max(1, min(600, expires_in))
+    from common.tenant_storage import resolve_reference
+
+    resolved_bucket_name = resolve_reference(storage_key, resolved_bucket_name, tenant_scope=tenant_scope, environment=environment)[
+        "bucket"
+    ]
     client = get_object_storage_client()
 
     if client and resolved_bucket_name:
@@ -532,6 +606,9 @@ def build_signed_upload_url(
             ExpiresIn=expires_in,
             HttpMethod="PUT",
         )
+
+    if storage_key.startswith("tenants/"):
+        raise ValueError("Tenant storage grants require configured object storage.")
 
     query: dict[str, str | int] = {
         "expires_in": expires_in,

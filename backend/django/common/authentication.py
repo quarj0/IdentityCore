@@ -124,7 +124,22 @@ class VerificationSessionAuthentication(BaseAuthentication):
                 verification_session.save(update_fields=["status", "updated_at"])
             raise _verification_session_rejected("session_expired")
 
-        if verification_session.status in {
+        # Only the withdrawal endpoint may replay an already committed withdrawal.
+        # The original token, expiry and source checks above still apply, and no
+        # active acceptance may remain. Revocation never restores other actions.
+        view = parser_context.get("view")
+        withdrawal_replay = (
+            verification_session.status == VerificationSessionStatus.REVOKED
+            and request.method == "POST"
+            and getattr(view, "allow_consent_withdrawal_replay", False)
+            and verification_session.verification.consent_records.filter(
+                accepted=True, withdrawn_at__isnull=False
+            ).exists()
+            and not verification_session.verification.consent_records.filter(
+                accepted=True, withdrawn_at__isnull=True
+            ).exists()
+        )
+        if not withdrawal_replay and verification_session.status in {
             VerificationSessionStatus.REVOKED,
             VerificationSessionStatus.COMPLETED,
             VerificationSessionStatus.EXPIRED,

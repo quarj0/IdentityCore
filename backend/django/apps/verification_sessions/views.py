@@ -523,6 +523,7 @@ class VerificationSessionStatusView(VerificationSessionBaseView):
 
 
 class VerificationSessionConsentWithdrawView(VerificationSessionBaseView):
+    allow_consent_withdrawal_replay = True
     required_session_action = "consent:accept"
 
     def post(self, request, session_id):

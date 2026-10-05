@@ -387,13 +387,14 @@ def invoke_configured_provider(
             timeout_seconds, config.public_configuration_json["timeout_seconds"]
         ),
     }
+    from common.tenant_storage import transfer_references
     result = SecureHTTPProviderAdapter(public).post_json(
         url=public["endpoint_url"],
         payload={
             "contract_version": "1",
             "capability": capability,
             "environment": environment,
-            "inputs": inputs,
+            "inputs": transfer_references(inputs),
         },
         headers={"Authorization": "Bearer " + config.credentials_json["api_key"]},
     )

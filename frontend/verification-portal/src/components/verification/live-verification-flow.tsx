@@ -1158,6 +1158,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
         "processing",
         "completed",
         "failed",
+        "cancelled",
       ].includes(step) ? (
         <div className="mt-6 rounded-2xl border border-border p-4">
           {confirmWithdrawal ? (

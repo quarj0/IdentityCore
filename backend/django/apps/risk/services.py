@@ -36,6 +36,8 @@ def _document_requires_manual_review(classification: dict | None) -> bool:
     manual_review = classification.get("manual_review") or {}
     return bool(
         classification.get("provider_error")
+        or "document_ocr_unavailable" in (classification.get("issues") or [])
+        or "document_ocr_unavailable" in (manual_review.get("reason_codes") or [])
         or classification.get("requires_manual_review")
         or classification.get("workflow_action") == "continue_with_review"
         or manual_review.get("required")
