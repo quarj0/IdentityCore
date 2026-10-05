@@ -31,7 +31,13 @@ def _iso_box(box_type: bytes, payload: bytes) -> bytes:
     return (len(payload) + 8).to_bytes(4, "big") + box_type + payload
 
 
-def _iso_video(*, major_brand: bytes = b"isom", handler_type: bytes = b"vide") -> bytes:
+def _iso_video(
+    *,
+    major_brand: bytes = b"isom",
+    handler_type: bytes = b"vide",
+    description_index=None,
+    supported_entry=1,
+) -> bytes:
     ftyp = _iso_box(b"ftyp", major_brand + b"\x00\x00\x00\x00" + major_brand)
     sample_entry = bytearray(78)
     sample_entry[6:8] = (1).to_bytes(2, "big")
@@ -39,11 +45,17 @@ def _iso_video(*, major_brand: bytes = b"isom", handler_type: bytes = b"vide") -
     sample_entry[26:28] = (480).to_bytes(2, "big")
     sample_entry[40:42] = (1).to_bytes(2, "big")
     sample_entry[74:76] = (24).to_bytes(2, "big")
+    entries = _iso_box(b"avc1", bytes(sample_entry) + _iso_box(b"avcC", b"\x01"))
+    if description_index is not None:
+        unsupported = _iso_box(b"mp4a", b"\x00" * 78)
+        entries = (
+            entries + unsupported if supported_entry == 1 else unsupported + entries
+        )
     sample_description = _iso_box(
         b"stsd",
         b"\x00" * 4
-        + (1).to_bytes(4, "big")
-        + _iso_box(b"avc1", bytes(sample_entry) + _iso_box(b"avcC", b"\x01")),
+        + (1 if description_index is None else 2).to_bytes(4, "big")
+        + entries,
     )
     sample_table = _iso_box(
         b"stbl",
@@ -56,7 +68,12 @@ def _iso_video(*, major_brand: bytes = b"isom", handler_type: bytes = b"vide") -
             + (1000).to_bytes(4, "big"),
         )
         + _iso_box(
-            b"stsc", b"\x00" * 4 + (1).to_bytes(4, "big") + (1).to_bytes(4, "big") * 3
+            b"stsc",
+            b"\x00" * 4
+            + (1).to_bytes(4, "big") * 3
+            + (1 if description_index is None else description_index).to_bytes(
+                4, "big"
+            ),
         )
         + _iso_box(
             b"stsz",
@@ -263,7 +280,8 @@ class UploadVideoInspectionTests(TestCase):
         boxes = _iso_boxes(content)
         media_ranges = [(a, b) for kind, a, b in boxes if kind == b"mdat"]
         self.assertEqual(
-            _iso_fragment_track_ids(content, boxes, media_ranges, [100_000]), {1: {1}, 2: {1}}
+            _iso_fragment_track_ids(content, boxes, media_ranges, [100_000]),
+            {1: {1}, 2: {1}},
         )
 
     def test_fragment_resolves_selected_sample_description(self):
@@ -285,6 +303,43 @@ class UploadVideoInspectionTests(TestCase):
                             "video/mp4",
                             expected_safe=selected == supported_entry,
                         )
+
+    def test_classic_resolves_selected_sample_description(self):
+        for supported in (1, 2):
+            for selected in (0, 1, 2, 3):
+                with self.subTest(supported=supported, selected=selected):
+                    self.assert_video_result(
+                        _iso_video(
+                            description_index=selected, supported_entry=supported
+                        ),
+                        "video/mp4",
+                        expected_safe=selected == supported,
+                    )
+
+    def test_invalid_fragment_run_cannot_restart_following_run_at_base(self):
+        from apps.uploads.scanning import _iso_boxes, _iso_fragment_track_ids
+
+        def movie(base):
+            header = _iso_box(
+                b"tfhd",
+                b"\x00\x00\x00\x11"
+                + (1).to_bytes(4, "big")
+                + base.to_bytes(8, "big")
+                + (3).to_bytes(4, "big"),
+            )
+            invalid = _iso_box(
+                b"trun",
+                b"\x00\x00\x00\x01"
+                + (1).to_bytes(4, "big")
+                + (1000).to_bytes(4, "big", signed=True),
+            )
+            following = _iso_box(b"trun", b"\x00" * 4 + (1).to_bytes(4, "big"))
+            return _iso_box(b"moof", _iso_box(b"traf", header + invalid + following))
+
+        content = movie(len(movie(0)) + 8) + _iso_box(b"mdat", b"abcdef")
+        boxes = _iso_boxes(content)
+        ranges = [(a, b) for k, a, b in boxes if k == b"mdat"]
+        self.assertIsNone(_iso_fragment_track_ids(content, boxes, ranges, [100_000]))
 
     def test_fragment_sample_budget_is_shared_across_runs(self):
         from apps.uploads.scanning import _iso_boxes, _iso_fragment_track_ids

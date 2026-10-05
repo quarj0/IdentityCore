@@ -99,7 +99,7 @@ def _range_in_media(offset, length, media_ranges):
 def _iso_classic_samples_in_media(content, boxes, media_ranges, sample_budget):
     tables = {kind: (start, end) for kind, start, end in boxes}
     if not {b"stsz", b"stsc", b"stts"}.issubset(tables):
-        return False
+        return None
 
     def rows(kind, width):
         start, end = tables[kind]
@@ -118,14 +118,14 @@ def _iso_classic_samples_in_media(content, boxes, media_ranges, sample_budget):
 
     start, end = tables[b"stsz"]
     if end - start < 12 or content[start] != 0:
-        return False
+        return None
     fixed_size = int.from_bytes(content[start + 4 : start + 8], "big")
     count = int.from_bytes(content[start + 8 : start + 12], "big")
     if not 0 < count <= 100_000 or end - start != 12 + (0 if fixed_size else count * 4):
-        return False
+        return None
     sample_budget[0] -= count
     if sample_budget[0] < 0:
-        return False
+        return None
     sizes = (
         [fixed_size] * count
         if fixed_size
@@ -135,23 +135,23 @@ def _iso_classic_samples_in_media(content, boxes, media_ranges, sample_budget):
         ]
     )
     if any(size == 0 for size in sizes):
-        return False
+        return None
     timing = rows(b"stts", 2)
     chunks = rows(b"stsc", 3)
     if not timing or not chunks or sum(row[0] for row in timing) != count:
-        return False
+        return None
     if (
         chunks[0][0] != 1
-        or any(row[1] == 0 or row[2] != 1 for row in chunks)
+        or any(row[1] == 0 or row[2] < 1 for row in chunks)
         or any(left[0] >= right[0] for left, right in zip(chunks, chunks[1:]))
     ):
-        return False
+        return None
     kind = b"co64" if b"co64" in tables else b"stco"
     if kind not in tables:
-        return False
+        return None
     start, end = tables[kind]
     if end - start < 8 or content[start] != 0:
-        return False
+        return None
     chunk_count = int.from_bytes(content[start + 4 : start + 8], "big")
     width = 8 if kind == b"co64" else 4
     if (
@@ -159,22 +159,24 @@ def _iso_classic_samples_in_media(content, boxes, media_ranges, sample_budget):
         or end - start != 8 + chunk_count * width
         or chunks[-1][0] > chunk_count
     ):
-        return False
+        return None
     sample = 0
     mapping = 0
+    descriptions = set()
     for chunk_index in range(1, chunk_count + 1):
         while mapping + 1 < len(chunks) and chunks[mapping + 1][0] <= chunk_index:
             mapping += 1
         number = chunks[mapping][1]
+        descriptions.add(chunks[mapping][2])
         if sample + number > count:
-            return False
+            return None
         pos = start + 8 + (chunk_index - 1) * width
         offset = int.from_bytes(content[pos : pos + width], "big")
         length = sum(sizes[sample : sample + number])
         if not _range_in_media(offset, length, media_ranges):
-            return False
+            return None
         sample += number
-    return sample == count
+    return descriptions if sample == count else None
 
 
 def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
@@ -292,11 +294,14 @@ def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
                         cursor += 4
                     lengths.append(length)
                     cursor += 4 * bool(run_flags & 0x400) + 4 * bool(run_flags & 0x800)
-                if all(length > 0 for length in lengths) and _range_in_media(
+                if not all(length > 0 for length in lengths) or not _range_in_media(
                     offset, sum(lengths), media_ranges
                 ):
-                    valid_tracks.setdefault(track, set()).add(description)
-                    previous_end = offset + sum(lengths)
+                    # An invalid run cannot donate its base to a later implicit
+                    # run, nor can earlier valid samples authorize this fragment.
+                    return None
+                valid_tracks.setdefault(track, set()).add(description)
+                previous_end = offset + sum(lengths)
             implicit_base = previous_end
     return valid_tracks
 
@@ -319,10 +324,18 @@ def _iso_stbl_has_video_sample_entry(
         {b"co64", b"stco"}
     ):
         return False
-    if not fragment_descriptions and not _iso_classic_samples_in_media(
-        content, boxes, media_ranges, sample_budget
-    ):
+    descriptions = set(fragment_descriptions or ())
+    sizes = next(box for box in boxes if box[0] == b"stsz")
+    if sizes[2] - sizes[1] < 12:
         return False
+    classic_count = int.from_bytes(content[sizes[1] + 8 : sizes[1] + 12], "big")
+    if classic_count or not descriptions:
+        classic_descriptions = _iso_classic_samples_in_media(
+            content, boxes, media_ranges, sample_budget
+        )
+        if not classic_descriptions:
+            return False
+        descriptions.update(classic_descriptions)
     stsd = next(box for box in boxes if box[0] == b"stsd")
     _, stsd_start, stsd_end = stsd
     if stsd_end - stsd_start < 8 or content[stsd_start] != 0:
@@ -331,7 +344,6 @@ def _iso_stbl_has_video_sample_entry(
     entries = _iso_boxes(content, start=stsd_start + 8, end=stsd_end)
     if not entries or entry_count != len(entries):
         return False
-    descriptions = fragment_descriptions or {1}
     if any(index < 1 or index > len(entries) for index in descriptions):
         return False
     for index in descriptions:
