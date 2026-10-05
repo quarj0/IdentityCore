@@ -20,7 +20,15 @@ from apps.verifications.views import (
     VerificationResultView,
 )
 
+from apps.verifications.queue_views import (
+    ReviewQueueListView, ReviewQueueDetailView, ReviewQueueMembersView, ReviewQueueCasesView,
+)
+
 urlpatterns = [
+    internal_api_path("review-queues", ReviewQueueListView.as_view(), name="review-queue-list"),
+    internal_api_path("review-queues/<str:queue_id>", ReviewQueueDetailView.as_view(), name="review-queue-detail"),
+    internal_api_path("review-queues/<str:queue_id>/members", ReviewQueueMembersView.as_view(), name="review-queue-members"),
+    internal_api_path("review-queues/<str:queue_id>/cases", ReviewQueueCasesView.as_view(), name="review-queue-cases"),
     public_api_path("<str:verification_id>/simulate", SandboxSimulationView.as_view(), methods=("POST",), name="verification-simulate"),
     internal_api_path(
         "manual-reviews/<str:verification_id>/authenticity",

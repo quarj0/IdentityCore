@@ -1,6 +1,27 @@
 import { backend } from "./backend";
 import { idempotencyHeaders } from "./idempotent-submission";
 
+export type ReviewQueue = {
+  queue_id: string;
+  name: string;
+  environment: "sandbox" | "production";
+  priority: number;
+  sla_minutes: number;
+  country_codes: string[];
+  required_skills: string[];
+  active: boolean;
+};
+export type ReviewQueueEntry = {
+  verification_id: string;
+  queue_id: string;
+  priority: number;
+  due_at: string;
+  overdue: boolean;
+  country_code: string;
+  required_skills: string[];
+  assigned_reviewer_id: string | null;
+};
+
 export type Policy = {
   id: string;
   name: string;
@@ -287,6 +308,17 @@ export const dashboardApi = {
     backend.rest<{ verification_url: string; expires_at: string }>(
       `/verifications/${id}/resend-link`,
       { method: "POST", body: JSON.stringify({ channel: "email" }) },
+    ),
+  reviewQueues: () =>
+    backend.rest<{ queues: ReviewQueue[] }>("/verifications/review-queues"),
+  queueCases: (id: string, filters: URLSearchParams) =>
+    backend.rest<Page<ReviewQueueEntry>>(
+      `/verifications/review-queues/${id}/cases?${filters}`,
+    ),
+  assignQueueCase: (id: string) =>
+    backend.rest<{ assignment: ReviewQueueEntry | null }>(
+      `/verifications/review-queues/${id}/cases`,
+      { method: "POST", body: "{}" },
     ),
   manualReviews: () =>
     backend.rest<Page<ManualReviewSummary>>("/verifications/manual-reviews"),

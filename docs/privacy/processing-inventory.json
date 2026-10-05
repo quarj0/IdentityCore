@@ -177,7 +177,8 @@
         "catalogs",
         "workflow configuration",
         "notification and operational state",
-        "persisted identifiers and lifecycle timestamps"
+        "persisted identifiers and lifecycle timestamps",
+        "Environment-scoped review queue configuration, reviewer skills and availability, frozen priorities and SLA deadlines, and fair assignment timestamps."
       ],
       "purpose": "Configure tenant/environment-owned verification purposes, policies, catalogs and workflows; operate authorized processing and delivery.",
       "locations": [
@@ -191,7 +192,8 @@
         "backend/django/apps/templates/models.py",
         "backend/django/apps/tenants/models.py",
         "backend/django/apps/verification_policies/models.py",
-        "backend/django/apps/workflows/models.py"
+        "backend/django/apps/workflows/models.py",
+        "backend/django/apps/verifications/models.py"
       ],
       "retention": "Configuration lifetime and configured audit/security schedule; evidence and subject payloads in JSON containers follow their snapshotted purpose/environment retention and verified deletion controls.",
       "processors": [
@@ -4168,6 +4170,166 @@
     },
     {
       "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueue.active",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueue.country_codes",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueue.created_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueue.deleted_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueue.environment",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueue.id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueue.name",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueue.priority",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueue.public_id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueue.required_skills",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueue.sla_minutes",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueue.tenant",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueue.updated_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueueEntry.country_code",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueueEntry.created_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueueEntry.deleted_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueueEntry.due_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueueEntry.id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueueEntry.priority",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueueEntry.queue",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueueEntry.required_skills",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueueEntry.updated_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueueEntry.verification",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueueMember.available",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueueMember.created_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueueMember.deleted_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueueMember.id",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueueMember.last_assigned_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueueMember.queue",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueueMember.skills",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueueMember.updated_at",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ReviewQueueMember.user",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
       "field": "SandboxSimulation.created_at",
       "activity": "verification-subject-and-session"
     },
@@ -4300,6 +4462,11 @@
       "source": "backend/django/apps/verifications/models.py",
       "field": "Verification.review_owner",
       "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "Verification.review_queued_at",
+      "activity": "workflow-configuration-and-operations"
     },
     {
       "source": "backend/django/apps/verifications/models.py",

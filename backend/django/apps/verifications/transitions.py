@@ -133,6 +133,9 @@ def transition_verification(
     now = completed_at or timezone.now()
     current.status = target
     fields = ["status", "updated_at"]
+    if target == VerificationStatus.MANUAL_REVIEW_REQUIRED:
+        current.review_queued_at = now
+        fields.append("review_queued_at")
     if target in TERMINAL_STATUSES:
         current.completed_at = now
         fields.append("completed_at")

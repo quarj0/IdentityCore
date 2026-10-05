@@ -441,6 +441,8 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
 
     @transaction.atomic
     def save(self, *, verification: Verification, decided_by):
+        from apps.audit.services import lock_audit_chain
+        lock_audit_chain(verification.tenant_id)
         verification = (
             Verification.objects.select_for_update(of=("self",), no_key=True)
             .select_related("verification_subject")
@@ -484,6 +486,17 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"decision": "This verification is assigned to another reviewer."}
             )
+        from apps.verifications.models import ReviewQueue
+        from apps.verifications.review_queues import case_environment
+        if verification.review_owner == "tenant" and verification.assigned_reviewer_id is None and ReviewQueue.objects.filter(tenant_id=verification.tenant_id, environment=case_environment(verification), active=True, deleted_at__isnull=True).exists():
+            raise serializers.ValidationError({"decision": "Use the queue to assign this verification before deciding."})
+        from apps.verifications.models import ReviewQueueEntry, ReviewQueueMember
+        from apps.verifications.review_queues import eligible
+        entry = ReviewQueueEntry.objects.filter(verification=verification).first()
+        if entry:
+            member = ReviewQueueMember.objects.filter(queue=entry.queue, user=decided_by).select_related("user").first()
+            if member is None or not entry.queue.active or not eligible(member, verification, entry.required_skills):
+                raise serializers.ValidationError({"decision": "Current queue reviewer eligibility is required."})
         assigned_now = verification.assigned_reviewer_id is None
         if assigned_now:
             verification.assigned_reviewer = decided_by

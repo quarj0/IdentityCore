@@ -175,6 +175,7 @@ class Verification(PublicIdModel, BaseModel):
         blank=True,
     )
     assigned_at = models.DateTimeField(null=True, blank=True)
+    review_queued_at = models.DateTimeField(null=True, blank=True)
     external_reference = models.CharField(max_length=255, blank=True, db_index=True)
     metadata_json = EncryptedJSONField(
         default=dict,
@@ -420,3 +421,35 @@ class VerificationDecision(PublicIdModel, BaseModel):
 
     def __str__(self) -> str:
         return self.public_id
+
+
+class ReviewQueue(PublicIdModel, BaseModel):
+    public_id_prefix = "rvq"
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.PROTECT)
+    environment = models.CharField(max_length=16, choices=[("sandbox", "Sandbox"), ("production", "Production")])
+    name = models.CharField(max_length=100)
+    priority = models.PositiveSmallIntegerField(default=0)
+    sla_minutes = models.PositiveIntegerField(default=60)
+    country_codes = models.JSONField(default=list)
+    required_skills = models.JSONField(default=list)
+    active = models.BooleanField(default=True)
+
+
+class ReviewQueueMember(BaseModel):
+    queue = models.ForeignKey(ReviewQueue, on_delete=models.CASCADE, related_name="members")
+    user = models.ForeignKey("accounts.PlatformUser", on_delete=models.PROTECT)
+    skills = models.JSONField(default=list)
+    available = models.BooleanField(default=True)
+    last_assigned_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["queue", "user"], name="review_queue_unique_member")]
+
+
+class ReviewQueueEntry(BaseModel):
+    verification = models.OneToOneField(Verification, on_delete=models.CASCADE, related_name="queue_entry")
+    queue = models.ForeignKey(ReviewQueue, on_delete=models.PROTECT, related_name="entries")
+    priority = models.PositiveSmallIntegerField()
+    due_at = models.DateTimeField()
+    required_skills = models.JSONField(default=list)
+    country_code = models.CharField(max_length=3, blank=True)
