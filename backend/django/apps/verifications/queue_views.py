@@ -48,6 +48,7 @@ class QueueInput(serializers.Serializer):
     environment = serializers.ChoiceField(choices=["sandbox", "production"])
     priority = serializers.IntegerField(min_value=0, max_value=1000, default=0)
     sla_minutes = serializers.IntegerField(min_value=1, max_value=43200, default=60)
+    sampling_percent = serializers.IntegerField(min_value=0, max_value=100, default=0)
     country_codes = serializers.JSONField(default=list)
     required_skills = serializers.JSONField(default=list)
     active = serializers.BooleanField(default=True)
@@ -69,6 +70,7 @@ def queue_summary(queue):
                 "environment",
                 "priority",
                 "sla_minutes",
+                "sampling_percent",
                 "country_codes",
                 "required_skills",
                 "active",

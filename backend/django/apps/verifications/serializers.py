@@ -580,6 +580,8 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
                 self.validated_data["decision"],
                 completed_at=now,
             )
+        from apps.verifications.review_quality import sample_final_decision
+        sample_final_decision(verification, decision_record)
         decision_record._review_assigned_now = assigned_now
         return decision_record
 
