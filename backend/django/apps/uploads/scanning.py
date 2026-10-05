@@ -1,4 +1,5 @@
 from io import BytesIO
+import warnings
 
 from PIL import Image, UnidentifiedImageError
 
@@ -46,6 +47,8 @@ def _iso_boxes(
     offset = start
     boxes = []
     while offset < boundary:
+        if len(boxes) >= 100_000:
+            return None
         if boundary - offset < 8:
             return None
         box_size = int.from_bytes(content[offset : offset + 4], "big")
@@ -85,7 +88,209 @@ def _valid_full_box(
     return end - start >= expected_size
 
 
-def _iso_stbl_has_video_sample_entry(content: bytes, start: int, end: int) -> bool:
+def _range_in_media(offset, length, media_ranges):
+    return length > 0 and any(
+        start <= offset and offset + length <= end for start, end in media_ranges
+    )
+
+
+def _iso_classic_samples_in_media(content, boxes, media_ranges, sample_budget):
+    tables = {kind: (start, end) for kind, start, end in boxes}
+    if not {b"stsz", b"stsc", b"stts"}.issubset(tables):
+        return False
+
+    def rows(kind, width):
+        start, end = tables[kind]
+        if end - start < 8 or content[start] != 0:
+            return None
+        count = int.from_bytes(content[start + 4 : start + 8], "big")
+        if not 0 < count <= 100_000 or end - start != 8 + count * width * 4:
+            return None
+        return [
+            tuple(
+                int.from_bytes(content[pos + index * 4 : pos + index * 4 + 4], "big")
+                for index in range(width)
+            )
+            for pos in range(start + 8, end, width * 4)
+        ]
+
+    start, end = tables[b"stsz"]
+    if end - start < 12 or content[start] != 0:
+        return False
+    fixed_size = int.from_bytes(content[start + 4 : start + 8], "big")
+    count = int.from_bytes(content[start + 8 : start + 12], "big")
+    if not 0 < count <= 100_000 or end - start != 12 + (0 if fixed_size else count * 4):
+        return False
+    sample_budget[0] -= count
+    if sample_budget[0] < 0:
+        return False
+    sizes = (
+        [fixed_size] * count
+        if fixed_size
+        else [
+            int.from_bytes(content[pos : pos + 4], "big")
+            for pos in range(start + 12, end, 4)
+        ]
+    )
+    if any(size == 0 for size in sizes):
+        return False
+    timing = rows(b"stts", 2)
+    chunks = rows(b"stsc", 3)
+    if not timing or not chunks or sum(row[0] for row in timing) != count:
+        return False
+    if (
+        chunks[0][0] != 1
+        or any(row[1] == 0 or row[2] != 1 for row in chunks)
+        or any(left[0] >= right[0] for left, right in zip(chunks, chunks[1:]))
+    ):
+        return False
+    kind = b"co64" if b"co64" in tables else b"stco"
+    if kind not in tables:
+        return False
+    start, end = tables[kind]
+    if end - start < 8 or content[start] != 0:
+        return False
+    chunk_count = int.from_bytes(content[start + 4 : start + 8], "big")
+    width = 8 if kind == b"co64" else 4
+    if (
+        not 0 < chunk_count <= count
+        or end - start != 8 + chunk_count * width
+        or chunks[-1][0] > chunk_count
+    ):
+        return False
+    sample = 0
+    mapping = 0
+    for chunk_index in range(1, chunk_count + 1):
+        while mapping + 1 < len(chunks) and chunks[mapping + 1][0] <= chunk_index:
+            mapping += 1
+        number = chunks[mapping][1]
+        if sample + number > count:
+            return False
+        pos = start + 8 + (chunk_index - 1) * width
+        offset = int.from_bytes(content[pos : pos + width], "big")
+        length = sum(sizes[sample : sample + number])
+        if not _range_in_media(offset, length, media_ranges):
+            return False
+        sample += number
+    return sample == count
+
+
+def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
+    defaults = {}
+    for kind, start, end in boxes:
+        if kind != b"moov":
+            continue
+        for child, child_start, child_end in (
+            _iso_boxes(content, start=start, end=end) or []
+        ):
+            if child != b"mvex":
+                continue
+            for entry, entry_start, entry_end in (
+                _iso_boxes(content, start=child_start, end=child_end) or []
+            ):
+                if (
+                    entry == b"trex"
+                    and entry_end - entry_start == 24
+                    and content[entry_start] == 0
+                ):
+                    track = int.from_bytes(
+                        content[entry_start + 4 : entry_start + 8], "big"
+                    )
+                    defaults[track] = int.from_bytes(
+                        content[entry_start + 16 : entry_start + 20], "big"
+                    )
+    valid_tracks = set()
+    for kind, moof_start, moof_end in boxes:
+        if kind != b"moof":
+            continue
+        moof_offset = moof_start - (
+            8 if content[moof_start - 4 : moof_start] == b"moof" else 16
+        )
+        for child, start, end in (
+            _iso_boxes(content, start=moof_start, end=moof_end) or []
+        ):
+            if child != b"traf":
+                continue
+            fragment = _iso_boxes(content, start=start, end=end) or []
+            headers = [(a, b) for k, a, b in fragment if k == b"tfhd"]
+            if len(headers) != 1:
+                continue
+            a, b = headers[0]
+            if b - a < 8 or content[a] != 0:
+                continue
+            flags = int.from_bytes(content[a + 1 : a + 4], "big")
+            track = int.from_bytes(content[a + 4 : a + 8], "big")
+            cursor = a + 8
+            base = moof_offset
+            if flags & 1:
+                if cursor + 8 > b:
+                    continue
+                base = int.from_bytes(content[cursor : cursor + 8], "big")
+                cursor += 8
+            elif not flags & 0x020000:
+                continue
+            cursor += 4 * bool(flags & 2) + 4 * bool(flags & 8)
+            size = defaults.get(track, 0)
+            if flags & 0x10:
+                if cursor + 4 > b:
+                    continue
+                size = int.from_bytes(content[cursor : cursor + 4], "big")
+                cursor += 4
+            cursor += 4 * bool(flags & 0x20)
+            if cursor != b or flags & 0x010000:
+                continue
+            previous_end = None
+            for run_kind, a, b in fragment:
+                if run_kind != b"trun" or b - a < 8 or content[a] not in {0, 1}:
+                    continue
+                run_flags = int.from_bytes(content[a + 1 : a + 4], "big")
+                count = int.from_bytes(content[a + 4 : a + 8], "big")
+                if not 0 < count <= 100_000:
+                    continue
+                sample_budget[0] -= count
+                if sample_budget[0] < 0:
+                    return None
+                cursor = a + 8
+                offset = previous_end if previous_end is not None else base
+                if run_flags & 1:
+                    if cursor + 4 > b:
+                        continue
+                    offset = base + int.from_bytes(
+                        content[cursor : cursor + 4], "big", signed=True
+                    )
+                    cursor += 4
+                cursor += 4 * bool(run_flags & 4)
+                width = 4 * sum(
+                    bool(run_flags & mask) for mask in (0x100, 0x200, 0x400, 0x800)
+                )
+                if cursor + count * width != b:
+                    continue
+                lengths = []
+                for _ in range(count):
+                    cursor += 4 * bool(run_flags & 0x100)
+                    length = size
+                    if run_flags & 0x200:
+                        length = int.from_bytes(content[cursor : cursor + 4], "big")
+                        cursor += 4
+                    lengths.append(length)
+                    cursor += 4 * bool(run_flags & 0x400) + 4 * bool(run_flags & 0x800)
+                if all(length > 0 for length in lengths) and _range_in_media(
+                    offset, sum(lengths), media_ranges
+                ):
+                    valid_tracks.add(track)
+                    previous_end = offset + sum(lengths)
+    return valid_tracks
+
+
+def _iso_stbl_has_video_sample_entry(
+    content: bytes,
+    start: int,
+    end: int,
+    *,
+    media_ranges,
+    fragmented: bool,
+    sample_budget,
+) -> bool:
     boxes = _iso_boxes(content, start=start, end=end)
     if not boxes:
         return False
@@ -95,34 +300,8 @@ def _iso_stbl_has_video_sample_entry(content: bytes, start: int, end: int) -> bo
         {b"co64", b"stco"}
     ):
         return False
-    for required_type in (b"stts", b"stsc"):
-        _, table_start, table_end = next(
-            box for box in boxes if box[0] == required_type
-        )
-        if (
-            table_end - table_start < 8
-            or content[table_start] != 0
-            or int.from_bytes(content[table_start + 4 : table_start + 8], "big") == 0
-        ):
-            return False
-    _, size_start, size_end = next(box for box in boxes if box[0] == b"stsz")
-    if (
-        size_end - size_start < 12
-        or content[size_start] != 0
-        or int.from_bytes(content[size_start + 8 : size_start + 12], "big") == 0
-    ):
-        return False
-    chunk_box = next(box for box in boxes if box[0] in {b"co64", b"stco"})
-    _, chunk_start, chunk_end = chunk_box
-    if (
-        chunk_end - chunk_start < 8
-        or content[chunk_start] != 0
-        or int.from_bytes(content[chunk_start + 4 : chunk_start + 8], "big") == 0
-        or int.from_bytes(
-            content[chunk_start + 8 : chunk_start + (16 if chunk_box[0] == b"co64" else 12)],
-            "big",
-        )
-        == 0
+    if not fragmented and not _iso_classic_samples_in_media(
+        content, boxes, media_ranges, sample_budget
     ):
         return False
     stsd = next(box for box in boxes if box[0] == b"stsd")
@@ -133,7 +312,7 @@ def _iso_stbl_has_video_sample_entry(content: bytes, start: int, end: int) -> bo
     entries = _iso_boxes(content, start=stsd_start + 8, end=stsd_end)
     if not entries or entry_count != len(entries):
         return False
-    for sample_type, sample_start, sample_end in entries:
+    for sample_type, sample_start, sample_end in entries[:1]:
         config_type = ISO_VIDEO_SAMPLE_CONFIGS.get(sample_type)
         if config_type is None or sample_end - sample_start < 78:
             continue
@@ -153,7 +332,15 @@ def _iso_stbl_has_video_sample_entry(content: bytes, start: int, end: int) -> bo
     return False
 
 
-def _iso_has_video_track(content: bytes, moov_start: int, moov_end: int) -> bool:
+def _iso_has_video_track(
+    content: bytes,
+    moov_start: int,
+    moov_end: int,
+    *,
+    media_ranges,
+    fragment_tracks,
+    sample_budget,
+) -> bool:
     moov_boxes = _iso_boxes(content, start=moov_start, end=moov_end)
     if not moov_boxes or not any(
         box_type == b"mvhd"
@@ -182,6 +369,16 @@ def _iso_has_video_track(content: bytes, moov_start: int, moov_end: int) -> bool
             )
             for child_type, child_start, child_end in trak_boxes
         ):
+            continue
+        tkhd = next((box for box in trak_boxes if box[0] == b"tkhd"), None)
+        if tkhd is None:
+            continue
+        track_start = tkhd[1]
+        id_offset = 20 if content[track_start] == 1 else 12
+        track_id = int.from_bytes(
+            content[track_start + id_offset : track_start + id_offset + 4], "big"
+        )
+        if track_id == 0:
             continue
         for child_type, mdia_start, mdia_end in trak_boxes:
             if child_type != b"mdia":
@@ -226,7 +423,12 @@ def _iso_has_video_track(content: bytes, moov_start: int, moov_end: int) -> bool
                 if any(
                     child_type == b"stbl"
                     and _iso_stbl_has_video_sample_entry(
-                        content, child_start, child_end
+                        content,
+                        child_start,
+                        child_end,
+                        media_ranges=media_ranges,
+                        fragmented=track_id in fragment_tracks,
+                        sample_budget=sample_budget,
                     )
                     for child_type, child_start, child_end in minf_boxes
                 ):
@@ -243,9 +445,7 @@ def _is_supported_iso_video(content: bytes, declared_mime_type: str) -> bool:
     if len(ftyp) < 8 or (len(ftyp) - 8) % 4:
         return False
     major_brand = ftyp[:4]
-    compatible_brands = {
-        ftyp[index : index + 4] for index in range(8, len(ftyp), 4)
-    }
+    compatible_brands = {ftyp[index : index + 4] for index in range(8, len(ftyp), 4)}
     brands = compatible_brands | {major_brand}
     if declared_mime_type == "video/quicktime":
         if QUICKTIME_BRAND not in brands:
@@ -254,12 +454,24 @@ def _is_supported_iso_video(content: bytes, declared_mime_type: str) -> bool:
         return False
 
     moov_boxes = [box for box in boxes if box[0] == b"moov"]
-    has_media_data = any(
-        box_type == b"mdat" and payload_end > payload_start
-        for box_type, payload_start, payload_end in boxes
+    media_ranges = [
+        (start, end) for kind, start, end in boxes if kind == b"mdat" and end > start
+    ]
+    sample_budget = [100_000]
+    fragment_tracks = _iso_fragment_track_ids(
+        content, boxes, media_ranges, sample_budget
     )
-    return has_media_data and any(
-        _iso_has_video_track(content, payload_start, payload_end)
+    if fragment_tracks is None:
+        return False
+    return bool(media_ranges) and any(
+        _iso_has_video_track(
+            content,
+            payload_start,
+            payload_end,
+            media_ranges=media_ranges,
+            fragment_tracks=fragment_tracks,
+            sample_budget=sample_budget,
+        )
         for _, payload_start, payload_end in moov_boxes
     )
 
@@ -286,14 +498,17 @@ def _read_ebml_vint(
 
 
 def _ebml_elements(
-    content: bytes, *, start: int, end: int
+    content: bytes, *, start: int, end: int, budget: list[int] | None = None
 ) -> list[tuple[int, int, int, bool]] | None:
+    if budget is None:
+        budget = [100_000]
     offset = start
     elements = []
     while offset < end:
-        element_id = _read_ebml_vint(
-            content, offset, keep_marker=True, max_width=4
-        )
+        budget[0] -= 1
+        if budget[0] < 0:
+            return None
+        element_id = _read_ebml_vint(content, offset, keep_marker=True, max_width=4)
         if element_id is None:
             return None
         element_value, id_width, _ = element_id
@@ -320,8 +535,8 @@ def _ebml_uint(content: bytes, start: int, end: int) -> int | None:
     return int.from_bytes(content[start:end], "big")
 
 
-def _valid_webm_info(content: bytes, start: int, end: int) -> bool:
-    elements = _ebml_elements(content, start=start, end=end)
+def _valid_webm_info(content: bytes, start: int, end: int, budget: list[int]) -> bool:
+    elements = _ebml_elements(content, start=start, end=end, budget=budget)
     if not elements:
         return False
     element_ids = {element_id for element_id, _, _, _ in elements}
@@ -340,14 +555,17 @@ def _valid_webm_info(content: bytes, start: int, end: int) -> bool:
     )
 
 
-def _webm_tracks_include_video(content: bytes, start: int, end: int) -> bool:
-    tracks = _ebml_elements(content, start=start, end=end)
+def _webm_video_track_numbers(
+    content: bytes, start: int, end: int, budget: list[int]
+) -> set[int]:
+    tracks = _ebml_elements(content, start=start, end=end, budget=budget)
     if not tracks:
-        return False
+        return set()
+    video_tracks = set()
     for element_id, entry_start, entry_end, unknown_size in tracks:
         if element_id != 0xAE or unknown_size:
             continue
-        entry = _ebml_elements(content, start=entry_start, end=entry_end)
+        entry = _ebml_elements(content, start=entry_start, end=entry_end, budget=budget)
         if not entry:
             continue
         track_type = None
@@ -357,7 +575,7 @@ def _webm_tracks_include_video(content: bytes, start: int, end: int) -> bool:
         video_dimensions = None
         for child_id, payload_start, payload_end, child_unknown in entry:
             if child_unknown:
-                return False
+                return set()
             payload = content[payload_start:payload_end]
             if child_id == 0xD7:
                 track_number = _ebml_uint(content, payload_start, payload_end)
@@ -369,7 +587,7 @@ def _webm_tracks_include_video(content: bytes, start: int, end: int) -> bool:
                 codec_id = payload
             elif child_id == 0xE0:
                 video = _ebml_elements(
-                    content, start=payload_start, end=payload_end
+                    content, start=payload_start, end=payload_end, budget=budget
                 )
                 if not video:
                     continue
@@ -398,14 +616,19 @@ def _webm_tracks_include_video(content: bytes, start: int, end: int) -> bool:
             and track_type == 1
             and codec_id in WEBM_VIDEO_CODECS
             and video_dimensions is not None
-            and all(dimension is not None and dimension > 0 for dimension in video_dimensions)
+            and all(
+                dimension is not None and dimension > 0
+                for dimension in video_dimensions
+            )
         ):
-            return True
-    return False
+            video_tracks.add(track_number)
+    return video_tracks
 
 
-def _webm_cluster_has_frame(content: bytes, start: int, end: int) -> bool:
-    elements = _ebml_elements(content, start=start, end=end)
+def _webm_cluster_has_frame(
+    content: bytes, start: int, end: int, video_tracks: set[int], budget: list[int]
+) -> bool:
+    elements = _ebml_elements(content, start=start, end=end, budget=budget)
     if not elements:
         return False
     has_timestamp = any(
@@ -416,14 +639,30 @@ def _webm_cluster_has_frame(content: bytes, start: int, end: int) -> bool:
     )
     has_block = False
     for element_id, payload_start, payload_end, unknown_size in elements:
-        if element_id != 0xA3 or unknown_size or payload_end - payload_start <= 4:
+        if unknown_size:
+            continue
+        if element_id == 0xA0:
+            group = _ebml_elements(
+                content, start=payload_start, end=payload_end, budget=budget
+            )
+            if not group:
+                continue
+            block = next(
+                (item for item in group if item[0] == 0xA1 and not item[3]), None
+            )
+            if block is None:
+                continue
+            _, payload_start, payload_end, _ = block
+        elif element_id != 0xA3:
+            continue
+        if payload_end - payload_start <= 4:
             continue
         track_number = _read_ebml_vint(
             content, payload_start, keep_marker=False, max_width=8
         )
         if (
             track_number is not None
-            and track_number[0] > 0
+            and track_number[0] in video_tracks
             and payload_end - payload_start > track_number[1] + 3
         ):
             has_block = True
@@ -432,11 +671,12 @@ def _webm_cluster_has_frame(content: bytes, start: int, end: int) -> bool:
 
 
 def _is_supported_webm_video(content: bytes) -> bool:
-    root = _ebml_elements(content, start=0, end=len(content))
+    budget = [100_000]
+    root = _ebml_elements(content, start=0, end=len(content), budget=budget)
     if not root or root[0][0] != 0x1A45DFA3 or root[0][3]:
         return False
     _, header_start, header_end, _ = root[0]
-    header = _ebml_elements(content, start=header_start, end=header_end)
+    header = _ebml_elements(content, start=header_start, end=header_end, budget=budget)
     if not header:
         return False
     header_uints = {
@@ -454,50 +694,61 @@ def _is_supported_webm_video(content: bytes) -> bool:
     )
     if (
         doc_type != b"webm"
-        or header_uints.get(0x4286) != 1
-        or header_uints.get(0x42F7) != 1
-        or header_uints.get(0x42F2) != 4
-        or header_uints.get(0x42F3) != 8
-        or header_uints.get(0x4285) not in {1, 2}
+        or header_uints.get(0x4286, 1) != 1
+        or header_uints.get(0x42F7, 1) != 1
+        or header_uints.get(0x42F2, 4) != 4
+        or header_uints.get(0x42F3, 8) != 8
+        or header_uints.get(0x4285, 1) not in {1, 2}
     ):
         return False
     segment = next((element for element in root[1:] if element[0] == 0x18538067), None)
     if segment is None:
         return False
     _, segment_start, segment_end, _ = segment
-    children = _ebml_elements(content, start=segment_start, end=segment_end)
+    children = _ebml_elements(
+        content, start=segment_start, end=segment_end, budget=budget
+    )
     if not children:
         return False
     has_info = any(
         element_id == 0x1549A966
         and not unknown_size
-        and _valid_webm_info(content, payload_start, payload_end)
+        and _valid_webm_info(content, payload_start, payload_end, budget)
         for element_id, payload_start, payload_end, unknown_size in children
     )
+    video_tracks = set()
+    for element_id, payload_start, payload_end, unknown_size in children:
+        if element_id == 0x1654AE6B and not unknown_size:
+            video_tracks.update(
+                _webm_video_track_numbers(content, payload_start, payload_end, budget)
+            )
     has_cluster = any(
         element_id == 0x1F43B675
-        and _webm_cluster_has_frame(content, payload_start, payload_end)
+        and _webm_cluster_has_frame(
+            content, payload_start, payload_end, video_tracks, budget
+        )
         for element_id, payload_start, payload_end, _ in children
     )
-    has_video_track = any(
-        element_id == 0x1654AE6B
-        and not unknown_size
-        and _webm_tracks_include_video(content, payload_start, payload_end)
-        for element_id, payload_start, payload_end, unknown_size in children
-    )
-    return has_info and has_cluster and has_video_track
+    return has_info and has_cluster and bool(video_tracks) and budget[0] >= 0
 
 
-def inspect_upload_content(*, content: bytes, declared_mime_type: str) -> tuple[bool, str]:
+def inspect_upload_content(
+    *, content: bytes, declared_mime_type: str
+) -> tuple[bool, str]:
     """Fail closed when uploaded bytes do not match the declared media type."""
-    if b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*" in content:
+    if (
+        b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
+        in content
+    ):
         return False, "malware_signature_detected"
 
     if declared_mime_type.startswith("image/"):
         try:
-            with Image.open(BytesIO(content)) as image:
-                image.verify()
-                detected_mime_type = IMAGE_FORMATS.get(image.format)
+            with warnings.catch_warnings():
+                warnings.simplefilter("error", Image.DecompressionBombWarning)
+                with Image.open(BytesIO(content)) as image:
+                    image.verify()
+                    detected_mime_type = IMAGE_FORMATS.get(image.format)
         except (Image.DecompressionBombError, Image.DecompressionBombWarning):
             return False, "image_decompression_bomb"
         except (UnidentifiedImageError, OSError, ValueError, SyntaxError):
