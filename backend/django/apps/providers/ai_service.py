@@ -53,7 +53,8 @@ def _post_json(path: str, payload: dict) -> dict:
         )
     )
     url = f"{base_url.rstrip('/')}{path}"
-    data = json.dumps(payload).encode("utf-8")
+    from common.tenant_storage import transfer_references
+    data = json.dumps(transfer_references(payload)).encode("utf-8")
     headers = {"Content-Type": "application/json"}
     inject(headers)
     headers["X-IdentityCore-Environment"] = environment(ENVIRONMENT.get())

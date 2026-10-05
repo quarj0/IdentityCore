@@ -1,3 +1,4 @@
+from common.fields import environment_for_instance
 from django.utils import timezone
 
 from apps.uploads.models import Upload, UploadPurpose, UploadStatus
@@ -17,17 +18,22 @@ PURPOSE_STORAGE_SEGMENT = {
 
 
 def build_upload_storage_key(*, verification, purpose: str, upload_id: str) -> str:
-    return (
+    from common.tenant_storage import route_key
+    return route_key(verification, (
         f"organizations/{verification.organization.public_id}"
         f"/verifications/{verification.public_id}"
         f"/{PURPOSE_STORAGE_SEGMENT[purpose]}/{upload_id}"
-    )
+    ))
 
 
 def build_signed_upload_url(*, upload: Upload) -> str:
     return build_presigned_upload_url(
         storage_key=upload.storage_key,
+        tenant_scope=upload.tenant.public_id,
+        environment=environment_for_instance(upload),
         mime_type=upload.mime_type,
+        content_length=upload.file_size_bytes,
+        expires_in_seconds=int((upload.expires_at - timezone.now()).total_seconds()),
         bucket_name=get_object_storage_temp_bucket_name(),
     )
 

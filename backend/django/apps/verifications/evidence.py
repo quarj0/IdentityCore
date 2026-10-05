@@ -1,3 +1,4 @@
+from common.fields import environment_for_instance
 import json
 
 from django.conf import settings
@@ -17,19 +18,19 @@ EVIDENCE_OBJECT_ENCRYPTION_PURPOSE = "evidence.reports"
 
 
 def build_verification_evidence_storage_key(verification: Verification) -> str:
-    return (
-        f"organizations/{verification.organization.public_id}"
+    from common.tenant_storage import route_key
+    return route_key(verification, (f"organizations/{verification.organization.public_id}"
         f"/verifications/{verification.public_id}"
         f"/reports/verification-report.json"
-    )
+    ))
 
 
 def build_verification_evidence_pdf_storage_key(verification: Verification) -> str:
-    return (
-        f"organizations/{verification.organization.public_id}"
+    from common.tenant_storage import route_key
+    return route_key(verification, (f"organizations/{verification.organization.public_id}"
         f"/verifications/{verification.public_id}"
         f"/reports/verification-report.pdf"
-    )
+    ))
 
 
 def build_verification_evidence_download_url(
@@ -49,6 +50,8 @@ def build_verification_evidence_download_url(
         return None
     return build_signed_download_url(
         storage_key=storage_key,
+        tenant_scope=verification.tenant.public_id,
+        environment=environment_for_instance(verification),
         filename=f"{verification.public_id}-verification-report.json",
         bucket_name=bucket_name,
     )
@@ -73,6 +76,8 @@ def build_verification_evidence_pdf_download_url(
         return None
     return build_signed_download_url(
         storage_key=storage_key,
+        tenant_scope=verification.tenant.public_id,
+        environment=environment_for_instance(verification),
         filename=f"{verification.public_id}-verification-report.pdf",
         bucket_name=bucket_name,
     )

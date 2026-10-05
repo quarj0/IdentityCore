@@ -128,3 +128,34 @@ class TenantKMSBinding(PublicIdModel, BaseModel):
                 name="tenant_kms_unique_active",
             )
         ]
+
+
+class RetainedStorageRouteQuerySet(models.QuerySet):
+    def delete(self):
+        from django.core.exceptions import ValidationError
+        raise ValidationError("Retain storage routes for object and backup recovery.")
+
+
+class TenantStorageRoute(PublicIdModel, BaseModel):
+    objects = RetainedStorageRouteQuerySet.as_manager()
+    public_id_prefix = "tsr"
+    tenant = models.ForeignKey(Tenant, on_delete=models.PROTECT)
+    environment = models.CharField(max_length=16, choices=[("sandbox", "Sandbox"), ("production", "Production")])
+    bucket = models.CharField(max_length=63)
+    residency_region = models.CharField(max_length=64)
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["tenant", "environment"], condition=models.Q(active=True), name="tenant_storage_unique_active")]
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            previous = type(self).objects.get(pk=self.pk)
+            if any(getattr(previous, field) != getattr(self, field) for field in ("tenant_id", "environment", "bucket", "residency_region", "public_id", "deleted_at")):
+                from django.core.exceptions import ValidationError
+                raise ValidationError("Storage routes are immutable; create a replacement route.")
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        from django.core.exceptions import ValidationError
+        raise ValidationError("Retain storage routes for object and backup recovery.")
