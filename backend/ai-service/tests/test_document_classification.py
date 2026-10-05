@@ -16,18 +16,18 @@ def _mrz_check_digit(value: str) -> str:
     return str(total % 10)
 
 
-def _build_valid_td3_mrz(passport_number: str = "A1234567") -> tuple[str, str]:
+def _build_valid_td3_mrz(passport_number: str = "A1234567", *, issuer: str = "GHA") -> tuple[str, str]:
     passport_number = passport_number[:9].ljust(9, "<")
     birth = "900101"
     expiry = "300101"
     optional = "<<<<<<<<<<<<<<<"
-    line1 = "P<UTOEXAMPLE<<TEST<<<<<<<<<<<<<<<<<<<<<<<<<<"
+    line1 = f"P<{issuer.ljust(3, chr(60))}EXAMPLE<<TEST<<<<<<<<<<<<<<<<<<<<<<<<<<"
     line1 = line1[:44].ljust(44, "<")
     passport_check = _mrz_check_digit(passport_number)
     birth_check = _mrz_check_digit(birth)
     expiry_check = _mrz_check_digit(expiry)
     line2_body = (
-        f"{passport_number}{passport_check}UTO"
+        f"{passport_number}{passport_check}GHA"
         f"{birth}{birth_check}M"
         f"{expiry}{expiry_check}"
         f"{optional}"
@@ -82,6 +82,8 @@ def test_classify_recognizes_enabled_west_african_passports():
     }
 
     for country_code, phrase in country_phrases.items():
+        issuer = {"NG": "NGA", "SN": "SEN", "TG": "TGO", "CI": "CIV"}[country_code]
+        line1, line2 = _build_valid_td3_mrz(issuer=issuer)
         result = classify_document(
             build_ocr_lines([phrase, line1, line2], [0.96, 0.98, 0.98]),
             expected_document_type="passport",
@@ -190,7 +192,7 @@ def test_passport_mrz_validation_covers_common_failures():
 
 
 def test_passport_with_valid_mrz_is_recognized_even_with_weak_visible_wording():
-    line1, line2 = _build_valid_td3_mrz()
+    line1, line2 = _build_valid_td3_mrz(issuer="USA")
     result = classify_document(
         build_ocr_lines(["passport", line1, line2], [0.4, 0.95, 0.95]),
         expected_document_type="passport",
@@ -263,4 +265,22 @@ def test_document_classification_policy_is_configurable(monkeypatch):
         country_code="GH",
     )
 
+    assert result["classification_status"] == "recognized"
+
+
+def test_valid_passport_cannot_be_relabelled_as_another_country():
+    for claimed_country in ("GH", "NG", "US", "ZZ"):
+        line1, line2 = _build_valid_td3_mrz(issuer="SEN")
+        result = classify_document(
+            build_ocr_lines(["PASSPORT", line1, line2], [0.99] * 3),
+            expected_document_type="passport", country_code=claimed_country,
+        )
+        assert result["classification_status"] == "unknown"
+        assert "passport_issuing_country_mismatch" in result["issues"]
+        assert result["workflow_action"] == "continue_with_review"
+
+
+def test_german_icao_issuer_is_bound_to_germany():
+    line1, line2 = _build_valid_td3_mrz(issuer="D")
+    result = classify_document(build_ocr_lines(["PASSPORT", line1, line2], [0.99]*3), expected_document_type="passport", country_code="DE")
     assert result["classification_status"] == "recognized"
