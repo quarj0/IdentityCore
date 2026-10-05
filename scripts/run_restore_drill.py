@@ -253,7 +253,7 @@ def main():
         restored = restore_backup(directory, workspace)
         # Verify decryption of application fields using separately provided keys.
         assert sorted(
-            Tenant.objects.values_list("settings_json", flat=True),
+            (tenant.settings_json for tenant in Tenant.objects.all()),
             key=lambda d: d["synthetic_restore_marker"],
         ) == [{"synthetic_restore_marker": 1}, {"synthetic_restore_marker": 2}]
         api_client = Client()
