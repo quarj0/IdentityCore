@@ -178,6 +178,7 @@ if (
             "PASSWORD": os.getenv("POSTGRES_PASSWORD", "identitycore"),
             "HOST": os.getenv("POSTGRES_HOST", "localhost"),
             "PORT": os.getenv("POSTGRES_PORT", "5432"),
+            "OPTIONS": {"connect_timeout": 3},
         }
     }
 else:
@@ -232,6 +233,8 @@ AUTH_USER_MODEL = "accounts.PlatformUser"
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", REDIS_URL)
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", REDIS_URL)
+DEPLOYMENT_DRAIN_FILE = os.getenv("DEPLOYMENT_DRAIN_FILE", "/tmp/identitycore-draining")
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_TASK_ALWAYS_EAGER = False
 CELERY_TASK_EAGER_PROPAGATES = False
 CELERY_TASK_DEFAULT_QUEUE = "default"

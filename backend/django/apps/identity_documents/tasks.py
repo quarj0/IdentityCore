@@ -132,6 +132,8 @@ def _latest_provider_check_for_document(
 
 @shared_task(
     queue="ai_processing",
+    acks_late=True,
+    reject_on_worker_lost=True,
     autoretry_for=(AIServiceUnavailable,),
     retry_backoff=15,
     retry_backoff_max=120,

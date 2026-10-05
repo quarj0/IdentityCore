@@ -106,7 +106,7 @@ jobs:
       - name: Apply migrations to an empty PostgreSQL database
         run: uv run --project backend python backend/django/manage.py migrate --noinput
       - name: Test concurrent idempotency, human decisions and audit chains on PostgreSQL
-        run: uv run --project backend python backend/django/manage.py test apps.verifications.test_failure_injection apps.verification_sessions.test_handoff_races.MobileHandoffRaceTests apps.risk.test_reuse_races.ReuseFingerprintRaceTests apps.providers.test_system_provider_races.SystemProviderCreationRaceTests apps.accounts.test_session_races.DashboardSessionRaceTests apps.accounts.test_invitation_races.InvitationRaceTests apps.api_clients.test_usage apps.api_clients.test_idempotency apps.risk.test_decision_races apps.risk.test_external_races apps.providers.test_manifest_races --verbosity 1
+        run: uv run --project backend python backend/django/manage.py test apps.verifications.test_failure_injection apps.verifications.test_deployment_rollout apps.verification_sessions.test_handoff_races.MobileHandoffRaceTests apps.risk.test_reuse_races.ReuseFingerprintRaceTests apps.providers.test_system_provider_races.SystemProviderCreationRaceTests apps.accounts.test_session_races.DashboardSessionRaceTests apps.accounts.test_invitation_races.InvitationRaceTests apps.api_clients.test_usage apps.api_clients.test_idempotency apps.risk.test_decision_races apps.risk.test_external_races apps.providers.test_manifest_races --verbosity 1
 
   ai-service:
     runs-on: ubuntu-latest
@@ -282,6 +282,15 @@ jobs:
           if [ -n "${IDENTITYCORE_COMPAT_SERVER_PID:-}" ]; then
             kill -- "-${IDENTITYCORE_COMPAT_SERVER_PID}" 2>/dev/null || kill "${IDENTITYCORE_COMPAT_SERVER_PID}" 2>/dev/null || true
           fi
+
+  deployment-health-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m unittest discover -s scripts -p test_deployment_health.py
 
   deployment-security-fixtures:
     runs-on: ubuntu-latest
