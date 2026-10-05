@@ -11,6 +11,7 @@ from apps.audit.services import lock_audit_chain, record_audit_event
 from apps.verifications.models import (
     ReviewQueue,
     ReviewQueueEntry,
+    ReviewQueueMember,
     Verification,
     VerificationReviewOwner,
     VerificationStatus,
@@ -218,9 +219,16 @@ def assign_next(queue, *, actor, request=None):
             else:
                 workload = workload.filter(project__environment="production")
             load = workload.count()
+            from django.db.models import Max
+
+            last_assignment = ReviewQueueMember.objects.filter(
+                queue__tenant_id=queue.tenant_id,
+                queue__environment=queue.environment,
+                user_id=member.user_id,
+            ).aggregate(last=Max("last_assigned_at"))["last"]
             return (
                 load,
-                member.last_assigned_at
+                last_assignment
                 or timezone.datetime.min.replace(
                     tzinfo=timezone.get_current_timezone()
                 ),
@@ -232,8 +240,11 @@ def assign_next(queue, *, actor, request=None):
         case.assigned_reviewer = chosen.user
         case.assigned_at = now
         case.save(update_fields=["assigned_reviewer", "assigned_at", "updated_at"])
-        chosen.last_assigned_at = now
-        chosen.save(update_fields=["last_assigned_at", "updated_at"])
+        ReviewQueueMember.objects.filter(
+            queue__tenant_id=queue.tenant_id,
+            queue__environment=queue.environment,
+            user_id=chosen.user_id,
+        ).update(last_assigned_at=now, updated_at=now)
         record_audit_event(
             tenant=case.tenant,
             actor=actor,

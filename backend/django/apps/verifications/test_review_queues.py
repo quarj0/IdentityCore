@@ -198,6 +198,38 @@ class ReviewQueueTests(TestCase):
         client.force_authenticate(self.platform_reviewer)
         self.assertEqual(client.get(url).status_code, 403)
 
+    def test_fair_recency_is_shared_across_queues_but_not_environments(self):
+        first_queue = self.queue(priority=10)
+        second_user = PlatformUser.objects.create_user(
+            email="cross-queue@example.test",
+            password="SyntheticPassword123!",
+            tenant=self.tenant,
+            status="active",
+        )
+        self.member(first_queue)
+        self.member(first_queue, second_user)
+        first_case = assign_next(first_queue, actor=self.tenant_reviewer)
+        serializer = ManualReviewDecisionSerializer(
+            data={"decision": "verified", "reason_code": "manual_verified"}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save(verification=first_case, decided_by=self.tenant_reviewer)
+        first_queue.active = False
+        first_queue.save()
+        second_queue = self.queue()
+        self.member(second_queue)
+        self.member(second_queue, second_user)
+        production_queue = self.queue()
+        production_queue.environment = "production"
+        production_queue.save()
+        production_member = self.member(production_queue)
+        self._create_case("Second Queue Case", metadata={})
+        case = assign_next(second_queue, actor=self.tenant_reviewer)
+        self.assertEqual(case.assigned_reviewer_id, second_user.pk)
+        self.assertIsNotNone(first_queue.members.get(user=second_user).last_assigned_at)
+        production_member.refresh_from_db()
+        self.assertIsNone(production_member.last_assigned_at)
+
     def test_deleted_subject_is_not_assigned(self):
         queue = self.queue()
         self.member(queue)
