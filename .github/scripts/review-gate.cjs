@@ -21,7 +21,7 @@ function assess({ head, reviewer, reviews, comments, threads, commits, runs, tru
   for (const name of ['CI', 'Security']) {
     const trusted = trustedWorkflows?.[name];
     if (!trusted?.definitionMatches) problems.push(`${name} workflow definition differs from trusted default-branch content.`);
-    const latest = runs.filter(r => trusted && r.workflow_id === trusted.id && r.path === trusted.path && r.head_sha === head && r.event === 'pull_request')
+    const latest = runs.filter(r => trusted && r.workflow_id === trusted.id && typeof r.path === 'string' && r.path.split('@', 1)[0] === trusted.path && r.head_sha === head && r.event === 'pull_request')
       .sort((a, b) => b.id - a.id)[0];
     if (!latest || latest.status !== 'completed' || latest.conclusion !== 'success') problems.push(`${name} has not passed for the final head.`);
   }

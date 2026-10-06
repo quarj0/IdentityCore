@@ -105,6 +105,19 @@ test('PR-controlled workflow names cannot substitute for trusted checks', () => 
 });
 
 
+test('ref-qualified workflow paths retain trusted identity checks', () => {
+  for (const ref of ['main', 'refs/pull/123/merge', 'feature/nested']) {
+    const input = baseline();
+    input.runs.forEach(run => { run.path += `@${ref}`; });
+    assert.deepEqual(assess(input), []);
+    input.runs[0].workflow_id = 999;
+    assert.equal(assess(input).length, 1);
+    input.runs[0].workflow_id = 1;
+    input.runs[0].path = `.github/workflows/impostor.yml@${ref}`;
+    assert.equal(assess(input).length, 1);
+  }
+});
+
 test('changed trusted workflow definitions fail even with valid workflow identities', () => {
   for (const name of ['CI', 'Security']) {
     const input = baseline();
