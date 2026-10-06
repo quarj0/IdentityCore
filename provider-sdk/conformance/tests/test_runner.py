@@ -4,6 +4,7 @@ import sys
 import threading
 import time
 import unittest
+from unittest.mock import patch
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -157,6 +158,42 @@ class ProviderConformanceRunnerTests(unittest.TestCase):
             passed,
             ["success", "malformed", "replay", "version_negotiation", "timeout"],
         )
+
+    def test_fixture_cannot_replace_loopback_origin_or_change_signed_target(self):
+        for path in ("https://example.com/private", "//example.com/private", "relative", "/conformance?secret=x", "/conformance#fragment", None):
+            with self.subTest(path=path):
+                suite = runner.load_suite(self.fixture_path)
+                suite["path"] = path
+                with patch.object(runner, "load_suite", return_value=suite), patch.object(runner, "_send") as send:
+                    with self.assertRaises(runner.ConformanceError):
+                        runner.run_suite(base_url="http://127.0.0.1:8080", fixture_path=self.fixture_path,
+                            key_id="test-key", secret="test-secret", timeout=0.1)
+                    send.assert_not_called()
+
+    def test_timeout_must_precede_the_published_delay(self):
+        for timeout in (0, -1, 0.5, 1, 10):
+            with self.subTest(timeout=timeout), patch.object(runner, "_send") as send:
+                with self.assertRaises(runner.ConformanceError):
+                    runner.run_suite(base_url="http://127.0.0.1:8080", fixture_path=self.fixture_path,
+                        key_id="test-key", secret="test-secret", timeout=timeout)
+                send.assert_not_called()
+
+    def test_version_negotiation_requires_a_list_of_strings(self):
+        case = next(case for case in runner.load_suite(self.fixture_path)["cases"] if case["id"] == "version_negotiation")
+        for versions in ("1", None, {"1": True}, ["1", 2], ["2"], ["1"]):
+            with self.subTest(versions=versions), patch.object(runner, "_verify_response_signature"):
+                result = runner.HTTPResult(status=case["expected_status"][0],
+                    headers={"content-type": "application/json"}, body=runner.canonical_json({
+                        "error": {"code": case["expected_error"], "retryable": False},
+                        "supported_contract_versions": versions,
+                    }))
+                kwargs = dict(case=case, result=result, path="/identitycore/conformance",
+                    nonce="test", key_id="test-key", secret="test-secret")
+                if versions == ["1"]:
+                    runner._validate_result(**kwargs)
+                else:
+                    with self.assertRaises(runner.ConformanceError):
+                        runner._validate_result(**kwargs)
 
     def test_response_signature_failure_is_reported_without_body_content(self):
         result = runner.HTTPResult(
