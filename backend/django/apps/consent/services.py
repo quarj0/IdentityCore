@@ -120,7 +120,11 @@ def build_proof(
     }
 
 
-def active_consent(verification, scope=None):
+class ConsentProofUnavailable(RuntimeError):
+    """Encrypted proof could not be inspected; processing must retry safely."""
+
+
+def active_consent(verification, scope=None, *, raise_on_unavailable=False):
     case = Verification.objects.select_related(
         "tenant", "project", "verification_subject"
     ).get(pk=verification.pk)
@@ -186,7 +190,11 @@ def active_consent(verification, scope=None):
         if type(proof.get("notice_version")) is not int or proof["notice_version"] < 1:
             return None
         return record
-    except (ValueError, TypeError):
+    except ValueError:
+        if raise_on_unavailable:
+            raise ConsentProofUnavailable("Consent proof is temporarily unavailable.") from None
+        return None
+    except TypeError:
         return None
 
 

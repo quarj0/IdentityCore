@@ -375,9 +375,17 @@ def acquire_processing_job(*, job_type: str, resource) -> ProcessingJob | None:
     if is_draining():
         return None
     now = timezone.now()
-    from apps.consent.services import active_consent
+    from apps.consent.services import active_consent, ConsentProofUnavailable
     scope = "document" if job_type == ProcessingJobType.IDENTITY_DOCUMENT else "biometrics"
-    if active_consent(resource.verification, scope) is None:
+    try:
+        consent = active_consent(resource.verification, scope, raise_on_unavailable=True)
+    except ConsentProofUnavailable:
+        ProcessingJob.objects.filter(
+            job_type=job_type, resource_public_id=resource.public_id,
+            status=ProcessingJobStatus.QUEUED,
+        ).update(error_code="consent_key_unavailable", heartbeat_at=now, lease_expires_at=_lease_deadline(now))
+        return None
+    if consent is None:
         ProcessingJob.objects.filter(job_type=job_type, resource_public_id=resource.public_id,
             status=ProcessingJobStatus.QUEUED).update(status=ProcessingJobStatus.EXHAUSTED,
                 error_code="consent_unavailable", completed_at=now, heartbeat_at=now, lease_expires_at=now)
