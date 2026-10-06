@@ -240,3 +240,16 @@ test('final review must follow the latest fixing disposition on the same SHA', (
   input.comments[0].created_at = '2026-01-03T00:00:00Z';
   assert.deepEqual(assess(input), []);
 });
+
+test('resolver evidence edits require a later final-head review', () => {
+  const input = baseline();
+  input.threads = [{id: 'edited-evidence', isResolved: true, resolvedBy: {login: 'maintainer'}, comments: {nodes: [
+    {author: {login: reviewer}, body: 'Finding', createdAt: '2026-01-01T00:00:00Z'},
+    {author: {login: 'maintainer'}, body: `Inapplicable in ${fixed}; validation passes.`, createdAt: '2026-01-02T00:00:00Z', updatedAt: '2026-03-01T00:00:00Z'},
+  ]}}];
+  assert.match(assess(input).join(' '), /after the latest resolver evidence/);
+  input.reviews[0].submitted_at = '2026-03-02T00:00:00Z';
+  assert.deepEqual(assess(input), []);
+  input.threads[0].comments.nodes[1].updatedAt = 'invalid';
+  assert.match(assess(input).join(' '), /no fixing-commit/);
+});

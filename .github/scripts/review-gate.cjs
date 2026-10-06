@@ -40,11 +40,11 @@ function assess({ head, reviewer, reviews, comments, threads, commits, runs, tru
     const lastFeedback = Math.max(...feedbackTimes);
     const evidence = feedbackTimes.length > 0 && feedbackTimes.every(Number.isFinite) && nodes.filter(c =>
       c.author?.login === thread.resolvedBy?.login &&
-      Date.parse(c.createdAt) > lastFeedback &&
+      Date.parse(c.updatedAt || c.createdAt) > lastFeedback &&
       /\b(test|tests|validation|regression|passed|passes|superseded|inapplicable)\b/i.test(c.body) &&
       [...c.body.matchAll(/\b([0-9a-f]{7,40})\b/g)].some(m => commits.some(sha => sha.startsWith(m[1])))
     );
-    if (evidence && evidence.length) evidenceTimes.push(Math.max(...evidence.map(c => Date.parse(c.createdAt))));
+    if (evidence && evidence.length) evidenceTimes.push(Math.max(...evidence.map(c => Date.parse(c.updatedAt || c.createdAt))));
     if (!evidence || !evidence.length) problems.push(`Resolved thread ${thread.id} has no fixing-commit and validation evidence from its resolver.`);
   }
   if (reviewed && evidenceTimes.length) {
