@@ -253,3 +253,34 @@ test('resolver evidence edits require a later final-head review', () => {
   input.threads[0].comments.nodes[1].updatedAt = 'invalid';
   assert.match(assess(input).join(' '), /no fixing-commit/);
 });
+
+test('latest resolver disposition must still attest to a tested fixing commit', () => {
+  const input = baseline();
+  const nodes = [
+    {author: {login: reviewer}, body: 'Finding', createdAt: '2026-01-01T00:00:00Z'},
+    {author: {login: 'maintainer'}, body: `Fixed in ${fixed}; tests pass.`, createdAt: '2026-01-02T00:00:00Z'},
+    {author: {login: 'maintainer'}, body: 'The fix is still incomplete.', createdAt: '2026-01-03T00:00:00Z', updatedAt: '2026-02-02T00:00:00Z'}
+  ];
+  input.threads = [{id: 'retracted', isResolved: true, resolvedBy: {login: 'maintainer'}, comments: {nodes}}];
+  assert.match(assess(input).join(' '), /no fixing-commit and validation evidence/);
+  nodes[2].body = `Fixed in ${fixed}; regression tests pass.`;
+  assert.match(assess(input).join(' '), /after the latest resolver evidence/);
+  input.reviews[0].submitted_at = '2026-02-03T00:00:00Z';
+  assert.deepEqual(assess(input), []);
+  nodes[2].updatedAt = 'invalid';
+  assert.match(assess(input).join(' '), /no fixing-commit and validation evidence/);
+});
+
+test('default-branch updates attempt every open PR even when one assessment fails', async () => {
+  const { runOpenPullRequests } = require('./review-gate.cjs');
+  const attempted = [];
+  const github = {
+    rest: {pulls: {list: Symbol('list'), get: async ({pull_number}) => {
+      attempted.push(pull_number);
+      throw new Error('synthetic assessment failure');
+    }}},
+    paginate: async () => [{number: 11}, {number: 12}]
+  };
+  await assert.rejects(runOpenPullRequests({github, context: {repo: {owner: 'synthetic', repo: 'test'}}}), /PR #11.*synthetic assessment failure/);
+  assert.deepEqual(attempted, [11, 12]);
+});

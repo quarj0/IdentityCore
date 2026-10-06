@@ -38,9 +38,13 @@ function assess({ head, reviewer, reviews, comments, threads, commits, runs, tru
     const feedback = nodes.filter(c => c.author?.login !== thread.resolvedBy?.login);
     const feedbackTimes = feedback.map(c => Date.parse(c.updatedAt || c.createdAt));
     const lastFeedback = Math.max(...feedbackTimes);
-    const evidence = feedbackTimes.length > 0 && feedbackTimes.every(Number.isFinite) && nodes.filter(c =>
-      c.author?.login === thread.resolvedBy?.login &&
-      Date.parse(c.updatedAt || c.createdAt) > lastFeedback &&
+    const dispositions = nodes.filter(c => c.author?.login === thread.resolvedBy?.login);
+    const dispositionTimes = dispositions.map(c => Date.parse(c.updatedAt || c.createdAt));
+    const latestDisposition = Math.max(...dispositionTimes);
+    const evidence = feedbackTimes.length > 0 && feedbackTimes.every(Number.isFinite) &&
+      dispositionTimes.every(Number.isFinite) && dispositions.filter(c =>
+      Date.parse(c.updatedAt || c.createdAt) === latestDisposition &&
+      latestDisposition > lastFeedback &&
       /\b(test|tests|validation|regression|passed|passes|superseded|inapplicable)\b/i.test(c.body) &&
       [...c.body.matchAll(/\b([0-9a-f]{7,40})\b/g)].some(m => commits.some(sha => sha.startsWith(m[1])))
     );
@@ -156,4 +160,18 @@ async function run({ github, context }) {
   }
 }
 
-module.exports = { assess, run };
+async function runOpenPullRequests({ github, context }) {
+  const { owner, repo } = context.repo;
+  const pullRequests = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
+  const failures = [];
+  for (const pr of pullRequests) {
+    try {
+      await run({ github, context: { ...context, payload: { pull_request: { number: pr.number } } } });
+    } catch (error) {
+      failures.push(`PR #${pr.number}: ${error.message}`);
+    }
+  }
+  if (failures.length) throw new Error(failures.join('\n'));
+}
+
+module.exports = { assess, run, runOpenPullRequests };
