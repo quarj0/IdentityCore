@@ -757,6 +757,7 @@ def _apply_route_final_action(
     processing_job=None,
 ) -> str:
     from apps.audit.services import record_audit_event
+    from apps.verifications.decision_contract import system_decision_contract_fields
     from apps.notifications.services import queue_verification_status_notifications
     from apps.webhooks.services import queue_webhook_events
     from apps.verifications.models import (
@@ -827,6 +828,7 @@ def _apply_route_final_action(
             "decision": target_status,
             "decision_type": VerificationDecisionType.SYSTEM,
             "reason_code": "provider_route_exhausted",
+            **system_decision_contract_fields(verification, "provider_route_exhausted"),
             "reason_detail": (
                 "Automated providers could not complete the requested capability."
             ),

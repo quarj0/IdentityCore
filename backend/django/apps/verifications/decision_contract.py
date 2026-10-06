@@ -4,6 +4,15 @@ from apps.providers.models import ProviderCheck
 DECISION_CONTRACT_VERSION = "1"
 
 
+def system_decision_contract_fields(verification, reason_code: str) -> dict:
+    """Replace the contract alongside a system decision, including on updates."""
+    return {
+        "contract_version": DECISION_CONTRACT_VERSION,
+        "reason_codes_json": [reason_code],
+        "input_snapshot_json": build_decision_input_snapshot(verification),
+    }
+
+
 def build_decision_input_snapshot(verification, *, risk_assessment=None) -> dict:
     provider_checks = ProviderCheck.objects.filter(
         verification=verification
