@@ -14,6 +14,7 @@ function assess({ head, reviewer, reviews, comments, threads, commits, runs, tru
   const problems = [];
   for (const name of ['CI', 'Security']) {
     const trusted = trustedWorkflows?.[name];
+    if (!trusted?.definitionMatches) problems.push(`${name} workflow definition differs from trusted default-branch content.`);
     const latest = runs.filter(r => trusted && r.workflow_id === trusted.id && r.path === trusted.path && r.head_sha === head && r.event === 'pull_request')
       .sort((a, b) => b.id - a.id)[0];
     if (!latest || latest.status !== 'completed' || latest.conclusion !== 'success') problems.push(`${name} has not passed for the final head.`);
@@ -24,7 +25,10 @@ function assess({ head, reviewer, reviews, comments, threads, commits, runs, tru
       problems.push(`Unresolved thread ${thread.id}.`);
       continue;
     }
-    const evidence = thread.comments.nodes.slice(1).some(c =>
+    const nodes = thread.comments.nodes;
+    const lastFinding = nodes.reduce((last, c, index) =>
+      c.author?.login !== thread.resolvedBy?.login ? index : last, 0);
+    const evidence = nodes.slice(lastFinding + 1).some(c =>
       c.author?.login === thread.resolvedBy?.login &&
       /\b(test|tests|validation|regression|passed|passes|superseded|inapplicable)\b/i.test(c.body) &&
       [...c.body.matchAll(/\b([0-9a-f]{7,40})\b/g)].some(m => commits.some(sha => sha.startsWith(m[1])))
@@ -63,9 +67,17 @@ async function run({ github, context }) {
   } while (cursor);
   const { data: workflowRuns } = await github.rest.actions.listWorkflowRunsForRepo({ owner, repo, head_sha: head, per_page: 100 });
   const trustedWorkflows = {};
+  const { data: repository } = await github.rest.repos.get({ owner, repo });
   for (const [name, file] of [['CI', 'ci.yml'], ['Security', 'security.yml']]) {
     const { data: workflow } = await github.rest.actions.getWorkflow({ owner, repo, workflow_id: file });
-    trustedWorkflows[name] = { id: workflow.id, path: `.github/workflows/${file}` };
+    const path = `.github/workflows/${file}`;
+    const [{ data: trustedDefinition }, { data: proposedDefinition }] = await Promise.all([
+      github.rest.repos.getContent({ owner, repo, path, ref: repository.default_branch }),
+      github.rest.repos.getContent({ owner, repo, path, ref: head })
+    ]);
+    trustedWorkflows[name] = { id: workflow.id, path,
+      definitionMatches: trustedDefinition.type === 'file' && proposedDefinition.type === 'file' &&
+        trustedDefinition.sha === proposedDefinition.sha };
   }
   const problems = assess({ head, trustedWorkflows, runs: workflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews, comments, threads, commits });
   if (threads.some(t => t.comments.pageInfo.hasNextPage)) problems.push('A thread exceeds the evidence page limit; review it explicitly.');

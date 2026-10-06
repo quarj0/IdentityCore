@@ -4,7 +4,7 @@ const { assess } = require('./review-gate.cjs');
 const head = 'a'.repeat(40);
 const fixed = 'b'.repeat(40);
 const reviewer = 'chatgpt-codex-connector';
-const baseline = () => ({ head, reviewer, trustedWorkflows: {CI: {id: 1, path: '.github/workflows/ci.yml'}, Security: {id: 2, path: '.github/workflows/security.yml'}}, commits: [head, fixed], runs: ['CI', 'Security'].map((name, index) => ({name, workflow_id: index + 1, path: `.github/workflows/${name === 'CI' ? 'ci' : 'security'}.yml`, head_sha: head, event: 'pull_request', id: 1, status: 'completed', conclusion: 'success'})), reviews: [{ user: { login: reviewer }, commit_id: head, state: 'COMMENTED' }], comments: [], threads: [] });
+const baseline = () => ({ head, reviewer, trustedWorkflows: {CI: {id: 1, definitionMatches: true, path: '.github/workflows/ci.yml'}, Security: {id: 2, definitionMatches: true, path: '.github/workflows/security.yml'}}, commits: [head, fixed], runs: ['CI', 'Security'].map((name, index) => ({name, workflow_id: index + 1, path: `.github/workflows/${name === 'CI' ? 'ci' : 'security'}.yml`, head_sha: head, event: 'pull_request', id: 1, status: 'completed', conclusion: 'success'})), reviews: [{ user: { login: reviewer }, commit_id: head, state: 'COMMENTED' }], comments: [], threads: [] });
 test('requires completed review of the current head', () => {
   for (const state of ['old', 'dismissed', 'absent']) {
     const input = baseline();
@@ -61,6 +61,8 @@ test('a head change during validation fails the check for the inspected SHA', as
     rest: {
       pulls: { get: async () => ({data: {state: 'open', head: {sha: ++reads === 1 ? head : fixed}}}), listReviews, listCommits },
       issues: {listComments},
+      repos: {get: async () => ({data: {default_branch: 'main'}}),
+        getContent: async () => ({data: {type: 'file', sha: fixed}})},
       actions: {getWorkflow: async ({workflow_id}) => ({data: {id: workflow_id === 'ci.yml' ? 1 : 2}}), listWorkflowRunsForRepo: async () => ({data: {workflow_runs: baseline().runs}})},
       checks: {create: async input => {published = input;}}
     },
@@ -99,5 +101,30 @@ test('PR-controlled workflow names cannot substitute for trusted checks', () => 
   input.runs[0].conclusion = 'success'; input.runs[0].path = '.github/workflows/impostor.yml';
   assert.equal(assess(input).length, 1);
   input.runs[0].path = '.github/workflows/ci.yml';
+  assert.deepEqual(assess(input), []);
+});
+
+
+test('changed trusted workflow definitions fail even with valid workflow identities', () => {
+  for (const name of ['CI', 'Security']) {
+    const input = baseline();
+    input.trustedWorkflows[name].definitionMatches = false;
+    assert.match(assess(input).join(' '), /definition differs/);
+  }
+  const input = baseline();
+  delete input.trustedWorkflows.CI.definitionMatches;
+  assert.match(assess(input).join(' '), /definition differs/);
+});
+
+test('later reviewer feedback requires a subsequent fixing disposition', () => {
+  const input = baseline();
+  const nodes = [{author: {login: reviewer}, body: 'Finding'},
+    {author: {login: 'maintainer'}, body: `Fixed in ${fixed}; tests pass.`},
+    {author: {login: reviewer}, body: 'The fix remains incomplete.'}];
+  input.threads = [{id: 'thread', isResolved: true, resolvedBy: {login: 'maintainer'}, comments: {nodes}}];
+  assert.match(assess(input).join(' '), /no fixing-commit/);
+  nodes.push({author: {login: 'maintainer'}, body: 'Resolved'});
+  assert.equal(assess(input).length, 1);
+  nodes.push({author: {login: 'maintainer'}, body: `Fixed in ${head}; regression tests pass.`});
   assert.deepEqual(assess(input), []);
 });
