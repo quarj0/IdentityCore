@@ -71,6 +71,24 @@ class IdentityCoreCliTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stderr, "")
 
+    @unittest.skipUnless(__import__("shutil").which("fish"), "Fish is unavailable")
+    def test_fish_completion_ignores_global_option_values(self) -> None:
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as directory:
+            script = Path(directory) / "identitycore.fish"
+            script.write_text(cli._completion_script("fish"))
+            def candidates(command):
+                result = subprocess.run(
+                    ["fish", "--no-config", "-c", 'source $argv[1]; complete -C $argv[2]', str(script), command],
+                    capture_output=True, text=True,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                return {line.split("\t")[0] for line in result.stdout.splitlines()}
+            self.assertIn("list", candidates("identitycore --profile list projects l"))
+            self.assertNotIn("list", candidates("identitycore --profile list projects create l"))
+            self.assertIn("--name", candidates("identitycore --profile create projects create --n"))
+
     def test_version(self) -> None:
         exit_code, output = self.run_cli("--version")
 

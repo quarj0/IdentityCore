@@ -432,25 +432,54 @@ if (( ! $+functions[compdef] )); then
   compinit
 fi
 compdef _identitycore identitycore"""
-    lines = ["# fish completion for identitycore", "complete -c identitycore -f"]
+    lines = ["""# fish completion for identitycore
+function __identitycore_position
+    set -l resource ''
+    set -l action ''
+    set -l skip_value 0
+    set -l words (commandline -opc)
+    for word in $words[2..-1]
+        if test $skip_value -eq 1
+            set skip_value 0
+            continue
+        end
+        switch $word
+            case --profile --environment --api-origin --client-id --client-secret --access-token --output
+                set skip_value 1
+            case '-*'
+                continue
+            case '*'
+                if test -z "$resource"
+                    set resource $word
+                else if test -z "$action"
+                    set action $word
+                end
+        end
+    end
+    test "$resource" = "$argv[1]"; or return 1
+    if test (count $argv) -gt 1
+        test "$action" = "$argv[2]"
+    else
+        test -z "$action"
+    end
+end
+complete -c identitycore -f"""]
     lines += [
-        f"complete -c identitycore -n '__fish_use_subcommand' -a '{name}'"
+        f"complete -c identitycore -n '__identitycore_position \"\"' -a '{name}'"
         for name in top.split()
     ]
     for name, actions in COMMANDS.items():
         lines.append(
-            f"complete -c identitycore -n '__fish_seen_subcommand_from {name}; "
-            f"and not __fish_seen_subcommand_from {actions}' -a '{actions}'"
+            f"complete -c identitycore -n '__identitycore_position {name}' -a '{actions}'"
         )
     lines.append(
-        "complete -c identitycore -n '__fish_seen_subcommand_from completion' "
+        "complete -c identitycore -n '__identitycore_position completion' "
         "-a 'bash zsh fish'"
     )
     for (resource, action), options in command_options.items():
         for option in options.split():
             lines.append(
-                f"complete -c identitycore -n '__fish_seen_subcommand_from {resource}; "
-                f"and __fish_seen_subcommand_from {action}' -l {option.removeprefix('--')}"
+                f"complete -c identitycore -n '__identitycore_position {resource} {action}' -l {option.removeprefix('--')}"
             )
     lines += [
         "complete -c identitycore -l profile -r",
