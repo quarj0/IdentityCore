@@ -214,8 +214,20 @@ def _commit_biometric_decision(
     return verification.status
 
 
-@transaction.atomic
 def _finalize_unavailable_biometrics(
+    *, verification, liveness_check, face_match, processing_job, error
+) -> str:
+    # Object-store moves cannot roll back. Persist promotion independently of
+    # the decision/outbox transaction so recovery does not move missing temp data.
+    promote_upload_to_media_by_storage_key(liveness_check.selfie_capture.storage_key)
+    return _persist_unavailable_biometric_decision(
+        verification=verification, liveness_check=liveness_check,
+        face_match=face_match, processing_job=processing_job, error=error,
+    )
+
+
+@transaction.atomic
+def _persist_unavailable_biometric_decision(
     *, verification, liveness_check, face_match, processing_job, error
 ) -> str:
     from apps.risk.services import _automatic_conflict
@@ -680,13 +692,13 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                 face_match.matched_at = now
                 face_match.save(update_fields=["status", "matched_at", "updated_at"])
 
-            return _finalize_unavailable_biometrics(
-                verification=verification,
-                liveness_check=liveness_check,
-                face_match=face_match,
-                processing_job=processing_job,
-                error=exc,
-            )
+        return _finalize_unavailable_biometrics(
+            verification=verification,
+            liveness_check=liveness_check,
+            face_match=face_match,
+            processing_job=processing_job,
+            error=exc,
+        )
 
     promote_upload_to_media_by_storage_key(selfie_capture.storage_key)
     return _finalize_biometric_decision(

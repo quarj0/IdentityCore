@@ -82,8 +82,10 @@ def test_classify_recognizes_enabled_west_african_passports():
     }
 
     for country_code, phrase in country_phrases.items():
+        from app.document_classification.mrz_countries import ISO_ALPHA2_TO_ALPHA3
+        issued_line1 = line1.replace("P<UTO", "P<" + ISO_ALPHA2_TO_ALPHA3[country_code])
         result = classify_document(
-            build_ocr_lines([phrase, line1, line2], [0.96, 0.98, 0.98]),
+            build_ocr_lines([phrase, issued_line1, line2], [0.96, 0.98, 0.98]),
             expected_document_type="passport",
             country_code=country_code,
         )
@@ -95,6 +97,7 @@ def test_classify_recognizes_enabled_west_african_passports():
 
 def test_classify_marks_mismatch_without_rejection():
     line1, line2 = _build_valid_td3_mrz()
+    line1 = line1.replace("P<UTO", "P<GHA")
     result = classify_document(
         build_ocr_lines(["PASSPORT", line1, line2], [0.95, 0.98, 0.98]),
         expected_document_type="national_id",
@@ -191,6 +194,7 @@ def test_passport_mrz_validation_covers_common_failures():
 
 def test_passport_with_valid_mrz_is_recognized_even_with_weak_visible_wording():
     line1, line2 = _build_valid_td3_mrz()
+    line1 = line1.replace("P<UTO", "P<USA")
     result = classify_document(
         build_ocr_lines(["passport", line1, line2], [0.4, 0.95, 0.95]),
         expected_document_type="passport",
@@ -264,3 +268,30 @@ def test_document_classification_policy_is_configurable(monkeypatch):
     )
 
     assert result["classification_status"] == "recognized"
+
+
+def test_passport_mrz_cannot_authorize_a_different_expected_country():
+    line1, line2 = _build_valid_td3_mrz()
+    line1 = line1.replace("P<UTO", "P<USA")
+    for country in ("GH", "NG", "ZZ"):
+        result = classify_document(
+            build_ocr_lines(["passport", line1, line2], [0.4, 0.95, 0.95]),
+            expected_document_type="passport", country_code=country,
+        )
+        assert result["requires_manual_review"] is True
+        assert result["matched_expected_document_type"] is not True
+        assert "passport_mrz_country_mismatch" in result["issues"]
+
+
+def test_foreign_passport_mrz_overrides_weaker_matching_id_wording():
+    line1, line2 = _build_valid_td3_mrz()
+    line1 = line1.replace("P<UTO", "P<USA")
+    result = classify_document(
+        build_ocr_lines(["PASSPORT", "ECOWAS IDENTITY CARD", line1, line2], [0.99] * 4),
+        expected_document_type="national_id", country_code="GH",
+    )
+    assert result["requires_manual_review"] is True
+    assert result["matched_expected_document_type"] is not True
+    assert result["workflow_action"] == "continue_with_review"
+    assert result["recommendation"] == "continue_with_review"
+    assert "passport_mrz_country_mismatch" in result["manual_review"]["reason_codes"]
