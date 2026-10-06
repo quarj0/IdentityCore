@@ -244,10 +244,12 @@ def run_suite(
     path = suite.get("path")
     if not isinstance(path, str) or not path.startswith("/") or path.startswith("//"):
         raise ConformanceError("The fixture path must be root-relative.")
+    if any(ord(character) <= 32 or ord(character) == 127 for character in path):
+        raise ConformanceError("The fixture path cannot contain whitespace or control characters.")
     if any(segment in {".", ".."} for segment in path.split("/")):
         raise ConformanceError("The fixture path cannot contain dot segments.")
     parsed_path = urlsplit(path)
-    if parsed_path.scheme or parsed_path.netloc or parsed_path.query or parsed_path.fragment:
+    if parsed_path.path != path or parsed_path.scheme or parsed_path.netloc or parsed_path.query or parsed_path.fragment:
         raise ConformanceError("The fixture path must contain only an absolute path.")
     parsed_base = urlsplit(base_url)
     if (

@@ -160,7 +160,7 @@ class ProviderConformanceRunnerTests(unittest.TestCase):
         )
 
     def test_fixture_cannot_replace_loopback_origin_or_change_signed_target(self):
-        for path in ("https://example.com/private", "//example.com/private", "relative", "/conformance?secret=x", "/conformance#fragment", "/signed/../actual", "/signed/./actual", None):
+        for path in ("https://example.com/private", "//example.com/private", "relative", "/conformance?secret=x", "/conformance#fragment", "/signed/../actual", "/signed/./actual", "/signed/\n../actual", "/signed/\t../actual", "/signed/\r../actual", "/signed/\x00actual", "/signed/\x7factual", "/signed/ actual", None):
             with self.subTest(path=path):
                 suite = runner.load_suite(self.fixture_path)
                 suite["path"] = path
