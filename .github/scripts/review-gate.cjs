@@ -126,15 +126,17 @@ async function run({ github, context }) {
   }
   const problems = assess({ head, trustedWorkflows, protectedDefinitions, runs: workflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews, comments, threads, commits });
   if (threads.some(t => t.comments.pageInfo.hasNextPage)) problems.push('A thread exceeds the evidence page limit; review it explicitly.');
-  const [currentReviews, currentComments, currentThreads, {data: current}] = await Promise.all([
+  const [currentReviews, currentComments, currentThreads, {data: current}, {data: currentWorkflowRuns}] = await Promise.all([
     github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number: number, per_page: 100 }),
     github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number, per_page: 100 }),
     fetchThreads(github, owner, repo, number),
-    github.rest.pulls.get({ owner, repo, pull_number: number })
+    github.rest.pulls.get({ owner, repo, pull_number: number }),
+    github.rest.actions.listWorkflowRunsForRepo({ owner, repo, head_sha: head, per_page: 100 })
   ]);
   if (JSON.stringify([reviews, comments, threads]) !== JSON.stringify([currentReviews, currentComments, currentThreads])) {
     problems.push('Mutable review evidence changed during validation; rerun against a stable snapshot.');
   }
+  problems.push(...assess({ head, trustedWorkflows, protectedDefinitions, runs: currentWorkflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews: currentReviews, comments: currentComments, threads: currentThreads, commits }));
   if (current.head.sha !== head) problems.push('Pull-request head moved during validation; rerun against its current head.');
   await github.rest.checks.update({ owner, repo, check_run_id: pendingCheck.id, status: 'completed',
     conclusion: problems.length ? 'failure' : 'success',

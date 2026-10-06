@@ -10,7 +10,7 @@ on:
     types: [created, edited, deleted]
   workflow_run:
     workflows: [CI, Security]
-    types: [completed]
+    types: [requested, in_progress, completed]
   workflow_dispatch:
     inputs:
       pr_number:

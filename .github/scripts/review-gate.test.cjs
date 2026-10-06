@@ -88,6 +88,23 @@ test('a head change during validation fails the check for the inspected SHA', as
     : method === listCommits ? [{sha: head}] : [];
   await assert.rejects(run({github, context: {repo: {owner: 'synthetic', repo: 'test'}, payload: {pull_request: {number: 1}}}}), /evidence changed/);
   assert.equal(published.conclusion, 'failure');
+  github.paginate = async method => method === listReviews ? baseline().reviews
+    : method === listCommits ? [{sha: head}] : [];
+  for (const state of ['queued', 'in_progress', 'failure']) {
+    let runReads = 0;
+    github.rest.actions.listWorkflowRunsForRepo = async () => {
+      const runs = baseline().runs;
+      if (++runReads > 1) {
+        runs[0].status = state === 'failure' ? 'completed' : state;
+        runs[0].conclusion = state === 'failure' ? 'failure' : null;
+        runs[0].run_attempt = 2;
+      }
+      return {data: {workflow_runs: runs}};
+    };
+    await assert.rejects(run({github, context: {repo: {owner: 'synthetic', repo: 'test'}, payload: {pull_request: {number: 1}}}}), /CI/);
+    assert.equal(runReads, 2);
+    assert.equal(published.conclusion, 'failure');
+  }
   reads = 0;
   started = undefined;
   github.paginate = async () => {
