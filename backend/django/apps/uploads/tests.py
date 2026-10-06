@@ -237,6 +237,21 @@ def _webm_video(*, track_type: int = 1, codec_id: bytes = b"V_VP9", flag_lacing=
 
 
 class UploadVideoInspectionTests(TestCase):
+    def test_webm_rejects_malformed_groups_even_beside_valid_blocks(self):
+        source = _webm_video()
+        timestamp = _ebml_element(b"\xe7", b"\x00")
+        block = _ebml_element(b"\xa3", b"\x81\x00\x00\x80video-frame")
+        group_block = _ebml_element(b"\xa1", b"\x81\x00\x00\x00frame")
+        old_cluster = _ebml_element(b"\x1f\x43\xb6\x75", timestamp + block)
+        for group in (_ebml_element(b"\xa0", b""), _ebml_element(b"\xa0", group_block * 2)):
+            for layout in (timestamp + group + block, timestamp + block + group):
+                with self.subTest(group=group, layout=layout):
+                    cluster = _ebml_element(b"\x1f\x43\xb6\x75", layout)
+                    content = source.replace(old_cluster, cluster)
+                    segment = content.index(b"\x18\x53\x80\x67")
+                    content = content[:segment + 4] + bytes([content[segment + 4] + len(cluster) - len(old_cluster)]) + content[segment + 5:]
+                    self.assert_video_result(content, "video/webm", expected_safe=False)
+
     def test_webm_rejects_multiple_tracks_elements(self):
         from apps.uploads.scanning import _ebml_elements
 

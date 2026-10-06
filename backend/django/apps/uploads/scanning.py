@@ -765,48 +765,40 @@ def _webm_block_has_frames(content: bytes, start: int, end: int, width: int) -> 
 
 def _webm_cluster_has_frame(
     content: bytes, start: int, end: int, video_tracks: dict[int, bool], budget: list[int]
-) -> bool:
+) -> bool | None:
     elements = _ebml_elements(content, start=start, end=end, budget=budget)
     if not elements:
-        return False
-    has_timestamp = any(
-        element_id == 0xE7
-        and not unknown_size
-        and _ebml_uint(content, payload_start, payload_end) is not None
-        for element_id, payload_start, payload_end, unknown_size in elements
-    )
+        return None
+    timestamps = [item for item in elements if item[0] == 0xE7]
+    if len(timestamps) != 1 or timestamps[0][3] or _ebml_uint(content, timestamps[0][1], timestamps[0][2]) is None:
+        return None
     has_block = False
     for element_id, payload_start, payload_end, unknown_size in elements:
         if unknown_size:
-            continue
+            return None
         if element_id == 0xA0:
-            group = _ebml_elements(
-                content, start=payload_start, end=payload_end, budget=budget
-            )
+            group = _ebml_elements(content, start=payload_start, end=payload_end, budget=budget)
             if not group:
-                continue
+                return None
             blocks = [item for item in group if item[0] == 0xA1]
             if len(blocks) != 1 or blocks[0][3]:
-                continue
-            block = blocks[0]
-            _, payload_start, payload_end, _ = block
+                return None
+            _, payload_start, payload_end, _ = blocks[0]
         elif element_id != 0xA3:
             continue
         if payload_end - payload_start <= 4:
-            continue
-        track_number = _read_ebml_vint(
-            content, payload_start, keep_marker=False, max_width=8
-        )
-        if (
-            track_number is not None
-            and track_number[0] in video_tracks
-            and _webm_block_has_frames(content, payload_start, payload_end, track_number[1])
-            and not content[payload_start + track_number[1] + 2] & (0xF1 if element_id == 0xA0 else 0x70)
-            and (video_tracks[track_number[0]] or not content[payload_start + track_number[1] + 2] & 0x06)
-        ):
+            return None
+        track_number = _read_ebml_vint(content, payload_start, keep_marker=False, max_width=8)
+        if track_number is None or not _webm_block_has_frames(content, payload_start, payload_end, track_number[1]):
+            return None
+        flags = content[payload_start + track_number[1] + 2]
+        if flags & (0xF1 if element_id == 0xA0 else 0x70):
+            return None
+        if track_number[0] in video_tracks:
+            if not video_tracks[track_number[0]] and flags & 0x06:
+                return None
             has_block = True
-            break
-    return has_timestamp and has_block
+    return has_block
 
 
 def _is_supported_webm_video(content: bytes) -> bool:
@@ -865,13 +857,14 @@ def _is_supported_webm_video(content: bytes) -> bool:
             if tracks is None or video_tracks.keys() & tracks.keys():
                 return False
             video_tracks.update(tracks)
-    has_cluster = any(
-        element_id == 0x1F43B675
-        and _webm_cluster_has_frame(
+    cluster_results = [
+        _webm_cluster_has_frame(
             content, payload_start, payload_end, video_tracks, budget
         )
         for element_id, payload_start, payload_end, _ in children
-    )
+        if element_id == 0x1F43B675
+    ]
+    has_cluster = any(cluster_results) and all(result is not None for result in cluster_results)
     return has_info and has_cluster and bool(video_tracks) and budget[0] >= 0
 
 
