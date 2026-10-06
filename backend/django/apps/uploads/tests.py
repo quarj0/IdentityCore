@@ -366,6 +366,28 @@ class UploadVideoInspectionTests(TestCase):
                     ranges = [(a, b) for kind, a, b in boxes if kind == b"mdat"]
                     self.assertIsNone(_iso_fragment_track_ids(content, boxes, ranges, [100_000]))
 
+    def test_malformed_traf_cannot_donate_an_earlier_implicit_base(self):
+        from apps.uploads.scanning import _iso_boxes, _iso_fragment_track_ids
+        valid_run = _iso_box(b"trun", b"\x00" * 4 + (1).to_bytes(4, "big"))
+        implicit_header = _iso_box(b"tfhd", b"\x00\x00\x00\x10" + (2).to_bytes(4, "big") + (3).to_bytes(4, "big"))
+        malformed_headers = [b"", implicit_header * 2,
+            _iso_box(b"tfhd", b"\x00" * 7),
+            _iso_box(b"tfhd", b"\x01" + b"\x00" * 3 + (2).to_bytes(4, "big")),
+            _iso_box(b"tfhd", b"\x00\x00\x00\x01" + (2).to_bytes(4, "big")),
+            _iso_box(b"tfhd", b"\x00\x00\x00\x02" + (2).to_bytes(4, "big"))]
+        for malformed in malformed_headers:
+            with self.subTest(malformed=malformed):
+                def movie(base):
+                    explicit = _iso_box(b"tfhd", b"\x00\x00\x00\x11" + (1).to_bytes(4, "big")
+                        + base.to_bytes(8, "big") + (3).to_bytes(4, "big"))
+                    return _iso_box(b"moof", _iso_box(b"traf", explicit + valid_run)
+                        + _iso_box(b"traf", malformed + valid_run)
+                        + _iso_box(b"traf", implicit_header + valid_run))
+                content = movie(len(movie(0)) + 8) + _iso_box(b"mdat", b"abcdefghi")
+                boxes = _iso_boxes(content)
+                ranges = [(a, b) for kind, a, b in boxes if kind == b"mdat"]
+                self.assertIsNone(_iso_fragment_track_ids(content, boxes, ranges, [100_000]))
+
     def test_fragment_sample_budget_is_shared_across_runs(self):
         from apps.uploads.scanning import _iso_boxes, _iso_fragment_track_ids
 

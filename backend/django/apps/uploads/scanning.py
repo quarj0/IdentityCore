@@ -216,47 +216,54 @@ def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
             8 if content[moof_start - 4 : moof_start] == b"moof" else 16
         )
         implicit_base = moof_offset
-        for child, start, end in (
-            _iso_boxes(content, start=moof_start, end=moof_end) or []
-        ):
+        children = _iso_boxes(content, start=moof_start, end=moof_end)
+        if children is None:
+            return None
+        for child, start, end in children:
             if child != b"traf":
                 continue
-            fragment = _iso_boxes(content, start=start, end=end) or []
+            fragment = _iso_boxes(content, start=start, end=end)
+            if fragment is None:
+                return None
             headers = [(a, b) for k, a, b in fragment if k == b"tfhd"]
             if len(headers) != 1:
-                continue
+                return None
             a, b = headers[0]
             if b - a < 8 or content[a] != 0:
-                continue
+                return None
             flags = int.from_bytes(content[a + 1 : a + 4], "big")
             track = int.from_bytes(content[a + 4 : a + 8], "big")
             cursor = a + 8
             base = moof_offset
             if flags & 1:
                 if cursor + 8 > b:
-                    continue
+                    return None
                 base = int.from_bytes(content[cursor : cursor + 8], "big")
                 cursor += 8
             elif not flags & 0x020000:
                 # First traf inherits the moof position; later traf boxes
                 # inherit the end of the previous fragment's sample data.
                 if implicit_base is None:
-                    continue
+                    return None
                 base = implicit_base
             size, description = defaults.get(track, (0, 1))
             if flags & 2:
                 if cursor + 4 > b:
-                    continue
+                    return None
                 description = int.from_bytes(content[cursor : cursor + 4], "big")
                 cursor += 4
             cursor += 4 * bool(flags & 8)
             if flags & 0x10:
                 if cursor + 4 > b:
-                    continue
+                    return None
                 size = int.from_bytes(content[cursor : cursor + 4], "big")
                 cursor += 4
             cursor += 4 * bool(flags & 0x20)
-            if cursor != b or flags & 0x010000:
+            if cursor != b:
+                return None
+            if flags & 0x010000:
+                # A legal duration-is-empty fragment supplies no data-end base.
+                implicit_base = None
                 continue
             previous_end = None
             implicit_base = None
