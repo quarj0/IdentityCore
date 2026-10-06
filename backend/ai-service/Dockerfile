@@ -21,6 +21,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY backend/pyproject.toml backend/uv.lock /app/backend/
+COPY backend/shared /app/backend/shared
 
 RUN uv export \
     --directory /app/backend \
@@ -30,9 +31,10 @@ RUN uv export \
     --group dev \
     --output-file /tmp/requirements-ai.txt \
     && pip install --no-cache-dir -r /tmp/requirements-ai.txt \
-    && pip install --no-cache-dir --force-reinstall opencv-contrib-python-headless==4.10.0.84
+    && pip uninstall -y opencv-python opencv-python-headless opencv-contrib-python opencv-contrib-python-headless \
+    && pip install --no-cache-dir --no-deps opencv-contrib-python-headless==4.10.0.84 \
+    && python /app/backend/shared/opencv_runtime.py
 
-COPY backend/shared /app/backend/shared
 COPY backend/ai-service /app/backend/ai-service
 
 WORKDIR /app/backend/ai-service
