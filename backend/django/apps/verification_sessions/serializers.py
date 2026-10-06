@@ -511,6 +511,12 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
             verification,
             _request_locale(request, verification.policy_snapshot_json or {}),
         )
+        from apps.consent.services import require_workflow_scope
+        try:
+            require_workflow_scope(artifact["evidence_scope"])
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.messages) from None
+
         submitted_artifact = {
             key: self.validated_data[key]
             for key in ("template_id", "version", "locale", "content_hash")

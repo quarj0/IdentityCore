@@ -20,6 +20,30 @@ ERROR = "Active consent for this purpose and evidence scope is required."
 SCOPES = {"document", "biometrics"}
 
 
+def require_workflow_scope(scopes):
+    # Current verification policies require document, selfie and liveness steps.
+    # Narrow proofs remain valid records but cannot configure this workflow.
+    if scopes is not None and (
+        not isinstance(scopes, list)
+        or any(not isinstance(item, str) for item in scopes)
+        or set(scopes) != SCOPES
+        or len(scopes) != len(SCOPES)
+    ):
+        raise ValidationError("This verification workflow requires document and biometrics consent scope.")
+
+
+def validate_policy_consent_scope(template, locales):
+    if template is None:
+        return
+    require_workflow_scope(template.evidence_scope_json)
+    translations = type(template).objects.filter(
+        tenant_id=template.tenant_id, name=template.name, version=template.version,
+        language__in=locales, status="active",
+    )
+    for translated in translations:
+        require_workflow_scope(translated.evidence_scope_json)
+
+
 def evidence_scope(verification, template=None):
     snapshot = (verification.policy_snapshot_json or {}).get("consent") or {}
     value = snapshot.get("evidence_scope")

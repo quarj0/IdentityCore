@@ -236,7 +236,7 @@ class UploadCreateTests(APITestCase):
         self.verification.save(update_fields=["policy_snapshot_json"])
         return accept_test_consent(self.verification)
 
-    @patch("apps.uploads.serializers.build_signed_upload_url")
+    @patch("apps.uploads.services.build_presigned_upload_url")
     def test_upload_creation_requires_accepted_consent(self, signed_url):
         from apps.consent.models import ConsentRecord
         ConsentRecord.objects.create(
@@ -293,7 +293,8 @@ class UploadCreateTests(APITestCase):
         self.assertEqual(response.status_code, 400)
         get.assert_not_called()
 
-    def test_create_upload_returns_expiring_upload_url(self):
+    @patch("apps.uploads.services.build_presigned_upload_url")
+    def test_create_upload_returns_consent_aware_transfer_path(self, presign):
         response = self.client.post(
             reverse("upload-create"),
             {
@@ -307,9 +308,7 @@ class UploadCreateTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(response.data["data"]["upload_id"].startswith("upl_"))
-        self.assertIn(
-            response.data["data"]["upload_id"], response.data["data"]["upload_url"]
-        )
+        self.assertEqual(response.data["data"]["upload_url"], "")
         self.assertEqual(
             response.data["data"]["upload_headers"],
             {
@@ -331,6 +330,7 @@ class UploadCreateTests(APITestCase):
             response.data["data"]["upload_complete_path"],
             f"/uploads/{upload.public_id}/complete",
         )
+        presign.assert_not_called()
         self.assertEqual(
             upload.storage_key,
             (

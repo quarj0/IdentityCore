@@ -107,9 +107,9 @@ class ConsentPurposeTests(TestCase):
             name="French",
             version=1,
             language="fr",
-            content="Document only",
+            content="French document and biometrics",
             status="active",
-            evidence_scope_json=["document"],
+            evidence_scope_json=["document", "biometrics"],
         )
         ConsentTemplate.objects.create(
             tenant=self.tenant,
@@ -138,8 +138,25 @@ class ConsentPurposeTests(TestCase):
         serializer.is_valid(raise_exception=True)
         record = serializer.save()
         self.assertEqual(record.consent_template_id, french.pk)
-        self.assertEqual(record.proof_json["evidence_scope"], ["document"])
-        self.assertIsNone(active_consent(self.tenant_case, "biometrics"))
+        self.assertEqual(record.proof_json["evidence_scope"], ["biometrics", "document"])
+        self.assertIsNotNone(active_consent(self.tenant_case, "biometrics"))
+
+    def test_legacy_document_only_notice_is_rejected_before_acceptance(self):
+        from types import SimpleNamespace
+        from rest_framework.exceptions import ValidationError
+        from apps.verification_sessions.serializers import VerificationSessionConsentSerializer
+        self.tenant_case.policy_snapshot_json = {"consent": {
+            "content": "Document only", "version": 1, "language": "en", "evidence_scope": ["document"],
+        }}
+        self.tenant_case.save(update_fields=["policy_snapshot_json"])
+        session = VerificationSession.objects.create(tenant=self.tenant, verification=self.tenant_case,
+            session_token_hash="synthetic-scope", expires_at=timezone.now() + timedelta(hours=1))
+        request = SimpleNamespace(verification_session=session, headers={}, META={})
+        serializer = VerificationSessionConsentSerializer(data={"accepted": True}, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        with self.assertRaisesMessage(ValidationError, "document and biometrics"):
+            serializer.save()
+        self.assertFalse(self.tenant_case.consent_records.exists())
 
     def test_only_platform_onboarding_can_process_while_tenant_is_pending(self):
         accept_test_consent(self.platform_case)

@@ -120,6 +120,8 @@ class VerificationPolicy(PublicIdModel, BaseModel):
     document_consistency_rules_json = models.JSONField(default=dict, blank=True)
 
     def snapshot(self) -> dict:
+        from apps.consent.services import validate_policy_consent_scope
+        validate_policy_consent_scope(self.consent_template, self.supported_locales_json or [self.default_locale])
         consent = None
         if self.consent_template_id:
             base_template = self.consent_template
