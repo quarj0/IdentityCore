@@ -411,7 +411,8 @@ def serialize_verification_session_status(
     latest_consent = verification.consent_records.order_by("-accepted_at", "-pk").first()
     from apps.verifications.transitions import TERMINAL_STATUSES
     unbound_legacy_consent = (
-        latest_consent is not None and latest_consent.proof_json is None
+        latest_consent is not None and (latest_consent.proof_json is None
+        or not {"document", "biometrics"}.issubset(latest_consent.proof_json.get("evidence_scope", [])))
         and latest_consent.withdrawn_at is None and verification.status not in TERMINAL_STATUSES
     )
     if unbound_legacy_consent:
@@ -547,13 +548,13 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
             except DjangoValidationError:
                 raise serializers.ValidationError("Active consent is unavailable; a withdrawn proof cannot be reused.") from None
             proof = existing_record.proof_json
-            if (proof["notice_version"], proof["locale"], proof["content_hash"]) != (artifact["version"], artifact["locale"], artifact["content_hash"]):
-                raise serializers.ValidationError("A different notice requires a new consent proof.")
-            existing_record._already_existing = True
-            if verification.status == VerificationStatus.PENDING_CONSENT:
-                transition_verification(verification, VerificationStatus.IN_PROGRESS)
-            return existing_record
-
+            if {"document", "biometrics"}.issubset(proof["evidence_scope"]):
+                if (proof["notice_version"], proof["locale"], proof["content_hash"]) != (artifact["version"], artifact["locale"], artifact["content_hash"]):
+                    raise serializers.ValidationError("A different notice requires a new consent proof.")
+                existing_record._already_existing = True
+                if verification.status == VerificationStatus.PENDING_CONSENT:
+                    transition_verification(verification, VerificationStatus.IN_PROGRESS)
+                return existing_record
         consent_template = ConsentTemplate.objects.filter(
             tenant=verification.tenant, public_id=artifact["template_id"]
         ).first()
