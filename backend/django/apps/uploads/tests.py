@@ -480,6 +480,32 @@ class UploadVideoInspectionTests(TestCase):
         )
         self.assert_video_result(content, "video/webm", expected_safe=True)
 
+    def test_webm_lacing_requires_complete_nonempty_frames(self):
+        # Rebuild both enclosing sizes so inspection reaches the lace payload.
+        original = _ebml_element(b"\xa3", b"\x81\x00\x00\x80video-frame")
+        old_cluster = _ebml_element(b"\x1f\x43\xb6\x75", _ebml_element(b"\xe7", b"\x00") + original)
+        layouts = [
+            (b"\x04\xff", False), (b"\x04\x01a", False),
+            (b"\x04\x01abcd", True), (b"\x04\x00a", False),
+            (b"\x02\x01\xff", False), (b"\x02\x01\x05abcd", False),
+            (b"\x02\x01\x02abcd", True), (b"\x02\x01\x00abcd", False),
+            (b"\x06\x01\x82abcd", True), (b"\x06\x01\x82ab", False),
+            (b"\x06\x02\x82\xbfabcdef", True),
+            (b"\x06\x02\x82\xbcd", False), (b"\x06\x01\x00abc", False),
+        ]
+        for grouped in (False, True):
+            for lace, safe in layouts:
+                with self.subTest(grouped=grouped, lace=lace):
+                    payload = b"\x81\x00\x00" + lace
+                    block = _ebml_element(b"\xa1" if grouped else b"\xa3", payload)
+                    if grouped:
+                        block = _ebml_element(b"\xa0", block)
+                    cluster = _ebml_element(b"\x1f\x43\xb6\x75", _ebml_element(b"\xe7", b"\x00") + block)
+                    content = _webm_video().replace(old_cluster, cluster)
+                    segment = content.index(b"\x18\x53\x80\x67")
+                    content = content[:segment + 4] + bytes([content[segment + 4] + len(cluster) - len(old_cluster)]) + content[segment + 5:]
+                    self.assert_video_result(content, "video/webm", expected_safe=safe)
+
     def test_webm_accepts_omitted_default_header_values(self):
         content = _webm_video()
         header_end = 5 + (content[4] & 0x7F)

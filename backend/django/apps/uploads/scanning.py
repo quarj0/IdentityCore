@@ -671,6 +671,47 @@ def _webm_video_track_numbers(
     return video_tracks
 
 
+def _webm_block_has_frames(content: bytes, start: int, end: int, width: int) -> bool:
+    cursor = start + width + 3
+    if cursor >= end:
+        return False
+    lacing = content[cursor - 1] & 0x06
+    if not lacing:
+        return True
+    count = content[cursor] + 1
+    cursor += 1
+    if count < 2:
+        return False
+    if lacing == 0x04:
+        return end - cursor >= count and (end - cursor) % count == 0
+    sizes = []
+    if lacing == 0x02:
+        for _ in range(count - 1):
+            size = 0
+            while True:
+                if cursor >= end:
+                    return False
+                value = content[cursor]
+                cursor += 1
+                size += value
+                if value != 255:
+                    break
+            if size <= 0:
+                return False
+            sizes.append(size)
+    else:
+        for index in range(count - 1):
+            value = _read_ebml_vint(content, cursor, keep_marker=False, max_width=8)
+            if value is None or cursor + value[1] > end:
+                return False
+            cursor += value[1]
+            size = value[0] if index == 0 else sizes[-1] + value[0] - ((1 << (7 * value[1] - 1)) - 1)
+            if size <= 0:
+                return False
+            sizes.append(size)
+    return end - cursor > sum(sizes)
+
+
 def _webm_cluster_has_frame(
     content: bytes, start: int, end: int, video_tracks: set[int], budget: list[int]
 ) -> bool:
@@ -709,7 +750,7 @@ def _webm_cluster_has_frame(
         if (
             track_number is not None
             and track_number[0] in video_tracks
-            and payload_end - payload_start > track_number[1] + 3
+            and _webm_block_has_frames(content, payload_start, payload_end, track_number[1])
         ):
             has_block = True
             break
