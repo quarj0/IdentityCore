@@ -61,6 +61,7 @@ identitycore completion bash >> ~/.bashrc
 identitycore completion zsh >> ~/.zshrc
 
 # Fish
+mkdir -p ~/.config/fish/completions
 identitycore completion fish > ~/.config/fish/completions/identitycore.fish
 ```
 

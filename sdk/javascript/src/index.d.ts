@@ -11,7 +11,7 @@ export class IdentityCoreAPIError extends IdentityCoreError {
   requestId: string;
   details: Record<string, unknown>;
 }
-export interface VerificationSubjectInput {
+export interface VerificationSubjectClientInput {
   fullName?: string;
   full_name?: string;
   email?: string;
@@ -27,8 +27,8 @@ export interface VerificationCreateInput {
   policy_id?: string;
   projectId?: string;
   project_id?: string;
-  verificationSubject?: VerificationSubjectInput;
-  verification_subject?: VerificationSubjectInput;
+  verificationSubject?: VerificationSubjectClientInput;
+  verification_subject?: VerificationSubjectClientInput;
   externalReference?: string;
   external_reference?: string;
   redirectUrl?: string;

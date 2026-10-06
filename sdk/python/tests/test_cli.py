@@ -50,6 +50,27 @@ class IdentityCoreCliTests(unittest.TestCase):
                 self.assertIn(purpose_option, output)
                 self.assertIn("bash", output)
 
+    def test_leaf_help_labels_identifiers_as_arguments(self) -> None:
+        code, output = self.run_cli("policies", "get", "--help")
+        self.assertEqual(code, 0)
+        self.assertIn("ARGUMENTS:", output)
+        self.assertNotIn("COMMANDS:", output)
+        self.assertIn("policy_id", output)
+
+    @unittest.skipUnless(__import__("shutil").which("zsh"), "Zsh is unavailable")
+    def test_zsh_completion_initializes_in_a_fresh_shell(self) -> None:
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as directory:
+            script = Path(directory) / "identitycore.zsh"
+            script.write_text(cli._completion_script("zsh"))
+            result = subprocess.run(
+                ["zsh", "-f", "-c", 'source "$1"; [[ ${_comps[identitycore]} == _identitycore ]]', "zsh", str(script)],
+                capture_output=True, text=True, env={**os.environ, "ZDOTDIR": directory},
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stderr, "")
+
     def test_version(self) -> None:
         exit_code, output = self.run_cli("--version")
 

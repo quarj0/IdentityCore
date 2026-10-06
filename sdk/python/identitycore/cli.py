@@ -29,21 +29,7 @@ COMMANDS = {
     "verifications": "list get create cancel evidence",
     "policies": "list get",
 }
-COMMAND_OPTIONS = {
-    ("verifications", "create"): (
-        "--purpose --policy-id --full-name --email --project-id "
-        "--external-reference --redirect-url --idempotency-key"
-    ),
-    ("verifications", "evidence"): "--file --pdf",
-    ("projects", "create"): "--name --environment",
-    ("api-clients", "create"): (
-        "--name --project-id --scopes --allowed-network --idempotency-key"
-    ),
-    ("workflows", "create"): "--name --project-id --definition",
-    ("webhooks", "create"): (
-        "--url --event --project-id --description --idempotency-key"
-    ),
-}
+
 
 
 class _HelpFormatter(argparse.RawDescriptionHelpFormatter):
@@ -60,7 +46,10 @@ class _ArgumentParser(argparse.ArgumentParser):
         text = super().format_help()
         for old, new in {
             "usage:": "USAGE:\n ",
-            "positional arguments:\n": "COMMANDS:\n",
+            "positional arguments:\n": (
+                "COMMANDS:\n" if any(isinstance(action, argparse._SubParsersAction) for action in self._actions)
+                else "ARGUMENTS:\n"
+            ),
             "options:\n": "OPTIONS:\n",
         }.items():
             text = text.replace(old, new)
@@ -358,6 +347,16 @@ Documentation: https://docs.identitycore.com/cli""",
 
 
 def _completion_script(shell: str) -> str:
+    command_options = {}
+    parser = _build_parser()
+    root = next(action for action in parser._actions if isinstance(action, argparse._SubParsersAction))
+    for resource, resource_parser in root.choices.items():
+        for subcommands in resource_parser._actions:
+            if isinstance(subcommands, argparse._SubParsersAction):
+                for action_name, action_parser in subcommands.choices.items():
+                    command_options[(resource, action_name)] = " ".join(
+                        option for action in action_parser._actions for option in action.option_strings
+                    )
     top = "login profiles health policies verifications projects api-clients workflows templates webhooks completion"
     if shell == "bash":
         resource_cases = "\n".join(
@@ -365,7 +364,7 @@ def _completion_script(shell: str) -> str:
         )
         action_cases = "\n".join(
             f'      {resource}:{action}) opts="{options}" ;;'
-            for (resource, action), options in COMMAND_OPTIONS.items()
+            for (resource, action), options in command_options.items()
         )
         return f"""# bash completion for identitycore
 _identitycore_completion() {{
@@ -397,7 +396,7 @@ complete -F _identitycore_completion identitycore"""
         )
         action_cases = "\n".join(
             f"    {resource}:{action}) _values option {options} ;;"
-            for (resource, action), options in COMMAND_OPTIONS.items()
+            for (resource, action), options in command_options.items()
         )
         resource_cases = "\n".join(
             f"      {name}) _values action {actions} ;;"
@@ -428,6 +427,10 @@ _identitycore() {{
     esac ;;
   esac
 }}
+if (( ! $+functions[compdef] )); then
+  autoload -Uz compinit
+  compinit
+fi
 compdef _identitycore identitycore"""
     lines = ["# fish completion for identitycore", "complete -c identitycore -f"]
     lines += [
@@ -436,13 +439,14 @@ compdef _identitycore identitycore"""
     ]
     for name, actions in COMMANDS.items():
         lines.append(
-            f"complete -c identitycore -n '__fish_seen_subcommand_from {name}' -a '{actions}'"
+            f"complete -c identitycore -n '__fish_seen_subcommand_from {name}; "
+            f"and not __fish_seen_subcommand_from {actions}' -a '{actions}'"
         )
     lines.append(
         "complete -c identitycore -n '__fish_seen_subcommand_from completion' "
         "-a 'bash zsh fish'"
     )
-    for (resource, action), options in COMMAND_OPTIONS.items():
+    for (resource, action), options in command_options.items():
         for option in options.split():
             lines.append(
                 f"complete -c identitycore -n '__fish_seen_subcommand_from {resource}; "
