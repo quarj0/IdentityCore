@@ -7,6 +7,7 @@ from django.db.models import Prefetch, Q
 from django.utils import timezone
 
 from apps.providers.models import (
+    Provider,
     ProviderCheck,
     ProviderCheckStatus,
     ProviderCircuitState,
@@ -160,7 +161,6 @@ def provider_health_scope(
     checks_query = ProviderCheck.objects.filter(
         tenant=tenant,
         started_at__gte=since,
-        status__in=TERMINAL_HEALTH_STATUSES,
     )
     if environment == "sandbox":
         checks_query = checks_query.filter(
@@ -173,6 +173,13 @@ def provider_health_scope(
         )
     if provider_id:
         checks_query = checks_query.filter(provider_id__in=provider_filter_ids)
+    providers = {
+        provider.pk: provider
+        for provider in Provider.objects.filter(pk__in=checks_query.values("provider_id")).only(
+            "id", "public_id", "code", "name", "status"
+        )
+    }
+    checks_query = checks_query.filter(status__in=TERMINAL_HEALTH_STATUSES)
     checks = list(
         checks_query.select_related("provider")
         .only(
@@ -193,7 +200,6 @@ def provider_health_scope(
 
     checks_by_provider = defaultdict(list)
     checks_by_provider_capability = defaultdict(list)
-    providers = {}
     for check in checks:
         checks_by_provider[check.provider_id].append(check)
         checks_by_provider_capability[(check.provider_id, check.check_type)].append(
