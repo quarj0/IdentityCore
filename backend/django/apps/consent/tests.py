@@ -216,6 +216,29 @@ class ConsentPurposeTests(TestCase):
         repeated.is_valid(raise_exception=True)
         self.assertEqual(repeated.save().pk, fresh.pk)
 
+    def test_acceptance_rejects_terminal_and_elapsed_cases_without_writes(self):
+        from types import SimpleNamespace
+        from apps.verification_sessions.serializers import VerificationSessionConsentSerializer
+        from rest_framework.exceptions import ValidationError
+
+        for state in ("verified", "rejected", "cancelled", "expired", "failed", "elapsed"):
+            with self.subTest(state=state):
+                self.tenant_case.status = "pending_consent" if state == "elapsed" else state
+                self.tenant_case.expires_at = timezone.now() + timedelta(hours=-1 if state == "elapsed" else 1)
+                self.tenant_case.save(update_fields=["status", "expires_at"])
+                session = VerificationSession.objects.create(tenant=self.tenant, verification=self.tenant_case,
+                    session_token_hash="terminal-consent-" + state, expires_at=timezone.now() + timedelta(hours=1))
+                request = SimpleNamespace(verification_session=session, headers={}, META={})
+                serializer = VerificationSessionConsentSerializer(data={"accepted": True}, context={"request": request})
+                serializer.is_valid(raise_exception=True)
+                records = ConsentRecord.objects.filter(verification=self.tenant_case).count()
+                with self.assertRaisesMessage(ValidationError, "terminal or expired"):
+                    serializer.save()
+                self.assertEqual(ConsentRecord.objects.filter(verification=self.tenant_case).count(), records)
+                session.refresh_from_db()
+                self.assertIsNone(session.started_at)
+                self.assertEqual(session.status, "created")
+
     def test_reconsent_preserves_progressed_workflow_states(self):
         from types import SimpleNamespace
         from apps.verification_sessions.serializers import VerificationSessionConsentSerializer
