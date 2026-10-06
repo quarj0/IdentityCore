@@ -1,4 +1,5 @@
 import hashlib
+import hmac
 import json
 
 from apps.accounts.models import PlatformUser
@@ -9,29 +10,21 @@ from apps.audit.models import AuditActorType, AuditEvent
 def verify_audit_chain(*, tenant_id: int | str) -> tuple[bool, str]:
     previous_hash = ""
     for event in AuditEvent.objects.filter(tenant_id=tenant_id).order_by("id"):
-        payload = {
-            "tenant_id": event.tenant_id,
-            "actor_type": event.actor_type,
-            "actor_id": event.actor_id,
-            "action": event.action,
-            "target_type": event.target_type,
-            "target_id": event.target_id,
-            "ip_address": event.ip_address,
-            "user_agent": event.user_agent,
-            "device_fingerprint": event.device_fingerprint,
-            "metadata_json": event.metadata_json,
-            "sensitive_metadata_hash": event.sensitive_metadata_hash,
-            "previous_event_hash": event.previous_event_hash,
-            "created_at": event.created_at.isoformat(),
-        }
-        expected = hashlib.sha256(
-            json.dumps(
-                payload, sort_keys=True, default=str, separators=(",", ":")
-            ).encode()
-        ).hexdigest()
+        from apps.audit.integrity import event_authentication, event_hash
+
+        try:
+            expected = event_hash(event)
+            authenticated = bool(
+                event.integrity_key_id and event.authentication_tag
+            ) and hmac.compare_digest(
+                event.authentication_tag, event_authentication(event)
+            )
+        except (ValueError, TypeError, KeyError):
+            return False, event.public_id
         if (
             event.previous_event_hash != previous_hash
-            or event.integrity_hash != expected
+            or not hmac.compare_digest(event.integrity_hash, expected)
+            or not authenticated
         ):
             return False, event.public_id
         previous_hash = event.integrity_hash

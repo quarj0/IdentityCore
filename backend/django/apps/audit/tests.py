@@ -1,5 +1,9 @@
 from datetime import timedelta
 
+from django.core.exceptions import ValidationError
+from django.db import connection
+from django.test import override_settings
+
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -118,7 +122,10 @@ class AuditEventTests(APITestCase):
         self.client.force_authenticate(self.user)
 
         response = self.client.post(
-            reverse("manual-review-decision", kwargs={"verification_id": verification.public_id}),
+            reverse(
+                "manual-review-decision",
+                kwargs={"verification_id": verification.public_id},
+            ),
             {
                 "decision": "verified",
                 "reason_code": "evidence_confirmed",
@@ -193,7 +200,11 @@ class AuditEventTests(APITestCase):
 
         self.assertEqual(second.previous_event_hash, first.integrity_hash)
         self.assertEqual(verify_audit_chain(tenant_id=self.tenant.pk), (True, ""))
-        AuditEvent.objects.filter(pk=first.pk).update(action="tampered")
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "UPDATE audit_auditevent SET action = %s WHERE id = %s",
+                ["tampered", first.pk],
+            )
         self.assertEqual(verify_audit_chain(tenant_id=self.tenant.pk)[0], False)
 
     def test_audit_events_cannot_be_updated_or_deleted(self):
@@ -206,3 +217,161 @@ class AuditEventTests(APITestCase):
         )
         with self.assertRaises(Exception):
             event.delete()
+
+    def create_event(self, **kwargs):
+        return AuditEvent.objects.create(
+            tenant=self.tenant,
+            actor_type="system",
+            action="test.integrity",
+            target_type="test",
+            target_id="one",
+            **kwargs,
+        )
+
+    def test_queryset_and_admin_mutations_are_blocked(self):
+        from django.contrib.admin.sites import AdminSite
+        from apps.audit.admin import AuditEventAdmin
+
+        event = self.create_event()
+        for operation in (
+            lambda: AuditEvent.objects.filter(pk=event.pk).delete(),
+            lambda: AuditEvent.objects.filter(pk=event.pk).update(action="changed"),
+            lambda: AuditEvent._base_manager.filter(pk=event.pk).delete(),
+            lambda: AuditEvent.objects.bulk_update([event], ["action"]),
+            lambda: AuditEvent.objects.bulk_create([AuditEvent(tenant=self.tenant)]),
+        ):
+            with self.assertRaises(ValidationError):
+                operation()
+        model_admin = AuditEventAdmin(AuditEvent, AdminSite())
+        self.assertFalse(model_admin.has_add_permission(None))
+        self.assertFalse(model_admin.has_change_permission(None, event))
+        self.assertFalse(model_admin.has_delete_permission(None, event))
+        self.assertNotIn(
+            "delete_selected",
+            model_admin.get_actions(type("Request", (), {"GET": {}})()),
+        )
+
+    def test_creation_time_is_assigned_and_ipv6_round_trips(self):
+        before = timezone.now()
+        event = self.create_event(
+            created_at=before - timedelta(days=365),
+            ip_address="2001:0db8:0000:0000:0000:0000:0000:0001",
+        )
+        event.refresh_from_db()
+        self.assertGreaterEqual(event.created_at, before)
+        self.assertEqual(event.ip_address, "2001:db8::1")
+        self.assertEqual(verify_audit_chain(tenant_id=self.tenant.pk), (True, ""))
+
+    def test_public_id_tampering_is_detected(self):
+        event = self.create_event()
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "UPDATE audit_auditevent SET public_id = %s WHERE id = %s",
+                ["aud_forged", event.pk],
+            )
+        self.assertEqual(
+            verify_audit_chain(tenant_id=self.tenant.pk), (False, "aud_forged")
+        )
+
+    def test_recomputed_unkeyed_hash_and_version_downgrade_fail(self):
+        from apps.audit.integrity import event_hash
+
+        event = self.create_event()
+        for version in (2, 1):
+            event.action = "forged"
+            event.integrity_version = version
+            forged_hash = event_hash(event)
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "UPDATE audit_auditevent SET action = %s, integrity_version = %s, integrity_hash = %s WHERE id = %s",
+                    [event.action, version, forged_hash, event.pk],
+                )
+            self.assertEqual(
+                verify_audit_chain(tenant_id=self.tenant.pk), (False, event.public_id)
+            )
+
+    def test_rotated_keys_verify_retained_history_and_missing_keys_fail_closed(self):
+        import base64
+
+        old = "old:" + base64.urlsafe_b64encode(b"a" * 32).decode()
+        new = "new:" + base64.urlsafe_b64encode(b"b" * 32).decode()
+        with override_settings(
+            APPLICATION_ENCRYPTION_KEYRING=old,
+            APPLICATION_ENCRYPTION_ACTIVE_KEY_ID="old",
+        ):
+            first = self.create_event()
+        with override_settings(
+            APPLICATION_ENCRYPTION_KEYRING=new + "," + old,
+            APPLICATION_ENCRYPTION_ACTIVE_KEY_ID="new",
+        ):
+            second = self.create_event()
+            self.assertEqual(second.previous_event_hash, first.integrity_hash)
+            self.assertEqual(verify_audit_chain(tenant_id=self.tenant.pk), (True, ""))
+        with override_settings(
+            APPLICATION_ENCRYPTION_KEYRING=new,
+            APPLICATION_ENCRYPTION_ACTIVE_KEY_ID="new",
+        ):
+            self.assertEqual(
+                verify_audit_chain(tenant_id=self.tenant.pk), (False, first.public_id)
+            )
+
+    def test_legacy_backfill_preserves_hashes_and_authenticates_public_id(self):
+        import importlib
+        from types import SimpleNamespace
+        from apps.audit.integrity import event_hash
+
+        event = self.create_event()
+        event.integrity_version = 1
+        legacy_hash = event_hash(event)
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "UPDATE audit_auditevent SET integrity_version = 1, integrity_hash = %s, authentication_tag = '', integrity_key_id = '' WHERE id = %s",
+                [legacy_hash, event.pk],
+            )
+
+        class HistoricalQuerySet(type(AuditEvent.objects.all())):
+            def update(self, **kwargs):
+                from django.db.models import QuerySet
+
+                return QuerySet.update(self, **kwargs)
+
+        historical = SimpleNamespace(
+            objects=HistoricalQuerySet(model=AuditEvent, using=connection.alias)
+        )
+        migration = importlib.import_module(
+            "apps.audit.migrations.0004_alter_auditevent_options_and_more"
+        )
+        migration.authenticate_existing_events(
+            SimpleNamespace(get_model=lambda *args: historical),
+            SimpleNamespace(connection=connection),
+        )
+        event.refresh_from_db()
+        self.assertEqual(event.integrity_hash, legacy_hash)
+        self.assertEqual(verify_audit_chain(tenant_id=self.tenant.pk), (True, ""))
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "UPDATE audit_auditevent SET public_id = %s WHERE id = %s",
+                ["aud_legacy_forged", event.pk],
+            )
+        self.assertEqual(
+            verify_audit_chain(tenant_id=self.tenant.pk), (False, "aud_legacy_forged")
+        )
+
+    def test_legacy_authentication_refuses_corrupted_history(self):
+        import importlib
+        from types import SimpleNamespace
+
+        event = self.create_event()
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "UPDATE audit_auditevent SET action = %s WHERE id = %s",
+                ["tampered", event.pk],
+            )
+        migration = importlib.import_module(
+            "apps.audit.migrations.0004_alter_auditevent_options_and_more"
+        )
+        with self.assertRaisesRegex(RuntimeError, "Audit chain preflight failed"):
+            migration.authenticate_existing_events(
+                SimpleNamespace(get_model=lambda *args: AuditEvent),
+                SimpleNamespace(connection=connection),
+            )
