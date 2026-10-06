@@ -486,6 +486,14 @@ class UploadVideoInspectionTests(TestCase):
                 second_fragment = source[first_moof:].replace(original_header, _iso_box(b"mfhd", b"\x00" * 4 + second.to_bytes(4, "big")))
                 self.assert_video_result(first_fragment + second_fragment, "video/mp4", expected_safe=safe)
 
+    def test_track_extends_defaults_reject_reserved_flags(self):
+        source = _fragmented_iso_video()
+        marker = b"trex" + b"\x00" * 4
+        self.assertIn(marker, source)
+        for flags in (1, 0x100, 0x10000):
+            with self.subTest(flags=flags):
+                self.assert_video_result(source.replace(marker, b"trex" + flags.to_bytes(4, "big")), "video/mp4", expected_safe=False)
+
     def test_fragment_headers_reject_reserved_and_conflicting_flags(self):
         source = _fragmented_iso_video()
         for kind, original, invalid in (

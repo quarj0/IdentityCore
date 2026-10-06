@@ -192,14 +192,14 @@ def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
             for entry, entry_start, entry_end in (
                 _iso_boxes(content, start=child_start, end=child_end) or []
             ):
-                if (
-                    entry == b"trex"
-                    and entry_end - entry_start == 24
-                    and content[entry_start] == 0
-                ):
+                if entry == b"trex":
+                    if entry_end - entry_start != 24 or content[entry_start : entry_start + 4] != b"\x00" * 4:
+                        return None
                     track = int.from_bytes(
                         content[entry_start + 4 : entry_start + 8], "big"
                     )
+                    if track == 0 or track in defaults:
+                        return None
                     defaults[track] = (
                         int.from_bytes(
                             content[entry_start + 16 : entry_start + 20], "big"
