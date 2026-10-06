@@ -231,6 +231,7 @@ def _persist_unavailable_biometric_decision(
     *, verification, liveness_check, face_match, processing_job, error
 ) -> str:
     from apps.risk.services import _automatic_conflict
+    from apps.verifications.decision_contract import system_decision_contract_fields
 
     current = Verification.objects.select_for_update(of=("self",), no_key=True).get(
         pk=verification.pk
@@ -250,6 +251,7 @@ def _persist_unavailable_biometric_decision(
             "decision": VerificationStatus.MANUAL_REVIEW_REQUIRED,
             "decision_type": VerificationDecisionType.SYSTEM,
             "reason_code": "biometric_provider_unavailable",
+            **system_decision_contract_fields(verification, "biometric_provider_unavailable"),
             "reason_detail": (
                 "Biometric processing was unavailable. The submitted evidence "
                 "requires human review."

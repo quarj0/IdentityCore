@@ -577,6 +577,7 @@ def defer_processing_job(job: ProcessingJob, *, error_code: str) -> None:
 def exhaust_processing_job(job: ProcessingJob) -> None:
     """Route terminal retry exhaustion to human review with safe audit evidence."""
     from apps.biometrics.models import LivenessCheck, LivenessCheckStatus
+    from apps.verifications.decision_contract import system_decision_contract_fields
     from apps.identity_documents.models import IdentityDocument, IdentityDocumentStatus
 
     now = timezone.now()
@@ -661,6 +662,7 @@ def exhaust_processing_job(job: ProcessingJob) -> None:
                     "decision": VerificationStatus.MANUAL_REVIEW_REQUIRED,
                     "decision_type": VerificationDecisionType.SYSTEM,
                     "reason_code": "processing_retries_exhausted",
+                    **system_decision_contract_fields(verification, "processing_retries_exhausted"),
                     "reason_detail": (
                         "Automated processing could not finish after bounded recovery "
                         "attempts and requires human review."
