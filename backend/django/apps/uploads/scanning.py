@@ -219,6 +219,12 @@ def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
         children = _iso_boxes(content, start=moof_start, end=moof_end)
         if children is None:
             return None
+        movie_headers = [(a, b) for k, a, b in children if k == b"mfhd"]
+        if len(movie_headers) != 1:
+            return None
+        a, b = movie_headers[0]
+        if b - a != 8 or content[a : a + 4] != b"\x00" * 4:
+            return None
         for child, start, end in children:
             if child != b"traf":
                 continue

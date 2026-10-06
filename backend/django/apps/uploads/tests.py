@@ -274,7 +274,7 @@ class UploadVideoInspectionTests(TestCase):
             return _iso_box(b"traf", header + _iso_box(b"trun", payload))
 
         def movie(offset):
-            return _iso_box(b"moof", traf(1, offset) + traf(2))
+            return _iso_box(b"moof", _iso_box(b"mfhd", b"\x00" * 4 + (1).to_bytes(4, "big")) + traf(1, offset) + traf(2))
 
         content = movie(len(movie(0)) + 8) + _iso_box(b"mdat", b"abcdef")
         boxes = _iso_boxes(content)
@@ -334,7 +334,7 @@ class UploadVideoInspectionTests(TestCase):
                 + (1000).to_bytes(4, "big", signed=True),
             )
             following = _iso_box(b"trun", b"\x00" * 4 + (1).to_bytes(4, "big"))
-            return _iso_box(b"moof", _iso_box(b"traf", header + invalid + following))
+            return _iso_box(b"moof", _iso_box(b"mfhd", b"\x00" * 4 + (1).to_bytes(4, "big")) + _iso_box(b"traf", header + invalid + following))
 
         content = movie(len(movie(0)) + 8) + _iso_box(b"mdat", b"abcdef")
         boxes = _iso_boxes(content)
@@ -360,7 +360,7 @@ class UploadVideoInspectionTests(TestCase):
                             + (1).to_bytes(4, "big") + base.to_bytes(8, "big") + (3).to_bytes(4, "big"))
                         valid = _iso_box(b"trun", b"\x00" * 4 + (1).to_bytes(4, "big"))
                         runs = (valid if preceding_valid else b"") + _iso_box(b"trun", payload) + valid
-                        return _iso_box(b"moof", _iso_box(b"traf", header + runs))
+                        return _iso_box(b"moof", _iso_box(b"mfhd", b"\x00" * 4 + (1).to_bytes(4, "big")) + _iso_box(b"traf", header + runs))
                     content = movie(len(movie(0)) + 8) + _iso_box(b"mdat", b"abcdefghi")
                     boxes = _iso_boxes(content)
                     ranges = [(a, b) for kind, a, b in boxes if kind == b"mdat"]
@@ -380,7 +380,7 @@ class UploadVideoInspectionTests(TestCase):
                 def movie(base):
                     explicit = _iso_box(b"tfhd", b"\x00\x00\x00\x11" + (1).to_bytes(4, "big")
                         + base.to_bytes(8, "big") + (3).to_bytes(4, "big"))
-                    return _iso_box(b"moof", _iso_box(b"traf", explicit + valid_run)
+                    return _iso_box(b"moof", _iso_box(b"mfhd", b"\x00" * 4 + (1).to_bytes(4, "big")) + _iso_box(b"traf", explicit + valid_run)
                         + _iso_box(b"traf", malformed + valid_run)
                         + _iso_box(b"traf", implicit_header + valid_run))
                 content = movie(len(movie(0)) + 8) + _iso_box(b"mdat", b"abcdefghi")
@@ -398,7 +398,7 @@ class UploadVideoInspectionTests(TestCase):
                 def movie(offset):
                     header = _iso_box(b"tfhd", b"\x00\x02\x00\x10" + (2).to_bytes(4, "big") + (3).to_bytes(4, "big"))
                     valid = _iso_box(b"trun", b"\x00\x00\x00\x01" + (1).to_bytes(4, "big") + offset.to_bytes(4, "big"))
-                    return _iso_box(b"moof", invalid_empty + _iso_box(b"traf", header + valid))
+                    return _iso_box(b"moof", _iso_box(b"mfhd", b"\x00" * 4 + (1).to_bytes(4, "big")) + invalid_empty + _iso_box(b"traf", header + valid))
                 content = movie(len(movie(0)) + 8) + _iso_box(b"mdat", b"abc")
                 boxes = _iso_boxes(content)
                 ranges = [(a, b) for kind, a, b in boxes if kind == b"mdat"]
@@ -418,7 +418,7 @@ class UploadVideoInspectionTests(TestCase):
                 + (60_000).to_bytes(4, "big")
                 + offset.to_bytes(4, "big", signed=True),
             )
-            return _iso_box(b"moof", _iso_box(b"traf", header + run + run))
+            return _iso_box(b"moof", _iso_box(b"mfhd", b"\x00" * 4 + (1).to_bytes(4, "big")) + _iso_box(b"traf", header + run + run))
 
         movie = fragment(len(fragment(0)) + 8)
         content = movie + _iso_box(b"mdat", b"x" * 660_000)
@@ -451,6 +451,27 @@ class UploadVideoInspectionTests(TestCase):
             _iso_box(b"mdat", b"video-frame"), _iso_box(b"mdat", b"x")
         )
         self.assert_video_result(short_media, "video/mp4", expected_safe=False)
+
+    def test_fragment_requires_one_complete_version_zero_movie_header(self):
+        from apps.uploads.scanning import _iso_boxes
+        source = _fragmented_iso_video()
+        boxes = _iso_boxes(source)
+        init = b"".join(_iso_box(k, source[a:b]) for k, a, b in boxes if k in {b"ftyp", b"moov"})
+        _, a, b = next(box for box in boxes if box[0] == b"moof")
+        original_header = _iso_box(b"mfhd", b"\x00" * 4 + (1).to_bytes(4, "big"))
+        payload = source[a:b]
+        for header in (b"", original_header * 2,
+                _iso_box(b"mfhd", b"\x00" * 7),
+                _iso_box(b"mfhd", b"\x01" + b"\x00" * 7),
+                _iso_box(b"mfhd", b"\x00\x00\x00\x01" + b"\x00" * 4)):
+            with self.subTest(header=header):
+                changed = payload.replace(original_header, header)
+                # Keep the run valid so the regression specifically tests mfhd.
+                marker = changed.index(b"trun") + 12
+                changed = changed[:marker] + (len(changed) + 16).to_bytes(4, "big", signed=True) + changed[marker + 4:]
+                content = init + _iso_box(b"moof", changed) + _iso_box(b"mdat", b"video-frame")
+                self.assert_video_result(content, "video/mp4", expected_safe=False)
+        self.assert_video_result(source, "video/mp4", expected_safe=True)
 
     def test_webm_blocks_must_reference_a_supported_video_track(self):
         content = _webm_video().replace(
