@@ -54,6 +54,7 @@ test('a head change during validation fails the check for the inspected SHA', as
   const { run } = require('./review-gate.cjs');
   let reads = 0;
   let published;
+  let started;
   const listReviews = () => {};
   const listComments = () => {};
   const listCommits = () => {};
@@ -64,13 +65,31 @@ test('a head change during validation fails the check for the inspected SHA', as
       repos: {get: async () => ({data: {default_branch: 'main'}}),
         getContent: async () => ({data: {type: 'file', sha: fixed}})},
       actions: {getWorkflow: async ({workflow_id}) => ({data: {id: workflow_id === 'ci.yml' ? 1 : 2}}), listWorkflowRunsForRepo: async () => ({data: {workflow_runs: baseline().runs}})},
-      checks: {create: async input => {published = input;}}
+      checks: {
+        create: async input => { started = input; return {data: {id: 42}}; },
+        update: async input => { published = input; }
+      }
     },
-    paginate: async method => method === listReviews ? baseline().reviews : method === listCommits ? [{sha: head}] : [],
+    paginate: async method => {
+      assert.equal(started.status, 'in_progress');
+      return method === listReviews ? baseline().reviews : method === listCommits ? [{sha: head}] : [];
+    },
     graphql: async () => ({repository: {pullRequest: {reviewThreads: {nodes: [], pageInfo: {hasNextPage: false}}}}})
   };
   await assert.rejects(run({github, context: {repo: {owner: 'synthetic', repo: 'test'}, payload: {pull_request: {number: 1}}}}), /head moved/);
-  assert.equal(published.head_sha, head);
+  assert.equal(started.head_sha, head);
+  assert.equal(started.status, 'in_progress');
+  assert.equal(published.check_run_id, 42);
+  assert.equal(published.conclusion, 'failure');
+  reads = 0;
+  started = undefined;
+  github.paginate = async () => {
+    assert.equal(started.status, 'in_progress');
+    throw new Error('Synthetic evidence API failure');
+  };
+  await assert.rejects(run({github, context: {repo: {owner: 'synthetic', repo: 'test'}, payload: {pull_request: {number: 1}}}}), /Synthetic evidence API failure/);
+  assert.equal(published.check_run_id, 42);
+  assert.equal(published.status, 'completed');
   assert.equal(published.conclusion, 'failure');
 });
 

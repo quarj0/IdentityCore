@@ -74,6 +74,12 @@ async function run({ github, context }) {
   const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: number });
   if (pr.state !== 'open') return;
   const head = pr.head.sha;
+  const { data: pendingCheck } = await github.rest.checks.create({ owner, repo, head_sha: head,
+    name: 'review-evidence', status: 'in_progress',
+    output: { title: 'Review evidence validation in progress', summary: `Revalidating mutable evidence for ${head}.` }
+  });
+  let completed = false;
+  try {
   const reviews = await github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number: number, per_page: 100 });
   const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number, per_page: 100 });
   const commits = (await github.paginate(github.rest.pulls.listCommits, { owner, repo, pull_number: number, per_page: 100 })).map(c => c.sha);
@@ -117,12 +123,22 @@ async function run({ github, context }) {
   if (threads.some(t => t.comments.pageInfo.hasNextPage)) problems.push('A thread exceeds the evidence page limit; review it explicitly.');
   const { data: current } = await github.rest.pulls.get({ owner, repo, pull_number: number });
   if (current.head.sha !== head) problems.push('Pull-request head moved during validation; rerun against its current head.');
-  await github.rest.checks.create({ owner, repo, head_sha: head, name: 'review-evidence', status: 'completed',
+  await github.rest.checks.update({ owner, repo, check_run_id: pendingCheck.id, status: 'completed',
     conclusion: problems.length ? 'failure' : 'success',
     output: { title: problems.length ? 'Review evidence incomplete' : 'Final-head review evidence verified',
       summary: problems.length ? problems.join('\n') : `Configured review completed for ${head}; every thread has commit and validation evidence.` }
   });
+  completed = true;
   if (problems.length) throw new Error(problems.join('\n'));
+  } catch (error) {
+    if (!completed) {
+      await github.rest.checks.update({ owner, repo, check_run_id: pendingCheck.id,
+        status: 'completed', conclusion: 'failure',
+        output: { title: 'Review evidence validation failed', summary: 'Evidence could not be collected or validated; retry the gate.' }
+      });
+    }
+    throw error;
+  }
 }
 
 module.exports = { assess, run };
