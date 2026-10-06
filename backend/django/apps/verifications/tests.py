@@ -236,6 +236,37 @@ class VerificationWorkflowTests(APITestCase):
             ).exists()
         )
 
+    def test_explicit_project_must_exist_and_match_policy_before_creating(self):
+        from apps.projects.models import Project
+
+        selected = Project.objects.create(
+            tenant=self.tenant, created_by=self.user, name="Selected", slug="selected"
+        )
+        other = Project.objects.create(
+            tenant=self.tenant, created_by=self.user, name="Other", slug="other"
+        )
+        self.policy.project = selected
+        self.policy.save(update_fields=["project"])
+        payload = {
+            "purpose": "Project-bound onboarding", "policy_id": self.policy.public_id,
+            "verification_subject": {"full_name": "Synthetic applicant"},
+        }
+        for project_id in ("prj_missing", other.public_id):
+            with self.subTest(project_id=project_id):
+                response = self.client.post(
+                    reverse("verification-list-create"), {**payload, "project_id": project_id},
+                    format="json", **self.auth_headers(),
+                )
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertIn("project_id", response.data["error"]["details"])
+                self.assertFalse(Verification.objects.filter(purpose=payload["purpose"]).exists())
+        response = self.client.post(
+            reverse("verification-list-create"), {**payload, "project_id": selected.public_id},
+            format="json", **self.auth_headers(),
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Verification.objects.get(public_id=response.data["data"]["id"]).project_id, selected.pk)
+
     def test_api_client_create_requires_idempotency_key(self):
         response = self.client.post(
             reverse("verification-list-create"),

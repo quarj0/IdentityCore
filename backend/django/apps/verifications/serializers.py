@@ -292,6 +292,19 @@ class VerificationCreateSerializer(serializers.Serializer):
             attrs["policy"] = policy
         if is_api_client_request:
             attrs["resolved_project"] = request.api_client.project
+        project_id = attrs.get("project_id", "").strip()
+        if project_id:
+            project = tenant.projects.filter(
+                public_id=project_id, status="active", deleted_at__isnull=True
+            ).first()
+            if project is None:
+                raise serializers.ValidationError({"project_id": "Choose an active project in this workspace."})
+            policy = attrs.get("policy")
+            if policy is not None and policy.project_id != project.pk:
+                raise serializers.ValidationError({"project_id": "The project must match the verification template."})
+            if is_api_client_request and policy is None and request.api_client.project_id != project.pk:
+                raise serializers.ValidationError({"project_id": "The project must match the API client."})
+            attrs["resolved_project"] = project
         return attrs
 
     def create(self, validated_data):

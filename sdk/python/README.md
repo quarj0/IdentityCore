@@ -29,6 +29,8 @@ result = client.verifications.result(verification["id"])
 print(verification["verification_url"])
 ```
 
+An optional `project_id` must identify an active project in the same workspace and match the selected policy’s project. Omit it to use the policy’s project. Unknown or mismatched IDs are rejected before creating the verification.
+
 GET requests retry transient failures automatically. Verification creation is idempotent and safely retried; cancellation and link resend are not retried automatically.
 
 ## CLI

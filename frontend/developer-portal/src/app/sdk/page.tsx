@@ -140,6 +140,7 @@ console.log(verification.verification_url);`}
         title="Java SDK"
         language="java"
         code={`import io.identitycore.IdentityCoreClient;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 var client = IdentityCoreClient.builder()
     .apiOrigin("https://api.identitycore.com")
@@ -147,16 +148,16 @@ var client = IdentityCoreClient.builder()
     .clientSecret("...")
     .build();
 
-var policies = client.policies().list();
-var verification = client.verifications().create(
-    "Customer onboarding",
-    policies.get(0).get("id").asText(),
-    Map.of(
-        "full_name", "Kwame Mensah",
-        "email", "kwame@example.com"
-    ),
-    "customer_123"
-);
+var policies = client.policies.list();
+var json = new ObjectMapper();
+var input = json.createObjectNode();
+input.put("purpose", "Customer onboarding");
+input.put("policy_id", policies.get(0).get("id").asText());
+input.put("external_reference", "customer_123");
+input.set("verification_subject", json.createObjectNode()
+    .put("full_name", "Kwame Mensah")
+    .put("email", "kwame@example.com"));
+var verification = client.verifications.create(input, "customer-123-onboarding-v1");
 
 System.out.println(verification.get("verification_url").asText());`}
       />
@@ -166,7 +167,7 @@ System.out.println(verification.get("verification_url").asText());`}
         language="csharp"
         code={`using IdentityCore;
 
-using var client = new IdentityCoreClient(new IdentityCoreOptions
+using var client = new IdentityCoreClient(new IdentityCoreClientOptions
 {
     ApiOrigin = new Uri("https://api.identitycore.com"),
     ClientId = "cli_...",
@@ -174,15 +175,17 @@ using var client = new IdentityCoreClient(new IdentityCoreOptions
 });
 
 var policies = await client.Policies.ListAsync();
-var verification = await client.Verifications.CreateAsync(
-    purpose: "Customer onboarding",
-    policyId: policies[0].GetProperty("id").GetString()!,
-    verificationSubject: new
+var verification = await client.Verifications.CreateAsync(new
+{
+    purpose = "Customer onboarding",
+    policy_id = policies[0].GetProperty("id").GetString()!,
+    verification_subject = new
     {
         full_name = "Kwame Mensah",
         email = "kwame@example.com",
     },
-    externalReference: "customer_123");
+    external_reference = "customer_123",
+}, "customer-123-onboarding-v1");
 
 Console.WriteLine(verification.GetProperty("verification_url").GetString());`}
       />
