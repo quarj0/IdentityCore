@@ -245,6 +245,8 @@ def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
             if b - a < 8 or content[a] != 0:
                 return None
             flags = int.from_bytes(content[a + 1 : a + 4], "big")
+            if flags & ~0x03003B or (flags & 1 and flags & 0x020000):
+                return None
             track = int.from_bytes(content[a + 4 : a + 8], "big")
             cursor = a + 8
             base = moof_offset
@@ -288,6 +290,8 @@ def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
                 if b - a < 8 or content[a] not in {0, 1}:
                     return None
                 run_flags = int.from_bytes(content[a + 1 : a + 4], "big")
+                if run_flags & ~0x000F05 or (run_flags & 4 and run_flags & 0x400):
+                    return None
                 count = int.from_bytes(content[a + 4 : a + 8], "big")
                 if not 0 < count <= 100_000:
                     return None
@@ -348,6 +352,10 @@ def _iso_stbl_has_video_sample_entry(
         {b"co64", b"stco"}
     ):
         return False
+    if any(sum(kind == required for kind, _, _ in boxes) != 1 for required in required_tables):
+        return False
+    if sum(kind in {b"stco", b"co64"} for kind, _, _ in boxes) != 1:
+        return False
     descriptions = set(fragment_descriptions or ())
     sizes = next(box for box in boxes if box[0] == b"stsz")
     if sizes[2] - sizes[1] < 12:
@@ -360,6 +368,15 @@ def _iso_stbl_has_video_sample_entry(
         if not classic_descriptions:
             return False
         descriptions.update(classic_descriptions)
+    else:
+        # Fragment-only tracks retain legal zero-entry classic sample tables.
+        for kind, a, b in boxes:
+            if kind == b"stsz" and (b - a != 12 or content[a:b] != b"\x00" * 12):
+                return False
+            if kind in {b"stts", b"stsc", b"stco", b"co64"} and (
+                b - a != 8 or content[a:b] != b"\x00" * 8
+            ):
+                return False
     stsd = next(box for box in boxes if box[0] == b"stsd")
     _, stsd_start, stsd_end = stsd
     if stsd_end - stsd_start < 8 or content[stsd_start] != 0:
@@ -757,11 +774,10 @@ def _webm_cluster_has_frame(
             )
             if not group:
                 continue
-            block = next(
-                (item for item in group if item[0] == 0xA1 and not item[3]), None
-            )
-            if block is None:
+            blocks = [item for item in group if item[0] == 0xA1]
+            if len(blocks) != 1 or blocks[0][3]:
                 continue
+            block = blocks[0]
             _, payload_start, payload_end, _ = block
         elif element_id != 0xA3:
             continue

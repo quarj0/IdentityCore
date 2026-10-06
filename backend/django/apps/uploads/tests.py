@@ -486,6 +486,41 @@ class UploadVideoInspectionTests(TestCase):
                 second_fragment = source[first_moof:].replace(original_header, _iso_box(b"mfhd", b"\x00" * 4 + second.to_bytes(4, "big")))
                 self.assert_video_result(first_fragment + second_fragment, "video/mp4", expected_safe=safe)
 
+    def test_fragment_headers_reject_reserved_and_conflicting_flags(self):
+        source = _fragmented_iso_video()
+        for kind, original, invalid in (
+            (b"tfhd", 0x020000, (0x020040, 0x020001)),
+            (b"trun", 0x000201, (0x000241, 0x000605)),
+        ):
+            marker = kind + original.to_bytes(4, "big")
+            self.assertIn(marker, source)
+            for flags in invalid:
+                with self.subTest(kind=kind, flags=flags):
+                    self.assert_video_result(source.replace(marker, kind + flags.to_bytes(4, "big")), "video/mp4", expected_safe=False)
+
+    def test_fragmented_tracks_require_legal_empty_classic_tables(self):
+        source = _fragmented_iso_video()
+        for kind, width in ((b"stsz", 12), (b"stts", 8), (b"stsc", 8), (b"stco", 8)):
+            marker = kind + b"\x00" * width
+            self.assertIn(marker, source)
+            for index in range(width):
+                with self.subTest(kind=kind, index=index):
+                    payload = bytearray(width)
+                    payload[index] = 1
+                    self.assert_video_result(source.replace(marker, kind + payload), "video/mp4", expected_safe=False)
+
+    def test_block_group_requires_one_block(self):
+        original = _ebml_element(b"\xa3", b"\x81\x00\x00\x80video-frame")
+        old_cluster = _ebml_element(b"\x1f\x43\xb6\x75", _ebml_element(b"\xe7", b"\x00") + original)
+        valid = _ebml_element(b"\xa1", b"\x81\x00\x00\x00video-frame")
+        for blocks in (b"", valid + valid, valid + _ebml_element(b"\xa1", b"bad")):
+            group = _ebml_element(b"\xa0", blocks)
+            cluster = _ebml_element(b"\x1f\x43\xb6\x75", _ebml_element(b"\xe7", b"\x00") + group)
+            content = _webm_video().replace(old_cluster, cluster)
+            segment = content.index(b"\x18\x53\x80\x67")
+            content = content[:segment + 4] + bytes([content[segment + 4] + len(cluster) - len(old_cluster)]) + content[segment + 5:]
+            self.assert_video_result(content, "video/webm", expected_safe=False)
+
     def test_each_movie_fragment_requires_a_track_fragment(self):
         from apps.uploads.scanning import _iso_boxes
         source = _fragmented_iso_video()
