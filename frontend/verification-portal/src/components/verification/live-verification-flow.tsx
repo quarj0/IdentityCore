@@ -1150,7 +1150,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
         />
       ) : null}
 
-      {!withdrawn && (status.withdrawal_available || [
+      {!withdrawn && (status.withdrawal_available ?? [
         "document_capture",
         "document_processing",
         "selfie_capture",

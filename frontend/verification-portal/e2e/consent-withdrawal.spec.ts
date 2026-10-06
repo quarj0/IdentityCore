@@ -39,6 +39,22 @@ test("BFF admits only the exact authenticated withdrawal route", async ({
   ).toBe(403);
 });
 
+for (const step of ["cancelled", "failed"]) {
+  test(`pre-consent ${step} session offers no withdrawal`, async ({ page, isMobile }) => {
+    await page.route("**/api/verification/**", async route => {
+      const path = new URL(route.request().url()).pathname;
+      const data = path.endsWith("/status")
+        ? { verification_id: "ver_no_consent", status: step, current_step: step, withdrawal_available: false, message: "Session ended", evidence: {} }
+        : { session_id: sessionId, verification_id: "ver_no_consent", status: "active", organization: { name: "Example Bank", logo_url: "" }, purpose: "Customer onboarding", redirect_url: "", required_steps: ["consent"], workflow: { steps: ["consent"], liveness_mode: "passive" }, locale: "en", supported_locales: ["en"], direction: "ltr", consent: { content: "Notice" }, document: { country_code: "GH", document_type: "passport", label: "Passport", capture_requirements: [] }, expires_at: new Date(Date.now() + 60000).toISOString() };
+      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ success: true, data }) });
+    });
+    await page.goto(`/verify/${sessionId}#token=browser-secret`);
+    if (!isMobile) await page.getByRole("button", { name: "Continue on this computer" }).click();
+    await expect(page.getByText("Session ended", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Withdraw consent", exact: true })).toHaveCount(0);
+  });
+}
+
 for (const locale of ["en", "ar"]) {
   for (const afterConsent of ["processing", "cancelled", "consent_key_unavailable"]) {
     test(`subject withdraws consent with confirmation and retry (${locale}, ${afterConsent})`, async ({

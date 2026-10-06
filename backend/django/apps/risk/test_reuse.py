@@ -111,6 +111,33 @@ class ReuseSignalTests(TestCase):
             )
         )
 
+    def test_latest_acceptance_controls_reuse_after_historical_withdrawal(self):
+        from apps.consent.models import ConsentRecord
+        from apps.consent.services import active_consent
+
+        for accepted, withdrawn in ((True, False), (True, True), (False, False)):
+            with self.subTest(accepted=accepted, withdrawn=withdrawn):
+                ReuseFingerprint.objects.all().delete()
+                first, second = self._case(), self._case()
+                old = timezone.now() - timedelta(minutes=1)
+                ConsentRecord.objects.create(
+                    tenant=first.tenant, verification=first,
+                    verification_subject=first.verification_subject,
+                    consent_text_snapshot="Old notice", accepted_at=old,
+                    withdrawn_at=old,
+                )
+                ConsentRecord.objects.create(
+                    tenant=first.tenant, verification=first,
+                    verification_subject=first.verification_subject,
+                    consent_text_snapshot="Current notice", accepted=accepted,
+                    accepted_at=timezone.now(),
+                    withdrawn_at=timezone.now() if withdrawn else None,
+                )
+                self.assertEqual(active_consent(first) is not None, accepted and not withdrawn)
+                collect_reuse(first)
+                signals = collect_reuse(second)["signals"]
+                self.assertEqual(bool(signals), accepted and not withdrawn)
+
     def test_case_retries_do_not_count_twice_or_extend_expiry(self):
         case = self._case()
         collect_reuse(case)
