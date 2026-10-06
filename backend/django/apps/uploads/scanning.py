@@ -261,12 +261,14 @@ def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
             previous_end = None
             implicit_base = None
             for run_kind, a, b in fragment:
-                if run_kind != b"trun" or b - a < 8 or content[a] not in {0, 1}:
+                if run_kind != b"trun":
                     continue
+                if b - a < 8 or content[a] not in {0, 1}:
+                    return None
                 run_flags = int.from_bytes(content[a + 1 : a + 4], "big")
                 count = int.from_bytes(content[a + 4 : a + 8], "big")
                 if not 0 < count <= 100_000:
-                    continue
+                    return None
                 sample_budget[0] -= count
                 if sample_budget[0] < 0:
                     return None
@@ -274,7 +276,7 @@ def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
                 offset = previous_end if previous_end is not None else base
                 if run_flags & 1:
                     if cursor + 4 > b:
-                        continue
+                        return None
                     offset = base + int.from_bytes(
                         content[cursor : cursor + 4], "big", signed=True
                     )
@@ -284,7 +286,7 @@ def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
                     bool(run_flags & mask) for mask in (0x100, 0x200, 0x400, 0x800)
                 )
                 if cursor + count * width != b:
-                    continue
+                    return None
                 lengths = []
                 for _ in range(count):
                     cursor += 4 * bool(run_flags & 0x100)

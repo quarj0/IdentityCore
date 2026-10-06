@@ -341,6 +341,31 @@ class UploadVideoInspectionTests(TestCase):
         ranges = [(a, b) for k, a, b in boxes if k == b"mdat"]
         self.assertIsNone(_iso_fragment_track_ids(content, boxes, ranges, [100_000]))
 
+    def test_malformed_fragment_run_cannot_authorize_following_implicit_run(self):
+        from apps.uploads.scanning import _iso_boxes, _iso_fragment_track_ids
+
+        malformed = [
+            b"\x00" * 4 + (0).to_bytes(4, "big"),
+            b"\x00" * 4 + (100_001).to_bytes(4, "big"),
+            b"\x00" * 7,
+            b"\x02" + b"\x00" * 3 + (1).to_bytes(4, "big"),
+            b"\x00\x00\x00\x01" + (1).to_bytes(4, "big"),
+            b"\x00\x00\x02\x00" + (1).to_bytes(4, "big"),
+        ]
+        for preceding_valid in (False, True):
+            for payload in malformed:
+                with self.subTest(preceding_valid=preceding_valid, payload=payload):
+                    def movie(base):
+                        header = _iso_box(b"tfhd", b"\x00\x00\x00\x11"
+                            + (1).to_bytes(4, "big") + base.to_bytes(8, "big") + (3).to_bytes(4, "big"))
+                        valid = _iso_box(b"trun", b"\x00" * 4 + (1).to_bytes(4, "big"))
+                        runs = (valid if preceding_valid else b"") + _iso_box(b"trun", payload) + valid
+                        return _iso_box(b"moof", _iso_box(b"traf", header + runs))
+                    content = movie(len(movie(0)) + 8) + _iso_box(b"mdat", b"abcdefghi")
+                    boxes = _iso_boxes(content)
+                    ranges = [(a, b) for kind, a, b in boxes if kind == b"mdat"]
+                    self.assertIsNone(_iso_fragment_track_ids(content, boxes, ranges, [100_000]))
+
     def test_fragment_sample_budget_is_shared_across_runs(self):
         from apps.uploads.scanning import _iso_boxes, _iso_fragment_track_ids
 
