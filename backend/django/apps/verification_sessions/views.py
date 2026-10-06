@@ -89,33 +89,9 @@ class VerificationSessionBaseView(APIView):
         verification_session.save(update_fields=update_fields)
 
     def _lock_processing_consent(self, request, scope):
-        from apps.consent.services import require_active_consent
-        from apps.verifications.models import Verification
-        from django.core.exceptions import ValidationError as ConsentError
+        from apps.consent.services import lock_session_consent
 
-        lock_audit_chain(request.tenant.pk)
-        case = Verification.objects.select_for_update(no_key=True).get(
-            pk=request.verification_session.verification_id, tenant=request.tenant
-        )
-        session = VerificationSession.objects.select_for_update(no_key=True).get(
-            pk=request.verification_session.pk, tenant=request.tenant, verification=case
-        )
-        if (
-            session.status
-            not in {VerificationSessionStatus.CREATED, VerificationSessionStatus.ACTIVE}
-            or session.expires_at <= timezone.now()
-            or case.status in TERMINAL_STATUSES
-        ):
-            raise ValidationError("This processing session is unavailable.")
-        session.verification = case
-        request.verification_session = session
-        require_verification_session_action(request, self.required_session_action)
-        try:
-            require_active_consent(case, scope)
-        except ConsentError:
-            raise ValidationError(
-                "Active consent for this evidence scope is required."
-            ) from None
+        lock_session_consent(request, scope=scope, action=self.required_session_action)
 
 
 class VerificationSessionDetailView(VerificationSessionBaseView):

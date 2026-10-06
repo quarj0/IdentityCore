@@ -173,6 +173,36 @@ def require_active_consent(verification, scope=None):
     return record
 
 
+def lock_session_consent(request, *, scope, action):
+    """Call inside atomic: serialize evidence acceptance with withdrawal."""
+    from apps.verifications.models import VerificationSession
+    from apps.verifications.transitions import TERMINAL_STATUSES
+    from common.authentication import require_verification_session_action
+    from rest_framework.exceptions import ValidationError as APIValidationError
+
+    lock_audit_chain(request.tenant.pk)
+    case = Verification.objects.select_for_update(no_key=True).get(
+        pk=request.verification_session.verification_id, tenant=request.tenant
+    )
+    session = VerificationSession.objects.select_for_update(no_key=True).get(
+        pk=request.verification_session.pk, tenant=request.tenant, verification=case
+    )
+    if (
+        session.status not in {VerificationSessionStatus.CREATED, VerificationSessionStatus.ACTIVE}
+        or session.expires_at <= timezone.now()
+        or case.expires_at <= timezone.now()
+        or case.status in TERMINAL_STATUSES
+    ):
+        raise APIValidationError("This processing session is unavailable.")
+    session.verification = case
+    request.verification_session = session
+    require_verification_session_action(request, action)
+    try:
+        require_active_consent(case, scope)
+    except ValidationError:
+        raise APIValidationError("Active consent for this evidence scope is required.") from None
+
+
 @transaction.atomic
 def withdraw(record, *, actor=None, request=None):
     lock_audit_chain(record.tenant_id)
