@@ -4,7 +4,7 @@ const { assess } = require('./review-gate.cjs');
 const head = 'a'.repeat(40);
 const fixed = 'b'.repeat(40);
 const reviewer = 'chatgpt-codex-connector';
-const baseline = () => ({ head, reviewer, trustedWorkflows: {CI: {id: 1, definitionMatches: true, path: '.github/workflows/ci.yml'}, Security: {id: 2, definitionMatches: true, path: '.github/workflows/security.yml'}}, commits: [head, fixed], runs: ['CI', 'Security'].map((name, index) => ({name, workflow_id: index + 1, path: `.github/workflows/${name === 'CI' ? 'ci' : 'security'}.yml`, head_sha: head, event: 'pull_request', id: 1, status: 'completed', conclusion: 'success'})), reviews: [{ user: { login: reviewer }, commit_id: head, state: 'COMMENTED' }], comments: [], threads: [] });
+const baseline = () => ({ head, reviewer, protectedDefinitions: {'.github/scripts/review-gate.cjs': true, '.github/workflows/review-gate.yml': true}, trustedWorkflows: {CI: {id: 1, definitionMatches: true, path: '.github/workflows/ci.yml'}, Security: {id: 2, definitionMatches: true, path: '.github/workflows/security.yml'}}, commits: [head, fixed], runs: ['CI', 'Security'].map((name, index) => ({name, workflow_id: index + 1, path: `.github/workflows/${name === 'CI' ? 'ci' : 'security'}.yml`, head_sha: head, event: 'pull_request', id: 1, status: 'completed', conclusion: 'success'})), reviews: [{ user: { login: reviewer }, commit_id: head, state: 'COMMENTED' }], comments: [], threads: [] });
 test('requires completed review of the current head', () => {
   for (const state of ['old', 'dismissed', 'absent']) {
     const input = baseline();
@@ -29,7 +29,7 @@ test('resolution flags alone cannot satisfy the evidence gate', () => {
   input.threads[0].isResolved = true;
   assert.equal(assess(input).length, 1);
   input.threads[0].resolvedBy = { login: 'maintainer' };
-  input.threads[0].comments.nodes = [{ body: 'Finding' }, { author: { login: 'maintainer' }, body: `Fixed in ${fixed.slice(0, 7)}; regression tests pass.` }];
+  input.threads[0].comments.nodes = [{ body: 'Finding', createdAt: '2026-01-01T00:00:00Z' }, { createdAt: '2026-01-02T00:00:00Z', author: { login: 'maintainer' }, body: `Fixed in ${fixed.slice(0, 7)}; regression tests pass.` }];
   assert.deepEqual(assess(input), []);
   input.threads[0].comments.nodes[1].author.login = 'untrusted';
   assert.equal(assess(input).length, 1);
@@ -118,13 +118,36 @@ test('changed trusted workflow definitions fail even with valid workflow identit
 
 test('later reviewer feedback requires a subsequent fixing disposition', () => {
   const input = baseline();
-  const nodes = [{author: {login: reviewer}, body: 'Finding'},
-    {author: {login: 'maintainer'}, body: `Fixed in ${fixed}; tests pass.`},
-    {author: {login: reviewer}, body: 'The fix remains incomplete.'}];
+  const nodes = [{author: {login: reviewer}, body: 'Finding', createdAt: '2026-01-01T00:00:00Z'},
+    {author: {login: 'maintainer'}, body: `Fixed in ${fixed}; tests pass.`, createdAt: '2026-01-02T00:00:00Z'},
+    {author: {login: reviewer}, body: 'The fix remains incomplete.', createdAt: '2026-01-03T00:00:00Z'}];
   input.threads = [{id: 'thread', isResolved: true, resolvedBy: {login: 'maintainer'}, comments: {nodes}}];
   assert.match(assess(input).join(' '), /no fixing-commit/);
-  nodes.push({author: {login: 'maintainer'}, body: 'Resolved'});
+  nodes.push({author: {login: 'maintainer'}, body: 'Resolved', createdAt: '2026-01-04T00:00:00Z'});
   assert.equal(assess(input).length, 1);
-  nodes.push({author: {login: 'maintainer'}, body: `Fixed in ${head}; regression tests pass.`});
+  nodes.push({author: {login: 'maintainer'}, body: `Fixed in ${head}; regression tests pass.`, createdAt: '2026-01-05T00:00:00Z'});
   assert.deepEqual(assess(input), []);
+});
+
+
+test('the validator and its workflow also require protected definition equality', () => {
+  for (const path of Object.keys(baseline().protectedDefinitions)) {
+    const input = baseline();
+    input.protectedDefinitions[path] = false;
+    assert.match(assess(input).join(' '), /Protected review-gate definition differs/);
+  }
+});
+
+test('edited earlier feedback invalidates older resolver evidence', () => {
+  const input = baseline();
+  const nodes = [
+    {author: {login: reviewer}, body: 'Finding', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-03T00:00:00Z'},
+    {author: {login: 'maintainer'}, body: `Fixed in ${fixed}; tests pass.`, createdAt: '2026-01-02T00:00:00Z'},
+  ];
+  input.threads = [{id: 'edited-thread', isResolved: true, resolvedBy: {login: 'maintainer'}, comments: {nodes}}];
+  assert.match(assess(input).join(' '), /no fixing-commit/);
+  nodes.push({author: {login: 'maintainer'}, body: `Fixed in ${head}; regression tests pass.`, createdAt: '2026-01-04T00:00:00Z'});
+  assert.deepEqual(assess(input), []);
+  nodes[0].updatedAt = 'invalid';
+  assert.match(assess(input).join(' '), /no fixing-commit/);
 });

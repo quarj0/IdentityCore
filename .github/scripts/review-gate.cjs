@@ -1,4 +1,4 @@
-function assess({ head, reviewer, reviews, comments, threads, commits, runs, trustedWorkflows }) {
+function assess({ head, reviewer, reviews, comments, threads, commits, runs, trustedWorkflows, protectedDefinitions }) {
   const isReviewer = author => author?.login === reviewer || author?.login === `${reviewer}[bot]`;
   const finalReviews = reviews.filter(r => isReviewer(r.user) && r.commit_id === head);
   let changesRequested = false;
@@ -19,6 +19,9 @@ function assess({ head, reviewer, reviews, comments, threads, commits, runs, tru
       .sort((a, b) => b.id - a.id)[0];
     if (!latest || latest.status !== 'completed' || latest.conclusion !== 'success') problems.push(`${name} has not passed for the final head.`);
   }
+  for (const path of ['.github/scripts/review-gate.cjs', '.github/workflows/review-gate.yml']) {
+    if (!protectedDefinitions?.[path]) problems.push(`Protected review-gate definition differs: ${path}.`);
+  }
   if (!reviewed) problems.push(`Configured review has not completed for ${head}.`);
   for (const thread of threads) {
     if (!thread.isResolved) {
@@ -26,10 +29,12 @@ function assess({ head, reviewer, reviews, comments, threads, commits, runs, tru
       continue;
     }
     const nodes = thread.comments.nodes;
-    const lastFinding = nodes.reduce((last, c, index) =>
-      c.author?.login !== thread.resolvedBy?.login ? index : last, 0);
-    const evidence = nodes.slice(lastFinding + 1).some(c =>
+    const feedback = nodes.filter(c => c.author?.login !== thread.resolvedBy?.login);
+    const feedbackTimes = feedback.map(c => Date.parse(c.updatedAt || c.createdAt));
+    const lastFeedback = Math.max(...feedbackTimes);
+    const evidence = feedbackTimes.length > 0 && feedbackTimes.every(Number.isFinite) && nodes.some(c =>
       c.author?.login === thread.resolvedBy?.login &&
+      Date.parse(c.createdAt) > lastFeedback &&
       /\b(test|tests|validation|regression|passed|passes|superseded|inapplicable)\b/i.test(c.body) &&
       [...c.body.matchAll(/\b([0-9a-f]{7,40})\b/g)].some(m => commits.some(sha => sha.startsWith(m[1])))
     );
@@ -57,7 +62,7 @@ async function run({ github, context }) {
     const data = await github.graphql(`query($owner:String!,$repo:String!,$number:Int!,$cursor:String) {
       repository(owner:$owner,name:$repo) { pullRequest(number:$number) {
         reviewThreads(first:100,after:$cursor) { pageInfo { hasNextPage endCursor }
-          nodes { id isResolved resolvedBy { login } comments(first:100) { nodes { body author { login } } pageInfo { hasNextPage } } }
+          nodes { id isResolved resolvedBy { login } comments(first:100) { nodes { body createdAt updatedAt author { login } } pageInfo { hasNextPage } } }
         }
       } }
     }`, { owner, repo, number, cursor });
@@ -79,7 +84,15 @@ async function run({ github, context }) {
       definitionMatches: trustedDefinition.type === 'file' && proposedDefinition.type === 'file' &&
         trustedDefinition.sha === proposedDefinition.sha };
   }
-  const problems = assess({ head, trustedWorkflows, runs: workflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews, comments, threads, commits });
+  const protectedDefinitions = {};
+  for (const path of ['.github/scripts/review-gate.cjs', '.github/workflows/review-gate.yml']) {
+    const [{ data: trusted }, { data: proposed }] = await Promise.all([
+      github.rest.repos.getContent({ owner, repo, path, ref: repository.default_branch }),
+      github.rest.repos.getContent({ owner, repo, path, ref: head })
+    ]);
+    protectedDefinitions[path] = trusted.type === 'file' && proposed.type === 'file' && trusted.sha === proposed.sha;
+  }
+  const problems = assess({ head, trustedWorkflows, protectedDefinitions, runs: workflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews, comments, threads, commits });
   if (threads.some(t => t.comments.pageInfo.hasNextPage)) problems.push('A thread exceeds the evidence page limit; review it explicitly.');
   const { data: current } = await github.rest.pulls.get({ owner, repo, pull_number: number });
   if (current.head.sha !== head) problems.push('Pull-request head moved during validation; rerun against its current head.');
