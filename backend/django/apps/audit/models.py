@@ -1,5 +1,4 @@
-import json
-import hashlib
+from django.utils.ipv6 import clean_ipv6_address
 
 from django.utils import timezone
 
@@ -17,8 +16,24 @@ class AuditActorType(models.TextChoices):
     PROVIDER = "provider", "Provider"
 
 
+class AuditEventQuerySet(models.QuerySet):
+    def update(self, **kwargs):
+        raise ValidationError("Audit events are append-only and may not be updated.")
+
+    def delete(self):
+        raise ValidationError("Audit events are append-only and may not be deleted.")
+
+    def bulk_create(self, objs, **kwargs):
+        raise ValidationError("Audit events must be appended individually.")
+
+    def bulk_update(self, objs, fields, **kwargs):
+        raise ValidationError("Audit events are append-only and may not be updated.")
+
+
 class AuditEvent(PublicIdModel):
     public_id_prefix = "aud"
+
+    objects = AuditEventQuerySet.as_manager()
 
     tenant = models.ForeignKey(
         "tenants.Tenant",
@@ -41,10 +56,16 @@ class AuditEvent(PublicIdModel):
     integrity_hash = models.CharField(
         max_length=64, blank=True, editable=False, db_index=True
     )
-    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+    integrity_version = models.PositiveSmallIntegerField(default=2, editable=False)
+    integrity_key_id = models.CharField(max_length=255, default="", editable=False)
+    authentication_tag = models.CharField(max_length=64, default="", editable=False)
+    created_at = models.DateTimeField(
+        default=timezone.now, db_index=True, editable=False
+    )
 
     class Meta:
         ordering = ["-created_at"]
+        base_manager_name = "objects"
 
     @transaction.atomic
     def save(self, *args, **kwargs):
@@ -59,26 +80,17 @@ class AuditEvent(PublicIdModel):
             type(self).objects.filter(tenant_id=self.tenant_id).order_by("-id").first()
         )
         self.previous_event_hash = previous.integrity_hash if previous else ""
-        payload = {
-            "tenant_id": self.tenant_id,
-            "actor_type": self.actor_type,
-            "actor_id": self.actor_id,
-            "action": self.action,
-            "target_type": self.target_type,
-            "target_id": self.target_id,
-            "ip_address": self.ip_address,
-            "user_agent": self.user_agent,
-            "device_fingerprint": self.device_fingerprint,
-            "metadata_json": self.metadata_json,
-            "sensitive_metadata_hash": self.sensitive_metadata_hash,
-            "previous_event_hash": self.previous_event_hash,
-            "created_at": self.created_at.isoformat(),
-        }
-        self.integrity_hash = hashlib.sha256(
-            json.dumps(
-                payload, sort_keys=True, default=str, separators=(",", ":")
-            ).encode()
-        ).hexdigest()
+        from apps.audit.integrity import event_authentication, event_hash
+        from common.crypto import get_active_key
+
+        self.ensure_public_id()
+        self.created_at = timezone.now()
+        if self.ip_address and ":" in self.ip_address:
+            self.ip_address = clean_ipv6_address(self.ip_address)
+        self.integrity_version = 2
+        self.integrity_key_id = get_active_key().key_id
+        self.integrity_hash = event_hash(self)
+        self.authentication_tag = event_authentication(self)
         return super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
