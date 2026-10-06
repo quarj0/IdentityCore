@@ -230,7 +230,7 @@ def _event_matches_endpoint_environment(event, endpoint) -> bool:
         return False
     verification_id = payload.get("data", {}).get("verification_id")
     if not verification_id:
-        return True
+        return not event.event_type.startswith("verification.")
     from apps.verifications.models import Verification
 
     verification = Verification.objects.select_related("project").filter(

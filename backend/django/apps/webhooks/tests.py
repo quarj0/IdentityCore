@@ -37,6 +37,18 @@ from apps.webhooks.services import (
 )
 
 
+def _test_verification(tenant):
+    return Verification.objects.create(tenant=tenant, organization=tenant.organization,
+        verification_subject=VerificationSubject.objects.create(tenant=tenant, full_name="Delivery Test"),
+        purpose="Webhook delivery fixture", expires_at=timezone.now() + timedelta(hours=1))
+
+
+def _delivery_payload(payload, verification_id):
+    data = dict(payload.get("data", {}))
+    data.setdefault("verification_id", verification_id)
+    return {**payload, "data": data}
+
+
 class WebhookEndpointTests(APITestCase):
     def setUp(self):
         self.organization = Organization.objects.create(name="Acme", slug="acme", status="active")
@@ -67,6 +79,7 @@ class WebhookEndpointTests(APITestCase):
             created_by=self.user,
         )
         self.client.force_authenticate(self.user)
+        self.delivery_verification = _test_verification(self.tenant)
         manage_webhooks, _ = Permission.objects.get_or_create(
             code="manage_webhooks", defaults={"name": "Manage webhooks"}
         )
@@ -125,7 +138,7 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={},
+            payload_json=_delivery_payload({}, self.delivery_verification.public_id),
         )
         action_url = reverse(
             "webhook-endpoint-action",
@@ -618,7 +631,7 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}},
+            payload_json=_delivery_payload({"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}}, self.delivery_verification.public_id),
         )
 
         deliver_webhook_event(webhook_event)
@@ -655,7 +668,7 @@ class WebhookEndpointTests(APITestCase):
         endpoint.save()
         def event():
             return WebhookEvent.objects.create(tenant=self.tenant, webhook_endpoint=endpoint,
-                event_type="verification.created", payload_json={"data": {"verification_id": verification.public_id}})
+                event_type="verification.created", payload_json=_delivery_payload({"data": {"verification_id": verification.public_id}}, self.delivery_verification.public_id))
         legacy = event()
         self.assertEqual(deliver_webhook_event(legacy).status, WebhookEventStatus.CANCELLED)
         send.assert_not_called()
@@ -678,6 +691,25 @@ class WebhookEndpointTests(APITestCase):
         send.assert_called_once()
 
     @patch("apps.webhooks.services._send_webhook_request")
+    def test_verification_delivery_rejects_missing_ids_but_allows_test_events(self, send):
+        endpoint = WebhookEndpoint(tenant=self.tenant, created_by=self.user,
+            url="https://example.com/hook", events_json=["verification.created", "webhook.test"])
+        endpoint.set_secret("synthetic-secret")
+        endpoint.save()
+        for payload in ({}, {"data": {}}, {"data": {"verification_id": ""}},
+                {"data": {"verification_id": "ver_missing"}}):
+            with self.subTest(payload=payload):
+                event = WebhookEvent.objects.create(tenant=self.tenant, webhook_endpoint=endpoint,
+                    event_type="verification.created", payload_json=payload)
+                self.assertEqual(deliver_webhook_event(event).status, WebhookEventStatus.CANCELLED)
+        send.assert_not_called()
+        test_event = WebhookEvent.objects.create(tenant=self.tenant, webhook_endpoint=endpoint,
+            event_type="webhook.test", payload_json={"data": {}})
+        send.return_value = (202, "", 1)
+        self.assertEqual(deliver_webhook_event(test_event).status, WebhookEventStatus.DELIVERED)
+        send.assert_called_once()
+
+    @patch("apps.webhooks.services._send_webhook_request")
     def test_failed_delivery_schedules_retry(self, mock_send_request):
         mock_send_request.return_value = (500, "server error", 15)
         endpoint = WebhookEndpoint(
@@ -692,7 +724,7 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}},
+            payload_json=_delivery_payload({"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}}, self.delivery_verification.public_id),
         )
 
         deliver_webhook_event(webhook_event)
@@ -719,7 +751,7 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}},
+            payload_json=_delivery_payload({"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}}, self.delivery_verification.public_id),
         )
 
         with self.settings(WEBHOOK_MAX_ATTEMPTS=2):
@@ -757,11 +789,11 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={
+            payload_json=_delivery_payload({
                 "id": "placeholder",
                 "type": "verification.verified",
                 "data": {"status": "verified"},
-            },
+            }, self.delivery_verification.public_id),
             status=WebhookEventStatus.FAILED,
             attempt_count=5,
             last_attempt_at=timezone.now(),
@@ -814,7 +846,7 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={},
+            payload_json=_delivery_payload({}, self.delivery_verification.public_id),
             status=WebhookEventStatus.FAILED,
             attempt_count=5,
         )
@@ -822,7 +854,7 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={},
+            payload_json=_delivery_payload({}, self.delivery_verification.public_id),
             status=WebhookEventStatus.PENDING,
         )
 
@@ -858,7 +890,7 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={},
+            payload_json=_delivery_payload({}, self.delivery_verification.public_id),
             status=WebhookEventStatus.FAILED,
             attempt_count=5,
         )
@@ -894,7 +926,7 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={},
+            payload_json=_delivery_payload({}, self.delivery_verification.public_id),
             status=WebhookEventStatus.FAILED,
         )
         self.client.force_authenticate(member)
@@ -937,7 +969,7 @@ class WebhookEndpointTests(APITestCase):
             tenant=other_tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={},
+            payload_json=_delivery_payload({}, self.delivery_verification.public_id),
             status=WebhookEventStatus.FAILED,
         )
 
@@ -965,7 +997,7 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}},
+            payload_json=_delivery_payload({"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}}, self.delivery_verification.public_id),
         )
 
         deliver_webhook_event(webhook_event)
@@ -988,7 +1020,7 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={},
+            payload_json=_delivery_payload({}, self.delivery_verification.public_id),
         )
 
         self.assertEqual(process_pending_webhook_events(limit=10), 0)
@@ -1013,7 +1045,7 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={},
+            payload_json=_delivery_payload({}, self.delivery_verification.public_id),
             status=WebhookEventStatus.PENDING,
         )
 
@@ -1037,7 +1069,7 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}},
+            payload_json=_delivery_payload({"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}}, self.delivery_verification.public_id),
             status=WebhookEventStatus.DELIVERED,
             attempt_count=1,
             last_attempt_at=timezone.now(),
@@ -1064,7 +1096,7 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}},
+            payload_json=_delivery_payload({"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}}, self.delivery_verification.public_id),
         )
 
         deliver_webhook_event(webhook_event)
@@ -1100,7 +1132,7 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={},
+            payload_json=_delivery_payload({}, self.delivery_verification.public_id),
             attempt_count=4,
         )
 
@@ -1131,7 +1163,7 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={},
+            payload_json=_delivery_payload({}, self.delivery_verification.public_id),
         )
 
         def disable_then_fail(**_kwargs):
@@ -1165,7 +1197,7 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={},
+            payload_json=_delivery_payload({}, self.delivery_verification.public_id),
             attempt_count=4,
         )
 
@@ -1201,14 +1233,14 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={},
+            payload_json=_delivery_payload({}, self.delivery_verification.public_id),
             attempt_count=4,
         )
         second = WebhookEvent.objects.create(
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={},
+            payload_json=_delivery_payload({}, self.delivery_verification.public_id),
         )
 
         with self.settings(WEBHOOK_MAX_ATTEMPTS=5):
@@ -1235,14 +1267,14 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={"id": "evt_due", "type": "verification.verified", "data": {"status": "verified"}},
+            payload_json=_delivery_payload({"id": "evt_due", "type": "verification.verified", "data": {"status": "verified"}}, self.delivery_verification.public_id),
             next_retry_at=timezone.now(),
         )
         future_event = WebhookEvent.objects.create(
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={"id": "evt_future", "type": "verification.verified", "data": {"status": "verified"}},
+            payload_json=_delivery_payload({"id": "evt_future", "type": "verification.verified", "data": {"status": "verified"}}, self.delivery_verification.public_id),
             next_retry_at=timezone.now() + timedelta(hours=1),
         )
 
@@ -1288,7 +1320,7 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={"id": "placeholder", "schema_version": "1"},
+            payload_json=_delivery_payload({"id": "placeholder", "schema_version": "1"}, self.delivery_verification.public_id),
         )
 
         _send_webhook_request(
@@ -1325,7 +1357,7 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={"id": "placeholder", "schema_version": "1"},
+            payload_json=_delivery_payload({"id": "placeholder", "schema_version": "1"}, self.delivery_verification.public_id),
         )
         payload = b'{"id":"placeholder","schema_version":"1"}'
 
@@ -1393,7 +1425,7 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json={"id": "placeholder", "schema_version": "1"},
+            payload_json=_delivery_payload({"id": "placeholder", "schema_version": "1"}, self.delivery_verification.public_id),
         )
         stale_event = WebhookEvent.objects.select_related("webhook_endpoint").get(
             pk=event.pk
@@ -1461,12 +1493,13 @@ class WebhookOutboxTransactionTests(TransactionTestCase):
         )
         self.endpoint.set_secret("outbox-secret")
         self.endpoint.save()
+        self.delivery_verification = _test_verification(self.tenant)
 
     def queue_event(self):
         return queue_webhook_events(
             tenant=self.tenant,
             event_type="verification.verified",
-            payload={"status": "verified"},
+            payload={"status": "verified", "verification_id": self.delivery_verification.public_id},
         )
 
     def test_queue_requires_an_active_domain_transaction(self):
