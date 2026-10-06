@@ -1,6 +1,6 @@
 from common.observability import observed
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from apps.providers.adapters import (
     PROVIDER_CONTRACT_VERSION,
+    ProviderContractError,
     normalize_provider_result,
     provider_adapter_registry,
 )
@@ -79,19 +80,6 @@ SYSTEM_PROVIDER_DEFAULTS = {
         "provider_type": ProviderType.RISK,
     },
 }
-
-SENSITIVE_METADATA_KEYS = frozenset(
-    {
-        "access_token",
-        "api_key",
-        "authorization",
-        "document_storage_key",
-        "password",
-        "secret",
-        "selfie_storage_key",
-        "token",
-    }
-)
 
 PROVIDER_CAPABILITY_METHODS = {
     ProviderCheckType.DOCUMENT_AUTHENTICITY: "document_authenticity",
@@ -326,18 +314,9 @@ def resolve_provider_chain_for_verification(
 
 def redact_provider_metadata(value: Any) -> Any:
     """Return telemetry-safe metadata without credentials or evidence locations."""
-    if isinstance(value, Mapping):
-        return {
-            str(key): (
-                "[REDACTED]"
-                if str(key).lower() in SENSITIVE_METADATA_KEYS
-                else redact_provider_metadata(item)
-            )
-            for key, item in value.items()
-        }
-    if isinstance(value, (list, tuple)):
-        return [redact_provider_metadata(item) for item in value]
-    return value
+    from shared.logging_redaction import redact_value
+
+    return redact_value(value)
 
 
 def _lock_processing_owner(processing_job) -> None:
@@ -370,6 +349,11 @@ def invoke_provider_check(
     provider_check.status = ProviderCheckStatus.PROCESSING
     provider_check.started_at = started_at
     provider_check.completed_at = None
+    provider_check.duration_ms = None
+    provider_check.error_code = ""
+    provider_check.error_message = ""
+    provider_check.response_metadata_json = {}
+    provider_check.normalized_result_json = {}
     merged_request_metadata = dict(provider_check.request_metadata_json or {})
     merged_request_metadata.update(request_metadata or {})
     provider_check.request_metadata_json = redact_provider_metadata(
@@ -382,6 +366,11 @@ def invoke_provider_check(
                 "status",
                 "started_at",
                 "completed_at",
+                "duration_ms",
+                "error_code",
+                "error_message",
+                "response_metadata_json",
+                "normalized_result_json",
                 "request_metadata_json",
                 "updated_at",
             ]
@@ -391,6 +380,23 @@ def invoke_provider_check(
         result = operation(**operation_kwargs)
         normalized = normalize(result) if normalize else result
         normalized = normalize_provider_result(provider_check.check_type, normalized)
+        if provider_check.check_type == ProviderCheckType.LIVENESS:
+            # These fields are required by the consuming biometric workflow.
+            # Reject them before a completed provider envelope is persisted.
+            metrics = normalized.get("metrics")
+            metrics = metrics if isinstance(metrics, dict) else {}
+            face_count = metrics.get("face_count")
+            if (
+                isinstance(face_count, bool)
+                or not isinstance(face_count, int)
+                or face_count < 0
+                or metrics.get("avg_detection_confidence") is None
+                or not normalized.get("model_name")
+                or not normalized.get("model_version")
+            ):
+                raise ProviderContractError(
+                    "Liveness provider omitted required detection evidence."
+                )
     except Exception as exc:
         completed_at = timezone.now()
         error_code = getattr(exc, "error_code", "provider_error")
@@ -900,7 +906,9 @@ def execute_provider_route(
 
     for provider_index, provider in enumerate(resolution.providers):
         route_step = route_steps.get(provider.id)
-        circuit_claim = _claim_circuit_probe(route_step)
+        with transaction.atomic():
+            _lock_processing_owner(processing_job)
+            circuit_claim = _claim_circuit_probe(route_step)
         if not circuit_claim:
             sequence += 1
             now = timezone.now()
@@ -958,7 +966,10 @@ def execute_provider_route(
                 and provider_index == 0
                 and provider_attempt == 1
                 and initial_provider_check.provider_id == provider.id
-                and not hasattr(initial_provider_check, "execution_attempt")
+                and initial_provider_check.status == ProviderCheckStatus.PENDING
+                and not ProviderExecutionAttempt.objects.filter(
+                    provider_check=initial_provider_check
+                ).exists()
             )
             if use_initial_check:
                 provider_check = initial_provider_check
@@ -995,7 +1006,9 @@ def execute_provider_route(
                 fallback_reason = (
                     "retryable_error"
                     if has_retry
-                    else "provider_fallback" if has_fallback else "route_exhausted"
+                    else "provider_fallback"
+                    if has_fallback
+                    else "route_exhausted"
                 )
                 attempt = _record_execution_attempt(
                     provider_check=provider_check,
