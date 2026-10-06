@@ -40,6 +40,7 @@ class _HelpFormatter(argparse.RawDescriptionHelpFormatter):
 class _ArgumentParser(argparse.ArgumentParser):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         kwargs.setdefault("formatter_class", _HelpFormatter)
+        kwargs.setdefault("allow_abbrev", False)
         super().__init__(*args, **kwargs)
 
     def format_help(self) -> str:
@@ -478,8 +479,10 @@ complete -c identitycore -f"""]
     )
     for (resource, action), options in command_options.items():
         for option in options.split():
+            option_kind = "-l" if option.startswith("--") else "-s"
+            option_name = option.lstrip("-")
             lines.append(
-                f"complete -c identitycore -n '__identitycore_position {resource} {action}' -l {option.removeprefix('--')}"
+                f"complete -c identitycore -n '__identitycore_position {resource} {action}' {option_kind} {option_name}"
             )
     lines += [
         "complete -c identitycore -l profile -r",

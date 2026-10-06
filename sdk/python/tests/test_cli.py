@@ -88,6 +88,16 @@ class IdentityCoreCliTests(unittest.TestCase):
             self.assertIn("list", candidates("identitycore --profile list projects l"))
             self.assertNotIn("list", candidates("identitycore --profile list projects create l"))
             self.assertIn("--name", candidates("identitycore --profile create projects create --n"))
+            self.assertIn("-h", candidates("identitycore projects create -h"))
+            self.assertIn("--help", candidates("identitycore projects create --he"))
+
+    def test_abbreviated_options_are_rejected_at_each_parser_level(self) -> None:
+        for argv in (["--prof", "list", "projects", "list"],
+                     ["projects", "create", "--nam", "example"]):
+            with self.subTest(argv=argv), redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as caught:
+                    cli._build_parser().parse_args(argv)
+                self.assertEqual(caught.exception.code, 2)
 
     def test_version(self) -> None:
         exit_code, output = self.run_cli("--version")
