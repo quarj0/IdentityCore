@@ -486,6 +486,30 @@ class UploadVideoInspectionTests(TestCase):
                 second_fragment = source[first_moof:].replace(original_header, _iso_box(b"mfhd", b"\x00" * 4 + second.to_bytes(4, "big")))
                 self.assert_video_result(first_fragment + second_fragment, "video/mp4", expected_safe=safe)
 
+    def test_each_movie_fragment_requires_a_track_fragment(self):
+        from apps.uploads.scanning import _iso_boxes
+        source = _fragmented_iso_video()
+        first_moof = next(a - 8 for k, a, b in _iso_boxes(source) if k == b"moof")
+        original = _iso_box(b"mfhd", b"\x00" * 4 + (1).to_bytes(4, "big"))
+        valid = source[first_moof:].replace(original, _iso_box(b"mfhd", b"\x00" * 4 + (2).to_bytes(4, "big")))
+        empty = _iso_box(b"moof", original)
+        self.assert_video_result(source[:first_moof] + empty + valid, "video/mp4", expected_safe=False)
+
+    def test_webm_block_flags_depend_on_element_type(self):
+        old_block = _ebml_element(b"\xa3", b"\x81\x00\x00\x80video-frame")
+        old_cluster = _ebml_element(b"\x1f\x43\xb6\x75", _ebml_element(b"\xe7", b"\x00") + old_block)
+        for grouped in (False, True):
+            for flags in (0, 8, 1, 16, 32, 64, 112, 128):
+                with self.subTest(grouped=grouped, flags=flags):
+                    block = _ebml_element(b"\xa1" if grouped else b"\xa3", b"\x81\x00\x00" + bytes([flags]) + b"video-frame")
+                    if grouped:
+                        block = _ebml_element(b"\xa0", block)
+                    cluster = _ebml_element(b"\x1f\x43\xb6\x75", _ebml_element(b"\xe7", b"\x00") + block)
+                    content = _webm_video().replace(old_cluster, cluster)
+                    segment = content.index(b"\x18\x53\x80\x67")
+                    content = content[:segment + 4] + bytes([content[segment + 4] + len(cluster) - len(old_cluster)]) + content[segment + 5:]
+                    self.assert_video_result(content, "video/webm", expected_safe=not flags & (0xF1 if grouped else 0x70))
+
     def test_webm_track_lacing_flag_controls_all_lacing_modes(self):
         old_block = _ebml_element(b"\xa3", b"\x81\x00\x00\x80video-frame")
         old_cluster = _ebml_element(b"\x1f\x43\xb6\x75", _ebml_element(b"\xe7", b"\x00") + old_block)
@@ -512,7 +536,7 @@ class UploadVideoInspectionTests(TestCase):
         content = _webm_video()
         old = _ebml_element(b"\xa3", b"\x81\x00\x00\x80video-frame")
         new = _ebml_element(
-            b"\xa0", _ebml_element(b"\xa1", b"\x81\x00\x00\x80video-frame")
+            b"\xa0", _ebml_element(b"\xa1", b"\x81\x00\x00\x00video-frame")
         )
         # Rebuild the enclosing cluster and segment lengths through the fixture.
         cluster = _ebml_element(

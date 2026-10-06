@@ -220,6 +220,8 @@ def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
         children = _iso_boxes(content, start=moof_start, end=moof_end)
         if children is None:
             return None
+        if not any(child == b"traf" for child, _, _ in children):
+            return None
         movie_headers = [(a, b) for k, a, b in children if k == b"mfhd"]
         if len(movie_headers) != 1:
             return None
@@ -772,6 +774,7 @@ def _webm_cluster_has_frame(
             track_number is not None
             and track_number[0] in video_tracks
             and _webm_block_has_frames(content, payload_start, payload_end, track_number[1])
+            and not content[payload_start + track_number[1] + 2] & (0xF1 if element_id == 0xA0 else 0x70)
             and (video_tracks[track_number[0]] or not content[payload_start + track_number[1] + 2] & 0x06)
         ):
             has_block = True
