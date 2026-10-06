@@ -64,6 +64,24 @@ function assess({ head, reviewer, reviews, comments, threads, commits, runs, tru
   return problems;
 }
 
+async function fetchThreads(github, owner, repo, number) {
+  const threads = [];
+  let cursor = null;
+  do {
+    const data = await github.graphql(`query($owner:String!,$repo:String!,$number:Int!,$cursor:String) {
+      repository(owner:$owner,name:$repo) { pullRequest(number:$number) {
+        reviewThreads(first:100,after:$cursor) { pageInfo { hasNextPage endCursor }
+          nodes { id isResolved resolvedBy { login } comments(first:100) { nodes { body createdAt updatedAt author { login } } pageInfo { hasNextPage } } }
+        }
+      } }
+    }`, { owner, repo, number, cursor });
+    const page = data.repository.pullRequest.reviewThreads;
+    threads.push(...page.nodes);
+    cursor = page.pageInfo.hasNextPage ? page.pageInfo.endCursor : null;
+  } while (cursor);
+  return threads;
+}
+
 async function run({ github, context }) {
   const { owner, repo } = context.repo;
   const number = context.payload.pull_request?.number ||
@@ -83,20 +101,7 @@ async function run({ github, context }) {
   const reviews = await github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number: number, per_page: 100 });
   const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number, per_page: 100 });
   const commits = (await github.paginate(github.rest.pulls.listCommits, { owner, repo, pull_number: number, per_page: 100 })).map(c => c.sha);
-  const threads = [];
-  let cursor = null;
-  do {
-    const data = await github.graphql(`query($owner:String!,$repo:String!,$number:Int!,$cursor:String) {
-      repository(owner:$owner,name:$repo) { pullRequest(number:$number) {
-        reviewThreads(first:100,after:$cursor) { pageInfo { hasNextPage endCursor }
-          nodes { id isResolved resolvedBy { login } comments(first:100) { nodes { body createdAt updatedAt author { login } } pageInfo { hasNextPage } } }
-        }
-      } }
-    }`, { owner, repo, number, cursor });
-    const page = data.repository.pullRequest.reviewThreads;
-    threads.push(...page.nodes);
-    cursor = page.pageInfo.hasNextPage ? page.pageInfo.endCursor : null;
-  } while (cursor);
+  const threads = await fetchThreads(github, owner, repo, number);
   const { data: workflowRuns } = await github.rest.actions.listWorkflowRunsForRepo({ owner, repo, head_sha: head, per_page: 100 });
   const trustedWorkflows = {};
   const { data: repository } = await github.rest.repos.get({ owner, repo });
@@ -121,7 +126,15 @@ async function run({ github, context }) {
   }
   const problems = assess({ head, trustedWorkflows, protectedDefinitions, runs: workflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews, comments, threads, commits });
   if (threads.some(t => t.comments.pageInfo.hasNextPage)) problems.push('A thread exceeds the evidence page limit; review it explicitly.');
-  const { data: current } = await github.rest.pulls.get({ owner, repo, pull_number: number });
+  const [currentReviews, currentComments, currentThreads, {data: current}] = await Promise.all([
+    github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number: number, per_page: 100 }),
+    github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number, per_page: 100 }),
+    fetchThreads(github, owner, repo, number),
+    github.rest.pulls.get({ owner, repo, pull_number: number })
+  ]);
+  if (JSON.stringify([reviews, comments, threads]) !== JSON.stringify([currentReviews, currentComments, currentThreads])) {
+    problems.push('Mutable review evidence changed during validation; rerun against a stable snapshot.');
+  }
   if (current.head.sha !== head) problems.push('Pull-request head moved during validation; rerun against its current head.');
   await github.rest.checks.update({ owner, repo, check_run_id: pendingCheck.id, status: 'completed',
     conclusion: problems.length ? 'failure' : 'success',

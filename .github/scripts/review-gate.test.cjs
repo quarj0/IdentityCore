@@ -81,6 +81,13 @@ test('a head change during validation fails the check for the inspected SHA', as
   assert.equal(started.status, 'in_progress');
   assert.equal(published.check_run_id, 42);
   assert.equal(published.conclusion, 'failure');
+  let reviewReads = 0;
+  github.rest.pulls.get = async () => ({data: {state: 'open', head: {sha: head}}});
+  github.paginate = async method => method === listReviews
+    ? (++reviewReads === 1 ? baseline().reviews : [{...baseline().reviews[0], state: 'CHANGES_REQUESTED'}])
+    : method === listCommits ? [{sha: head}] : [];
+  await assert.rejects(run({github, context: {repo: {owner: 'synthetic', repo: 'test'}, payload: {pull_request: {number: 1}}}}), /evidence changed/);
+  assert.equal(published.conclusion, 'failure');
   reads = 0;
   started = undefined;
   github.paginate = async () => {
