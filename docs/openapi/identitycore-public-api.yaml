@@ -727,6 +727,9 @@ components:
           type: string
         message:
           type: string
+        withdrawal_available:
+          type: boolean
+          description: Whether a recorded acceptance can be withdrawn, independent of proof decryption availability.
         evidence:
           type: object
           additionalProperties: false

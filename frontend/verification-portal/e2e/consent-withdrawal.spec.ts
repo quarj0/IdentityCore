@@ -40,12 +40,13 @@ test("BFF admits only the exact authenticated withdrawal route", async ({
 });
 
 for (const locale of ["en", "ar"]) {
-  for (const afterConsent of ["processing", "cancelled"]) {
+  for (const afterConsent of ["processing", "cancelled", "consent_key_unavailable"]) {
     test(`subject withdraws consent with confirmation and retry (${locale}, ${afterConsent})`, async ({
       page,
       isMobile,
     }) => {
       let step = "consent";
+      let accepted = false;
       let withdrawals = 0;
       let statusRequests = 0;
       let cleared = 0;
@@ -79,7 +80,8 @@ for (const locale of ["en", "ar"]) {
           });
         }
         if (path.endsWith("/consent")) {
-          step = afterConsent;
+          accepted = true;
+          step = afterConsent === "consent_key_unavailable" ? "consent" : afterConsent;
           return json({});
         }
         if (path.endsWith("/status")) {
@@ -88,6 +90,7 @@ for (const locale of ["en", "ar"]) {
             verification_id: "ver_withdrawal",
             status: "in_progress",
             current_step: step,
+            withdrawal_available: accepted,
             message: "Processing",
             evidence: {},
           });

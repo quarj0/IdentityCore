@@ -1150,7 +1150,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
         />
       ) : null}
 
-      {[
+      {!withdrawn && (status.withdrawal_available || [
         "document_capture",
         "document_processing",
         "selfie_capture",
@@ -1159,7 +1159,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
         "completed",
         "failed",
         "cancelled",
-      ].includes(step) ? (
+      ].includes(step)) ? (
         <div className="mt-6 rounded-2xl border border-border p-4">
           {confirmWithdrawal ? (
             <>

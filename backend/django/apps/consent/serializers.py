@@ -16,7 +16,10 @@ def serialize_consent_template(template: ConsentTemplate) -> dict:
 
 
 def serialize_consent_record(record: ConsentRecord) -> dict:
-    proof = record.proof_json or {}
+    try:
+        proof = record.proof_json or {}
+    except ValueError:
+        proof = {}
     return {
         "id": record.public_id,
         "verification_id": record.verification.public_id,

@@ -25,7 +25,6 @@ class ConsentWithdrawalRaceTests(TransactionTestCase):
         from django.core.files.uploadedfile import SimpleUploadedFile
         from django.urls import reverse
         from rest_framework.test import APIClient
-        from apps.uploads.models import Upload
         from apps.uploads.services import create_upload
         from apps.verifications.models import VerificationSession, VERIFICATION_SESSION_ACTIONS
 

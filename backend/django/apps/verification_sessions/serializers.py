@@ -497,6 +497,7 @@ def serialize_verification_session_status(
         "status": verification.status,
         "current_step": current_step,
         "message": message,
+        "withdrawal_available": latest_consent is not None and latest_consent.accepted and latest_consent.withdrawn_at is None,
         "evidence": {
             "identity_document_id": (
                 latest_document.public_id if latest_document is not None else ""

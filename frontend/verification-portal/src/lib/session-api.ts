@@ -71,6 +71,7 @@ export interface VerificationStatus {
   status: string;
   current_step: string;
   message: string;
+  withdrawal_available?: boolean;
   evidence: {
     identity_document_id: string;
     selfie_capture_id: string;

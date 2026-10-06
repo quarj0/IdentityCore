@@ -248,6 +248,7 @@ class ConsentPurposeTests(TestCase):
             status = serialize_verification_session_status(session)
             self.assertEqual(status["verification_id"], self.tenant_case.public_id)
             self.assertEqual(status["current_step"], "consent")
+            self.assertTrue(status["withdrawal_available"])
             withdrawn = withdraw(ConsentRecord.objects.get(pk=record.pk))
             self.assertIsNotNone(withdrawn.withdrawn_at)
 
@@ -421,6 +422,25 @@ class ConsentPurposeTests(TestCase):
         self.assertEqual(client.post(url, {}, format="json").status_code, 200)
         client.force_authenticate(self.platform_reviewer)
         self.assertEqual(client.post(url, {}, format="json").status_code, 403)
+
+    def test_privacy_admin_can_discover_and_withdraw_records_during_key_outage(self):
+        record = accept_test_consent(self.tenant_case)
+        permission = Permission.objects.create(code="manage_consent", name="Manage consent")
+        role = Role.objects.create(tenant=self.tenant, name="Privacy outage", scope="tenant")
+        RolePermission.objects.create(role=role, permission=permission)
+        UserRole.objects.create(role=role, user=self.tenant_reviewer, tenant=self.tenant)
+        client = APIClient()
+        client.force_authenticate(self.tenant_reviewer)
+        with patch("common.fields.decrypt_tenant_json", side_effect=ValueError("unavailable")):
+            response = client.get(reverse("consent-record-list"))
+            self.assertEqual(response.status_code, 200)
+            metadata = response.data["data"]["results"][0]
+            self.assertEqual(metadata["id"], record.public_id)
+            self.assertTrue(metadata["accepted"])
+            self.assertIsNone(metadata["notice_version"])
+            self.assertIsNone(metadata["evidence_scope"])
+            response = client.post(reverse("consent-withdraw", kwargs={"record_id": metadata["id"]}), {}, format="json")
+            self.assertEqual(response.status_code, 200)
 
     def test_old_withdrawn_record_still_withdraws_a_new_active_proof(self):
         old = accept_test_consent(self.tenant_case)
