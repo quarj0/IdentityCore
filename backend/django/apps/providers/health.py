@@ -1,4 +1,5 @@
 import math
+import re
 from collections import Counter, defaultdict
 from datetime import timedelta
 
@@ -59,10 +60,7 @@ def _metric_status(*, total: int, availability: float, error_rate: float) -> str
 def _safe_error_code(value: str) -> str:
     if value in SAFE_ERROR_CODES:
         return value
-    if (
-        value.startswith("provider_http_")
-        and value.removeprefix("provider_http_").isdigit()
-    ):
+    if re.fullmatch(r"provider_http_[345][0-9]{2}", value):
         return value
     return "provider_error"
 
@@ -162,6 +160,7 @@ def provider_health_scope(
     checks_query = ProviderCheck.objects.filter(
         tenant=tenant,
         started_at__gte=since,
+        status__in=TERMINAL_HEALTH_STATUSES,
     )
     if environment == "sandbox":
         checks_query = checks_query.filter(
