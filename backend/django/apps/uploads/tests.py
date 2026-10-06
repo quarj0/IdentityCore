@@ -237,6 +237,42 @@ def _webm_video(*, track_type: int = 1, codec_id: bytes = b"V_VP9", flag_lacing=
 
 
 class UploadVideoInspectionTests(TestCase):
+    def test_classic_tables_reject_reserved_fullbox_flags(self):
+        from apps.uploads.scanning import _iso_boxes
+
+        source = _iso_video()
+        for target in (b"stts", b"stsc", b"stsz", b"stco", b"co64", b"stsd"):
+            for reserved in (False, True):
+                with self.subTest(table=target, reserved=reserved):
+                    def rewrite(kind, start, end):
+                        if kind in {b"moov", b"trak", b"mdia", b"minf", b"stbl"}:
+                            return _iso_box(kind, b"".join(rewrite(k, a, b) for k, a, b in _iso_boxes(source, start=start, end=end)))
+                        payload = source[start:end]
+                        if kind == target or (target == b"co64" and kind == b"stco"):
+                            if target == b"co64":
+                                kind = target
+                                payload = payload[:8] + (int.from_bytes(payload[8:12], "big") + 4).to_bytes(8, "big")
+                            if reserved:
+                                payload = b"\x00\x00\x00\x01" + payload[4:]
+                        return _iso_box(kind, payload)
+                    content = b"".join(rewrite(k, a, b) for k, a, b in _iso_boxes(source))
+                    self.assert_video_result(content, "video/mp4", expected_safe=not reserved)
+
+    def test_webm_rejects_repeated_track_number_children(self):
+        source = _webm_video()
+        # Rebuild ancestor lengths while adding a second D7 inside the entry.
+        from apps.uploads.scanning import _ebml_elements
+        def rewrite(start, end):
+            result = b""
+            for kind, a, b, _ in _ebml_elements(source, start=start, end=end):
+                element_id = kind.to_bytes((kind.bit_length() + 7) // 8, "big")
+                payload = rewrite(a, b) if kind in {0x18538067, 0x1654AE6B, 0xAE} else source[a:b]
+                if kind == 0xAE:
+                    payload += _ebml_element(b"\xd7", b"\x01")
+                result += _ebml_element(element_id, payload)
+            return result
+        self.assert_video_result(rewrite(0, len(source)), "video/webm", expected_safe=False)
+
     def test_fragmented_mp4_rejects_malformed_mvex_children(self):
         self.assert_video_result(
             _fragmented_iso_video(malformed_mvex=True), "video/mp4", expected_safe=False

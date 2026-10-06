@@ -103,7 +103,7 @@ def _iso_classic_samples_in_media(content, boxes, media_ranges, sample_budget):
 
     def rows(kind, width):
         start, end = tables[kind]
-        if end - start < 8 or content[start] != 0:
+        if end - start < 8 or content[start : start + 4] != b"\x00" * 4:
             return None
         count = int.from_bytes(content[start + 4 : start + 8], "big")
         if not 0 < count <= 100_000 or end - start != 8 + count * width * 4:
@@ -117,7 +117,7 @@ def _iso_classic_samples_in_media(content, boxes, media_ranges, sample_budget):
         ]
 
     start, end = tables[b"stsz"]
-    if end - start < 12 or content[start] != 0:
+    if end - start < 12 or content[start : start + 4] != b"\x00" * 4:
         return None
     fixed_size = int.from_bytes(content[start + 4 : start + 8], "big")
     count = int.from_bytes(content[start + 8 : start + 12], "big")
@@ -150,7 +150,7 @@ def _iso_classic_samples_in_media(content, boxes, media_ranges, sample_budget):
     if kind not in tables:
         return None
     start, end = tables[kind]
-    if end - start < 8 or content[start] != 0:
+    if end - start < 8 or content[start : start + 4] != b"\x00" * 4:
         return None
     chunk_count = int.from_bytes(content[start + 4 : start + 8], "big")
     width = 8 if kind == b"co64" else 4
@@ -380,7 +380,7 @@ def _iso_stbl_has_video_sample_entry(
                 return False
     stsd = next(box for box in boxes if box[0] == b"stsd")
     _, stsd_start, stsd_end = stsd
-    if stsd_end - stsd_start < 8 or content[stsd_start] != 0:
+    if stsd_end - stsd_start < 8 or content[stsd_start : stsd_start + 4] != b"\x00" * 4:
         return False
     entry_count = int.from_bytes(content[stsd_start + 4 : stsd_start + 8], "big")
     entries = _iso_boxes(content, start=stsd_start + 8, end=stsd_end)
@@ -648,6 +648,7 @@ def _webm_video_track_numbers(
             continue
         track_type = None
         track_number = None
+        track_number_seen = False
         track_uid = None
         codec_id = None
         video_dimensions = None
@@ -658,6 +659,9 @@ def _webm_video_track_numbers(
                 return None
             payload = content[payload_start:payload_end]
             if child_id == 0xD7:
+                if track_number_seen:
+                    return None
+                track_number_seen = True
                 track_number = _ebml_uint(content, payload_start, payload_end)
             elif child_id == 0x73C5:
                 track_uid = _ebml_uint(content, payload_start, payload_end)
