@@ -408,7 +408,16 @@ def serialize_verification_session_status(
     latest_selfie = verification.selfie_captures.order_by("-created_at").first()
     latest_document = verification.identity_documents.order_by("-created_at").first()
     latest_liveness = verification.liveness_checks.order_by("-created_at").first()
-    if latest_document is not None and latest_document.status == IdentityDocumentStatus.PROCESSING:
+    latest_consent = verification.consent_records.order_by("-accepted_at", "-pk").first()
+    from apps.verifications.transitions import TERMINAL_STATUSES
+    unbound_legacy_consent = (
+        latest_consent is not None and latest_consent.proof_json is None
+        and latest_consent.withdrawn_at is None and verification.status not in TERMINAL_STATUSES
+    )
+    if unbound_legacy_consent:
+        current_step = "consent"
+        message = "Please review and accept the current consent notice to continue."
+    elif latest_document is not None and latest_document.status == IdentityDocumentStatus.PROCESSING:
         current_step = "document_processing"
         message = "Your identity document is being checked before selfie capture."
     elif latest_document is not None and latest_document.status in {
@@ -529,7 +538,9 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
             )
 
         existing_record = verification.consent_records.order_by("-accepted_at", "-pk").first()
-        if existing_record:
+        if existing_record and (
+            existing_record.proof_json is not None or existing_record.withdrawn_at is not None
+        ):
             from apps.consent.services import require_active_consent
             try:
                 require_active_consent(verification)

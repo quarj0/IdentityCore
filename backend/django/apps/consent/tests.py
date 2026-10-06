@@ -158,6 +158,31 @@ class ConsentPurposeTests(TestCase):
             serializer.save()
         self.assertFalse(self.tenant_case.consent_records.exists())
 
+    def test_unbound_legacy_acceptance_can_receive_a_fresh_immutable_proof(self):
+        from types import SimpleNamespace
+        from apps.verification_sessions.serializers import VerificationSessionConsentSerializer, serialize_verification_session_status
+        self.tenant_case.status = "in_progress"
+        self.tenant_case.save(update_fields=["status"])
+        legacy = accept_test_consent(self.tenant_case)
+        self._make_legacy(legacy)
+        original_text = legacy.consent_text_snapshot
+        original_time = legacy.accepted_at
+        session = VerificationSession.objects.create(tenant=self.tenant, verification=self.tenant_case,
+            session_token_hash="synthetic-legacy", expires_at=timezone.now() + timedelta(hours=1))
+        self.assertEqual(serialize_verification_session_status(session)["current_step"], "consent")
+        request = SimpleNamespace(verification_session=session, headers={}, META={})
+        serializer = VerificationSessionConsentSerializer(data={"accepted": True}, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        fresh = serializer.save()
+        self.assertNotEqual(fresh.pk, legacy.pk)
+        self.assertEqual(active_consent(self.tenant_case).pk, fresh.pk)
+        legacy.refresh_from_db()
+        self.assertIsNone(legacy.proof_json)
+        self.assertEqual(legacy.consent_text_snapshot, original_text)
+        self.assertEqual(legacy.accepted_at, original_time)
+        self.assertEqual(serialize_verification_session_status(session)["current_step"], "document_capture")
+        self.assertEqual(self.tenant_case.consent_records.count(), 2)
+
     def test_only_platform_onboarding_can_process_while_tenant_is_pending(self):
         accept_test_consent(self.platform_case)
         accept_test_consent(self.tenant_case)
