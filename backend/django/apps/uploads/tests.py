@@ -237,6 +237,55 @@ def _webm_video(*, track_type: int = 1, codec_id: bytes = b"V_VP9", flag_lacing=
 
 
 class UploadVideoInspectionTests(TestCase):
+    def test_webm_rejects_multiple_tracks_elements(self):
+        from apps.uploads.scanning import _ebml_elements
+
+        source = _webm_video()
+        root = _ebml_elements(source, start=0, end=len(source))
+        start, end = root[1][1:3]
+        children = _ebml_elements(source, start=start, end=end)
+        tracks = next(child for child in children if child[0] == 0x1654AE6B)
+        video = _ebml_element(b"\x16\x54\xae\x6b", source[tracks[1]:tracks[2]])
+        audio = _ebml_element(b"\x16\x54\xae\x6b", _ebml_element(b"\xae",
+            _ebml_element(b"\xd7", b"\x01") + _ebml_element(b"\x83", b"\x02")
+            + _ebml_element(b"\x86", b"A_OPUS")))
+        for entries in (audio + video, video + audio):
+            with self.subTest(entries=entries):
+                payload = source[start:tracks[1] - 5] + entries + source[tracks[2]:end]
+                content = source[:start - 5] + _ebml_element(b"\x18\x53\x80\x67", payload)
+                self.assert_video_result(content, "video/webm", expected_safe=False)
+
+    def test_fragment_rejects_zero_track_id_beside_valid_video(self):
+        from apps.uploads.scanning import _iso_boxes
+
+        source = _fragmented_iso_video()
+        def rewrite(kind, start, end):
+            if kind == b"moof":
+                children = _iso_boxes(source, start=start, end=end)
+                traf = next((a, b) for k, a, b in children if k == b"traf")
+                payload = source[traf[0]:traf[1]]
+                header = next((a, b) for k, a, b in _iso_boxes(source, start=traf[0], end=traf[1]) if k == b"tfhd")
+                offset = header[0] - traf[0] + 4
+                zero = payload[:offset] + b"\x00" * 4 + payload[offset + 4:]
+                extra = _iso_box(b"traf", zero)
+                # Both fragments point to the same valid bounded sample data.
+                def adjust(data):
+                    position = data.index(b"trun") + 12
+                    value = int.from_bytes(data[position:position + 4], "big", signed=True)
+                    return data[:position] + (value + len(extra)).to_bytes(4, "big", signed=True) + data[position + 4:]
+                return _iso_box(kind, adjust(source[start:end]) + adjust(extra))
+            return _iso_box(kind, source[start:end])
+        content = b"".join(rewrite(k, a, b) for k, a, b in _iso_boxes(source))
+        self.assert_video_result(content, "video/mp4", expected_safe=False)
+        from apps.uploads.scanning import _iso_fragment_track_ids
+        boxes = _iso_boxes(content)
+        ranges = [(a, b) for k, a, b in boxes if k == b"mdat"]
+        self.assertIsNone(_iso_fragment_track_ids(content, boxes, ranges, [100_000]))
+        # Restore a nonzero second track: the same offsets and lengths are valid.
+        marker = b"tfhd" + (0x020000).to_bytes(4, "big") + b"\x00" * 4
+        control = content.replace(marker, b"tfhd" + (0x020000).to_bytes(4, "big") + (2).to_bytes(4, "big"))
+        self.assertEqual(_iso_fragment_track_ids(control, boxes, ranges, [100_000]), {1: {1}, 2: {1}})
+
     def test_classic_tables_reject_reserved_fullbox_flags(self):
         from apps.uploads.scanning import _iso_boxes
 

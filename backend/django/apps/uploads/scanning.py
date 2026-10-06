@@ -249,6 +249,8 @@ def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
             if flags & ~0x03003B or (flags & 1 and flags & 0x020000):
                 return None
             track = int.from_bytes(content[a + 4 : a + 8], "big")
+            if track == 0:
+                return None
             cursor = a + 8
             base = moof_offset
             if flags & 1:
@@ -854,6 +856,9 @@ def _is_supported_webm_video(content: bytes) -> bool:
         for element_id, payload_start, payload_end, unknown_size in children
     )
     video_tracks = {}
+    tracks_elements = [child for child in children if child[0] == 0x1654AE6B]
+    if len(tracks_elements) != 1 or tracks_elements[0][3]:
+        return False
     for element_id, payload_start, payload_end, unknown_size in children:
         if element_id == 0x1654AE6B and not unknown_size:
             tracks = _webm_video_track_numbers(content, payload_start, payload_end, budget)
