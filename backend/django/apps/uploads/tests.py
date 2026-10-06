@@ -251,6 +251,34 @@ class UploadCreateTests(APITestCase):
         self.assertFalse(Upload.objects.exists())
         signed_url.assert_not_called()
 
+    @patch("apps.uploads.views.inspect_upload_content", return_value=(True, ""))
+    @patch("apps.uploads.views.put_object_bytes")
+    @patch("apps.uploads.services.build_presigned_upload_url")
+    def test_operational_runner_transfers_evidence_through_authenticated_api(self, presign, put, inspect):
+        import importlib.util
+        from pathlib import Path
+        script = Path(__file__).resolve().parents[4] / "scripts/run_operational_load.py"
+        spec = importlib.util.spec_from_file_location("synthetic_load_runner", script)
+        runner = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(runner)
+        calls = []
+        def request(method, path, headers, body=None, *, files=None):
+            calls.append((method, path))
+            if files:
+                filename, content, mime = files["file"]
+                data = {"file": SimpleUploadedFile(filename, content, content_type=mime)}
+                response = self.client.post("/api/v1" + path, data, format="multipart", **headers)
+            else:
+                response = self.client.post("/api/v1" + path, body, format="json", **headers)
+            self.assertIn(response.status_code, (200, 201))
+            return response.data["data"]
+        upload_id = runner.upload_session_evidence(request, purpose="document_capture",
+            content=b"test", headers=self.auth_headers())
+        self.assertEqual(calls, [("POST", "/uploads/"), ("POST", f"/uploads/{upload_id}/transfer")])
+        self.assertEqual(Upload.objects.get(public_id=upload_id).status, UploadStatus.UPLOADED)
+        put.assert_called_once()
+        presign.assert_not_called()
+
     def test_document_only_consent_cannot_authorize_biometric_uploads(self):
         self._restrict_consent(["document"])
         for purpose, mime in [("selfie_capture", "image/jpeg"), ("liveness_capture", "video/mp4")]:
