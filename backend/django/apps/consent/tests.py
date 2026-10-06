@@ -216,6 +216,41 @@ class ConsentPurposeTests(TestCase):
         repeated.is_valid(raise_exception=True)
         self.assertEqual(repeated.save().pk, fresh.pk)
 
+    def test_reconsent_preserves_progressed_workflow_states(self):
+        from types import SimpleNamespace
+        from apps.verification_sessions.serializers import VerificationSessionConsentSerializer
+        for state in ("awaiting_document", "awaiting_selfie", "processing"):
+            with self.subTest(state=state):
+                self.tenant_case.status = state
+                self.tenant_case.save(update_fields=["status"])
+                narrow = accept_test_consent(self.tenant_case)
+                self._make_legacy(narrow)
+                call_command("bind_legacy_consent", tenant=self.tenant.public_id,
+                    notice_version=4, evidence_scope=["document"], stdout=StringIO())
+                session = VerificationSession.objects.create(tenant=self.tenant, verification=self.tenant_case,
+                    session_token_hash="progressed-" + state, expires_at=timezone.now() + timedelta(hours=1))
+                request = SimpleNamespace(verification_session=session, headers={}, META={})
+                serializer = VerificationSessionConsentSerializer(data={"accepted": True}, context={"request": request})
+                serializer.is_valid(raise_exception=True)
+                with transaction.atomic():
+                    fresh = serializer.save()
+                self.tenant_case.refresh_from_db()
+                self.assertEqual(self.tenant_case.status, state)
+                self.assertNotEqual(fresh.pk, narrow.pk)
+                self.assertIsNotNone(active_consent(self.tenant_case, "biometrics"))
+
+    def test_status_and_withdrawal_remain_available_during_key_outage(self):
+        from apps.verification_sessions.serializers import serialize_verification_session_status
+        record = accept_test_consent(self.tenant_case)
+        session = VerificationSession.objects.create(tenant=self.tenant, verification=self.tenant_case,
+            session_token_hash="status-key-outage", expires_at=timezone.now() + timedelta(hours=1))
+        with patch("common.fields.decrypt_tenant_json", side_effect=ValueError("unavailable")):
+            status = serialize_verification_session_status(session)
+            self.assertEqual(status["verification_id"], self.tenant_case.public_id)
+            self.assertEqual(status["current_step"], "consent")
+            withdrawn = withdraw(ConsentRecord.objects.get(pk=record.pk))
+            self.assertIsNotNone(withdrawn.withdrawn_at)
+
     def test_only_platform_onboarding_can_process_while_tenant_is_pending(self):
         accept_test_consent(self.platform_case)
         accept_test_consent(self.tenant_case)

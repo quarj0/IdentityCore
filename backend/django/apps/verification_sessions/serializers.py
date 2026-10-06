@@ -410,10 +410,21 @@ def serialize_verification_session_status(
     latest_liveness = verification.liveness_checks.order_by("-created_at").first()
     latest_consent = verification.consent_records.order_by("-accepted_at", "-pk").first()
     from apps.verifications.transitions import TERMINAL_STATUSES
+    presentation_proof = None
+    if (latest_consent is not None and latest_consent.withdrawn_at is None
+            and verification.status not in TERMINAL_STATUSES):
+        try:
+            presentation_proof = latest_consent.proof_json
+        except ValueError:
+            # Presentation must remain available so applicants can withdraw
+            # while their customer-managed key is temporarily unavailable.
+            pass
     unbound_legacy_consent = (
-        latest_consent is not None and (latest_consent.proof_json is None
-        or not {"document", "biometrics"}.issubset(latest_consent.proof_json.get("evidence_scope", [])))
-        and latest_consent.withdrawn_at is None and verification.status not in TERMINAL_STATUSES
+        latest_consent is not None
+        and latest_consent.withdrawn_at is None
+        and verification.status not in TERMINAL_STATUSES
+        and (presentation_proof is None or not {"document", "biometrics"}.issubset(
+            presentation_proof.get("evidence_scope", [])))
     )
     if unbound_legacy_consent:
         current_step = "consent"
@@ -597,7 +608,8 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
         update_session_fields.extend(["ip_address", "user_agent", "device_fingerprint"])
         verification_session.save(update_fields=update_session_fields)
 
-        transition_verification(verification, VerificationStatus.IN_PROGRESS)
+        if verification.status == VerificationStatus.PENDING_CONSENT:
+            transition_verification(verification, VerificationStatus.IN_PROGRESS)
         return consent_record
 
 
