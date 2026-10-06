@@ -529,10 +529,6 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
         verification_session = request.verification_session
         verification = verification_session.verification
 
-        from apps.verifications.transitions import TERMINAL_STATUSES
-        if verification.status in TERMINAL_STATUSES or verification.expires_at <= timezone.now():
-            raise serializers.ValidationError("Consent cannot be accepted for a terminal or expired verification.")
-
         artifact = _consent_artifact(
             verification,
             _request_locale(request, verification.policy_snapshot_json or {}),
@@ -571,6 +567,10 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
                 if verification.status == VerificationStatus.PENDING_CONSENT:
                     transition_verification(verification, VerificationStatus.IN_PROGRESS)
                 return existing_record
+        from apps.verifications.transitions import TERMINAL_STATUSES
+        if verification.status in TERMINAL_STATUSES or verification.expires_at <= timezone.now():
+            raise serializers.ValidationError("Consent cannot be accepted for a terminal or expired verification.")
+
         consent_template = ConsentTemplate.objects.filter(
             tenant=verification.tenant, public_id=artifact["template_id"]
         ).first()

@@ -216,6 +216,37 @@ class ConsentPurposeTests(TestCase):
         repeated.is_valid(raise_exception=True)
         self.assertEqual(repeated.save().pk, fresh.pk)
 
+    def test_matching_acceptance_replays_after_finalization_or_case_expiry(self):
+        from types import SimpleNamespace
+        from apps.verification_sessions.serializers import VerificationSessionConsentSerializer
+
+        self.tenant_case.status = "pending_consent"
+        self.tenant_case.save(update_fields=["status"])
+        session = VerificationSession.objects.create(
+            tenant=self.tenant, verification=self.tenant_case,
+            session_token_hash="replayed-final-consent",
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+        request = SimpleNamespace(verification_session=session, headers={}, META={})
+        first = VerificationSessionConsentSerializer(data={"accepted": True}, context={"request": request})
+        first.is_valid(raise_exception=True)
+        record = first.save()
+        original_proof = record.proof_json
+        for state in ("verified", "rejected", "cancelled", "expired", "failed", "elapsed"):
+            with self.subTest(state=state):
+                self.tenant_case.status = "in_progress" if state == "elapsed" else state
+                self.tenant_case.expires_at = timezone.now() + timedelta(hours=-1 if state == "elapsed" else 1)
+                self.tenant_case.save(update_fields=["status", "expires_at"])
+                replay = VerificationSessionConsentSerializer(data={"accepted": True}, context={"request": request})
+                replay.is_valid(raise_exception=True)
+                result = replay.save()
+                self.assertEqual(result.pk, record.pk)
+                self.assertTrue(result._already_existing)
+                self.assertEqual(result.proof_json, original_proof)
+                self.assertEqual(self.tenant_case.consent_records.count(), 1)
+                self.tenant_case.refresh_from_db()
+                self.assertEqual(self.tenant_case.status, "in_progress" if state == "elapsed" else state)
+
     def test_acceptance_rejects_terminal_and_elapsed_cases_without_writes(self):
         from types import SimpleNamespace
         from apps.verification_sessions.serializers import VerificationSessionConsentSerializer
