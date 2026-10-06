@@ -10,7 +10,12 @@ function assess({ head, reviewer, reviews, comments, threads, commits, runs, tru
   }
   const blockingReview = changesRequested || finalReviews.some(r => r.state === 'PENDING');
   const reviewed = !blockingReview && (reviews.some(r => isReviewer(r.user) && r.commit_id === head && ['APPROVED', 'COMMENTED'].includes(r.state)) ||
-    comments.some(c => isReviewer(c.user) && [...c.body.matchAll(/\*\*Reviewed commit:\*\*\s*`([0-9a-f]{10,40})`/g)].some(m => head.startsWith(m[1]))));
+    comments.some(c => isReviewer(c.user) && (
+      [...c.body.matchAll(/\*\*Reviewed commit:\*\*\s*`([0-9a-f]{10,40})`/g)].some(m => head.startsWith(m[1])) ||
+      (c.body.startsWith('<!-- codex-pull-request-review-summary -->') &&
+        [...c.body.matchAll(/^\|[^|\n]*\*\*Code Review\*\*[^|\n]*\|\s*✅\s*\*\*Completed\*\*[^|\n]*\|\s*`([0-9a-f]{7,40})`/gm)]
+          .some(m => head.startsWith(m[1]) && commits.filter(sha => sha.startsWith(m[1])).length === 1))
+    )));
   const problems = [];
   for (const name of ['CI', 'Security']) {
     const trusted = trustedWorkflows?.[name];

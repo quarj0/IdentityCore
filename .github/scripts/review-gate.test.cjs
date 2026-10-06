@@ -151,3 +151,19 @@ test('edited earlier feedback invalidates older resolver evidence', () => {
   nodes[0].updatedAt = 'invalid';
   assert.match(assess(input).join(' '), /no fixing-commit/);
 });
+
+
+test('completed native Codex summaries attest to a unique final-head commit', () => {
+  const input = baseline(); input.reviews = [];
+  const summary = `<!-- codex-pull-request-review-summary -->\n\n| 📝 **Code Review** | ✅ **Completed** <relative-time datetime="2026-01-01">2026-01-01</relative-time> | \`${head.slice(0, 7)}\` | PR opened |`;
+  input.comments = [{user: {login: `${reviewer}[bot]`}, body: summary}];
+  assert.deepEqual(assess(input), []);
+  input.comments[0].body = summary.replace('Completed', 'In progress');
+  assert.equal(assess(input).length, 1);
+  input.comments[0].body = summary.replace(head.slice(0, 7), fixed.slice(0, 7));
+  assert.equal(assess(input).length, 1);
+  input.comments[0].body = summary; input.comments[0].user.login = 'applicant';
+  assert.equal(assess(input).length, 1);
+  input.comments[0].user.login = `${reviewer}[bot]`; input.commits.push(head.slice(0, 7) + 'c'.repeat(33));
+  assert.equal(assess(input).length, 1);
+});
