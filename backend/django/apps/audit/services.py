@@ -14,6 +14,7 @@ def verify_audit_chain(*, tenant_id: int | str) -> tuple[bool, str]:
 
         try:
             expected = event_hash(event)
+            hash_matches = hmac.compare_digest(event.integrity_hash, expected)
             authenticated = bool(
                 event.integrity_key_id and event.authentication_tag
             ) and hmac.compare_digest(
@@ -23,7 +24,7 @@ def verify_audit_chain(*, tenant_id: int | str) -> tuple[bool, str]:
             return False, event.public_id
         if (
             event.previous_event_hash != previous_hash
-            or not hmac.compare_digest(event.integrity_hash, expected)
+            or not hash_matches
             or not authenticated
         ):
             return False, event.public_id

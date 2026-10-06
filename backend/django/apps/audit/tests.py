@@ -375,3 +375,23 @@ class AuditEventTests(APITestCase):
                 SimpleNamespace(get_model=lambda *args: AuditEvent),
                 SimpleNamespace(connection=connection),
             )
+
+    def test_non_ascii_hashes_and_tags_fail_verification_without_crashing(self):
+        event = self.create_event()
+        for field in ("integrity_hash", "authentication_tag"):
+            with self.subTest(field=field):
+                original = getattr(event, field)
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        f"UPDATE audit_auditevent SET {field} = %s WHERE id = %s",
+                        ["é" * 64, event.pk],
+                    )
+                self.assertEqual(
+                    verify_audit_chain(tenant_id=self.tenant.pk),
+                    (False, event.public_id),
+                )
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        f"UPDATE audit_auditevent SET {field} = %s WHERE id = %s",
+                        [original, event.pk],
+                    )
