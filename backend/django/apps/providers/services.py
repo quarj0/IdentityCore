@@ -734,6 +734,7 @@ def _lock_route_final_action_processing_job(
             or locked_job.resource_public_id != job_resource_public_id
             or locked_job.status != ProcessingJobStatus.PROCESSING
             or locked_job.attempt_count != processing_job.attempt_count
+            or locked_job.lease_generation != processing_job.lease_generation
         ):
             raise ProcessingJobOwnershipLost(
                 f"Processing job {locked_job.public_id} no longer owns route finalization."
@@ -902,6 +903,20 @@ def execute_provider_route(
     enforce that timeout at their I/O boundary.
     """
     from apps.verifications.processing_jobs import ProcessingJobOwnershipLost
+
+    if processing_job is not None and getattr(processing_job, "recovering_consent_proof", False):
+        with transaction.atomic():
+            _lock_processing_owner(processing_job)
+            candidates = verification.provider_checks.filter(
+                check_type=check_type, status=ProviderCheckStatus.COMPLETED,
+            ).order_by("-completed_at", "-created_at")
+            for check in candidates:
+                metadata = check.request_metadata_json or {}
+                normalized = check.normalized_result_json or {}
+                if (all(metadata.get(key) == value for key, value in (request_metadata or {}).items())
+                    and normalized.get("capability") == check_type
+                    and normalized.get("status") == ProviderCheckStatus.COMPLETED):
+                    return ProviderRouteExecutionResult(result=normalized, provider_check=check, attempts=())
 
     resolution = resolve_provider_chain_for_verification(
         verification=verification,

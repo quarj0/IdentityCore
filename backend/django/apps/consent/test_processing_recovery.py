@@ -1,16 +1,71 @@
 from unittest.mock import patch
 
 from django.test import TestCase
+from django.db import transaction
 
 from apps.biometrics import test_finalization_recovery as biometric_fixtures
-from apps.consent.services import active_consent
+from apps.consent.services import active_consent, ConsentProofUnavailable
 from apps.verifications import test_processing_jobs as document_fixtures
 from apps.verifications.models import ProcessingJobStatus, ProcessingJobType
-from apps.verifications.processing_jobs import acquire_processing_job, enqueue_processing_job
+from apps.verifications.processing_jobs import (
+    ProcessingJobOwnershipLost, acquire_processing_job, enqueue_processing_job,
+    defer_on_consent_proof_unavailable, lock_processing_job_for_finalization,
+    heartbeat_processing_job, COMMITTED_PROVIDER_RESULT_RECOVERY,
+)
 from common.fields import decrypt_tenant_json
 
 
 class ConsentKeyRecoveryAssertions:
+    def test_finalization_outage_refunds_final_attempt_and_fences_old_worker(self):
+        queued = enqueue_processing_job(job_type=self.job_type, resource=self.resource)
+        queued.attempt_count = queued.max_attempts - 1
+        queued.save(update_fields=["attempt_count"])
+        old_job = acquire_processing_job(job_type=self.job_type, resource=self.resource)
+
+        def unavailable_proof(value, **kwargs):
+            if kwargs.get("purpose") == "consent.proof":
+                raise ValueError("synthetic key-provider outage")
+            return decrypt_tenant_json(value, **kwargs)
+
+        @defer_on_consent_proof_unavailable
+        def finalize():
+            with transaction.atomic():
+                lock_processing_job_for_finalization(old_job)
+                self.fail("No state write may follow unavailable proof")
+
+        with patch("common.fields.decrypt_tenant_json", side_effect=unavailable_proof):
+            finalize()
+        queued.refresh_from_db()
+        self.assertEqual(queued.status, ProcessingJobStatus.QUEUED)
+        self.assertEqual(queued.attempt_count, queued.max_attempts - 1)
+        self.assertEqual(queued.lease_generation, old_job.lease_generation)
+        self.assertEqual(queued.error_code, "consent_key_unavailable")
+        self.assertIsNone(queued.completed_at)
+        recovered = acquire_processing_job(job_type=self.job_type, resource=self.resource)
+        self.assertEqual(recovered.attempt_count, old_job.attempt_count)
+        self.assertGreater(recovered.lease_generation, old_job.lease_generation)
+        with self.assertRaises(ProcessingJobOwnershipLost):
+            heartbeat_processing_job(old_job)
+        with transaction.atomic(), self.assertRaises(ProcessingJobOwnershipLost):
+            lock_processing_job_for_finalization(old_job)
+        heartbeat_processing_job(recovered)
+        from apps.providers.models import ProviderCheckStatus, ProviderCheckType
+        from apps.providers.services import create_provider_check, execute_provider_route
+        check_type = ProviderCheckType.DOCUMENT_QUALITY if self.job_type == ProcessingJobType.IDENTITY_DOCUMENT else ProviderCheckType.LIVENESS
+        metadata = {"resource_id": self.resource.public_id}
+        check = create_provider_check(verification=self.verification, check_type=check_type,
+            status=ProviderCheckStatus.COMPLETED, request_metadata=metadata)
+        check.normalized_result_json = {"capability": check_type, "status": "completed", "score": 0.97}
+        check.save(update_fields=["normalized_result_json"])
+        with patch("apps.providers.services.resolve_provider_chain_for_verification") as route, patch("builtins.print") as operation:
+            result = execute_provider_route(verification=self.verification, check_type=check_type,
+                request_metadata=metadata, operation=operation, processing_job=recovered)
+        self.assertEqual(result.provider_check.pk, check.pk)
+        route.assert_not_called()
+        operation.assert_not_called()
+        with transaction.atomic():
+            lock_processing_job_for_finalization(recovered)
+
     def test_key_outage_keeps_job_retryable_without_consuming_attempts(self):
         job = enqueue_processing_job(job_type=self.job_type, resource=self.resource)
         initial_provider_count = self.verification.provider_checks.count()
@@ -44,6 +99,18 @@ class DocumentConsentKeyRecoveryTests(ConsentKeyRecoveryAssertions, TestCase):
 
 
 class BiometricConsentKeyRecoveryTests(ConsentKeyRecoveryAssertions, TestCase):
+    def test_acquisition_outage_preserves_queued_provider_recovery_grace(self):
+        job = enqueue_processing_job(job_type=self.job_type, resource=self.resource)
+        job.attempt_count = job.max_attempts
+        job.error_code = COMMITTED_PROVIDER_RESULT_RECOVERY
+        job.save(update_fields=["attempt_count", "error_code"])
+        with patch("apps.consent.services.active_consent", side_effect=ConsentProofUnavailable):
+            self.assertIsNone(acquire_processing_job(job_type=self.job_type, resource=self.resource))
+        job.refresh_from_db()
+        self.assertEqual(job.error_code, COMMITTED_PROVIDER_RESULT_RECOVERY)
+        self.assertEqual(job.attempt_count, job.max_attempts)
+
+
     def setUp(self):
         biometric_fixtures.BiometricFinalizationRecoveryTests.setUp(self)
         self.job_type = ProcessingJobType.BIOMETRICS

@@ -1,9 +1,11 @@
 from common.observability import record_completion
 import logging
+from functools import wraps
 from datetime import timedelta
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Case, When, Value
 from django.utils import timezone
 
 from apps.audit.services import lock_audit_chain, record_audit_event
@@ -30,6 +32,43 @@ class ProcessingJobOwnershipLost(RuntimeError):
     """Raised when a worker no longer owns the durable processing lease."""
 
 
+
+class ProcessingConsentProofUnavailable(ProcessingJobOwnershipLost):
+    """Transport a transient proof outage through worker failure handlers."""
+
+    def __init__(self, job):
+        self.job = job
+        super().__init__("Processing consent proof key is temporarily unavailable.")
+
+
+def defer_on_consent_proof_unavailable(worker):
+    @wraps(worker)
+    def wrapped(*args, **kwargs):
+        try:
+            return worker(*args, **kwargs)
+        except ProcessingConsentProofUnavailable as exc:
+            # This runs outside the failed finalization transaction, so the durable
+            # deferral survives rollback. Generations never move backwards.
+            with transaction.atomic():
+                locked = ProcessingJob.objects.select_for_update().get(pk=exc.job.pk)
+                _assert_processing_job_owner(locked, exc.job)
+                locked.status = ProcessingJobStatus.QUEUED
+                locked.attempt_count -= 1
+                locked.error_code = (
+                    COMMITTED_PROVIDER_RESULT_RECOVERY
+                    if exc.job.error_code == COMMITTED_PROVIDER_RESULT_RECOVERY_CONSUMED
+                    else "consent_key_unavailable"
+                )
+                locked.heartbeat_at = timezone.now()
+                locked.lease_expires_at = _lease_deadline(locked.heartbeat_at)
+                locked.save(update_fields=["status", "attempt_count", "error_code", "heartbeat_at", "lease_expires_at", "updated_at"])
+            if locked.job_type == ProcessingJobType.IDENTITY_DOCUMENT:
+                from apps.identity_documents.models import IdentityDocument
+                return IdentityDocument.objects.get(public_id=locked.resource_public_id).status
+            return Verification.objects.get(pk=locked.verification_id).status
+    return wrapped
+
+
 def _lease_deadline(now=None):
     return (now or timezone.now()) + timedelta(
         seconds=settings.PROCESSING_JOB_LEASE_SECONDS
@@ -40,6 +79,7 @@ def _assert_processing_job_owner(locked: ProcessingJob, owner: ProcessingJob) ->
     if (
         locked.status != ProcessingJobStatus.PROCESSING
         or locked.attempt_count != owner.attempt_count
+        or locked.lease_generation != owner.lease_generation
     ):
         raise ProcessingJobOwnershipLost(
             f"Processing job {locked.public_id} is owned by another attempt."
@@ -60,7 +100,14 @@ def lock_processing_job_for_finalization(job: ProcessingJob) -> ProcessingJob:
     _assert_processing_job_owner(locked, job)
     from apps.consent.services import active_consent
     scope = "document" if locked.job_type == ProcessingJobType.IDENTITY_DOCUMENT else "biometrics"
-    if active_consent(locked.verification, scope) is None:
+    try:
+        consent = active_consent(locked.verification, scope, raise_on_unavailable=True)
+    except Exception as exc:
+        from apps.consent.services import ConsentProofUnavailable
+        if isinstance(exc, ConsentProofUnavailable):
+            raise ProcessingConsentProofUnavailable(job) from exc
+        raise
+    if consent is None:
         raise ProcessingJobOwnershipLost("Processing consent is unavailable.")
     return locked
 
@@ -383,7 +430,9 @@ def acquire_processing_job(*, job_type: str, resource) -> ProcessingJob | None:
         ProcessingJob.objects.filter(
             job_type=job_type, resource_public_id=resource.public_id,
             status=ProcessingJobStatus.QUEUED,
-        ).update(error_code="consent_key_unavailable", heartbeat_at=now, lease_expires_at=_lease_deadline(now))
+        ).update(error_code=Case(
+            When(error_code=COMMITTED_PROVIDER_RESULT_RECOVERY, then=Value(COMMITTED_PROVIDER_RESULT_RECOVERY)),
+            default=Value("consent_key_unavailable")), heartbeat_at=now, lease_expires_at=_lease_deadline(now))
         return None
     if consent is None:
         ProcessingJob.objects.filter(job_type=job_type, resource_public_id=resource.public_id,
@@ -425,11 +474,13 @@ def acquire_processing_job(*, job_type: str, resource) -> ProcessingJob | None:
         if job.attempt_count >= job.max_attempts and not recovery_grace:
             return None
 
+        job.recovering_consent_proof = job.error_code == "consent_key_unavailable"
         job.status = ProcessingJobStatus.PROCESSING
         # Every worker acquisition advances the durable generation. The recovery-only
         # generation may be max_attempts + 1, but provider I/O is reused rather than
         # replayed, so this does not expand the external-provider attempt budget.
         job.attempt_count += 1
+        job.lease_generation += 1
         job.error_code = (
             COMMITTED_PROVIDER_RESULT_RECOVERY_CONSUMED if recovery_grace else ""
         )
@@ -439,6 +490,7 @@ def acquire_processing_job(*, job_type: str, resource) -> ProcessingJob | None:
             update_fields=[
                 "status",
                 "attempt_count",
+                "lease_generation",
                 "heartbeat_at",
                 "lease_expires_at",
                 "error_code",
@@ -455,6 +507,7 @@ def heartbeat_processing_job(job: ProcessingJob) -> None:
         pk=job.pk,
         status=ProcessingJobStatus.PROCESSING,
         attempt_count=job.attempt_count,
+        lease_generation=job.lease_generation,
     ).update(
         heartbeat_at=now,
         lease_expires_at=lease_expires_at,
@@ -546,7 +599,7 @@ def complete_processing_job(job: ProcessingJob) -> None:
     now = timezone.now()
     locked = ProcessingJob.objects.select_for_update().get(pk=job.pk)
     if locked.status == ProcessingJobStatus.COMPLETED:
-        if locked.attempt_count == job.attempt_count:
+        if locked.attempt_count == job.attempt_count and locked.lease_generation == job.lease_generation:
             return
         raise ProcessingJobOwnershipLost(
             f"Processing job {locked.public_id} was completed by another attempt."
@@ -578,6 +631,7 @@ def defer_processing_job(job: ProcessingJob, *, error_code: str) -> None:
         pk=job.pk,
         status=ProcessingJobStatus.PROCESSING,
         attempt_count=job.attempt_count,
+        lease_generation=job.lease_generation,
     ).update(
         status=ProcessingJobStatus.QUEUED,
         heartbeat_at=now,
