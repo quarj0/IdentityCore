@@ -388,6 +388,22 @@ class UploadVideoInspectionTests(TestCase):
                 ranges = [(a, b) for kind, a, b in boxes if kind == b"mdat"]
                 self.assertIsNone(_iso_fragment_track_ids(content, boxes, ranges, [100_000]))
 
+    def test_duration_empty_fragment_rejects_any_track_run(self):
+        from apps.uploads.scanning import _iso_boxes, _iso_fragment_track_ids
+        for run in [b"", b"\x00" * 4 + (0).to_bytes(4, "big"),
+            b"\x00\x00\x00\x01" + (1).to_bytes(4, "big") + (1000).to_bytes(4, "big")]:
+            with self.subTest(run=run):
+                empty_header = _iso_box(b"tfhd", b"\x00\x01\x00\x00" + (1).to_bytes(4, "big"))
+                invalid_empty = _iso_box(b"traf", empty_header + _iso_box(b"trun", run))
+                def movie(offset):
+                    header = _iso_box(b"tfhd", b"\x00\x02\x00\x10" + (2).to_bytes(4, "big") + (3).to_bytes(4, "big"))
+                    valid = _iso_box(b"trun", b"\x00\x00\x00\x01" + (1).to_bytes(4, "big") + offset.to_bytes(4, "big"))
+                    return _iso_box(b"moof", invalid_empty + _iso_box(b"traf", header + valid))
+                content = movie(len(movie(0)) + 8) + _iso_box(b"mdat", b"abc")
+                boxes = _iso_boxes(content)
+                ranges = [(a, b) for kind, a, b in boxes if kind == b"mdat"]
+                self.assertIsNone(_iso_fragment_track_ids(content, boxes, ranges, [100_000]))
+
     def test_fragment_sample_budget_is_shared_across_runs(self):
         from apps.uploads.scanning import _iso_boxes, _iso_fragment_track_ids
 

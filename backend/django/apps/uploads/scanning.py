@@ -262,6 +262,8 @@ def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
             if cursor != b:
                 return None
             if flags & 0x010000:
+                if any(kind == b"trun" for kind, _, _ in fragment):
+                    return None
                 # A legal duration-is-empty fragment supplies no data-end base.
                 implicit_base = None
                 continue
