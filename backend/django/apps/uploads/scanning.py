@@ -189,9 +189,10 @@ def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
         ):
             if child != b"mvex":
                 continue
-            for entry, entry_start, entry_end in (
-                _iso_boxes(content, start=child_start, end=child_end) or []
-            ):
+            entries = _iso_boxes(content, start=child_start, end=child_end)
+            if entries is None:
+                return None
+            for entry, entry_start, entry_end in entries:
                 if entry == b"trex":
                     if entry_end - entry_start != 24 or content[entry_start : entry_start + 4] != b"\x00" * 4:
                         return None
@@ -638,6 +639,7 @@ def _webm_video_track_numbers(
     if not tracks:
         return None
     video_tracks = {}
+    track_numbers = set()
     for element_id, entry_start, entry_end, unknown_size in tracks:
         if element_id != 0xAE or unknown_size:
             continue
@@ -692,6 +694,9 @@ def _webm_video_track_numbers(
                     None,
                 )
                 video_dimensions = (width, height)
+        if track_number is None or track_number <= 0 or track_number in track_numbers:
+            return None
+        track_numbers.add(track_number)
         if (
             track_number is not None
             and track_number > 0

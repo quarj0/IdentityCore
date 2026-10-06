@@ -109,6 +109,7 @@ def _fragmented_iso_video(
     implicit_base=False,
     description_index=1,
     tfhd_description=None,
+    malformed_mvex=False,
     supported_entry=1,
 ):
     from apps.uploads.scanning import _iso_boxes
@@ -125,7 +126,7 @@ def _fragmented_iso_video(
             if kind == b"moov":
                 payload += _iso_box(
                     b"mvex",
-                    _iso_box(
+                    b"x" if malformed_mvex else _iso_box(
                         b"trex",
                         b"\x00" * 4
                         + (1).to_bytes(4, "big")
@@ -236,6 +237,37 @@ def _webm_video(*, track_type: int = 1, codec_id: bytes = b"V_VP9", flag_lacing=
 
 
 class UploadVideoInspectionTests(TestCase):
+    def test_fragmented_mp4_rejects_malformed_mvex_children(self):
+        self.assert_video_result(
+            _fragmented_iso_video(malformed_mvex=True), "video/mp4", expected_safe=False
+        )
+
+    def test_webm_rejects_duplicate_numbers_across_audio_and_video(self):
+        from apps.uploads.scanning import _ebml_elements
+
+        source = _webm_video()
+        top = _ebml_elements(source, start=0, end=len(source))
+        segment_start, segment_end = top[1][1:3]
+        children = _ebml_elements(source, start=segment_start, end=segment_end)
+        tracks = next(child for child in children if child[0] == 0x1654AE6B)
+        video = source[tracks[1]:tracks[2]]
+        audio = _ebml_element(
+            b"\xae",
+            _ebml_element(b"\xd7", b"\x01")
+            + _ebml_element(b"\x73\xc5", b"\x02")
+            + _ebml_element(b"\x83", b"\x02")
+            + _ebml_element(b"\x86", b"A_OPUS"),
+        )
+        for entries in (video + audio, audio + video):
+            with self.subTest(audio_first=entries.startswith(audio)):
+                payload = (
+                    source[segment_start:tracks[1] - 5]
+                    + _ebml_element(b"\x16\x54\xae\x6b", entries)
+                    + source[tracks[2]:segment_end]
+                )
+                content = source[:segment_start - 5] + _ebml_element(b"\x18\x53\x80\x67", payload)
+                self.assert_video_result(content, "video/webm", expected_safe=False)
+
     def test_media_range_lookup_is_logarithmic(self):
         from apps.uploads.scanning import _range_in_media
 
