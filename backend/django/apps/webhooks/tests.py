@@ -641,6 +641,43 @@ class WebhookEndpointTests(APITestCase):
         )
 
     @patch("apps.webhooks.services._send_webhook_request")
+    def test_delivery_revalidates_legacy_and_changed_environment(self, send):
+        from apps.projects.models import Project
+        project = Project.objects.create(tenant=self.tenant, created_by=self.user,
+            name="Production", slug="production-delivery", environment="production")
+        verification = Verification.objects.create(tenant=self.tenant,
+            organization=self.organization, project=project,
+            verification_subject=VerificationSubject.objects.create(tenant=self.tenant, full_name="Webhook Subject"),
+            purpose="Delivery environment test", expires_at=timezone.now() + timedelta(hours=1))
+        endpoint = WebhookEndpoint(tenant=self.tenant, created_by=self.user,
+            url="https://example.com/hook", events_json=["verification.created"])
+        endpoint.set_secret("synthetic-secret")
+        endpoint.save()
+        def event():
+            return WebhookEvent.objects.create(tenant=self.tenant, webhook_endpoint=endpoint,
+                event_type="verification.created", payload_json={"data": {"verification_id": verification.public_id}})
+        legacy = event()
+        self.assertEqual(deliver_webhook_event(legacy).status, WebhookEventStatus.CANCELLED)
+        send.assert_not_called()
+        endpoint.project = project
+        endpoint.save(update_fields=["project"])
+        cached = event()
+        cached.webhook_endpoint = endpoint
+        Project.objects.filter(pk=project.pk).update(environment="sandbox")
+        # The verification remains production in a distinct project.
+        other = Project.objects.create(tenant=self.tenant, created_by=self.user,
+            name="Other Production", slug="other-production", environment="production")
+        Verification.objects.filter(pk=verification.pk).update(project=other)
+        self.assertEqual(deliver_webhook_event(cached).status, WebhookEventStatus.CANCELLED)
+        send.assert_not_called()
+        endpoint.project = other
+        endpoint.save(update_fields=["project"])
+        matched = event()
+        send.return_value = (202, "", 1)
+        self.assertEqual(deliver_webhook_event(matched).status, WebhookEventStatus.DELIVERED)
+        send.assert_called_once()
+
+    @patch("apps.webhooks.services._send_webhook_request")
     def test_failed_delivery_schedules_retry(self, mock_send_request):
         mock_send_request.return_value = (500, "server error", 15)
         endpoint = WebhookEndpoint(
