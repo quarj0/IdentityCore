@@ -966,7 +966,7 @@ def execute_provider_route(
                 and provider_index == 0
                 and provider_attempt == 1
                 and initial_provider_check.provider_id == provider.id
-                and initial_provider_check.status == ProviderCheckStatus.PENDING
+                and initial_provider_check.status in {ProviderCheckStatus.PENDING, ProviderCheckStatus.PROCESSING}
                 and not ProviderExecutionAttempt.objects.filter(
                     provider_check=initial_provider_check
                 ).exists()

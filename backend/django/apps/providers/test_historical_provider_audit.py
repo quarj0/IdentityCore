@@ -89,6 +89,22 @@ class HistoricalProviderAuditTests(TestCase):
             first.provider_check.request_metadata_json["document_type"], "passport"
         )
 
+    def test_unattempted_processing_bootstrap_is_reused(self):
+        initial = create_provider_check(
+            verification=self.verification, check_type=ProviderCheckType.DOCUMENT_OCR,
+            status=ProviderCheckStatus.PROCESSING,
+        )
+        result = execute_provider_route(
+            verification=self.verification, check_type=ProviderCheckType.DOCUMENT_OCR,
+            initial_provider_check=initial,
+            operation=lambda *_: {"status": "completed", "confidence_score": 0.91},
+        )
+        self.assertEqual(result.provider_check.pk, initial.pk)
+        self.assertEqual(ProviderCheck.objects.filter(verification=self.verification).count(), 1)
+        initial.refresh_from_db()
+        self.assertEqual(initial.status, ProviderCheckStatus.COMPLETED)
+        self.assertEqual(ProviderExecutionAttempt.objects.filter(provider_check=initial).count(), 1)
+
     def test_retry_clears_terminal_fields_before_calling_provider(self):
         check = create_provider_check(
             verification=self.verification,
