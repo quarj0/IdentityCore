@@ -77,6 +77,30 @@ class ProcessingSystemDecisionContractTests(SystemDecisionContractAssertions):
         exhaust_processing_job(job)
         self.assert_current_contract("processing_retries_exhausted")
 
+    def test_retry_after_subject_erasure_preserves_empty_inputs(self):
+        from apps.providers.models import ProviderCheckStatus
+        from apps.providers.services import create_provider_check
+        from apps.verification_subjects.services import request_subject_deletion
+
+        self.seed_stale_contract()
+        create_provider_check(
+            verification=self.verification,
+            check_type=ProviderCheckType.DOCUMENT_OCR,
+            status=ProviderCheckStatus.COMPLETED,
+            normalized_result={
+                "workflow_result": {
+                    "extracted_fields": {"full_name": "Private erased name"}
+                }
+            },
+        )
+        self.assertEqual(request_subject_deletion(subject=self.subject)["status"], "completed")
+        # The caller may still have a pre-erasure subject cached on its case.
+        job = queue_identity_document_processing(self.identity_document)
+        exhaust_processing_job(job)
+        decision = VerificationDecision.objects.get(verification=self.verification)
+        self.assertEqual(decision.reason_codes_json, ["processing_retries_exhausted"])
+        self.assertEqual(decision.input_snapshot_json, {})
+
 
 class RouteSystemDecisionContractTests(SystemDecisionContractAssertions):
     setUp = route_fixtures.RouteFinalActionOwnershipTests.setUp
