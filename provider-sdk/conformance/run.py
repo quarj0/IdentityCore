@@ -8,6 +8,7 @@ import hashlib
 import hmac
 import ipaddress
 import json
+import math
 import os
 import secrets
 import socket
@@ -270,9 +271,14 @@ def run_suite(
         raise ConformanceError(
             "The conformance runner accepts loopback providers only."
         )
-    if not 0 < timeout < 0.5:
+    timeout_case = next(case for case in suite["cases"] if case["id"] == "timeout")
+    parameters = timeout_case.get("request", {}).get("parameters")
+    delay_ms = parameters.get("delay_ms") if isinstance(parameters, dict) else None
+    if isinstance(delay_ms, bool) or not isinstance(delay_ms, (int, float)) or not math.isfinite(delay_ms) or delay_ms <= 0:
+        raise ConformanceError("The timeout fixture must specify a positive finite delay_ms.")
+    if not 0 < timeout < delay_ms / 1000:
         raise ConformanceError(
-            "The client timeout must be greater than 0 and below the 0.5-second timeout fixture delay."
+            "The client timeout must be greater than 0 and below the selected timeout fixture delay."
         )
     url = urljoin(base_url, path)
     passed = []

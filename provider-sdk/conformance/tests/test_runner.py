@@ -178,6 +178,26 @@ class ProviderConformanceRunnerTests(unittest.TestCase):
                         key_id="test-key", secret="test-secret", timeout=timeout)
                 send.assert_not_called()
 
+    def test_custom_timeout_delay_controls_deadline_validation(self):
+        for delay_ms, deadline, valid in ((100, .2, False), (100, .1, False), (100, .05, True),
+                                        (1000, .8, True), (0, .1, False), (-1, .1, False),
+                                        ("100", .1, False), (True, .0001, False), (None, .1, False),
+                                        (float("inf"), .1, False), (float("nan"), .1, False)):
+            with self.subTest(delay_ms=delay_ms, deadline=deadline):
+                suite = runner.load_suite(self.fixture_path)
+                next(case for case in suite["cases"] if case["id"] == "timeout")["request"]["parameters"]["delay_ms"] = delay_ms
+                with patch.object(runner, "load_suite", return_value=suite), patch.object(runner, "_send", side_effect=RuntimeError("outbound boundary")) as send:
+                    if valid:
+                        with self.assertRaisesRegex(RuntimeError, "outbound boundary"):
+                            runner.run_suite(base_url="http://127.0.0.1:8080", fixture_path=self.fixture_path,
+                                key_id="test-key", secret="test-secret", timeout=deadline)
+                        send.assert_called_once()
+                    else:
+                        with self.assertRaises(runner.ConformanceError):
+                            runner.run_suite(base_url="http://127.0.0.1:8080", fixture_path=self.fixture_path,
+                                key_id="test-key", secret="test-secret", timeout=deadline)
+                        send.assert_not_called()
+
     def test_version_negotiation_requires_a_list_of_strings(self):
         case = next(case for case in runner.load_suite(self.fixture_path)["cases"] if case["id"] == "version_negotiation")
         for versions in ("1", None, {"1": True}, ["1", 2], ["2"], ["1"]):
