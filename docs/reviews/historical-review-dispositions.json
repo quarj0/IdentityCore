@@ -4435,7 +4435,11 @@
       "comment_id": 3702616651,
       "path": "backend/django/apps/audit/models.py",
       "status": "fixed",
-      "evidence": [],
+      "evidence": [
+        "backend/django/apps/audit/models.py:AuditEventQuerySet; backend/django/apps/audit/admin.py:view-only permissions",
+        "backend/django/apps/audit/tests.py:test_queryset_and_admin_mutations_are_blocked",
+        "PR369 final-head CI/Security pass;822backendtests;14PGaudit tests"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Prevent queryset deletions of audit events**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/251#discussion_r3702616651",
       "remediation_pr": 369,
@@ -4449,7 +4453,11 @@
       "comment_id": 3702616655,
       "path": "backend/django/apps/audit/models.py",
       "status": "fixed",
-      "evidence": [],
+      "evidence": [
+        "backend/django/apps/audit/models.py:AuditEvent.save IPv6 normalization before event_hash",
+        "backend/django/apps/audit/tests.py:test_creation_time_is_assigned_and_ipv6_round_trips",
+        "PR369 final-head CI/Security pass;822backendtests;14PGaudit tests"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Hash the normalized IP address**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/251#discussion_r3702616655",
       "remediation_pr": 369,
@@ -4463,7 +4471,11 @@
       "comment_id": 3702616657,
       "path": "backend/django/apps/audit/models.py",
       "status": "fixed",
-      "evidence": [],
+      "evidence": [
+        "backend/django/apps/audit/integrity.py:event_authentication with domain-derived application key; services.py:verify_audit_chain",
+        "backend/django/apps/audit/tests.py:test_recomputed_unkeyed_hash_and_version_downgrade_fail; test_rotated_keys_verify_retained_history_and_missing_keys_fail_closed",
+        "PR369 final-head CI/Security pass;822backendtests;14PGaudit tests"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Anchor or authenticate the audit chain**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/251#discussion_r3702616657",
       "remediation_pr": 369,
@@ -4477,7 +4489,11 @@
       "comment_id": 3702616660,
       "path": "backend/django/apps/audit/models.py",
       "status": "fixed",
-      "evidence": [],
+      "evidence": [
+        "backend/django/apps/audit/models.py:created_at editable=False and server assignment in save",
+        "backend/django/apps/audit/tests.py:test_creation_time_is_assigned_and_ipv6_round_trips",
+        "PR369 final-head CI/Security pass;822backendtests;14PGaudit tests"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep audit timestamps non-editable**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/251#discussion_r3702616660",
       "remediation_pr": 369,
@@ -4491,7 +4507,11 @@
       "comment_id": 3702616663,
       "path": "backend/django/apps/audit/models.py",
       "status": "fixed",
-      "evidence": [],
+      "evidence": [
+        "backend/django/apps/audit/models.py:ensure_public_id before event_hash; integrity.py:event_payload/event_authentication",
+        "backend/django/apps/audit/tests.py:test_public_id_tampering_is_detected; test_legacy_backfill_preserves_hashes_and_authenticates_public_id",
+        "PR369 final-head CI/Security pass;822backendtests;14PGaudit tests"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include the public event ID in the integrity payload**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/251#discussion_r3702616663",
       "remediation_pr": 369,
@@ -4530,7 +4550,11 @@
       "comment_id": 3702637533,
       "path": "backend/django/apps/audit/models.py",
       "status": "fixed",
-      "evidence": [],
+      "evidence": [
+        "backend/django/apps/audit/models.py:AuditEventQuerySet; backend/django/apps/audit/admin.py:view-only permissions",
+        "backend/django/apps/audit/tests.py:test_queryset_and_admin_mutations_are_blocked",
+        "PR369 final-head CI/Security pass;822backendtests;14PGaudit tests"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Block queryset deletion of audit events**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/252#discussion_r3702637533",
       "remediation_pr": 369,
@@ -4544,7 +4568,11 @@
       "comment_id": 3702637536,
       "path": "backend/django/apps/audit/models.py",
       "status": "fixed",
-      "evidence": [],
+      "evidence": [
+        "backend/django/apps/audit/models.py:AuditEvent.save IPv6 normalization before event_hash",
+        "backend/django/apps/audit/tests.py:test_creation_time_is_assigned_and_ipv6_round_trips",
+        "PR369 final-head CI/Security pass;822backendtests;14PGaudit tests"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Hash the normalized IP address**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/252#discussion_r3702637536",
       "remediation_pr": 369,
@@ -4578,7 +4606,11 @@
       "comment_id": 3702637549,
       "path": "backend/django/apps/audit/models.py",
       "status": "fixed",
-      "evidence": [],
+      "evidence": [
+        "backend/django/apps/audit/models.py:ensure_public_id before event_hash; integrity.py:event_payload/event_authentication",
+        "backend/django/apps/audit/tests.py:test_public_id_tampering_is_detected; test_legacy_backfill_preserves_hashes_and_authenticates_public_id",
+        "PR369 final-head CI/Security pass;822backendtests;14PGaudit tests"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include the audit event identifier in its integrity hash**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/252#discussion_r3702637549",
       "remediation_pr": 369,
@@ -4602,7 +4634,11 @@
       "comment_id": 3702637558,
       "path": "backend/django/apps/audit/models.py",
       "status": "fixed",
-      "evidence": [],
+      "evidence": [
+        "backend/django/apps/audit/models.py:created_at editable=False and server assignment in save",
+        "backend/django/apps/audit/tests.py:test_creation_time_is_assigned_and_ipv6_round_trips",
+        "PR369 final-head CI/Security pass;822backendtests;14PGaudit tests"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep audit timestamps application-controlled**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/252#discussion_r3702637558",
       "remediation_pr": 369,
@@ -5101,50 +5137,72 @@
       "thread_id": "PRRT_kwDOTN0BU86Xlnoo",
       "comment_id": 3743269289,
       "path": "backend/django/apps/providers/health.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/projects/serializers.py:ProjectSerializer.validate blocks environment changes after verification activity",
+        "backend/django/apps/projects/tests.py:test_environment_cannot_change_after_verification_activity"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve each check's execution environment**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269289"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269289",
+      "disposition_note": "Original finding read; current implementation inspected. Six management API tests and four project tests pass; environment mutation trigger is now rejected, and payload-free full-chain/capability/circuit behavior is covered."
     },
     {
       "pr_number": 279,
       "thread_id": "PRRT_kwDOTN0BU86Xlnou",
       "comment_id": 3743269295,
       "path": "backend/django/apps/providers/health.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/health.py:provider_health_scope filters by tenant/environment/provider and selects scalar fields; complete capability-specific route chain; disabled-provider and expired-circuit eligibility",
+        "backend/django/config/test_management_apis.py:test_provider_health_is_scoped_redacted_and_includes_route_circuit_state; test_provider_filtered_health_keeps_full_capability_specific_route"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Compute route health from the complete provider chain**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269295"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269295",
+      "disposition_note": "Original finding read; current implementation inspected. Six management API tests and four project tests pass; environment mutation trigger is now rejected, and payload-free full-chain/capability/circuit behavior is covered."
     },
     {
       "pr_number": 279,
       "thread_id": "PRRT_kwDOTN0BU86Xlnox",
       "comment_id": 3743269299,
       "path": "backend/django/apps/providers/health.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/health.py:provider_health_scope filters by tenant/environment/provider and selects scalar fields; complete capability-specific route chain; disabled-provider and expired-circuit eligibility",
+        "backend/django/config/test_management_apis.py:test_provider_health_is_scoped_redacted_and_includes_route_circuit_state; test_provider_filtered_health_keeps_full_capability_specific_route"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Aggregate health without loading encrypted check payloads**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269299"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269299",
+      "disposition_note": "Original finding read; current implementation inspected. Six management API tests and four project tests pass; environment mutation trigger is now rejected, and payload-free full-chain/capability/circuit behavior is covered."
     },
     {
       "pr_number": 279,
       "thread_id": "PRRT_kwDOTN0BU86Xlno0",
       "comment_id": 3743269303,
       "path": "backend/django/apps/providers/health.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "health.py:_safe_error_code rejects uncontrolled codes but HTTP family needed narrower validation",
+        "PR372:test_only_controlled_codes_and_three_ascii_error_status_digits_are_public"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Allowlist error codes before returning them**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269303"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269303",
+      "remediation_pr": 372,
+      "remediation_commit": "cc428c5b42f6ac7bd1058be0c7794112f550c868",
+      "disposition_note": "Current main permits arbitrary digit strings after provider_http_; PR372 restricts this to three ASCII error status digits.11targeted tests pass."
     },
     {
       "pr_number": 279,
       "thread_id": "PRRT_kwDOTN0BU86Xlno3",
       "comment_id": 3743269306,
       "path": "backend/django/apps/providers/health.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/health.py:provider_health_scope filters by tenant/environment/provider and selects scalar fields; complete capability-specific route chain; disabled-provider and expired-circuit eligibility",
+        "backend/django/config/test_management_apis.py:test_provider_health_is_scoped_redacted_and_includes_route_circuit_state; test_provider_filtered_health_keeps_full_capability_specific_route"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Account for disabled providers in route status**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269306"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269306",
+      "disposition_note": "Original finding read; current implementation inspected. Six management API tests and four project tests pass; environment mutation trigger is now rejected, and payload-free full-chain/capability/circuit behavior is covered."
     },
     {
       "pr_number": 279,
@@ -5171,20 +5229,28 @@
       "thread_id": "PRRT_kwDOTN0BU86Xlno-",
       "comment_id": 3743269315,
       "path": "backend/django/apps/providers/health.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/health.py:provider_health_scope filters by tenant/environment/provider and selects scalar fields; complete capability-specific route chain; disabled-provider and expired-circuit eligibility",
+        "backend/django/config/test_management_apis.py:test_provider_health_is_scoped_redacted_and_includes_route_circuit_state; test_provider_filtered_health_keeps_full_capability_specific_route"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Treat expired open circuits as recovery-ready**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269315"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269315",
+      "disposition_note": "Original finding read; current implementation inspected. Six management API tests and four project tests pass; environment mutation trigger is now rejected, and payload-free full-chain/capability/circuit behavior is covered."
     },
     {
       "pr_number": 279,
       "thread_id": "PRRT_kwDOTN0BU86XlnpD",
       "comment_id": 3743269321,
       "path": "backend/django/apps/providers/health.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/health.py:provider_health_scope filters by tenant/environment/provider and selects scalar fields; complete capability-specific route chain; disabled-provider and expired-circuit eligibility",
+        "backend/django/config/test_management_apis.py:test_provider_health_is_scoped_redacted_and_includes_route_circuit_state; test_provider_filtered_health_keeps_full_capability_specific_route"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Scope route metrics to the route capability**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269321"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269321",
+      "disposition_note": "Original finding read; current implementation inspected. Six management API tests and four project tests pass; environment mutation trigger is now rejected, and payload-free full-chain/capability/circuit behavior is covered."
     },
     {
       "pr_number": 280,
