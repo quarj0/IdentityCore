@@ -173,90 +173,171 @@
       "thread_id": "PRRT_kwDOTN0BU86R9tRj",
       "comment_id": 3607864076,
       "path": "sdk/python/identitycore/webhooks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/python/identitycore/webhooks.py:verify_webhook_signature v1 branch",
+        "sdk/javascript/src/index.js:verifyWebhookSignature v1 branch",
+        "sdk/java/src/main/java/io/identitycore/WebhookVerifier.java:verifyV1",
+        "sdk/dotnet/src/IdentityCore/WebhookVerifier.cs:VerifyV1",
+        "sdk/fixtures/webhook-signature-v1.json",
+        "Python test_webhook_signature_and_tolerance and JavaScript verifies signatures over the raw payload pass locally.",
+        "Java/.NET canonical fixture rotation tests passed in PR #374 final-head java-sdk/dotnet-sdk CI.",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Verify webhooks with the stored signing key**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3607864076"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3607864076",
+      "disposition_note": "The historical raw-secret mismatch is superseded by the documented v1 signature contract: all four SDKs derive the hex SHA-256 key from the returned secret. The separately retained legacy verifier intentionally accepts the legacy derived signing key.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 4,
       "thread_id": "PRRT_kwDOTN0BU86R9tRn",
       "comment_id": 3607864081,
       "path": "sdk/javascript/src/index.js",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/python/identitycore/webhooks.py:verify_webhook_signature v1 branch",
+        "sdk/javascript/src/index.js:verifyWebhookSignature v1 branch",
+        "sdk/java/src/main/java/io/identitycore/WebhookVerifier.java:verifyV1",
+        "sdk/dotnet/src/IdentityCore/WebhookVerifier.cs:VerifyV1",
+        "sdk/fixtures/webhook-signature-v1.json",
+        "Python test_webhook_signature_and_tolerance and JavaScript verifies signatures over the raw payload pass locally.",
+        "Java/.NET canonical fixture rotation tests passed in PR #374 final-head java-sdk/dotnet-sdk CI.",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Verify webhooks with the stored signing key**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3607864081"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3607864081",
+      "disposition_note": "The historical raw-secret mismatch is superseded by the documented v1 signature contract: all four SDKs derive the hex SHA-256 key from the returned secret. The separately retained legacy verifier intentionally accepts the legacy derived signing key.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 4,
       "thread_id": "PRRT_kwDOTN0BU86R9tRo",
       "comment_id": 3607864082,
       "path": "backend/django/apps/verifications/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/api_clients/tasks.py:cleanup_expired_idempotency_records_task",
+        "backend/django/config/settings/base.py:cleanup-expired-idempotency-records",
+        "backend/django/apps/api_clients/tests.py:test_cleanup_task_deletes_only_expired_idempotency_records",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Add cleanup for expired idempotency records**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3607864082"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3607864082",
+      "disposition_note": "A scheduled bounded global cleanup removes expired replay payloads without requiring key reuse.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 4,
       "thread_id": "PRRT_kwDOTN0BU86R9tRq",
       "comment_id": 3607864085,
       "path": "backend/django/apps/verifications/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/views.py:VerificationListCreateView.post",
+        "backend/django/apps/api_clients/idempotency.py:begin_idempotent_request",
+        "backend/django/apps/api_clients/test_idempotency.py:test_concurrent_same_key_waits_and_replays_original_response",
+        "PR #374 final-head backend-migrations CI passed on 4d9740752acee4088d12818c46b8debac9b28107; PostgreSQL race test is included in that job.",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Block in-flight idempotency replays**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3607864085"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3607864085",
+      "disposition_note": "Creation uses the shared idempotency claim inside an outer atomic transaction; competing insert/row-lock requests wait and replay the committed response.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 4,
       "thread_id": "PRRT_kwDOTN0BU86R-E8B",
       "comment_id": 3608001597,
       "path": "sdk/dotnet/src/IdentityCore/WebhookVerifier.cs",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/python/identitycore/webhooks.py:verify_webhook_signature v1 branch",
+        "sdk/javascript/src/index.js:verifyWebhookSignature v1 branch",
+        "sdk/java/src/main/java/io/identitycore/WebhookVerifier.java:verifyV1",
+        "sdk/dotnet/src/IdentityCore/WebhookVerifier.cs:VerifyV1",
+        "sdk/fixtures/webhook-signature-v1.json",
+        "Python test_webhook_signature_and_tolerance and JavaScript verifies signatures over the raw payload pass locally.",
+        "Java/.NET canonical fixture rotation tests passed in PR #374 final-head java-sdk/dotnet-sdk CI.",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Hash returned webhook secrets before verifying**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3608001597"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3608001597",
+      "disposition_note": "The historical raw-secret mismatch is superseded by the documented v1 signature contract: all four SDKs derive the hex SHA-256 key from the returned secret. The separately retained legacy verifier intentionally accepts the legacy derived signing key.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 4,
       "thread_id": "PRRT_kwDOTN0BU86R-E8C",
       "comment_id": 3608001599,
       "path": "sdk/java/src/main/java/io/identitycore/WebhookVerifier.java",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/python/identitycore/webhooks.py:verify_webhook_signature v1 branch",
+        "sdk/javascript/src/index.js:verifyWebhookSignature v1 branch",
+        "sdk/java/src/main/java/io/identitycore/WebhookVerifier.java:verifyV1",
+        "sdk/dotnet/src/IdentityCore/WebhookVerifier.cs:VerifyV1",
+        "sdk/fixtures/webhook-signature-v1.json",
+        "Python test_webhook_signature_and_tolerance and JavaScript verifies signatures over the raw payload pass locally.",
+        "Java/.NET canonical fixture rotation tests passed in PR #374 final-head java-sdk/dotnet-sdk CI.",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Hash returned webhook secrets before verifying**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3608001599"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3608001599",
+      "disposition_note": "The historical raw-secret mismatch is superseded by the documented v1 signature contract: all four SDKs derive the hex SHA-256 key from the returned secret. The separately retained legacy verifier intentionally accepts the legacy derived signing key.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 4,
       "thread_id": "PRRT_kwDOTN0BU86R-E8E",
       "comment_id": 3608001601,
       "path": "frontend/developer-portal/src/app/sdk/page.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/verifications/serializers.py:explicit project resolution/matching",
+        "backend/django/apps/verifications/tests.py:test_explicit_project_must_exist_and_match_policy_before_creating",
+        "frontend/developer-portal/src/app/sdk/page.tsx:published Java/.NET APIs",
+        "831 backend tests pass (29 PostgreSQL-only skips); Ruff passes."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Align the Java sample with the published SDK**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3608001601"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3608001601",
+      "remediation_pr": 375,
+      "remediation_commit": "2bc2d9419f6a55f2dc6df485357a91780fc12c64",
+      "disposition_note": "Reviewed and merged in PR #375 after full final-head CI and Codex review."
     },
     {
       "pr_number": 4,
       "thread_id": "PRRT_kwDOTN0BU86R-E8F",
       "comment_id": 3608001602,
       "path": "frontend/developer-portal/src/app/sdk/page.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/verifications/serializers.py:explicit project resolution/matching",
+        "backend/django/apps/verifications/tests.py:test_explicit_project_must_exist_and_match_policy_before_creating",
+        "frontend/developer-portal/src/app/sdk/page.tsx:published Java/.NET APIs",
+        "831 backend tests pass (29 PostgreSQL-only skips); Ruff passes."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Align the .NET sample with the published SDK**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3608001602"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3608001602",
+      "remediation_pr": 375,
+      "remediation_commit": "2bc2d9419f6a55f2dc6df485357a91780fc12c64",
+      "disposition_note": "Reviewed and merged in PR #375 after full final-head CI and Codex review."
     },
     {
       "pr_number": 4,
       "thread_id": "PRRT_kwDOTN0BU86R-E8G",
       "comment_id": 3608001603,
       "path": "backend/django/apps/verifications/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/api_clients/idempotency.py:begin_idempotent_request (len(key) > 255 raises field ValidationError)",
+        "backend/django/apps/verifications/views.py:VerificationListCreateView.post",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate idempotency key length before storing**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3608001603"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3608001603",
+      "disposition_note": "The shared claim validates the 255-character limit before any record lookup or insert.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 4,
@@ -358,40 +439,72 @@
       "thread_id": "PRRT_kwDOTN0BU86R9uTI",
       "comment_id": 3607870759,
       "path": "backend/django/apps/verifications/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/api_clients/tasks.py:cleanup_expired_idempotency_records_task",
+        "backend/django/config/settings/base.py:cleanup-expired-idempotency-records",
+        "backend/django/apps/api_clients/tests.py:test_cleanup_task_deletes_only_expired_idempotency_records",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Purge expired idempotency records globally**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/5#discussion_r3607870759"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/5#discussion_r3607870759",
+      "disposition_note": "A scheduled bounded global cleanup removes expired replay payloads without requiring key reuse.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 5,
       "thread_id": "PRRT_kwDOTN0BU86R9uTK",
       "comment_id": 3607870761,
       "path": "backend/django/apps/verifications/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/api_clients/idempotency.py:begin_idempotent_request (len(key) > 255 raises field ValidationError)",
+        "backend/django/apps/verifications/views.py:VerificationListCreateView.post",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate oversized idempotency keys before persisting**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/5#discussion_r3607870761"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/5#discussion_r3607870761",
+      "disposition_note": "The shared claim validates the 255-character limit before any record lookup or insert.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 5,
       "thread_id": "PRRT_kwDOTN0BU86R9uTL",
       "comment_id": 3607870762,
       "path": "sdk/python/identitycore/client.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/verifications/serializers.py:explicit project resolution/matching",
+        "backend/django/apps/verifications/tests.py:test_explicit_project_must_exist_and_match_policy_before_creating",
+        "frontend/developer-portal/src/app/sdk/page.tsx:published Java/.NET APIs",
+        "831 backend tests pass (29 PostgreSQL-only skips); Ruff passes."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Enforce project_id before advertising project-aware creates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/5#discussion_r3607870762"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/5#discussion_r3607870762",
+      "remediation_pr": 375,
+      "remediation_commit": "2bc2d9419f6a55f2dc6df485357a91780fc12c64",
+      "disposition_note": "Reviewed and merged in PR #375 after full final-head CI and Codex review."
     },
     {
       "pr_number": 5,
       "thread_id": "PRRT_kwDOTN0BU86R9uTN",
       "comment_id": 3607870764,
       "path": "sdk/python/identitycore/webhooks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/python/identitycore/webhooks.py:verify_webhook_signature v1 branch",
+        "sdk/javascript/src/index.js:verifyWebhookSignature v1 branch",
+        "sdk/java/src/main/java/io/identitycore/WebhookVerifier.java:verifyV1",
+        "sdk/dotnet/src/IdentityCore/WebhookVerifier.cs:VerifyV1",
+        "sdk/fixtures/webhook-signature-v1.json",
+        "Python test_webhook_signature_and_tolerance and JavaScript verifies signatures over the raw payload pass locally.",
+        "Java/.NET canonical fixture rotation tests passed in PR #374 final-head java-sdk/dotnet-sdk CI.",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Derive webhook keys from returned secrets**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/5#discussion_r3607870764"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/5#discussion_r3607870764",
+      "disposition_note": "The historical raw-secret mismatch is superseded by the documented v1 signature contract: all four SDKs derive the hex SHA-256 key from the returned secret. The separately retained legacy verifier intentionally accepts the legacy derived signing key.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 6,
@@ -428,50 +541,91 @@
       "thread_id": "PRRT_kwDOTN0BU86R9uK8",
       "comment_id": 3607869944,
       "path": "backend/django/apps/verifications/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/api_clients/idempotency.py:begin_idempotent_request (len(key) > 255 raises field ValidationError)",
+        "backend/django/apps/verifications/views.py:VerificationListCreateView.post",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate idempotency key length before saving**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3607869944"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3607869944",
+      "disposition_note": "The shared claim validates the 255-character limit before any record lookup or insert.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 6,
       "thread_id": "PRRT_kwDOTN0BU86R-Ffi",
       "comment_id": 3608004756,
       "path": "sdk/javascript/src/index.js",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/python/identitycore/webhooks.py:verify_webhook_signature v1 branch",
+        "sdk/javascript/src/index.js:verifyWebhookSignature v1 branch",
+        "sdk/java/src/main/java/io/identitycore/WebhookVerifier.java:verifyV1",
+        "sdk/dotnet/src/IdentityCore/WebhookVerifier.cs:VerifyV1",
+        "sdk/fixtures/webhook-signature-v1.json",
+        "Python test_webhook_signature_and_tolerance and JavaScript verifies signatures over the raw payload pass locally.",
+        "Java/.NET canonical fixture rotation tests passed in PR #374 final-head java-sdk/dotnet-sdk CI.",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Derive the webhook signing key before verifying signatures**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3608004756"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3608004756",
+      "disposition_note": "The historical raw-secret mismatch is superseded by the documented v1 signature contract: all four SDKs derive the hex SHA-256 key from the returned secret. The separately retained legacy verifier intentionally accepts the legacy derived signing key.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 6,
       "thread_id": "PRRT_kwDOTN0BU86R-Ffj",
       "comment_id": 3608004757,
       "path": "frontend/developer-portal/src/app/sdk/page.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/verifications/serializers.py:explicit project resolution/matching",
+        "backend/django/apps/verifications/tests.py:test_explicit_project_must_exist_and_match_policy_before_creating",
+        "frontend/developer-portal/src/app/sdk/page.tsx:published Java/.NET APIs",
+        "831 backend tests pass (29 PostgreSQL-only skips); Ruff passes."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Use the actual Java SDK API in the sample**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3608004757"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3608004757",
+      "remediation_pr": 375,
+      "remediation_commit": "2bc2d9419f6a55f2dc6df485357a91780fc12c64",
+      "disposition_note": "Reviewed and merged in PR #375 after full final-head CI and Codex review."
     },
     {
       "pr_number": 6,
       "thread_id": "PRRT_kwDOTN0BU86R-Ffk",
       "comment_id": 3608004758,
       "path": "frontend/developer-portal/src/app/sdk/page.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/verifications/serializers.py:explicit project resolution/matching",
+        "backend/django/apps/verifications/tests.py:test_explicit_project_must_exist_and_match_policy_before_creating",
+        "frontend/developer-portal/src/app/sdk/page.tsx:published Java/.NET APIs",
+        "831 backend tests pass (29 PostgreSQL-only skips); Ruff passes."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Use the actual .NET CreateAsync signature**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3608004758"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3608004758",
+      "remediation_pr": 375,
+      "remediation_commit": "2bc2d9419f6a55f2dc6df485357a91780fc12c64",
+      "disposition_note": "Reviewed and merged in PR #375 after full final-head CI and Codex review."
     },
     {
       "pr_number": 6,
       "thread_id": "PRRT_kwDOTN0BU86R-Ffl",
       "comment_id": 3608004760,
       "path": "backend/django/apps/verifications/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/views.py:VerificationListCreateView.post",
+        "backend/django/apps/api_clients/idempotency.py:begin_idempotent_request",
+        "backend/django/apps/api_clients/test_idempotency.py:test_concurrent_same_key_waits_and_replays_original_response",
+        "PR #374 final-head backend-migrations CI passed on 4d9740752acee4088d12818c46b8debac9b28107; PostgreSQL race test is included in that job.",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Block in-flight idempotency keys before creating again**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3608004760"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3608004760",
+      "disposition_note": "Creation uses the shared idempotency claim inside an outer atomic transaction; competing insert/row-lock requests wait and replay the committed response.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 6,
@@ -488,10 +642,21 @@
       "thread_id": "PRRT_kwDOTN0BU86R-b5g",
       "comment_id": 3608129819,
       "path": "sdk/python/identitycore/webhooks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/python/identitycore/webhooks.py:verify_webhook_signature v1 branch",
+        "sdk/javascript/src/index.js:verifyWebhookSignature v1 branch",
+        "sdk/java/src/main/java/io/identitycore/WebhookVerifier.java:verifyV1",
+        "sdk/dotnet/src/IdentityCore/WebhookVerifier.cs:VerifyV1",
+        "sdk/fixtures/webhook-signature-v1.json",
+        "Python test_webhook_signature_and_tolerance and JavaScript verifies signatures over the raw payload pass locally.",
+        "Java/.NET canonical fixture rotation tests passed in PR #374 final-head java-sdk/dotnet-sdk CI.",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Derive the webhook secret before HMAC verification**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3608129819"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3608129819",
+      "disposition_note": "The historical raw-secret mismatch is superseded by the documented v1 signature contract: all four SDKs derive the hex SHA-256 key from the returned secret. The separately retained legacy verifier intentionally accepts the legacy derived signing key.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 6,
@@ -508,10 +673,21 @@
       "thread_id": "PRRT_kwDOTN0BU86TXuIR",
       "comment_id": 3641080246,
       "path": "sdk/dotnet/src/IdentityCore/WebhookVerifier.cs",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/python/identitycore/webhooks.py:verify_webhook_signature v1 branch",
+        "sdk/javascript/src/index.js:verifyWebhookSignature v1 branch",
+        "sdk/java/src/main/java/io/identitycore/WebhookVerifier.java:verifyV1",
+        "sdk/dotnet/src/IdentityCore/WebhookVerifier.cs:VerifyV1",
+        "sdk/fixtures/webhook-signature-v1.json",
+        "Python test_webhook_signature_and_tolerance and JavaScript verifies signatures over the raw payload pass locally.",
+        "Java/.NET canonical fixture rotation tests passed in PR #374 final-head java-sdk/dotnet-sdk CI.",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Derive the endpoint secret before .NET webhook verification**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3641080246"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3641080246",
+      "disposition_note": "The historical raw-secret mismatch is superseded by the documented v1 signature contract: all four SDKs derive the hex SHA-256 key from the returned secret. The separately retained legacy verifier intentionally accepts the legacy derived signing key.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 6,
@@ -2563,10 +2739,19 @@
       "thread_id": "PRRT_kwDOTN0BU86Vrtxw",
       "comment_id": 3696923941,
       "path": "sdk/javascript/src/index.d.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "sdk/python/identitycore/cli.py:argument headings and parser-derived completion options; native Zsh setup; positional Fish parser",
+        "sdk/python/tests/test_cli.py:leaf help, fresh Zsh, native Fish profile-value regressions",
+        "sdk/javascript/src/index.d.ts:VerificationSubjectClientInput separate from generated model",
+        "sdk/python/README.md:Fish parent directory creation",
+        "27 Python SDK tests pass locally (two skips); CI installs native shells."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Avoid shadowing the generated subject model**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/186#discussion_r3696923941"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/186#discussion_r3696923941",
+      "remediation_pr": 376,
+      "remediation_commit": "945cae0986a4621919e3d8271ad2baa262c5718d",
+      "disposition_note": "Implemented and tested on PR #376; remains actionable until reviewed remediation merges into main."
     },
     {
       "pr_number": 186,
@@ -2723,10 +2908,16 @@
       "thread_id": "PRRT_kwDOTN0BU86VrvRW",
       "comment_id": 3696932549,
       "path": "sdk/javascript/test/live-compatibility.test.js",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/javascript/test/live-compatibility.test.js:randomUUID import",
+        "PR #374 final-head sdk-live-javascript (18) and (24) CI passed.",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Import randomUUID for the Node 18 live test**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/190#discussion_r3696932549"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/190#discussion_r3696932549",
+      "disposition_note": "The Node 18 compatibility test explicitly imports randomUUID from node:crypto.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 191,
@@ -3429,10 +3620,17 @@
       "thread_id": "PRRT_kwDOTN0BU86VsHME",
       "comment_id": 3697080329,
       "path": "sdk/javascript/src/models.d.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:PagePagination and CursorPagination references",
+        "sdk/javascript/src/models.d.ts:PagePagination and CursorPagination",
+        "scripts/generate_sdk_models.py --check passes in PR #374 backend CI.",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve page-number metadata for manual-review responses**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/203#discussion_r3697080329"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/203#discussion_r3697080329",
+      "disposition_note": "OpenAPI and generated models distinguish PagePagination from CursorPagination; page-number routes retain their page metadata.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 204,
@@ -3469,50 +3667,95 @@
       "thread_id": "PRRT_kwDOTN0BU86VsuoB",
       "comment_id": 3697347030,
       "path": "sdk/python/identitycore/cli.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "sdk/python/identitycore/cli.py:argument headings and parser-derived completion options; native Zsh setup; positional Fish parser",
+        "sdk/python/tests/test_cli.py:leaf help, fresh Zsh, native Fish profile-value regressions",
+        "sdk/javascript/src/index.d.ts:VerificationSubjectClientInput separate from generated model",
+        "sdk/python/README.md:Fish parent directory creation",
+        "27 Python SDK tests pass locally (two skips); CI installs native shells."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Distinguish positional arguments from command groups**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/215#discussion_r3697347030"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/215#discussion_r3697347030",
+      "remediation_pr": 376,
+      "remediation_commit": "945cae0986a4621919e3d8271ad2baa262c5718d",
+      "disposition_note": "Implemented and tested on PR #376; remains actionable until reviewed remediation merges into main."
     },
     {
       "pr_number": 215,
       "thread_id": "PRRT_kwDOTN0BU86VsuoD",
       "comment_id": 3697347032,
       "path": "sdk/python/identitycore/cli.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "sdk/python/identitycore/cli.py:argument headings and parser-derived completion options; native Zsh setup; positional Fish parser",
+        "sdk/python/tests/test_cli.py:leaf help, fresh Zsh, native Fish profile-value regressions",
+        "sdk/javascript/src/index.d.ts:VerificationSubjectClientInput separate from generated model",
+        "sdk/python/README.md:Fish parent directory creation",
+        "27 Python SDK tests pass locally (two skips); CI installs native shells."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Add command-specific options to the Zsh completion**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/215#discussion_r3697347032"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/215#discussion_r3697347032",
+      "remediation_pr": 376,
+      "remediation_commit": "945cae0986a4621919e3d8271ad2baa262c5718d",
+      "disposition_note": "Implemented and tested on PR #376; remains actionable until reviewed remediation merges into main."
     },
     {
       "pr_number": 215,
       "thread_id": "PRRT_kwDOTN0BU86VsuoE",
       "comment_id": 3697347038,
       "path": "sdk/python/identitycore/cli.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "sdk/python/identitycore/cli.py:argument headings and parser-derived completion options; native Zsh setup; positional Fish parser",
+        "sdk/python/tests/test_cli.py:leaf help, fresh Zsh, native Fish profile-value regressions",
+        "sdk/javascript/src/index.d.ts:VerificationSubjectClientInput separate from generated model",
+        "sdk/python/README.md:Fish parent directory creation",
+        "27 Python SDK tests pass locally (two skips); CI installs native shells."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Stop offering Fish subcommands after selecting one**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/215#discussion_r3697347038"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/215#discussion_r3697347038",
+      "remediation_pr": 376,
+      "remediation_commit": "945cae0986a4621919e3d8271ad2baa262c5718d",
+      "disposition_note": "Implemented and tested on PR #376; remains actionable until reviewed remediation merges into main."
     },
     {
       "pr_number": 215,
       "thread_id": "PRRT_kwDOTN0BU86VsuoG",
       "comment_id": 3697347040,
       "path": "sdk/python/identitycore/cli.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "sdk/python/identitycore/cli.py:argument headings and parser-derived completion options; native Zsh setup; positional Fish parser",
+        "sdk/python/tests/test_cli.py:leaf help, fresh Zsh, native Fish profile-value regressions",
+        "sdk/javascript/src/index.d.ts:VerificationSubjectClientInput separate from generated model",
+        "sdk/python/README.md:Fish parent directory creation",
+        "27 Python SDK tests pass locally (two skips); CI installs native shells."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Initialize Zsh's completion system before calling compdef**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/215#discussion_r3697347040"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/215#discussion_r3697347040",
+      "remediation_pr": 376,
+      "remediation_commit": "945cae0986a4621919e3d8271ad2baa262c5718d",
+      "disposition_note": "Implemented and tested on PR #376; remains actionable until reviewed remediation merges into main."
     },
     {
       "pr_number": 215,
       "thread_id": "PRRT_kwDOTN0BU86VsuoH",
       "comment_id": 3697347042,
       "path": "sdk/python/README.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "sdk/python/identitycore/cli.py:argument headings and parser-derived completion options; native Zsh setup; positional Fish parser",
+        "sdk/python/tests/test_cli.py:leaf help, fresh Zsh, native Fish profile-value regressions",
+        "sdk/javascript/src/index.d.ts:VerificationSubjectClientInput separate from generated model",
+        "sdk/python/README.md:Fish parent directory creation",
+        "27 Python SDK tests pass locally (two skips); CI installs native shells."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Create the Fish completions directory before redirecting**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/215#discussion_r3697347042"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/215#discussion_r3697347042",
+      "remediation_pr": 376,
+      "remediation_commit": "945cae0986a4621919e3d8271ad2baa262c5718d",
+      "disposition_note": "Implemented and tested on PR #376; remains actionable until reviewed remediation merges into main."
     },
     {
       "pr_number": 217,
@@ -3529,30 +3772,48 @@
       "thread_id": "PRRT_kwDOTN0BU86VtJyX",
       "comment_id": 3697528206,
       "path": "sdk/python/identitycore/cli.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/python/identitycore/cli.py",
+        "sdk/python/tests/test_cli.py:test_project_actions_and_webhook_payloads_match_backend_contract",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Translate project disable to the suspend action**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528206"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528206",
+      "disposition_note": "Project disable maps to suspend; enable maps to activate.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 219,
       "thread_id": "PRRT_kwDOTN0BU86VtJyZ",
       "comment_id": 3697528211,
       "path": "sdk/python/identitycore/client.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/python/identitycore/client.py",
+        "sdk/python/tests/test_client.py:test_access_token_omits_saved_client_identifier",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Omit X-Client-Id when an access token wins**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528211"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528211",
+      "disposition_note": "Both JSON requests and binary downloads omit X-Client-Id when access_token is selected.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 219,
       "thread_id": "PRRT_kwDOTN0BU86VtJyc",
       "comment_id": 3697528213,
       "path": "sdk/python/identitycore/cli.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/python/identitycore/cli.py",
+        "sdk/python/tests/test_cli.py:test_explicit_environment_overrides_saved_origin",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Let explicit environments override the saved origin**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528213"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528213",
+      "disposition_note": "Explicit CLI or environment-variable environments take precedence over the saved profile origin.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 219,
@@ -3569,110 +3830,179 @@
       "thread_id": "PRRT_kwDOTN0BU86VtJyl",
       "comment_id": 3697528226,
       "path": "sdk/python/identitycore/cli.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/python/identitycore/cli.py",
+        "sdk/python/tests/test_cli.py:test_table_output_and_supported_project_filters_are_forwarded; backend/django/apps/projects/tests.py:test_list_filters_and_paginates_supported_fields",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Avoid exposing ignored project list filters**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528226"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528226",
+      "disposition_note": "Projects expose only page/page-size/environment/status filters; the backend filters and paginates those fields.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 219,
       "thread_id": "PRRT_kwDOTN0BU86VtJyr",
       "comment_id": 3697528232,
       "path": "sdk/python/identitycore/cli.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/python/identitycore/cli.py",
+        "sdk/python/tests/test_cli.py:test_project_actions_and_webhook_payloads_match_backend_contract",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Omit an unset webhook project ID from the request**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528232"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528232",
+      "disposition_note": "Webhook creation omits project_id when absent rather than sending null.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 219,
       "thread_id": "PRRT_kwDOTN0BU86VtJyu",
       "comment_id": 3697528237,
       "path": "sdk/python/identitycore/cli.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/python/identitycore/cli.py",
+        "sdk/python/tests/test_cli.py:test_first_named_profile_migrates_legacy_default_credentials",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve legacy credentials when creating the first profile**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528237"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528237",
+      "disposition_note": "First named-profile creation copies legacy credentials into default before persisting profiles.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 219,
       "thread_id": "PRRT_kwDOTN0BU86VtJyw",
       "comment_id": 3697528242,
       "path": "sdk/python/identitycore/cli.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/python/identitycore/cli.py",
+        "sdk/python/tests/test_cli.py:test_global_profile_is_preserved_for_login",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve a global profile selection for login**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528242"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528242",
+      "disposition_note": "Login parser suppresses the absent subparser default and preserves a global profile choice.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 219,
       "thread_id": "PRRT_kwDOTN0BU86VtJy0",
       "comment_id": 3697528248,
       "path": "sdk/python/identitycore/cli.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/python/identitycore/cli.py",
+        "sdk/python/tests/test_cli.py:Native Bash invocation with --profile production verifications create --pur returns --purpose (2026-10-06).",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Locate the Bash resource after global options**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528248"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528248",
+      "disposition_note": "Bash scans past global option/value pairs to locate the resource and action.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 219,
       "thread_id": "PRRT_kwDOTN0BU86VtJy6",
       "comment_id": 3697528255,
       "path": "sdk/python/identitycore/cli.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/python/identitycore/cli.py",
+        "sdk/python/tests/test_cli.py:test_api_client_create_requires_a_scope",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Require at least one API-client scope**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528255"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528255",
+      "disposition_note": "API-client creation requires an explicitly supplied scope before issuing a request.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 219,
       "thread_id": "PRRT_kwDOTN0BU86VtJy_",
       "comment_id": 3697528260,
       "path": "sdk/python/identitycore/cli.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/python/identitycore/cli.py",
+        "sdk/python/tests/test_cli.py:Source inspection: _build_parser projects create only adds name/environment; _dispatch sends name/environment.",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Remove the unsupported project description option**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528260"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528260",
+      "disposition_note": "Project creation no longer exposes or sends the unsupported description field.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 219,
       "thread_id": "PRRT_kwDOTN0BU86VtJzA",
       "comment_id": 3697528262,
       "path": "sdk/python/identitycore/cli.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/python/identitycore/cli.py",
+        "sdk/python/tests/test_cli.py:test_project_actions_and_webhook_payloads_match_backend_contract",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Remove ignored webhook test payload options**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528262"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528262",
+      "disposition_note": "Webhook test no longer exposes custom payload/event flags and dispatches the supported empty request.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 219,
       "thread_id": "PRRT_kwDOTN0BU86VtJzD",
       "comment_id": 3697528269,
       "path": "sdk/python/identitycore/cli.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/python/identitycore/cli.py",
+        "sdk/python/tests/test_cli.py:test_explicit_environment_overrides_saved_origin",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep sandbox projects on the documented API origin**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528269"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528269",
+      "disposition_note": "Sandbox and production defaults both use the documented API host; environment remains a project property.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 219,
       "thread_id": "PRRT_kwDOTN0BU86VtJzH",
       "comment_id": 3697528274,
       "path": "sdk/python/identitycore/cli.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "sdk/python/identitycore/cli.py:argument headings and parser-derived completion options; native Zsh setup; positional Fish parser",
+        "sdk/python/tests/test_cli.py:leaf help, fresh Zsh, native Fish profile-value regressions",
+        "sdk/javascript/src/index.d.ts:VerificationSubjectClientInput separate from generated model",
+        "sdk/python/README.md:Fish parent directory creation",
+        "27 Python SDK tests pass locally (two skips); CI installs native shells."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Restore command-specific completion candidates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528274"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528274",
+      "remediation_pr": 376,
+      "remediation_commit": "945cae0986a4621919e3d8271ad2baa262c5718d",
+      "disposition_note": "Implemented and tested on PR #376; remains actionable until reviewed remediation merges into main."
     },
     {
       "pr_number": 219,
       "thread_id": "PRRT_kwDOTN0BU86VtJzJ",
       "comment_id": 3697528280,
       "path": "sdk/python/identitycore/client.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/python/identitycore/client.py",
+        "sdk/python/tests/test_client.py:test_binary_download_retries_network_and_transient_failures",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Apply GET retries to binary downloads**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528280"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528280",
+      "disposition_note": "Binary GET downloads implement bounded retry of network and retryable HTTP failures.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 220,
@@ -4275,16 +4605,17 @@
       "thread_id": "PRRT_kwDOTN0BU86V6UMM",
       "comment_id": 3702526046,
       "path": "backend/django/apps/risk/services.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
-        "backend/django/apps/biometrics/tasks.py:_persist_unavailable_biometric_decision",
-        "backend/django/apps/verifications/test_system_decision_contract.py"
+        "backend/django/apps/verifications/decision_contract.py:system_decision_contract_fields",
+        "backend/django/apps/verifications/test_system_decision_contract.py:biometric fallback, processing exhaustion, route exhaustion and erased-subject regressions",
+        "Full 831-test backend suite passes with 29 PostgreSQL-only skips on 2026-10-06."
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Refresh contract fields when replacing an automatic decision**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/248#discussion_r3702526046",
       "remediation_pr": 373,
-      "remediation_commit": "da6e0d8c0b2faa2e7e0e1cceb227104a792d2f5a",
-      "disposition_note": "Still live on current main: system fallback decision replacements omit matching reason-code arrays and snapshots. PR373 adds a shared contract refresh across three paths;829 backend and10PGtests pass. Awaiting review/merge."
+      "remediation_commit": "f1ac67561c2b9f7df8fda44148814b1d9c8461b8",
+      "disposition_note": "Merged in #373. All three system fallback paths replace reason arrays, contract version and input snapshot, retaining erased inputs as empty."
     },
     {
       "pr_number": 248,
@@ -5315,50 +5646,95 @@
       "thread_id": "PRRT_kwDOTN0BU86XluoE",
       "comment_id": 3743305749,
       "path": "provider-sdk/conformance/run.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "provider-sdk/conformance/run.py:root-relative/no-dot fixture target, typed version list, bounded deadline",
+        "provider-sdk/conformance/tests/test_runner.py:real signed suite and malformed target/version/deadline regressions",
+        "provider-sdk/conformance/README.md:explicit disposable secret",
+        "docs/providers/provider-sdk.md:contract_version 1",
+        "All six conformance tests pass; Ruff passes."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Revalidate the URL after joining the fixture path**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/280#discussion_r3743305749"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/280#discussion_r3743305749",
+      "remediation_pr": 377,
+      "remediation_commit": "fc79fd73b67bad3005c3c4cfd290642b8fd09ae1",
+      "disposition_note": "Implemented and tested on PR #377; remains actionable until reviewed remediation merges into main."
     },
     {
       "pr_number": 280,
       "thread_id": "PRRT_kwDOTN0BU86XluoG",
       "comment_id": 3743305754,
       "path": "provider-sdk/conformance/run.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "provider-sdk/conformance/run.py:root-relative/no-dot fixture target, typed version list, bounded deadline",
+        "provider-sdk/conformance/tests/test_runner.py:real signed suite and malformed target/version/deadline regressions",
+        "provider-sdk/conformance/README.md:explicit disposable secret",
+        "docs/providers/provider-sdk.md:contract_version 1",
+        "All six conformance tests pass; Ruff passes."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Use one contract-version value throughout the SDK**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/280#discussion_r3743305754"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/280#discussion_r3743305754",
+      "remediation_pr": 377,
+      "remediation_commit": "fc79fd73b67bad3005c3c4cfd290642b8fd09ae1",
+      "disposition_note": "Implemented and tested on PR #377; remains actionable until reviewed remediation merges into main."
     },
     {
       "pr_number": 280,
       "thread_id": "PRRT_kwDOTN0BU86XluoK",
       "comment_id": 3743305757,
       "path": "provider-sdk/conformance/README.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "provider-sdk/conformance/run.py:root-relative/no-dot fixture target, typed version list, bounded deadline",
+        "provider-sdk/conformance/tests/test_runner.py:real signed suite and malformed target/version/deadline regressions",
+        "provider-sdk/conformance/README.md:explicit disposable secret",
+        "docs/providers/provider-sdk.md:contract_version 1",
+        "All six conformance tests pass; Ruff passes."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include the required secret in the run instructions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/280#discussion_r3743305757"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/280#discussion_r3743305757",
+      "remediation_pr": 377,
+      "remediation_commit": "fc79fd73b67bad3005c3c4cfd290642b8fd09ae1",
+      "disposition_note": "Implemented and tested on PR #377; remains actionable until reviewed remediation merges into main."
     },
     {
       "pr_number": 280,
       "thread_id": "PRRT_kwDOTN0BU86XluoM",
       "comment_id": 3743305759,
       "path": "provider-sdk/conformance/run.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "provider-sdk/conformance/run.py:root-relative/no-dot fixture target, typed version list, bounded deadline",
+        "provider-sdk/conformance/tests/test_runner.py:real signed suite and malformed target/version/deadline regressions",
+        "provider-sdk/conformance/README.md:explicit disposable secret",
+        "docs/providers/provider-sdk.md:contract_version 1",
+        "All six conformance tests pass; Ruff passes."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Require a list of supported contract versions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/280#discussion_r3743305759"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/280#discussion_r3743305759",
+      "remediation_pr": 377,
+      "remediation_commit": "fc79fd73b67bad3005c3c4cfd290642b8fd09ae1",
+      "disposition_note": "Implemented and tested on PR #377; remains actionable until reviewed remediation merges into main."
     },
     {
       "pr_number": 280,
       "thread_id": "PRRT_kwDOTN0BU86XluoN",
       "comment_id": 3743305761,
       "path": "provider-sdk/conformance/run.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "provider-sdk/conformance/run.py:root-relative/no-dot fixture target, typed version list, bounded deadline",
+        "provider-sdk/conformance/tests/test_runner.py:real signed suite and malformed target/version/deadline regressions",
+        "provider-sdk/conformance/README.md:explicit disposable secret",
+        "docs/providers/provider-sdk.md:contract_version 1",
+        "All six conformance tests pass; Ruff passes."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep the configurable deadline below the timeout fixture delay**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/280#discussion_r3743305761"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/280#discussion_r3743305761",
+      "remediation_pr": 377,
+      "remediation_commit": "fc79fd73b67bad3005c3c4cfd290642b8fd09ae1",
+      "disposition_note": "Implemented and tested on PR #377; remains actionable until reviewed remediation merges into main."
     },
     {
       "pr_number": 280,
@@ -5869,10 +6245,16 @@
       "thread_id": "PRRT_kwDOTN0BU86Y7smR",
       "comment_id": 3775396828,
       "path": "sdk/java/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        ".gitignore:sdk/java/target, bin, obj",
+        "git ls-files sdk/java/target/* sdk/dotnet/**/bin/* sdk/dotnet/**/obj/* returns no tracked artifacts on 44221bc.",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Remove checked-in SDK build outputs**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/295#discussion_r3775396828"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/295#discussion_r3775396828",
+      "disposition_note": "Generated Java/.NET build output trees are untracked and ignored.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 296,
@@ -6319,10 +6701,16 @@
       "thread_id": "PRRT_kwDOTN0BU86bYwFT",
       "comment_id": 3836042731,
       "path": "sdk/python/identitycore/webhooks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/python/identitycore/webhooks.py:verify_webhook_signature claim_event_id",
+        "sdk/python/tests/test_client.py:test_webhook_signature_and_tolerance (accepted claim followed by duplicate rejection)",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Make the Python replay claim atomic**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836042731"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836042731",
+      "disposition_note": "The Python verifier invokes one claim_event_id callback after cryptographic verification instead of performing independent membership/add operations.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 302,
@@ -6339,10 +6727,16 @@
       "thread_id": "PRRT_kwDOTN0BU86bYwFZ",
       "comment_id": 3836042738,
       "path": "sdk/java/src/main/java/io/identitycore/WebhookVerifier.java",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/java/src/main/java/io/identitycore/WebhookVerifier.java:five-argument verifyV1 overload",
+        "PR #374 final-head java-sdk and Java 17/21 live compatibility CI passed.",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Add the advertised defaulted Java overload**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836042738"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836042738",
+      "disposition_note": "The five-argument Java verifyV1 overload delegates with tolerance 300, current epoch time and no replay callback.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 302,
@@ -6383,20 +6777,32 @@
       "thread_id": "PRRT_kwDOTN0BU86bY5sR",
       "comment_id": 3836099305,
       "path": "sdk/javascript/src/index.js",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/javascript/src/index.js:verifyWebhookSignatureWithReplayClaim",
+        "sdk/javascript/test/client.test.js:verifies signatures over the raw payload (async accepted claim and duplicate false)",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Await asynchronous replay claims in the JavaScript verifier**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836099305"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836099305",
+      "disposition_note": "The asynchronous JavaScript helper awaits claimEventId and accepts only a resolved true after valid signature verification.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 302,
       "thread_id": "PRRT_kwDOTN0BU86bY-o1",
       "comment_id": 3836127968,
       "path": "sdk/javascript/src/index.js",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/javascript/src/index.js:legacy secrets.some branch",
+        "sdk/javascript/test/client.test.js:verifies signatures over the raw payload (wrong-key followed by valid legacy key)",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Verify legacy signatures against every supplied key**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836127968"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836127968",
+      "disposition_note": "Legacy JavaScript signature verification tests every candidate secret during key rotation.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 302,
@@ -7733,10 +8139,17 @@
       "thread_id": "PRRT_kwDOTN0BU86iCdGZ",
       "comment_id": 4003436185,
       "path": "sdk/java/pom.xml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "sdk/java/pom.xml:maven.compiler.release=17",
+        "sdk/java/README.md:Java 17+",
+        "PR #374 java-sdk and sdk-live-java (17)/(21) CI passed.",
+        "Independent source audit on 44221bc11aaaad961ecb6f04621d74f894bd8f5f; full backend (830 tests, 29 skips), Python SDK (23 tests, one live skip), JavaScript SDK (five tests, one live skip) pass on 2026-10-06."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve the supported Java compilation target**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/318#discussion_r4003436185"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/318#discussion_r4003436185",
+      "disposition_note": "The Java compiler release is 17, matching the documented minimum and Java 17/21 CI.",
+      "verified_main": "44221bc11aaaad961ecb6f04621d74f894bd8f5f"
     },
     {
       "pr_number": 321,
