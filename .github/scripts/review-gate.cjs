@@ -17,6 +17,7 @@ function assess({ head, reviewer, reviews, comments, threads, commits, runs, tru
           .some(m => head.startsWith(m[1]) && commits.filter(sha => sha.startsWith(m[1])).length === 1))
     )));
   const problems = [];
+  const evidenceTimes = [];
   for (const name of ['CI', 'Security']) {
     const trusted = trustedWorkflows?.[name];
     if (!trusted?.definitionMatches) problems.push(`${name} workflow definition differs from trusted default-branch content.`);
@@ -37,13 +38,28 @@ function assess({ head, reviewer, reviews, comments, threads, commits, runs, tru
     const feedback = nodes.filter(c => c.author?.login !== thread.resolvedBy?.login);
     const feedbackTimes = feedback.map(c => Date.parse(c.updatedAt || c.createdAt));
     const lastFeedback = Math.max(...feedbackTimes);
-    const evidence = feedbackTimes.length > 0 && feedbackTimes.every(Number.isFinite) && nodes.some(c =>
+    const evidence = feedbackTimes.length > 0 && feedbackTimes.every(Number.isFinite) && nodes.filter(c =>
       c.author?.login === thread.resolvedBy?.login &&
       Date.parse(c.createdAt) > lastFeedback &&
       /\b(test|tests|validation|regression|passed|passes|superseded|inapplicable)\b/i.test(c.body) &&
       [...c.body.matchAll(/\b([0-9a-f]{7,40})\b/g)].some(m => commits.some(sha => sha.startsWith(m[1])))
     );
-    if (!evidence) problems.push(`Resolved thread ${thread.id} has no fixing-commit and validation evidence from its resolver.`);
+    if (evidence && evidence.length) evidenceTimes.push(Math.max(...evidence.map(c => Date.parse(c.createdAt))));
+    if (!evidence || !evidence.length) problems.push(`Resolved thread ${thread.id} has no fixing-commit and validation evidence from its resolver.`);
+  }
+  if (reviewed && evidenceTimes.length) {
+    const completed = [
+      ...finalReviews.filter(r => ['APPROVED', 'COMMENTED'].includes(r.state)).map(r => Date.parse(r.submitted_at)),
+      ...comments.filter(c => isReviewer(c.user) && (
+        [...c.body.matchAll(/\*\*Reviewed commit:\*\*\s*`([0-9a-f]{10,40})`/g)].some(m => head.startsWith(m[1])) ||
+        (c.body.startsWith('<!-- codex-pull-request-review-summary -->') &&
+          [...c.body.matchAll(/^\|[^|\n]*\*\*Code Review\*\*[^|\n]*\|\s*✅\s*\*\*Completed\*\*[^|\n]*\|\s*`([0-9a-f]{7,40})`/gm)]
+            .some(m => head.startsWith(m[1]) && commits.filter(sha => sha.startsWith(m[1])).length === 1))
+      )).map(c => Date.parse(c.updated_at || c.created_at))
+    ].filter(Number.isFinite);
+    if (!completed.some(time => time > Math.max(...evidenceTimes))) {
+      problems.push('Final-head review must complete after the latest resolver evidence.');
+    }
   }
   return problems;
 }

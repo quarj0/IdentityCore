@@ -50,7 +50,7 @@ ai-service = [
     "mediapipe>=0.10.35",
     "numpy>=2.5.1",
     "onnxruntime>=1.27.0",
-    "opencv-python-headless>=5.0.0.93",
+    "opencv-contrib-python-headless==5.0.0.93",
     "orjson>=3.11.9",
     "paddleocr>=3.4.1",
     "paddlepaddle>=3.3.1",
@@ -74,3 +74,7 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["ai-service/tests"]
 python_files = ["test_*.py"]
+
+[tool.uv]
+# GUI/basic variants share cv2 with contrib-headless. Resolve one implementation.
+exclude-dependencies = ["opencv-python", "opencv-python-headless", "opencv-contrib-python"]

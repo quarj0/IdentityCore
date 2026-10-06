@@ -136,7 +136,9 @@ def _serialize_check_provenance(provider_check) -> dict:
     contract_version = _safe_token(
         normalized.get("contract_version", response.get("contract_version"))
     )
-    normalized_status = normalized.get("status")
+    workflow_result = normalized.get("workflow_result")
+    workflow_result = workflow_result if isinstance(workflow_result, dict) else {}
+    normalized_status = workflow_result.get("status", normalized.get("status"))
     public_status = (
         normalized_status
         if normalized_status in SAFE_CHECK_STATUSES

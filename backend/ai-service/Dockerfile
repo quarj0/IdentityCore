@@ -30,9 +30,9 @@ RUN uv export \
     --group ai-service \
     --group dev \
     --output-file /tmp/requirements-ai.txt \
-    && pip install --no-cache-dir -r /tmp/requirements-ai.txt \
+    && pip install --no-cache-dir --no-deps -r /tmp/requirements-ai.txt \
     && pip uninstall -y opencv-python opencv-python-headless opencv-contrib-python opencv-contrib-python-headless \
-    && pip install --no-cache-dir --no-deps opencv-contrib-python-headless==4.10.0.84 \
+    && pip install --no-cache-dir --no-deps opencv-contrib-python-headless==5.0.0.93 \
     && python /app/backend/shared/opencv_runtime.py
 
 COPY backend/ai-service /app/backend/ai-service

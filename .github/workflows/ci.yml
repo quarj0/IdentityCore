@@ -5,6 +5,15 @@ on:
   pull_request:
 
 jobs:
+  review-gate-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node .github/scripts/review-gate.test.cjs
+
   operational-alerts:
     runs-on: ubuntu-latest
     steps:
@@ -48,8 +57,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Validate review evidence gate
-        run: node .github/scripts/review-gate.test.cjs
       - name: Validate implementation backlog
         run: python scripts/sync_github_issues.py
       - name: Validate locked evaluation harness
@@ -119,7 +126,7 @@ jobs:
       - name: Normalize OpenCV runtime
         run: |
           uv pip uninstall --python backend/.venv/bin/python opencv-python opencv-python-headless opencv-contrib-python opencv-contrib-python-headless
-          uv pip install --python backend/.venv/bin/python --no-deps opencv-contrib-python-headless==4.10.0.84
+          uv pip install --python backend/.venv/bin/python --no-deps opencv-contrib-python-headless==5.0.0.93
           backend/.venv/bin/python backend/shared/opencv_runtime.py
       - run: uv run --no-sync --project .. pytest tests
         working-directory: backend/ai-service

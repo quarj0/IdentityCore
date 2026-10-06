@@ -13,7 +13,7 @@ def verify_opencv_runtime():
         raise RuntimeError(f"Conflicting OpenCV distributions: {sorted(installed)}")
     import cv2
 
-    if cv2.__version__ != "4.10.0":
+    if cv2.__version__ != "5.0.0":
         raise RuntimeError(f"Unexpected OpenCV runtime: {cv2.__version__}")
 
 

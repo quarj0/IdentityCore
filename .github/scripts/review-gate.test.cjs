@@ -4,7 +4,7 @@ const { assess } = require('./review-gate.cjs');
 const head = 'a'.repeat(40);
 const fixed = 'b'.repeat(40);
 const reviewer = 'chatgpt-codex-connector';
-const baseline = () => ({ head, reviewer, protectedDefinitions: {'.github/scripts/review-gate.cjs': true, '.github/workflows/review-gate.yml': true}, trustedWorkflows: {CI: {id: 1, definitionMatches: true, path: '.github/workflows/ci.yml'}, Security: {id: 2, definitionMatches: true, path: '.github/workflows/security.yml'}}, commits: [head, fixed], runs: ['CI', 'Security'].map((name, index) => ({name, workflow_id: index + 1, path: `.github/workflows/${name === 'CI' ? 'ci' : 'security'}.yml`, head_sha: head, event: 'pull_request', id: 1, status: 'completed', conclusion: 'success'})), reviews: [{ user: { login: reviewer }, commit_id: head, state: 'COMMENTED' }], comments: [], threads: [] });
+const baseline = () => ({ head, reviewer, protectedDefinitions: {'.github/scripts/review-gate.cjs': true, '.github/workflows/review-gate.yml': true}, trustedWorkflows: {CI: {id: 1, definitionMatches: true, path: '.github/workflows/ci.yml'}, Security: {id: 2, definitionMatches: true, path: '.github/workflows/security.yml'}}, commits: [head, fixed], runs: ['CI', 'Security'].map((name, index) => ({name, workflow_id: index + 1, path: `.github/workflows/${name === 'CI' ? 'ci' : 'security'}.yml`, head_sha: head, event: 'pull_request', id: 1, status: 'completed', conclusion: 'success'})), reviews: [{ user: { login: reviewer }, commit_id: head, state: 'COMMENTED', submitted_at: '2026-02-01T00:00:00Z' }], comments: [], threads: [] });
 test('requires completed review of the current head', () => {
   for (const state of ['old', 'dismissed', 'absent']) {
     const input = baseline();
@@ -166,4 +166,21 @@ test('completed native Codex summaries attest to a unique final-head commit', ()
   assert.equal(assess(input).length, 1);
   input.comments[0].user.login = `${reviewer}[bot]`; input.commits.push(head.slice(0, 7) + 'c'.repeat(33));
   assert.equal(assess(input).length, 1);
+});
+
+test('final review must follow the latest fixing disposition on the same SHA', () => {
+  const input = baseline();
+  input.threads = [{id: 'thread', isResolved: true, resolvedBy: {login: 'maintainer'}, comments: {nodes: [
+    {body: 'Finding', author: {login: reviewer}, createdAt: '2026-01-01T00:00:00Z'},
+    {body: `Superseded in ${fixed}; validation passes.`, author: {login: 'maintainer'}, createdAt: '2026-01-02T00:00:00Z'}
+  ]}}];
+  input.reviews[0].submitted_at = '2026-01-01T01:00:00Z';
+  assert.match(assess(input)[0], /after the latest resolver evidence/);
+  input.reviews[0].submitted_at = '2026-01-03T00:00:00Z';
+  assert.deepEqual(assess(input), []);
+  input.reviews = [];
+  input.comments = [{user: {login: reviewer}, body: `**Reviewed commit:** \`${head}\``, created_at: '2026-01-01T00:00:00Z'}];
+  assert.match(assess(input)[0], /after the latest resolver evidence/);
+  input.comments[0].created_at = '2026-01-03T00:00:00Z';
+  assert.deepEqual(assess(input), []);
 });
