@@ -209,6 +209,7 @@ def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
                         ),
                     )
     valid_tracks = {}
+    previous_sequence = None
     for kind, moof_start, moof_end in boxes:
         if kind != b"moof":
             continue
@@ -225,6 +226,10 @@ def _iso_fragment_track_ids(content, boxes, media_ranges, sample_budget):
         a, b = movie_headers[0]
         if b - a != 8 or content[a : a + 4] != b"\x00" * 4:
             return None
+        sequence = int.from_bytes(content[a + 4 : b], "big")
+        if previous_sequence is not None and sequence <= previous_sequence:
+            return None
+        previous_sequence = sequence
         for child, start, end in children:
             if child != b"traf":
                 continue
@@ -609,11 +614,11 @@ def _valid_webm_info(content: bytes, start: int, end: int, budget: list[int]) ->
 
 def _webm_video_track_numbers(
     content: bytes, start: int, end: int, budget: list[int]
-) -> set[int]:
+) -> dict[int, bool] | None:
     tracks = _ebml_elements(content, start=start, end=end, budget=budget)
     if not tracks:
-        return set()
-    video_tracks = set()
+        return None
+    video_tracks = {}
     for element_id, entry_start, entry_end, unknown_size in tracks:
         if element_id != 0xAE or unknown_size:
             continue
@@ -625,9 +630,11 @@ def _webm_video_track_numbers(
         track_uid = None
         codec_id = None
         video_dimensions = None
+        lacing_allowed = True
+        lacing_seen = False
         for child_id, payload_start, payload_end, child_unknown in entry:
             if child_unknown:
-                return set()
+                return None
             payload = content[payload_start:payload_end]
             if child_id == 0xD7:
                 track_number = _ebml_uint(content, payload_start, payload_end)
@@ -637,6 +644,12 @@ def _webm_video_track_numbers(
                 track_type = _ebml_uint(content, payload_start, payload_end)
             elif child_id == 0x86:
                 codec_id = payload
+            elif child_id == 0x9C:
+                value = _ebml_uint(content, payload_start, payload_end)
+                if lacing_seen or value not in {0, 1}:
+                    return None
+                lacing_seen = True
+                lacing_allowed = bool(value)
             elif child_id == 0xE0:
                 video = _ebml_elements(
                     content, start=payload_start, end=payload_end, budget=budget
@@ -673,7 +686,9 @@ def _webm_video_track_numbers(
                 for dimension in video_dimensions
             )
         ):
-            video_tracks.add(track_number)
+            if track_number in video_tracks:
+                return None
+            video_tracks[track_number] = lacing_allowed
     return video_tracks
 
 
@@ -719,7 +734,7 @@ def _webm_block_has_frames(content: bytes, start: int, end: int, width: int) -> 
 
 
 def _webm_cluster_has_frame(
-    content: bytes, start: int, end: int, video_tracks: set[int], budget: list[int]
+    content: bytes, start: int, end: int, video_tracks: dict[int, bool], budget: list[int]
 ) -> bool:
     elements = _ebml_elements(content, start=start, end=end, budget=budget)
     if not elements:
@@ -757,6 +772,7 @@ def _webm_cluster_has_frame(
             track_number is not None
             and track_number[0] in video_tracks
             and _webm_block_has_frames(content, payload_start, payload_end, track_number[1])
+            and (video_tracks[track_number[0]] or not content[payload_start + track_number[1] + 2] & 0x06)
         ):
             has_block = True
             break
@@ -809,12 +825,13 @@ def _is_supported_webm_video(content: bytes) -> bool:
         and _valid_webm_info(content, payload_start, payload_end, budget)
         for element_id, payload_start, payload_end, unknown_size in children
     )
-    video_tracks = set()
+    video_tracks = {}
     for element_id, payload_start, payload_end, unknown_size in children:
         if element_id == 0x1654AE6B and not unknown_size:
-            video_tracks.update(
-                _webm_video_track_numbers(content, payload_start, payload_end, budget)
-            )
+            tracks = _webm_video_track_numbers(content, payload_start, payload_end, budget)
+            if tracks is None or video_tracks.keys() & tracks.keys():
+                return False
+            video_tracks.update(tracks)
     has_cluster = any(
         element_id == 0x1F43B675
         and _webm_cluster_has_frame(

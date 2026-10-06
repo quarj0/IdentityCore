@@ -196,7 +196,7 @@ def _ebml_element(element_id: bytes, payload: bytes) -> bytes:
     return element_id + bytes([0x80 | len(payload)]) + payload
 
 
-def _webm_video(*, track_type: int = 1, codec_id: bytes = b"V_VP9") -> bytes:
+def _webm_video(*, track_type: int = 1, codec_id: bytes = b"V_VP9", flag_lacing=None) -> bytes:
     header = _ebml_element(
         b"\x1a\x45\xdf\xa3",
         _ebml_element(b"\x42\x86", b"\x01")
@@ -223,6 +223,7 @@ def _webm_video(*, track_type: int = 1, codec_id: bytes = b"V_VP9") -> bytes:
         + _ebml_element(b"\x73\xc5", b"\x01")
         + _ebml_element(b"\x83", bytes([track_type]))
         + _ebml_element(b"\x86", codec_id)
+        + (_ebml_element(b"\x9c", bytes([flag_lacing])) if flag_lacing is not None else b"")
         + video,
     )
     tracks = _ebml_element(b"\x16\x54\xae\x6b", track_entry)
@@ -472,6 +473,34 @@ class UploadVideoInspectionTests(TestCase):
                 content = init + _iso_box(b"moof", changed) + _iso_box(b"mdat", b"video-frame")
                 self.assert_video_result(content, "video/mp4", expected_safe=False)
         self.assert_video_result(source, "video/mp4", expected_safe=True)
+
+    def test_movie_fragment_sequence_numbers_increase_in_file_order(self):
+        from apps.uploads.scanning import _iso_boxes
+        source = _fragmented_iso_video()
+        boxes = _iso_boxes(source)
+        first_moof = next(a - 8 for k, a, b in boxes if k == b"moof")
+        original_header = _iso_box(b"mfhd", b"\x00" * 4 + (1).to_bytes(4, "big"))
+        for first, second, safe in ((1, 2, True), (1, 1, False), (2, 1, False), (3, 9, True)):
+            with self.subTest(first=first, second=second):
+                first_fragment = source.replace(original_header, _iso_box(b"mfhd", b"\x00" * 4 + first.to_bytes(4, "big")))
+                second_fragment = source[first_moof:].replace(original_header, _iso_box(b"mfhd", b"\x00" * 4 + second.to_bytes(4, "big")))
+                self.assert_video_result(first_fragment + second_fragment, "video/mp4", expected_safe=safe)
+
+    def test_webm_track_lacing_flag_controls_all_lacing_modes(self):
+        old_block = _ebml_element(b"\xa3", b"\x81\x00\x00\x80video-frame")
+        old_cluster = _ebml_element(b"\x1f\x43\xb6\x75", _ebml_element(b"\xe7", b"\x00") + old_block)
+        for flag in (None, 0, 1, 2):
+            for lace in (b"\x00ab", b"\x04\x01abcd", b"\x02\x01\x02abcd", b"\x06\x01\x82abcd"):
+                for grouped in (False, True):
+                    with self.subTest(flag=flag, lace=lace, grouped=grouped):
+                        block = _ebml_element(b"\xa1" if grouped else b"\xa3", b"\x81\x00\x00" + lace)
+                        if grouped:
+                            block = _ebml_element(b"\xa0", block)
+                        cluster = _ebml_element(b"\x1f\x43\xb6\x75", _ebml_element(b"\xe7", b"\x00") + block)
+                        content = _webm_video(flag_lacing=flag).replace(old_cluster, cluster)
+                        segment = content.index(b"\x18\x53\x80\x67")
+                        content = content[:segment + 4] + bytes([content[segment + 4] + len(cluster) - len(old_cluster)]) + content[segment + 5:]
+                        self.assert_video_result(content, "video/webm", expected_safe=flag != 2 and (flag != 0 or lace[0] == 0))
 
     def test_webm_blocks_must_reference_a_supported_video_track(self):
         content = _webm_video().replace(
