@@ -7,6 +7,7 @@ function assertTrustedPolicy({ repository, protection, ruleset, policy }) {
   if (!protection.enforce_admins?.enabled || !protection.required_conversation_resolution?.enabled) throw new Error('Native protections must apply to administrators and unresolved conversations.');
   if (!protection.required_status_checks?.checks?.some(check => check.context === 'review-evidence' && check.app_id === policy.publisher_app_id)) throw new Error('review-evidence must require the dedicated publisher App.');
   if (protection.required_status_checks.strict !== true) throw new Error('Native protection must require an up-to-date base at merge time.');
+  if (!Array.isArray(policy.required_ci_checks) || !policy.required_ci_checks.length || policy.required_ci_checks.some(expected => !protection.required_status_checks.checks.some(check => check.context === expected.context && check.app_id === expected.app_id))) throw new Error('CI and Security summaries must be native required checks with their expected publisher.');
   const actors = ruleset.bypass_actors || [];
   if (ruleset.target !== 'branch' || ruleset.enforcement !== 'active' || ruleset.conditions?.ref_name?.include?.join() !== 'refs/heads/main' || ruleset.conditions?.ref_name?.exclude?.length ||
       ruleset.rules?.length !== 1 || ruleset.rules[0].type !== 'update' || ruleset.rules[0].parameters?.update_allows_fetch_and_merge ||
@@ -114,7 +115,7 @@ function createGhAdapter(fullName, execute = ghJson) {
       listReviews: ({pull_number, page, per_page}) => request(`pulls/${pull_number}/reviews`, {page, per_page})},
     issues: {listComments: ({issue_number, page, per_page}) => request(`issues/${issue_number}/comments`, {page, per_page})},
     actions: {getWorkflow: ({workflow_id}) => request(`actions/workflows/${encodeURIComponent(workflow_id)}`),
-      listWorkflowRuns: ({workflow_id, head_sha, page, per_page}) => request(`actions/workflows/${encodeURIComponent(workflow_id)}/runs`, {head_sha, page, per_page})}
+      listWorkflowRuns: ({workflow_id, head_sha, event, page, per_page}) => request(`actions/workflows/${encodeURIComponent(workflow_id)}/runs`, {head_sha, event, page, per_page})}
   }, graphql: async (query, variables) => execute(['api', 'graphql', '--input', '-'], JSON.stringify({query, variables})).data,
   paginate: async (method, params) => {
     const values = [];
