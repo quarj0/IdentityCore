@@ -1,4 +1,21 @@
-function assess({ head, reviewer, resolver, reviews, comments, threads, commits, runs, trustedWorkflows, protectedDefinitions }) {
+const PROTECTED_PATHS = ['.github/scripts/review-gate.cjs', '.github/workflows/review-gate.yml', '.github/workflows/review-evidence-signal.yml', '.github/scripts/merge-reviewed-pr.cjs', '.github/review-gate-policy.json'];
+const REVIEWER = 'chatgpt-codex-connector';
+const BUCKET_COUNT = 8;
+const trustedMetadata = new WeakMap();
+const isEvidenceReviewer = author => [REVIEWER, `${REVIEWER}[bot]`].includes(author?.login);
+const relevantComments = comments => comments.filter(comment => isEvidenceReviewer(comment.user));
+const relevantReviews = reviews => reviews.filter(review => isEvidenceReviewer(review.user));
+
+function affirmativeValidation(body) {
+  if (/\b(?:tests?|validation|regressions?)\b[^.!?\n]*\b(?:fail(?:ed|s|ing|ure|ures)?|pending|incomplete|unverified|unsuccessful|not\s+(?:pass(?:ed|ing|es)?|successful))\b/i.test(body)) return false;
+  return body.split(/[.!?\n]+/).some(clause =>
+    /\b(test|tests|validation|regression|regressions)\b/i.test(clause) &&
+    /\b(pass|passed|passes|successful|successfully)\b/i.test(clause) &&
+    !/\b(fail|fails|failed|failing|failure|failures|not|never|unable|incomplete|pending|unverified|unsuccessful|cannot|can't|didn't|doesn't)\b/i.test(clause));
+}
+
+function assess({ head, reviewer, resolver, reviews, comments, threads, commits, commitProof, runs, trustedWorkflows, protectedDefinitions }) {
+  const provenToken = token => commitProof ? commitProof[token] : commits.find(sha => sha.startsWith(token));
   const isResolver = author => Boolean(resolver) && author?.login === resolver;
   const isReviewer = author => author?.login === reviewer || author?.login === `${reviewer}[bot]`;
   const finalReviews = reviews.filter(r => isReviewer(r.user) && r.commit_id === head);
@@ -12,10 +29,10 @@ function assess({ head, reviewer, resolver, reviews, comments, threads, commits,
   const blockingReview = changesRequested || finalReviews.some(r => r.state === 'PENDING');
   const reviewed = !blockingReview && (reviews.some(r => isReviewer(r.user) && r.commit_id === head && ['APPROVED', 'COMMENTED'].includes(r.state)) ||
     comments.some(c => isReviewer(c.user) && (
-      [...c.body.matchAll(/\*\*Reviewed commit:\*\*\s*`([0-9a-f]{10,40})`/g)].some(m => head.startsWith(m[1])) ||
+      [...c.body.matchAll(/\*\*Reviewed commit:\*\*\s*`([0-9a-f]{10,40})`/g)].some(m => head.startsWith(m[1]) && provenToken(m[1]) === head) ||
       (c.body.startsWith('<!-- codex-pull-request-review-summary -->') &&
         [...c.body.matchAll(/^\|[^|\n]*\*\*Code Review\*\*[^|\n]*\|\s*✅\s*\*\*Completed\*\*[^|\n]*\|\s*`([0-9a-f]{7,40})`/gm)]
-          .some(m => head.startsWith(m[1]) && commits.filter(sha => sha.startsWith(m[1])).length === 1))
+          .some(m => head.startsWith(m[1]) && provenToken(m[1]) === head && commits.filter(sha => sha.startsWith(m[1])).length === 1))
     )));
   const problems = [];
   const evidenceTimes = [];
@@ -27,7 +44,7 @@ function assess({ head, reviewer, resolver, reviews, comments, threads, commits,
     const latest = candidates.sort((a, b) => activity(b) - activity(a) || b.id - a.id)[0];
     if (candidates.some(r => r.status !== 'completed') || !latest || latest.conclusion !== 'success') problems.push(`${name} has not passed for the final head.`);
   }
-  for (const path of ['.github/scripts/review-gate.cjs', '.github/workflows/review-gate.yml', '.github/workflows/review-evidence-signal.yml']) {
+  for (const path of PROTECTED_PATHS) {
     if (!protectedDefinitions?.[path]) problems.push(`Protected review-gate definition differs: ${path}.`);
   }
   if (!reviewed) problems.push(`Configured review has not completed for ${head}.`);
@@ -47,8 +64,8 @@ function assess({ head, reviewer, resolver, reviews, comments, threads, commits,
       dispositionTimes.every(Number.isFinite) && dispositions.filter(c =>
       Date.parse(c.updatedAt || c.createdAt) === latestDisposition &&
       latestDisposition > lastFeedback &&
-      /\b(test|tests|validation|regression|passed|passes|superseded|inapplicable)\b/i.test(c.body) &&
-      [...c.body.matchAll(/\b([0-9a-f]{7,40})\b/g)].some(m => commits.some(sha => sha.startsWith(m[1])))
+      affirmativeValidation(c.body) &&
+      [...c.body.matchAll(/\b([0-9a-f]{7,40})\b/g)].some(m => Boolean(provenToken(m[1])))
     );
     if (evidence && evidence.length) evidenceTimes.push(Math.max(...evidence.map(c => Date.parse(c.updatedAt || c.createdAt))));
     if (!evidence || !evidence.length) problems.push(`Resolved thread ${thread.id} has no fixing-commit and validation evidence from the trusted resolver.`);
@@ -57,10 +74,10 @@ function assess({ head, reviewer, resolver, reviews, comments, threads, commits,
     const completed = [
       ...finalReviews.filter(r => ['APPROVED', 'COMMENTED'].includes(r.state)).map(r => Date.parse(r.submitted_at)),
       ...comments.filter(c => isReviewer(c.user) && (
-        [...c.body.matchAll(/\*\*Reviewed commit:\*\*\s*`([0-9a-f]{10,40})`/g)].some(m => head.startsWith(m[1])) ||
+        [...c.body.matchAll(/\*\*Reviewed commit:\*\*\s*`([0-9a-f]{10,40})`/g)].some(m => head.startsWith(m[1]) && provenToken(m[1]) === head) ||
         (c.body.startsWith('<!-- codex-pull-request-review-summary -->') &&
           [...c.body.matchAll(/^\|[^|\n]*\*\*Code Review\*\*[^|\n]*\|\s*✅\s*\*\*Completed\*\*[^|\n]*\|\s*`([0-9a-f]{7,40})`/gm)]
-            .some(m => head.startsWith(m[1]) && commits.filter(sha => sha.startsWith(m[1])).length === 1))
+            .some(m => head.startsWith(m[1]) && provenToken(m[1]) === head && commits.filter(sha => sha.startsWith(m[1])).length === 1))
       )).map(c => Date.parse(c.updated_at || c.created_at))
     ].filter(Number.isFinite);
     if (!completed.some(time => time > Math.max(...evidenceTimes))) {
@@ -88,13 +105,75 @@ async function fetchThreads(github, owner, repo, number) {
   return threads;
 }
 
-async function fetchWorkflowRuns({ github, owner, repo, head }) {
+async function fetchWorkflowRuns({ github, owner, repo, head, workflows = [{id: 'ci.yml'}, {id: 'security.yml'}] }) {
   const runs = [];
-  for (let page = 1; ; page++) {
-    const { data } = await github.rest.actions.listWorkflowRunsForRepo({ owner, repo, head_sha: head, per_page: 100, page });
-    runs.push(...data.workflow_runs);
-    if (data.workflow_runs.length < 100) return { data: { workflow_runs: runs } };
+  for (const workflow of workflows) {
+    for (let page = 1; ; page++) {
+      const { data } = await github.rest.actions.listWorkflowRuns({ owner, repo, workflow_id: workflow.id, head_sha: head, per_page: 100, page });
+      runs.push(...data.workflow_runs);
+      if (data.workflow_runs.length < 100) break;
+    }
   }
+  return { data: { workflow_runs: runs } };
+}
+
+async function fetchCommitEvidence({ github, owner, repo, head, resolver, comments, threads }) {
+  const bodies = comments.map(comment => comment.body);
+  for (const thread of threads) {
+    const dispositions = thread.comments.nodes.filter(comment => comment.author?.login === resolver);
+    const latest = Math.max(...dispositions.map(comment => Date.parse(comment.updatedAt || comment.createdAt)));
+    bodies.push(...dispositions.filter(comment => Date.parse(comment.updatedAt || comment.createdAt) === latest).map(comment => comment.body));
+  }
+  const tokens = [...new Set(bodies.flatMap(body => [...body.matchAll(/\b([0-9a-f]{7,40})\b/g)].map(match => match[1])))];
+  const commitProof = {[head]: head};
+  for (const token of tokens) {
+    if (token === head) continue;
+    try {
+      const {data} = await github.rest.repos.compareCommitsWithBasehead({owner, repo, basehead: `${token}...${head}`});
+      if (['ahead', 'identical'].includes(data.status) && data.base_commit?.sha?.startsWith(token) && data.merge_base_commit?.sha === data.base_commit.sha) commitProof[token] = data.base_commit.sha;
+    } catch (error) {
+      // Prose may contain a nonexistent or ambiguous hexadecimal identifier.
+      // Missing tokens cannot become evidence; collection/authorization failures fail closed.
+      if (![404, 422].includes(error.status)) throw error;
+    }
+  }
+  return {commits: [...new Set(Object.values(commitProof))], commitProof};
+}
+
+async function metadata({ github, owner, repo }) {
+  let cache = trustedMetadata.get(github);
+  if (!cache) { cache = new Map(); trustedMetadata.set(github, cache); }
+  const key = `${owner}/${repo}`;
+  if (!cache.has(key)) cache.set(key, (async () => {
+    const [{data: repository}, {data: ci}, {data: security}] = await Promise.all([
+      github.rest.repos.get({owner, repo}),
+      github.rest.actions.getWorkflow({owner, repo, workflow_id: 'ci.yml'}),
+      github.rest.actions.getWorkflow({owner, repo, workflow_id: 'security.yml'})
+    ]);
+    return {repository, workflows: {CI: {id: ci.id, path: '.github/workflows/ci.yml'}, Security: {id: security.id, path: '.github/workflows/security.yml'}}};
+  })());
+  return cache.get(key);
+}
+
+async function definitionMatches({ github, owner, repo, head, defaultBranch }) {
+  const paths = ['.github/workflows/ci.yml', '.github/workflows/security.yml', ...PROTECTED_PATHS];
+  const variables = {owner, repo};
+  const declarations = ['$owner:String!', '$repo:String!'];
+  const objects = [];
+  paths.forEach((path, i) => {
+    for (const [kind, ref] of [['trusted', defaultBranch], ['proposed', head]]) {
+      const key = `${kind}${i}`;
+      variables[key] = `${ref}:${path}`;
+      declarations.push(`$${key}:String!`);
+      objects.push(`${key}:object(expression:$${key}) { __typename ... on Blob { oid } }`);
+    }
+  });
+  const data = await github.graphql(`query(${declarations.join(',')}) { repository(owner:$owner,name:$repo) { ${objects.join(' ')} } }`, variables);
+  return Object.fromEntries(paths.map((path, i) => {
+    const trusted = data.repository[`trusted${i}`];
+    const proposed = data.repository[`proposed${i}`];
+    return [path, trusted?.__typename === 'Blob' && proposed?.__typename === 'Blob' && trusted.oid === proposed.oid];
+  }));
 }
 
 async function run({ github, context }) {
@@ -116,45 +195,30 @@ async function run({ github, context }) {
   })).data;
   let completed = false;
   try {
-  const reviews = await github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number: number, per_page: 100 });
-  const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number, per_page: 100 });
-  const commits = (await github.paginate(github.rest.pulls.listCommits, { owner, repo, pull_number: number, per_page: 100 })).map(c => c.sha);
+  const reviews = relevantReviews(await github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number: number, per_page: 100 }));
+  const comments = relevantComments(await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number, per_page: 100 }));
   const threads = await fetchThreads(github, owner, repo, number);
-  const { data: workflowRuns } = await fetchWorkflowRuns({ github, owner, repo, head });
-  const trustedWorkflows = {};
-  const { data: repository } = await github.rest.repos.get({ owner, repo });
-  for (const [name, file] of [['CI', 'ci.yml'], ['Security', 'security.yml']]) {
-    const { data: workflow } = await github.rest.actions.getWorkflow({ owner, repo, workflow_id: file });
-    const path = `.github/workflows/${file}`;
-    const [{ data: trustedDefinition }, { data: proposedDefinition }] = await Promise.all([
-      github.rest.repos.getContent({ owner, repo, path, ref: repository.default_branch }),
-      github.rest.repos.getContent({ owner, repo, path, ref: head })
-    ]);
-    trustedWorkflows[name] = { id: workflow.id, path,
-      definitionMatches: trustedDefinition.type === 'file' && proposedDefinition.type === 'file' &&
-        trustedDefinition.sha === proposedDefinition.sha };
-  }
-  const protectedDefinitions = {};
-  for (const path of ['.github/scripts/review-gate.cjs', '.github/workflows/review-gate.yml', '.github/workflows/review-evidence-signal.yml']) {
-    const [{ data: trusted }, { data: proposed }] = await Promise.all([
-      github.rest.repos.getContent({ owner, repo, path, ref: repository.default_branch }),
-      github.rest.repos.getContent({ owner, repo, path, ref: head })
-    ]);
-    protectedDefinitions[path] = trusted.type === 'file' && proposed.type === 'file' && trusted.sha === proposed.sha;
-  }
-  const problems = assess({ head, resolver, trustedWorkflows, protectedDefinitions, runs: workflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews, comments, threads, commits });
+  const {commits, commitProof} = await fetchCommitEvidence({github, owner, repo, head, resolver, comments, threads});
+  const {repository, workflows} = await metadata({github, owner, repo});
+  const matches = await definitionMatches({github, owner, repo, head, defaultBranch: repository.default_branch});
+  const trustedWorkflows = Object.fromEntries(Object.entries(workflows).map(([name, workflow]) => [name, {...workflow, definitionMatches: matches[workflow.path]}]));
+  const protectedDefinitions = Object.fromEntries(PROTECTED_PATHS.map(path => [path, matches[path]]));
+  const {data: workflowRuns} = await fetchWorkflowRuns({github, owner, repo, head, workflows: Object.values(workflows)});
+  const problems = assess({ head, resolver, commitProof, trustedWorkflows, protectedDefinitions, runs: workflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews, comments, threads, commits });
   if (threads.some(t => t.comments.pageInfo.hasNextPage)) problems.push('A thread exceeds the evidence page limit; review it explicitly.');
-  const [currentReviews, currentComments, currentThreads, {data: current}, {data: currentWorkflowRuns}] = await Promise.all([
+  const [currentReviewsRaw, currentCommentsRaw, currentThreads, {data: current}, {data: currentWorkflowRuns}] = await Promise.all([
     github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number: number, per_page: 100 }),
     github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number, per_page: 100 }),
     fetchThreads(github, owner, repo, number),
     github.rest.pulls.get({ owner, repo, pull_number: number }),
-    fetchWorkflowRuns({ github, owner, repo, head })
+    fetchWorkflowRuns({ github, owner, repo, head, workflows: Object.values(workflows) })
   ]);
+  const currentReviews = relevantReviews(currentReviewsRaw);
+  const currentComments = relevantComments(currentCommentsRaw);
   if (JSON.stringify([reviews, comments, threads]) !== JSON.stringify([currentReviews, currentComments, currentThreads])) {
     problems.push('Mutable review evidence changed during validation; rerun against a stable snapshot.');
   }
-  problems.push(...assess({ head, resolver, trustedWorkflows, protectedDefinitions, runs: currentWorkflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews: currentReviews, comments: currentComments, threads: currentThreads, commits }));
+  problems.push(...assess({ head, resolver, commitProof, trustedWorkflows, protectedDefinitions, runs: currentWorkflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews: currentReviews, comments: currentComments, threads: currentThreads, commits }));
   if (current.head.sha !== head) problems.push('Pull-request head moved during validation; rerun against its current head.');
   await github.rest.checks.update({ owner, repo, check_run_id: pendingCheck.id, status: 'completed',
     conclusion: problems.length ? 'failure' : 'success',
@@ -205,17 +269,17 @@ async function preparePullRequests({ github, context }) {
 }
 
 function bucketTargets(targets) {
-  return [...new Set(targets.map(target => target.number % 256))].sort((a, b) => a - b);
+  return [...new Set(targets.map(target => target.number % BUCKET_COUNT))].sort((a, b) => a - b);
 }
 
 async function runBucket({ github, context, bucket }) {
-  if (!Number.isInteger(bucket) || bucket < 0 || bucket >= 256) throw new Error('Invalid review bucket.');
+  if (!Number.isInteger(bucket) || bucket < 0 || bucket >= BUCKET_COUNT) throw new Error('Invalid review bucket.');
   const { owner, repo } = context.repo;
   // Refresh the whole stable bucket after taking its lock. A newer individual
   // event can replace a queued bulk job without dropping another PR's validation.
   const prs = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
   const failures = [];
-  for (const pr of prs.filter(pr => pr.number % 256 === bucket)) {
+  for (const pr of prs.filter(pr => pr.number % BUCKET_COUNT === bucket)) {
     try {
       await run({ github, context: { ...context, payload: { pull_request: { number: pr.number } } } });
     } catch (error) {
@@ -225,4 +289,4 @@ async function runBucket({ github, context, bucket }) {
   if (failures.length) throw new Error(failures.join('\n'));
 }
 
-module.exports = { assess, run, preparePullRequests, fetchWorkflowRuns, bucketTargets, runBucket };
+module.exports = { assess, run, preparePullRequests, fetchWorkflowRuns, bucketTargets, runBucket, affirmativeValidation, fetchCommitEvidence, relevantComments, relevantReviews, definitionMatches, metadata };
