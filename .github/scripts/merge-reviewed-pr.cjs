@@ -47,11 +47,14 @@ async function mergeReviewedPR({ github, context, number, api, merge, validate =
   assertAppCheck((await api(`commits/${head}/check-runs?per_page=100`, 'check_runs')), selectedPolicy.publisher_app_id);
   // Read-only assessment reuses the publisher's collection and stability checks.
   // These local callbacks never create or impersonate a public check run.
+  let approvedUpdates = '';
+  try { approvedUpdates = (await api('environments/review-evidence-publisher/variables/REVIEW_GATE_APPROVED_UPDATES'))?.value || ''; }
+  catch (error) { if (error.status !== 404) throw error; }
   let result;
   const liveGithub = {...github, rest: {...github.rest, checks: {
     create: async () => ({data: {id: 0}}), update: async update => {result = update;}
   }}};
-  await validate({github: liveGithub, context: {...context, payload: {pull_request: {number}}}});
+  await validate({github: liveGithub, context: {...context, payload: {pull_request: {number}}}, approvedUpdates});
   if (result?.conclusion !== 'success') throw new Error('Live review evidence did not pass.');
   const {workflows} = await metadata({github: liveGithub, owner, repo});
   const {data} = await fetchWorkflowRuns({github: liveGithub, owner, repo, head, workflows: Object.values(workflows)});
@@ -59,6 +62,13 @@ async function mergeReviewedPR({ github, context, number, api, merge, validate =
   const {data: current} = await github.rest.pulls.get({owner, repo, pull_number: number});
   if (current.state !== 'open' || current.head.sha !== head) throw new Error('PR head moved during pre-merge validation.');
   assertAppCheck(await api(`commits/${head}/check-runs?per_page=100`, 'check_runs'), selectedPolicy.publisher_app_id);
+  if (approvedUpdates && (await api('environments/review-evidence-publisher/variables/REVIEW_GATE_APPROVED_UPDATES'))?.value !== approvedUpdates) throw new Error('Protected update approval changed during validation.');
+  // Repeat mutable evidence collection after CI, check-source and approval reads.
+  result = undefined;
+  await validate({github: liveGithub, context: {...context, payload: {pull_request: {number}}}, approvedUpdates});
+  if (result?.conclusion !== 'success') throw new Error('Final live review evidence did not pass.');
+  const {data: finalPR} = await github.rest.pulls.get({owner, repo, pull_number: number});
+  if (finalPR.state !== 'open' || finalPR.head.sha !== head) throw new Error('PR head moved during final live validation.');
   if (merge) await merge(head);
   return head;
 }
@@ -81,7 +91,7 @@ function createGhAdapter(fullName, execute = ghJson) {
     return {data: execute(['api', `${root}${suffix ? `/${suffix}` : ''}${query.size ? `?${query}` : ''}`])};
   };
   const github = {rest: {
-    repos: {get: () => request(''), compareCommitsWithBasehead: ({basehead}) => request(`compare/${encodeURIComponent(basehead)}`)},
+    repos: {get: () => request(''), getBranch: ({branch}) => request(`branches/${encodeURIComponent(branch)}`), compareCommitsWithBasehead: ({basehead}) => request(`compare/${encodeURIComponent(basehead)}`)},
     pulls: {get: ({pull_number}) => request(`pulls/${pull_number}`),
       list: ({state, page, per_page}) => request('pulls', {state, page, per_page}),
       listReviews: ({pull_number, page, per_page}) => request(`pulls/${pull_number}/reviews`, {page, per_page})},

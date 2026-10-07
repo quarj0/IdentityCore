@@ -642,3 +642,57 @@ test('live CI verifies workflow paths head and any present push run', () => {
     const runs = baseline().runs; mutation(runs); assert.throws(() => assertCI(runs, workflows, head));
   }
 });
+
+test('protected update approval is exact scoped expiring and based on trusted main', () => {
+  const {approvedDefinitionPaths} = require('./review-gate.cjs');
+  const now = Date.parse('2026-10-07T00:00:00Z');
+  const approval = {base: fixed, expires_at: '2026-10-07T01:00:00Z', heads: {[head]: ['.github/scripts/review-gate.cjs']}};
+  const check = (value, target = head, base = fixed) => approvedDefinitionPaths({manifest: JSON.stringify(value), head: target, base, now});
+  assert.deepEqual([...check(approval)], ['.github/scripts/review-gate.cjs']);
+  assert.equal(check(approval, fixed).size, 0);
+  assert.equal(check(approval, head, head).size, 0);
+  assert.throws(() => check({...approval, expires_at: '2026-10-06T23:00:00Z'}));
+  assert.throws(() => check({...approval, expires_at: '2026-10-09T00:00:00Z'}));
+  assert.throws(() => check({...approval, heads: {[head]: ['unrelated-file']}}));
+});
+
+for (const moved of [false, true]) {
+  test(`governed protected update ${moved ? 'rejects a moving base' : 'still requires live review and CI'}`, async () => {
+    const {run} = require('./review-gate.cjs');
+    const approval = JSON.stringify({base: fixed, expires_at: new Date(Date.now() + 3600000).toISOString(), heads: {[head]: ['.github/scripts/review-gate.cjs']}});
+    let reads = 0; let conclusion;
+    const methods = {reviews: Symbol(), comments: Symbol()};
+    const github = {rest: {
+      pulls: {get: async () => ({data: {state: 'open', head: {sha: head}}}), listReviews: methods.reviews},
+      issues: {listComments: methods.comments},
+      repos: {get: async () => ({data: {default_branch: 'main'}}), getBranch: async () => ({data: {commit: {sha: ++reads > 1 && moved ? head : fixed}}})},
+      actions: {getWorkflow: async ({workflow_id}) => ({data: {id: workflow_id === 'ci.yml' ? 1 : 2}}),
+        listWorkflowRuns: async ({workflow_id}) => ({data: {workflow_runs: baseline().runs.filter(run => run.workflow_id === workflow_id)}})},
+      checks: {create: async () => ({data: {id: 1}}), update: async result => {conclusion = result.conclusion;}}
+    }, paginate: async method => method === methods.reviews ? baseline().reviews : [],
+    graphql: async () => ({repository: {pullRequest: {reviewThreads: {nodes: [], pageInfo: {hasNextPage: false}}},
+      ...Object.fromEntries(Array.from({length: 7}, (_, i) => [[`trusted${i}`, {__typename: 'Blob', oid: fixed}], [`proposed${i}`, {__typename: 'Blob', oid: i === 2 ? head : fixed}]]).flat())}})};
+    const args = {github, context: {repo: {owner: 'maintainer', repo: 'test'}, payload: {pull_request: {number: 1}}}, approvedUpdates: approval};
+    if (moved) {await assert.rejects(run(args), /approval base moved/); assert.equal(conclusion, 'failure');}
+    else {await run(args); assert.equal(conclusion, 'success'); await assert.rejects(run({...args, approvedUpdates: ''}), /Protected review-gate definition differs/);}
+  });
+}
+
+test('evidence edited during other merge preflights is collected again', async () => {
+  const {mergeReviewedPR} = require('./merge-reviewed-pr.cjs');
+  const input = nativePolicy(); let assessments = 0; let merged = false;
+  const github = {rest: {
+    repos: {get: async () => ({data: input.repository})},
+    pulls: {get: async () => ({data: {state: 'open', base: {ref: 'main'}, head: {sha: head}}})},
+    actions: {getWorkflow: async ({workflow_id}) => ({data: {id: workflow_id === 'ci.yml' ? 1 : 2}}),
+      listWorkflowRuns: async ({workflow_id}) => ({data: {workflow_runs: baseline().runs.filter(run => run.workflow_id === workflow_id)}})}
+  }};
+  const api = async suffix => suffix.includes('protection') ? input.protection : suffix.includes('rulesets') ? input.ruleset
+    : [{id: 1, name: 'review-evidence', app: {id: mergerPolicy.publisher_app_id}, status: 'completed', conclusion: 'success'}];
+  await assert.rejects(mergeReviewedPR({github, context: {repo: {owner: 'test', repo: 'test'}}, number: 1, api, policy: mergerPolicy,
+    validate: async ({github: live}) => {
+      if (++assessments === 2) throw new Error('Mutable evidence edited during preflight');
+      await live.rest.checks.update({conclusion: 'success'});
+    }, merge: async () => {merged = true;}}), /Mutable evidence edited/);
+  assert.equal(assessments, 2); assert.equal(merged, false);
+});
