@@ -6,8 +6,9 @@ function assertTrustedPolicy({ repository, protection, ruleset, policy }) {
   if (!repository.permissions?.admin) throw new Error('The authenticated merger must be a repository administrator.');
   if (!protection.enforce_admins?.enabled || !protection.required_conversation_resolution?.enabled) throw new Error('Native protections must apply to administrators and unresolved conversations.');
   if (!protection.required_status_checks?.checks?.some(check => check.context === 'review-evidence' && check.app_id === policy.publisher_app_id)) throw new Error('review-evidence must require the dedicated publisher App.');
+  if (protection.required_status_checks.strict !== true) throw new Error('Native protection must require an up-to-date base at merge time.');
   const actors = ruleset.bypass_actors || [];
-  if (ruleset.enforcement !== 'active' || ruleset.conditions?.ref_name?.include?.join() !== 'refs/heads/main' || ruleset.conditions?.ref_name?.exclude?.length ||
+  if (ruleset.target !== 'branch' || ruleset.enforcement !== 'active' || ruleset.conditions?.ref_name?.include?.join() !== 'refs/heads/main' || ruleset.conditions?.ref_name?.exclude?.length ||
       ruleset.rules?.length !== 1 || ruleset.rules[0].type !== 'update' || ruleset.rules[0].parameters?.update_allows_fetch_and_merge ||
       actors.length !== 1 || actors[0].actor_type !== 'RepositoryRole' || actors[0].actor_id !== 5 || actors[0].bypass_mode !== 'pull_request') {
     throw new Error('Main updates must be restricted to administrator PR merges.');
@@ -81,6 +82,8 @@ async function mergeReviewedPR({ github, context, number, api, merge, validate =
     if (JSON.parse(approvedUpdates).base !== base) throw new Error('Protected update approval base moved during final validation.');
     await verifyApprovedDefinitionPaths({github, owner, repo, manifest: currentApproval, head, base});
   }
+  const {data: finalRuns} = await fetchWorkflowRuns({github: liveGithub, owner, repo, head, workflows: Object.values(workflows)});
+  assertCI(finalRuns.workflow_runs, workflows, head);
   const {data: finalPR} = await github.rest.pulls.get({owner, repo, pull_number: number});
   if (finalPR.state !== 'open' || finalPR.head.sha !== head) throw new Error('PR head moved during final live validation.');
   if (merge) await merge(head);
