@@ -696,3 +696,32 @@ test('evidence edited during other merge preflights is collected again', async (
     }, merge: async () => {merged = true;}}), /Mutable evidence edited/);
   assert.equal(assessments, 2); assert.equal(merged, false);
 });
+
+for (const negative of ['No tests passed.', 'Zero tests passed.', '0 tests passed.', 'None of the tests passed.', 'Not all tests passed.', 'Some tests passed.', 'Tests would have passed.']) {
+  test(`nonaffirmative validation cannot be inferred: ${negative}`, () => {
+    const {affirmativeValidation} = require('./review-gate.cjs');
+    assert.equal(affirmativeValidation(`Fixed in ${fixed}; ${negative}`), false);
+  });
+}
+test('documented affirmative validation clauses remain accepted', () => {
+  const {affirmativeValidation} = require('./review-gate.cjs');
+  assert.equal(affirmativeValidation('Validation: all 66 gate regression tests passed.'), true);
+  assert.equal(affirmativeValidation('Fixed in abc1234; targeted smoke tests passed.'), true);
+});
+
+test('live merger reads the configured resolver from the protected environment', async () => {
+  const {mergeReviewedPR} = require('./merge-reviewed-pr.cjs');
+  const input = nativePolicy(); const resolvers = [];
+  const github = {rest: {
+    repos: {get: async () => ({data: input.repository})},
+    pulls: {get: async () => ({data: {state: 'open', base: {ref: 'main'}, head: {sha: head}}})},
+    actions: {getWorkflow: async ({workflow_id}) => ({data: {id: workflow_id === 'ci.yml' ? 1 : 2}}),
+      listWorkflowRuns: async ({workflow_id}) => ({data: {workflow_runs: baseline().runs.filter(run => run.workflow_id === workflow_id)}})}
+  }};
+  const api = async suffix => suffix.includes('protection') ? input.protection : suffix.includes('rulesets') ? input.ruleset
+    : suffix.endsWith('/REVIEW_GATE_RESOLVER_LOGIN') ? {value: 'other-maintainer'}
+    : [{id: 1, name: 'review-evidence', app: {id: mergerPolicy.publisher_app_id}, status: 'completed', conclusion: 'success'}];
+  await mergeReviewedPR({github, context: {repo: {owner: 'test', repo: 'test'}}, number: 1, api, policy: mergerPolicy,
+    validate: async ({github: live, resolverLogin}) => {resolvers.push(resolverLogin); await live.rest.checks.update({conclusion: 'success'});}});
+  assert.deepEqual(resolvers, ['other-maintainer', 'other-maintainer']);
+});

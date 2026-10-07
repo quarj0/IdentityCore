@@ -8,11 +8,10 @@ const relevantReviews = reviews => reviews.filter(review => isEvidenceReviewer(r
 
 function affirmativeValidation(body) {
   body = body.replace(/\b(\w+)n['’]t\b/gi, '$1 not');
-  if (/\b(?:tests?|validation|regressions?)\b[^.!?\n]*\b(?:fail(?:ed|s|ing|ure|ures)?|pending|incomplete|unverified|unsuccessful|not\s+(?:pass(?:ed|ing|es)?|successful))\b/i.test(body)) return false;
-  return body.split(/[.!?\n]+/).some(clause =>
-    /\b(test|tests|validation|regression|regressions)\b/i.test(clause) &&
-    /\b(pass|passed|passes|successful|successfully)\b/i.test(clause) &&
-    !/\b(fail|fails|failed|failing|failure|failures|not|never|unable|incomplete|pending|unverified|unsuccessful|cannot|can't|didn't|doesn't)\b/i.test(clause));
+  const clauses = body.split(/[.!?\n;:]+/);
+  if (clauses.some(clause => /\b(tests?|validation|regressions?)\b/i.test(clause) &&
+      /\b(fail|fails|failed|failing|failure|failures|not|never|unable|incomplete|pending|unverified|unsuccessful|cannot|no|none|zero|0)\b/i.test(clause))) return false;
+  return clauses.some(clause => /^\s*(?:all\s+)?(?:[1-9]\d*\s+)?(?:(?:gate|regression|unit|integration|e2e|targeted|frontend|backend|sdk|live|smoke|added|new)\s+)*(?:tests?|validation)(?:\s+(?:have|has))?\s+(?:pass(?:ed|es)?|(?:was|were|is|are)\s+successful|successful(?:ly)?)(?:\b.*)?$/i.test(clause));
 }
 
 function approvedDefinitionPaths({manifest, head, base, now = Date.now()}) {
@@ -189,7 +188,7 @@ async function definitionMatches({ github, owner, repo, head, defaultBranch }) {
   }));
 }
 
-async function run({ github, context, approvedUpdates = process.env.REVIEW_GATE_APPROVED_UPDATES || '' }) {
+async function run({ github, context, resolverLogin, approvedUpdates = process.env.REVIEW_GATE_APPROVED_UPDATES || '' }) {
   const { owner, repo } = context.repo;
   const number = context.payload.pull_request?.number ||
     (context.payload.issue?.pull_request ? context.payload.issue.number : undefined) ||
@@ -201,7 +200,7 @@ async function run({ github, context, approvedUpdates = process.env.REVIEW_GATE_
   // This function runs inside the per-PR workflow lock. Fetch its current head
   // here so discovery ordering cannot leave a newer head check orphaned.
   const head = pr.head.sha;
-  const resolver = process.env.REVIEW_GATE_RESOLVER_LOGIN || owner;
+  const resolver = resolverLogin || process.env.REVIEW_GATE_RESOLVER_LOGIN || owner;
   const pendingCheck = (await github.rest.checks.create({ owner, repo, head_sha: head,
     name: 'review-evidence', status: 'in_progress',
     output: { title: 'Review evidence validation in progress', summary: `Revalidating mutable evidence for ${head}.` }
