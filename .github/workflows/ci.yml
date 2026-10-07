@@ -6,6 +6,31 @@ on:
     types: [opened, synchronize, reopened, edited]
 
 jobs:
+  pr-target-proof:
+    name: CI target proof
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Record immutable PR target
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+          PR_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          python - <<'PYTHON'
+          import json, os
+          if os.environ["PR_NUMBER"]:
+              print("IDENTITYCORE_PR_TARGET " + json.dumps({
+                  "number": int(os.environ["PR_NUMBER"]), "head": os.environ["PR_HEAD"],
+                  "base": os.environ["PR_BASE"], "head_repo": os.environ["PR_REPO"],
+                  "head_branch": os.environ["PR_BRANCH"], "run_id": int(os.environ["RUN_ID"]),
+                  "run_attempt": int(os.environ["RUN_ATTEMPT"])}))
+          PYTHON
+
   review-gate-tests:
     runs-on: ubuntu-latest
     steps:
@@ -319,7 +344,7 @@ jobs:
   required-ci:
     name: CI required
     if: ${{ always() }}
-    needs: [push, review-gate-tests, operational-alerts, operational-restore, documentation, backend, backend-migrations, ai-service, frontend, sdks, java-sdk, dotnet-sdk, sdk-live-python, sdk-live-javascript, sdk-live-java, sdk-live-dotnet, deployment-health-fixtures, deployment-security-fixtures]
+    needs: [pr-target-proof, review-gate-tests, operational-alerts, operational-restore, documentation, backend, backend-migrations, ai-service, frontend, sdks, java-sdk, dotnet-sdk, sdk-live-python, sdk-live-javascript, sdk-live-java, sdk-live-dotnet, deployment-health-fixtures, deployment-security-fixtures]
     runs-on: ubuntu-latest
     permissions: {}
     steps:
