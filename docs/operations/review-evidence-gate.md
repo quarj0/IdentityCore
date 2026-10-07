@@ -14,7 +14,7 @@ Before this gate can enforce merging, a repository administrator must complete t
 
 Disposition evidence must be authored by a fixed trusted maintainer: the repository owner by default, or `REVIEW_GATE_RESOLVER_LOGIN` configured in the protected publisher environment. The actor who clicks Resolve is not an evidence authority. Unresolving a thread blocks merging through native conversation protection; re-resolving it cannot manufacture or replace the required trusted evidence. New feedback and edited or deleted evidence still require revalidation and a later final-head review.
 
-Discovery selects PR numbers only. Each assessment reads the current head and creates its pending check inside the per-PR concurrency group. Active assessments are not canceled by newer discovery, and queued jobs create no App checks. This prevents canceled or out-of-order discovery from orphaning the latest required check.
+Discovery selects PR numbers only. Each assessment reads the current head and creates its pending check inside a stable concurrency group determined by the PR number modulo 256. Every event for a PR uses the same group. Each group refreshes and validates all of its open PRs, so queued-job replacement cannot drop another PR, and the matrix never exceeds 256 jobs. Active assessments are not canceled by newer discovery, and queued jobs create no App checks. This prevents canceled or out-of-order discovery from orphaning the latest required check.
 
 The App token is scoped to this repository, explicitly requests the needed permissions, and is revoked after each job. Both discovery and per-PR assessment use the protected environment and the dedicated token. Missing configuration fails the action; there is no GitHub Actions publisher fallback.
 
