@@ -124,3 +124,23 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: 1
+
+  required-security:
+    name: Security required
+    if: ${{ always() }}
+    needs: [push, schedule, repository-scan, container-scan]
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Require every workflow job to succeed
+        env:
+          WORKFLOW_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python - <<'PY'
+          import json, os
+          results = json.loads(os.environ["WORKFLOW_RESULTS"])
+          blocked = [name for name, result in results.items() if result.get("result") != "success"]
+          if not results or blocked:
+              raise SystemExit("Required jobs did not succeed: " + ", ".join(blocked))
+          print("Every required workflow job succeeded.")
+          PY
