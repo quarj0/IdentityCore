@@ -9,3 +9,9 @@ Migration 0004 preserves version-1 timestamps, public IDs and original hashes. I
 Pause all audit-producing web processes and workers during deployment, take a database backup, apply the migration with the application keyring available, then start only the updated application version. Investigate a preflight failure before retrying; do not clear or rebuild historical hashes to bypass it. Older versions must not append unsigned events after this migration.
 
 Authentication detects modifications to retained events. Detection of database rollback, whole-chain deletion or tail truncation requires an independently retained external checkpoint. The database chain alone does not establish that completeness guarantee.
+
+## Platform administrator events
+
+Tenantless administrator authentication and MFA events use the separate platform chain (`tenant_id=None`). Only an existing tenantless platform administrator may be its actor; tenant and system actors cannot append to this chain. PostgreSQL appends hold a dedicated transaction advisory lock. The same immutable, authenticated audit format verifies platform events, and tenant audit APIs cannot list or retrieve them.
+
+Production must replace the AI service sample token. The current `.env.example` value is an explicit placeholder; Django production startup and independent AI service startup reject the fingerprint of the previously published credential. The AI service rejects it in mock, hybrid, and real modes, with credential values hidden from validation errors. Rotate that credential wherever older deployments copied it.

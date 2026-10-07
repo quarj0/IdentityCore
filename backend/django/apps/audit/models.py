@@ -39,6 +39,8 @@ class AuditEvent(PublicIdModel):
         "tenants.Tenant",
         on_delete=models.PROTECT,
         related_name="audit_events",
+        null=True,
+        blank=True,
     )
     actor_type = models.CharField(
         max_length=32, choices=AuditActorType.choices, db_index=True
@@ -74,6 +76,21 @@ class AuditEvent(PublicIdModel):
                 "Audit events are append-only and may not be updated."
             )
         from apps.audit.services import lock_audit_chain
+
+        if self.tenant_id is None:
+            from apps.accounts.models import PlatformUser
+
+            if (
+                self.actor_type != AuditActorType.PLATFORM_USER
+                or not PlatformUser.objects.filter(
+                    public_id=self.actor_id,
+                    is_platform_admin=True,
+                    tenant__isnull=True,
+                ).exists()
+            ):
+                raise ValidationError(
+                    "Platform audit events require a tenantless administrator actor."
+                )
 
         lock_audit_chain(self.tenant_id)
         previous = (
