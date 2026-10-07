@@ -606,3 +606,12 @@ for (const moved of [false, true]) {
     else {assert.equal(await operation, head); assert.equal(merged, head);}
   });
 }
+
+
+test('gh adapter repository lookup omits a trailing slash', async () => {
+  const {createGhAdapter} = require('./merge-reviewed-pr.cjs');
+  const calls = [];
+  const {github} = createGhAdapter('test/project', args => {calls.push(args); return {permissions: {admin: true}};});
+  await github.rest.repos.get({owner: 'test', repo: 'project'});
+  assert.deepEqual(calls, [['api', 'repos/test/project']]);
+});
