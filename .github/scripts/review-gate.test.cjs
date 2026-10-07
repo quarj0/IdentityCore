@@ -1099,3 +1099,53 @@ test('live merger rechecks its native guard after final policy reads',async()=>{
  await assert.rejects(mergeReviewedPR({github,context:{repo:{owner:'test',repo:'test'}},number:1,api,policy:mergerPolicy,validate:async({github:live})=>{assessments++;await live.rest.checks.update({conclusion:'success'});},merge:async()=>{merged=true;}}),/not enforced/);
  assert.equal(merged,false);assert.equal(assessments,2);
 });
+
+test('same-timestamp resolver retraction supersedes an earlier passing disposition',()=>{
+ const input=baseline();const time='2026-01-02T00:00:00Z';
+ input.threads=[{id:'tie',isResolved:true,comments:{nodes:[{author:{login:reviewer},body:'Finding',createdAt:'2026-01-01T00:00:00Z'},
+  {author:{login:'maintainer'},body:`Fixed in ${fixed}; tests passed.`,createdAt:time},
+  {author:{login:'maintainer'},body:'Disposition withdrawn.',createdAt:time}]}}];
+ assert.match(assess(input).join(' '),/no fixing-commit/);
+ input.threads[0].comments.nodes.reverse(); // Use a separate explicit restoration sequence in API order.
+ input.threads[0].comments.nodes=[{author:{login:reviewer},body:'Finding',createdAt:'2026-01-01T00:00:00Z'},
+  {author:{login:'maintainer'},body:'Disposition withdrawn.',createdAt:time},
+  {author:{login:'maintainer'},body:`Fixed in ${fixed}; tests passed.`,createdAt:time}];
+ assert.deepEqual(assess(input),[]);
+});
+test('a disposition cannot mix a nonexistent fixing reference with a valid one',()=>{
+ const {affirmativeValidation}=require('./review-gate.cjs');const input=baseline();
+ const body=`Fixed in ${'c'.repeat(40)}. Current fixing code and preceding implementation evidence confirmed at ${fixed}. Validation: all 140 gate regression tests passed.`;
+ assert.equal(affirmativeValidation(body),false);
+ input.threads=[{id:'references',isResolved:true,comments:{nodes:[{author:{login:reviewer},body:'Finding',createdAt:'2026-01-01T00:00:00Z'},
+ {author:{login:'maintainer'},body,createdAt:'2026-01-02T00:00:00Z'}]}}];
+ assert.match(assess(input).join(' '),/no fixing-commit/);
+});
+test('a test count cannot supply the required fixing commit',()=>{
+ const input=baseline();input.commits.push('1234567'+'a'.repeat(33));
+ input.threads=[{id:'count',isResolved:true,comments:{nodes:[{author:{login:reviewer},body:'Finding',createdAt:'2026-01-01T00:00:00Z'},
+ {author:{login:'maintainer'},body:'Validation: all 1234567 tests passed.',createdAt:'2026-01-02T00:00:00Z'}]}}];
+ assert.match(assess(input).join(' '),/no fixing-commit/);
+});
+test('capped run history independently discovers an old active run',async()=>{
+ const {fetchWorkflowRuns}=require('./review-gate.cjs');const calls=[];
+ const active={...baseline().runs[0],id:1,status:'queued',conclusion:null,updated_at:'2026-01-01T00:00:00Z'};
+ const github={rest:{actions:{listWorkflowRuns:async params=>{
+  calls.push(params);if(params.status)return {data:{total_count:1,workflow_runs:params.status==='queued'?[active,{...active,head_sha:fixed}]:[]}};
+  return {data:{total_count:1001,workflow_runs:[{...baseline().runs[0],id:2000,updated_at:'2026-01-03T00:00:00Z'}]}};
+ }}}};
+ const {data}=await fetchWorkflowRuns({github,owner:'owner',repo:'repo',head,events:['pull_request'],workflows:[baseline().trustedWorkflows.CI]});
+ assert.deepEqual(calls.slice(1).map(call=>call.status),['queued','in_progress','waiting','pending','requested']);
+ for(const call of calls.slice(1)){assert.equal(call.head_sha,undefined);assert.equal(call.event,undefined);}
+ const input=baseline();input.runs=[...data.workflow_runs,input.runs[1]];
+ assert.match(assess(input).join(' '),/CI has not passed/);assert.throws(()=>require('./merge-reviewed-pr.cjs').assertCI(input.runs,input.trustedWorkflows,head));
+ assert.equal(data.workflow_runs.some(run=>run.head_sha===fixed),false);
+});
+test('a capped active-status search cannot imply no active runs',async()=>{
+ const {fetchWorkflowRuns}=require('./review-gate.cjs');const github={rest:{actions:{listWorkflowRuns:async({status})=>({data:{total_count:status?1000:1001,workflow_runs:[]}})}}};
+ await assert.rejects(fetchWorkflowRuns({github,owner:'owner',repo:'repo',head,events:['pull_request'],workflows:[{id:1}]}),/ceiling/);
+});
+test('gh adapter preserves independent active-status queries',async()=>{
+ const calls=[];const {github}=require('./merge-reviewed-pr.cjs').createGhAdapter('owner/repo',args=>{calls.push(args);return {workflow_runs:[]};});
+ await github.rest.actions.listWorkflowRuns({workflow_id:1,status:'queued',per_page:100,page:1});
+ assert.equal(calls[0][1],'repos/owner/repo/actions/workflows/1/runs?status=queued&page=1&per_page=100');
+});
