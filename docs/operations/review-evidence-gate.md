@@ -10,11 +10,14 @@ Before this gate can enforce merging, a repository administrator must complete t
 2. Create the `review-evidence-publisher` environment. Configure its deployment branch policy to allow only the literal default branch (`main`), excluding pull-request refs and every feature branch. Store `REVIEW_GATE_APP_CLIENT_ID` as an environment variable and `REVIEW_GATE_APP_PRIVATE_KEY` as an environment secret. The private key must exist only in this environment, never as a repository or organization secret accessible to PR jobs.
 3. Require `review-evidence` on `main` with the dedicated App selected as its expected source. A same-named check from GitHub Actions must not satisfy it.
 4. Require conversation resolution at merge time. Thread unresolution must block merging even before the queued validator runs.
-5. Preserve existing CI, Security and review requirements when changing protection. Install the gate through a controlled bootstrap: its validator and signal must be on the default branch before its dedicated check can run. Keep the protection and publisher reviews open until bootstrap and the enforcement checks below have evidence.
+5. Restrict updates of `main` to administrator PR merges through the `Trusted main mergers` ruleset. Its only bypass actor is repository administrator (role 5), with `pull_request` bypass mode. Existing branch protection continues to apply to administrators. Contributors cannot merge using a cached check while asynchronous revalidation is queued. Trusted administrators must use the live merge command below.
+6. Preserve existing CI, Security and review requirements when changing protection. Install the gate through a controlled bootstrap: its validator and signal must be on the default branch before its dedicated check can run. Keep the protection and publisher reviews open until bootstrap and the enforcement checks below have evidence.
 
 Disposition evidence must be authored by a fixed trusted maintainer: the repository owner by default, or `REVIEW_GATE_RESOLVER_LOGIN` configured in the protected publisher environment. The actor who clicks Resolve is not an evidence authority. Unresolving a thread blocks merging through native conversation protection; re-resolving it cannot manufacture or replace the required trusted evidence. New feedback and edited or deleted evidence still require revalidation and a later final-head review.
 
-Discovery selects PR numbers only. Each assessment reads the current head and creates its pending check inside a stable concurrency group determined by the PR number modulo 256. Every event for a PR uses the same group. Each group refreshes and validates all of its open PRs, so queued-job replacement cannot drop another PR, and the matrix never exceeds 256 jobs. Active assessments are not canceled by newer discovery, and queued jobs create no App checks. This prevents canceled or out-of-order discovery from orphaning the latest required check.
+Discovery selects PR numbers only. Each assessment reads the current head and creates its pending check inside a stable concurrency group determined by the PR number modulo 8. Every event for a PR uses the same group. Each group refreshes and validates all of its open PRs, so queued-job replacement cannot drop another PR, and the matrix never exceeds eight jobs. Active assessments are not canceled by newer discovery, and queued jobs create no App checks. This prevents canceled or out-of-order discovery from orphaning the latest required check.
+
+Workflow evidence is queried separately for the trusted CI and Security identities and paginated in both snapshots, avoiding unrelated-run search caps. Declared commit evidence uses targeted ancestry comparisons against the full current head, avoiding both the PR commit endpoint cap and a repeated scan of the entire repository history. Ambiguous abbreviations and non-ancestor commits are rejected. Protected file definitions are compared in one GraphQL query. Eight stable buckets and cached immutable workflow metadata keep a 257-PR bulk validation below the 5,000-request installation REST budget in the regression fixture. Unrelated issue comments and formal reviews are excluded from evidence snapshots and ordinary issue-comment events do not trigger publishing.
 
 The App token is scoped to this repository, explicitly requests the needed permissions, and is revoked after each job. Both discovery and per-PR assessment use the protected environment and the dedicated token. Missing configuration fails the action; there is no GitHub Actions publisher fallback.
 
@@ -27,6 +30,20 @@ The App token is scoped to this repository, explicitly requests the needed permi
 - Confirm a new head, changed protected definition, missing trusted-maintainer evidence, or failing CI/Security prevents success. Re-resolve a thread under another actor and confirm this does not substitute that actor for the configured evidence author.
 - Record configuration and validation evidence before resolving the administration reviews on #364.
 
-Authenticated `gh` administration verified that `main` already enforces conversation resolution and applies protection to administrators. The `review-evidence-publisher` environment is configured with a custom deployment policy allowing only the literal `main` branch. Dedicated App registration, installation, its environment credentials, and the App-bound required check remain deployment prerequisites. GitHub App registration uses GitHub settings or its browser manifest flow; repository administration through `gh api` does not itself register an App.
+Authenticated `gh` administration verified that `main` already enforces conversation resolution and applies protection to administrators. The `review-evidence-publisher` environment is configured with a custom deployment policy allowing only the literal `main` branch. The dedicated App is registered and its environment credentials are configured. Repository installation and the App-bound required check remain deployment prerequisites. GitHub App registration uses GitHub settings or its browser manifest flow; repository administration through `gh api` does not itself register an App.
 
 Implementation reference: [actions/create-github-app-token](https://github.com/actions/create-github-app-token).
+
+## Trusted live merge command
+
+Load the command and validator from the fetched default branch, not a PR checkout:
+
+```sh
+git fetch origin main
+git worktree add --detach /tmp/identitycore-trusted-merge origin/main
+node /tmp/identitycore-trusted-merge/.github/scripts/merge-reviewed-pr.cjs --repo quarj0/IdentityCore --pr 123 --merge
+```
+
+Without `--merge`, the command checks readiness. It requires administrator identity, native administrator and conversation protection, the dedicated-App required check, and the administrator-only update ruleset. It then independently reads and evaluates current review evidence, protected definitions, declared commit ancestry, and final-head CI/Security; a previously successful check cannot skip this assessment. It checks the head again and merges with an expected-head lease, without `--admin` or protection bypass. This is the authorized merger path; contributors and PR jobs cannot invoke an administrative merge. Administrators remain trusted because they can change repository protection itself.
+
+The initial bootstrap is a reviewed administrator merge before the App-bound check is enabled. Require all final-head CI and a fresh configured review, inspect every thread, and keep #364's deployment reviews open until actual publisher and protection validation is complete.
