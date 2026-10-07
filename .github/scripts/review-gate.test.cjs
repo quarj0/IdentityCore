@@ -554,13 +554,13 @@ test('a same-named Actions check cannot satisfy the trusted merger', () => {
 });
 test('trusted merger rejects queued failed or missing final-head CI', () => {
   const {assertCI} = require('./merge-reviewed-pr.cjs');
-  const workflows = {CI: {id: 1}, Security: {id: 2}};
-  assert.doesNotThrow(() => assertCI(baseline().runs, workflows));
+  const workflows = baseline().trustedWorkflows;
+  assert.doesNotThrow(() => assertCI(baseline().runs, workflows, head));
   for (const state of ['queued', 'failure']) {
     const runs = baseline().runs; runs[0] = {...runs[0], status: state === 'queued' ? state : 'completed', conclusion: state};
-    assert.throws(() => assertCI(runs, workflows));
+    assert.throws(() => assertCI(runs, workflows, head));
   }
-  assert.throws(() => assertCI([], workflows));
+  assert.throws(() => assertCI([], workflows, head));
 });
 test('cached success cannot skip live pre-merge assessment', async () => {
   const {mergeReviewedPR} = require('./merge-reviewed-pr.cjs');
@@ -614,4 +614,31 @@ test('gh adapter repository lookup omits a trailing slash', async () => {
   const {github} = createGhAdapter('test/project', args => {calls.push(args); return {permissions: {admin: true}};});
   await github.rest.repos.get({owner: 'test', repo: 'project'});
   assert.deepEqual(calls, [['api', 'repos/test/project']]);
+});
+
+for (const negative of ["tests weren't successful", "Tests aren't successful", "Validation couldn’t pass", "Tests haven’t passed", "Tests won't pass"]) {
+  test(`contracted negative validation is rejected: ${negative}`, () => {
+    const {affirmativeValidation} = require('./review-gate.cjs');
+    assert.equal(affirmativeValidation(negative), false);
+    assert.equal(affirmativeValidation(`${negative}. Other tests passed.`), false);
+  });
+}
+test('live CI excludes superseded failures and unrelated events', () => {
+  const {assertCI} = require('./merge-reviewed-pr.cjs');
+  const workflows = baseline().trustedWorkflows;
+  const runs = baseline().runs.map(run => ({...run, id: 20, updated_at: '2026-10-07T02:00:00Z'}));
+  runs.push({...runs[0], id: 10, conclusion: 'cancelled', updated_at: '2026-10-07T01:00:00Z'},
+    {...runs[1], id: 99, event: 'workflow_dispatch', conclusion: 'failure'});
+  assert.doesNotThrow(() => assertCI(runs, workflows, head));
+  runs.push({...runs[0], id: 21, conclusion: 'failure', updated_at: '2026-10-07T03:00:00Z'});
+  assert.throws(() => assertCI(runs, workflows, head));
+});
+test('live CI verifies workflow paths head and any present push run', () => {
+  const {assertCI} = require('./merge-reviewed-pr.cjs');
+  const workflows = baseline().trustedWorkflows;
+  for (const mutation of [runs => {runs[0].path = 'spoof.yml';}, runs => {runs[0].head_sha = fixed;},
+    runs => {runs.push({...runs[0], event: 'push', conclusion: 'failure'});},
+    runs => {runs.push({...runs[0], id: 0, status: 'queued', conclusion: null});}]) {
+    const runs = baseline().runs; mutation(runs); assert.throws(() => assertCI(runs, workflows, head));
+  }
 });

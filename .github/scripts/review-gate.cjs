@@ -7,6 +7,7 @@ const relevantComments = comments => comments.filter(comment => isEvidenceReview
 const relevantReviews = reviews => reviews.filter(review => isEvidenceReviewer(review.user));
 
 function affirmativeValidation(body) {
+  body = body.replace(/\b(\w+)n['’]t\b/gi, '$1 not');
   if (/\b(?:tests?|validation|regressions?)\b[^.!?\n]*\b(?:fail(?:ed|s|ing|ure|ures)?|pending|incomplete|unverified|unsuccessful|not\s+(?:pass(?:ed|ing|es)?|successful))\b/i.test(body)) return false;
   return body.split(/[.!?\n]+/).some(clause =>
     /\b(test|tests|validation|regression|regressions)\b/i.test(clause) &&
