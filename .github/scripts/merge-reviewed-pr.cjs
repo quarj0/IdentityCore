@@ -20,13 +20,13 @@ function assertAppCheck(checks, appId) {
   if (!latest || latest.status !== 'completed' || latest.conclusion !== 'success') throw new Error('The latest dedicated App check is not successful.');
 }
 
-function assertCI(runs, workflows, head) {
+function assertCI(runs, workflows, head, {number = 1, baseRef = 'main'} = {}) {
   const activity = candidate => Date.parse(candidate.updated_at || candidate.run_started_at || candidate.created_at) || 0;
   for (const workflow of Object.values(workflows)) {
     const matching = runs.filter(candidate => candidate.workflow_id === workflow.id && candidate.head_sha === head &&
       typeof candidate.path === 'string' && candidate.path.split('@', 1)[0] === workflow.path);
     for (const event of ['pull_request', 'push']) {
-      const candidates = matching.filter(candidate => candidate.event === event);
+      const candidates = matching.filter(candidate => candidate.event === event && (event !== 'pull_request' || candidate.pull_requests?.some(pr => pr.number === number && pr.base?.ref === baseRef && pr.head?.sha === head)));
       if (event === 'push' && !candidates.length) continue;
       const latest = candidates.sort((a, b) => activity(b) - activity(a) || b.id - a.id)[0];
       if (!latest || latest.status !== 'completed' || latest.conclusion !== 'success' || candidates.some(candidate => candidate.status !== 'completed')) {
@@ -62,9 +62,9 @@ async function mergeReviewedPR({ github, context, number, api, merge, validate =
   if (result?.conclusion !== 'success') throw new Error('Live review evidence did not pass.');
   const {workflows} = await metadata({github: liveGithub, owner, repo});
   const {data} = await fetchWorkflowRuns({github: liveGithub, owner, repo, head, workflows: Object.values(workflows)});
-  assertCI(data.workflow_runs, workflows, head);
+  assertCI(data.workflow_runs, workflows, head, {number, baseRef: pr.base.ref});
   const {data: current} = await github.rest.pulls.get({owner, repo, pull_number: number});
-  if (current.state !== 'open' || current.head.sha !== head) throw new Error('PR head moved during pre-merge validation.');
+  if (current.state !== 'open' || current.head.sha !== head || current.base?.ref !== pr.base.ref) throw new Error('PR head moved during pre-merge validation.');
   assertAppCheck(await api(`commits/${head}/check-runs?per_page=100`, 'check_runs'), selectedPolicy.publisher_app_id);
   if (approvedUpdates && (await api('environments/review-evidence-publisher/variables/REVIEW_GATE_APPROVED_UPDATES'))?.value !== approvedUpdates) throw new Error('Protected update approval changed during validation.');
   // Repeat mutable evidence collection after CI, check-source and approval reads.
@@ -83,9 +83,9 @@ async function mergeReviewedPR({ github, context, number, api, merge, validate =
     await verifyApprovedDefinitionPaths({github, owner, repo, manifest: currentApproval, head, base});
   }
   const {data: finalRuns} = await fetchWorkflowRuns({github: liveGithub, owner, repo, head, workflows: Object.values(workflows)});
-  assertCI(finalRuns.workflow_runs, workflows, head);
+  assertCI(finalRuns.workflow_runs, workflows, head, {number, baseRef: pr.base.ref});
   const {data: finalPR} = await github.rest.pulls.get({owner, repo, pull_number: number});
-  if (finalPR.state !== 'open' || finalPR.head.sha !== head) throw new Error('PR head moved during final live validation.');
+  if (finalPR.state !== 'open' || finalPR.head.sha !== head || finalPR.base?.ref !== pr.base.ref) throw new Error('PR head moved during final live validation.');
   if (merge) await merge(head);
   return head;
 }
