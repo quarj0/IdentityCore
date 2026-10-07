@@ -4,7 +4,7 @@ const { assess } = require('./review-gate.cjs');
 const head = 'a'.repeat(40);
 const fixed = 'b'.repeat(40);
 const reviewer = 'chatgpt-codex-connector';
-const baseline = () => ({ head, reviewer, protectedDefinitions: {'.github/scripts/review-gate.cjs': true, '.github/workflows/review-gate.yml': true, '.github/workflows/review-evidence-signal.yml': true}, trustedWorkflows: {CI: {id: 1, definitionMatches: true, path: '.github/workflows/ci.yml'}, Security: {id: 2, definitionMatches: true, path: '.github/workflows/security.yml'}}, commits: [head, fixed], runs: ['CI', 'Security'].map((name, index) => ({name, workflow_id: index + 1, path: `.github/workflows/${name === 'CI' ? 'ci' : 'security'}.yml`, head_sha: head, event: 'pull_request', id: 1, status: 'completed', conclusion: 'success'})), reviews: [{ user: { login: reviewer }, commit_id: head, state: 'COMMENTED', submitted_at: '2026-02-01T00:00:00Z' }], comments: [], threads: [] });
+const baseline = () => ({ head, reviewer, resolver: 'maintainer', protectedDefinitions: {'.github/scripts/review-gate.cjs': true, '.github/workflows/review-gate.yml': true, '.github/workflows/review-evidence-signal.yml': true}, trustedWorkflows: {CI: {id: 1, definitionMatches: true, path: '.github/workflows/ci.yml'}, Security: {id: 2, definitionMatches: true, path: '.github/workflows/security.yml'}}, commits: [head, fixed], runs: ['CI', 'Security'].map((name, index) => ({name, workflow_id: index + 1, path: `.github/workflows/${name === 'CI' ? 'ci' : 'security'}.yml`, head_sha: head, event: 'pull_request', id: 1, status: 'completed', conclusion: 'success'})), reviews: [{ user: { login: reviewer }, commit_id: head, state: 'COMMENTED', submitted_at: '2026-02-01T00:00:00Z' }], comments: [], threads: [] });
 test('requires completed review of the current head', () => {
   for (const state of ['old', 'dismissed', 'absent']) {
     const input = baseline();
@@ -271,29 +271,20 @@ test('latest resolver disposition must still attest to a tested fixing commit', 
   assert.match(assess(input).join(' '), /no fixing-commit and validation evidence/);
 });
 
-test('bulk discovery invalidates every open head before returning assessment targets', async () => {
+test('bulk discovery never publishes checks outside the per-PR lock', async () => {
   const { preparePullRequests } = require('./review-gate.cjs');
-  const invalidated = [];
   const github = {
-    rest: {pulls: {list: Symbol('list'), get: async ({pull_number}) => ({data: {state: 'open', head: {sha: String(pull_number)}}})},
-      checks: {create: async ({head_sha, status}) => {
-        assert.equal(status, 'in_progress'); invalidated.push(head_sha);
-        return {data: {id: Number(head_sha) + 100}};
-      }}},
+    rest: {pulls: {list: Symbol('list'), get: async () => ({data: {state: 'open'}})},
+      checks: {create: async () => assert.fail('discovery must not publish checks')}},
     paginate: async () => [{number: 11}, {number: 12}]
   };
   const context = {eventName: 'push', repo: {owner: 'synthetic', repo: 'test'}, payload: {}};
-  assert.deepEqual(await preparePullRequests({github, context}), [
-    {number: 11, head: '11', check_id: 111}, {number: 12, head: '12', check_id: 112}
-  ]);
-  assert.deepEqual(invalidated.sort(), ['11', '12']);
+  assert.deepEqual(await preparePullRequests({github, context}), [{number: 11}, {number: 12}]);
   github.rest.pulls.get = async ({pull_number}) => {
     if (pull_number === 11) throw new Error('synthetic discovery failure');
-    return {data: {state: 'open', head: {sha: '12'}}};
+    return {data: {state: 'open'}};
   };
-  invalidated.length = 0;
   await assert.rejects(preparePullRequests({github, context}), /synthetic discovery failure/);
-  assert.deepEqual(invalidated, ['12']);
 });
 
 test('all workflow-associated PRs are discovered and duplicate numbers are removed', async () => {
@@ -310,19 +301,22 @@ test('bulk and individual assessments use the same per-PR concurrency group', ()
   assert.match(workflow, /group: review-evidence-\$\{\{ matrix.target.number \}\}/);
   assert.doesNotMatch(workflow, /github.run_id/);
   assert.match(workflow, /needs: discover/);
+  assert.match(workflow, /cancel-in-progress: false/);
+  assert.doesNotMatch(workflow, /cancel-in-progress: true/);
 });
 
-test('a prepared check cannot publish success for a changed head', async () => {
+test('assessment reads the current head and creates its own check under the lock', async () => {
   const { run } = require('./review-gate.cjs');
   const updates = [];
   const github = {rest: {pulls: {get: async () => ({data: {state: 'open', head: {sha: fixed}}})},
-    checks: {update: async update => updates.push(update)}}};
+    checks: {create: async input => { assert.equal(input.head_sha, fixed); return {data: {id: 222}}; },
+      update: async update => updates.push(update)}},
+    paginate: async () => { throw new Error('synthetic collection failure'); }};
   await assert.rejects(run({github, context: {repo: {owner: 'test', repo: 'test'}, payload: {pull_request: {number: 11}}},
-    prepared: {number: 11, head, check_id: 111}}), /head moved/);
-  assert.equal(updates[0].check_run_id, 111);
+    prepared: {number: 11, head, check_id: 111}}), /synthetic collection failure/);
+  assert.equal(updates[0].check_run_id, 222);
   assert.equal(updates[0].conclusion, 'failure');
 });
-
 
 test('publisher credentials are limited to default-branch environment jobs', () => {
   const fs = require('node:fs');
@@ -356,4 +350,22 @@ test('workflow completion discovery does not require PR association metadata', (
   const condition = workflow.split('\n').find(line => line.trimStart().startsWith('if:'));
   assert.doesNotMatch(condition, /workflow_run\.pull_requests|workflow_run\.name/);
   assert.match(condition, /github.ref ==/);
+});
+
+test('resolution metadata cannot replace the configured trusted disposition author', () => {
+  const input = baseline();
+  input.threads = [{id: 'trusted', isResolved: true, resolvedBy: {login: 'maintainer'}, comments: {nodes: [
+    {author: {login: reviewer}, body: 'Finding', createdAt: '2026-01-01T00:00:00Z'},
+    {author: {login: 'maintainer'}, body: `Fixed in ${fixed}; regression tests pass.`, createdAt: '2026-01-02T00:00:00Z'},
+  ]}}];
+  assert.deepEqual(assess(input), []);
+  input.threads[0].isResolved = false;
+  assert.match(assess(input).join(' '), /Unresolved thread/);
+  input.threads[0].isResolved = true;
+  input.threads[0].resolvedBy = {login: 'untrusted'};
+  assert.deepEqual(assess(input), []);
+  input.threads[0].comments.nodes[1].author.login = 'untrusted';
+  assert.match(assess(input).join(' '), /no fixing-commit and validation evidence/);
+  input.threads[0].resolvedBy = {login: 'maintainer'};
+  assert.match(assess(input).join(' '), /no fixing-commit and validation evidence/);
 });
