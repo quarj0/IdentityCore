@@ -1,0 +1,200 @@
+function assess({ head, reviewer, reviews, comments, threads, commits, runs, trustedWorkflows, protectedDefinitions }) {
+  const isReviewer = author => author?.login === reviewer || author?.login === `${reviewer}[bot]`;
+  const finalReviews = reviews.filter(r => isReviewer(r.user) && r.commit_id === head);
+  let changesRequested = false;
+  for (const review of reviews.filter(r => isReviewer(r.user))) {
+    // COMMENTED does not clear a review decision. The API replaces the
+    // original state with DISMISSED when an authorized dismissal occurs.
+    if (review.state === 'CHANGES_REQUESTED') changesRequested = true;
+    if (review.state === 'APPROVED') changesRequested = false;
+  }
+  const blockingReview = changesRequested || finalReviews.some(r => r.state === 'PENDING');
+  const reviewed = !blockingReview && (reviews.some(r => isReviewer(r.user) && r.commit_id === head && ['APPROVED', 'COMMENTED'].includes(r.state)) ||
+    comments.some(c => isReviewer(c.user) && (
+      [...c.body.matchAll(/\*\*Reviewed commit:\*\*\s*`([0-9a-f]{10,40})`/g)].some(m => head.startsWith(m[1])) ||
+      (c.body.startsWith('<!-- codex-pull-request-review-summary -->') &&
+        [...c.body.matchAll(/^\|[^|\n]*\*\*Code Review\*\*[^|\n]*\|\s*✅\s*\*\*Completed\*\*[^|\n]*\|\s*`([0-9a-f]{7,40})`/gm)]
+          .some(m => head.startsWith(m[1]) && commits.filter(sha => sha.startsWith(m[1])).length === 1))
+    )));
+  const problems = [];
+  const evidenceTimes = [];
+  for (const name of ['CI', 'Security']) {
+    const trusted = trustedWorkflows?.[name];
+    if (!trusted?.definitionMatches) problems.push(`${name} workflow definition differs from trusted default-branch content.`);
+    const latest = runs.filter(r => trusted && r.workflow_id === trusted.id && typeof r.path === 'string' && r.path.split('@', 1)[0] === trusted.path && r.head_sha === head && r.event === 'pull_request')
+      .sort((a, b) => b.id - a.id)[0];
+    if (!latest || latest.status !== 'completed' || latest.conclusion !== 'success') problems.push(`${name} has not passed for the final head.`);
+  }
+  for (const path of ['.github/scripts/review-gate.cjs', '.github/workflows/review-gate.yml', '.github/workflows/review-evidence-signal.yml']) {
+    if (!protectedDefinitions?.[path]) problems.push(`Protected review-gate definition differs: ${path}.`);
+  }
+  if (!reviewed) problems.push(`Configured review has not completed for ${head}.`);
+  for (const thread of threads) {
+    if (!thread.isResolved) {
+      problems.push(`Unresolved thread ${thread.id}.`);
+      continue;
+    }
+    const nodes = thread.comments.nodes;
+    const feedback = nodes.filter(c => c.author?.login !== thread.resolvedBy?.login);
+    const feedbackTimes = feedback.map(c => Date.parse(c.updatedAt || c.createdAt));
+    const lastFeedback = Math.max(...feedbackTimes);
+    const dispositions = nodes.filter(c => c.author?.login === thread.resolvedBy?.login);
+    const dispositionTimes = dispositions.map(c => Date.parse(c.updatedAt || c.createdAt));
+    const latestDisposition = Math.max(...dispositionTimes);
+    const evidence = feedbackTimes.length > 0 && feedbackTimes.every(Number.isFinite) &&
+      dispositionTimes.every(Number.isFinite) && dispositions.filter(c =>
+      Date.parse(c.updatedAt || c.createdAt) === latestDisposition &&
+      latestDisposition > lastFeedback &&
+      /\b(test|tests|validation|regression|passed|passes|superseded|inapplicable)\b/i.test(c.body) &&
+      [...c.body.matchAll(/\b([0-9a-f]{7,40})\b/g)].some(m => commits.some(sha => sha.startsWith(m[1])))
+    );
+    if (evidence && evidence.length) evidenceTimes.push(Math.max(...evidence.map(c => Date.parse(c.updatedAt || c.createdAt))));
+    if (!evidence || !evidence.length) problems.push(`Resolved thread ${thread.id} has no fixing-commit and validation evidence from its resolver.`);
+  }
+  if (reviewed && evidenceTimes.length) {
+    const completed = [
+      ...finalReviews.filter(r => ['APPROVED', 'COMMENTED'].includes(r.state)).map(r => Date.parse(r.submitted_at)),
+      ...comments.filter(c => isReviewer(c.user) && (
+        [...c.body.matchAll(/\*\*Reviewed commit:\*\*\s*`([0-9a-f]{10,40})`/g)].some(m => head.startsWith(m[1])) ||
+        (c.body.startsWith('<!-- codex-pull-request-review-summary -->') &&
+          [...c.body.matchAll(/^\|[^|\n]*\*\*Code Review\*\*[^|\n]*\|\s*✅\s*\*\*Completed\*\*[^|\n]*\|\s*`([0-9a-f]{7,40})`/gm)]
+            .some(m => head.startsWith(m[1]) && commits.filter(sha => sha.startsWith(m[1])).length === 1))
+      )).map(c => Date.parse(c.updated_at || c.created_at))
+    ].filter(Number.isFinite);
+    if (!completed.some(time => time > Math.max(...evidenceTimes))) {
+      problems.push('Final-head review must complete after the latest resolver evidence.');
+    }
+  }
+  return problems;
+}
+
+async function fetchThreads(github, owner, repo, number) {
+  const threads = [];
+  let cursor = null;
+  do {
+    const data = await github.graphql(`query($owner:String!,$repo:String!,$number:Int!,$cursor:String) {
+      repository(owner:$owner,name:$repo) { pullRequest(number:$number) {
+        reviewThreads(first:100,after:$cursor) { pageInfo { hasNextPage endCursor }
+          nodes { id isResolved resolvedBy { login } comments(first:100) { nodes { body createdAt updatedAt author { login } } pageInfo { hasNextPage } } }
+        }
+      } }
+    }`, { owner, repo, number, cursor });
+    const page = data.repository.pullRequest.reviewThreads;
+    threads.push(...page.nodes);
+    cursor = page.pageInfo.hasNextPage ? page.pageInfo.endCursor : null;
+  } while (cursor);
+  return threads;
+}
+
+async function run({ github, context, prepared }) {
+  const { owner, repo } = context.repo;
+  const number = context.payload.pull_request?.number ||
+    (context.payload.issue?.pull_request ? context.payload.issue.number : undefined) ||
+    context.payload.workflow_run?.pull_requests?.[0]?.number ||
+    Number(context.payload.inputs?.pr_number);
+  if (!number) throw new Error('A pull-request number is required.');
+  const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: number });
+  if (pr.state !== 'open') return;
+  const head = prepared?.head || pr.head.sha;
+  const pendingCheck = prepared ? { id: prepared.check_id } : (await github.rest.checks.create({ owner, repo, head_sha: head,
+    name: 'review-evidence', status: 'in_progress',
+    output: { title: 'Review evidence validation in progress', summary: `Revalidating mutable evidence for ${head}.` }
+  })).data;
+  let completed = false;
+  try {
+  if (pr.head.sha !== head) throw new Error('Prepared pull-request head moved; rerun discovery.');
+  const reviews = await github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number: number, per_page: 100 });
+  const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number, per_page: 100 });
+  const commits = (await github.paginate(github.rest.pulls.listCommits, { owner, repo, pull_number: number, per_page: 100 })).map(c => c.sha);
+  const threads = await fetchThreads(github, owner, repo, number);
+  const { data: workflowRuns } = await github.rest.actions.listWorkflowRunsForRepo({ owner, repo, head_sha: head, per_page: 100 });
+  const trustedWorkflows = {};
+  const { data: repository } = await github.rest.repos.get({ owner, repo });
+  for (const [name, file] of [['CI', 'ci.yml'], ['Security', 'security.yml']]) {
+    const { data: workflow } = await github.rest.actions.getWorkflow({ owner, repo, workflow_id: file });
+    const path = `.github/workflows/${file}`;
+    const [{ data: trustedDefinition }, { data: proposedDefinition }] = await Promise.all([
+      github.rest.repos.getContent({ owner, repo, path, ref: repository.default_branch }),
+      github.rest.repos.getContent({ owner, repo, path, ref: head })
+    ]);
+    trustedWorkflows[name] = { id: workflow.id, path,
+      definitionMatches: trustedDefinition.type === 'file' && proposedDefinition.type === 'file' &&
+        trustedDefinition.sha === proposedDefinition.sha };
+  }
+  const protectedDefinitions = {};
+  for (const path of ['.github/scripts/review-gate.cjs', '.github/workflows/review-gate.yml', '.github/workflows/review-evidence-signal.yml']) {
+    const [{ data: trusted }, { data: proposed }] = await Promise.all([
+      github.rest.repos.getContent({ owner, repo, path, ref: repository.default_branch }),
+      github.rest.repos.getContent({ owner, repo, path, ref: head })
+    ]);
+    protectedDefinitions[path] = trusted.type === 'file' && proposed.type === 'file' && trusted.sha === proposed.sha;
+  }
+  const problems = assess({ head, trustedWorkflows, protectedDefinitions, runs: workflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews, comments, threads, commits });
+  if (threads.some(t => t.comments.pageInfo.hasNextPage)) problems.push('A thread exceeds the evidence page limit; review it explicitly.');
+  const [currentReviews, currentComments, currentThreads, {data: current}, {data: currentWorkflowRuns}] = await Promise.all([
+    github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number: number, per_page: 100 }),
+    github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number, per_page: 100 }),
+    fetchThreads(github, owner, repo, number),
+    github.rest.pulls.get({ owner, repo, pull_number: number }),
+    github.rest.actions.listWorkflowRunsForRepo({ owner, repo, head_sha: head, per_page: 100 })
+  ]);
+  if (JSON.stringify([reviews, comments, threads]) !== JSON.stringify([currentReviews, currentComments, currentThreads])) {
+    problems.push('Mutable review evidence changed during validation; rerun against a stable snapshot.');
+  }
+  problems.push(...assess({ head, trustedWorkflows, protectedDefinitions, runs: currentWorkflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews: currentReviews, comments: currentComments, threads: currentThreads, commits }));
+  if (current.head.sha !== head) problems.push('Pull-request head moved during validation; rerun against its current head.');
+  await github.rest.checks.update({ owner, repo, check_run_id: pendingCheck.id, status: 'completed',
+    conclusion: problems.length ? 'failure' : 'success',
+    output: { title: problems.length ? 'Review evidence incomplete' : 'Final-head review evidence verified',
+      summary: problems.length ? problems.join('\n') : `Configured review completed for ${head}; every thread has commit and validation evidence.` }
+  });
+  completed = true;
+  if (problems.length) throw new Error(problems.join('\n'));
+  } catch (error) {
+    if (!completed) {
+      await github.rest.checks.update({ owner, repo, check_run_id: pendingCheck.id,
+        status: 'completed', conclusion: 'failure',
+        output: { title: 'Review evidence validation failed', summary: 'Evidence could not be collected or validated; retry the gate.' }
+      });
+    }
+    throw error;
+  }
+}
+
+async function preparePullRequests({ github, context }) {
+  const { owner, repo } = context.repo;
+  const number = context.payload.pull_request?.number ||
+    (context.payload.issue?.pull_request ? context.payload.issue.number : undefined) ||
+    Number(context.payload.inputs?.pr_number);
+  let pullRequests;
+  if (context.eventName === 'push') {
+    pullRequests = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
+  } else if (context.eventName === 'workflow_run') {
+    pullRequests = context.payload.workflow_run.pull_requests || [];
+    if (!pullRequests.length && context.payload.workflow_run.name === 'Review evidence signal') {
+      // Some review-event runs have no PR association in workflow_run metadata.
+      // Revalidate every open PR without trusting a PR-written artifact.
+      pullRequests = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
+    }
+  } else {
+    if (!number) throw new Error('A pull-request number is required.');
+    pullRequests = [{ number }];
+  }
+  // Invalidate every affected head before any matrix assessment can start.
+  // Failure here leaves created checks pending and prevents publication.
+  const results = await Promise.allSettled([...new Set(pullRequests.map(pr => pr.number))].map(async number => {
+    const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: number });
+    if (pr.state !== 'open') return null;
+    const head = pr.head.sha;
+    const { data: check } = await github.rest.checks.create({ owner, repo, head_sha: head,
+      name: 'review-evidence', status: 'in_progress',
+      output: { title: 'Review evidence validation queued', summary: `Revalidating mutable evidence for ${head}.` }
+    });
+    return { number, head, check_id: check.id };
+  }));
+  const failures = results.filter(result => result.status === 'rejected');
+  if (failures.length) throw new Error(failures.map(result => result.reason.message).join('\n'));
+  return results.map(result => result.value).filter(Boolean);
+}
+
+module.exports = { assess, run, preparePullRequests };
