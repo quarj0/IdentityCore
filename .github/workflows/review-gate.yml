@@ -57,19 +57,19 @@ jobs:
               core.setOutput('targets', '[]');
               return;
             }
-            const { preparePullRequests } = require('./.github/scripts/review-gate.cjs');
+            const { preparePullRequests, bucketTargets } = require('./.github/scripts/review-gate.cjs');
             const targets = await preparePullRequests({ github, context });
-            core.setOutput('targets', JSON.stringify(targets));
+            core.setOutput('targets', JSON.stringify(bucketTargets(targets)));
   review-evidence:
     needs: discover
     if: needs.discover.outputs.targets != '[]' && needs.discover.outputs.targets != ''
     strategy:
       fail-fast: false
       matrix:
-        target: ${{ fromJSON(needs.discover.outputs.targets) }}
+        bucket: ${{ fromJSON(needs.discover.outputs.targets) }}
     # Every event, including default-branch bulk revalidation, shares this lock.
     concurrency:
-      group: review-evidence-${{ matrix.target.number }}
+      group: review-evidence-bucket-${{ matrix.bucket }}
       cancel-in-progress: false
     runs-on: ubuntu-latest
     environment: review-evidence-publisher
@@ -91,13 +91,11 @@ jobs:
           permission-checks: write
       - uses: actions/github-script@v8
         env:
-          REVIEW_TARGET: ${{ toJSON(matrix.target) }}
+          REVIEW_BUCKET: ${{ matrix.bucket }}
           REVIEW_GATE_RESOLVER_LOGIN: ${{ vars.REVIEW_GATE_RESOLVER_LOGIN }}
         with:
           github-token: ${{ steps.publisher.outputs.token }}
           script: |
-            const prepared = JSON.parse(process.env.REVIEW_TARGET);
-            const { run } = require('./.github/scripts/review-gate.cjs');
-            await run({ github, context: {
-              ...context, payload: { pull_request: { number: prepared.number } }
-            } });
+            const bucket = Number(process.env.REVIEW_BUCKET);
+            const { runBucket } = require('./.github/scripts/review-gate.cjs');
+            await runBucket({ github, context, bucket });
