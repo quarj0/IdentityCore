@@ -55,14 +55,28 @@ class ConsentKeyRecoveryAssertions:
         metadata = {"resource_id": self.resource.public_id}
         check = create_provider_check(verification=self.verification, check_type=check_type,
             status=ProviderCheckStatus.COMPLETED, request_metadata=metadata)
-        check.normalized_result_json = {"capability": check_type, "status": "completed", "score": 0.97}
-        check.save(update_fields=["normalized_result_json"])
-        with patch("apps.providers.services.resolve_provider_chain_for_verification") as route, patch("builtins.print") as operation:
-            result = execute_provider_route(verification=self.verification, check_type=check_type,
-                request_metadata=metadata, operation=operation, processing_job=recovered)
-        self.assertEqual(result.provider_check.pk, check.pk)
-        route.assert_not_called()
-        operation.assert_not_called()
+        for status in ("completed", "inconclusive", "failed"):
+            with self.subTest(status=status):
+                check.normalized_result_json = {"contract_version": "1", "capability": check_type, "status": status, "score": 0.97}
+                check.save(update_fields=["normalized_result_json"])
+                with patch("apps.providers.services.resolve_provider_chain_for_verification") as route, patch("builtins.print") as operation:
+                    result = execute_provider_route(verification=self.verification, check_type=check_type,
+                        request_metadata=metadata, operation=operation, processing_job=recovered)
+                self.assertEqual(result.provider_check.pk, check.pk)
+                self.assertEqual(result.result["status"], status)
+                route.assert_not_called()
+                operation.assert_not_called()
+        for invalid in ({"contract_version": "2", "capability": check_type, "status": "completed"},
+                        {"contract_version": "1", "capability": check_type, "status": "unknown"},
+                        {"contract_version": "1", "capability": "wrong", "status": "completed"},
+                        ["invalid envelope"]):
+            with self.subTest(invalid=invalid):
+                check.normalized_result_json = invalid
+                check.save(update_fields=["normalized_result_json"])
+                with patch("apps.providers.services.resolve_provider_chain_for_verification", side_effect=RuntimeError("fresh route required")):
+                    with self.assertRaisesRegex(RuntimeError, "fresh route required"):
+                        execute_provider_route(verification=self.verification, check_type=check_type,
+                            request_metadata=metadata, operation=lambda *args: self.fail("unexpected I/O"), processing_job=recovered)
         with transaction.atomic():
             lock_processing_job_for_finalization(recovered)
 

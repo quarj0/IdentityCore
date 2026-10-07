@@ -913,10 +913,17 @@ def execute_provider_route(
             for check in candidates:
                 metadata = check.request_metadata_json or {}
                 normalized = check.normalized_result_json or {}
-                if (all(metadata.get(key) == value for key, value in (request_metadata or {}).items())
-                    and normalized.get("capability") == check_type
-                    and normalized.get("status") == ProviderCheckStatus.COMPLETED):
-                    return ProviderRouteExecutionResult(result=normalized, provider_check=check, attempts=())
+                if not isinstance(metadata, dict) or not isinstance(normalized, dict):
+                    continue
+                if (not all(metadata.get(key) == value for key, value in (request_metadata or {}).items())
+                    or normalized.get("capability") != check_type
+                    or normalized.get("contract_version") != PROVIDER_CONTRACT_VERSION):
+                    continue
+                try:
+                    normalized = normalize_provider_result(check_type, normalized)
+                except ProviderContractError:
+                    continue
+                return ProviderRouteExecutionResult(result=normalized, provider_check=check, attempts=())
 
     resolution = resolve_provider_chain_for_verification(
         verification=verification,

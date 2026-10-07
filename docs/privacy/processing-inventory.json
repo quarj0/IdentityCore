@@ -4326,6 +4326,11 @@
     },
     {
       "source": "backend/django/apps/verifications/models.py",
+      "field": "ProcessingJob.lease_generation",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
       "field": "ProcessingJob.max_attempts",
       "activity": "verification-subject-and-session"
     },
