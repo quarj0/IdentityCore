@@ -23,6 +23,6 @@ The App token is scoped to this repository, explicitly requests the needed permi
 - Confirm a new head, changed protected definition, missing resolver evidence, or failing CI/Security prevents success.
 - Record configuration and validation evidence before resolving the administration reviews on #364.
 
-The GitHub connector used for this change returns 403 for branch-protection administration and cannot provision Apps, environment secrets or deployment policies. Local administrator credentials were also unavailable. These are deployment prerequisites, not completed settings.
+Authenticated `gh` administration verified that `main` already enforces conversation resolution and applies protection to administrators. The `review-evidence-publisher` environment is configured with a custom deployment policy allowing only the literal `main` branch. Dedicated App registration, installation, its environment credentials, and the App-bound required check remain deployment prerequisites. GitHub App registration uses GitHub settings or its browser manifest flow; repository administration through `gh api` does not itself register an App.
 
 Implementation reference: [actions/create-github-app-token](https://github.com/actions/create-github-app-token).
