@@ -1,3 +1,6 @@
+from pathlib import Path
+from unittest.mock import patch, Mock
+
 from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase
 
@@ -78,3 +81,28 @@ class ProductionConfigurationTests(SimpleTestCase):
                     JWT_SIGNING_KEY=shared_key,
                 )
             )
+
+    def test_rejects_current_example_token(self):
+        sample = next(
+            line.split("=", 1)[1].strip()
+            for line in (Path(__file__).resolve().parents[3] / ".env.example")
+            .read_text()
+            .splitlines()
+            if line.startswith("AI_SERVICE_SHARED_TOKEN=")
+        )
+        with self.assertRaises(ImproperlyConfigured):
+            validate_production_environment(
+                production_environment(AI_SERVICE_SHARED_TOKEN=sample)
+            )
+
+    def test_rejects_formerly_published_ai_token_fingerprint(self):
+        from common.configuration import PUBLIC_AI_TOKEN_FINGERPRINT
+
+        digest = Mock()
+        digest.hexdigest.return_value = PUBLIC_AI_TOKEN_FINGERPRINT
+        with patch("common.configuration.hashlib.sha256", return_value=digest):
+            with self.assertRaisesMessage(
+                ImproperlyConfigured,
+                "AI_SERVICE_SHARED_TOKEN must not use the formerly published example credential",
+            ):
+                validate_production_environment(production_environment())

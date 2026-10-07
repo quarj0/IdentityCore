@@ -1,8 +1,14 @@
 // Generated from docs/openapi/identitycore-public-api.yaml. DO NOT EDIT.
+using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace IdentityCore.Models;
+
+public sealed class ContractStringEnumConverter<TEnum> : JsonStringEnumConverter<TEnum> where TEnum : struct, Enum
+{
+    public ContractStringEnumConverter() : base(namingPolicy: null, allowIntegerValues: false) { }
+}
 
 public sealed record Error
 {
@@ -10,6 +16,7 @@ public sealed record Error
     public string Code { get; init; }
     [JsonPropertyName("message")]
     public string Message { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("details")]
     public JsonElement? Details { get; init; }
 }
@@ -17,7 +24,7 @@ public sealed record Error
 public sealed record ErrorEnvelope
 {
     [JsonPropertyName("success")]
-    public JsonElement Success { get; init; }
+    public bool Success { get; init; }
     [JsonPropertyName("error")]
     public Error Error { get; init; }
     [JsonPropertyName("request_id")]
@@ -32,6 +39,7 @@ public sealed record WorkflowSummary
     public string ProjectId { get; init; }
     [JsonPropertyName("name")]
     public string Name { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("description")]
     public string? Description { get; init; }
     [JsonPropertyName("status")]
@@ -42,14 +50,40 @@ public sealed record WorkflowSummary
     public JsonElement Settings { get; init; }
     [JsonPropertyName("current_version")]
     public int CurrentVersion { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("source_template_id")]
     public string? SourceTemplateId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("source_template_version")]
     public string? SourceTemplateVersion { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("created_at")]
     public string? CreatedAt { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("updated_at")]
     public string? UpdatedAt { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<PolicyStatus>))]
+public enum PolicyStatus
+{
+    draft,
+    active,
+    archived,
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<PolicyRequiredLivenessLevel>))]
+public enum PolicyRequiredLivenessLevel
+{
+    passive,
+    active,
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<PolicyExternalRiskFailureAction>))]
+public enum PolicyExternalRiskFailureAction
+{
+    manual_review,
+    ignore,
 }
 
 public sealed record Policy
@@ -58,34 +92,43 @@ public sealed record Policy
     public string Id { get; init; }
     [JsonPropertyName("name")]
     public string Name { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("description")]
     public string? Description { get; init; }
     [JsonPropertyName("version")]
     public int Version { get; init; }
     [JsonPropertyName("status")]
-    public string Status { get; init; }
+    public required PolicyStatus Status { get; init; }
     [JsonPropertyName("required_document_types")]
     public IReadOnlyList<string> RequiredDocumentTypes { get; init; }
     [JsonPropertyName("required_liveness_level")]
-    public string RequiredLivenessLevel { get; init; }
+    public required PolicyRequiredLivenessLevel RequiredLivenessLevel { get; init; }
     [JsonPropertyName("face_match_threshold")]
     public double FaceMatchThreshold { get; init; }
     [JsonPropertyName("manual_review_threshold")]
     public double ManualReviewThreshold { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("review_reason_rules")]
     public JsonElement? ReviewReasonRules { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("reuse_rules")]
     public JsonElement? ReuseRules { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("document_consistency_rules")]
     public JsonElement? DocumentConsistencyRules { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("document_authenticity_required")]
     public bool? DocumentAuthenticityRequired { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("document_authenticity_min_confidence")]
     public double? DocumentAuthenticityMinConfidence { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("external_risk_enabled")]
     public bool? ExternalRiskEnabled { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("external_risk_failure_action")]
-    public string? ExternalRiskFailureAction { get; init; }
+    public PolicyExternalRiskFailureAction? ExternalRiskFailureAction { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("external_risk_review_threshold")]
     public double? ExternalRiskReviewThreshold { get; init; }
     [JsonPropertyName("maker_checker_required")]
@@ -104,32 +147,41 @@ public sealed record Policy
 
 public sealed record VerificationSubjectInput
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("full_name")]
     public string? FullName { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("email")]
     public string? Email { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("phone_number")]
     public string? PhoneNumber { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("date_of_birth")]
     public string? DateOfBirth { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("metadata")]
     public JsonElement? Metadata { get; init; }
 }
 
 public sealed record VerificationCreateRequest
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("external_reference")]
     public string? ExternalReference { get; init; }
     [JsonPropertyName("purpose")]
     public string Purpose { get; init; }
     [JsonPropertyName("policy_id")]
     public string PolicyId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("project_id")]
     public string? ProjectId { get; init; }
     [JsonPropertyName("verification_subject")]
     public VerificationSubjectInput VerificationSubject { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("redirect_url")]
     public string? RedirectUrl { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("metadata")]
     public JsonElement? Metadata { get; init; }
 }
@@ -194,6 +246,7 @@ public sealed record PlatformUserAuthentication
     public JsonElement Tokens { get; init; }
     [JsonPropertyName("user")]
     public PlatformUser User { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("recovery_codes")]
     public IReadOnlyList<string>? RecoveryCodes { get; init; }
 }
@@ -220,44 +273,72 @@ public sealed record PlatformUserMfaEnrollment
     public string ProvisioningUri { get; init; }
 }
 
+[JsonConverter(typeof(ContractStringEnumConverter<VerificationPolicyCreateRequestRequiredLivenessLevel>))]
+public enum VerificationPolicyCreateRequestRequiredLivenessLevel
+{
+    passive,
+    active,
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<VerificationPolicyCreateRequestExternalRiskFailureAction>))]
+public enum VerificationPolicyCreateRequestExternalRiskFailureAction
+{
+    manual_review,
+    ignore,
+}
+
 public sealed record VerificationPolicyCreateRequest
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("project_id")]
     public string? ProjectId { get; init; }
     [JsonPropertyName("name")]
     public string Name { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("description")]
     public string? Description { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("consent_template_id")]
     public string? ConsentTemplateId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("default_locale")]
     public string? DefaultLocale { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("supported_locales")]
     public IReadOnlyList<string>? SupportedLocales { get; init; }
     [JsonPropertyName("required_document_types")]
     public IReadOnlyList<string> RequiredDocumentTypes { get; init; }
     [JsonPropertyName("required_liveness_level")]
-    public string RequiredLivenessLevel { get; init; }
+    public required VerificationPolicyCreateRequestRequiredLivenessLevel RequiredLivenessLevel { get; init; }
     [JsonPropertyName("face_match_threshold")]
     public double FaceMatchThreshold { get; init; }
     [JsonPropertyName("manual_review_threshold")]
     public double ManualReviewThreshold { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("review_reason_rules")]
     public JsonElement? ReviewReasonRules { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("reuse_rules")]
     public JsonElement? ReuseRules { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("document_consistency_rules")]
     public JsonElement? DocumentConsistencyRules { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("document_authenticity_required")]
     public bool? DocumentAuthenticityRequired { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("document_authenticity_min_confidence")]
     public double? DocumentAuthenticityMinConfidence { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("external_risk_enabled")]
     public bool? ExternalRiskEnabled { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("external_risk_failure_action")]
-    public string? ExternalRiskFailureAction { get; init; }
+    public VerificationPolicyCreateRequestExternalRiskFailureAction? ExternalRiskFailureAction { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("external_risk_review_threshold")]
     public double? ExternalRiskReviewThreshold { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("maker_checker_required")]
     public bool? MakerCheckerRequired { get; init; }
     [JsonPropertyName("verification_expiry_minutes")]
@@ -290,6 +371,7 @@ public sealed record VerificationCreateResponse
     public string VerificationUrl { get; init; }
     [JsonPropertyName("session_id")]
     public string SessionId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("session_token")]
     public string? SessionToken { get; init; }
     [JsonPropertyName("expires_at")]
@@ -300,12 +382,16 @@ public sealed record VerificationSessionConsentRequest
 {
     [JsonPropertyName("accepted")]
     public bool Accepted { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("template_id")]
     public string? TemplateId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("version")]
     public int? Version { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("locale")]
     public string? Locale { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("content_hash")]
     public string? ContentHash { get; init; }
 }
@@ -320,20 +406,35 @@ public sealed record VerificationSessionDocumentRequest
     public IReadOnlyList<JsonElement> Captures { get; init; }
 }
 
+[JsonConverter(typeof(ContractStringEnumConverter<VerificationSessionSelfieRequestCaptureType>))]
+public enum VerificationSessionSelfieRequestCaptureType
+{
+    image,
+    video,
+}
+
 public sealed record VerificationSessionSelfieRequest
 {
     [JsonPropertyName("capture_type")]
-    public string CaptureType { get; init; }
+    public required VerificationSessionSelfieRequestCaptureType CaptureType { get; init; }
     [JsonPropertyName("upload_id")]
     public string UploadId { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<VerificationSessionLivenessRequestLivenessType>))]
+public enum VerificationSessionLivenessRequestLivenessType
+{
+    passive,
+    active,
 }
 
 public sealed record VerificationSessionLivenessRequest
 {
     [JsonPropertyName("liveness_type")]
-    public string LivenessType { get; init; }
+    public required VerificationSessionLivenessRequestLivenessType LivenessType { get; init; }
     [JsonPropertyName("selfie_capture_id")]
     public string SelfieCaptureId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("challenge_id")]
     public string? ChallengeId { get; init; }
 }
@@ -346,6 +447,13 @@ public sealed record VerificationMobileHandoffRedeemResponse
     public string SessionToken { get; init; }
     [JsonPropertyName("verification_id")]
     public string VerificationId { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<VerificationSessionResponseDirection>))]
+public enum VerificationSessionResponseDirection
+{
+    ltr,
+    rtl,
 }
 
 public sealed record VerificationSessionResponse
@@ -371,7 +479,7 @@ public sealed record VerificationSessionResponse
     [JsonPropertyName("supported_locales")]
     public IReadOnlyList<string> SupportedLocales { get; init; }
     [JsonPropertyName("direction")]
-    public string Direction { get; init; }
+    public required VerificationSessionResponseDirection Direction { get; init; }
     [JsonPropertyName("consent")]
     public JsonElement Consent { get; init; }
     [JsonPropertyName("document")]
@@ -440,6 +548,7 @@ public sealed record VerificationSessionStatusResponse
     public string CurrentStep { get; init; }
     [JsonPropertyName("message")]
     public string Message { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("withdrawal_available")]
     public bool? WithdrawalAvailable { get; init; }
     [JsonPropertyName("evidence")]
@@ -470,6 +579,7 @@ public sealed record VerificationSummary
     public JsonElement Policy { get; init; }
     [JsonPropertyName("created_at")]
     public string CreatedAt { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("completed_at")]
     public string? CompletedAt { get; init; }
 }
@@ -508,22 +618,43 @@ public sealed record VerificationDetail
     public string ExpiresAt { get; init; }
 }
 
+[JsonConverter(typeof(ContractStringEnumConverter<SandboxSimulationRequestScenario>))]
+public enum SandboxSimulationRequestScenario
+{
+    approved,
+    declined,
+    review,
+    timeout,
+    provider_error,
+}
+
 public sealed record SandboxSimulationRequest
 {
     [JsonPropertyName("scenario")]
-    public string Scenario { get; init; }
+    public required SandboxSimulationRequestScenario Scenario { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<SandboxSimulationMarkerScenario>))]
+public enum SandboxSimulationMarkerScenario
+{
+    approved,
+    declined,
+    review,
+    timeout,
+    provider_error,
 }
 
 public sealed record SandboxSimulationMarker
 {
     [JsonPropertyName("scenario")]
-    public string Scenario { get; init; }
+    public required SandboxSimulationMarkerScenario Scenario { get; init; }
     [JsonPropertyName("version")]
     public int Version { get; init; }
 }
 
 public sealed record VerificationResult
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("simulation")]
     public SandboxSimulationMarker? Simulation { get; init; }
     [JsonPropertyName("schema_version")]
@@ -610,12 +741,30 @@ public sealed record EvidenceReport
     public string PdfDownloadUrl { get; init; }
 }
 
+[JsonConverter(typeof(ContractStringEnumConverter<PortalUploadCreateRequestCaptureMethod>))]
+public enum PortalUploadCreateRequestCaptureMethod
+{
+    camera,
+    live_recording,
+    file,
+    unreported,
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<PortalUploadCreateRequestPurpose>))]
+public enum PortalUploadCreateRequestPurpose
+{
+    document_capture,
+    selfie_capture,
+    liveness_capture,
+}
+
 public sealed record PortalUploadCreateRequest
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("capture_method")]
-    public string? CaptureMethod { get; init; }
+    public PortalUploadCreateRequestCaptureMethod? CaptureMethod { get; init; }
     [JsonPropertyName("purpose")]
-    public string Purpose { get; init; }
+    public required PortalUploadCreateRequestPurpose Purpose { get; init; }
     [JsonPropertyName("mime_type")]
     public string MimeType { get; init; }
     [JsonPropertyName("file_size_bytes")]
@@ -652,34 +801,49 @@ public sealed record OrganizationProfile
     public string Name { get; init; }
     [JsonPropertyName("slug")]
     public string Slug { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("industry")]
     public string? Industry { get; init; }
     [JsonPropertyName("status")]
     public string Status { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("tenant_id")]
     public string? TenantId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("tenant_name")]
     public string? TenantName { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("tenant_status")]
     public string? TenantStatus { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("default_country_profile_id")]
     public string? DefaultCountryProfileId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("default_jurisdiction_id")]
     public string? DefaultJurisdictionId { get; init; }
     [JsonPropertyName("settings")]
     public JsonElement Settings { get; init; }
     [JsonPropertyName("sandbox_usage")]
     public JsonElement SandboxUsage { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("created_at")]
     public string? CreatedAt { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("updated_at")]
     public string? UpdatedAt { get; init; }
+}
+
+[JsonConverter(typeof(ContractStringEnumConverter<OrganizationBrandingAssetUploadRequestAssetType>))]
+public enum OrganizationBrandingAssetUploadRequestAssetType
+{
+    logo,
+    branding_image,
 }
 
 public sealed record OrganizationBrandingAssetUploadRequest
 {
     [JsonPropertyName("asset_type")]
-    public string AssetType { get; init; }
+    public required OrganizationBrandingAssetUploadRequestAssetType AssetType { get; init; }
     [JsonPropertyName("filename")]
     public string Filename { get; init; }
     [JsonPropertyName("mime_type")]
@@ -744,6 +908,13 @@ public sealed record OrganizationSupportingDocumentDeleteResponse
     public bool Deleted { get; init; }
 }
 
+[JsonConverter(typeof(ContractStringEnumConverter<ProjectSummaryEnvironment>))]
+public enum ProjectSummaryEnvironment
+{
+    sandbox,
+    production,
+}
+
 public sealed record ProjectSummary
 {
     [JsonPropertyName("id")]
@@ -753,7 +924,7 @@ public sealed record ProjectSummary
     [JsonPropertyName("slug")]
     public string Slug { get; init; }
     [JsonPropertyName("environment")]
-    public string Environment { get; init; }
+    public required ProjectSummaryEnvironment Environment { get; init; }
     [JsonPropertyName("status")]
     public string Status { get; init; }
     [JsonPropertyName("allowed_origins")]
@@ -766,26 +937,47 @@ public sealed record ProjectSummary
     public string UpdatedAt { get; init; }
 }
 
+[JsonConverter(typeof(ContractStringEnumConverter<ProjectCreateRequestEnvironment>))]
+public enum ProjectCreateRequestEnvironment
+{
+    sandbox,
+    production,
+}
+
 public sealed record ProjectCreateRequest
 {
     [JsonPropertyName("name")]
     public string Name { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("slug")]
     public string? Slug { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("environment")]
-    public string? Environment { get; init; }
+    public ProjectCreateRequestEnvironment? Environment { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("allowed_origins")]
     public IReadOnlyList<string>? AllowedOrigins { get; init; }
 }
 
+[JsonConverter(typeof(ContractStringEnumConverter<ProjectUpdateRequestEnvironment>))]
+public enum ProjectUpdateRequestEnvironment
+{
+    sandbox,
+    production,
+}
+
 public sealed record ProjectUpdateRequest
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("name")]
     public string? Name { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("slug")]
     public string? Slug { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("environment")]
-    public string? Environment { get; init; }
+    public ProjectUpdateRequestEnvironment? Environment { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("allowed_origins")]
     public IReadOnlyList<string>? AllowedOrigins { get; init; }
 }
@@ -796,6 +988,7 @@ public sealed record APIClientSummary
     public string PublicId { get; init; }
     [JsonPropertyName("tenant_public_id")]
     public string TenantPublicId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("project_id")]
     public string? ProjectId { get; init; }
     [JsonPropertyName("name")]
@@ -810,8 +1003,10 @@ public sealed record APIClientSummary
     public IReadOnlyList<string> AllowedNetworks { get; init; }
     [JsonPropertyName("rate_limit_per_minute")]
     public int RateLimitPerMinute { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("last_used_at")]
     public string? LastUsedAt { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("client_secret_overlap_expires_at")]
     public string? ClientSecretOverlapExpiresAt { get; init; }
     [JsonPropertyName("created_at")]
@@ -822,14 +1017,17 @@ public sealed record APIClientSummary
 
 public sealed record APIClientCreateRequest
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("project_id")]
     public string? ProjectId { get; init; }
     [JsonPropertyName("name")]
     public string Name { get; init; }
     [JsonPropertyName("scopes")]
     public IReadOnlyList<string> Scopes { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("allowed_networks")]
     public IReadOnlyList<string>? AllowedNetworks { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("rate_limit_per_minute")]
     public int? RateLimitPerMinute { get; init; }
 }
@@ -840,6 +1038,7 @@ public sealed record APIClientCreateResponse
     public string PublicId { get; init; }
     [JsonPropertyName("tenant_public_id")]
     public string TenantPublicId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("project_id")]
     public string? ProjectId { get; init; }
     [JsonPropertyName("name")]
@@ -854,8 +1053,10 @@ public sealed record APIClientCreateResponse
     public IReadOnlyList<string> AllowedNetworks { get; init; }
     [JsonPropertyName("rate_limit_per_minute")]
     public int RateLimitPerMinute { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("last_used_at")]
     public string? LastUsedAt { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("client_secret_overlap_expires_at")]
     public string? ClientSecretOverlapExpiresAt { get; init; }
     [JsonPropertyName("created_at")]
@@ -872,6 +1073,7 @@ public sealed record APIClientActionResponse
     public string PublicId { get; init; }
     [JsonPropertyName("tenant_public_id")]
     public string TenantPublicId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("project_id")]
     public string? ProjectId { get; init; }
     [JsonPropertyName("name")]
@@ -886,14 +1088,17 @@ public sealed record APIClientActionResponse
     public IReadOnlyList<string> AllowedNetworks { get; init; }
     [JsonPropertyName("rate_limit_per_minute")]
     public int RateLimitPerMinute { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("last_used_at")]
     public string? LastUsedAt { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("client_secret_overlap_expires_at")]
     public string? ClientSecretOverlapExpiresAt { get; init; }
     [JsonPropertyName("created_at")]
     public string CreatedAt { get; init; }
     [JsonPropertyName("updated_at")]
     public string UpdatedAt { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("client_secret")]
     public string? ClientSecret { get; init; }
 }
@@ -902,10 +1107,12 @@ public sealed record WebhookEndpointSummary
 {
     [JsonPropertyName("id")]
     public string Id { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("project_id")]
     public string? ProjectId { get; init; }
     [JsonPropertyName("url")]
     public string Url { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("description")]
     public string? Description { get; init; }
     [JsonPropertyName("events")]
@@ -924,10 +1131,12 @@ public sealed record WebhookEndpointSummary
 
 public sealed record WebhookEndpointCreateRequest
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("project_id")]
     public string? ProjectId { get; init; }
     [JsonPropertyName("url")]
     public string Url { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("description")]
     public string? Description { get; init; }
     [JsonPropertyName("events")]
@@ -962,18 +1171,28 @@ public sealed record ManualReviewSummary
     public JsonElement Subject { get; init; }
     [JsonPropertyName("risk_level")]
     public string RiskLevel { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("document_classification")]
     public JsonElement? DocumentClassification { get; init; }
     [JsonPropertyName("created_at")]
     public string CreatedAt { get; init; }
 }
 
+[JsonConverter(typeof(ContractStringEnumConverter<ManualReviewDecisionRequestDecision>))]
+public enum ManualReviewDecisionRequestDecision
+{
+    verified,
+    rejected,
+    failed,
+}
+
 public sealed record ManualReviewDecisionRequest
 {
     [JsonPropertyName("decision")]
-    public string Decision { get; init; }
+    public required ManualReviewDecisionRequestDecision Decision { get; init; }
     [JsonPropertyName("reason_code")]
     public string ReasonCode { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("reason_detail")]
     public string? ReasonDetail { get; init; }
 }
@@ -1002,12 +1221,22 @@ public sealed record ManualReviewPendingDecisionResponse
     public bool ApprovalRequired { get; init; }
 }
 
+[JsonConverter(typeof(ContractStringEnumConverter<ManualReviewApprovalRequestDecision>))]
+public enum ManualReviewApprovalRequestDecision
+{
+    verified,
+    rejected,
+    failed,
+}
+
 public sealed record ManualReviewApprovalRequest
 {
     [JsonPropertyName("decision")]
-    public string Decision { get; init; }
+    public required ManualReviewApprovalRequestDecision Decision { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("reason_code")]
     public string? ReasonCode { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("reason_detail")]
     public string? ReasonDetail { get; init; }
 }

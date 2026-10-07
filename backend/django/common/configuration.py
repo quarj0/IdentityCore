@@ -1,5 +1,6 @@
 """Startup validation for security-sensitive deployment configuration."""
 
+import hashlib
 import json
 from collections.abc import Mapping
 from urllib.parse import urlsplit
@@ -14,6 +15,10 @@ PLACEHOLDER_PARTS = (
     "placeholder",
     "unsafe",
     "<your-",
+)
+# Fingerprint of the public credential formerly shipped in .env.example.
+PUBLIC_AI_TOKEN_FINGERPRINT = (
+    "79629f59fda9e6e75efdf001192ee4e9b5409def42acf48eac30b0931bd71c54"
 )
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "[::1]", "::1", "django"}
 
@@ -30,6 +35,14 @@ def validate_production_environment(environment: Mapping[str, str]) -> None:
         normalized = value.lower()
         if not value:
             errors.append(f"{name} is required")
+        elif (
+            name == "AI_SERVICE_SHARED_TOKEN"
+            and hashlib.sha256(value.encode()).hexdigest()
+            == PUBLIC_AI_TOKEN_FINGERPRINT
+        ):
+            errors.append(
+                f"{name} must not use the formerly published example credential"
+            )
         elif normalized in {"identitycore", "password", "secret"} or any(
             marker in normalized for marker in PLACEHOLDER_PARTS
         ):
