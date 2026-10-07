@@ -60,10 +60,10 @@ function assess({ pullNumber, baseRef, head, reviewer, resolver, reviews, commen
   for (const name of ['CI', 'Security']) {
     const trusted = trustedWorkflows?.[name];
     if (!trusted?.definitionMatches) problems.push(`${name} workflow definition differs from trusted default-branch content.`);
-    const candidates = runs.filter(r => trusted && r.workflow_id === trusted.id && typeof r.path === 'string' && r.path.split('@', 1)[0] === trusted.path && r.head_sha === head && r.event === 'pull_request' && (!baseRef || r.pull_requests?.some(pr => pr.number === pullNumber && pr.base?.ref === baseRef && pr.head?.sha === head)));
+    const candidates = runs.filter(r => trusted && r.workflow_id === trusted.id && typeof r.path === 'string' && r.path.split('@', 1)[0] === trusted.path && r.head_sha === head && r.event === 'pull_request' && (!baseRef || isRunForPR(r, {number: pullNumber, baseRef, head})));
     const activity = run => Date.parse(run.updated_at || run.run_started_at || run.created_at) || 0;
     const latest = candidates.sort((a, b) => activity(b) - activity(a) || b.id - a.id)[0];
-    if (candidates.some(r => r.status !== 'completed') || !latest || latest.conclusion !== 'success') problems.push(`${name} has not passed for the final head.`);
+    if (runs.some(r => trusted && r.workflow_id === trusted.id && r.path?.split('@', 1)[0] === trusted.path && r.head_sha === head && r.event === 'pull_request' && !r.pull_requests?.length && r.status !== 'completed') || candidates.some(r => r.status !== 'completed') || !latest || latest.conclusion !== 'success') problems.push(`${name} has not passed for the final head.`);
   }
   for (const path of PROTECTED_PATHS) {
     if (!protectedDefinitions?.[path]) problems.push(`Protected review-gate definition differs: ${path}.`);
@@ -126,13 +126,83 @@ async function fetchThreads(github, owner, repo, number) {
   return threads;
 }
 
-async function fetchWorkflowRuns({ github, owner, repo, head, workflows = [{id: 'ci.yml'}, {id: 'security.yml'}] }) {
+const receiptCache = new WeakMap();
+function isRunForPR(run, {number, baseRef, head}) {
+  return run.pull_requests?.some(pr => pr.number === number && pr.base?.ref === baseRef && pr.head?.sha === head) ||
+    (run.pr_target_receipt?.number === number && run.pr_target_receipt?.base === baseRef && run.pr_target_receipt?.head === head);
+}
+
+// Read only the fixed proof job's step log. Never extract a PR-controlled ZIP path.
+function targetReceiptFromArchive(input, run, workflow) {
+  const {inflateRawSync} = require('node:zlib');
+  const zip = Buffer.from(input);
+  if (zip.length < 22 || zip.length > 64 * 1024 * 1024) throw new Error('Invalid target proof archive size.');
+  let end = zip.length - 22;
+  while (end >= Math.max(0, zip.length - 65557) && zip.readUInt32LE(end) !== 0x06054b50) end--;
+  if (end < 0 || zip.readUInt32LE(end) !== 0x06054b50 || end + 22 + zip.readUInt16LE(end + 20) !== zip.length ||
+      zip.readUInt16LE(end + 4) || zip.readUInt16LE(end + 6) || zip.readUInt16LE(end + 8) !== zip.readUInt16LE(end + 10)) throw new Error('Invalid target proof ZIP directory.');
+  const count = zip.readUInt16LE(end + 10), directory = zip.readUInt32LE(end + 16), size = zip.readUInt32LE(end + 12);
+  if (directory + size !== end || count === 65535) throw new Error('Unsupported target proof ZIP directory.');
+  const label = workflow.path === '.github/workflows/ci.yml' ? 'CI' : workflow.path === '.github/workflows/security.yml' ? 'Security' : null;
+  if (!label) throw new Error('Unknown target proof workflow.');
+  let cursor = directory; const matches = [];
+  for (let index = 0; index < count; index++) {
+    if (cursor + 46 > end || zip.readUInt32LE(cursor) !== 0x02014b50) throw new Error('Invalid target proof ZIP entry.');
+    const nameSize = zip.readUInt16LE(cursor + 28), extra = zip.readUInt16LE(cursor + 30), comment = zip.readUInt16LE(cursor + 32);
+    const next = cursor + 46 + nameSize + extra + comment;
+    if (next > end) throw new Error('Truncated target proof ZIP entry.');
+    const name = zip.subarray(cursor + 46, cursor + 46 + nameSize).toString('utf8');
+    if (name.startsWith(`${label} target proof/`) && /^\d+_Record immutable PR target\.txt$/.test(name.slice(`${label} target proof/`.length))) {
+      const flags = zip.readUInt16LE(cursor + 8), method = zip.readUInt16LE(cursor + 10), compressed = zip.readUInt32LE(cursor + 20), length = zip.readUInt32LE(cursor + 24), local = zip.readUInt32LE(cursor + 42);
+      if (flags & 1 || ![0, 8].includes(method) || length > 65536 || compressed > 65536 || local + 30 > directory || zip.readUInt32LE(local) !== 0x04034b50) throw new Error('Unsupported target proof ZIP entry.');
+      const localName = zip.readUInt16LE(local + 26), localExtra = zip.readUInt16LE(local + 28), start = local + 30 + localName + localExtra;
+      if (start + compressed > directory || zip.subarray(local + 30, local + 30 + localName).toString('utf8') !== name || zip.readUInt16LE(local + 8) !== method) throw new Error('Invalid target proof local entry.');
+      const bytes = zip.subarray(start, start + compressed);
+      const text = method === 8 ? inflateRawSync(bytes, {maxOutputLength: 65536}) : bytes;
+      if (text.length !== length) throw new Error('Invalid target proof log length.');
+      let crc = 0xffffffff;
+      for (const byte of text) {crc ^= byte; for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);}
+      if (((crc ^ 0xffffffff) >>> 0) !== zip.readUInt32LE(cursor + 16)) throw new Error('Invalid target proof log checksum.');
+      for (const line of text.toString('utf8').split('\n')) {
+        const match = line.match(/(?:^|\s)IDENTITYCORE_PR_TARGET (\{.*\})\s*$/);
+        if (match) matches.push(JSON.parse(match[1]));
+      }
+    }
+    cursor = next;
+  }
+  if (cursor !== end || matches.length !== 1) throw new Error('A unique immutable PR target proof is required.');
+  const proof = matches[0];
+  if (!Number.isSafeInteger(proof.number) || proof.number <= 0 || proof.head !== run.head_sha || !proof.base ||
+      proof.run_id !== run.id || proof.run_attempt !== run.run_attempt) throw new Error('Target proof does not match its workflow run attempt.');
+  return proof;
+}
+
+async function fetchTargetReceipt({github, owner, repo, run, workflow}) {
+  let cache = receiptCache.get(github);
+  if (!cache) {cache = new Map(); receiptCache.set(github, cache);}
+  const key = `${owner}/${repo}/${run.id}/${run.run_attempt}`;
+  if (!cache.has(key)) cache.set(key, (async () => {
+    const {data} = await github.rest.actions.downloadWorkflowRunAttemptLogs({owner, repo, run_id: run.id, attempt_number: run.run_attempt});
+    return targetReceiptFromArchive(data, run, workflow);
+  })());
+  return cache.get(key);
+}
+
+async function fetchWorkflowRuns({ github, owner, repo, head, target, workflows = [{id: 'ci.yml'}, {id: 'security.yml'}] }) {
   const runs = [];
   for (const workflow of workflows) {
     for (const event of ['pull_request', 'push']) {
     for (let page = 1; ; page++) {
       const { data } = await github.rest.actions.listWorkflowRuns({ owner, repo, workflow_id: workflow.id, head_sha: head, event, per_page: 100, page });
-      runs.push(...data.workflow_runs);
+      for (const candidate of data.workflow_runs) {
+        // Ignore any remotely supplied receipt property; only this collector can attest it.
+        const run = {...candidate}; delete run.pr_target_receipt;
+        if (target && event === 'pull_request' && !run.pull_requests?.length && run.status === 'completed' &&
+            run.head_sha === head && run.workflow_id === workflow.id && run.path?.split('@', 1)[0] === workflow.path) {
+          run.pr_target_receipt = await fetchTargetReceipt({github, owner, repo, run, workflow});
+        }
+        runs.push(run);
+      }
       if (data.workflow_runs.length < 100) break;
     }
     }
@@ -231,7 +301,7 @@ async function run({ github, context, resolverLogin, approvedUpdates = process.e
   }
   const trustedWorkflows = Object.fromEntries(Object.entries(workflows).map(([name, workflow]) => [name, {...workflow, definitionMatches: matches[workflow.path]}]));
   const protectedDefinitions = Object.fromEntries(PROTECTED_PATHS.map(path => [path, matches[path]]));
-  const {data: workflowRuns} = await fetchWorkflowRuns({github, owner, repo, head, workflows: Object.values(workflows)});
+  const {data: workflowRuns} = await fetchWorkflowRuns({github, owner, repo, head, target: {number, baseRef: pr.base?.ref || 'main', head}, workflows: Object.values(workflows)});
   const problems = assess({ pullNumber: number, baseRef: pr.base?.ref || 'main', head, resolver, commitProof, trustedWorkflows, protectedDefinitions, runs: workflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews, comments, threads, commits });
   if (threads.some(t => t.comments.pageInfo.hasNextPage)) problems.push('A thread exceeds the evidence page limit; review it explicitly.');
   const [currentReviewsRaw, currentCommentsRaw, currentThreads, {data: current}, {data: currentWorkflowRuns}] = await Promise.all([
@@ -239,7 +309,7 @@ async function run({ github, context, resolverLogin, approvedUpdates = process.e
     github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number, per_page: 100 }),
     fetchThreads(github, owner, repo, number),
     github.rest.pulls.get({ owner, repo, pull_number: number }),
-    fetchWorkflowRuns({ github, owner, repo, head, workflows: Object.values(workflows) })
+    fetchWorkflowRuns({ github, owner, repo, head, target: {number, baseRef: pr.base?.ref || 'main', head}, workflows: Object.values(workflows) })
   ]);
   if (approvedBase) {
     if ((await github.rest.repos.getBranch({owner, repo, branch: repository.default_branch})).data.commit.sha !== approvedBase) problems.push('Protected update approval base moved during validation.');
@@ -292,13 +362,7 @@ async function preparePullRequests({ github, context }) {
   }
   // Discovery only selects PR numbers. Check creation and current-head reads
   // happen together inside the per-PR assessment lock.
-  const results = await Promise.allSettled([...new Set(pullRequests.map(pr => pr.number))].map(async number => {
-    const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: number });
-    return pr.state === 'open' ? { number } : null;
-  }));
-  const failures = results.filter(result => result.status === 'rejected');
-  if (failures.length) throw new Error(failures.map(result => result.reason.message).join('\n'));
-  return results.map(result => result.value).filter(Boolean);
+  return [...new Set(pullRequests.map(pr => pr.number))].map(number => ({number}));
 }
 
 function bucketTargets(targets) {
@@ -322,4 +386,4 @@ async function runBucket({ github, context, bucket }) {
   if (failures.length) throw new Error(failures.join('\n'));
 }
 
-module.exports = { verifyApprovedDefinitionPaths, approvedDefinitionPaths, assess, run, preparePullRequests, fetchWorkflowRuns, bucketTargets, runBucket, affirmativeValidation, fetchCommitEvidence, relevantComments, relevantReviews, definitionMatches, metadata };
+module.exports = { isRunForPR, targetReceiptFromArchive, fetchTargetReceipt, verifyApprovedDefinitionPaths, approvedDefinitionPaths, assess, run, preparePullRequests, fetchWorkflowRuns, bucketTargets, runBucket, affirmativeValidation, fetchCommitEvidence, relevantComments, relevantReviews, definitionMatches, metadata };
