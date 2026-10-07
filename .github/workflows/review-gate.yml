@@ -95,6 +95,7 @@ jobs:
         env:
           REVIEW_BUCKET: ${{ matrix.bucket }}
           REVIEW_GATE_RESOLVER_LOGIN: ${{ vars.REVIEW_GATE_RESOLVER_LOGIN }}
+          REVIEW_GATE_APPROVED_UPDATES: ${{ vars.REVIEW_GATE_APPROVED_UPDATES }}
         with:
           github-token: ${{ steps.publisher.outputs.token }}
           script: |
