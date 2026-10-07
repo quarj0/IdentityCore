@@ -379,7 +379,7 @@ class _VerificationSessionStatusResponseRequired(TypedDict):
 class VerificationSessionStatusResponse(
     _VerificationSessionStatusResponseRequired, total=False
 ):
-    pass
+    withdrawal_available: bool
 
 
 class _VerificationMobileHandoffResponseRequired(TypedDict):

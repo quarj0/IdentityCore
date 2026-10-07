@@ -118,7 +118,7 @@ public final class GeneratedModels {
 
     }
 
-    public record VerificationSessionStatusResponse(@JsonProperty("verification_id") String verification_id, @JsonProperty("status") String status, @JsonProperty("current_step") String current_step, @JsonProperty("message") String message, @JsonProperty("evidence") JsonNode evidence) {
+    public record VerificationSessionStatusResponse(@JsonProperty("verification_id") String verification_id, @JsonProperty("status") String status, @JsonProperty("current_step") String current_step, @JsonProperty("message") String message, @JsonProperty("withdrawal_available") Boolean withdrawal_available, @JsonProperty("evidence") JsonNode evidence) {
 
     }
 

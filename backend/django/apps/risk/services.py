@@ -14,7 +14,7 @@ from apps.verifications.models import (
     VerificationStatus,
 )
 from apps.verifications.transitions import transition_verification, TERMINAL_STATUSES
-from apps.audit.services import record_audit_event
+from apps.audit.services import lock_audit_chain, record_audit_event
 from apps.verifications.decision_contract import (
     DECISION_CONTRACT_VERSION,
     build_decision_input_snapshot,
@@ -323,6 +323,7 @@ def apply_automatic_decision(
     verification, risk_assessment: RiskAssessment
 ) -> VerificationDecision | None:
     requested_verification = verification
+    lock_audit_chain(verification.tenant_id)
     verification = (
         Verification.objects.select_for_update(of=("self",), no_key=True)
         .select_related("tenant", "verification_subject")
@@ -397,6 +398,7 @@ def run_verification_risk_and_decision(verification, *, external_evidence=_UNPRE
 def _commit_risk_and_decision(
     verification, *, external_evidence
 ) -> tuple[RiskAssessment | None, VerificationDecision | None]:
+    lock_audit_chain(verification.tenant_id)
     current = (
         Verification.objects.select_for_update(of=("self",), no_key=True)
         .select_related("tenant", "verification_subject")

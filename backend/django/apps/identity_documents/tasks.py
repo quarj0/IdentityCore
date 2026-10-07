@@ -34,6 +34,7 @@ from apps.verifications.models import VerificationStatus
 from apps.verifications.models import ProcessingJobType
 from apps.verifications.processing_jobs import (
     ProcessingJobOwnershipLost,
+    defer_on_consent_proof_unavailable,
     acquire_processing_job,
     complete_processing_job,
     defer_processing_job,
@@ -142,6 +143,7 @@ def _latest_provider_check_for_document(
     retry_jitter=True,
     retry_kwargs={"max_retries": 3},
 )
+@defer_on_consent_proof_unavailable
 def process_identity_document_task(identity_document_id: str) -> str:
     identity_document = (
         IdentityDocument.objects.select_related(

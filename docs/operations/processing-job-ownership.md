@@ -1,6 +1,6 @@
 # Processing job ownership invariants
 
-IdentityCore processing workers use a durable `ProcessingJob` lease and acquisition generation (`attempt_count`) to prevent stale workers from committing evidence after a retry or recovery worker has taken ownership.
+IdentityCore processing workers use a durable `ProcessingJob` lease and acquisition generation (`lease_generation`) to prevent stale workers from committing evidence after a retry or recovery worker has taken ownership.
 
 ## Required invariants
 

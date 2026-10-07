@@ -86,6 +86,7 @@ ALLOWED_TRANSITIONS = {
         {
             VerificationStatus.VERIFIED,
             VerificationStatus.REJECTED,
+            VerificationStatus.CANCELLED,
             VerificationStatus.EXPIRED,
             VerificationStatus.FAILED,
         }

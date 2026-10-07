@@ -8,6 +8,7 @@ import hashlib
 import hmac
 import ipaddress
 import json
+import math
 import os
 import secrets
 import socket
@@ -225,12 +226,14 @@ def _validate_result(
     if error_payload.get("retryable") is not False:
         raise ConformanceError(f"{case_id}: fixture rejection must be non-retryable.")
     expected_version = case.get("expected_supported_version")
-    if expected_version and expected_version not in payload.get(
-        "supported_contract_versions", []
-    ):
-        raise ConformanceError(
-            f"{case_id}: supported contract versions must include {expected_version}."
-        )
+    if expected_version:
+        versions = payload.get("supported_contract_versions")
+        if not isinstance(versions, list) or not all(isinstance(version, str) for version in versions):
+            raise ConformanceError(f"{case_id}: supported contract versions must be a list of strings.")
+        if expected_version not in versions:
+            raise ConformanceError(
+                f"{case_id}: supported contract versions must include {expected_version}."
+            )
 
 
 def run_suite(
@@ -239,7 +242,16 @@ def run_suite(
     if not secret:
         raise ConformanceError("A non-empty conformance secret is required.")
     suite = load_suite(fixture_path)
-    path = suite["path"]
+    path = suite.get("path")
+    if not isinstance(path, str) or not path.startswith("/") or path.startswith("//"):
+        raise ConformanceError("The fixture path must be root-relative.")
+    if any(ord(character) <= 32 or ord(character) == 127 for character in path):
+        raise ConformanceError("The fixture path cannot contain whitespace or control characters.")
+    if any(segment in {".", ".."} for segment in path.split("/")):
+        raise ConformanceError("The fixture path cannot contain dot segments.")
+    parsed_path = urlsplit(path)
+    if parsed_path.path != path or parsed_path.scheme or parsed_path.netloc or parsed_path.query or parsed_path.fragment:
+        raise ConformanceError("The fixture path must contain only an absolute path.")
     parsed_base = urlsplit(base_url)
     if (
         parsed_base.scheme not in {"http", "https"}
@@ -259,11 +271,16 @@ def run_suite(
         raise ConformanceError(
             "The conformance runner accepts loopback providers only."
         )
-    if not 0 < timeout <= 10:
+    timeout_case = next(case for case in suite["cases"] if case["id"] == "timeout")
+    parameters = timeout_case.get("request", {}).get("parameters")
+    delay_ms = parameters.get("delay_ms") if isinstance(parameters, dict) else None
+    if isinstance(delay_ms, bool) or not isinstance(delay_ms, (int, float)) or not math.isfinite(delay_ms) or delay_ms <= 0:
+        raise ConformanceError("The timeout fixture must specify a positive finite delay_ms.")
+    if not 0 < timeout < delay_ms / 1000:
         raise ConformanceError(
-            "The client timeout must be greater than 0 and at most 10 seconds."
+            "The client timeout must be greater than 0 and below the selected timeout fixture delay."
         )
-    url = urljoin(base_url.rstrip("/") + "/", path.lstrip("/"))
+    url = urljoin(base_url, path)
     passed = []
     for case in suite["cases"]:
         case_id = case["id"]

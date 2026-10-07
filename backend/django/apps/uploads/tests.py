@@ -31,7 +31,13 @@ def _iso_box(box_type: bytes, payload: bytes) -> bytes:
     return (len(payload) + 8).to_bytes(4, "big") + box_type + payload
 
 
-def _iso_video(*, major_brand: bytes = b"isom", handler_type: bytes = b"vide") -> bytes:
+def _iso_video(
+    *,
+    major_brand: bytes = b"isom",
+    handler_type: bytes = b"vide",
+    description_index=None,
+    supported_entry=1,
+) -> bytes:
     ftyp = _iso_box(b"ftyp", major_brand + b"\x00\x00\x00\x00" + major_brand)
     sample_entry = bytearray(78)
     sample_entry[6:8] = (1).to_bytes(2, "big")
@@ -39,17 +45,36 @@ def _iso_video(*, major_brand: bytes = b"isom", handler_type: bytes = b"vide") -
     sample_entry[26:28] = (480).to_bytes(2, "big")
     sample_entry[40:42] = (1).to_bytes(2, "big")
     sample_entry[74:76] = (24).to_bytes(2, "big")
+    entries = _iso_box(b"avc1", bytes(sample_entry) + _iso_box(b"avcC", b"\x01"))
+    if description_index is not None:
+        unsupported = _iso_box(b"mp4a", b"\x00" * 78)
+        entries = (
+            entries + unsupported if supported_entry == 1 else unsupported + entries
+        )
     sample_description = _iso_box(
         b"stsd",
         b"\x00" * 4
-        + (1).to_bytes(4, "big")
-        + _iso_box(b"avc1", bytes(sample_entry) + _iso_box(b"avcC", b"\x01")),
+        + (1 if description_index is None else 2).to_bytes(4, "big")
+        + entries,
     )
     sample_table = _iso_box(
         b"stbl",
         sample_description
-        + _iso_box(b"stts", b"\x00" * 4 + (1).to_bytes(4, "big") + b"\x00" * 8)
-        + _iso_box(b"stsc", b"\x00" * 4 + (1).to_bytes(4, "big") + b"\x00" * 12)
+        + _iso_box(
+            b"stts",
+            b"\x00" * 4
+            + (1).to_bytes(4, "big")
+            + (1).to_bytes(4, "big")
+            + (1000).to_bytes(4, "big"),
+        )
+        + _iso_box(
+            b"stsc",
+            b"\x00" * 4
+            + (1).to_bytes(4, "big") * 3
+            + (1 if description_index is None else description_index).to_bytes(
+                4, "big"
+            ),
+        )
         + _iso_box(
             b"stsz",
             b"\x00" * 8 + (1).to_bytes(4, "big") + (11).to_bytes(4, "big"),
@@ -67,9 +92,107 @@ def _iso_video(*, major_brand: bytes = b"isom", handler_type: bytes = b"vide") -
         + sample_table,
     )
     media = _iso_box(b"mdia", _iso_box(b"mdhd", b"\x00" * 24) + handler + media_info)
-    track = _iso_box(b"trak", _iso_box(b"tkhd", b"\x00" * 84) + media)
+    track = _iso_box(
+        b"trak",
+        _iso_box(b"tkhd", b"\x00" * 12 + (1).to_bytes(4, "big") + b"\x00" * 68) + media,
+    )
     movie = _iso_box(b"moov", _iso_box(b"mvhd", b"\x00" * 100) + track)
+    movie = movie.replace(
+        (100).to_bytes(4, "big"), (len(ftyp) + len(movie) + 8).to_bytes(4, "big")
+    )
     return ftyp + movie + _iso_box(b"mdat", b"video-frame")
+
+
+def _fragmented_iso_video(
+    *,
+    invalid_offset=False,
+    implicit_base=False,
+    description_index=1,
+    tfhd_description=None,
+    malformed_mvex=False,
+    supported_entry=1,
+):
+    from apps.uploads.scanning import _iso_boxes
+
+    source = _iso_video()
+    top = _iso_boxes(source)
+
+    def init_box(kind, start, end):
+        if kind in {b"moov", b"trak", b"mdia", b"minf", b"stbl"}:
+            payload = b"".join(
+                init_box(k, a, b)
+                for k, a, b in _iso_boxes(source, start=start, end=end)
+            )
+            if kind == b"moov":
+                payload += _iso_box(
+                    b"mvex",
+                    (
+                        b"x"
+                        if malformed_mvex
+                        else _iso_box(
+                            b"trex",
+                            b"\x00" * 4
+                            + (1).to_bytes(4, "big")
+                            + description_index.to_bytes(4, "big")
+                            + (1000).to_bytes(4, "big")
+                            + (11).to_bytes(4, "big")
+                            + b"\x00" * 4,
+                        )
+                    ),
+                )
+            return _iso_box(kind, payload)
+        if kind == b"stsd":
+            original = source[start + 8 : end]
+            unsupported = _iso_box(b"mp4a", b"\x00" * 78)
+            entries = (
+                original + unsupported
+                if supported_entry == 1
+                else unsupported + original
+            )
+            return _iso_box(kind, b"\x00" * 4 + (2).to_bytes(4, "big") + entries)
+        if kind in {b"stts", b"stsc", b"stco"}:
+            return _iso_box(kind, b"\x00" * 8)
+        if kind == b"stsz":
+            return _iso_box(kind, b"\x00" * 12)
+        return _iso_box(kind, source[start:end])
+
+    init = b"".join(init_box(k, a, b) for k, a, b in top if k in {b"ftyp", b"moov"})
+
+    def fragment(offset):
+        return _iso_box(
+            b"moof",
+            _iso_box(b"mfhd", b"\x00" * 4 + (1).to_bytes(4, "big"))
+            + _iso_box(
+                b"traf",
+                _iso_box(
+                    b"tfhd",
+                    (
+                        (0 if implicit_base else 0x020000)
+                        | (2 if tfhd_description is not None else 0)
+                    ).to_bytes(4, "big")
+                    + (1).to_bytes(4, "big")
+                    + (
+                        b""
+                        if tfhd_description is None
+                        else tfhd_description.to_bytes(4, "big")
+                    ),
+                )
+                + _iso_box(
+                    b"trun",
+                    b"\x00\x00\x02\x01"
+                    + (1).to_bytes(4, "big")
+                    + offset.to_bytes(4, "big", signed=True)
+                    + (11).to_bytes(4, "big"),
+                ),
+            ),
+        )
+
+    offset = len(fragment(0)) + 8
+    return (
+        init
+        + fragment(offset + (1000 if invalid_offset else 0))
+        + _iso_box(b"mdat", b"video-frame")
+    )
 
 
 def _ebml_element(element_id: bytes, payload: bytes) -> bytes:
@@ -78,7 +201,9 @@ def _ebml_element(element_id: bytes, payload: bytes) -> bytes:
     return element_id + bytes([0x80 | len(payload)]) + payload
 
 
-def _webm_video(*, track_type: int = 1, codec_id: bytes = b"V_VP9") -> bytes:
+def _webm_video(
+    *, track_type: int = 1, codec_id: bytes = b"V_VP9", flag_lacing=None
+) -> bytes:
     header = _ebml_element(
         b"\x1a\x45\xdf\xa3",
         _ebml_element(b"\x42\x86", b"\x01")
@@ -105,6 +230,11 @@ def _webm_video(*, track_type: int = 1, codec_id: bytes = b"V_VP9") -> bytes:
         + _ebml_element(b"\x73\xc5", b"\x01")
         + _ebml_element(b"\x83", bytes([track_type]))
         + _ebml_element(b"\x86", codec_id)
+        + (
+            _ebml_element(b"\x9c", bytes([flag_lacing]))
+            if flag_lacing is not None
+            else b""
+        )
         + video,
     )
     tracks = _ebml_element(b"\x16\x54\xae\x6b", track_entry)
@@ -117,6 +247,799 @@ def _webm_video(*, track_type: int = 1, codec_id: bytes = b"V_VP9") -> bytes:
 
 
 class UploadVideoInspectionTests(TestCase):
+    def test_webm_rejects_malformed_groups_even_beside_valid_blocks(self):
+        source = _webm_video()
+        timestamp = _ebml_element(b"\xe7", b"\x00")
+        block = _ebml_element(b"\xa3", b"\x81\x00\x00\x80video-frame")
+        group_block = _ebml_element(b"\xa1", b"\x81\x00\x00\x00frame")
+        old_cluster = _ebml_element(b"\x1f\x43\xb6\x75", timestamp + block)
+        for group in (
+            _ebml_element(b"\xa0", b""),
+            _ebml_element(b"\xa0", group_block * 2),
+        ):
+            for layout in (timestamp + group + block, timestamp + block + group):
+                with self.subTest(group=group, layout=layout):
+                    cluster = _ebml_element(b"\x1f\x43\xb6\x75", layout)
+                    content = source.replace(old_cluster, cluster)
+                    segment = content.index(b"\x18\x53\x80\x67")
+                    content = (
+                        content[: segment + 4]
+                        + bytes(
+                            [content[segment + 4] + len(cluster) - len(old_cluster)]
+                        )
+                        + content[segment + 5 :]
+                    )
+                    self.assert_video_result(content, "video/webm", expected_safe=False)
+
+    def test_webm_rejects_multiple_tracks_elements(self):
+        from apps.uploads.scanning import _ebml_elements
+
+        source = _webm_video()
+        root = _ebml_elements(source, start=0, end=len(source))
+        start, end = root[1][1:3]
+        children = _ebml_elements(source, start=start, end=end)
+        tracks = next(child for child in children if child[0] == 0x1654AE6B)
+        video = _ebml_element(b"\x16\x54\xae\x6b", source[tracks[1] : tracks[2]])
+        audio = _ebml_element(
+            b"\x16\x54\xae\x6b",
+            _ebml_element(
+                b"\xae",
+                _ebml_element(b"\xd7", b"\x01")
+                + _ebml_element(b"\x83", b"\x02")
+                + _ebml_element(b"\x86", b"A_OPUS"),
+            ),
+        )
+        for entries in (audio + video, video + audio):
+            with self.subTest(entries=entries):
+                payload = (
+                    source[start : tracks[1] - 5] + entries + source[tracks[2] : end]
+                )
+                content = source[: start - 5] + _ebml_element(
+                    b"\x18\x53\x80\x67", payload
+                )
+                self.assert_video_result(content, "video/webm", expected_safe=False)
+
+    def test_fragment_rejects_zero_track_id_beside_valid_video(self):
+        from apps.uploads.scanning import _iso_boxes
+
+        source = _fragmented_iso_video()
+
+        def rewrite(kind, start, end):
+            if kind == b"moof":
+                children = _iso_boxes(source, start=start, end=end)
+                traf = next((a, b) for k, a, b in children if k == b"traf")
+                payload = source[traf[0] : traf[1]]
+                header = next(
+                    (a, b)
+                    for k, a, b in _iso_boxes(source, start=traf[0], end=traf[1])
+                    if k == b"tfhd"
+                )
+                offset = header[0] - traf[0] + 4
+                zero = payload[:offset] + b"\x00" * 4 + payload[offset + 4 :]
+                extra = _iso_box(b"traf", zero)
+
+                # Both fragments point to the same valid bounded sample data.
+                def adjust(data):
+                    position = data.index(b"trun") + 12
+                    value = int.from_bytes(
+                        data[position : position + 4], "big", signed=True
+                    )
+                    return (
+                        data[:position]
+                        + (value + len(extra)).to_bytes(4, "big", signed=True)
+                        + data[position + 4 :]
+                    )
+
+                return _iso_box(kind, adjust(source[start:end]) + adjust(extra))
+            return _iso_box(kind, source[start:end])
+
+        content = b"".join(rewrite(k, a, b) for k, a, b in _iso_boxes(source))
+        self.assert_video_result(content, "video/mp4", expected_safe=False)
+        from apps.uploads.scanning import _iso_fragment_track_ids
+
+        boxes = _iso_boxes(content)
+        ranges = [(a, b) for k, a, b in boxes if k == b"mdat"]
+        self.assertIsNone(_iso_fragment_track_ids(content, boxes, ranges, [100_000]))
+        # Restore a nonzero second track: the same offsets and lengths are valid.
+        marker = b"tfhd" + (0x020000).to_bytes(4, "big") + b"\x00" * 4
+        control = content.replace(
+            marker, b"tfhd" + (0x020000).to_bytes(4, "big") + (2).to_bytes(4, "big")
+        )
+        self.assertEqual(
+            _iso_fragment_track_ids(control, boxes, ranges, [100_000]), {1: {1}, 2: {1}}
+        )
+
+    def test_classic_tables_reject_reserved_fullbox_flags(self):
+        from apps.uploads.scanning import _iso_boxes
+
+        source = _iso_video()
+        for target in (b"stts", b"stsc", b"stsz", b"stco", b"co64", b"stsd"):
+            for reserved in (False, True):
+                with self.subTest(table=target, reserved=reserved):
+
+                    def rewrite(kind, start, end):
+                        if kind in {b"moov", b"trak", b"mdia", b"minf", b"stbl"}:
+                            return _iso_box(
+                                kind,
+                                b"".join(
+                                    rewrite(k, a, b)
+                                    for k, a, b in _iso_boxes(
+                                        source, start=start, end=end
+                                    )
+                                ),
+                            )
+                        payload = source[start:end]
+                        if kind == target or (target == b"co64" and kind == b"stco"):
+                            if target == b"co64":
+                                kind = target
+                                payload = payload[:8] + (
+                                    int.from_bytes(payload[8:12], "big") + 4
+                                ).to_bytes(8, "big")
+                            if reserved:
+                                payload = b"\x00\x00\x00\x01" + payload[4:]
+                        return _iso_box(kind, payload)
+
+                    content = b"".join(
+                        rewrite(k, a, b) for k, a, b in _iso_boxes(source)
+                    )
+                    self.assert_video_result(
+                        content, "video/mp4", expected_safe=not reserved
+                    )
+
+    def test_webm_rejects_repeated_track_number_children(self):
+        source = _webm_video()
+        # Rebuild ancestor lengths while adding a second D7 inside the entry.
+        from apps.uploads.scanning import _ebml_elements
+
+        def rewrite(start, end):
+            result = b""
+            for kind, a, b, _ in _ebml_elements(source, start=start, end=end):
+                element_id = kind.to_bytes((kind.bit_length() + 7) // 8, "big")
+                payload = (
+                    rewrite(a, b)
+                    if kind in {0x18538067, 0x1654AE6B, 0xAE}
+                    else source[a:b]
+                )
+                if kind == 0xAE:
+                    payload += _ebml_element(b"\xd7", b"\x01")
+                result += _ebml_element(element_id, payload)
+            return result
+
+        self.assert_video_result(
+            rewrite(0, len(source)), "video/webm", expected_safe=False
+        )
+
+    def test_fragmented_mp4_rejects_malformed_mvex_children(self):
+        self.assert_video_result(
+            _fragmented_iso_video(malformed_mvex=True), "video/mp4", expected_safe=False
+        )
+
+    def test_webm_rejects_duplicate_numbers_across_audio_and_video(self):
+        from apps.uploads.scanning import _ebml_elements
+
+        source = _webm_video()
+        top = _ebml_elements(source, start=0, end=len(source))
+        segment_start, segment_end = top[1][1:3]
+        children = _ebml_elements(source, start=segment_start, end=segment_end)
+        tracks = next(child for child in children if child[0] == 0x1654AE6B)
+        video = source[tracks[1] : tracks[2]]
+        audio = _ebml_element(
+            b"\xae",
+            _ebml_element(b"\xd7", b"\x01")
+            + _ebml_element(b"\x73\xc5", b"\x02")
+            + _ebml_element(b"\x83", b"\x02")
+            + _ebml_element(b"\x86", b"A_OPUS"),
+        )
+        for entries in (video + audio, audio + video):
+            with self.subTest(audio_first=entries.startswith(audio)):
+                payload = (
+                    source[segment_start : tracks[1] - 5]
+                    + _ebml_element(b"\x16\x54\xae\x6b", entries)
+                    + source[tracks[2] : segment_end]
+                )
+                content = source[: segment_start - 5] + _ebml_element(
+                    b"\x18\x53\x80\x67", payload
+                )
+                self.assert_video_result(content, "video/webm", expected_safe=False)
+
+    def test_media_range_lookup_is_logarithmic(self):
+        from apps.uploads.scanning import _range_in_media
+
+        class CountedRanges(list):
+            reads = 0
+
+            def __getitem__(self, index):
+                self.reads += 1
+                return super().__getitem__(index)
+
+        ranges = CountedRanges((i * 9 + 8, i * 9 + 9) for i in range(99_999))
+        for _ in range(100):
+            self.assertTrue(_range_in_media(ranges[-1][0], 1, ranges))
+        self.assertLess(ranges.reads, 2000)
+        self.assertFalse(_range_in_media(0, 1, ranges))
+        self.assertFalse(_range_in_media(ranges[-1][0], 2, ranges))
+        self.assertFalse(_range_in_media(ranges[1][0] - 1, 1, ranges))
+
+    def test_accepts_fragmented_mp4_with_implicit_moof_base(self):
+        self.assert_video_result(
+            _fragmented_iso_video(implicit_base=True), "video/mp4", expected_safe=True
+        )
+
+    def test_later_fragment_inherits_previous_sample_end(self):
+        from apps.uploads.scanning import _iso_boxes, _iso_fragment_track_ids
+
+        def traf(track, offset=None):
+            header = _iso_box(
+                b"tfhd",
+                b"\x00\x00\x00\x10" + track.to_bytes(4, "big") + (3).to_bytes(4, "big"),
+            )
+            payload = (b"\x00\x00\x00\x01" if offset is not None else b"\x00" * 4) + (
+                1
+            ).to_bytes(4, "big")
+            if offset is not None:
+                payload += offset.to_bytes(4, "big", signed=True)
+            return _iso_box(b"traf", header + _iso_box(b"trun", payload))
+
+        def movie(offset):
+            return _iso_box(
+                b"moof",
+                _iso_box(b"mfhd", b"\x00" * 4 + (1).to_bytes(4, "big"))
+                + traf(1, offset)
+                + traf(2),
+            )
+
+        content = movie(len(movie(0)) + 8) + _iso_box(b"mdat", b"abcdef")
+        boxes = _iso_boxes(content)
+        media_ranges = [(a, b) for kind, a, b in boxes if kind == b"mdat"]
+        self.assertEqual(
+            _iso_fragment_track_ids(content, boxes, media_ranges, [100_000]),
+            {1: {1}, 2: {1}},
+        )
+
+    def test_fragment_resolves_selected_sample_description(self):
+        for tfhd in (False, True):
+            for supported_entry in (1, 2):
+                for selected in (0, 1, 2, 3):
+                    with self.subTest(
+                        tfhd=tfhd, supported_entry=supported_entry, selected=selected
+                    ):
+                        kwargs = (
+                            {"tfhd_description": selected}
+                            if tfhd
+                            else {"description_index": selected}
+                        )
+                        self.assert_video_result(
+                            _fragmented_iso_video(
+                                supported_entry=supported_entry, **kwargs
+                            ),
+                            "video/mp4",
+                            expected_safe=selected == supported_entry,
+                        )
+
+    def test_classic_resolves_selected_sample_description(self):
+        for supported in (1, 2):
+            for selected in (0, 1, 2, 3):
+                with self.subTest(supported=supported, selected=selected):
+                    self.assert_video_result(
+                        _iso_video(
+                            description_index=selected, supported_entry=supported
+                        ),
+                        "video/mp4",
+                        expected_safe=selected == supported,
+                    )
+
+    def test_invalid_fragment_run_cannot_restart_following_run_at_base(self):
+        from apps.uploads.scanning import _iso_boxes, _iso_fragment_track_ids
+
+        def movie(base):
+            header = _iso_box(
+                b"tfhd",
+                b"\x00\x00\x00\x11"
+                + (1).to_bytes(4, "big")
+                + base.to_bytes(8, "big")
+                + (3).to_bytes(4, "big"),
+            )
+            invalid = _iso_box(
+                b"trun",
+                b"\x00\x00\x00\x01"
+                + (1).to_bytes(4, "big")
+                + (1000).to_bytes(4, "big", signed=True),
+            )
+            following = _iso_box(b"trun", b"\x00" * 4 + (1).to_bytes(4, "big"))
+            return _iso_box(
+                b"moof",
+                _iso_box(b"mfhd", b"\x00" * 4 + (1).to_bytes(4, "big"))
+                + _iso_box(b"traf", header + invalid + following),
+            )
+
+        content = movie(len(movie(0)) + 8) + _iso_box(b"mdat", b"abcdef")
+        boxes = _iso_boxes(content)
+        ranges = [(a, b) for k, a, b in boxes if k == b"mdat"]
+        self.assertIsNone(_iso_fragment_track_ids(content, boxes, ranges, [100_000]))
+
+    def test_malformed_fragment_run_cannot_authorize_following_implicit_run(self):
+        from apps.uploads.scanning import _iso_boxes, _iso_fragment_track_ids
+
+        malformed = [
+            b"\x00" * 4 + (0).to_bytes(4, "big"),
+            b"\x00" * 4 + (100_001).to_bytes(4, "big"),
+            b"\x00" * 7,
+            b"\x02" + b"\x00" * 3 + (1).to_bytes(4, "big"),
+            b"\x00\x00\x00\x01" + (1).to_bytes(4, "big"),
+            b"\x00\x00\x02\x00" + (1).to_bytes(4, "big"),
+        ]
+        for preceding_valid in (False, True):
+            for payload in malformed:
+                with self.subTest(preceding_valid=preceding_valid, payload=payload):
+
+                    def movie(base):
+                        header = _iso_box(
+                            b"tfhd",
+                            b"\x00\x00\x00\x11"
+                            + (1).to_bytes(4, "big")
+                            + base.to_bytes(8, "big")
+                            + (3).to_bytes(4, "big"),
+                        )
+                        valid = _iso_box(b"trun", b"\x00" * 4 + (1).to_bytes(4, "big"))
+                        runs = (
+                            (valid if preceding_valid else b"")
+                            + _iso_box(b"trun", payload)
+                            + valid
+                        )
+                        return _iso_box(
+                            b"moof",
+                            _iso_box(b"mfhd", b"\x00" * 4 + (1).to_bytes(4, "big"))
+                            + _iso_box(b"traf", header + runs),
+                        )
+
+                    content = movie(len(movie(0)) + 8) + _iso_box(b"mdat", b"abcdefghi")
+                    boxes = _iso_boxes(content)
+                    ranges = [(a, b) for kind, a, b in boxes if kind == b"mdat"]
+                    self.assertIsNone(
+                        _iso_fragment_track_ids(content, boxes, ranges, [100_000])
+                    )
+
+    def test_malformed_traf_cannot_donate_an_earlier_implicit_base(self):
+        from apps.uploads.scanning import _iso_boxes, _iso_fragment_track_ids
+
+        valid_run = _iso_box(b"trun", b"\x00" * 4 + (1).to_bytes(4, "big"))
+        implicit_header = _iso_box(
+            b"tfhd",
+            b"\x00\x00\x00\x10" + (2).to_bytes(4, "big") + (3).to_bytes(4, "big"),
+        )
+        malformed_headers = [
+            b"",
+            implicit_header * 2,
+            _iso_box(b"tfhd", b"\x00" * 7),
+            _iso_box(b"tfhd", b"\x01" + b"\x00" * 3 + (2).to_bytes(4, "big")),
+            _iso_box(b"tfhd", b"\x00\x00\x00\x01" + (2).to_bytes(4, "big")),
+            _iso_box(b"tfhd", b"\x00\x00\x00\x02" + (2).to_bytes(4, "big")),
+        ]
+        for malformed in malformed_headers:
+            with self.subTest(malformed=malformed):
+
+                def movie(base):
+                    explicit = _iso_box(
+                        b"tfhd",
+                        b"\x00\x00\x00\x11"
+                        + (1).to_bytes(4, "big")
+                        + base.to_bytes(8, "big")
+                        + (3).to_bytes(4, "big"),
+                    )
+                    return _iso_box(
+                        b"moof",
+                        _iso_box(b"mfhd", b"\x00" * 4 + (1).to_bytes(4, "big"))
+                        + _iso_box(b"traf", explicit + valid_run)
+                        + _iso_box(b"traf", malformed + valid_run)
+                        + _iso_box(b"traf", implicit_header + valid_run),
+                    )
+
+                content = movie(len(movie(0)) + 8) + _iso_box(b"mdat", b"abcdefghi")
+                boxes = _iso_boxes(content)
+                ranges = [(a, b) for kind, a, b in boxes if kind == b"mdat"]
+                self.assertIsNone(
+                    _iso_fragment_track_ids(content, boxes, ranges, [100_000])
+                )
+
+    def test_duration_empty_fragment_rejects_any_track_run(self):
+        from apps.uploads.scanning import _iso_boxes, _iso_fragment_track_ids
+
+        for run in [
+            b"",
+            b"\x00" * 4 + (0).to_bytes(4, "big"),
+            b"\x00\x00\x00\x01" + (1).to_bytes(4, "big") + (1000).to_bytes(4, "big"),
+        ]:
+            with self.subTest(run=run):
+                empty_header = _iso_box(
+                    b"tfhd", b"\x00\x01\x00\x00" + (1).to_bytes(4, "big")
+                )
+                invalid_empty = _iso_box(b"traf", empty_header + _iso_box(b"trun", run))
+
+                def movie(offset):
+                    header = _iso_box(
+                        b"tfhd",
+                        b"\x00\x02\x00\x10"
+                        + (2).to_bytes(4, "big")
+                        + (3).to_bytes(4, "big"),
+                    )
+                    valid = _iso_box(
+                        b"trun",
+                        b"\x00\x00\x00\x01"
+                        + (1).to_bytes(4, "big")
+                        + offset.to_bytes(4, "big"),
+                    )
+                    return _iso_box(
+                        b"moof",
+                        _iso_box(b"mfhd", b"\x00" * 4 + (1).to_bytes(4, "big"))
+                        + invalid_empty
+                        + _iso_box(b"traf", header + valid),
+                    )
+
+                content = movie(len(movie(0)) + 8) + _iso_box(b"mdat", b"abc")
+                boxes = _iso_boxes(content)
+                ranges = [(a, b) for kind, a, b in boxes if kind == b"mdat"]
+                self.assertIsNone(
+                    _iso_fragment_track_ids(content, boxes, ranges, [100_000])
+                )
+
+    def test_fragment_sample_budget_is_shared_across_runs(self):
+        from apps.uploads.scanning import _iso_boxes, _iso_fragment_track_ids
+
+        def fragment(offset):
+            header = _iso_box(
+                b"tfhd",
+                b"\x00\x02\x00\x10" + (1).to_bytes(4, "big") + (11).to_bytes(4, "big"),
+            )
+            run = _iso_box(
+                b"trun",
+                b"\x00\x00\x00\x01"
+                + (60_000).to_bytes(4, "big")
+                + offset.to_bytes(4, "big", signed=True),
+            )
+            return _iso_box(
+                b"moof",
+                _iso_box(b"mfhd", b"\x00" * 4 + (1).to_bytes(4, "big"))
+                + _iso_box(b"traf", header + run + run),
+            )
+
+        movie = fragment(len(fragment(0)) + 8)
+        content = movie + _iso_box(b"mdat", b"x" * 660_000)
+        boxes = _iso_boxes(content)
+        media_ranges = [(a, b) for kind, a, b in boxes if kind == b"mdat"]
+        self.assertIsNone(
+            _iso_fragment_track_ids(content, boxes, media_ranges, [100_000])
+        )
+
+    def test_accepts_fragmented_mp4_with_samples_inside_media_data(self):
+        self.assert_video_result(
+            _fragmented_iso_video(), "video/mp4", expected_safe=True
+        )
+
+    def test_fragmented_mp4_rejects_samples_outside_media_data(self):
+        self.assert_video_result(
+            _fragmented_iso_video(invalid_offset=True), "video/mp4", expected_safe=False
+        )
+
+    def test_classic_mp4_rejects_out_of_range_chunk_offsets_and_short_media(self):
+        content = _iso_video()
+        chunk = content.index(b"stco") + 12
+        wrong_offset = (
+            content[:chunk]
+            + (len(content) + 1).to_bytes(4, "big")
+            + content[chunk + 4 :]
+        )
+        self.assert_video_result(wrong_offset, "video/mp4", expected_safe=False)
+        short_media = content.replace(
+            _iso_box(b"mdat", b"video-frame"), _iso_box(b"mdat", b"x")
+        )
+        self.assert_video_result(short_media, "video/mp4", expected_safe=False)
+
+    def test_fragment_requires_one_complete_version_zero_movie_header(self):
+        from apps.uploads.scanning import _iso_boxes
+
+        source = _fragmented_iso_video()
+        boxes = _iso_boxes(source)
+        init = b"".join(
+            _iso_box(k, source[a:b]) for k, a, b in boxes if k in {b"ftyp", b"moov"}
+        )
+        _, a, b = next(box for box in boxes if box[0] == b"moof")
+        original_header = _iso_box(b"mfhd", b"\x00" * 4 + (1).to_bytes(4, "big"))
+        payload = source[a:b]
+        for header in (
+            b"",
+            original_header * 2,
+            _iso_box(b"mfhd", b"\x00" * 7),
+            _iso_box(b"mfhd", b"\x01" + b"\x00" * 7),
+            _iso_box(b"mfhd", b"\x00\x00\x00\x01" + b"\x00" * 4),
+        ):
+            with self.subTest(header=header):
+                changed = payload.replace(original_header, header)
+                # Keep the run valid so the regression specifically tests mfhd.
+                marker = changed.index(b"trun") + 12
+                changed = (
+                    changed[:marker]
+                    + (len(changed) + 16).to_bytes(4, "big", signed=True)
+                    + changed[marker + 4 :]
+                )
+                content = (
+                    init
+                    + _iso_box(b"moof", changed)
+                    + _iso_box(b"mdat", b"video-frame")
+                )
+                self.assert_video_result(content, "video/mp4", expected_safe=False)
+        self.assert_video_result(source, "video/mp4", expected_safe=True)
+
+    def test_movie_fragment_sequence_numbers_increase_in_file_order(self):
+        from apps.uploads.scanning import _iso_boxes
+
+        source = _fragmented_iso_video()
+        boxes = _iso_boxes(source)
+        first_moof = next(a - 8 for k, a, b in boxes if k == b"moof")
+        original_header = _iso_box(b"mfhd", b"\x00" * 4 + (1).to_bytes(4, "big"))
+        for first, second, safe in (
+            (1, 2, True),
+            (1, 1, False),
+            (2, 1, False),
+            (3, 9, True),
+        ):
+            with self.subTest(first=first, second=second):
+                first_fragment = source.replace(
+                    original_header,
+                    _iso_box(b"mfhd", b"\x00" * 4 + first.to_bytes(4, "big")),
+                )
+                second_fragment = source[first_moof:].replace(
+                    original_header,
+                    _iso_box(b"mfhd", b"\x00" * 4 + second.to_bytes(4, "big")),
+                )
+                self.assert_video_result(
+                    first_fragment + second_fragment, "video/mp4", expected_safe=safe
+                )
+
+    def test_track_extends_defaults_reject_reserved_flags(self):
+        source = _fragmented_iso_video()
+        marker = b"trex" + b"\x00" * 4
+        self.assertIn(marker, source)
+        for flags in (1, 0x100, 0x10000):
+            with self.subTest(flags=flags):
+                self.assert_video_result(
+                    source.replace(marker, b"trex" + flags.to_bytes(4, "big")),
+                    "video/mp4",
+                    expected_safe=False,
+                )
+
+    def test_fragment_headers_reject_reserved_and_conflicting_flags(self):
+        source = _fragmented_iso_video()
+        for kind, original, invalid in (
+            (b"tfhd", 0x020000, (0x020040, 0x020001)),
+            (b"trun", 0x000201, (0x000241, 0x000605)),
+        ):
+            marker = kind + original.to_bytes(4, "big")
+            self.assertIn(marker, source)
+            for flags in invalid:
+                with self.subTest(kind=kind, flags=flags):
+                    self.assert_video_result(
+                        source.replace(marker, kind + flags.to_bytes(4, "big")),
+                        "video/mp4",
+                        expected_safe=False,
+                    )
+
+    def test_fragmented_tracks_require_legal_empty_classic_tables(self):
+        source = _fragmented_iso_video()
+        for kind, width in ((b"stsz", 12), (b"stts", 8), (b"stsc", 8), (b"stco", 8)):
+            marker = kind + b"\x00" * width
+            self.assertIn(marker, source)
+            for index in range(width):
+                with self.subTest(kind=kind, index=index):
+                    payload = bytearray(width)
+                    payload[index] = 1
+                    self.assert_video_result(
+                        source.replace(marker, kind + payload),
+                        "video/mp4",
+                        expected_safe=False,
+                    )
+
+    def test_block_group_requires_one_block(self):
+        original = _ebml_element(b"\xa3", b"\x81\x00\x00\x80video-frame")
+        old_cluster = _ebml_element(
+            b"\x1f\x43\xb6\x75", _ebml_element(b"\xe7", b"\x00") + original
+        )
+        valid = _ebml_element(b"\xa1", b"\x81\x00\x00\x00video-frame")
+        for blocks in (b"", valid + valid, valid + _ebml_element(b"\xa1", b"bad")):
+            group = _ebml_element(b"\xa0", blocks)
+            cluster = _ebml_element(
+                b"\x1f\x43\xb6\x75", _ebml_element(b"\xe7", b"\x00") + group
+            )
+            content = _webm_video().replace(old_cluster, cluster)
+            segment = content.index(b"\x18\x53\x80\x67")
+            content = (
+                content[: segment + 4]
+                + bytes([content[segment + 4] + len(cluster) - len(old_cluster)])
+                + content[segment + 5 :]
+            )
+            self.assert_video_result(content, "video/webm", expected_safe=False)
+
+    def test_each_movie_fragment_requires_a_track_fragment(self):
+        from apps.uploads.scanning import _iso_boxes
+
+        source = _fragmented_iso_video()
+        first_moof = next(a - 8 for k, a, b in _iso_boxes(source) if k == b"moof")
+        original = _iso_box(b"mfhd", b"\x00" * 4 + (1).to_bytes(4, "big"))
+        valid = source[first_moof:].replace(
+            original, _iso_box(b"mfhd", b"\x00" * 4 + (2).to_bytes(4, "big"))
+        )
+        empty = _iso_box(b"moof", original)
+        self.assert_video_result(
+            source[:first_moof] + empty + valid, "video/mp4", expected_safe=False
+        )
+
+    def test_webm_block_flags_depend_on_element_type(self):
+        old_block = _ebml_element(b"\xa3", b"\x81\x00\x00\x80video-frame")
+        old_cluster = _ebml_element(
+            b"\x1f\x43\xb6\x75", _ebml_element(b"\xe7", b"\x00") + old_block
+        )
+        for grouped in (False, True):
+            for flags in (0, 8, 1, 16, 32, 64, 112, 128):
+                with self.subTest(grouped=grouped, flags=flags):
+                    block = _ebml_element(
+                        b"\xa1" if grouped else b"\xa3",
+                        b"\x81\x00\x00" + bytes([flags]) + b"video-frame",
+                    )
+                    if grouped:
+                        block = _ebml_element(b"\xa0", block)
+                    cluster = _ebml_element(
+                        b"\x1f\x43\xb6\x75", _ebml_element(b"\xe7", b"\x00") + block
+                    )
+                    content = _webm_video().replace(old_cluster, cluster)
+                    segment = content.index(b"\x18\x53\x80\x67")
+                    content = (
+                        content[: segment + 4]
+                        + bytes(
+                            [content[segment + 4] + len(cluster) - len(old_cluster)]
+                        )
+                        + content[segment + 5 :]
+                    )
+                    self.assert_video_result(
+                        content,
+                        "video/webm",
+                        expected_safe=not flags & (0xF1 if grouped else 0x70),
+                    )
+
+    def test_webm_track_lacing_flag_controls_all_lacing_modes(self):
+        old_block = _ebml_element(b"\xa3", b"\x81\x00\x00\x80video-frame")
+        old_cluster = _ebml_element(
+            b"\x1f\x43\xb6\x75", _ebml_element(b"\xe7", b"\x00") + old_block
+        )
+        for flag in (None, 0, 1, 2):
+            for lace in (
+                b"\x00ab",
+                b"\x04\x01abcd",
+                b"\x02\x01\x02abcd",
+                b"\x06\x01\x82abcd",
+            ):
+                for grouped in (False, True):
+                    with self.subTest(flag=flag, lace=lace, grouped=grouped):
+                        block = _ebml_element(
+                            b"\xa1" if grouped else b"\xa3", b"\x81\x00\x00" + lace
+                        )
+                        if grouped:
+                            block = _ebml_element(b"\xa0", block)
+                        cluster = _ebml_element(
+                            b"\x1f\x43\xb6\x75", _ebml_element(b"\xe7", b"\x00") + block
+                        )
+                        content = _webm_video(flag_lacing=flag).replace(
+                            old_cluster, cluster
+                        )
+                        segment = content.index(b"\x18\x53\x80\x67")
+                        content = (
+                            content[: segment + 4]
+                            + bytes(
+                                [content[segment + 4] + len(cluster) - len(old_cluster)]
+                            )
+                            + content[segment + 5 :]
+                        )
+                        self.assert_video_result(
+                            content,
+                            "video/webm",
+                            expected_safe=flag != 2 and (flag != 0 or lace[0] == 0),
+                        )
+
+    def test_webm_blocks_must_reference_a_supported_video_track(self):
+        content = _webm_video().replace(
+            b"\x81\x00\x00\x80video-frame", b"\x82\x00\x00\x80video-frame"
+        )
+        self.assert_video_result(content, "video/webm", expected_safe=False)
+
+    def test_webm_accepts_block_group_frames(self):
+        content = _webm_video()
+        old = _ebml_element(b"\xa3", b"\x81\x00\x00\x80video-frame")
+        new = _ebml_element(
+            b"\xa0", _ebml_element(b"\xa1", b"\x81\x00\x00\x00video-frame")
+        )
+        # Rebuild the enclosing cluster and segment lengths through the fixture.
+        cluster = _ebml_element(
+            b"\x1f\x43\xb6\x75", _ebml_element(b"\xe7", b"\x00") + old
+        )
+        replacement = _ebml_element(
+            b"\x1f\x43\xb6\x75", _ebml_element(b"\xe7", b"\x00") + new
+        )
+        content = content.replace(cluster, replacement)
+        segment = content.index(b"\x18\x53\x80\x67")
+        content = (
+            content[: segment + 4]
+            + bytes([content[segment + 4] + len(new) - len(old)])
+            + content[segment + 5 :]
+        )
+        self.assert_video_result(content, "video/webm", expected_safe=True)
+
+    def test_webm_lacing_requires_complete_nonempty_frames(self):
+        # Rebuild both enclosing sizes so inspection reaches the lace payload.
+        original = _ebml_element(b"\xa3", b"\x81\x00\x00\x80video-frame")
+        old_cluster = _ebml_element(
+            b"\x1f\x43\xb6\x75", _ebml_element(b"\xe7", b"\x00") + original
+        )
+        layouts = [
+            (b"\x04\xff", False),
+            (b"\x04\x01a", False),
+            (b"\x04\x01abcd", True),
+            (b"\x04\x00a", False),
+            (b"\x02\x01\xff", False),
+            (b"\x02\x01\x05abcd", False),
+            (b"\x02\x01\x02abcd", True),
+            (b"\x02\x01\x00abcd", False),
+            (b"\x06\x01\x82abcd", True),
+            (b"\x06\x01\x82ab", False),
+            (b"\x06\x02\x82\xbfabcdef", True),
+            (b"\x06\x02\x82\xbcd", False),
+            (b"\x06\x01\x00abc", False),
+        ]
+        for grouped in (False, True):
+            for lace, safe in layouts:
+                with self.subTest(grouped=grouped, lace=lace):
+                    payload = b"\x81\x00\x00" + lace
+                    block = _ebml_element(b"\xa1" if grouped else b"\xa3", payload)
+                    if grouped:
+                        block = _ebml_element(b"\xa0", block)
+                    cluster = _ebml_element(
+                        b"\x1f\x43\xb6\x75", _ebml_element(b"\xe7", b"\x00") + block
+                    )
+                    content = _webm_video().replace(old_cluster, cluster)
+                    segment = content.index(b"\x18\x53\x80\x67")
+                    content = (
+                        content[: segment + 4]
+                        + bytes(
+                            [content[segment + 4] + len(cluster) - len(old_cluster)]
+                        )
+                        + content[segment + 5 :]
+                    )
+                    self.assert_video_result(content, "video/webm", expected_safe=safe)
+
+    def test_webm_accepts_omitted_default_header_values(self):
+        content = _webm_video()
+        header_end = 5 + (content[4] & 0x7F)
+        header = _ebml_element(b"\x1a\x45\xdf\xa3", _ebml_element(b"\x42\x82", b"webm"))
+        self.assert_video_result(
+            header + content[header_end:], "video/webm", expected_safe=True
+        )
+
+    def test_webm_element_budget_rejects_memory_amplification(self):
+        from apps.uploads.scanning import _ebml_elements
+
+        self.assertIsNone(_ebml_elements(b"\xec\x80" * 100_001, start=0, end=200_002))
+
+    def test_image_decompression_warning_is_rejected(self):
+        import warnings
+
+        def oversized_image(*args, **kwargs):
+            warnings.warn("Synthetic oversized image", Image.DecompressionBombWarning)
+
+        with patch("apps.uploads.scanning.Image.open", side_effect=oversized_image):
+            self.assertEqual(
+                inspect_upload_content(
+                    content=b"synthetic", declared_mime_type="image/png"
+                ),
+                (False, "image_decompression_bomb"),
+            )
+
     def assert_video_result(
         self, content: bytes, mime_type: str, *, expected_safe: bool
     ) -> None:
@@ -223,6 +1146,9 @@ class UploadCreateTests(APITestCase):
         self.raw_session_token = "portal-secret-token"
         self.session.set_session_token(self.raw_session_token)
         self.session.save()
+        from apps.consent.test_helpers import accept_test_consent
+
+        self.consent = accept_test_consent(self.verification)
 
     def auth_headers(self, token=None, session_id=None):
         return {
@@ -230,7 +1156,167 @@ class UploadCreateTests(APITestCase):
             "HTTP_X_SESSION_ID": session_id or self.session.public_id,
         }
 
-    def test_create_upload_returns_expiring_upload_url(self):
+    def _restrict_consent(self, scopes):
+        from apps.consent.test_helpers import accept_test_consent
+
+        self.verification.policy_snapshot_json = {"consent": {"evidence_scope": scopes}}
+        self.verification.save(update_fields=["policy_snapshot_json"])
+        return accept_test_consent(self.verification)
+
+    @patch("apps.uploads.services.build_presigned_upload_url")
+    def test_upload_creation_requires_accepted_consent(self, signed_url):
+        from apps.consent.models import ConsentRecord
+
+        ConsentRecord.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_subject=self.subject,
+            consent_text_snapshot="Declined",
+            accepted=False,
+            accepted_at=timezone.now(),
+        )
+        response = self.client.post(
+            reverse("upload-create"),
+            {
+                "purpose": "document_capture",
+                "mime_type": "image/jpeg",
+                "file_size_bytes": 4,
+            },
+            format="json",
+            **self.auth_headers(),
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Upload.objects.exists())
+        signed_url.assert_not_called()
+
+    @patch("apps.uploads.views.inspect_upload_content", return_value=(True, ""))
+    @patch("apps.uploads.views.put_object_bytes")
+    @patch("apps.uploads.services.build_presigned_upload_url")
+    def test_operational_runner_transfers_evidence_through_authenticated_api(
+        self, presign, put, inspect
+    ):
+        import importlib.util
+        from pathlib import Path
+
+        script = Path(__file__).resolve().parents[4] / "scripts/run_operational_load.py"
+        spec = importlib.util.spec_from_file_location("synthetic_load_runner", script)
+        runner = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(runner)
+        calls = []
+
+        def request(method, path, headers, body=None, *, files=None):
+            calls.append((method, path))
+            if files:
+                filename, content, mime = files["file"]
+                data = {
+                    "file": SimpleUploadedFile(filename, content, content_type=mime)
+                }
+                response = self.client.post(
+                    "/api/v1" + path, data, format="multipart", **headers
+                )
+            else:
+                response = self.client.post(
+                    "/api/v1" + path, body, format="json", **headers
+                )
+            self.assertIn(response.status_code, (200, 201))
+            return response.data["data"]
+
+        upload_id = runner.upload_session_evidence(
+            request,
+            purpose="document_capture",
+            content=b"test",
+            headers=self.auth_headers(),
+        )
+        self.assertEqual(
+            calls, [("POST", "/uploads/"), ("POST", f"/uploads/{upload_id}/transfer")]
+        )
+        self.assertEqual(
+            Upload.objects.get(public_id=upload_id).status, UploadStatus.UPLOADED
+        )
+        put.assert_called_once()
+        presign.assert_not_called()
+
+    def test_document_only_consent_cannot_authorize_biometric_uploads(self):
+        self._restrict_consent(["document"])
+        for purpose, mime in [
+            ("selfie_capture", "image/jpeg"),
+            ("liveness_capture", "video/mp4"),
+        ]:
+            with self.subTest(purpose=purpose):
+                response = self.client.post(
+                    reverse("upload-create"),
+                    {
+                        "purpose": purpose,
+                        "mime_type": mime,
+                        "file_size_bytes": 4,
+                    },
+                    format="json",
+                    **self.auth_headers(),
+                )
+                self.assertEqual(response.status_code, 400)
+        self.assertFalse(Upload.objects.exists())
+        response = self.client.post(
+            reverse("upload-create"),
+            {
+                "purpose": "document_capture",
+                "mime_type": "image/jpeg",
+                "file_size_bytes": 4,
+            },
+            format="json",
+            **self.auth_headers(),
+        )
+        self.assertEqual(response.status_code, 201)
+
+    @patch("apps.uploads.views.get_object_bytes")
+    @patch("apps.uploads.views.put_object_bytes")
+    @patch("apps.uploads.views.inspect_upload_content")
+    def test_finalization_rechecks_scope_before_reading_or_persisting_evidence(
+        self, inspect, put, get
+    ):
+        created = self.client.post(
+            reverse("upload-create"),
+            {
+                "purpose": "selfie_capture",
+                "mime_type": "image/jpeg",
+                "file_size_bytes": 4,
+            },
+            format="json",
+            **self.auth_headers(),
+        )
+        upload = Upload.objects.get(public_id=created.data["data"]["upload_id"])
+        self._restrict_consent(["document"])
+        for endpoint in ["upload-transfer", "upload-complete"]:
+            with self.subTest(endpoint=endpoint):
+                response = self.client.post(
+                    reverse(endpoint, kwargs={"upload_id": upload.public_id}),
+                    {
+                        "file": SimpleUploadedFile(
+                            "selfie.jpg", b"test", content_type="image/jpeg"
+                        )
+                    },
+                    format="multipart",
+                    **self.auth_headers(),
+                )
+                self.assertEqual(response.status_code, 400)
+        inspect.assert_not_called()
+        put.assert_not_called()
+        get.assert_not_called()
+        upload.refresh_from_db()
+        self.assertEqual(upload.status, UploadStatus.INITIATED)
+        # The idempotent completion shortcut must also recheck consent.
+        upload.status = UploadStatus.UPLOADED
+        upload.save(update_fields=["status"])
+        response = self.client.post(
+            reverse("upload-complete", kwargs={"upload_id": upload.public_id}),
+            {},
+            format="json",
+            **self.auth_headers(),
+        )
+        self.assertEqual(response.status_code, 400)
+        get.assert_not_called()
+
+    @patch("apps.uploads.services.build_presigned_upload_url")
+    def test_create_upload_returns_consent_aware_transfer_path(self, presign):
         response = self.client.post(
             reverse("upload-create"),
             {
@@ -244,9 +1330,7 @@ class UploadCreateTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(response.data["data"]["upload_id"].startswith("upl_"))
-        self.assertIn(
-            response.data["data"]["upload_id"], response.data["data"]["upload_url"]
-        )
+        self.assertEqual(response.data["data"]["upload_url"], "")
         self.assertEqual(
             response.data["data"]["upload_headers"],
             {
@@ -268,6 +1352,7 @@ class UploadCreateTests(APITestCase):
             response.data["data"]["upload_complete_path"],
             f"/uploads/{upload.public_id}/complete",
         )
+        presign.assert_not_called()
         self.assertEqual(
             upload.storage_key,
             (

@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from datetime import timedelta
 import hashlib
 import secrets
@@ -121,6 +122,11 @@ def _consent_artifact(verification, locale: str) -> dict:
             ),
             "content": content,
             "content_hash": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+            "evidence_scope": (
+                frozen.get("evidence_scope")
+                if frozen.get("evidence_scope") is not None
+                else ["document", "biometrics"]
+            ),
         }
     template = _resolve_consent_template(verification, locale)
     content = (
@@ -134,6 +140,11 @@ def _consent_artifact(verification, locale: str) -> dict:
         "locale": template.language if template is not None else locale,
         "content": content,
         "content_hash": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+        "evidence_scope": (
+            template.evidence_scope_json
+            if template is not None and template.evidence_scope_json is not None
+            else ["document", "biometrics"]
+        ),
     }
 
 
@@ -417,7 +428,38 @@ def serialize_verification_session_status(
     latest_selfie = verification.selfie_captures.order_by("-created_at").first()
     latest_document = verification.identity_documents.order_by("-created_at").first()
     latest_liveness = verification.liveness_checks.order_by("-created_at").first()
+    latest_consent = verification.consent_records.order_by(
+        "-accepted_at", "-pk"
+    ).first()
+    from apps.verifications.transitions import TERMINAL_STATUSES
+
+    presentation_proof = None
     if (
+        latest_consent is not None
+        and latest_consent.withdrawn_at is None
+        and verification.status not in TERMINAL_STATUSES
+    ):
+        try:
+            presentation_proof = latest_consent.proof_json
+        except ValueError:
+            # Presentation must remain available so applicants can withdraw
+            # while their customer-managed key is temporarily unavailable.
+            pass
+    unbound_legacy_consent = (
+        latest_consent is not None
+        and latest_consent.withdrawn_at is None
+        and verification.status not in TERMINAL_STATUSES
+        and (
+            presentation_proof is None
+            or not {"document", "biometrics"}.issubset(
+                presentation_proof.get("evidence_scope", [])
+            )
+        )
+    )
+    if unbound_legacy_consent:
+        current_step = "consent"
+        message = "Please review and accept the current consent notice to continue."
+    elif (
         latest_document is not None
         and latest_document.status == IdentityDocumentStatus.PROCESSING
     ):
@@ -495,6 +537,9 @@ def serialize_verification_session_status(
         "status": verification.status,
         "current_step": current_step,
         "message": message,
+        "withdrawal_available": latest_consent is not None
+        and latest_consent.accepted
+        and latest_consent.withdrawn_at is None,
         "evidence": {
             "identity_document_id": (
                 latest_document.public_id if latest_document is not None else ""
@@ -530,6 +575,13 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
             verification,
             _request_locale(request, verification.policy_snapshot_json or {}),
         )
+        from apps.consent.services import require_workflow_scope
+
+        try:
+            require_workflow_scope(artifact["evidence_scope"])
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.messages) from None
+
         submitted_artifact = {
             key: self.validated_data[key]
             for key in ("template_id", "version", "locale", "content_hash")
@@ -541,41 +593,58 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
                 "The consent notice changed. Review the current notice before accepting."
             )
 
-        existing_record = verification.consent_records.order_by("-accepted_at").first()
-        if existing_record:
-            if verification.status == VerificationStatus.PENDING_CONSENT:
-                transition_verification(verification, VerificationStatus.IN_PROGRESS)
-            return existing_record
+        existing_record = verification.consent_records.order_by(
+            "-accepted_at", "-pk"
+        ).first()
+        if existing_record and (
+            existing_record.proof_json is not None
+            or existing_record.withdrawn_at is not None
+        ):
+            from apps.consent.services import require_active_consent
 
-        consent_snapshot = (verification.policy_snapshot_json or {}).get(
-            "consent"
-        ) or {}
-        consent_template = (
-            ConsentTemplate.objects.filter(
-                tenant=verification.tenant,
-                public_id=consent_snapshot.get("template_id"),
-            ).first()
-            if consent_snapshot.get("template_id")
-            else None
-        )
-        if consent_template is None and not consent_snapshot:
-            consent_template = (
-                ConsentTemplate.objects.filter(
-                    tenant=verification.tenant,
-                    status="active",
-                )
-                .order_by("-version", "-created_at")
-                .first()
+            try:
+                require_active_consent(verification)
+            except DjangoValidationError:
+                raise serializers.ValidationError(
+                    "Active consent is unavailable; a withdrawn proof cannot be reused."
+                ) from None
+            proof = existing_record.proof_json
+            if {"document", "biometrics"}.issubset(proof["evidence_scope"]):
+                if (
+                    proof["notice_version"],
+                    proof["locale"],
+                    proof["content_hash"],
+                ) != (
+                    artifact["version"],
+                    artifact["locale"],
+                    artifact["content_hash"],
+                ):
+                    raise serializers.ValidationError(
+                        "A different notice requires a new consent proof."
+                    )
+                existing_record._already_existing = True
+                if verification.status == VerificationStatus.PENDING_CONSENT:
+                    transition_verification(
+                        verification, VerificationStatus.IN_PROGRESS
+                    )
+                return existing_record
+        from apps.verifications.transitions import TERMINAL_STATUSES
+
+        if (
+            verification.status in TERMINAL_STATUSES
+            or verification.expires_at <= timezone.now()
+        ):
+            raise serializers.ValidationError(
+                "Consent cannot be accepted for a terminal or expired verification."
             )
-        consent_text_snapshot = consent_snapshot.get("content") or (
-            consent_template.content
-            if consent_template is not None
-            else f"I consent to the identity verification process for {verification.purpose}."
-        )
+
+        consent_template = ConsentTemplate.objects.filter(
+            tenant=verification.tenant, public_id=artifact["template_id"]
+        ).first()
         consent_text_snapshot = artifact["content"]
 
         now = timezone.now()
-        consent_record = ConsentRecord.objects.create(
+        consent_record = ConsentRecord(
             tenant=verification.tenant,
             verification=verification,
             verification_subject=verification.verification_subject,
@@ -589,6 +658,11 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
             user_agent=request.headers.get("User-Agent", ""),
             device_fingerprint=request.headers.get("X-Device-Fingerprint", ""),
         )
+
+        consent_record._notice_template_id = artifact["template_id"]
+        consent_record._notice_version = artifact["version"]
+        consent_record._notice_scope = artifact["evidence_scope"]
+        consent_record.save()
 
         update_session_fields = ["last_seen_at", "updated_at"]
         verification_session.last_seen_at = now
@@ -606,7 +680,8 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
         update_session_fields.extend(["ip_address", "user_agent", "device_fingerprint"])
         verification_session.save(update_fields=update_session_fields)
 
-        transition_verification(verification, VerificationStatus.IN_PROGRESS)
+        if verification.status == VerificationStatus.PENDING_CONSENT:
+            transition_verification(verification, VerificationStatus.IN_PROGRESS)
         return consent_record
 
 
@@ -625,7 +700,9 @@ class VerificationSessionDocumentSerializer(serializers.Serializer):
         verification_session = request.verification_session
         verification = verification_session.verification
 
-        if not verification.consent_records.filter(accepted=True).exists():
+        from apps.consent.services import active_consent
+
+        if active_consent(verification, "document") is None:
             raise serializers.ValidationError(
                 {"detail": "Consent must be accepted before document submission."}
             )
@@ -832,7 +909,9 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
         verification_session = request.verification_session
         verification = verification_session.verification
 
-        if not verification.consent_records.filter(accepted=True).exists():
+        from apps.consent.services import active_consent
+
+        if active_consent(verification, "biometrics") is None:
             raise serializers.ValidationError(
                 {"detail": "Consent must be accepted before selfie submission."}
             )

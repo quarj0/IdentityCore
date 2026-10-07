@@ -727,6 +727,9 @@ components:
           type: string
         message:
           type: string
+        withdrawal_available:
+          type: boolean
+          description: Whether a recorded acceptance can be withdrawn, independent of proof decryption availability.
         evidence:
           type: object
           additionalProperties: false
@@ -1187,15 +1190,18 @@ components:
           type: string
         upload_url:
           type: string
-          format: uri
+          description: Always empty. Session evidence must use the authenticated multipart transfer endpoint so consent withdrawal revokes upload access.
+          example: ""
         upload_headers:
           type: object
           additionalProperties:
             type: string
         upload_transfer_path:
           type: string
+          description: POST a multipart/form-data file field with the session bearer token and X-Session-Id. A successful transfer validates and finalizes the upload; no completion request is needed.
         upload_complete_path:
           type: string
+          description: Legacy completion endpoint. New session uploads use upload_transfer_path.
         expires_at:
           type: string
           format: date-time

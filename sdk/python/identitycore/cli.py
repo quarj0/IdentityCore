@@ -29,21 +29,7 @@ COMMANDS = {
     "verifications": "list get create cancel evidence",
     "policies": "list get",
 }
-COMMAND_OPTIONS = {
-    ("verifications", "create"): (
-        "--purpose --policy-id --full-name --email --project-id "
-        "--external-reference --redirect-url --idempotency-key"
-    ),
-    ("verifications", "evidence"): "--file --pdf",
-    ("projects", "create"): "--name --environment",
-    ("api-clients", "create"): (
-        "--name --project-id --scopes --allowed-network --idempotency-key"
-    ),
-    ("workflows", "create"): "--name --project-id --definition",
-    ("webhooks", "create"): (
-        "--url --event --project-id --description --idempotency-key"
-    ),
-}
+
 
 
 class _HelpFormatter(argparse.RawDescriptionHelpFormatter):
@@ -54,13 +40,17 @@ class _HelpFormatter(argparse.RawDescriptionHelpFormatter):
 class _ArgumentParser(argparse.ArgumentParser):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         kwargs.setdefault("formatter_class", _HelpFormatter)
+        kwargs.setdefault("allow_abbrev", False)
         super().__init__(*args, **kwargs)
 
     def format_help(self) -> str:
         text = super().format_help()
         for old, new in {
             "usage:": "USAGE:\n ",
-            "positional arguments:\n": "COMMANDS:\n",
+            "positional arguments:\n": (
+                "COMMANDS:\n" if any(isinstance(action, argparse._SubParsersAction) for action in self._actions)
+                else "ARGUMENTS:\n"
+            ),
             "options:\n": "OPTIONS:\n",
         }.items():
             text = text.replace(old, new)
@@ -358,6 +348,16 @@ Documentation: https://docs.identitycore.com/cli""",
 
 
 def _completion_script(shell: str) -> str:
+    command_options = {}
+    parser = _build_parser()
+    root = next(action for action in parser._actions if isinstance(action, argparse._SubParsersAction))
+    for resource, resource_parser in root.choices.items():
+        for subcommands in resource_parser._actions:
+            if isinstance(subcommands, argparse._SubParsersAction):
+                for action_name, action_parser in subcommands.choices.items():
+                    command_options[(resource, action_name)] = " ".join(
+                        option for action in action_parser._actions for option in action.option_strings
+                    )
     top = "login profiles health policies verifications projects api-clients workflows templates webhooks completion"
     if shell == "bash":
         resource_cases = "\n".join(
@@ -365,7 +365,7 @@ def _completion_script(shell: str) -> str:
         )
         action_cases = "\n".join(
             f'      {resource}:{action}) opts="{options}" ;;'
-            for (resource, action), options in COMMAND_OPTIONS.items()
+            for (resource, action), options in command_options.items()
         )
         return f"""# bash completion for identitycore
 _identitycore_completion() {{
@@ -397,7 +397,7 @@ complete -F _identitycore_completion identitycore"""
         )
         action_cases = "\n".join(
             f"    {resource}:{action}) _values option {options} ;;"
-            for (resource, action), options in COMMAND_OPTIONS.items()
+            for (resource, action), options in command_options.items()
         )
         resource_cases = "\n".join(
             f"      {name}) _values action {actions} ;;"
@@ -428,25 +428,61 @@ _identitycore() {{
     esac ;;
   esac
 }}
+if (( ! $+functions[compdef] )); then
+  autoload -Uz compinit
+  compinit -i
+fi
 compdef _identitycore identitycore"""
-    lines = ["# fish completion for identitycore", "complete -c identitycore -f"]
+    lines = ["""# fish completion for identitycore
+function __identitycore_position
+    set -l resource ''
+    set -l action ''
+    set -l skip_value 0
+    set -l words (commandline -opc)
+    for word in $words[2..-1]
+        if test $skip_value -eq 1
+            set skip_value 0
+            continue
+        end
+        switch $word
+            case --profile --environment --api-origin --client-id --client-secret --access-token --output
+                set skip_value 1
+            case '-*'
+                continue
+            case '*'
+                if test -z "$resource"
+                    set resource $word
+                else if test -z "$action"
+                    set action $word
+                end
+        end
+    end
+    test "$resource" = "$argv[1]"; or return 1
+    if test (count $argv) -gt 1
+        test "$action" = "$argv[2]"
+    else
+        test -z "$action"
+    end
+end
+complete -c identitycore -f"""]
     lines += [
-        f"complete -c identitycore -n '__fish_use_subcommand' -a '{name}'"
+        f"complete -c identitycore -n '__identitycore_position \"\"' -a '{name}'"
         for name in top.split()
     ]
     for name, actions in COMMANDS.items():
         lines.append(
-            f"complete -c identitycore -n '__fish_seen_subcommand_from {name}' -a '{actions}'"
+            f"complete -c identitycore -n '__identitycore_position {name}' -a '{actions}'"
         )
     lines.append(
-        "complete -c identitycore -n '__fish_seen_subcommand_from completion' "
+        "complete -c identitycore -n '__identitycore_position completion' "
         "-a 'bash zsh fish'"
     )
-    for (resource, action), options in COMMAND_OPTIONS.items():
+    for (resource, action), options in command_options.items():
         for option in options.split():
+            option_kind = "-l" if option.startswith("--") else "-s"
+            option_name = option.lstrip("-")
             lines.append(
-                f"complete -c identitycore -n '__fish_seen_subcommand_from {resource}; "
-                f"and __fish_seen_subcommand_from {action}' -l {option.removeprefix('--')}"
+                f"complete -c identitycore -n '__identitycore_position {resource} {action}' {option_kind} {option_name}"
             )
     lines += [
         "complete -c identitycore -l profile -r",

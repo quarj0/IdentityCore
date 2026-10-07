@@ -155,6 +155,12 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
                     "default_locale": "The default locale must match the consent template language."
                 }
             )
+        from apps.consent.services import validate_policy_consent_scope
+        from django.core.exceptions import ValidationError as ScopeError
+        try:
+            validate_policy_consent_scope(attrs.get("consent_template"), locales)
+        except ScopeError as exc:
+            raise serializers.ValidationError({"consent_template_id": exc.messages}) from None
         attrs["supported_locales"] = locales
         return attrs
 
@@ -297,6 +303,12 @@ class VerificationPolicyUpdateSerializer(VerificationPolicyCreateSerializer):
                     "default_locale": "The default locale must match the consent template language."
                 }
             )
+        from apps.consent.services import validate_policy_consent_scope
+        from django.core.exceptions import ValidationError as ScopeError
+        try:
+            validate_policy_consent_scope(template, locales)
+        except ScopeError as exc:
+            raise serializers.ValidationError({"consent_template_id": exc.messages}) from None
         attrs["supported_locales"] = locales
         return attrs
 
