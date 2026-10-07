@@ -98,7 +98,7 @@ A provider invocation should include a versioned envelope independent of the cap
 
 ```json
 {
-  "contract_version": "1.0",
+  "contract_version": "1",
   "request_id": "req_...",
   "invocation_id": "pinv_...",
   "capability": "document.ocr",
@@ -178,7 +178,7 @@ A provider response must separate transport success from capability outcome.
 
 ```json
 {
-  "contract_version": "1.0",
+  "contract_version": "1",
   "invocation_id": "pinv_...",
   "status": "completed",
   "outcome": "recognized",

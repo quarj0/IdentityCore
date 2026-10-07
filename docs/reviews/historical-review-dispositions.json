@@ -5646,95 +5646,105 @@
       "thread_id": "PRRT_kwDOTN0BU86XluoE",
       "comment_id": 3743305749,
       "path": "provider-sdk/conformance/run.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "provider-sdk/conformance/run.py:root-relative/no-dot fixture target, typed version list, bounded deadline",
         "provider-sdk/conformance/tests/test_runner.py:real signed suite and malformed target/version/deadline regressions",
         "provider-sdk/conformance/README.md:explicit disposable secret",
         "docs/providers/provider-sdk.md:contract_version 1",
-        "All six conformance tests pass; Ruff passes."
+        "All six conformance tests pass; Ruff passes.",
+        "All seven conformance tests pass; CI and Security passed on the final head."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Revalidate the URL after joining the fixture path**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/280#discussion_r3743305749",
       "remediation_pr": 377,
-      "remediation_commit": "fc79fd73b67bad3005c3c4cfd290642b8fd09ae1",
-      "disposition_note": "Implemented and tested on PR #377; remains actionable until reviewed remediation merges into main."
+      "remediation_commit": "24447ea12d93e74686c0939597e4f5c496af74b8",
+      "disposition_note": "Merged after final-head review, correction evidence, resolved threads and passing CI/Security. Original historical thread now resolved with merge and regression evidence.",
+      "merged_commit": "099a57c815fc4a14d69d0f1fe4f6a9f3f20f2307"
     },
     {
       "pr_number": 280,
       "thread_id": "PRRT_kwDOTN0BU86XluoG",
       "comment_id": 3743305754,
       "path": "provider-sdk/conformance/run.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "provider-sdk/conformance/run.py:root-relative/no-dot fixture target, typed version list, bounded deadline",
         "provider-sdk/conformance/tests/test_runner.py:real signed suite and malformed target/version/deadline regressions",
         "provider-sdk/conformance/README.md:explicit disposable secret",
         "docs/providers/provider-sdk.md:contract_version 1",
-        "All six conformance tests pass; Ruff passes."
+        "All six conformance tests pass; Ruff passes.",
+        "All seven conformance tests pass; CI and Security passed on the final head."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Use one contract-version value throughout the SDK**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/280#discussion_r3743305754",
       "remediation_pr": 377,
-      "remediation_commit": "fc79fd73b67bad3005c3c4cfd290642b8fd09ae1",
-      "disposition_note": "Implemented and tested on PR #377; remains actionable until reviewed remediation merges into main."
+      "remediation_commit": "24447ea12d93e74686c0939597e4f5c496af74b8",
+      "disposition_note": "Merged after final-head review, correction evidence, resolved threads and passing CI/Security. Original historical thread now resolved with merge and regression evidence.",
+      "merged_commit": "099a57c815fc4a14d69d0f1fe4f6a9f3f20f2307"
     },
     {
       "pr_number": 280,
       "thread_id": "PRRT_kwDOTN0BU86XluoK",
       "comment_id": 3743305757,
       "path": "provider-sdk/conformance/README.md",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "provider-sdk/conformance/run.py:root-relative/no-dot fixture target, typed version list, bounded deadline",
         "provider-sdk/conformance/tests/test_runner.py:real signed suite and malformed target/version/deadline regressions",
         "provider-sdk/conformance/README.md:explicit disposable secret",
         "docs/providers/provider-sdk.md:contract_version 1",
-        "All six conformance tests pass; Ruff passes."
+        "All six conformance tests pass; Ruff passes.",
+        "All seven conformance tests pass; CI and Security passed on the final head."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include the required secret in the run instructions**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/280#discussion_r3743305757",
       "remediation_pr": 377,
-      "remediation_commit": "fc79fd73b67bad3005c3c4cfd290642b8fd09ae1",
-      "disposition_note": "Implemented and tested on PR #377; remains actionable until reviewed remediation merges into main."
+      "remediation_commit": "24447ea12d93e74686c0939597e4f5c496af74b8",
+      "disposition_note": "Merged after final-head review, correction evidence, resolved threads and passing CI/Security. Original historical thread now resolved with merge and regression evidence.",
+      "merged_commit": "099a57c815fc4a14d69d0f1fe4f6a9f3f20f2307"
     },
     {
       "pr_number": 280,
       "thread_id": "PRRT_kwDOTN0BU86XluoM",
       "comment_id": 3743305759,
       "path": "provider-sdk/conformance/run.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "provider-sdk/conformance/run.py:root-relative/no-dot fixture target, typed version list, bounded deadline",
         "provider-sdk/conformance/tests/test_runner.py:real signed suite and malformed target/version/deadline regressions",
         "provider-sdk/conformance/README.md:explicit disposable secret",
         "docs/providers/provider-sdk.md:contract_version 1",
-        "All six conformance tests pass; Ruff passes."
+        "All six conformance tests pass; Ruff passes.",
+        "All seven conformance tests pass; CI and Security passed on the final head."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Require a list of supported contract versions**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/280#discussion_r3743305759",
       "remediation_pr": 377,
-      "remediation_commit": "fc79fd73b67bad3005c3c4cfd290642b8fd09ae1",
-      "disposition_note": "Implemented and tested on PR #377; remains actionable until reviewed remediation merges into main."
+      "remediation_commit": "24447ea12d93e74686c0939597e4f5c496af74b8",
+      "disposition_note": "Merged after final-head review, correction evidence, resolved threads and passing CI/Security. Original historical thread now resolved with merge and regression evidence.",
+      "merged_commit": "099a57c815fc4a14d69d0f1fe4f6a9f3f20f2307"
     },
     {
       "pr_number": 280,
       "thread_id": "PRRT_kwDOTN0BU86XluoN",
       "comment_id": 3743305761,
       "path": "provider-sdk/conformance/run.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "provider-sdk/conformance/run.py:root-relative/no-dot fixture target, typed version list, bounded deadline",
         "provider-sdk/conformance/tests/test_runner.py:real signed suite and malformed target/version/deadline regressions",
         "provider-sdk/conformance/README.md:explicit disposable secret",
         "docs/providers/provider-sdk.md:contract_version 1",
-        "All six conformance tests pass; Ruff passes."
+        "All six conformance tests pass; Ruff passes.",
+        "All seven conformance tests pass; CI and Security passed on the final head."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep the configurable deadline below the timeout fixture delay**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/280#discussion_r3743305761",
       "remediation_pr": 377,
-      "remediation_commit": "fc79fd73b67bad3005c3c4cfd290642b8fd09ae1",
-      "disposition_note": "Implemented and tested on PR #377; remains actionable until reviewed remediation merges into main."
+      "remediation_commit": "24447ea12d93e74686c0939597e4f5c496af74b8",
+      "disposition_note": "Merged after final-head review, correction evidence, resolved threads and passing CI/Security. Original historical thread now resolved with merge and regression evidence.",
+      "merged_commit": "099a57c815fc4a14d69d0f1fe4f6a9f3f20f2307"
     },
     {
       "pr_number": 280,
@@ -5811,18 +5821,20 @@
       "thread_id": "PRRT_kwDOTN0BU86Ynst_",
       "comment_id": 3767725076,
       "path": "backend/django/apps/uploads/scanning.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/uploads/scanning.py",
         "backend/django/apps/uploads/tests.py:UploadVideoInspectionTests.test_image_decompression_warning_is_rejected",
         "Full local backend: 812 tests pass, 28 PostgreSQL-only skips (2026-10-05).",
-        "Classic and fragmented MP4 files generated by ffmpeg both pass inspection."
+        "Classic and fragmented MP4 files generated by ffmpeg both pass inspection.",
+        "All 75 upload tests pass; CI and Security passed on the final head."
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Convert decompression-bomb warnings into rejection**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/286#discussion_r3767725076",
-      "remediation_commit": "009936aeedd4d6598c0406d950a9c56a892b03c8",
-      "disposition_note": "Implemented and tested on PR #365; remains actionable on current main until reviewed remediation merges.",
-      "remediation_pr": 365
+      "remediation_commit": "a151c772f1728f617b07bdbc0ec2b6b1e5000ce0",
+      "disposition_note": "Merged after final-head review, correction evidence, resolved threads and passing CI/Security. Original historical thread now resolved with merge and regression evidence.",
+      "remediation_pr": 365,
+      "merged_commit": "0e01dc201454620395cbfb1d56e15a627157e56b"
     },
     {
       "pr_number": 286,
@@ -5971,108 +5983,120 @@
       "thread_id": "PRRT_kwDOTN0BU86YpMcy",
       "comment_id": 3768297462,
       "path": "backend/django/apps/uploads/scanning.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/uploads/scanning.py",
         "backend/django/apps/uploads/tests.py:UploadVideoInspectionTests.test_accepts_fragmented_mp4_with_samples_inside_media_data",
         "Full local backend: 812 tests pass, 28 PostgreSQL-only skips (2026-10-05).",
-        "Classic and fragmented MP4 files generated by ffmpeg both pass inspection."
+        "Classic and fragmented MP4 files generated by ffmpeg both pass inspection.",
+        "All 75 upload tests pass; CI and Security passed on the final head."
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Accept fragmented MP4 recordings from Safari**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/290#discussion_r3768297462",
-      "remediation_commit": "009936aeedd4d6598c0406d950a9c56a892b03c8",
-      "disposition_note": "Implemented and tested on PR #365; remains actionable on current main until reviewed remediation merges.",
-      "remediation_pr": 365
+      "remediation_commit": "a151c772f1728f617b07bdbc0ec2b6b1e5000ce0",
+      "disposition_note": "Merged after final-head review, correction evidence, resolved threads and passing CI/Security. Original historical thread now resolved with merge and regression evidence.",
+      "remediation_pr": 365,
+      "merged_commit": "0e01dc201454620395cbfb1d56e15a627157e56b"
     },
     {
       "pr_number": 290,
       "thread_id": "PRRT_kwDOTN0BU86YpMc3",
       "comment_id": 3768297472,
       "path": "backend/django/apps/uploads/scanning.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/uploads/scanning.py",
         "backend/django/apps/uploads/tests.py:UploadVideoInspectionTests.test_webm_blocks_must_reference_a_supported_video_track",
         "Full local backend: 812 tests pass, 28 PostgreSQL-only skips (2026-10-05).",
-        "Classic and fragmented MP4 files generated by ffmpeg both pass inspection."
+        "Classic and fragmented MP4 files generated by ffmpeg both pass inspection.",
+        "All 75 upload tests pass; CI and Security passed on the final head."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Match WebM blocks to the declared video track**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/290#discussion_r3768297472",
-      "remediation_commit": "009936aeedd4d6598c0406d950a9c56a892b03c8",
-      "disposition_note": "Implemented and tested on PR #365; remains actionable on current main until reviewed remediation merges.",
-      "remediation_pr": 365
+      "remediation_commit": "a151c772f1728f617b07bdbc0ec2b6b1e5000ce0",
+      "disposition_note": "Merged after final-head review, correction evidence, resolved threads and passing CI/Security. Original historical thread now resolved with merge and regression evidence.",
+      "remediation_pr": 365,
+      "merged_commit": "0e01dc201454620395cbfb1d56e15a627157e56b"
     },
     {
       "pr_number": 290,
       "thread_id": "PRRT_kwDOTN0BU86YpMc9",
       "comment_id": 3768297477,
       "path": "backend/django/apps/uploads/scanning.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/uploads/scanning.py",
         "backend/django/apps/uploads/tests.py:UploadVideoInspectionTests.test_webm_element_budget_rejects_memory_amplification",
         "Full local backend: 812 tests pass, 28 PostgreSQL-only skips (2026-10-05).",
-        "Classic and fragmented MP4 files generated by ffmpeg both pass inspection."
+        "Classic and fragmented MP4 files generated by ffmpeg both pass inspection.",
+        "All 75 upload tests pass; CI and Security passed on the final head."
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Bound the number of parsed EBML elements**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/290#discussion_r3768297477",
-      "remediation_commit": "009936aeedd4d6598c0406d950a9c56a892b03c8",
-      "disposition_note": "Implemented and tested on PR #365; remains actionable on current main until reviewed remediation merges.",
-      "remediation_pr": 365
+      "remediation_commit": "a151c772f1728f617b07bdbc0ec2b6b1e5000ce0",
+      "disposition_note": "Merged after final-head review, correction evidence, resolved threads and passing CI/Security. Original historical thread now resolved with merge and regression evidence.",
+      "remediation_pr": 365,
+      "merged_commit": "0e01dc201454620395cbfb1d56e15a627157e56b"
     },
     {
       "pr_number": 290,
       "thread_id": "PRRT_kwDOTN0BU86YpMdB",
       "comment_id": 3768297483,
       "path": "backend/django/apps/uploads/scanning.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/uploads/scanning.py",
         "backend/django/apps/uploads/tests.py:UploadVideoInspectionTests.test_classic_mp4_rejects_out_of_range_chunk_offsets_and_short_media",
         "Full local backend: 812 tests pass, 28 PostgreSQL-only skips (2026-10-05).",
-        "Classic and fragmented MP4 files generated by ffmpeg both pass inspection."
+        "Classic and fragmented MP4 files generated by ffmpeg both pass inspection.",
+        "All 75 upload tests pass; CI and Security passed on the final head."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Verify MP4 samples reside in media data**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/290#discussion_r3768297483",
-      "remediation_commit": "009936aeedd4d6598c0406d950a9c56a892b03c8",
-      "disposition_note": "Implemented and tested on PR #365; remains actionable on current main until reviewed remediation merges.",
-      "remediation_pr": 365
+      "remediation_commit": "a151c772f1728f617b07bdbc0ec2b6b1e5000ce0",
+      "disposition_note": "Merged after final-head review, correction evidence, resolved threads and passing CI/Security. Original historical thread now resolved with merge and regression evidence.",
+      "remediation_pr": 365,
+      "merged_commit": "0e01dc201454620395cbfb1d56e15a627157e56b"
     },
     {
       "pr_number": 290,
       "thread_id": "PRRT_kwDOTN0BU86YpMdH",
       "comment_id": 3768297491,
       "path": "backend/django/apps/uploads/scanning.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/uploads/scanning.py",
         "backend/django/apps/uploads/tests.py:UploadVideoInspectionTests.test_webm_accepts_block_group_frames",
         "Full local backend: 812 tests pass, 28 PostgreSQL-only skips (2026-10-05).",
-        "Classic and fragmented MP4 files generated by ffmpeg both pass inspection."
+        "Classic and fragmented MP4 files generated by ffmpeg both pass inspection.",
+        "All 75 upload tests pass; CI and Security passed on the final head."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Support WebM BlockGroup frames**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/290#discussion_r3768297491",
-      "remediation_commit": "009936aeedd4d6598c0406d950a9c56a892b03c8",
-      "disposition_note": "Implemented and tested on PR #365; remains actionable on current main until reviewed remediation merges.",
-      "remediation_pr": 365
+      "remediation_commit": "a151c772f1728f617b07bdbc0ec2b6b1e5000ce0",
+      "disposition_note": "Merged after final-head review, correction evidence, resolved threads and passing CI/Security. Original historical thread now resolved with merge and regression evidence.",
+      "remediation_pr": 365,
+      "merged_commit": "0e01dc201454620395cbfb1d56e15a627157e56b"
     },
     {
       "pr_number": 290,
       "thread_id": "PRRT_kwDOTN0BU86YpMdL",
       "comment_id": 3768297497,
       "path": "backend/django/apps/uploads/scanning.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/uploads/scanning.py",
         "backend/django/apps/uploads/tests.py:UploadVideoInspectionTests.test_webm_accepts_omitted_default_header_values",
         "Full local backend: 812 tests pass, 28 PostgreSQL-only skips (2026-10-05).",
-        "Classic and fragmented MP4 files generated by ffmpeg both pass inspection."
+        "Classic and fragmented MP4 files generated by ffmpeg both pass inspection.",
+        "All 75 upload tests pass; CI and Security passed on the final head."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Apply EBML defaults when header fields are omitted**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/290#discussion_r3768297497",
-      "remediation_commit": "009936aeedd4d6598c0406d950a9c56a892b03c8",
-      "disposition_note": "Implemented and tested on PR #365; remains actionable on current main until reviewed remediation merges.",
-      "remediation_pr": 365
+      "remediation_commit": "a151c772f1728f617b07bdbc0ec2b6b1e5000ce0",
+      "disposition_note": "Merged after final-head review, correction evidence, resolved threads and passing CI/Security. Original historical thread now resolved with merge and regression evidence.",
+      "remediation_pr": 365,
+      "merged_commit": "0e01dc201454620395cbfb1d56e15a627157e56b"
     },
     {
       "pr_number": 291,
