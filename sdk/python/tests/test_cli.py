@@ -50,6 +50,55 @@ class IdentityCoreCliTests(unittest.TestCase):
                 self.assertIn(purpose_option, output)
                 self.assertIn("bash", output)
 
+    def test_leaf_help_labels_identifiers_as_arguments(self) -> None:
+        code, output = self.run_cli("policies", "get", "--help")
+        self.assertEqual(code, 0)
+        self.assertIn("ARGUMENTS:", output)
+        self.assertNotIn("COMMANDS:", output)
+        self.assertIn("policy_id", output)
+
+    @unittest.skipUnless(__import__("shutil").which("zsh"), "Zsh is unavailable")
+    def test_zsh_completion_initializes_in_a_fresh_shell(self) -> None:
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as directory:
+            script = Path(directory) / "identitycore.zsh"
+            script.write_text(cli._completion_script("zsh"))
+            result = subprocess.run(
+                ["zsh", "-f", "-c", 'source "$1"; [[ ${_comps[identitycore]} == _identitycore ]]', "zsh", str(script)],
+                capture_output=True, text=True, env={**os.environ, "ZDOTDIR": directory},
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stderr, "")
+
+    @unittest.skipUnless(__import__("shutil").which("fish"), "Fish is unavailable")
+    def test_fish_completion_ignores_global_option_values(self) -> None:
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as directory:
+            script = Path(directory) / "identitycore.fish"
+            script.write_text(cli._completion_script("fish"))
+            def candidates(command):
+                result = subprocess.run(
+                    ["fish", "--no-config", "-c", 'source $argv[1]; complete -C $argv[2]', str(script), command],
+                    capture_output=True, text=True,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                return {line.split("\t")[0] for line in result.stdout.splitlines()}
+            self.assertIn("list", candidates("identitycore --profile list projects l"))
+            self.assertNotIn("list", candidates("identitycore --profile list projects create l"))
+            self.assertIn("--name", candidates("identitycore --profile create projects create --n"))
+            self.assertIn("-h", candidates("identitycore projects create -"))
+            self.assertIn("--help", candidates("identitycore projects create --he"))
+
+    def test_abbreviated_options_are_rejected_at_each_parser_level(self) -> None:
+        for argv in (["--prof", "list", "projects", "list"],
+                     ["projects", "create", "--nam", "example"]):
+            with self.subTest(argv=argv), redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as caught:
+                    cli._build_parser().parse_args(argv)
+                self.assertEqual(caught.exception.code, 2)
+
     def test_version(self) -> None:
         exit_code, output = self.run_cli("--version")
 
