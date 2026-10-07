@@ -102,7 +102,7 @@ test('a head change during validation fails the check for the inspected SHA', as
       return {data: {workflow_runs: runs}};
     };
     await assert.rejects(run({github, context: {repo: {owner: 'synthetic', repo: 'test'}, payload: {pull_request: {number: 1}}}}), /CI/);
-    assert.equal(runReads, 4);
+    assert.equal(runReads, 8);
     assert.equal(published.conclusion, 'failure');
   }
   reads = 0;
@@ -388,7 +388,8 @@ for (const state of ['queued', 'in_progress', 'failure', 'success']) {
 test('both evidence snapshots paginate beyond the first workflow-run page', async () => {
   const { fetchWorkflowRuns } = require('./review-gate.cjs');
   const pages = [];
-  const github = {rest: {actions: {listWorkflowRuns: async ({page, per_page, head_sha}) => {
+  const github = {rest: {actions: {listWorkflowRuns: async ({page, per_page, head_sha, event}) => {
+    if (event === 'push') return {data: {workflow_runs: []}};
     pages.push(page); assert.equal(per_page, 100); assert.equal(head_sha, head);
     return {data: {workflow_runs: page === 1 ? Array.from({length: 100}, (_, id) => ({id, name: 'Signal'})) : baseline().runs}};
   }}}};
@@ -493,11 +494,11 @@ test('ambiguous abbreviations and non-ancestor commits cannot be evidence', asyn
 test('trusted workflow searches are separate from unrelated repository runs', async () => {
   const {fetchWorkflowRuns} = require('./review-gate.cjs');
   const requested = [];
-  const github = {rest: {actions: {listWorkflowRuns: async ({workflow_id}) => {
-    requested.push(workflow_id); return {data: {workflow_runs: baseline().runs.filter(run => run.workflow_id === workflow_id)}};
+  const github = {rest: {actions: {listWorkflowRuns: async ({workflow_id, event}) => {
+    requested.push([workflow_id, event]); return {data: {workflow_runs: baseline().runs.filter(run => run.workflow_id === workflow_id && run.event === event)}};
   }}}};
   const {data} = await fetchWorkflowRuns({github, owner: 'test', repo: 'test', head, workflows: [{id: 1}, {id: 2}]});
-  assert.deepEqual(requested, [1, 2]); assert.deepEqual(data.workflow_runs, baseline().runs);
+  assert.deepEqual(requested, [[1, 'pull_request'], [1, 'push'], [2, 'pull_request'], [2, 'push']]); assert.deepEqual(data.workflow_runs, baseline().runs);
 });
 
 test('bulk validation of 257 PRs stays below the installation REST budget', async () => {
@@ -528,9 +529,9 @@ test('bulk validation of 257 PRs stays below the installation REST budget', asyn
   assert.ok(requests < 5000, `${requests} requests exceed the installation budget`);
 });
 
-const mergerPolicy = {publisher_app_id: 5218906, trusted_mergers_ruleset_id: 24627093};
+const mergerPolicy = require('../review-gate-policy.json');
 const nativePolicy = () => ({policy: mergerPolicy, repository: {permissions: {admin: true}},
-  protection: {enforce_admins: {enabled: true}, required_conversation_resolution: {enabled: true}, required_status_checks: {strict: true, checks: [{context: 'review-evidence', app_id: mergerPolicy.publisher_app_id}]}},
+  protection: {enforce_admins: {enabled: true}, required_conversation_resolution: {enabled: true}, required_status_checks: {strict: true, checks: [{context: 'review-evidence', app_id: mergerPolicy.publisher_app_id}, ...mergerPolicy.required_ci_checks.map(check => ({...check}))]}},
   ruleset: {target: 'branch', enforcement: 'active', conditions: {ref_name: {include: ['refs/heads/main'], exclude: []}}, rules: [{type: 'update'}],
     bypass_actors: [{actor_type: 'RepositoryRole', actor_id: 5, bypass_mode: 'pull_request'}]}});
 
@@ -822,3 +823,37 @@ test('gate CI and Security respond to PR base edits', () => {
     assert.match(source, /pull_request(?:_target)?:\n\s+types: \[[^\]]*edited/);
   }
 });
+
+for (const wording of ['Tests passed. Integration failed.', 'Tests passed. The rest failed.', 'Tests passed. Results are unverified.', 'Tests passed; remaining coverage is incomplete.']) {
+  test(`separate incomplete result blocks evidence: ${wording}`, () => {
+    const {affirmativeValidation} = require('./review-gate.cjs');
+    assert.equal(affirmativeValidation(wording), false);
+  });
+}
+test('live merger requires native CI and Security summary source identities', () => {
+  const {assertTrustedPolicy} = require('./merge-reviewed-pr.cjs');
+  for (const index of [1, 2]) {
+    const missing = nativePolicy(); missing.protection.required_status_checks.checks.splice(index, 1);
+    assert.throws(() => assertTrustedPolicy(missing), /native required checks/);
+    const spoof = nativePolicy(); spoof.protection.required_status_checks.checks[index].app_id = 1;
+    assert.throws(() => assertTrustedPolicy(spoof), /native required checks/);
+  }
+});
+for (const [file, job, name] of [['ci.yml', 'required-ci', 'CI required'], ['security.yml', 'required-security', 'Security required']]) {
+  test(`${name} includes every workflow job and rejects any nonsuccess result`, () => {
+    const fs = require('node:fs'); const path = require('node:path'); const {spawnSync} = require('node:child_process');
+    const source = fs.readFileSync(path.join(__dirname, '../workflows', file), 'utf8');
+    const allJobs = [...source.matchAll(/^  ([a-z0-9-]+):$/gm)].map(match => match[1]).filter(value => value !== job);
+    const summary = source.slice(source.indexOf(`  ${job}:`));
+    const needs = summary.match(/needs: \[([^\]]+)\]/)[1].split(',').map(value => value.trim());
+    assert.deepEqual(needs.sort(), allJobs.sort()); assert.match(summary, /always\(\)/);
+    assert.ok(summary.includes(`name: ${name}`));
+    const program = summary.match(/python - <<'PY'\n([\s\S]*?)\n          PY/)[1].replace(/^          /gm, '');
+    for (const result of ['success', 'failure', 'cancelled', 'skipped']) {
+      const execution = spawnSync('python3', ['-c', program], {env: {...process.env, WORKFLOW_RESULTS: JSON.stringify({example: {result}})}});
+      assert.equal(execution.status === 0, result === 'success');
+    }
+    const empty = spawnSync('python3', ['-c', program], {env: {...process.env, WORKFLOW_RESULTS: '{}'}});
+    assert.notEqual(empty.status, 0);
+  });
+}

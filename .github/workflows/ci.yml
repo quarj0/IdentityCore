@@ -315,3 +315,23 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m unittest discover -s scripts -p test_deployed_security.py
+
+  required-ci:
+    name: CI required
+    if: ${{ always() }}
+    needs: [push, review-gate-tests, operational-alerts, operational-restore, documentation, backend, backend-migrations, ai-service, frontend, sdks, java-sdk, dotnet-sdk, sdk-live-python, sdk-live-javascript, sdk-live-java, sdk-live-dotnet, deployment-health-fixtures, deployment-security-fixtures]
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Require every workflow job to succeed
+        env:
+          WORKFLOW_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python - <<'PY'
+          import json, os
+          results = json.loads(os.environ["WORKFLOW_RESULTS"])
+          blocked = [name for name, result in results.items() if result.get("result") != "success"]
+          if not results or blocked:
+              raise SystemExit("Required jobs did not succeed: " + ", ".join(blocked))
+          print("Every required workflow job succeeded.")
+          PY

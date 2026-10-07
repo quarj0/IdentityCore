@@ -10,8 +10,7 @@ function affirmativeValidation(body) {
   body = body.replace(/\b(\w+)n['’]t\b/gi, '$1 not');
   const clauses = body.split(/[.!?\n;:]+/);
   if (clauses.some(clause => /^\s*(?:except|excluding|partial(?:ly)?|incomplete|but|however|only|not|none|no|zero)\b/i.test(clause))) return false;
-  if (clauses.some(clause => /\b(tests?|validation|regressions?)\b/i.test(clause) &&
-      /\b(fail|fails|failed|failing|failure|failures|not|never|unable|incomplete|pending|unverified|unsuccessful|cannot|no|none|zero|0|partial|partially|except|exception|exceptions)\b/i.test(clause))) return false;
+  if (clauses.some(clause => /\b(fail|fails|failed|failing|failure|failures|not|never|unable|incomplete|pending|unverified|unsuccessful|cannot|no|none|zero|0|partial|partially|except|exception|exceptions)\b/i.test(clause))) return false;
   return clauses.some(clause => /^\s*(?:all\s+)?(?:[1-9]\d*\s+)?(?:(?:gate|regression|unit|integration|e2e|targeted|frontend|backend|sdk|live|smoke|added|new)\s+)*(?:tests?|validation)(?:\s+(?:have|has))?\s+(?:pass(?:ed|es)?|(?:was|were|is|are)\s+successful|successful(?:ly)?)\s*$/i.test(clause));
 }
 
@@ -130,10 +129,12 @@ async function fetchThreads(github, owner, repo, number) {
 async function fetchWorkflowRuns({ github, owner, repo, head, workflows = [{id: 'ci.yml'}, {id: 'security.yml'}] }) {
   const runs = [];
   for (const workflow of workflows) {
+    for (const event of ['pull_request', 'push']) {
     for (let page = 1; ; page++) {
-      const { data } = await github.rest.actions.listWorkflowRuns({ owner, repo, workflow_id: workflow.id, head_sha: head, per_page: 100, page });
+      const { data } = await github.rest.actions.listWorkflowRuns({ owner, repo, workflow_id: workflow.id, head_sha: head, event, per_page: 100, page });
       runs.push(...data.workflow_runs);
       if (data.workflow_runs.length < 100) break;
+    }
     }
   }
   return { data: { workflow_runs: runs } };
