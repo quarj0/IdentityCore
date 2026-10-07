@@ -4,7 +4,7 @@ const { assess } = require('./review-gate.cjs');
 const head = 'a'.repeat(40);
 const fixed = 'b'.repeat(40);
 const reviewer = 'chatgpt-codex-connector';
-const baseline = () => ({ head, reviewer, protectedDefinitions: {'.github/scripts/review-gate.cjs': true, '.github/workflows/review-gate.yml': true}, trustedWorkflows: {CI: {id: 1, definitionMatches: true, path: '.github/workflows/ci.yml'}, Security: {id: 2, definitionMatches: true, path: '.github/workflows/security.yml'}}, commits: [head, fixed], runs: ['CI', 'Security'].map((name, index) => ({name, workflow_id: index + 1, path: `.github/workflows/${name === 'CI' ? 'ci' : 'security'}.yml`, head_sha: head, event: 'pull_request', id: 1, status: 'completed', conclusion: 'success'})), reviews: [{ user: { login: reviewer }, commit_id: head, state: 'COMMENTED', submitted_at: '2026-02-01T00:00:00Z' }], comments: [], threads: [] });
+const baseline = () => ({ head, reviewer, protectedDefinitions: {'.github/scripts/review-gate.cjs': true, '.github/workflows/review-gate.yml': true, '.github/workflows/review-evidence-signal.yml': true}, trustedWorkflows: {CI: {id: 1, definitionMatches: true, path: '.github/workflows/ci.yml'}, Security: {id: 2, definitionMatches: true, path: '.github/workflows/security.yml'}}, commits: [head, fixed], runs: ['CI', 'Security'].map((name, index) => ({name, workflow_id: index + 1, path: `.github/workflows/${name === 'CI' ? 'ci' : 'security'}.yml`, head_sha: head, event: 'pull_request', id: 1, status: 'completed', conclusion: 'success'})), reviews: [{ user: { login: reviewer }, commit_id: head, state: 'COMMENTED', submitted_at: '2026-02-01T00:00:00Z' }], comments: [], threads: [] });
 test('requires completed review of the current head', () => {
   for (const state of ['old', 'dismissed', 'absent']) {
     const input = baseline();
@@ -321,4 +321,30 @@ test('a prepared check cannot publish success for a changed head', async () => {
     prepared: {number: 11, head, check_id: 111}}), /head moved/);
   assert.equal(updates[0].check_run_id, 111);
   assert.equal(updates[0].conclusion, 'failure');
+});
+
+
+test('publisher credentials are limited to default-branch environment jobs', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const gate = fs.readFileSync(path.join(__dirname, '../workflows/review-gate.yml'), 'utf8');
+  const signal = fs.readFileSync(path.join(__dirname, '../workflows/review-evidence-signal.yml'), 'utf8');
+  assert.match(gate, /github.ref == format\('refs\/heads\/\{0\}', github.event.repository.default_branch\)/);
+  assert.equal((gate.match(/environment: review-evidence-publisher/g) || []).length, 2);
+  assert.equal((gate.match(/github-token: \$\{\{ steps.publisher.outputs.token \}\}/g) || []).length, 2);
+  assert.equal((gate.match(/permission-checks: write/g) || []).length, 2);
+  assert.doesNotMatch(gate, /^  checks: write$/m);
+  assert.doesNotMatch(signal, /secrets\.|environment:|checkout@|github-token:|checks: write/);
+  assert.match(signal, /permissions: \{\}/);
+  assert.doesNotMatch(gate, /^  pull_request_review:/m);
+  assert.match(gate, /workflows: \[CI, Security, Review evidence signal\]/);
+});
+
+test('review signals without PR association invalidate all open heads', async () => {
+  const { preparePullRequests } = require('./review-gate.cjs');
+  const github = {rest: {pulls: {list: Symbol('list'), get: async ({pull_number}) => ({data: {state: 'open', head: {sha: String(pull_number)}}})},
+    checks: {create: async () => ({data: {id: 111}})}}, paginate: async () => [{number: 11}, {number: 12}]};
+  const targets = await preparePullRequests({github, context: {repo: {owner: 'test', repo: 'test'}, eventName: 'workflow_run',
+    payload: {workflow_run: {name: 'Review evidence signal', pull_requests: []}}}});
+  assert.deepEqual(targets.map(target => target.number), [11, 12]);
 });

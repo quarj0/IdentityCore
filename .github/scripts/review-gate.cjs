@@ -25,7 +25,7 @@ function assess({ head, reviewer, reviews, comments, threads, commits, runs, tru
       .sort((a, b) => b.id - a.id)[0];
     if (!latest || latest.status !== 'completed' || latest.conclusion !== 'success') problems.push(`${name} has not passed for the final head.`);
   }
-  for (const path of ['.github/scripts/review-gate.cjs', '.github/workflows/review-gate.yml']) {
+  for (const path of ['.github/scripts/review-gate.cjs', '.github/workflows/review-gate.yml', '.github/workflows/review-evidence-signal.yml']) {
     if (!protectedDefinitions?.[path]) problems.push(`Protected review-gate definition differs: ${path}.`);
   }
   if (!reviewed) problems.push(`Configured review has not completed for ${head}.`);
@@ -122,7 +122,7 @@ async function run({ github, context, prepared }) {
         trustedDefinition.sha === proposedDefinition.sha };
   }
   const protectedDefinitions = {};
-  for (const path of ['.github/scripts/review-gate.cjs', '.github/workflows/review-gate.yml']) {
+  for (const path of ['.github/scripts/review-gate.cjs', '.github/workflows/review-gate.yml', '.github/workflows/review-evidence-signal.yml']) {
     const [{ data: trusted }, { data: proposed }] = await Promise.all([
       github.rest.repos.getContent({ owner, repo, path, ref: repository.default_branch }),
       github.rest.repos.getContent({ owner, repo, path, ref: head })
@@ -170,7 +170,12 @@ async function preparePullRequests({ github, context }) {
   if (context.eventName === 'push') {
     pullRequests = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
   } else if (context.eventName === 'workflow_run') {
-    pullRequests = context.payload.workflow_run.pull_requests;
+    pullRequests = context.payload.workflow_run.pull_requests || [];
+    if (!pullRequests.length && context.payload.workflow_run.name === 'Review evidence signal') {
+      // Some review-event runs have no PR association in workflow_run metadata.
+      // Revalidate every open PR without trusting a PR-written artifact.
+      pullRequests = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
+    }
   } else {
     if (!number) throw new Error('A pull-request number is required.');
     pullRequests = [{ number }];
