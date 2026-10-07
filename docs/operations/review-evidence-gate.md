@@ -32,7 +32,7 @@ The App token is scoped to this repository, explicitly requests the needed permi
 - Confirm a new head, changed protected definition, missing trusted-maintainer evidence, or failing CI/Security prevents success. Re-resolve a thread under another actor and confirm this does not substitute that actor for the configured evidence author.
 - Record configuration and validation evidence before resolving the administration reviews on #364.
 
-Authenticated `gh` administration verified that `main` already enforces conversation resolution and applies protection to administrators. The `review-evidence-publisher` environment is configured with a custom deployment policy allowing only the literal `main` branch. The dedicated App is registered and its environment credentials are configured. Repository installation and the App-bound required check remain deployment prerequisites. GitHub App registration uses GitHub settings or its browser manifest flow; repository administration through `gh api` does not itself register an App.
+Authenticated `gh` administration verified that `main` already enforces conversation resolution and applies protection to administrators. The `review-evidence-publisher` environment is configured with a custom deployment policy allowing only the literal `main` branch. The dedicated App is registered and its environment credentials are configured. Repository installation is verified with only the intended read permissions and Checks write permission. The App-bound required check remains a deployment prerequisite. GitHub App registration uses GitHub settings or its browser manifest flow; repository administration through `gh api` does not itself register an App.
 
 Implementation reference: [actions/create-github-app-token](https://github.com/actions/create-github-app-token).
 
@@ -47,6 +47,8 @@ node /tmp/identitycore-trusted-merge/.github/scripts/merge-reviewed-pr.cjs --rep
 ```
 
 Without `--merge`, the command checks readiness. It requires administrator identity, native administrator and conversation protection, the dedicated-App required check, and the administrator-only update ruleset. It then independently reads and evaluates current review evidence, protected definitions, declared commit ancestry, and the latest final-head PR and any push CI/Security runs; active runs block, while superseded failures and unrelated dispatches do not. A previously successful check cannot skip this assessment. It checks the head again and merges with an expected-head lease, without `--admin` or protection bypass. This is the authorized merger path; contributors and PR jobs cannot invoke an administrative merge. Administrators remain trusted because they can change repository protection itself.
+
+The live merger also requires strict native status-check protection so GitHub rejects a stale base at merge time; an expected-head lease alone does not protect the base. It rechecks PR and push CI after final live evidence collection.
 
 The initial bootstrap is a reviewed administrator merge before the App-bound check is enabled. Require all final-head CI and a fresh configured review, inspect every thread, and keep #364's deployment reviews open until actual publisher and protection validation is complete.
 
