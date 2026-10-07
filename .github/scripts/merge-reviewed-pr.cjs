@@ -19,10 +19,19 @@ function assertAppCheck(checks, appId) {
   if (!latest || latest.status !== 'completed' || latest.conclusion !== 'success') throw new Error('The latest dedicated App check is not successful.');
 }
 
-function assertCI(runs, workflows) {
+function assertCI(runs, workflows, head) {
+  const activity = candidate => Date.parse(candidate.updated_at || candidate.run_started_at || candidate.created_at) || 0;
   for (const workflow of Object.values(workflows)) {
-    const matching = runs.filter(candidate => candidate.workflow_id === workflow.id);
-    if (!matching.length || matching.some(candidate => candidate.status !== 'completed' || candidate.conclusion !== 'success')) throw new Error('All final-head CI and Security runs must be successful.');
+    const matching = runs.filter(candidate => candidate.workflow_id === workflow.id && candidate.head_sha === head &&
+      typeof candidate.path === 'string' && candidate.path.split('@', 1)[0] === workflow.path);
+    for (const event of ['pull_request', 'push']) {
+      const candidates = matching.filter(candidate => candidate.event === event);
+      if (event === 'push' && !candidates.length) continue;
+      const latest = candidates.sort((a, b) => activity(b) - activity(a) || b.id - a.id)[0];
+      if (!latest || latest.status !== 'completed' || latest.conclusion !== 'success' || candidates.some(candidate => candidate.status !== 'completed')) {
+        throw new Error('Latest final-head CI and Security runs must be successful with no active runs.');
+      }
+    }
   }
 }
 
@@ -46,7 +55,7 @@ async function mergeReviewedPR({ github, context, number, api, merge, validate =
   if (result?.conclusion !== 'success') throw new Error('Live review evidence did not pass.');
   const {workflows} = await metadata({github: liveGithub, owner, repo});
   const {data} = await fetchWorkflowRuns({github: liveGithub, owner, repo, head, workflows: Object.values(workflows)});
-  assertCI(data.workflow_runs, workflows);
+  assertCI(data.workflow_runs, workflows, head);
   const {data: current} = await github.rest.pulls.get({owner, repo, pull_number: number});
   if (current.state !== 'open' || current.head.sha !== head) throw new Error('PR head moved during pre-merge validation.');
   assertAppCheck(await api(`commits/${head}/check-runs?per_page=100`, 'check_runs'), selectedPolicy.publisher_app_id);
