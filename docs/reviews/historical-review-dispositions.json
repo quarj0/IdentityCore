@@ -2739,19 +2739,21 @@
       "thread_id": "PRRT_kwDOTN0BU86Vrtxw",
       "comment_id": 3696923941,
       "path": "sdk/javascript/src/index.d.ts",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "sdk/python/identitycore/cli.py:argument headings and parser-derived completion options; native Zsh setup; positional Fish parser",
         "sdk/python/tests/test_cli.py:leaf help, fresh Zsh, native Fish profile-value regressions",
         "sdk/javascript/src/index.d.ts:VerificationSubjectClientInput separate from generated model",
         "sdk/python/README.md:Fish parent directory creation",
-        "27 Python SDK tests pass locally (two skips); CI installs native shells."
+        "27 Python SDK tests pass locally (two skips); CI installs native shells.",
+        "27 Python SDK tests pass with native Fish/Zsh; one live-service skip. All 47 final-head checks green."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Avoid shadowing the generated subject model**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/186#discussion_r3696923941",
       "remediation_pr": 376,
-      "remediation_commit": "945cae0986a4621919e3d8271ad2baa262c5718d",
-      "disposition_note": "Implemented and tested on PR #376; remains actionable until reviewed remediation merges into main."
+      "remediation_commit": "be13d6321b9541a61c094903bf4f5328c9ac7a02",
+      "disposition_note": "Merged after final-head review, all 47 checks green, and resolved remediation threads. Native Fish/Zsh regression suite passes.",
+      "merged_commit": "6763fd318a971a01b378a4ef727e8e6e669b28f1"
     },
     {
       "pr_number": 186,
@@ -3667,95 +3669,105 @@
       "thread_id": "PRRT_kwDOTN0BU86VsuoB",
       "comment_id": 3697347030,
       "path": "sdk/python/identitycore/cli.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "sdk/python/identitycore/cli.py:argument headings and parser-derived completion options; native Zsh setup; positional Fish parser",
         "sdk/python/tests/test_cli.py:leaf help, fresh Zsh, native Fish profile-value regressions",
         "sdk/javascript/src/index.d.ts:VerificationSubjectClientInput separate from generated model",
         "sdk/python/README.md:Fish parent directory creation",
-        "27 Python SDK tests pass locally (two skips); CI installs native shells."
+        "27 Python SDK tests pass locally (two skips); CI installs native shells.",
+        "27 Python SDK tests pass with native Fish/Zsh; one live-service skip. All 47 final-head checks green."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Distinguish positional arguments from command groups**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/215#discussion_r3697347030",
       "remediation_pr": 376,
-      "remediation_commit": "945cae0986a4621919e3d8271ad2baa262c5718d",
-      "disposition_note": "Implemented and tested on PR #376; remains actionable until reviewed remediation merges into main."
+      "remediation_commit": "be13d6321b9541a61c094903bf4f5328c9ac7a02",
+      "disposition_note": "Merged after final-head review, all 47 checks green, and resolved remediation threads. Native Fish/Zsh regression suite passes.",
+      "merged_commit": "6763fd318a971a01b378a4ef727e8e6e669b28f1"
     },
     {
       "pr_number": 215,
       "thread_id": "PRRT_kwDOTN0BU86VsuoD",
       "comment_id": 3697347032,
       "path": "sdk/python/identitycore/cli.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "sdk/python/identitycore/cli.py:argument headings and parser-derived completion options; native Zsh setup; positional Fish parser",
         "sdk/python/tests/test_cli.py:leaf help, fresh Zsh, native Fish profile-value regressions",
         "sdk/javascript/src/index.d.ts:VerificationSubjectClientInput separate from generated model",
         "sdk/python/README.md:Fish parent directory creation",
-        "27 Python SDK tests pass locally (two skips); CI installs native shells."
+        "27 Python SDK tests pass locally (two skips); CI installs native shells.",
+        "27 Python SDK tests pass with native Fish/Zsh; one live-service skip. All 47 final-head checks green."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Add command-specific options to the Zsh completion**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/215#discussion_r3697347032",
       "remediation_pr": 376,
-      "remediation_commit": "945cae0986a4621919e3d8271ad2baa262c5718d",
-      "disposition_note": "Implemented and tested on PR #376; remains actionable until reviewed remediation merges into main."
+      "remediation_commit": "be13d6321b9541a61c094903bf4f5328c9ac7a02",
+      "disposition_note": "Merged after final-head review, all 47 checks green, and resolved remediation threads. Native Fish/Zsh regression suite passes.",
+      "merged_commit": "6763fd318a971a01b378a4ef727e8e6e669b28f1"
     },
     {
       "pr_number": 215,
       "thread_id": "PRRT_kwDOTN0BU86VsuoE",
       "comment_id": 3697347038,
       "path": "sdk/python/identitycore/cli.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "sdk/python/identitycore/cli.py:argument headings and parser-derived completion options; native Zsh setup; positional Fish parser",
         "sdk/python/tests/test_cli.py:leaf help, fresh Zsh, native Fish profile-value regressions",
         "sdk/javascript/src/index.d.ts:VerificationSubjectClientInput separate from generated model",
         "sdk/python/README.md:Fish parent directory creation",
-        "27 Python SDK tests pass locally (two skips); CI installs native shells."
+        "27 Python SDK tests pass locally (two skips); CI installs native shells.",
+        "27 Python SDK tests pass with native Fish/Zsh; one live-service skip. All 47 final-head checks green."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Stop offering Fish subcommands after selecting one**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/215#discussion_r3697347038",
       "remediation_pr": 376,
-      "remediation_commit": "945cae0986a4621919e3d8271ad2baa262c5718d",
-      "disposition_note": "Implemented and tested on PR #376; remains actionable until reviewed remediation merges into main."
+      "remediation_commit": "be13d6321b9541a61c094903bf4f5328c9ac7a02",
+      "disposition_note": "Merged after final-head review, all 47 checks green, and resolved remediation threads. Native Fish/Zsh regression suite passes.",
+      "merged_commit": "6763fd318a971a01b378a4ef727e8e6e669b28f1"
     },
     {
       "pr_number": 215,
       "thread_id": "PRRT_kwDOTN0BU86VsuoG",
       "comment_id": 3697347040,
       "path": "sdk/python/identitycore/cli.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "sdk/python/identitycore/cli.py:argument headings and parser-derived completion options; native Zsh setup; positional Fish parser",
         "sdk/python/tests/test_cli.py:leaf help, fresh Zsh, native Fish profile-value regressions",
         "sdk/javascript/src/index.d.ts:VerificationSubjectClientInput separate from generated model",
         "sdk/python/README.md:Fish parent directory creation",
-        "27 Python SDK tests pass locally (two skips); CI installs native shells."
+        "27 Python SDK tests pass locally (two skips); CI installs native shells.",
+        "27 Python SDK tests pass with native Fish/Zsh; one live-service skip. All 47 final-head checks green."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Initialize Zsh's completion system before calling compdef**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/215#discussion_r3697347040",
       "remediation_pr": 376,
-      "remediation_commit": "945cae0986a4621919e3d8271ad2baa262c5718d",
-      "disposition_note": "Implemented and tested on PR #376; remains actionable until reviewed remediation merges into main."
+      "remediation_commit": "be13d6321b9541a61c094903bf4f5328c9ac7a02",
+      "disposition_note": "Merged after final-head review, all 47 checks green, and resolved remediation threads. Native Fish/Zsh regression suite passes.",
+      "merged_commit": "6763fd318a971a01b378a4ef727e8e6e669b28f1"
     },
     {
       "pr_number": 215,
       "thread_id": "PRRT_kwDOTN0BU86VsuoH",
       "comment_id": 3697347042,
       "path": "sdk/python/README.md",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "sdk/python/identitycore/cli.py:argument headings and parser-derived completion options; native Zsh setup; positional Fish parser",
         "sdk/python/tests/test_cli.py:leaf help, fresh Zsh, native Fish profile-value regressions",
         "sdk/javascript/src/index.d.ts:VerificationSubjectClientInput separate from generated model",
         "sdk/python/README.md:Fish parent directory creation",
-        "27 Python SDK tests pass locally (two skips); CI installs native shells."
+        "27 Python SDK tests pass locally (two skips); CI installs native shells.",
+        "27 Python SDK tests pass with native Fish/Zsh; one live-service skip. All 47 final-head checks green."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Create the Fish completions directory before redirecting**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/215#discussion_r3697347042",
       "remediation_pr": 376,
-      "remediation_commit": "945cae0986a4621919e3d8271ad2baa262c5718d",
-      "disposition_note": "Implemented and tested on PR #376; remains actionable until reviewed remediation merges into main."
+      "remediation_commit": "be13d6321b9541a61c094903bf4f5328c9ac7a02",
+      "disposition_note": "Merged after final-head review, all 47 checks green, and resolved remediation threads. Native Fish/Zsh regression suite passes.",
+      "merged_commit": "6763fd318a971a01b378a4ef727e8e6e669b28f1"
     },
     {
       "pr_number": 217,
@@ -3974,19 +3986,21 @@
       "thread_id": "PRRT_kwDOTN0BU86VtJzH",
       "comment_id": 3697528274,
       "path": "sdk/python/identitycore/cli.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "sdk/python/identitycore/cli.py:argument headings and parser-derived completion options; native Zsh setup; positional Fish parser",
         "sdk/python/tests/test_cli.py:leaf help, fresh Zsh, native Fish profile-value regressions",
         "sdk/javascript/src/index.d.ts:VerificationSubjectClientInput separate from generated model",
         "sdk/python/README.md:Fish parent directory creation",
-        "27 Python SDK tests pass locally (two skips); CI installs native shells."
+        "27 Python SDK tests pass locally (two skips); CI installs native shells.",
+        "27 Python SDK tests pass with native Fish/Zsh; one live-service skip. All 47 final-head checks green."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Restore command-specific completion candidates**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528274",
       "remediation_pr": 376,
-      "remediation_commit": "945cae0986a4621919e3d8271ad2baa262c5718d",
-      "disposition_note": "Implemented and tested on PR #376; remains actionable until reviewed remediation merges into main."
+      "remediation_commit": "be13d6321b9541a61c094903bf4f5328c9ac7a02",
+      "disposition_note": "Merged after final-head review, all 47 checks green, and resolved remediation threads. Native Fish/Zsh regression suite passes.",
+      "merged_commit": "6763fd318a971a01b378a4ef727e8e6e669b28f1"
     },
     {
       "pr_number": 219,
@@ -5751,10 +5765,13 @@
       "thread_id": "PRRT_kwDOTN0BU86XluoP",
       "comment_id": 3743305763,
       "path": "backend/django/apps/providers/tests.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "Reproduced on main 47ebf156a5e79ca83f2c5f42334f745880da98fd. Correction published in PR #380 at 7cde9c8b37c3e9efde90c886e768cd7cbe96e1a8; six targeted tests pass and migration state is consistent. Pending final-head CI, review and merge."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Exercise each adapter method in the conformance test**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/280#discussion_r3743305763"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/280#discussion_r3743305763",
+      "remediation_pr": 380
     },
     {
       "pr_number": 283,
@@ -5841,10 +5858,13 @@
       "thread_id": "PRRT_kwDOTN0BU86YnsuF",
       "comment_id": 3767725085,
       "path": "backend/django/apps/verifications/migrations/0018_mark_incomplete_decision_contracts_legacy.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "Reproduced on main 47ebf156a5e79ca83f2c5f42334f745880da98fd. Correction published in PR #380 at 7cde9c8b37c3e9efde90c886e768cd7cbe96e1a8; six targeted tests pass and migration state is consistent. Pending final-head CI, review and merge."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Mark decisions legacy when either contract component is missing**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/286#discussion_r3767725085"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/286#discussion_r3767725085",
+      "remediation_pr": 380
     },
     {
       "pr_number": 286,
@@ -8926,6 +8946,6 @@
       "disposition_note": "Fixed and merged after final-head Codex review, regression evidence, resolved review threads and successful CI/Security."
     }
   ],
-  "verified_main": "7cc7bfe76501b478897eeabc3fa794bdefd872a7",
+  "verified_main": "47ebf156a5e79ca83f2c5f42334f745880da98fd",
   "inventory_note": "754 uniquely identified historical threads through merged PRs #360 and #362. Pending entries remain pending; GitHub resolution state is not evidence."
 }

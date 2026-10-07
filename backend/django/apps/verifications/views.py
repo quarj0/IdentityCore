@@ -312,6 +312,7 @@ class VerificationCancelView(VerificationAccessMixin, APIView):
         )
         serializer = VerificationCancelSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        lock_audit_chain(verification.tenant_id)
         try:
             verification, _ = transition_verification(
                 verification,

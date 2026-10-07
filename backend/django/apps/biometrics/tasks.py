@@ -8,7 +8,7 @@ from celery import shared_task
 from django.db import transaction
 from django.utils import timezone
 
-from apps.audit.services import record_audit_event
+from apps.audit.services import lock_audit_chain, record_audit_event
 from apps.biometrics.models import (
     FaceMatchStatus,
     LivenessCheck,
@@ -37,6 +37,7 @@ from apps.verifications.models import (
 )
 from apps.verifications.processing_jobs import (
     ProcessingJobOwnershipLost,
+    defer_on_consent_proof_unavailable,
     acquire_processing_job,
     complete_processing_job,
     heartbeat_processing_job,
@@ -118,6 +119,7 @@ def _commit_biometric_decision(
 ) -> str:
     from apps.risk.services import _automatic_conflict
 
+    lock_audit_chain(verification.tenant_id)
     current = Verification.objects.select_for_update(of=("self",), no_key=True).get(
         pk=verification.pk
     )
@@ -233,6 +235,7 @@ def _persist_unavailable_biometric_decision(
     from apps.risk.services import _automatic_conflict
     from apps.verifications.decision_contract import system_decision_contract_fields
 
+    lock_audit_chain(verification.tenant_id)
     current = Verification.objects.select_for_update(of=("self",), no_key=True).get(
         pk=verification.pk
     )
@@ -305,6 +308,7 @@ def _persist_unavailable_biometric_decision(
 
 
 @shared_task(queue="ai_processing", acks_late=True, reject_on_worker_lost=True)
+@defer_on_consent_proof_unavailable
 def process_verification_biometrics_task(liveness_check_id: str) -> str:
     liveness_check = LivenessCheck.objects.select_related(
         "verification", "selfie_capture", "tenant", "challenge"

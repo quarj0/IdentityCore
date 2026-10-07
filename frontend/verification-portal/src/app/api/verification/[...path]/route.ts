@@ -20,6 +20,7 @@ function pathIsAllowed(path: string[]) {
   if (path[0] !== "sessions" || !path[1] || path.length > 4) return false;
   if (path.length === 2) return true;
   const action = path[2];
+  if (action === "consent" && path.length === 4) return path[3] === "withdraw";
   if (
     ["status", "consent", "mobile-handoff", "documents", "selfies"].includes(
       action,

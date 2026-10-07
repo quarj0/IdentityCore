@@ -9,6 +9,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.db import connection, transaction
+from django.db.models import OuterRef, Q, Subquery
 from django.utils import timezone
 
 from apps.risk.models import ReuseFingerprint
@@ -242,6 +243,14 @@ def collect_reuse(verification):
             if kind in {"device", "network"}
             else timedelta(days=kind_retention)
         )
+        from apps.consent.models import ConsentRecord
+
+        latest_consent = ConsentRecord.objects.filter(
+            verification_id=OuterRef("verification_id"),
+            tenant_id=OuterRef("tenant_id"),
+            verification_subject_id=OuterRef("verification__verification_subject_id"),
+            deleted_at__isnull=True,
+        ).order_by("-accepted_at", "-pk")
         matches = ReuseFingerprint.objects.filter(
             environment=environment,
             kind=kind,
@@ -251,7 +260,15 @@ def collect_reuse(verification):
             verification__verification_subject__deleted_at__isnull=True,
             tenant__deleted_at__isnull=True,
             tenant__status="active",
-        ).exclude(verification=verification)
+        ).exclude(verification=verification).annotate(
+            latest_consent_accepted=Subquery(latest_consent.values("accepted")[:1]),
+            latest_consent_withdrawn=Subquery(latest_consent.values("withdrawn_at")[:1]),
+        ).filter(
+            # Preserve legacy unbound peers; once consent exists, its latest
+            # acceptance controls participation rather than historical withdrawals.
+            Q(latest_consent_accepted__isnull=True) | Q(latest_consent_accepted=True),
+            latest_consent_withdrawn__isnull=True,
+        )
         if scope == "global":
             matches = matches.filter(global_digest=shared)
         else:

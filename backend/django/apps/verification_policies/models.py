@@ -120,6 +120,8 @@ class VerificationPolicy(PublicIdModel, BaseModel):
     document_consistency_rules_json = models.JSONField(default=dict, blank=True)
 
     def snapshot(self) -> dict:
+        from apps.consent.services import validate_policy_consent_scope
+        validate_policy_consent_scope(self.consent_template, self.supported_locales_json or [self.default_locale])
         consent = None
         if self.consent_template_id:
             base_template = self.consent_template
@@ -129,6 +131,7 @@ class VerificationPolicy(PublicIdModel, BaseModel):
                     "version": base_template.version,
                     "language": base_template.language,
                     "content": base_template.content,
+                    "evidence_scope": base_template.evidence_scope_json,
                 }
             }
             configured_locales = self.supported_locales_json or [self.default_locale]
@@ -145,6 +148,7 @@ class VerificationPolicy(PublicIdModel, BaseModel):
                     "version": template.version,
                     "language": template.language,
                     "content": template.content,
+                    "evidence_scope": template.evidence_scope_json,
                 }
             consent = {
                 "template_id": base_template.public_id,

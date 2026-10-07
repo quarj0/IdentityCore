@@ -11,6 +11,15 @@ const messages = {
     consentDescription:
       "Understand what will be processed before you continue. You remain in control of whether to proceed.",
     accept: "Accept and continue",
+    withdraw: "Withdraw consent",
+    withdrawConfirm: "Confirm withdrawal",
+    withdrawCancel: "Keep consent",
+    withdrawExplanation:
+      "Withdrawing stops further evidence processing and ends access to this session. Existing consent and audit records are retained.",
+    withdrawnTitle: "Consent withdrawn",
+    withdrawnDescription:
+      "No further evidence will be processed under this consent. Your session access has ended.",
+    withdrawing: "Withdrawing consent…",
     livenessTitle: "Complete a live camera check",
     activeDescription:
       "Follow a short, server-issued movement sequence while your camera records.",
@@ -27,6 +36,15 @@ const messages = {
     consentDescription:
       "افهم كيفية معالجة بياناتك قبل المتابعة. يمكنك اختيار عدم المتابعة.",
     accept: "الموافقة والمتابعة",
+    withdraw: "سحب الموافقة",
+    withdrawConfirm: "تأكيد سحب الموافقة",
+    withdrawCancel: "الإبقاء على الموافقة",
+    withdrawExplanation:
+      "يوقف سحب الموافقة أي معالجة لاحقة للأدلة وينهي الوصول إلى هذه الجلسة. يتم الاحتفاظ بسجلات الموافقة والتدقيق الحالية.",
+    withdrawnTitle: "تم سحب الموافقة",
+    withdrawnDescription:
+      "لن تُعالج أدلة أخرى بموجب هذه الموافقة. انتهى وصولك إلى الجلسة.",
+    withdrawing: "جارٍ سحب الموافقة…",
     livenessTitle: "أكمل فحص الكاميرا المباشر",
     activeDescription:
       "اتبع تسلسل الحركة القصير الصادر عن الخادم أثناء تسجيل الكاميرا.",

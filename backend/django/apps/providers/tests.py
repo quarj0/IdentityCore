@@ -1,3 +1,5 @@
+from apps.consent.test_helpers import case_with_test_consent
+from apps.consent.test_helpers import accept_test_consent
 import base64
 import json
 import socket
@@ -88,6 +90,7 @@ class ProviderModelTests(TestCase):
             status=VerificationStatus.PROCESSING,
             expires_at=timezone.now(),
         )
+        accept_test_consent(self.verification)
 
     def test_create_provider_check_with_matching_provider_type(self):
         provider = Provider.objects.create(
@@ -645,14 +648,14 @@ class ProviderRouteTests(TestCase):
             tenant=self.tenant,
             full_name="Route Execution Subject",
         )
-        return Verification.objects.create(
+        return case_with_test_consent(Verification.objects.create(
             tenant=self.tenant,
             organization=self.organization,
             verification_subject=subject,
             purpose="Route execution",
             status=VerificationStatus.PROCESSING,
             expires_at=timezone.now() + timedelta(hours=1),
-        )
+        ))
 
     def test_execution_retries_then_falls_back_with_explainable_history(self):
         route = self.create_route(

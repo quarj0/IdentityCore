@@ -440,6 +440,8 @@ public sealed record VerificationSessionStatusResponse
     public string CurrentStep { get; init; }
     [JsonPropertyName("message")]
     public string Message { get; init; }
+    [JsonPropertyName("withdrawal_available")]
+    public bool? WithdrawalAvailable { get; init; }
     [JsonPropertyName("evidence")]
     public JsonElement Evidence { get; init; }
 }

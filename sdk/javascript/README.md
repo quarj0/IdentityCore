@@ -56,3 +56,5 @@ const valid = await verifyWebhookSignatureWithReplayClaim(rawRequestBody, {
 ```
 
 Always verify the unmodified request body before parsing JSON. The default timestamp tolerance is five minutes. The asynchronous helper awaits `claimProcessedEventId`, which must atomically insert the event ID only if absent and return whether it succeeded. Retain the previous secret only until its rotation overlap expires; IdentityCore emits v1 signatures for both secrets during that window. The synchronous `verifyWebhookSignature` remains compatible with the original `X-IdentityCore-Signature` header but intentionally performs no replay claim.
+
+`VerificationSubjectInput` is the generated API model with snake_case properties. Use `VerificationSubjectClientInput` for the client convenience input that also accepts camelCase names.

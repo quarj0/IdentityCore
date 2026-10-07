@@ -245,6 +245,7 @@ export interface VerificationSessionStatusResponse {
   status: string;
   current_step: string;
   message: string;
+  withdrawal_available?: boolean;
   evidence: Record<string, unknown>;
 }
 

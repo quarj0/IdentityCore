@@ -24,7 +24,7 @@ class DecisionRaceTests(TransactionTestCase):
             name="Synthetic", slug="decision-race"
         )
         self.tenant = Tenant.objects.create(
-            organization=organization, name="Synthetic", slug="decision-race"
+            organization=organization, name="Synthetic", slug="decision-race", status="active"
         )
         self.reviewer = PlatformUser.objects.create_user(
             email="synthetic-reviewer@example.invalid",
@@ -144,6 +144,8 @@ class DecisionRaceTests(TransactionTestCase):
         self._race_review_against_late_worker(False)
 
     def test_provider_exhaustion_preserves_pending_human_decision(self):
+        from apps.consent.test_helpers import accept_test_consent
+        accept_test_consent(self.verification)
         from apps.providers.services import _apply_route_final_action
 
         self.verification.policy_snapshot_json = {"maker_checker_required": True}
