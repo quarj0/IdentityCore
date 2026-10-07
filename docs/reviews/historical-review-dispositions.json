@@ -2539,10 +2539,16 @@
       "thread_id": "PRRT_kwDOTN0BU86VraH2",
       "comment_id": 3696807183,
       "path": "backend/django/common/configuration.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "Reproduced on main 47ebf156a5e79ca83f2c5f42334f745880da98fd. PR #382 correction head 3d2821e31ad1bbdbc3fbd9458ec450d41f515270 rejects public sample AI tokens and supports authenticated isolated platform MFA audit events. Authentication/audit/configuration selection: 98 tests, seven skipped. Merged as 2e1fd5be5101aea645e194f493d118a855b5910f; all 47 final-head CI checks passed. Independent AI startup credential rejection also passes four focused regression tests."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reject the checked-in AI service token**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/174#discussion_r3696807183"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/174#discussion_r3696807183",
+      "remediation_pr": 382,
+      "remediation_commit": "3d2821e31ad1bbdbc3fbd9458ec450d41f515270",
+      "merged_commit": "2e1fd5be5101aea645e194f493d118a855b5910f",
+      "disposition_note": "Fixed in merged PR #382 after final-head review, resolved evidence threads, and 47 passing CI checks."
     },
     {
       "pr_number": 178,
@@ -2709,28 +2715,42 @@
       "thread_id": "PRRT_kwDOTN0BU86Vrtxs",
       "comment_id": 3696923937,
       "path": "scripts/generate_sdk_models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "PR #381 correction head c2d20b01256719ff7499721fb779955a343208c3; generator and four SDK suites plus TypeScript rejection cases pass. Required enum presence and numeric-enum rejection regressions pass. Merged as 159da4e78c822c80f4d5527b3be4e423beb5fd22; all 47 final-head CI checks passed."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Generate a boolean type for const schemas**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/186#discussion_r3696923937"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/186#discussion_r3696923937",
+      "remediation_pr": 381,
+      "remediation_commit": "c2d20b01256719ff7499721fb779955a343208c3",
+      "merged_commit": "159da4e78c822c80f4d5527b3be4e423beb5fd22",
+      "disposition_note": "Fixed in merged PR #381 after final-head review, resolved evidence threads, and 47 passing CI checks."
     },
     {
       "pr_number": 186,
       "thread_id": "PRRT_kwDOTN0BU86Vrtxu",
       "comment_id": 3696923939,
       "path": "scripts/generate_sdk_models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "PR #381 correction head c2d20b01256719ff7499721fb779955a343208c3; generator and four SDK suites plus TypeScript rejection cases pass. Required enum presence and numeric-enum rejection regressions pass. Merged as 159da4e78c822c80f4d5527b3be4e423beb5fd22; all 47 final-head CI checks passed."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate fixture values, not only keys**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/186#discussion_r3696923939"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/186#discussion_r3696923939",
+      "remediation_pr": 381,
+      "remediation_commit": "c2d20b01256719ff7499721fb779955a343208c3",
+      "merged_commit": "159da4e78c822c80f4d5527b3be4e423beb5fd22",
+      "disposition_note": "Fixed in merged PR #381 after final-head review, resolved evidence threads, and 47 passing CI checks."
     },
     {
       "pr_number": 186,
       "thread_id": "PRRT_kwDOTN0BU86Vrtxv",
       "comment_id": 3696923940,
       "path": "scripts/test_all.sh",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "Current main 47ebf156a5e79ca83f2c5f42334f745880da98fd: executed .github/workflows/ci.yml backend job and scripts/test_all.sh run scripts/generate_sdk_models.py --check. Drift validation passes, and final-head backend CI is green."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Run model drift validation in CI**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/186#discussion_r3696923940"
     },
@@ -2760,20 +2780,32 @@
       "thread_id": "PRRT_kwDOTN0BU86Vrtxy",
       "comment_id": 3696923943,
       "path": "scripts/generate_sdk_models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "PR #381 correction head c2d20b01256719ff7499721fb779955a343208c3; generator and four SDK suites plus TypeScript rejection cases pass. Required enum presence and numeric-enum rejection regressions pass. Merged as 159da4e78c822c80f4d5527b3be4e423beb5fd22; all 47 final-head CI checks passed."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve enum constraints in generated models**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/186#discussion_r3696923943"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/186#discussion_r3696923943",
+      "remediation_pr": 381,
+      "remediation_commit": "c2d20b01256719ff7499721fb779955a343208c3",
+      "merged_commit": "159da4e78c822c80f4d5527b3be4e423beb5fd22",
+      "disposition_note": "Fixed in merged PR #381 after final-head review, resolved evidence threads, and 47 passing CI checks."
     },
     {
       "pr_number": 186,
       "thread_id": "PRRT_kwDOTN0BU86Vrtxz",
       "comment_id": 3696923944,
       "path": "scripts/generate_sdk_models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "PR #381 correction head c2d20b01256719ff7499721fb779955a343208c3; generator and four SDK suites plus TypeScript rejection cases pass. Required enum presence and numeric-enum rejection regressions pass. Merged as 159da4e78c822c80f4d5527b3be4e423beb5fd22; all 47 final-head CI checks passed."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Omit unset optional .NET request properties**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/186#discussion_r3696923944"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/186#discussion_r3696923944",
+      "remediation_pr": 381,
+      "remediation_commit": "c2d20b01256719ff7499721fb779955a343208c3",
+      "merged_commit": "159da4e78c822c80f4d5527b3be4e423beb5fd22",
+      "disposition_note": "Fixed in merged PR #381 after final-head review, resolved evidence threads, and 47 passing CI checks."
     },
     {
       "pr_number": 187,
@@ -3139,10 +3171,16 @@
       "thread_id": "PRRT_kwDOTN0BU86Vr36F",
       "comment_id": 3696982695,
       "path": "backend/django/apps/accounts/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "Reproduced on main 47ebf156a5e79ca83f2c5f42334f745880da98fd. PR #382 correction head 3d2821e31ad1bbdbc3fbd9458ec450d41f515270 rejects public sample AI tokens and supports authenticated isolated platform MFA audit events. Authentication/audit/configuration selection: 98 tests, seven skipped. Merged as 2e1fd5be5101aea645e194f493d118a855b5910f; all 47 final-head CI checks passed. Independent AI startup credential rejection also passes four focused regression tests."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Allow tenantless administrators to record MFA audits**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3696982695"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3696982695",
+      "remediation_pr": 382,
+      "remediation_commit": "3d2821e31ad1bbdbc3fbd9458ec450d41f515270",
+      "merged_commit": "2e1fd5be5101aea645e194f493d118a855b5910f",
+      "disposition_note": "Fixed in merged PR #382 after final-head review, resolved evidence threads, and 47 passing CI checks."
     },
     {
       "pr_number": 197,
@@ -3612,8 +3650,10 @@
       "thread_id": "PRRT_kwDOTN0BU86VsHMD",
       "comment_id": 3697080325,
       "path": "backend/django/apps/accounts/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "Current main 47ebf156a5e79ca83f2c5f42334f745880da98fd: RefreshInputSerializer delegates to rotate_refresh_token, whose _validate_user rechecks current MFA policy before returning tokens. Direct checks reject missing/false mfa_verified and accept true; authentication test selection passes."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Re-check MFA before rotating tracked tokens**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/203#discussion_r3697080325"
     },
@@ -3774,8 +3814,10 @@
       "thread_id": "PRRT_kwDOTN0BU86Vs2rn",
       "comment_id": 3697400963,
       "path": "scripts/start_sdk_compat_backend.sh",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "Current main 47ebf156a5e79ca83f2c5f42334f745880da98fd: scripts/start_sdk_compat_backend.sh uses setsid with no EXIT cleanup trap. CI SDK jobs stop the saved process group in always() steps after live tests; all final-head live SDK checks pass."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep the backend alive for subsequent live-test steps**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/217#discussion_r3697400963"
     },
@@ -3832,8 +3874,10 @@
       "thread_id": "PRRT_kwDOTN0BU86VtJyj",
       "comment_id": 3697528220,
       "path": "frontend/developer-portal/src/app/cli/page.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "Current main 47ebf156a5e79ca83f2c5f42334f745880da98fd: frontend/developer-portal/src/app/cli/page.tsx logs in both profiles with user access tokens before projects list. Python SDK authentication/profile/project tests pass (27 tests, one live skip)."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Use a user token for the documented projects example**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528220"
     },
@@ -5765,13 +5809,16 @@
       "thread_id": "PRRT_kwDOTN0BU86XluoP",
       "comment_id": 3743305763,
       "path": "backend/django/apps/providers/tests.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
-        "Reproduced on main 47ebf156a5e79ca83f2c5f42334f745880da98fd. Correction published in PR #380 at 7cde9c8b37c3e9efde90c886e768cd7cbe96e1a8; six targeted tests pass and migration state is consistent. Pending final-head CI, review and merge."
+        "PR #380 correction head 0eeee5f950472ec8669b41e8420ee07bde194376; ten adapter/repair/system-decision tests pass, including erased-record preservation, payload preservation and repeated repair. Merged as bdf17893224e818047605254e0be345c38765ba2; all 47 final-head CI checks passed."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Exercise each adapter method in the conformance test**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/280#discussion_r3743305763",
-      "remediation_pr": 380
+      "remediation_pr": 380,
+      "remediation_commit": "0eeee5f950472ec8669b41e8420ee07bde194376",
+      "merged_commit": "bdf17893224e818047605254e0be345c38765ba2",
+      "disposition_note": "Fixed in merged PR #380 after final-head review, resolved evidence threads, and 47 passing CI checks."
     },
     {
       "pr_number": 283,
@@ -5858,13 +5905,16 @@
       "thread_id": "PRRT_kwDOTN0BU86YnsuF",
       "comment_id": 3767725085,
       "path": "backend/django/apps/verifications/migrations/0018_mark_incomplete_decision_contracts_legacy.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
-        "Reproduced on main 47ebf156a5e79ca83f2c5f42334f745880da98fd. Correction published in PR #380 at 7cde9c8b37c3e9efde90c886e768cd7cbe96e1a8; six targeted tests pass and migration state is consistent. Pending final-head CI, review and merge."
+        "PR #380 correction head 0eeee5f950472ec8669b41e8420ee07bde194376; ten adapter/repair/system-decision tests pass, including erased-record preservation, payload preservation and repeated repair. Merged as bdf17893224e818047605254e0be345c38765ba2; all 47 final-head CI checks passed."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Mark decisions legacy when either contract component is missing**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/286#discussion_r3767725085",
-      "remediation_pr": 380
+      "remediation_pr": 380,
+      "remediation_commit": "0eeee5f950472ec8669b41e8420ee07bde194376",
+      "merged_commit": "bdf17893224e818047605254e0be345c38765ba2",
+      "disposition_note": "Fixed in merged PR #380 after final-head review, resolved evidence threads, and 47 passing CI checks."
     },
     {
       "pr_number": 286,
@@ -8946,6 +8996,6 @@
       "disposition_note": "Fixed and merged after final-head Codex review, regression evidence, resolved review threads and successful CI/Security."
     }
   ],
-  "verified_main": "47ebf156a5e79ca83f2c5f42334f745880da98fd",
+  "verified_main": "2e1fd5be5101aea645e194f493d118a855b5910f",
   "inventory_note": "754 uniquely identified historical threads through merged PRs #360 and #362. Pending entries remain pending; GitHub resolution state is not evidence."
 }
