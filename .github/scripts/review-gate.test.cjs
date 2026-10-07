@@ -340,11 +340,20 @@ test('publisher credentials are limited to default-branch environment jobs', () 
   assert.match(gate, /workflows: \[CI, Security, Review evidence signal\]/);
 });
 
-test('review signals without PR association invalidate all open heads', async () => {
-  const { preparePullRequests } = require('./review-gate.cjs');
-  const github = {rest: {pulls: {list: Symbol('list'), get: async ({pull_number}) => ({data: {state: 'open', head: {sha: String(pull_number)}}})},
-    checks: {create: async () => ({data: {id: 111}})}}, paginate: async () => [{number: 11}, {number: 12}]};
-  const targets = await preparePullRequests({github, context: {repo: {owner: 'test', repo: 'test'}, eventName: 'workflow_run',
-    payload: {workflow_run: {name: 'Review evidence signal', pull_requests: []}}}});
-  assert.deepEqual(targets.map(target => target.number), [11, 12]);
+for (const workflow of ['CI', 'Security', 'Review evidence signal']) {
+  test(`${workflow} without PR association invalidates all open heads`, async () => {
+    const { preparePullRequests } = require('./review-gate.cjs');
+    const github = {rest: {pulls: {list: Symbol('list'), get: async ({pull_number}) => ({data: {state: 'open', head: {sha: String(pull_number)}}})},
+      checks: {create: async () => ({data: {id: 111}})}}, paginate: async () => [{number: 11}, {number: 12}]};
+    const targets = await preparePullRequests({github, context: {repo: {owner: 'test', repo: 'test'}, eventName: 'workflow_run',
+      payload: {workflow_run: {name: workflow, pull_requests: []}}}});
+    assert.deepEqual(targets.map(target => target.number), [11, 12]);
+  });
+}
+
+test('workflow completion discovery does not require PR association metadata', () => {
+  const workflow = require('node:fs').readFileSync(require('node:path').join(__dirname, '../workflows/review-gate.yml'), 'utf8');
+  const condition = workflow.split('\n').find(line => line.trimStart().startsWith('if:'));
+  assert.doesNotMatch(condition, /workflow_run\.pull_requests|workflow_run\.name/);
+  assert.match(condition, /github.ref ==/);
 });
