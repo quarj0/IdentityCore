@@ -7,7 +7,7 @@ export interface Error {
 }
 
 export interface ErrorEnvelope {
-  success: Record<string, unknown>;
+  success: false;
   error: Error;
   request_id: string;
 }
@@ -32,9 +32,9 @@ export interface Policy {
   name: string;
   description?: string;
   version: number;
-  status: string;
-  required_document_types: Array<string>;
-  required_liveness_level: string;
+  status: "draft" | "active" | "archived";
+  required_document_types: Array<"national_id" | "passport" | "driver_license" | "health_id" | "voter_id">;
+  required_liveness_level: "passive" | "active";
   face_match_threshold: number;
   manual_review_threshold: number;
   review_reason_rules?: Record<string, unknown>;
@@ -43,7 +43,7 @@ export interface Policy {
   document_authenticity_required?: boolean;
   document_authenticity_min_confidence?: number;
   external_risk_enabled?: boolean;
-  external_risk_failure_action?: string;
+  external_risk_failure_action?: "manual_review" | "ignore";
   external_risk_review_threshold?: number;
   maker_checker_required: boolean;
   verification_expiry_minutes: number;
@@ -96,7 +96,7 @@ export interface PlatformUser {
 }
 
 export interface PlatformUserMfaChallenge {
-  mfa_required: boolean;
+  mfa_required: true;
   mfa_enrollment_required: boolean;
   mfa_token: string;
 }
@@ -128,8 +128,8 @@ export interface VerificationPolicyCreateRequest {
   consent_template_id?: string;
   default_locale?: string;
   supported_locales?: Array<string>;
-  required_document_types: Array<string>;
-  required_liveness_level: string;
+  required_document_types: Array<"national_id" | "passport" | "driver_license" | "health_id" | "voter_id">;
+  required_liveness_level: "passive" | "active";
   face_match_threshold: number;
   manual_review_threshold: number;
   review_reason_rules?: Record<string, unknown>;
@@ -138,7 +138,7 @@ export interface VerificationPolicyCreateRequest {
   document_authenticity_required?: boolean;
   document_authenticity_min_confidence?: number;
   external_risk_enabled?: boolean;
-  external_risk_failure_action?: string;
+  external_risk_failure_action?: "manual_review" | "ignore";
   external_risk_review_threshold?: number;
   maker_checker_required?: boolean;
   verification_expiry_minutes: number;
@@ -150,7 +150,7 @@ export interface VerificationPolicyCreateResponse {
   id: string;
   name: string;
   version: number;
-  status: string;
+  status: "draft";
 }
 
 export interface VerificationCreateResponse {
@@ -163,7 +163,7 @@ export interface VerificationCreateResponse {
 }
 
 export interface VerificationSessionConsentRequest {
-  accepted: boolean;
+  accepted: true;
   template_id?: string;
   version?: number;
   locale?: string;
@@ -177,12 +177,12 @@ export interface VerificationSessionDocumentRequest {
 }
 
 export interface VerificationSessionSelfieRequest {
-  capture_type: string;
+  capture_type: "image" | "video";
   upload_id: string;
 }
 
 export interface VerificationSessionLivenessRequest {
-  liveness_type: string;
+  liveness_type: "passive" | "active";
   selfie_capture_id: string;
   challenge_id?: string;
 }
@@ -204,7 +204,7 @@ export interface VerificationSessionResponse {
   workflow: Record<string, unknown>;
   locale: string;
   supported_locales: Array<string>;
-  direction: string;
+  direction: "ltr" | "rtl";
   consent: Record<string, unknown>;
   document: Record<string, unknown>;
   available_documents: Array<Record<string, unknown>>;
@@ -214,29 +214,29 @@ export interface VerificationSessionResponse {
 
 export interface VerificationSessionConsentResponse {
   consent_record_id: string;
-  next_step: string;
+  next_step: "document_capture";
 }
 
 export interface VerificationSessionDocumentResponse {
   identity_document_id: string;
   status: string;
-  next_step: string;
+  next_step: "document_processing";
 }
 
 export interface VerificationSessionSelfieResponse {
   selfie_capture_id: string;
-  status: string;
-  next_step: string;
+  status: "processing";
+  next_step: "liveness_check";
 }
 
 export interface VerificationSessionLivenessResponse {
   liveness_check_id: string;
-  status: string;
+  status: "processing";
 }
 
 export interface VerificationSessionLivenessChallengeResponse {
   challenge_id: string;
-  actions: Array<string>;
+  actions: Array<"turn_left" | "turn_right" | "look_up" | "look_down">;
   expires_at: string;
 }
 
@@ -284,17 +284,17 @@ export interface VerificationDetail {
 }
 
 export interface SandboxSimulationRequest {
-  scenario: string;
+  scenario: "approved" | "declined" | "review" | "timeout" | "provider_error";
 }
 
 export interface SandboxSimulationMarker {
-  scenario: string;
-  version: number;
+  scenario: "approved" | "declined" | "review" | "timeout" | "provider_error";
+  version: 1;
 }
 
 export interface VerificationResult {
   simulation?: SandboxSimulationMarker;
-  schema_version: string;
+  schema_version: "1";
   verification_id: string;
   status: string;
   decision: Record<string, unknown> | null;
@@ -342,8 +342,8 @@ export interface EvidenceReport {
 }
 
 export interface PortalUploadCreateRequest {
-  capture_method?: string;
-  purpose: string;
+  capture_method?: "camera" | "live_recording" | "file" | "unreported";
+  purpose: "document_capture" | "selfie_capture" | "liveness_capture";
   mime_type: string;
   file_size_bytes: number;
 }
@@ -379,7 +379,7 @@ export interface OrganizationProfile {
 }
 
 export interface OrganizationBrandingAssetUploadRequest {
-  asset_type: string;
+  asset_type: "logo" | "branding_image";
   filename: string;
   mime_type: string;
 }
@@ -394,7 +394,7 @@ export interface OrganizationBrandingAssetUploadResponse {
 
 export interface OrganizationSupportingDocumentUploadRequest {
   filename: string;
-  mime_type: string;
+  mime_type: "application/pdf";
   file_size_bytes: number;
 }
 
@@ -422,7 +422,7 @@ export interface ProjectSummary {
   id: string;
   name: string;
   slug: string;
-  environment: string;
+  environment: "sandbox" | "production";
   status: string;
   allowed_origins: Array<string>;
   is_default: boolean;
@@ -433,14 +433,14 @@ export interface ProjectSummary {
 export interface ProjectCreateRequest {
   name: string;
   slug?: string;
-  environment?: string;
+  environment?: "sandbox" | "production";
   allowed_origins?: Array<string>;
 }
 
 export interface ProjectUpdateRequest {
   name?: string;
   slug?: string;
-  environment?: string;
+  environment?: "sandbox" | "production";
   allowed_origins?: Array<string>;
 }
 
@@ -463,7 +463,7 @@ export interface APIClientSummary {
 export interface APIClientCreateRequest {
   project_id?: string;
   name: string;
-  scopes: Array<string>;
+  scopes: Array<"policies:read" | "verifications:create" | "verifications:read" | "verifications:write">;
   allowed_networks?: Array<string>;
   rate_limit_per_minute?: number;
 }
@@ -507,7 +507,7 @@ export interface WebhookEndpointSummary {
   project_id?: string | null;
   url: string;
   description?: string;
-  events: Array<string>;
+  events: Array<"verification.created" | "verification.consent_accepted" | "verification.document_uploaded" | "verification.selfie_uploaded" | "verification.processing" | "verification.manual_review_required" | "verification.verified" | "verification.rejected" | "verification.failed" | "verification.expired" | "verification.cancelled">;
   status: string;
   signing_secret_version: number;
   previous_secret_expires_at: string | null;
@@ -519,7 +519,7 @@ export interface WebhookEndpointCreateRequest {
   project_id?: string;
   url: string;
   description?: string;
-  events: Array<string>;
+  events: Array<"verification.created" | "verification.consent_accepted" | "verification.document_uploaded" | "verification.selfie_uploaded" | "verification.processing" | "verification.manual_review_required" | "verification.verified" | "verification.rejected" | "verification.failed" | "verification.expired" | "verification.cancelled">;
 }
 
 export interface WebhookEndpointCreateResponse {
@@ -543,7 +543,7 @@ export interface ManualReviewSummary {
 }
 
 export interface ManualReviewDecisionRequest {
-  decision: string;
+  decision: "verified" | "rejected" | "failed";
   reason_code: string;
   reason_detail?: string;
 }
@@ -558,12 +558,12 @@ export interface ManualReviewDecisionResponse {
 export interface ManualReviewPendingDecisionResponse {
   verification_id: string;
   decision: string;
-  approval_status: string;
-  approval_required: boolean;
+  approval_status: "pending";
+  approval_required: true;
 }
 
 export interface ManualReviewApprovalRequest {
-  decision: string;
+  decision: "verified" | "rejected" | "failed";
   reason_code?: string;
   reason_detail?: string;
 }
@@ -571,5 +571,5 @@ export interface ManualReviewApprovalRequest {
 export interface ManualReviewApprovalResponse {
   verification_id: string;
   decision: string;
-  approval_status: string;
+  approval_status: "approved";
 }
