@@ -5,6 +5,15 @@ on:
   pull_request:
 
 jobs:
+  review-gate-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node .github/scripts/review-gate.test.cjs
+
   operational-alerts:
     runs-on: ubuntu-latest
     steps:

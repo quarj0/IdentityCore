@@ -1,0 +1,14 @@
+name: Review evidence signal
+on:
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+  pull_request_review_comment:
+    types: [created, edited, deleted]
+permissions: {}
+jobs:
+  signal:
+    runs-on: ubuntu-latest
+    steps:
+      # workflow_run relays GitHub's PR association to trusted default-branch code.
+      # No checkout, artifacts, secrets, environment or publishing token.
+      - run: 'true'

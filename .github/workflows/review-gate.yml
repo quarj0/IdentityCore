@@ -1,0 +1,102 @@
+name: Review evidence gate
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/ci.yml'
+      - '.github/workflows/security.yml'
+      - '.github/workflows/review-gate.yml'
+      - '.github/workflows/review-evidence-signal.yml'
+      - '.github/scripts/review-gate.cjs'
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+  issue_comment:
+    types: [created, edited, deleted]
+  workflow_run:
+    workflows: [CI, Security, Review evidence signal]
+    types: [requested, in_progress, completed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request to recheck after resolving threads
+        required: true
+        type: number
+permissions:
+  contents: read
+  pull-requests: read
+  actions: read
+jobs:
+  discover:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && (github.event_name != 'issue_comment' || github.event.issue.pull_request) && (github.event_name != 'workflow_run' || github.event.workflow_run.pull_requests[0] || github.event.workflow_run.name == 'Review evidence signal')
+    runs-on: ubuntu-latest
+    environment: review-evidence-publisher
+    outputs:
+      targets: ${{ steps.prepare.outputs.targets }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Create isolated check publisher token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        id: publisher
+        with:
+          client-id: ${{ vars.REVIEW_GATE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.REVIEW_GATE_APP_PRIVATE_KEY }}
+          permission-contents: read
+          permission-pull-requests: read
+          permission-actions: read
+          permission-checks: write
+      - uses: actions/github-script@v8
+        id: prepare
+        with:
+          github-token: ${{ steps.publisher.outputs.token }}
+          script: |
+            if (!require('node:fs').existsSync('./.github/scripts/review-gate.cjs')) {
+              core.notice('Review gate bootstrap: validator is not yet installed on the default branch.');
+              core.setOutput('targets', '[]');
+              return;
+            }
+            const { preparePullRequests } = require('./.github/scripts/review-gate.cjs');
+            const targets = await preparePullRequests({ github, context });
+            core.setOutput('targets', JSON.stringify(targets));
+  review-evidence:
+    needs: discover
+    if: needs.discover.outputs.targets != '[]' && needs.discover.outputs.targets != ''
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(needs.discover.outputs.targets) }}
+    # Every event, including default-branch bulk revalidation, shares this lock.
+    concurrency:
+      group: review-evidence-${{ matrix.target.number }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    environment: review-evidence-publisher
+    steps:
+      # Never execute PR-controlled source with the write-capable check token.
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Create isolated check publisher token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        id: publisher
+        with:
+          client-id: ${{ vars.REVIEW_GATE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.REVIEW_GATE_APP_PRIVATE_KEY }}
+          permission-contents: read
+          permission-pull-requests: read
+          permission-actions: read
+          permission-checks: write
+      - uses: actions/github-script@v8
+        env:
+          REVIEW_TARGET: ${{ toJSON(matrix.target) }}
+        with:
+          github-token: ${{ steps.publisher.outputs.token }}
+          script: |
+            const prepared = JSON.parse(process.env.REVIEW_TARGET);
+            const { run } = require('./.github/scripts/review-gate.cjs');
+            await run({ github, prepared, context: {
+              ...context, payload: { pull_request: { number: prepared.number } }
+            } });
