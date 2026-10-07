@@ -271,16 +271,54 @@ test('latest resolver disposition must still attest to a tested fixing commit', 
   assert.match(assess(input).join(' '), /no fixing-commit and validation evidence/);
 });
 
-test('default-branch updates attempt every open PR even when one assessment fails', async () => {
-  const { runOpenPullRequests } = require('./review-gate.cjs');
-  const attempted = [];
+test('bulk discovery invalidates every open head before returning assessment targets', async () => {
+  const { preparePullRequests } = require('./review-gate.cjs');
+  const invalidated = [];
   const github = {
-    rest: {pulls: {list: Symbol('list'), get: async ({pull_number}) => {
-      attempted.push(pull_number);
-      throw new Error('synthetic assessment failure');
-    }}},
+    rest: {pulls: {list: Symbol('list'), get: async ({pull_number}) => ({data: {state: 'open', head: {sha: String(pull_number)}}})},
+      checks: {create: async ({head_sha, status}) => {
+        assert.equal(status, 'in_progress'); invalidated.push(head_sha);
+        return {data: {id: Number(head_sha) + 100}};
+      }}},
     paginate: async () => [{number: 11}, {number: 12}]
   };
-  await assert.rejects(runOpenPullRequests({github, context: {repo: {owner: 'synthetic', repo: 'test'}}}), /PR #11.*synthetic assessment failure/);
-  assert.deepEqual(attempted, [11, 12]);
+  const context = {eventName: 'push', repo: {owner: 'synthetic', repo: 'test'}, payload: {}};
+  assert.deepEqual(await preparePullRequests({github, context}), [
+    {number: 11, head: '11', check_id: 111}, {number: 12, head: '12', check_id: 112}
+  ]);
+  assert.deepEqual(invalidated.sort(), ['11', '12']);
+  github.rest.pulls.get = async ({pull_number}) => {
+    if (pull_number === 11) throw new Error('synthetic discovery failure');
+    return {data: {state: 'open', head: {sha: '12'}}};
+  };
+  invalidated.length = 0;
+  await assert.rejects(preparePullRequests({github, context}), /synthetic discovery failure/);
+  assert.deepEqual(invalidated, ['12']);
+});
+
+test('all workflow-associated PRs are discovered and duplicate numbers are removed', async () => {
+  const { preparePullRequests } = require('./review-gate.cjs');
+  const github = {rest: {pulls: {get: async ({pull_number}) => ({data: {state: pull_number === 13 ? 'closed' : 'open', head: {sha: head}}})},
+    checks: {create: async () => ({data: {id: 1}})}}};
+  const targets = await preparePullRequests({github, context: {repo: {owner: 'test', repo: 'test'},
+    eventName: 'workflow_run', payload: {workflow_run: {pull_requests: [{number: 11}, {number: 12}, {number: 11}, {number: 13}]}}}});
+  assert.deepEqual(targets.map(target => target.number), [11, 12]);
+});
+
+test('bulk and individual assessments use the same per-PR concurrency group', () => {
+  const workflow = require('node:fs').readFileSync(require('node:path').join(__dirname, '../workflows/review-gate.yml'), 'utf8');
+  assert.match(workflow, /group: review-evidence-\$\{\{ matrix.target.number \}\}/);
+  assert.doesNotMatch(workflow, /github.run_id/);
+  assert.match(workflow, /needs: discover/);
+});
+
+test('a prepared check cannot publish success for a changed head', async () => {
+  const { run } = require('./review-gate.cjs');
+  const updates = [];
+  const github = {rest: {pulls: {get: async () => ({data: {state: 'open', head: {sha: fixed}}})},
+    checks: {update: async update => updates.push(update)}}};
+  await assert.rejects(run({github, context: {repo: {owner: 'test', repo: 'test'}, payload: {pull_request: {number: 11}}},
+    prepared: {number: 11, head, check_id: 111}}), /head moved/);
+  assert.equal(updates[0].check_run_id, 111);
+  assert.equal(updates[0].conclusion, 'failure');
 });

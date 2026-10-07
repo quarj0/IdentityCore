@@ -86,7 +86,7 @@ async function fetchThreads(github, owner, repo, number) {
   return threads;
 }
 
-async function run({ github, context }) {
+async function run({ github, context, prepared }) {
   const { owner, repo } = context.repo;
   const number = context.payload.pull_request?.number ||
     (context.payload.issue?.pull_request ? context.payload.issue.number : undefined) ||
@@ -95,13 +95,14 @@ async function run({ github, context }) {
   if (!number) throw new Error('A pull-request number is required.');
   const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: number });
   if (pr.state !== 'open') return;
-  const head = pr.head.sha;
-  const { data: pendingCheck } = await github.rest.checks.create({ owner, repo, head_sha: head,
+  const head = prepared?.head || pr.head.sha;
+  const pendingCheck = prepared ? { id: prepared.check_id } : (await github.rest.checks.create({ owner, repo, head_sha: head,
     name: 'review-evidence', status: 'in_progress',
     output: { title: 'Review evidence validation in progress', summary: `Revalidating mutable evidence for ${head}.` }
-  });
+  })).data;
   let completed = false;
   try {
+  if (pr.head.sha !== head) throw new Error('Prepared pull-request head moved; rerun discovery.');
   const reviews = await github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number: number, per_page: 100 });
   const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number, per_page: 100 });
   const commits = (await github.paginate(github.rest.pulls.listCommits, { owner, repo, pull_number: number, per_page: 100 })).map(c => c.sha);
@@ -160,18 +161,35 @@ async function run({ github, context }) {
   }
 }
 
-async function runOpenPullRequests({ github, context }) {
+async function preparePullRequests({ github, context }) {
   const { owner, repo } = context.repo;
-  const pullRequests = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
-  const failures = [];
-  for (const pr of pullRequests) {
-    try {
-      await run({ github, context: { ...context, payload: { pull_request: { number: pr.number } } } });
-    } catch (error) {
-      failures.push(`PR #${pr.number}: ${error.message}`);
-    }
+  const number = context.payload.pull_request?.number ||
+    (context.payload.issue?.pull_request ? context.payload.issue.number : undefined) ||
+    Number(context.payload.inputs?.pr_number);
+  let pullRequests;
+  if (context.eventName === 'push') {
+    pullRequests = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
+  } else if (context.eventName === 'workflow_run') {
+    pullRequests = context.payload.workflow_run.pull_requests;
+  } else {
+    if (!number) throw new Error('A pull-request number is required.');
+    pullRequests = [{ number }];
   }
-  if (failures.length) throw new Error(failures.join('\n'));
+  // Invalidate every affected head before any matrix assessment can start.
+  // Failure here leaves created checks pending and prevents publication.
+  const results = await Promise.allSettled([...new Set(pullRequests.map(pr => pr.number))].map(async number => {
+    const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: number });
+    if (pr.state !== 'open') return null;
+    const head = pr.head.sha;
+    const { data: check } = await github.rest.checks.create({ owner, repo, head_sha: head,
+      name: 'review-evidence', status: 'in_progress',
+      output: { title: 'Review evidence validation queued', summary: `Revalidating mutable evidence for ${head}.` }
+    });
+    return { number, head, check_id: check.id };
+  }));
+  const failures = results.filter(result => result.status === 'rejected');
+  if (failures.length) throw new Error(failures.map(result => result.reason.message).join('\n'));
+  return results.map(result => result.value).filter(Boolean);
 }
 
-module.exports = { assess, run, runOpenPullRequests };
+module.exports = { assess, run, preparePullRequests };
