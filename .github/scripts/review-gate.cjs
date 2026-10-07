@@ -63,7 +63,7 @@ function assess({ pullNumber, baseRef, head, reviewer, resolver, reviews, commen
     const candidates = runs.filter(r => trusted && r.workflow_id === trusted.id && typeof r.path === 'string' && r.path.split('@', 1)[0] === trusted.path && r.head_sha === head && r.event === 'pull_request' && (!baseRef || isRunForPR(r, {number: pullNumber, baseRef, head})));
     const activity = run => Date.parse(run.updated_at || run.run_started_at || run.created_at) || 0;
     const latest = candidates.sort((a, b) => activity(b) - activity(a) || b.id - a.id)[0];
-    if (runs.some(r => trusted && r.workflow_id === trusted.id && r.path?.split('@', 1)[0] === trusted.path && r.head_sha === head && r.event === 'pull_request' && !r.pull_requests?.length && r.status !== 'completed') || candidates.some(r => r.status !== 'completed') || !latest || latest.conclusion !== 'success') problems.push(`${name} has not passed for the final head.`);
+    if (runs.some(r => trusted && r.workflow_id === trusted.id && r.path?.split('@', 1)[0] === trusted.path && r.head_sha === head && r.event === 'pull_request' && !r.pull_requests?.length && (r.status !== 'completed' || (!r.pr_target_receipt && (!latest || activity(r) >= activity(latest))))) || candidates.some(r => r.status !== 'completed') || !latest || latest.conclusion !== 'success') problems.push(`${name} has not passed for the final head.`);
   }
   for (const path of PROTECTED_PATHS) {
     if (!protectedDefinitions?.[path]) problems.push(`Protected review-gate definition differs: ${path}.`);
@@ -170,7 +170,8 @@ function targetReceiptFromArchive(input, run, workflow) {
     }
     cursor = next;
   }
-  if (cursor !== end || matches.length !== 1) throw new Error('A unique immutable PR target proof is required.');
+  if (cursor !== end || matches.length > 1) throw new Error('A unique immutable PR target proof is required.');
+  if (!matches.length) {const error = new Error('The target proof job is absent from this attempt.'); error.code = 'TARGET_PROOF_MISSING'; throw error;}
   const proof = matches[0];
   if (!Number.isSafeInteger(proof.number) || proof.number <= 0 || proof.head !== run.head_sha || !proof.base ||
       proof.run_id !== run.id || proof.run_attempt !== run.run_attempt) throw new Error('Target proof does not match its workflow run attempt.');
@@ -180,12 +181,23 @@ function targetReceiptFromArchive(input, run, workflow) {
 async function fetchTargetReceipt({github, owner, repo, run, workflow}) {
   let cache = receiptCache.get(github);
   if (!cache) {cache = new Map(); receiptCache.set(github, cache);}
-  const key = `${owner}/${repo}/${run.id}/${run.run_attempt}`;
-  if (!cache.has(key)) cache.set(key, (async () => {
-    const {data} = await github.rest.actions.downloadWorkflowRunAttemptLogs({owner, repo, run_id: run.id, attempt_number: run.run_attempt});
-    return targetReceiptFromArchive(data, run, workflow);
-  })());
-  return cache.get(key);
+  const getAttempt = attempt => {
+    const key = `${owner}/${repo}/${run.id}/${attempt}`;
+    if (!cache.has(key)) cache.set(key, (async () => {
+      const {data} = await github.rest.actions.downloadWorkflowRunAttemptLogs({owner, repo, run_id: run.id, attempt_number: attempt});
+      try {return targetReceiptFromArchive(data, {...run, run_attempt: attempt}, workflow);}
+      catch (error) {
+        // Partial reruns preserve the event but omit jobs that already succeeded.
+        // Only an absent proof permits a prior attempt; malformed or conflicting proof blocks.
+        if (error.code !== 'TARGET_PROOF_MISSING') {error.code = 'TARGET_PROOF_INVALID'; throw error;}
+        if (attempt <= 1) throw error;
+        return getAttempt(attempt - 1);
+      }
+    })());
+    return cache.get(key);
+  };
+  if (!Number.isSafeInteger(run.run_attempt) || run.run_attempt < 1) throw new Error('A valid workflow run attempt is required.');
+  return getAttempt(run.run_attempt);
 }
 
 async function fetchWorkflowRuns({ github, owner, repo, head, target, workflows = [{id: 'ci.yml'}, {id: 'security.yml'}] }) {
@@ -199,7 +211,12 @@ async function fetchWorkflowRuns({ github, owner, repo, head, target, workflows 
         const run = {...candidate}; delete run.pr_target_receipt;
         if (target && event === 'pull_request' && !run.pull_requests?.length && run.status === 'completed' &&
             run.head_sha === head && run.workflow_id === workflow.id && run.path?.split('@', 1)[0] === workflow.path) {
-          run.pr_target_receipt = await fetchTargetReceipt({github, owner, repo, run, workflow});
+          try {run.pr_target_receipt = await fetchTargetReceipt({github, owner, repo, run, workflow});}
+          catch (error) {
+            // An obsolete run without usable proof cannot veto newer verified evidence.
+            // Collection/permission/rate-limit errors still fail the whole assessment.
+            if (!['TARGET_PROOF_MISSING', 'TARGET_PROOF_INVALID'].includes(error.code) && error.status !== 404) throw error;
+          }
         }
         runs.push(run);
       }

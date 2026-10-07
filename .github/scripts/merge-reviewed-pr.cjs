@@ -30,7 +30,7 @@ function assertCI(runs, workflows, head, {number = 1, baseRef = 'main'} = {}) {
       const candidates = matching.filter(candidate => candidate.event === event && (event !== 'pull_request' || isRunForPR(candidate, {number, baseRef, head})));
       if (event === 'push' && !candidates.length) continue;
       const latest = candidates.sort((a, b) => activity(b) - activity(a) || b.id - a.id)[0];
-      if (event === 'pull_request' && matching.some(candidate => candidate.event === event && !candidate.pull_requests?.length && candidate.status !== 'completed')) throw new Error('Unassociated PR CI is still active.');
+      if (event === 'pull_request' && matching.some(candidate => candidate.event === event && !candidate.pull_requests?.length && (candidate.status !== 'completed' || (!candidate.pr_target_receipt && (!latest || activity(candidate) >= activity(latest)))))) throw new Error('Unassociated PR CI is still active or has unverified current evidence.');
       if (!latest || latest.status !== 'completed' || latest.conclusion !== 'success' || candidates.some(candidate => candidate.status !== 'completed')) {
         throw new Error('Latest final-head CI and Security runs must be successful with no active runs.');
       }
@@ -149,7 +149,10 @@ function ghJson(args, input) {
 
 function ghBinary(args) {
   const result = spawnSync('gh', args, {timeout: 60000, maxBuffer: 64 * 1024 * 1024});
-  if (result.error || result.status !== 0) throw new Error(result.stderr?.toString().trim() || result.error?.message || 'gh archive download failed');
+  if (result.error || result.status !== 0) {
+    const error = new Error(result.stderr?.toString().trim() || result.error?.message || 'gh archive download failed');
+    const status = result.stderr?.toString().match(/\(HTTP (\d{3})\)/); if (status) error.status = Number(status[1]); throw error;
+  }
   return result.stdout;
 }
 
