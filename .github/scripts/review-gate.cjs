@@ -10,8 +10,8 @@ function affirmativeValidation(body) {
   body = body.replace(/\b(\w+)n['’]t\b/gi, '$1 not');
   const clauses = body.split(/[.!?\n;:]+/);
   if (clauses.some(clause => /\b(tests?|validation|regressions?)\b/i.test(clause) &&
-      /\b(fail|fails|failed|failing|failure|failures|not|never|unable|incomplete|pending|unverified|unsuccessful|cannot|no|none|zero|0)\b/i.test(clause))) return false;
-  return clauses.some(clause => /^\s*(?:all\s+)?(?:[1-9]\d*\s+)?(?:(?:gate|regression|unit|integration|e2e|targeted|frontend|backend|sdk|live|smoke|added|new)\s+)*(?:tests?|validation)(?:\s+(?:have|has))?\s+(?:pass(?:ed|es)?|(?:was|were|is|are)\s+successful|successful(?:ly)?)(?:\b.*)?$/i.test(clause));
+      /\b(fail|fails|failed|failing|failure|failures|not|never|unable|incomplete|pending|unverified|unsuccessful|cannot|no|none|zero|0|partial|partially|except|exception|exceptions)\b/i.test(clause))) return false;
+  return clauses.some(clause => /^\s*(?:all\s+)?(?:[1-9]\d*\s+)?(?:(?:gate|regression|unit|integration|e2e|targeted|frontend|backend|sdk|live|smoke|added|new)\s+)*(?:tests?|validation)(?:\s+(?:have|has))?\s+(?:pass(?:ed|es)?|(?:was|were|is|are)\s+successful|successful(?:ly)?)\s*$/i.test(clause));
 }
 
 function approvedDefinitionPaths({manifest, head, base, now = Date.now()}) {

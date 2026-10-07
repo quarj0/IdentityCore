@@ -530,8 +530,8 @@ test('bulk validation of 257 PRs stays below the installation REST budget', asyn
 
 const mergerPolicy = {publisher_app_id: 5218906, trusted_mergers_ruleset_id: 24627093};
 const nativePolicy = () => ({policy: mergerPolicy, repository: {permissions: {admin: true}},
-  protection: {enforce_admins: {enabled: true}, required_conversation_resolution: {enabled: true}, required_status_checks: {checks: [{context: 'review-evidence', app_id: mergerPolicy.publisher_app_id}]}},
-  ruleset: {enforcement: 'active', conditions: {ref_name: {include: ['refs/heads/main'], exclude: []}}, rules: [{type: 'update'}],
+  protection: {enforce_admins: {enabled: true}, required_conversation_resolution: {enabled: true}, required_status_checks: {strict: true, checks: [{context: 'review-evidence', app_id: mergerPolicy.publisher_app_id}]}},
+  ruleset: {target: 'branch', enforcement: 'active', conditions: {ref_name: {include: ['refs/heads/main'], exclude: []}}, rules: [{type: 'update'}],
     bypass_actors: [{actor_type: 'RepositoryRole', actor_id: 5, bypass_mode: 'pull_request'}]}});
 
 test('trusted merger requires native administrator-only PR update restriction', () => {
@@ -763,3 +763,40 @@ for (const state of ['revoked', 'expired', 'base-moved']) {
     assert.equal(assessments, 2); assert.equal(merged, false);
   });
 }
+
+for (const value of ['tag', undefined]) {
+  test(`merger rejects a ruleset target of ${value}`, () => {
+    const {assertTrustedPolicy} = require('./merge-reviewed-pr.cjs');
+    const input = nativePolicy(); input.ruleset.target = value;
+    assert.throws(() => assertTrustedPolicy(input));
+  });
+}
+test('merger requires GitHub to enforce an up-to-date base', () => {
+  const {assertTrustedPolicy} = require('./merge-reviewed-pr.cjs');
+  const input = nativePolicy(); input.protection.required_status_checks.strict = false;
+  assert.throws(() => assertTrustedPolicy(input), /up-to-date base/);
+});
+for (const wording of ['Tests passed partially', 'Tests passed except integration tests', 'Tests passed, except integration tests', 'Tests passed with exceptions', 'Tests passed when mocked', 'Tests passed for only one case']) {
+  test(`validation rejects qualified results: ${wording}`, () => {
+    const {affirmativeValidation} = require('./review-gate.cjs');
+    assert.equal(affirmativeValidation(wording), false);
+  });
+}
+test('a push CI rerun during final live assessment blocks merging', async () => {
+  const {mergeReviewedPR} = require('./merge-reviewed-pr.cjs');
+  const input = nativePolicy(); let assessments = 0; let merged = false;
+  const github = {rest: {
+    repos: {get: async () => ({data: input.repository})},
+    pulls: {get: async () => ({data: {state: 'open', base: {ref: 'main'}, head: {sha: head}}})},
+    actions: {getWorkflow: async ({workflow_id}) => ({data: {id: workflow_id === 'ci.yml' ? 1 : 2}}),
+      listWorkflowRuns: async ({workflow_id}) => ({data: {workflow_runs: [
+        ...baseline().runs.filter(run => run.workflow_id === workflow_id),
+        ...(assessments === 2 ? [{...baseline().runs[workflow_id - 1], id: 99, event: 'push', status: 'queued', conclusion: null}] : [])]}})}
+  }};
+  const api = async suffix => suffix.includes('protection') ? input.protection : suffix.includes('rulesets') ? input.ruleset
+    : [{id: 1, name: 'review-evidence', app: {id: mergerPolicy.publisher_app_id}, status: 'completed', conclusion: 'success'}];
+  await assert.rejects(mergeReviewedPR({github, context: {repo: {owner: 'test', repo: 'test'}}, number: 1, api, policy: mergerPolicy,
+    validate: async ({github: live}) => {assessments++; await live.rest.checks.update({conclusion: 'success'});},
+    merge: async () => {merged = true;}}), /no active runs/);
+  assert.equal(assessments, 2); assert.equal(merged, false);
+});
