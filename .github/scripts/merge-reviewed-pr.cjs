@@ -47,6 +47,9 @@ async function mergeReviewedPR({ github, context, number, api, merge, validate =
   assertAppCheck((await api(`commits/${head}/check-runs?per_page=100`, 'check_runs')), selectedPolicy.publisher_app_id);
   // Read-only assessment reuses the publisher's collection and stability checks.
   // These local callbacks never create or impersonate a public check run.
+  let resolverLogin = owner;
+  try { resolverLogin = (await api('environments/review-evidence-publisher/variables/REVIEW_GATE_RESOLVER_LOGIN'))?.value || owner; }
+  catch (error) { if (error.status !== 404) throw error; }
   let approvedUpdates = '';
   try { approvedUpdates = (await api('environments/review-evidence-publisher/variables/REVIEW_GATE_APPROVED_UPDATES'))?.value || ''; }
   catch (error) { if (error.status !== 404) throw error; }
@@ -54,7 +57,7 @@ async function mergeReviewedPR({ github, context, number, api, merge, validate =
   const liveGithub = {...github, rest: {...github.rest, checks: {
     create: async () => ({data: {id: 0}}), update: async update => {result = update;}
   }}};
-  await validate({github: liveGithub, context: {...context, payload: {pull_request: {number}}}, approvedUpdates});
+  await validate({github: liveGithub, context: {...context, payload: {pull_request: {number}}}, approvedUpdates, resolverLogin});
   if (result?.conclusion !== 'success') throw new Error('Live review evidence did not pass.');
   const {workflows} = await metadata({github: liveGithub, owner, repo});
   const {data} = await fetchWorkflowRuns({github: liveGithub, owner, repo, head, workflows: Object.values(workflows)});
@@ -65,7 +68,7 @@ async function mergeReviewedPR({ github, context, number, api, merge, validate =
   if (approvedUpdates && (await api('environments/review-evidence-publisher/variables/REVIEW_GATE_APPROVED_UPDATES'))?.value !== approvedUpdates) throw new Error('Protected update approval changed during validation.');
   // Repeat mutable evidence collection after CI, check-source and approval reads.
   result = undefined;
-  await validate({github: liveGithub, context: {...context, payload: {pull_request: {number}}}, approvedUpdates});
+  await validate({github: liveGithub, context: {...context, payload: {pull_request: {number}}}, approvedUpdates, resolverLogin});
   if (result?.conclusion !== 'success') throw new Error('Final live review evidence did not pass.');
   const {data: finalPR} = await github.rest.pulls.get({owner, repo, pull_number: number});
   if (finalPR.state !== 'open' || finalPR.head.sha !== head) throw new Error('PR head moved during final live validation.');
