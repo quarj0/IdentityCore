@@ -1110,6 +1110,8 @@ test('same-timestamp resolver retraction supersedes an earlier passing dispositi
  input.threads[0].comments.nodes=[{author:{login:reviewer},body:'Finding',createdAt:'2026-01-01T00:00:00Z'},
   {author:{login:'maintainer'},body:'Disposition withdrawn.',createdAt:time},
   {author:{login:'maintainer'},body:`Fixed in ${fixed}; tests passed.`,createdAt:time}];
+ assert.match(assess(input).join(' '),/no fixing-commit/);
+ input.threads[0].comments.nodes[2].updatedAt='2026-01-02T00:00:01Z';
  assert.deepEqual(assess(input),[]);
 });
 test('a disposition cannot mix a nonexistent fixing reference with a valid one',()=>{
@@ -1126,26 +1128,52 @@ test('a test count cannot supply the required fixing commit',()=>{
  {author:{login:'maintainer'},body:'Validation: all 1234567 tests passed.',createdAt:'2026-01-02T00:00:00Z'}]}}];
  assert.match(assess(input).join(' '),/no fixing-commit/);
 });
-test('capped run history independently discovers an old active run',async()=>{
+test('capped history fails closed even if sequential status searches would omit a transition',async()=>{
  const {fetchWorkflowRuns}=require('./review-gate.cjs');const calls=[];
- const active={...baseline().runs[0],id:1,status:'queued',conclusion:null,updated_at:'2026-01-01T00:00:00Z'};
  const github={rest:{actions:{listWorkflowRuns:async params=>{
-  calls.push(params);if(params.status)return {data:{total_count:1,workflow_runs:params.status==='queued'?[active,{...active,head_sha:fixed}]:[]}};
-  return {data:{total_count:1001,workflow_runs:[{...baseline().runs[0],id:2000,updated_at:'2026-01-03T00:00:00Z'}]}};
+  calls.push(params);return {data:{total_count:1001,workflow_runs:[baseline().runs[0]]}};
  }}}};
- const {data}=await fetchWorkflowRuns({github,owner:'owner',repo:'repo',head,events:['pull_request'],workflows:[baseline().trustedWorkflows.CI]});
- assert.deepEqual(calls.slice(1).map(call=>call.status),['queued','in_progress','waiting','pending','requested']);
- for(const call of calls.slice(1)){assert.equal(call.head_sha,undefined);assert.equal(call.event,undefined);}
- const input=baseline();input.runs=[...data.workflow_runs,input.runs[1]];
- assert.match(assess(input).join(' '),/CI has not passed/);assert.throws(()=>require('./merge-reviewed-pr.cjs').assertCI(input.runs,input.trustedWorkflows,head));
- assert.equal(data.workflow_runs.some(run=>run.head_sha===fixed),false);
+ await assert.rejects(fetchWorkflowRuns({github,owner:'owner',repo:'repo',head,events:['pull_request'],workflows:[{id:1}]}),/ceiling/);
+ assert.equal(calls.length,1);assert.equal(calls[0].status,undefined);
 });
-test('a capped active-status search cannot imply no active runs',async()=>{
- const {fetchWorkflowRuns}=require('./review-gate.cjs');const github={rest:{actions:{listWorkflowRuns:async({status})=>({data:{total_count:status?1000:1001,workflow_runs:[]}})}}};
+test('a full tenth history page without a count cannot imply complete history',async()=>{
+ const {fetchWorkflowRuns}=require('./review-gate.cjs');
+ const github={rest:{actions:{listWorkflowRuns:async()=>({data:{workflow_runs:Array.from({length:100},()=>({...baseline().runs[0]}))}})}}};
  await assert.rejects(fetchWorkflowRuns({github,owner:'owner',repo:'repo',head,events:['pull_request'],workflows:[{id:1}]}),/ceiling/);
 });
 test('gh adapter preserves independent active-status queries',async()=>{
  const calls=[];const {github}=require('./merge-reviewed-pr.cjs').createGhAdapter('owner/repo',args=>{calls.push(args);return {workflow_runs:[]};});
  await github.rest.actions.listWorkflowRuns({workflow_id:1,status:'queued',per_page:100,page:1});
  assert.equal(calls[0][1],'repos/owner/repo/actions/workflows/1/runs?status=queued&page=1&per_page=100');
+});
+
+test('an older edited retraction tied with a later-created valid disposition fails closed',()=>{
+ const input=baseline();input.threads=[{id:'edited',isResolved:true,comments:{nodes:[
+  {author:{login:reviewer},body:'Finding',createdAt:'2026-01-01T00:00:00Z'},
+  {author:{login:'maintainer'},body:'Withdrawn.',createdAt:'2026-01-02T00:00:00Z',updatedAt:'2026-01-03T00:00:00Z'},
+  {author:{login:'maintainer'},body:`Fixed in ${fixed}. Tests passed.`,createdAt:'2026-01-03T00:00:00Z'}]}}];
+ assert.match(assess(input).join(' '),/no fixing-commit/);
+ input.threads[0].comments.nodes[1].body=`Fixed in ${fixed}. Tests passed.`;
+ assert.deepEqual(assess(input),[]);
+});
+for(const status of ['ahead','identical','behind','diverged'])test(`fixing references exclude base history: ${status}`,async()=>{
+ const {fetchCommitEvidence}=require('./review-gate.cjs');const base='c'.repeat(40);const calls=[];
+ const github={rest:{repos:{compareCommitsWithBasehead:async({basehead})=>{
+  calls.push(basehead);if(basehead.endsWith(head))return {data:{status:'ahead',base_commit:{sha:fixed},merge_base_commit:{sha:fixed}}};
+  return {data:{status,base_commit:{sha:fixed},merge_base_commit:{sha:['ahead','identical'].includes(status)?fixed:base}}};
+ }}}};
+ const args={github,owner:'owner',repo:'repo',head,base,resolver:'maintainer',comments:[],threads:[{comments:{nodes:[{author:{login:'maintainer'},body:`Fixed in ${fixed}. Tests passed.`,createdAt:'2026-01-02T00:00:00Z'}]}}]};
+ const proof=await fetchCommitEvidence(args);assert.equal(proof.fixingCommitProof[fixed],['behind','diverged'].includes(status)?fixed:undefined);
+ const input=baseline();input.commitProof=proof.commitProof;input.fixingCommitProof=proof.fixingCommitProof;
+ input.threads=[{id:'range',isResolved:true,comments:{nodes:[{author:{login:reviewer},body:'Finding',createdAt:'2026-01-01T00:00:00Z'},{author:{login:'maintainer'},body:`Fixed in ${fixed}. Tests passed.`,createdAt:'2026-01-02T00:00:00Z'}]}}];
+ assert.equal(assess(input).length,['behind','diverged'].includes(status)?0:1);
+ await fetchCommitEvidence(args);assert.equal(calls.filter(call=>call===`${fixed}...${base}`).length,1);
+});
+
+for(const base of [undefined,head])test(`fixing references require a distinct current base: ${base?'same head':'absent'}`,async()=>{
+ const {fetchCommitEvidence}=require('./review-gate.cjs');
+ const github={rest:{repos:{compareCommitsWithBasehead:async()=>assert.fail('No comparison is needed')}}};
+ const args={github,owner:'owner',repo:'repo',head,base,resolver:'maintainer',comments:[],threads:[{comments:{nodes:[{author:{login:'maintainer'},body:`Fixed in ${head}. Tests passed.`,createdAt:'2026-01-02T00:00:00Z'}]}}]};
+ if(!base)await assert.rejects(fetchCommitEvidence(args),/base SHA/);
+ else assert.deepEqual((await fetchCommitEvidence(args)).fixingCommitProof,{});
 });
