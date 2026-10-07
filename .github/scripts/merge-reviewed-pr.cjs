@@ -173,7 +173,7 @@ function createGhAdapter(fullName, execute = ghJson, executeBinary = ghBinary) {
     issues: {listComments: ({issue_number, page, per_page}) => request(`issues/${issue_number}/comments`, {page, per_page})},
     actions: {downloadWorkflowRunAttemptLogs: async ({run_id, attempt_number}) => ({data: executeBinary(['api', `${root}/actions/runs/${run_id}/attempts/${attempt_number}/logs`])}),
       getWorkflow: ({workflow_id}) => request(`actions/workflows/${encodeURIComponent(workflow_id)}`),
-      listWorkflowRuns: ({workflow_id, head_sha, event, page, per_page}) => request(`actions/workflows/${encodeURIComponent(workflow_id)}/runs`, {head_sha, event, page, per_page})}
+      listWorkflowRuns: ({workflow_id, head_sha, event, status, page, per_page}) => request(`actions/workflows/${encodeURIComponent(workflow_id)}/runs`, {head_sha, event, status, page, per_page})}
   }, graphql: async (query, variables) => execute(['api', 'graphql', '--input', '-'], JSON.stringify({query, variables})).data,
   paginate: async (method, params) => {
     const values = [];
