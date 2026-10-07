@@ -15,6 +15,18 @@ function affirmativeValidation(body) {
     !/\b(fail|fails|failed|failing|failure|failures|not|never|unable|incomplete|pending|unverified|unsuccessful|cannot|can't|didn't|doesn't)\b/i.test(clause));
 }
 
+function approvedDefinitionPaths({manifest, head, base, now = Date.now()}) {
+  if (!manifest) return new Set();
+  const approval = JSON.parse(manifest);
+  const expiry = Date.parse(approval.expires_at);
+  if (!/^[0-9a-f]{40}$/.test(approval.base || '') || !Number.isFinite(expiry) || expiry <= now || expiry > now + 86400000) throw new Error('Protected update approval requires a full base SHA and an expiry within 24 hours.');
+  if (approval.base !== base) return new Set();
+  const paths = approval.heads?.[head];
+  if (!paths) return new Set();
+  if (!/^[0-9a-f]{40}$/.test(head) || !Array.isArray(paths) || !paths.length || paths.some(path => !['.github/workflows/ci.yml', '.github/workflows/security.yml', ...PROTECTED_PATHS].includes(path))) throw new Error('Protected update approval must identify an exact head and known protected paths.');
+  return new Set(paths);
+}
+
 function assess({ head, reviewer, resolver, reviews, comments, threads, commits, commitProof, runs, trustedWorkflows, protectedDefinitions }) {
   const provenToken = token => commitProof ? commitProof[token] : commits.find(sha => sha.startsWith(token));
   const isResolver = author => Boolean(resolver) && author?.login === resolver;
@@ -177,7 +189,7 @@ async function definitionMatches({ github, owner, repo, head, defaultBranch }) {
   }));
 }
 
-async function run({ github, context }) {
+async function run({ github, context, approvedUpdates = process.env.REVIEW_GATE_APPROVED_UPDATES || '' }) {
   const { owner, repo } = context.repo;
   const number = context.payload.pull_request?.number ||
     (context.payload.issue?.pull_request ? context.payload.issue.number : undefined) ||
@@ -202,6 +214,11 @@ async function run({ github, context }) {
   const {commits, commitProof} = await fetchCommitEvidence({github, owner, repo, head, resolver, comments, threads});
   const {repository, workflows} = await metadata({github, owner, repo});
   const matches = await definitionMatches({github, owner, repo, head, defaultBranch: repository.default_branch});
+  let approvedBase;
+  if (approvedUpdates) {
+    approvedBase = (await github.rest.repos.getBranch({owner, repo, branch: repository.default_branch})).data.commit.sha;
+    for (const path of approvedDefinitionPaths({manifest: approvedUpdates, head, base: approvedBase})) matches[path] = true;
+  }
   const trustedWorkflows = Object.fromEntries(Object.entries(workflows).map(([name, workflow]) => [name, {...workflow, definitionMatches: matches[workflow.path]}]));
   const protectedDefinitions = Object.fromEntries(PROTECTED_PATHS.map(path => [path, matches[path]]));
   const {data: workflowRuns} = await fetchWorkflowRuns({github, owner, repo, head, workflows: Object.values(workflows)});
@@ -214,6 +231,7 @@ async function run({ github, context }) {
     github.rest.pulls.get({ owner, repo, pull_number: number }),
     fetchWorkflowRuns({ github, owner, repo, head, workflows: Object.values(workflows) })
   ]);
+  if (approvedBase && (await github.rest.repos.getBranch({owner, repo, branch: repository.default_branch})).data.commit.sha !== approvedBase) problems.push('Protected update approval base moved during validation.');
   const currentReviews = relevantReviews(currentReviewsRaw);
   const currentComments = relevantComments(currentCommentsRaw);
   if (JSON.stringify([reviews, comments, threads]) !== JSON.stringify([currentReviews, currentComments, currentThreads])) {
@@ -290,4 +308,4 @@ async function runBucket({ github, context, bucket }) {
   if (failures.length) throw new Error(failures.join('\n'));
 }
 
-module.exports = { assess, run, preparePullRequests, fetchWorkflowRuns, bucketTargets, runBucket, affirmativeValidation, fetchCommitEvidence, relevantComments, relevantReviews, definitionMatches, metadata };
+module.exports = { approvedDefinitionPaths, assess, run, preparePullRequests, fetchWorkflowRuns, bucketTargets, runBucket, affirmativeValidation, fetchCommitEvidence, relevantComments, relevantReviews, definitionMatches, metadata };
