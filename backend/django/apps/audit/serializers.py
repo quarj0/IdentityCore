@@ -12,7 +12,11 @@ ACTION_LABELS = {
 def serialize_audit_event(event: AuditEvent) -> dict:
     actor_display_name = "System"
     if event.actor_type == "platform_user" and event.actor_id:
-        user = event.tenant.platform_users.filter(public_id=event.actor_id).first()
+        from apps.accounts.models import PlatformUser
+
+        user = PlatformUser.objects.filter(
+            tenant_id=event.tenant_id, public_id=event.actor_id
+        ).first()
         if user:
             actor_display_name = (
                 f"{user.first_name} {user.last_name}".strip() or user.email

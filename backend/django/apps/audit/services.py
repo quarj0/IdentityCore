@@ -7,7 +7,7 @@ from apps.api_clients.models import APIClient
 from apps.audit.models import AuditActorType, AuditEvent
 
 
-def verify_audit_chain(*, tenant_id: int | str) -> tuple[bool, str]:
+def verify_audit_chain(*, tenant_id: int | str | None) -> tuple[bool, str]:
     previous_hash = ""
     for event in AuditEvent.objects.filter(tenant_id=tenant_id).order_by("id"):
         from apps.audit.integrity import event_authentication, event_hash
@@ -96,3 +96,10 @@ def lock_audit_chain(tenant_id):
 
     if tenant_id is not None:
         Tenant.objects.select_for_update(no_key=True).only("pk").get(pk=tenant_id)
+    else:
+        from django.db import connection
+
+        if connection.vendor == "postgresql":
+            with connection.cursor() as cursor:
+                # Dedicated namespace for the single platform audit chain.
+                cursor.execute("SELECT pg_advisory_xact_lock(%s, %s)", [0x49434155, 0])
