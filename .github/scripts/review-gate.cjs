@@ -2,6 +2,7 @@ const PROTECTED_PATHS = ['.github/scripts/review-gate.cjs', '.github/workflows/r
 const REVIEWER = 'chatgpt-codex-connector';
 const BUCKET_COUNT = 8;
 const trustedMetadata = new WeakMap();
+const fixingRangeCache = new WeakMap();
 const isEvidenceReviewer = author => [REVIEWER, `${REVIEWER}[bot]`].includes(author?.login);
 const relevantComments = comments => comments.filter(comment => isEvidenceReviewer(comment.user));
 const relevantReviews = reviews => reviews.filter(review => isEvidenceReviewer(review.user));
@@ -42,8 +43,9 @@ async function verifyApprovedDefinitionPaths({github, owner, repo, manifest, hea
   return paths;
 }
 
-function assess({ pullNumber, baseRef, head, reviewer, resolver, reviews, comments, threads, commits, commitProof, runs, trustedWorkflows, protectedDefinitions }) {
+function assess({ pullNumber, baseRef, head, reviewer, resolver, reviews, comments, threads, commits, commitProof, fixingCommitProof, runs, trustedWorkflows, protectedDefinitions }) {
   const provenToken = token => commitProof ? commitProof[token] : commits.find(sha => sha.startsWith(token));
+  const provenFix = token => fixingCommitProof ? fixingCommitProof[token] : provenToken(token);
   const isResolver = author => Boolean(resolver) && author?.login === resolver;
   const isReviewer = author => author?.login === reviewer || author?.login === `${reviewer}[bot]`;
   const finalReviews = reviews.filter(r => isReviewer(r.user) && r.commit_id === head);
@@ -89,14 +91,14 @@ function assess({ pullNumber, baseRef, head, reviewer, resolver, reviews, commen
     const dispositionTimes = dispositions.map(c => Date.parse(c.updatedAt || c.createdAt));
     const latestDisposition = Math.max(...dispositionTimes);
     const evidence = feedbackTimes.length > 0 && feedbackTimes.every(Number.isFinite) &&
-      dispositionTimes.every(Number.isFinite) && dispositions.filter(c => Date.parse(c.updatedAt || c.createdAt) === latestDisposition).slice(-1).filter(c =>
+      dispositionTimes.every(Number.isFinite) && dispositions.filter(c => Date.parse(c.updatedAt || c.createdAt) === latestDisposition).every(c =>
       Date.parse(c.updatedAt || c.createdAt) === latestDisposition &&
       latestDisposition > lastFeedback &&
       affirmativeValidation(c.body) &&
-      fixingReferences(c.body).length === 1 && Boolean(provenToken(fixingReferences(c.body)[0]))
+      fixingReferences(c.body).length === 1 && Boolean(provenFix(fixingReferences(c.body)[0]))
     );
-    if (evidence && evidence.length) evidenceTimes.push(Math.max(...evidence.map(c => Date.parse(c.updatedAt || c.createdAt))));
-    if (!evidence || !evidence.length) problems.push(`Resolved thread ${thread.id} has no fixing-commit and validation evidence from the trusted resolver.`);
+    if (evidence && dispositions.length) evidenceTimes.push(latestDisposition);
+    if (!evidence || !dispositions.length) problems.push(`Resolved thread ${thread.id} has no fixing-commit and validation evidence from the trusted resolver.`);
   }
   if (reviewed && evidenceTimes.length) {
     const completed = [
@@ -211,9 +213,10 @@ async function fetchWorkflowRuns({ github, owner, repo, head, target, events = [
   const runs = [];
   for (const workflow of workflows) {
     for (const event of events) {
-      let truncated = false;
       for (let page = 1; page <= 10; page++) {
         const {data} = await github.rest.actions.listWorkflowRuns({owner, repo, workflow_id: workflow.id, head_sha: head, event, per_page: 100, page});
+        // Sequential status queries cannot establish completeness across transitions.
+        if (data.total_count >= 1000 || (page === 10 && data.workflow_runs.length === 100)) throw new Error('Workflow history reached GitHub’s ceiling; complete history is required for merge evidence.');
         for (const candidate of data.workflow_runs) {
           const run = {...candidate}; delete run.pr_target_receipt;
           if (target && event === 'pull_request' && !run.pull_requests?.length && run.status === 'completed' &&
@@ -225,35 +228,21 @@ async function fetchWorkflowRuns({ github, owner, repo, head, target, events = [
           }
           runs.push(run);
         }
-        truncated ||= data.total_count >= 1000 || (page === 10 && data.workflow_runs.length === 100);
         if (data.workflow_runs.length < 100) break;
-      }
-      if (truncated) {
-        // GitHub caps filtered history searches at 1000. Search active statuses
-        // independently, without the head/event history filters, to expose old active runs.
-        for (const status of ['queued', 'in_progress', 'waiting', 'pending', 'requested']) {
-          for (let page = 1; page <= 10; page++) {
-            const {data} = await github.rest.actions.listWorkflowRuns({owner, repo, workflow_id: workflow.id, status, per_page: 100, page});
-            if (data.total_count >= 1000 || (page === 10 && data.workflow_runs.length === 100)) throw new Error('Active workflow search reached GitHub’s ceiling; wait for active runs to clear.');
-            for (const candidate of data.workflow_runs.filter(run => run.head_sha === head && run.event === event)) {
-              const run = {...candidate}; delete run.pr_target_receipt;
-              runs.push(run);
-            }
-            if (data.workflow_runs.length < 100) break;
-          }
-        }
       }
     }
   }
   return {data: {workflow_runs: runs}};
 }
 
-async function fetchCommitEvidence({ github, owner, repo, head, resolver, comments, threads }) {
+async function fetchCommitEvidence({ github, owner, repo, head, base, resolver, comments, threads }) {
   const bodies = comments.map(comment => comment.body);
+  const fixingBodies = [];
   for (const thread of threads) {
     const dispositions = thread.comments.nodes.filter(comment => comment.author?.login === resolver);
     const latest = Math.max(...dispositions.map(comment => Date.parse(comment.updatedAt || comment.createdAt)));
-    bodies.push(...dispositions.filter(comment => Date.parse(comment.updatedAt || comment.createdAt) === latest).slice(-1).map(comment => comment.body));
+    const latestBodies = dispositions.filter(comment => Date.parse(comment.updatedAt || comment.createdAt) === latest).map(comment => comment.body);
+    bodies.push(...latestBodies); fixingBodies.push(...latestBodies);
   }
   const tokens = [...new Set(bodies.flatMap(body => [...body.matchAll(/\b([0-9a-f]{7,40})\b/g)].map(match => match[1])))];
   const commitProof = {[head]: head};
@@ -268,7 +257,23 @@ async function fetchCommitEvidence({ github, owner, repo, head, resolver, commen
       if (![404, 422].includes(error.status)) throw error;
     }
   }
-  return {commits: [...new Set(Object.values(commitProof))], commitProof};
+  const fixingTokens = new Set(fixingBodies.flatMap(body => fixingReferences(body)));
+  const fixingCommitProof = {};
+  if (fixingTokens.size && !/^[0-9a-f]{40}$/.test(base || '')) throw new Error('Current PR base SHA is required for fixing evidence.');
+  let cache = fixingRangeCache.get(github);
+  if (!cache) {cache = new Map(); fixingRangeCache.set(github, cache);}
+  for (const token of fixingTokens) {
+    const sha = commitProof[token];
+    if (!sha || sha === base) continue;
+    const key = `${owner}/${repo}/${sha}/${base}`;
+    if (!cache.has(key)) cache.set(key, (async () => {
+      const {data} = await github.rest.repos.compareCommitsWithBasehead({owner, repo, basehead: `${sha}...${base}`});
+      return ['behind', 'diverged'].includes(data.status) && data.base_commit?.sha === sha &&
+        Boolean(data.merge_base_commit?.sha) && data.merge_base_commit.sha !== sha;
+    })());
+    if (await cache.get(key)) fixingCommitProof[token] = sha;
+  }
+  return {commits: [...new Set(Object.values(commitProof))], commitProof, fixingCommitProof};
 }
 
 async function metadata({ github, owner, repo }) {
@@ -345,7 +350,7 @@ async function run({ github, context, prepared, resolverLogin, approvedUpdates =
   const reviews = relevantReviews(await github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number: number, per_page: 100 }));
   const comments = relevantComments(await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number, per_page: 100 }));
   const threads = await fetchThreads(github, owner, repo, number);
-  const {commits, commitProof} = await fetchCommitEvidence({github, owner, repo, head, resolver, comments, threads});
+  const {commits, commitProof, fixingCommitProof} = await fetchCommitEvidence({github, owner, repo, head, base: pr.base?.sha, resolver, comments, threads});
   const {repository, workflows} = await metadata({github, owner, repo});
   const matches = await definitionMatches({github, owner, repo, head, defaultBranch: repository.default_branch});
   let approvedBase;
@@ -356,7 +361,7 @@ async function run({ github, context, prepared, resolverLogin, approvedUpdates =
   const trustedWorkflows = Object.fromEntries(Object.entries(workflows).map(([name, workflow]) => [name, {...workflow, definitionMatches: matches[workflow.path]}]));
   const protectedDefinitions = Object.fromEntries(PROTECTED_PATHS.map(path => [path, matches[path]]));
   const {data: workflowRuns} = await fetchWorkflowRuns({github, owner, repo, head, target: {number, baseRef: pr.base?.ref || 'main', head}, events: ['pull_request'], workflows: Object.values(workflows)});
-  const problems = assess({ pullNumber: number, baseRef: pr.base?.ref || 'main', head, resolver, commitProof, trustedWorkflows, protectedDefinitions, runs: workflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews, comments, threads, commits });
+  const problems = assess({ pullNumber: number, baseRef: pr.base?.ref || 'main', head, resolver, commitProof, fixingCommitProof, trustedWorkflows, protectedDefinitions, runs: workflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews, comments, threads, commits });
   if (threads.some(t => t.comments.pageInfo.hasNextPage)) problems.push('A thread exceeds the evidence page limit; review it explicitly.');
   const [currentReviewsRaw, currentCommentsRaw, currentThreads, {data: current}, {data: currentWorkflowRuns}] = await Promise.all([
     github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number: number, per_page: 100 }),
@@ -374,8 +379,8 @@ async function run({ github, context, prepared, resolverLogin, approvedUpdates =
   if (JSON.stringify([reviews, comments, threads]) !== JSON.stringify([currentReviews, currentComments, currentThreads])) {
     problems.push('Mutable review evidence changed during validation; rerun against a stable snapshot.');
   }
-  problems.push(...assess({ pullNumber: number, baseRef: pr.base?.ref || 'main', head, resolver, commitProof, trustedWorkflows, protectedDefinitions, runs: currentWorkflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews: currentReviews, comments: currentComments, threads: currentThreads, commits }));
-  if ((current.base?.ref || 'main') !== (pr.base?.ref || 'main')) problems.push('Pull-request base changed during validation.');
+  problems.push(...assess({ pullNumber: number, baseRef: pr.base?.ref || 'main', head, resolver, commitProof, fixingCommitProof, trustedWorkflows, protectedDefinitions, runs: currentWorkflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews: currentReviews, comments: currentComments, threads: currentThreads, commits }));
+  if (current.base?.sha !== pr.base?.sha || (current.base?.ref || 'main') !== (pr.base?.ref || 'main')) problems.push('Pull-request base changed during validation.');
   if (current.head.sha !== head) problems.push('Pull-request head moved during validation; rerun against its current head.');
   await github.rest.checks.update({ owner, repo, check_run_id: pendingCheck.id, status: 'completed',
     conclusion: problems.length ? 'failure' : 'success',
