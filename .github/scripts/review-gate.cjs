@@ -6,13 +6,18 @@ const isEvidenceReviewer = author => [REVIEWER, `${REVIEWER}[bot]`].includes(aut
 const relevantComments = comments => comments.filter(comment => isEvidenceReviewer(comment.user));
 const relevantReviews = reviews => reviews.filter(review => isEvidenceReviewer(review.user));
 
+const FIXING_REFERENCE = /^(?:(?:fixed|superseded|inapplicable) in|current (?:fix|fixing code) and preceding implementation evidence confirmed at) ([0-9a-f]{7,40})$/i;
+function fixingReferences(body) {
+  return body.split(/[.!?\n;:]+/).map(clause => FIXING_REFERENCE.exec(clause.trim())?.[1]?.toLowerCase()).filter(Boolean);
+}
+
 function affirmativeValidation(body) {
   const clauses = body.split(/[.!?\n;:]+/).map(clause => clause.trim()).filter(Boolean);
   const positive = /^(?:all\s+)?(?:[1-9]\d*\s+)?(?:(?:gate|regression|unit|integration|e2e|targeted|frontend|backend|sdk|live|smoke|added|new)\s+)*(?:tests?|validation)(?:\s+(?:have|has))?\s+(?:pass(?:ed|es)?|(?:was|were|is|are)\s+successful|successful(?:ly)?)$/i;
-  const fixingCommit = /^(?:(?:fixed|superseded|inapplicable) in|current (?:fix|fixing code) and preceding implementation evidence confirmed at) [0-9a-f]{7,40}$/i;
+  const fixingCommit = FIXING_REFERENCE;
   // Evidence is a standalone claim. Additional prose belongs in an earlier reply;
   // accepting arbitrary follow-ups makes a vocabulary blacklist bypassable.
-  return clauses.some(clause => positive.test(clause)) &&
+  return fixingReferences(body).length <= 1 && clauses.some(clause => positive.test(clause)) &&
     clauses.every(clause => positive.test(clause) || fixingCommit.test(clause) || /^validation$/i.test(clause));
 }
 
@@ -84,11 +89,11 @@ function assess({ pullNumber, baseRef, head, reviewer, resolver, reviews, commen
     const dispositionTimes = dispositions.map(c => Date.parse(c.updatedAt || c.createdAt));
     const latestDisposition = Math.max(...dispositionTimes);
     const evidence = feedbackTimes.length > 0 && feedbackTimes.every(Number.isFinite) &&
-      dispositionTimes.every(Number.isFinite) && dispositions.filter(c =>
+      dispositionTimes.every(Number.isFinite) && dispositions.filter(c => Date.parse(c.updatedAt || c.createdAt) === latestDisposition).slice(-1).filter(c =>
       Date.parse(c.updatedAt || c.createdAt) === latestDisposition &&
       latestDisposition > lastFeedback &&
       affirmativeValidation(c.body) &&
-      [...c.body.matchAll(/\b([0-9a-f]{7,40})\b/g)].some(m => Boolean(provenToken(m[1])))
+      fixingReferences(c.body).length === 1 && Boolean(provenToken(fixingReferences(c.body)[0]))
     );
     if (evidence && evidence.length) evidenceTimes.push(Math.max(...evidence.map(c => Date.parse(c.updatedAt || c.createdAt))));
     if (!evidence || !evidence.length) problems.push(`Resolved thread ${thread.id} has no fixing-commit and validation evidence from the trusted resolver.`);
@@ -206,27 +211,41 @@ async function fetchWorkflowRuns({ github, owner, repo, head, target, events = [
   const runs = [];
   for (const workflow of workflows) {
     for (const event of events) {
-    for (let page = 1; ; page++) {
-      const { data } = await github.rest.actions.listWorkflowRuns({ owner, repo, workflow_id: workflow.id, head_sha: head, event, per_page: 100, page });
-      for (const candidate of data.workflow_runs) {
-        // Ignore any remotely supplied receipt property; only this collector can attest it.
-        const run = {...candidate}; delete run.pr_target_receipt;
-        if (target && event === 'pull_request' && !run.pull_requests?.length && run.status === 'completed' &&
-            run.head_sha === head && run.workflow_id === workflow.id && run.path?.split('@', 1)[0] === workflow.path) {
-          try {run.pr_target_receipt = await fetchTargetReceipt({github, owner, repo, run, workflow});}
-          catch (error) {
-            // An obsolete run without usable proof cannot veto newer verified evidence.
-            // Collection/permission/rate-limit errors still fail the whole assessment.
-            if (!['TARGET_PROOF_MISSING', 'TARGET_PROOF_INVALID'].includes(error.code) && error.status !== 404) throw error;
+      let truncated = false;
+      for (let page = 1; page <= 10; page++) {
+        const {data} = await github.rest.actions.listWorkflowRuns({owner, repo, workflow_id: workflow.id, head_sha: head, event, per_page: 100, page});
+        for (const candidate of data.workflow_runs) {
+          const run = {...candidate}; delete run.pr_target_receipt;
+          if (target && event === 'pull_request' && !run.pull_requests?.length && run.status === 'completed' &&
+              run.head_sha === head && run.workflow_id === workflow.id && run.path?.split('@', 1)[0] === workflow.path) {
+            try {run.pr_target_receipt = await fetchTargetReceipt({github, owner, repo, run, workflow});}
+            catch (error) {
+              if (!['TARGET_PROOF_MISSING', 'TARGET_PROOF_INVALID'].includes(error.code) && error.status !== 404) throw error;
+            }
+          }
+          runs.push(run);
+        }
+        truncated ||= data.total_count >= 1000 || (page === 10 && data.workflow_runs.length === 100);
+        if (data.workflow_runs.length < 100) break;
+      }
+      if (truncated) {
+        // GitHub caps filtered history searches at 1000. Search active statuses
+        // independently, without the head/event history filters, to expose old active runs.
+        for (const status of ['queued', 'in_progress', 'waiting', 'pending', 'requested']) {
+          for (let page = 1; page <= 10; page++) {
+            const {data} = await github.rest.actions.listWorkflowRuns({owner, repo, workflow_id: workflow.id, status, per_page: 100, page});
+            if (data.total_count >= 1000 || (page === 10 && data.workflow_runs.length === 100)) throw new Error('Active workflow search reached GitHub’s ceiling; wait for active runs to clear.');
+            for (const candidate of data.workflow_runs.filter(run => run.head_sha === head && run.event === event)) {
+              const run = {...candidate}; delete run.pr_target_receipt;
+              runs.push(run);
+            }
+            if (data.workflow_runs.length < 100) break;
           }
         }
-        runs.push(run);
       }
-      if (data.workflow_runs.length < 100) break;
-    }
     }
   }
-  return { data: { workflow_runs: runs } };
+  return {data: {workflow_runs: runs}};
 }
 
 async function fetchCommitEvidence({ github, owner, repo, head, resolver, comments, threads }) {
@@ -234,7 +253,7 @@ async function fetchCommitEvidence({ github, owner, repo, head, resolver, commen
   for (const thread of threads) {
     const dispositions = thread.comments.nodes.filter(comment => comment.author?.login === resolver);
     const latest = Math.max(...dispositions.map(comment => Date.parse(comment.updatedAt || comment.createdAt)));
-    bodies.push(...dispositions.filter(comment => Date.parse(comment.updatedAt || comment.createdAt) === latest).map(comment => comment.body));
+    bodies.push(...dispositions.filter(comment => Date.parse(comment.updatedAt || comment.createdAt) === latest).slice(-1).map(comment => comment.body));
   }
   const tokens = [...new Set(bodies.flatMap(body => [...body.matchAll(/\b([0-9a-f]{7,40})\b/g)].map(match => match[1])))];
   const commitProof = {[head]: head};
@@ -446,4 +465,4 @@ async function runBucket({ github, context, bucket }) {
   if (failures.length) throw new Error(failures.join('\n'));
 }
 
-module.exports = { isRunForPR, targetReceiptFromArchive, fetchTargetReceipt, verifyApprovedDefinitionPaths, approvedDefinitionPaths, assess, run, preparePullRequests, fetchWorkflowRuns, bucketTargets, runBucket, affirmativeValidation, fetchCommitEvidence, relevantComments, relevantReviews, definitionMatches, metadata };
+module.exports = { fixingReferences, isRunForPR, targetReceiptFromArchive, fetchTargetReceipt, verifyApprovedDefinitionPaths, approvedDefinitionPaths, assess, run, preparePullRequests, fetchWorkflowRuns, bucketTargets, runBucket, affirmativeValidation, fetchCommitEvidence, relevantComments, relevantReviews, definitionMatches, metadata };
