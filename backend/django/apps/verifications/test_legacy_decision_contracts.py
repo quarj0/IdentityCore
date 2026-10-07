@@ -49,6 +49,35 @@ class LegacyDecisionContractRepairTests(TestCase):
         migration = import_module(
             "apps.verifications.migrations.0024_repair_incomplete_decision_contracts"
         )
+        for erased_record in ("subject", "verification"):
+            verification = Verification.objects.create(
+                tenant=tenant,
+                organization=organization,
+                verification_subject=tenant.verification_subjects.create(
+                    full_name="Erased fixture"
+                ),
+                purpose="Erased migration fixture",
+                expires_at=timezone.now(),
+                status="failed",
+            )
+            decision = VerificationDecision.objects.create(
+                tenant=tenant,
+                verification=verification,
+                decision="failed",
+                decision_type="system",
+                reason_code="processing_retries_exhausted",
+                contract_version="1",
+                reason_codes_json=["processing_retries_exhausted"],
+                input_snapshot_json={},
+                decided_at=timezone.now(),
+            )
+            record = (
+                verification.verification_subject
+                if erased_record == "subject"
+                else verification
+            )
+            type(record).objects.filter(pk=record.pk).update(deleted_at=timezone.now())
+            decisions.append((decision, {}, ["processing_retries_exhausted"], "1"))
         for _ in range(2):
             migration.repair_incomplete_decision_contracts(apps, None)
             for decision, snapshot, reasons, expected in decisions:

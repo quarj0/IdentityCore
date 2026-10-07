@@ -6,7 +6,11 @@ def repair_incomplete_decision_contracts(apps, schema_editor):
     queryset = decision_model.objects
     if schema_editor is not None:
         queryset = queryset.using(schema_editor.connection.alias)
-    for decision in queryset.filter(contract_version="1").iterator():
+    for decision in queryset.filter(
+        contract_version="1",
+        verification__deleted_at__isnull=True,
+        verification__verification_subject__deleted_at__isnull=True,
+    ).iterator():
         if decision.input_snapshot_json and decision.reason_codes_json:
             continue
         decision.contract_version = "legacy"
