@@ -3,6 +3,7 @@ name: Security
 on:
   push:
   pull_request:
+    types: [opened, synchronize, reopened, edited]
   workflow_dispatch:
   schedule:
     - cron: "23 4 * * 1"

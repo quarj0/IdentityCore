@@ -9,6 +9,7 @@ const relevantReviews = reviews => reviews.filter(review => isEvidenceReviewer(r
 function affirmativeValidation(body) {
   body = body.replace(/\b(\w+)n['’]t\b/gi, '$1 not');
   const clauses = body.split(/[.!?\n;:]+/);
+  if (clauses.some(clause => /^\s*(?:except|excluding|partial(?:ly)?|incomplete|but|however|only|not|none|no|zero)\b/i.test(clause))) return false;
   if (clauses.some(clause => /\b(tests?|validation|regressions?)\b/i.test(clause) &&
       /\b(fail|fails|failed|failing|failure|failures|not|never|unable|incomplete|pending|unverified|unsuccessful|cannot|no|none|zero|0|partial|partially|except|exception|exceptions)\b/i.test(clause))) return false;
   return clauses.some(clause => /^\s*(?:all\s+)?(?:[1-9]\d*\s+)?(?:(?:gate|regression|unit|integration|e2e|targeted|frontend|backend|sdk|live|smoke|added|new)\s+)*(?:tests?|validation)(?:\s+(?:have|has))?\s+(?:pass(?:ed|es)?|(?:was|were|is|are)\s+successful|successful(?:ly)?)\s*$/i.test(clause));
@@ -35,7 +36,7 @@ async function verifyApprovedDefinitionPaths({github, owner, repo, manifest, hea
   return paths;
 }
 
-function assess({ head, reviewer, resolver, reviews, comments, threads, commits, commitProof, runs, trustedWorkflows, protectedDefinitions }) {
+function assess({ pullNumber, baseRef, head, reviewer, resolver, reviews, comments, threads, commits, commitProof, runs, trustedWorkflows, protectedDefinitions }) {
   const provenToken = token => commitProof ? commitProof[token] : commits.find(sha => sha.startsWith(token));
   const isResolver = author => Boolean(resolver) && author?.login === resolver;
   const isReviewer = author => author?.login === reviewer || author?.login === `${reviewer}[bot]`;
@@ -60,7 +61,7 @@ function assess({ head, reviewer, resolver, reviews, comments, threads, commits,
   for (const name of ['CI', 'Security']) {
     const trusted = trustedWorkflows?.[name];
     if (!trusted?.definitionMatches) problems.push(`${name} workflow definition differs from trusted default-branch content.`);
-    const candidates = runs.filter(r => trusted && r.workflow_id === trusted.id && typeof r.path === 'string' && r.path.split('@', 1)[0] === trusted.path && r.head_sha === head && r.event === 'pull_request');
+    const candidates = runs.filter(r => trusted && r.workflow_id === trusted.id && typeof r.path === 'string' && r.path.split('@', 1)[0] === trusted.path && r.head_sha === head && r.event === 'pull_request' && (!baseRef || r.pull_requests?.some(pr => pr.number === pullNumber && pr.base?.ref === baseRef && pr.head?.sha === head)));
     const activity = run => Date.parse(run.updated_at || run.run_started_at || run.created_at) || 0;
     const latest = candidates.sort((a, b) => activity(b) - activity(a) || b.id - a.id)[0];
     if (candidates.some(r => r.status !== 'completed') || !latest || latest.conclusion !== 'success') problems.push(`${name} has not passed for the final head.`);
@@ -230,7 +231,7 @@ async function run({ github, context, resolverLogin, approvedUpdates = process.e
   const trustedWorkflows = Object.fromEntries(Object.entries(workflows).map(([name, workflow]) => [name, {...workflow, definitionMatches: matches[workflow.path]}]));
   const protectedDefinitions = Object.fromEntries(PROTECTED_PATHS.map(path => [path, matches[path]]));
   const {data: workflowRuns} = await fetchWorkflowRuns({github, owner, repo, head, workflows: Object.values(workflows)});
-  const problems = assess({ head, resolver, commitProof, trustedWorkflows, protectedDefinitions, runs: workflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews, comments, threads, commits });
+  const problems = assess({ pullNumber: number, baseRef: pr.base?.ref || 'main', head, resolver, commitProof, trustedWorkflows, protectedDefinitions, runs: workflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews, comments, threads, commits });
   if (threads.some(t => t.comments.pageInfo.hasNextPage)) problems.push('A thread exceeds the evidence page limit; review it explicitly.');
   const [currentReviewsRaw, currentCommentsRaw, currentThreads, {data: current}, {data: currentWorkflowRuns}] = await Promise.all([
     github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number: number, per_page: 100 }),
@@ -248,7 +249,8 @@ async function run({ github, context, resolverLogin, approvedUpdates = process.e
   if (JSON.stringify([reviews, comments, threads]) !== JSON.stringify([currentReviews, currentComments, currentThreads])) {
     problems.push('Mutable review evidence changed during validation; rerun against a stable snapshot.');
   }
-  problems.push(...assess({ head, resolver, commitProof, trustedWorkflows, protectedDefinitions, runs: currentWorkflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews: currentReviews, comments: currentComments, threads: currentThreads, commits }));
+  problems.push(...assess({ pullNumber: number, baseRef: pr.base?.ref || 'main', head, resolver, commitProof, trustedWorkflows, protectedDefinitions, runs: currentWorkflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews: currentReviews, comments: currentComments, threads: currentThreads, commits }));
+  if ((current.base?.ref || 'main') !== (pr.base?.ref || 'main')) problems.push('Pull-request base changed during validation.');
   if (current.head.sha !== head) problems.push('Pull-request head moved during validation; rerun against its current head.');
   await github.rest.checks.update({ owner, repo, check_run_id: pendingCheck.id, status: 'completed',
     conclusion: problems.length ? 'failure' : 'success',
