@@ -1,3 +1,5 @@
+from apps.consent.test_helpers import case_with_test_consent
+from apps.consent.test_helpers import accept_test_consent
 import base64
 import json
 import socket
@@ -88,6 +90,7 @@ class ProviderModelTests(TestCase):
             status=VerificationStatus.PROCESSING,
             expires_at=timezone.now(),
         )
+        accept_test_consent(self.verification)
 
     def test_create_provider_check_with_matching_provider_type(self):
         provider = Provider.objects.create(
@@ -645,14 +648,14 @@ class ProviderRouteTests(TestCase):
             tenant=self.tenant,
             full_name="Route Execution Subject",
         )
-        return Verification.objects.create(
+        return case_with_test_consent(Verification.objects.create(
             tenant=self.tenant,
             organization=self.organization,
             verification_subject=subject,
             purpose="Route execution",
             status=VerificationStatus.PROCESSING,
             expires_at=timezone.now() + timedelta(hours=1),
-        )
+        ))
 
     def test_execution_retries_then_falls_back_with_explainable_history(self):
         route = self.create_route(
@@ -1007,29 +1010,81 @@ class ProviderAdapterRegistryTests(TestCase):
         with self.assertRaisesRegex(LookupError, "missing"):
             ProviderAdapterRegistry().resolve("missing")
 
+    @override_settings(
+        AI_SERVICE_BASE_URL="http://adapter-fixture.invalid",
+        AI_SERVICE_TIMEOUT_SECONDS=7,
+        AI_SERVICE_SHARED_TOKEN="fixture-token",
+    )
     def test_builtin_contract_accepts_each_declared_capability(self):
-        capabilities = (
-            "document_quality",
-            "document_classification",
-            "document_ocr",
-            "liveness",
-            "face_compare",
+        document = {
+            "verification_id": "ver_fixture",
+            "document_storage_key": "fixture/document",
+        }
+        typed_document = {**document, "document_type": "passport", "country_code": "GH"}
+        cases = (
+            ("document_quality", "/v1/document/quality", document),
+            ("document_classification", "/v1/document/classify", typed_document),
+            ("document_ocr", "/v1/document/ocr", typed_document),
+            (
+                "liveness",
+                "/v1/liveness/check",
+                {
+                    "verification_id": "ver_fixture",
+                    "selfie_storage_key": "fixture/selfie",
+                    "liveness_type": "active",
+                    "challenge_actions": ["blink"],
+                },
+            ),
+            (
+                "face_compare",
+                "/v1/face/compare",
+                {
+                    **document,
+                    "selfie_storage_key": "fixture/selfie",
+                    "threshold": 0.85,
+                },
+            ),
         )
         adapter = provider_adapter_registry.resolve(BUILT_IN_AI_SERVICE)
-
-        for capability in capabilities:
+        for capability, path, inputs in cases:
             with self.subTest(capability=capability):
-                self.assertTrue(callable(getattr(adapter, capability)))
-                result = normalize_provider_result(
-                    capability,
+                response = Mock()
+                response.__enter__ = Mock(return_value=response)
+                response.__exit__ = Mock(return_value=False)
+                response.read.return_value = json.dumps(
                     {
-                        "contract_version": "1",
                         "status": "completed",
-                        "outcome": "conformance_fixture_passed",
-                    },
+                        "model_name": "fixture",
+                        "model_version": "1",
+                        "engine": "fixture",
+                        "result": {
+                            "contract_version": "1",
+                            "outcome": "conformance_fixture_passed",
+                        },
+                    }
+                ).encode()
+                with patch(
+                    "apps.providers.ai_service.request.urlopen", return_value=response
+                ) as transport:
+                    result = normalize_provider_result(
+                        capability, getattr(adapter, capability)(**inputs)
+                    )
+                transport.assert_called_once()
+                http_request = transport.call_args.args[0]
+                self.assertEqual(
+                    http_request.full_url, "http://adapter-fixture.invalid" + path
                 )
+                self.assertEqual(http_request.get_method(), "POST")
+                self.assertEqual(json.loads(http_request.data), inputs)
+                self.assertEqual(
+                    http_request.get_header("X-internal-token"), "fixture-token"
+                )
+                self.assertEqual(transport.call_args.kwargs["timeout"], 7)
                 self.assertEqual(result["contract_version"], "1")
                 self.assertEqual(result["capability"], capability)
+                self.assertEqual(result["status"], "completed")
+                self.assertEqual(result["outcome"], "conformance_fixture_passed")
+                self.assertEqual(result["model_name"], "fixture")
 
     def test_contract_rejects_malformed_and_unsupported_version_results(self):
         invalid_results = (

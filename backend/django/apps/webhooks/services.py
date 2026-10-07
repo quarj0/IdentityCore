@@ -222,6 +222,27 @@ def _mark_endpoint_failed_if_active(endpoint) -> bool:
     return bool(updated)
 
 
+def _event_matches_endpoint_environment(event, endpoint) -> bool:
+    if endpoint.tenant_id != event.tenant_id:
+        return False
+    payload = event.payload_json
+    if not isinstance(payload, dict) or not isinstance(payload.get("data", {}), dict):
+        return False
+    verification_id = payload.get("data", {}).get("verification_id")
+    if not verification_id:
+        return not event.event_type.startswith("verification.")
+    from apps.verifications.models import Verification
+
+    verification = Verification.objects.select_related("project").filter(
+        tenant_id=event.tenant_id, public_id=verification_id
+    ).first()
+    if verification is None:
+        return False
+    verification_environment = verification.project.environment if verification.project_id else "sandbox"
+    endpoint_environment = endpoint.project.environment if endpoint.project_id else "sandbox"
+    return verification_environment == endpoint_environment
+
+
 def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
     """Claim briefly, perform HTTP without row locks, then finalize the claim."""
     now = timezone.now()
@@ -237,7 +258,8 @@ def deliver_webhook_event(webhook_event: WebhookEvent) -> WebhookEvent:
         event.webhook_endpoint = endpoint
         if event.status != WebhookEventStatus.PENDING:
             return event
-        if endpoint.status == WebhookEndpointStatus.DISABLED:
+        if (endpoint.status == WebhookEndpointStatus.DISABLED
+                or not _event_matches_endpoint_environment(event, endpoint)):
             event.status = WebhookEventStatus.CANCELLED
             event.next_retry_at = None
             event.save(update_fields=["status", "next_retry_at", "updated_at"])

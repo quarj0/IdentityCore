@@ -1,6 +1,6 @@
 """Generated from docs/openapi/identitycore-public-api.yaml. DO NOT EDIT."""
 
-from typing import Any, Optional, TypedDict
+from typing import Any, Literal, Optional, TypedDict
 
 
 class _ErrorRequired(TypedDict):
@@ -13,7 +13,7 @@ class Error(_ErrorRequired, total=False):
 
 
 class _ErrorEnvelopeRequired(TypedDict):
-    success: dict[str, Any]
+    success: Literal[False]
     error: Error
     request_id: str
 
@@ -44,9 +44,9 @@ class _PolicyRequired(TypedDict):
     id: str
     name: str
     version: int
-    status: str
-    required_document_types: list[str]
-    required_liveness_level: str
+    status: Literal['draft', 'active', 'archived']
+    required_document_types: list[Literal['national_id', 'passport', 'driver_license', 'health_id', 'voter_id']]
+    required_liveness_level: Literal['passive', 'active']
     face_match_threshold: float
     manual_review_threshold: float
     maker_checker_required: bool
@@ -65,7 +65,7 @@ class Policy(_PolicyRequired, total=False):
     document_authenticity_required: bool
     document_authenticity_min_confidence: float
     external_risk_enabled: bool
-    external_risk_failure_action: str
+    external_risk_failure_action: Literal['manual_review', 'ignore']
     external_risk_review_threshold: float
 
 
@@ -127,7 +127,7 @@ class PlatformUser(_PlatformUserRequired, total=False):
 
 
 class _PlatformUserMfaChallengeRequired(TypedDict):
-    mfa_required: bool
+    mfa_required: Literal[True]
     mfa_enrollment_required: bool
     mfa_token: str
 
@@ -175,8 +175,8 @@ class PlatformUserMfaEnrollment(_PlatformUserMfaEnrollmentRequired, total=False)
 
 class _VerificationPolicyCreateRequestRequired(TypedDict):
     name: str
-    required_document_types: list[str]
-    required_liveness_level: str
+    required_document_types: list[Literal['national_id', 'passport', 'driver_license', 'health_id', 'voter_id']]
+    required_liveness_level: Literal['passive', 'active']
     face_match_threshold: float
     manual_review_threshold: float
     verification_expiry_minutes: int
@@ -198,7 +198,7 @@ class VerificationPolicyCreateRequest(
     document_authenticity_required: bool
     document_authenticity_min_confidence: float
     external_risk_enabled: bool
-    external_risk_failure_action: str
+    external_risk_failure_action: Literal['manual_review', 'ignore']
     external_risk_review_threshold: float
     maker_checker_required: bool
 
@@ -207,7 +207,7 @@ class _VerificationPolicyCreateResponseRequired(TypedDict):
     id: str
     name: str
     version: int
-    status: str
+    status: Literal['draft']
 
 
 class VerificationPolicyCreateResponse(
@@ -229,7 +229,7 @@ class VerificationCreateResponse(_VerificationCreateResponseRequired, total=Fals
 
 
 class _VerificationSessionConsentRequestRequired(TypedDict):
-    accepted: bool
+    accepted: Literal[True]
 
 
 class VerificationSessionConsentRequest(
@@ -254,7 +254,7 @@ class VerificationSessionDocumentRequest(
 
 
 class _VerificationSessionSelfieRequestRequired(TypedDict):
-    capture_type: str
+    capture_type: Literal['image', 'video']
     upload_id: str
 
 
@@ -265,7 +265,7 @@ class VerificationSessionSelfieRequest(
 
 
 class _VerificationSessionLivenessRequestRequired(TypedDict):
-    liveness_type: str
+    liveness_type: Literal['passive', 'active']
     selfie_capture_id: str
 
 
@@ -298,7 +298,7 @@ class _VerificationSessionResponseRequired(TypedDict):
     workflow: dict[str, Any]
     locale: str
     supported_locales: list[str]
-    direction: str
+    direction: Literal['ltr', 'rtl']
     consent: dict[str, Any]
     document: dict[str, Any]
     available_documents: list[dict[str, Any]]
@@ -312,7 +312,7 @@ class VerificationSessionResponse(_VerificationSessionResponseRequired, total=Fa
 
 class _VerificationSessionConsentResponseRequired(TypedDict):
     consent_record_id: str
-    next_step: str
+    next_step: Literal['document_capture']
 
 
 class VerificationSessionConsentResponse(
@@ -324,7 +324,7 @@ class VerificationSessionConsentResponse(
 class _VerificationSessionDocumentResponseRequired(TypedDict):
     identity_document_id: str
     status: str
-    next_step: str
+    next_step: Literal['document_processing']
 
 
 class VerificationSessionDocumentResponse(
@@ -335,8 +335,8 @@ class VerificationSessionDocumentResponse(
 
 class _VerificationSessionSelfieResponseRequired(TypedDict):
     selfie_capture_id: str
-    status: str
-    next_step: str
+    status: Literal['processing']
+    next_step: Literal['liveness_check']
 
 
 class VerificationSessionSelfieResponse(
@@ -347,7 +347,7 @@ class VerificationSessionSelfieResponse(
 
 class _VerificationSessionLivenessResponseRequired(TypedDict):
     liveness_check_id: str
-    status: str
+    status: Literal['processing']
 
 
 class VerificationSessionLivenessResponse(
@@ -358,7 +358,7 @@ class VerificationSessionLivenessResponse(
 
 class _VerificationSessionLivenessChallengeResponseRequired(TypedDict):
     challenge_id: str
-    actions: list[str]
+    actions: list[Literal['turn_left', 'turn_right', 'look_up', 'look_down']]
     expires_at: str
 
 
@@ -379,7 +379,7 @@ class _VerificationSessionStatusResponseRequired(TypedDict):
 class VerificationSessionStatusResponse(
     _VerificationSessionStatusResponseRequired, total=False
 ):
-    pass
+    withdrawal_available: bool
 
 
 class _VerificationMobileHandoffResponseRequired(TypedDict):
@@ -430,7 +430,7 @@ class VerificationDetail(_VerificationDetailRequired, total=False):
 
 
 class _SandboxSimulationRequestRequired(TypedDict):
-    scenario: str
+    scenario: Literal['approved', 'declined', 'review', 'timeout', 'provider_error']
 
 
 class SandboxSimulationRequest(_SandboxSimulationRequestRequired, total=False):
@@ -438,8 +438,8 @@ class SandboxSimulationRequest(_SandboxSimulationRequestRequired, total=False):
 
 
 class _SandboxSimulationMarkerRequired(TypedDict):
-    scenario: str
-    version: int
+    scenario: Literal['approved', 'declined', 'review', 'timeout', 'provider_error']
+    version: Literal[1]
 
 
 class SandboxSimulationMarker(_SandboxSimulationMarkerRequired, total=False):
@@ -447,7 +447,7 @@ class SandboxSimulationMarker(_SandboxSimulationMarkerRequired, total=False):
 
 
 class _VerificationResultRequired(TypedDict):
-    schema_version: str
+    schema_version: Literal['1']
     verification_id: str
     status: str
     decision: Optional[dict[str, Any]]
@@ -515,13 +515,13 @@ class EvidenceReport(_EvidenceReportRequired, total=False):
 
 
 class _PortalUploadCreateRequestRequired(TypedDict):
-    purpose: str
+    purpose: Literal['document_capture', 'selfie_capture', 'liveness_capture']
     mime_type: str
     file_size_bytes: int
 
 
 class PortalUploadCreateRequest(_PortalUploadCreateRequestRequired, total=False):
-    capture_method: str
+    capture_method: Literal['camera', 'live_recording', 'file', 'unreported']
 
 
 class _PortalUploadCreateResponseRequired(TypedDict):
@@ -566,7 +566,7 @@ class OrganizationProfile(_OrganizationProfileRequired, total=False):
 
 
 class _OrganizationBrandingAssetUploadRequestRequired(TypedDict):
-    asset_type: str
+    asset_type: Literal['logo', 'branding_image']
     filename: str
     mime_type: str
 
@@ -593,7 +593,7 @@ class OrganizationBrandingAssetUploadResponse(
 
 class _OrganizationSupportingDocumentUploadRequestRequired(TypedDict):
     filename: str
-    mime_type: str
+    mime_type: Literal['application/pdf']
     file_size_bytes: int
 
 
@@ -645,7 +645,7 @@ class _ProjectSummaryRequired(TypedDict):
     id: str
     name: str
     slug: str
-    environment: str
+    environment: Literal['sandbox', 'production']
     status: str
     allowed_origins: list[str]
     is_default: bool
@@ -663,7 +663,7 @@ class _ProjectCreateRequestRequired(TypedDict):
 
 class ProjectCreateRequest(_ProjectCreateRequestRequired, total=False):
     slug: str
-    environment: str
+    environment: Literal['sandbox', 'production']
     allowed_origins: list[str]
 
 
@@ -674,7 +674,7 @@ class _ProjectUpdateRequestRequired(TypedDict):
 class ProjectUpdateRequest(_ProjectUpdateRequestRequired, total=False):
     name: str
     slug: str
-    environment: str
+    environment: Literal['sandbox', 'production']
     allowed_origins: list[str]
 
 
@@ -699,7 +699,7 @@ class APIClientSummary(_APIClientSummaryRequired, total=False):
 
 class _APIClientCreateRequestRequired(TypedDict):
     name: str
-    scopes: list[str]
+    scopes: list[Literal['policies:read', 'verifications:create', 'verifications:read', 'verifications:write']]
 
 
 class APIClientCreateRequest(_APIClientCreateRequestRequired, total=False):
@@ -751,7 +751,7 @@ class APIClientActionResponse(_APIClientActionResponseRequired, total=False):
 class _WebhookEndpointSummaryRequired(TypedDict):
     id: str
     url: str
-    events: list[str]
+    events: list[Literal['verification.created', 'verification.consent_accepted', 'verification.document_uploaded', 'verification.selfie_uploaded', 'verification.processing', 'verification.manual_review_required', 'verification.verified', 'verification.rejected', 'verification.failed', 'verification.expired', 'verification.cancelled']]
     status: str
     signing_secret_version: int
     previous_secret_expires_at: Optional[str]
@@ -766,7 +766,7 @@ class WebhookEndpointSummary(_WebhookEndpointSummaryRequired, total=False):
 
 class _WebhookEndpointCreateRequestRequired(TypedDict):
     url: str
-    events: list[str]
+    events: list[Literal['verification.created', 'verification.consent_accepted', 'verification.document_uploaded', 'verification.selfie_uploaded', 'verification.processing', 'verification.manual_review_required', 'verification.verified', 'verification.rejected', 'verification.failed', 'verification.expired', 'verification.cancelled']]
 
 
 class WebhookEndpointCreateRequest(_WebhookEndpointCreateRequestRequired, total=False):
@@ -808,7 +808,7 @@ class ManualReviewSummary(_ManualReviewSummaryRequired, total=False):
 
 
 class _ManualReviewDecisionRequestRequired(TypedDict):
-    decision: str
+    decision: Literal['verified', 'rejected', 'failed']
     reason_code: str
 
 
@@ -830,8 +830,8 @@ class ManualReviewDecisionResponse(_ManualReviewDecisionResponseRequired, total=
 class _ManualReviewPendingDecisionResponseRequired(TypedDict):
     verification_id: str
     decision: str
-    approval_status: str
-    approval_required: bool
+    approval_status: Literal['pending']
+    approval_required: Literal[True]
 
 
 class ManualReviewPendingDecisionResponse(
@@ -841,7 +841,7 @@ class ManualReviewPendingDecisionResponse(
 
 
 class _ManualReviewApprovalRequestRequired(TypedDict):
-    decision: str
+    decision: Literal['verified', 'rejected', 'failed']
 
 
 class ManualReviewApprovalRequest(_ManualReviewApprovalRequestRequired, total=False):
@@ -852,7 +852,7 @@ class ManualReviewApprovalRequest(_ManualReviewApprovalRequestRequired, total=Fa
 class _ManualReviewApprovalResponseRequired(TypedDict):
     verification_id: str
     decision: str
-    approval_status: str
+    approval_status: Literal['approved']
 
 
 class ManualReviewApprovalResponse(_ManualReviewApprovalResponseRequired, total=False):

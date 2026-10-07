@@ -1,3 +1,4 @@
+from apps.consent.test_helpers import accept_test_consent
 from apps.uploads.test_helpers import seal_test_upload
 from datetime import timedelta
 from unittest.mock import patch
@@ -130,6 +131,7 @@ class BiometricFinalizationRecoveryTests(TestCase):
             status=FaceMatchStatus.INCONCLUSIVE,
             matched_at=timezone.now(),
         )
+        accept_test_consent(self.verification)
 
     @patch("apps.biometrics.tasks.queue_verification_status_notifications")
     @patch("apps.biometrics.tasks.queue_webhook_events")

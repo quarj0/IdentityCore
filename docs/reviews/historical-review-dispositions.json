@@ -6,7 +6,7 @@
       "thread_id": "PRRT_kwDOTN0BU86R9EHC",
       "comment_id": 3607627874,
       "path": "backend/django/apps/risk/services.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/risk/services.py:_document_requires_manual_review",
         "backend/django/apps/risk/tests.py:test_ocr_outage_reason_remains_a_review_gate"
@@ -14,8 +14,9 @@
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve OCR outage review signals**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/3#discussion_r3607627874",
       "remediation_pr": 363,
-      "remediation_commit": "29e57369fb483d98d3ee7a0f7417fad3b498b97a",
-      "disposition_note": "Implemented on PR #363; remains actionable on current main until its reviewed fix merges."
+      "remediation_commit": "f4f8cee925beaa4e2a7888cf8bc9c5c12aed668b",
+      "disposition_note": "Fixed in merged PR #363 after final-head Codex review, resolved evidence threads, and passing CI/Security.",
+      "merged_commit": "8872d9a7fea8054f9685a33f77bd9d6e7ea33695"
     },
     {
       "pr_number": 3,
@@ -35,7 +36,7 @@
       "thread_id": "PRRT_kwDOTN0BU86R9EHG",
       "comment_id": 3607627879,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/biometrics/tasks.py:_finalize_unavailable_biometrics promotes retained selfie",
         "backend/django/apps/biometrics/tests.py:test_provider_failure_preserves_evidence_and_routes_to_manual_review"
@@ -43,8 +44,9 @@
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Promote selfies before routing outages to review**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/3#discussion_r3607627879",
       "remediation_pr": 363,
-      "remediation_commit": "29e57369fb483d98d3ee7a0f7417fad3b498b97a",
-      "disposition_note": "Implemented on PR #363; remains actionable on current main until its reviewed fix merges."
+      "remediation_commit": "f4f8cee925beaa4e2a7888cf8bc9c5c12aed668b",
+      "disposition_note": "Fixed in merged PR #363 after final-head Codex review, resolved evidence threads, and passing CI/Security.",
+      "merged_commit": "8872d9a7fea8054f9685a33f77bd9d6e7ea33695"
     },
     {
       "pr_number": 3,
@@ -71,7 +73,7 @@
       "thread_id": "PRRT_kwDOTN0BU86R9Olc",
       "comment_id": 3607689360,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/verifications/tasks.py:expiry eligibility rechecked after lock; submitted review excluded",
         "backend/django/apps/verifications/tests.py:test_expiry_preserves_submitted_review_and_rechecks_locked_state"
@@ -79,15 +81,16 @@
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep submitted reviews out of expiry**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/3#discussion_r3607689360",
       "remediation_pr": 363,
-      "remediation_commit": "29e57369fb483d98d3ee7a0f7417fad3b498b97a",
-      "disposition_note": "Implemented on PR #363; remains actionable on current main until its reviewed fix merges."
+      "remediation_commit": "f4f8cee925beaa4e2a7888cf8bc9c5c12aed668b",
+      "disposition_note": "Fixed in merged PR #363 after final-head Codex review, resolved evidence threads, and passing CI/Security.",
+      "merged_commit": "8872d9a7fea8054f9685a33f77bd9d6e7ea33695"
     },
     {
       "pr_number": 3,
       "thread_id": "PRRT_kwDOTN0BU86R9Olf",
       "comment_id": 3607689364,
       "path": "backend/ai-service/app/document_classification/classifier.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/ai-service/app/document_classification/classifier.py:MRZ issuer bound to expected country",
         "backend/ai-service/tests/test_document_classification.py:test_passport_mrz_cannot_authorize_a_different_expected_country"
@@ -95,36 +98,45 @@
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Require MRZ country evidence before bypassing checks**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/3#discussion_r3607689364",
       "remediation_pr": 363,
-      "remediation_commit": "29e57369fb483d98d3ee7a0f7417fad3b498b97a",
-      "disposition_note": "Implemented on PR #363; remains actionable on current main until its reviewed fix merges."
+      "remediation_commit": "f4f8cee925beaa4e2a7888cf8bc9c5c12aed668b",
+      "disposition_note": "Fixed in merged PR #363 after final-head Codex review, resolved evidence threads, and passing CI/Security.",
+      "merged_commit": "8872d9a7fea8054f9685a33f77bd9d6e7ea33695"
     },
     {
       "pr_number": 3,
       "thread_id": "PRRT_kwDOTN0BU86R9Olg",
       "comment_id": 3607689365,
       "path": ".github/workflows/ci.yml",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
-        ".github/workflows/ci.yml:uninstall overlapping variants, install chosen contrib-headless wheel and prevent resync",
-        "backend/ai-service/Dockerfile:normalize and verify selected runtime",
-        "backend/shared/opencv_runtime.py",
-        "Isolated conflicting installation rejected; normalization leaves one wheel and imports cv2 4.10.0 on NumPy 2.5.3."
+        "backend/pyproject.toml:exact contrib-headless 5.0.0.93 and three excluded conflicting distributions",
+        "backend/uv.lock:frozen single-variant resolution",
+        ".github/workflows/ci.yml and backend/ai-service/Dockerfile:shared runtime guard",
+        "Actual OpenCV5 import guard and conflicting-layout regressions pass; final-head CI/Security success."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Install only one OpenCV wheel in the AI job**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/3#discussion_r3607689365",
-      "remediation_pr": 364,
-      "remediation_commit": "0c87054bda2a8944fd7e7546e7e8650cc1f2f1bb",
-      "disposition_note": "Implemented on PR #364; remains actionable on current main until the reviewed fix merges."
+      "remediation_pr": 368,
+      "remediation_commit": "13e412ca207d51f40212d2523153a5c843bff476",
+      "disposition_note": "Merged PR #368 after final-head Codex no-findings review and successful CI/Security.",
+      "merged_commit": "60fc042eb208b2876a405bd7559a63f435492d35"
     },
     {
       "pr_number": 4,
       "thread_id": "PRRT_kwDOTN0BU86R9bch",
       "comment_id": 3607761308,
       "path": "backend/django/apps/risk/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/risk/services.py",
+        "backend/django/apps/risk/tests.py:test_ocr_outage_reason_remains_a_review_gate"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve OCR failure as a risk review signal**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3607761308"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3607761308",
+      "verified_main": "7cc7bfe76501b478897eeabc3fa794bdefd872a7",
+      "disposition_note": "Original finding independently checked against current source;172 targeted risk/finalization/verification tests,6 PostgreSQL decision/external races and10 authenticity tests pass.",
+      "remediation_pr": 363,
+      "merged_commit": "8872d9a7fea8054f9685a33f77bd9d6e7ea33695"
     },
     {
       "pr_number": 4,
@@ -321,10 +333,15 @@
       "thread_id": "PRRT_kwDOTN0BU86TZfPK",
       "comment_id": 3641746744,
       "path": "backend/django/apps/risk/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/risk/services.py",
+        "backend/django/apps/risk/tests.py:test_strong_evidence_is_automatically_approved"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Align the review-helper call with its new signature**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3641746744"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3641746744",
+      "verified_main": "7cc7bfe76501b478897eeabc3fa794bdefd872a7",
+      "disposition_note": "Original finding independently checked against current source;172 targeted risk/finalization/verification tests,6 PostgreSQL decision/external races and10 authenticity tests pass."
     },
     {
       "pr_number": 4,
@@ -731,10 +748,15 @@
       "thread_id": "PRRT_kwDOTN0BU86Tc9aj",
       "comment_id": 3643066175,
       "path": "backend/django/apps/risk/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/risk/services.py",
+        "backend/django/apps/risk/tests.py:test_strong_evidence_is_automatically_approved"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Pass only classification to the review helper**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3643066175"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3643066175",
+      "verified_main": "7cc7bfe76501b478897eeabc3fa794bdefd872a7",
+      "disposition_note": "Original finding independently checked against current source;172 targeted risk/finalization/verification tests,6 PostgreSQL decision/external races and10 authenticity tests pass."
     },
     {
       "pr_number": 16,
@@ -771,10 +793,15 @@
       "thread_id": "PRRT_kwDOTN0BU86Tc_4W",
       "comment_id": 3643080719,
       "path": "backend/django/apps/risk/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/risk/services.py",
+        "backend/django/apps/risk/tests.py:test_strong_evidence_is_automatically_approved"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Call the manual-review helper with its declared signature**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/17#discussion_r3643080719"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/17#discussion_r3643080719",
+      "verified_main": "7cc7bfe76501b478897eeabc3fa794bdefd872a7",
+      "disposition_note": "Original finding independently checked against current source;172 targeted risk/finalization/verification tests,6 PostgreSQL decision/external races and10 authenticity tests pass."
     },
     {
       "pr_number": 17,
@@ -841,10 +868,15 @@
       "thread_id": "PRRT_kwDOTN0BU86Tc7g3",
       "comment_id": 3643055087,
       "path": "backend/django/apps/risk/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/risk/services.py",
+        "backend/django/apps/risk/tests.py:test_strong_evidence_is_automatically_approved"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Pass only the classification to the review predicate**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/20#discussion_r3643055087"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/20#discussion_r3643055087",
+      "verified_main": "7cc7bfe76501b478897eeabc3fa794bdefd872a7",
+      "disposition_note": "Original finding independently checked against current source;172 targeted risk/finalization/verification tests,6 PostgreSQL decision/external races and10 authenticity tests pass."
     },
     {
       "pr_number": 20,
@@ -2791,10 +2823,16 @@
       "thread_id": "PRRT_kwDOTN0BU86VryyU",
       "comment_id": 3696953114,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/providers/test_historical_provider_audit.py:test_reusing_bootstrap_check_preserves_distinct_invocation_records"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve a distinct record for every provider invocation**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/194#discussion_r3696953114"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/194#discussion_r3696953114",
+      "remediation_pr": 366,
+      "remediation_commit": "c286b07d7c44a63a87f49d830df160a643f4fc41",
+      "disposition_note": "Fixed in merged PR #366 after final-head Codex review with no findings, all threads resolved with evidence, and passing CI/Security.",
+      "merged_commit": "ef273441cf496876481edb9a8ade63fda84cf858"
     },
     {
       "pr_number": 194,
@@ -2821,10 +2859,15 @@
       "thread_id": "PRRT_kwDOTN0BU86VryyY",
       "comment_id": 3696953119,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_client_error_is_explicitly_nonretryable",
+        "/tmp/provider-bootstrap-tests.log: 95 provider/biometric/result tests pass; /tmp/provider-bootstrap-full.log: 813 backend tests pass"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Mark only transient provider errors as retryable**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/194#discussion_r3696953119"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/194#discussion_r3696953119",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Provider errors carry explicit retryability; malformed/client errors are nonretryable."
     },
     {
       "pr_number": 194,
@@ -2841,20 +2884,32 @@
       "thread_id": "PRRT_kwDOTN0BU86Vryya",
       "comment_id": 3696953122,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/providers/test_historical_provider_audit.py:test_credential_aliases_and_evidence_locations_are_not_telemetry"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Redact common credential and evidence-key aliases**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/194#discussion_r3696953122"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/194#discussion_r3696953122",
+      "remediation_pr": 366,
+      "remediation_commit": "c286b07d7c44a63a87f49d830df160a643f4fc41",
+      "disposition_note": "Fixed in merged PR #366 after final-head Codex review with no findings, all threads resolved with evidence, and passing CI/Security.",
+      "merged_commit": "ef273441cf496876481edb9a8ade63fda84cf858"
     },
     {
       "pr_number": 194,
       "thread_id": "PRRT_kwDOTN0BU86Vr1xr",
       "comment_id": 3696970377,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/providers/test_historical_provider_audit.py:test_invalid_liveness_evidence_is_failed_inside_provider_boundary"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate results before recording successful completion**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/194#discussion_r3696970377"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/194#discussion_r3696970377",
+      "remediation_pr": 366,
+      "remediation_commit": "c286b07d7c44a63a87f49d830df160a643f4fc41",
+      "disposition_note": "Fixed in merged PR #366 after final-head Codex review with no findings, all threads resolved with evidence, and passing CI/Security.",
+      "merged_commit": "ef273441cf496876481edb9a8ade63fda84cf858"
     },
     {
       "pr_number": 194,
@@ -3170,10 +3225,18 @@
       "thread_id": "PRRT_kwDOTN0BU86Vr3CZ",
       "comment_id": 3696977665,
       "path": "backend/django/apps/webhooks/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/webhooks/services.py:_event_matches_endpoint_environment",
+        "backend/django/apps/webhooks/tests.py:test_delivery_revalidates_legacy_and_changed_environment",
+        "backend/django/apps/webhooks/tests.py:test_verification_delivery_rejects_missing_ids_but_allows_test_events"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Revalidate webhook environments before delivery**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/198#discussion_r3696977665"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/198#discussion_r3696977665",
+      "remediation_pr": 370,
+      "remediation_commit": "b6344fbbdaea1461794a31266d4ceb2d2ca39049",
+      "disposition_note": "Fixed in merged PR370. Delivery checks fresh tenant/environment scope and cancels verification events lacking resolvable IDs.50 webhook tests pass on SQLite/PostgreSQL;815 backend tests pass.",
+      "merged_commit": "8c8c379cce744444073c3094e8336e3819b7c4af"
     },
     {
       "pr_number": 199,
@@ -3260,10 +3323,15 @@
       "thread_id": "PRRT_kwDOTN0BU86Vr5LY",
       "comment_id": 3696989639,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/services.py:invoke_provider_check",
+        "/tmp/provider-bootstrap-tests.log: 95 provider/biometric/result tests pass; /tmp/provider-bootstrap-full.log: 813 backend tests pass"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Merge invocation metadata instead of replacing it**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/200#discussion_r3696989639"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/200#discussion_r3696989639",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Existing bootstrap metadata is merged with invocation metadata before recursive redaction."
     },
     {
       "pr_number": 200,
@@ -3310,10 +3378,15 @@
       "thread_id": "PRRT_kwDOTN0BU86Vr5Qp",
       "comment_id": 3696990114,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/services.py:invoke_provider_check",
+        "/tmp/provider-bootstrap-tests.log: 95 provider/biometric/result tests pass; /tmp/provider-bootstrap-full.log: 813 backend tests pass"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Merge invocation metadata instead of replacing it**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/201#discussion_r3696990114"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/201#discussion_r3696990114",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Existing bootstrap metadata is merged with invocation metadata before recursive redaction."
     },
     {
       "pr_number": 201,
@@ -3330,10 +3403,16 @@
       "thread_id": "PRRT_kwDOTN0BU86Vr5Qt",
       "comment_id": 3696990119,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/providers/test_historical_provider_audit.py:test_retry_clears_terminal_fields_before_calling_provider"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Clear terminal fields when starting a retry**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/201#discussion_r3696990119"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/201#discussion_r3696990119",
+      "remediation_pr": 366,
+      "remediation_commit": "c286b07d7c44a63a87f49d830df160a643f4fc41",
+      "disposition_note": "Fixed in merged PR #366 after final-head Codex review with no findings, all threads resolved with evidence, and passing CI/Security.",
+      "merged_commit": "ef273441cf496876481edb9a8ade63fda84cf858"
     },
     {
       "pr_number": 203,
@@ -3740,10 +3819,15 @@
       "thread_id": "PRRT_kwDOTN0BU86V5qLr",
       "comment_id": 3702276383,
       "path": "backend/django/apps/risk/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/risk/services.py",
+        "backend/django/apps/risk/tests.py:test_terminal_race_rejects_automatic_write_and_audits_conflict"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Lock before persisting the automatic decision**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/241#discussion_r3702276383"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/241#discussion_r3702276383",
+      "verified_main": "7cc7bfe76501b478897eeabc3fa794bdefd872a7",
+      "disposition_note": "Original finding independently checked against current source;172 targeted risk/finalization/verification tests,6 PostgreSQL decision/external races and10 authenticity tests pass."
     },
     {
       "pr_number": 241,
@@ -3950,10 +4034,15 @@
       "thread_id": "PRRT_kwDOTN0BU86V6K4w",
       "comment_id": 3702472454,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_workflow_result_preserves_normalized_provider_envelope",
+        "/tmp/provider-bootstrap-tests.log: 95 provider/biometric/result tests pass; /tmp/provider-bootstrap-full.log: 813 backend tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep the versioned envelope in final workflow records**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/246#discussion_r3702472454"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/246#discussion_r3702472454",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Document and biometric aggregate writes call preserve_provider_result_envelope."
     },
     {
       "pr_number": 246,
@@ -4010,20 +4099,31 @@
       "thread_id": "PRRT_kwDOTN0BU86V6Ql1",
       "comment_id": 3702505466,
       "path": "backend/django/apps/providers/http_adapter.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_pinned_connection_uses_vetted_ip_and_original_hostname_for_tls",
+        "backend/django/apps/providers/http_adapter.py",
+        "23 SecureHTTPProviderAdapterTests pass; full provider/biometric/result suite passes 95 tests."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Bind provider connections to the validated IP addresses**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/247#discussion_r3702505466"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/247#discussion_r3702505466",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "TCP connections use vetted resolved endpoints while TLS keeps the original hostname."
     },
     {
       "pr_number": 247,
       "thread_id": "PRRT_kwDOTN0BU86V6Ql5",
       "comment_id": 3702505470,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_workflow_result_preserves_normalized_provider_envelope",
+        "/tmp/provider-bootstrap-tests.log: 95 provider/biometric/result tests pass; /tmp/provider-bootstrap-full.log: 813 backend tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve the versioned envelope after provider calls**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/247#discussion_r3702505470"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/247#discussion_r3702505470",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Document and biometric aggregate writes call preserve_provider_result_envelope."
     },
     {
       "pr_number": 247,
@@ -4040,20 +4140,32 @@
       "thread_id": "PRRT_kwDOTN0BU86V6QmA",
       "comment_id": 3702505478,
       "path": "backend/django/apps/providers/http_adapter.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_timeout_is_explicitly_retryable",
+        "backend/django/apps/providers/http_adapter.py",
+        "23 SecureHTTPProviderAdapterTests pass; full provider/biometric/result suite passes 95 tests."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve timeout semantics for secure HTTP failures**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/247#discussion_r3702505478"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/247#discussion_r3702505478",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Secure timeout errors expose provider_check_status=timeout and retryable=True."
     },
     {
       "pr_number": 247,
       "thread_id": "PRRT_kwDOTN0BU86V6QmE",
       "comment_id": 3702505481,
       "path": "backend/django/apps/providers/http_adapter.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_absolute_deadline_applies_while_response_is_streaming",
+        "backend/django/apps/providers/http_adapter.py",
+        "23 SecureHTTPProviderAdapterTests pass; full provider/biometric/result suite passes 95 tests."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Enforce an end-to-end provider request deadline**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/247#discussion_r3702505481"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/247#discussion_r3702505481",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Monotonic deadline covers DNS, connection, headers and streaming body; watchdog shuts down stalled sockets."
     },
     {
       "pr_number": 247,
@@ -4070,30 +4182,47 @@
       "thread_id": "PRRT_kwDOTN0BU86V6ULr",
       "comment_id": 3702526002,
       "path": "backend/django/apps/providers/http_adapter.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/identity_documents/tests.py:test_document_pipeline_invokes_the_provider_selected_by_active_routes",
+        "backend/django/apps/providers/http_adapter.py",
+        "23 SecureHTTPProviderAdapterTests pass; full provider/biometric/result suite passes 95 tests."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Wire custom adapters into capability dispatch**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/248#discussion_r3702526002"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/248#discussion_r3702526002",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Both production pipelines invoke the selected custom adapter through route orchestration."
     },
     {
       "pr_number": 248,
       "thread_id": "PRRT_kwDOTN0BU86V6ULv",
       "comment_id": 3702526008,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_workflow_result_preserves_normalized_provider_envelope",
+        "/tmp/provider-bootstrap-tests.log: 95 provider/biometric/result tests pass; /tmp/provider-bootstrap-full.log: 813 backend tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve the version envelope in persisted provider checks**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/248#discussion_r3702526008"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/248#discussion_r3702526008",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Document and biometric aggregate writes call preserve_provider_result_envelope."
     },
     {
       "pr_number": 248,
       "thread_id": "PRRT_kwDOTN0BU86V6UL0",
       "comment_id": 3702526015,
       "path": "backend/django/apps/providers/http_adapter.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_pinned_connection_uses_vetted_ip_and_original_hostname_for_tls",
+        "backend/django/apps/providers/http_adapter.py",
+        "23 SecureHTTPProviderAdapterTests pass; full provider/biometric/result suite passes 95 tests."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Pin the validated address used for the HTTP connection**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/248#discussion_r3702526015"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/248#discussion_r3702526015",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "TCP connections use vetted resolved endpoints while TLS keeps the original hostname."
     },
     {
       "pr_number": 248,
@@ -4130,20 +4259,32 @@
       "thread_id": "PRRT_kwDOTN0BU86V6UME",
       "comment_id": 3702526034,
       "path": "backend/django/apps/providers/http_adapter.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_timeout_is_explicitly_retryable",
+        "backend/django/apps/providers/http_adapter.py",
+        "23 SecureHTTPProviderAdapterTests pass; full provider/biometric/result suite passes 95 tests."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Mark secure-adapter timeouts as timeout outcomes**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/248#discussion_r3702526034"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/248#discussion_r3702526034",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Secure timeout errors expose provider_check_status=timeout and retryable=True."
     },
     {
       "pr_number": 248,
       "thread_id": "PRRT_kwDOTN0BU86V6UMM",
       "comment_id": 3702526046,
       "path": "backend/django/apps/risk/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/biometrics/tasks.py:_persist_unavailable_biometric_decision",
+        "backend/django/apps/verifications/test_system_decision_contract.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Refresh contract fields when replacing an automatic decision**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/248#discussion_r3702526046"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/248#discussion_r3702526046",
+      "remediation_pr": 373,
+      "remediation_commit": "da6e0d8c0b2faa2e7e0e1cceb227104a792d2f5a",
+      "disposition_note": "Still live on current main: system fallback decision replacements omit matching reason-code arrays and snapshots. PR373 adds a shared contract refresh across three paths;829 backend and10PGtests pass. Awaiting review/merge."
     },
     {
       "pr_number": 248,
@@ -4180,20 +4321,31 @@
       "thread_id": "PRRT_kwDOTN0BU86V6SIe",
       "comment_id": 3702513883,
       "path": "backend/django/apps/providers/http_adapter.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_pinned_connection_uses_vetted_ip_and_original_hostname_for_tls",
+        "backend/django/apps/providers/http_adapter.py",
+        "23 SecureHTTPProviderAdapterTests pass; full provider/biometric/result suite passes 95 tests."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Bind requests to the DNS addresses already validated**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/249#discussion_r3702513883"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/249#discussion_r3702513883",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "TCP connections use vetted resolved endpoints while TLS keeps the original hostname."
     },
     {
       "pr_number": 249,
       "thread_id": "PRRT_kwDOTN0BU86V6SIg",
       "comment_id": 3702513886,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_workflow_result_preserves_normalized_provider_envelope",
+        "/tmp/provider-bootstrap-tests.log: 95 provider/biometric/result tests pass; /tmp/provider-bootstrap-full.log: 813 backend tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve provider envelopes after workflow normalization**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/249#discussion_r3702513886"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/249#discussion_r3702513886",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Document and biometric aggregate writes call preserve_provider_result_envelope."
     },
     {
       "pr_number": 249,
@@ -4310,60 +4462,105 @@
       "thread_id": "PRRT_kwDOTN0BU86V6jvb",
       "comment_id": 3702616649,
       "path": "backend/django/apps/audit/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/audit/models.py:AuditEvent.save",
+        "backend/django/apps/audit/services.py:lock_audit_chain",
+        "PR #369 PostgreSQL validation: test_concurrent_appends_have_one_authenticated_chain passed"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Serialize audit appends per tenant**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/251#discussion_r3702616649"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/251#discussion_r3702616649",
+      "disposition_note": "Current main serializes appends with the tenant row lock; a dedicated concurrent PostgreSQL regression confirms one chain."
     },
     {
       "pr_number": 251,
       "thread_id": "PRRT_kwDOTN0BU86V6jvc",
       "comment_id": 3702616651,
       "path": "backend/django/apps/audit/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/audit/models.py:AuditEventQuerySet; backend/django/apps/audit/admin.py:view-only permissions",
+        "backend/django/apps/audit/tests.py:test_queryset_and_admin_mutations_are_blocked",
+        "PR369 final-head CI/Security pass;822backendtests;14PGaudit tests"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Prevent queryset deletions of audit events**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/251#discussion_r3702616651"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/251#discussion_r3702616651",
+      "remediation_pr": 369,
+      "remediation_commit": "464a41d6a6d6646da4ed20cede9f722e7523cb91",
+      "disposition_note": "Merged PR369 after completed final-head Codex review, no unresolved findings, and successful CI/Security.822backend and14PG audit tests pass, including keyed forgery rejection, normalization, bulk mutations and append concurrency.",
+      "merged_commit": "6d241f3950db77efac1bf79d6743f4cfcdf55d84"
     },
     {
       "pr_number": 251,
       "thread_id": "PRRT_kwDOTN0BU86V6jvg",
       "comment_id": 3702616655,
       "path": "backend/django/apps/audit/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/audit/models.py:AuditEvent.save IPv6 normalization before event_hash",
+        "backend/django/apps/audit/tests.py:test_creation_time_is_assigned_and_ipv6_round_trips",
+        "PR369 final-head CI/Security pass;822backendtests;14PGaudit tests"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Hash the normalized IP address**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/251#discussion_r3702616655"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/251#discussion_r3702616655",
+      "remediation_pr": 369,
+      "remediation_commit": "464a41d6a6d6646da4ed20cede9f722e7523cb91",
+      "disposition_note": "Merged PR369 after completed final-head Codex review, no unresolved findings, and successful CI/Security.822backend and14PG audit tests pass, including keyed forgery rejection, normalization, bulk mutations and append concurrency.",
+      "merged_commit": "6d241f3950db77efac1bf79d6743f4cfcdf55d84"
     },
     {
       "pr_number": 251,
       "thread_id": "PRRT_kwDOTN0BU86V6jvh",
       "comment_id": 3702616657,
       "path": "backend/django/apps/audit/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/audit/integrity.py:event_authentication with domain-derived application key; services.py:verify_audit_chain",
+        "backend/django/apps/audit/tests.py:test_recomputed_unkeyed_hash_and_version_downgrade_fail; test_rotated_keys_verify_retained_history_and_missing_keys_fail_closed",
+        "PR369 final-head CI/Security pass;822backendtests;14PGaudit tests"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Anchor or authenticate the audit chain**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/251#discussion_r3702616657"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/251#discussion_r3702616657",
+      "remediation_pr": 369,
+      "remediation_commit": "464a41d6a6d6646da4ed20cede9f722e7523cb91",
+      "disposition_note": "Merged PR369 after completed final-head Codex review, no unresolved findings, and successful CI/Security.822backend and14PG audit tests pass, including keyed forgery rejection, normalization, bulk mutations and append concurrency.",
+      "merged_commit": "6d241f3950db77efac1bf79d6743f4cfcdf55d84"
     },
     {
       "pr_number": 251,
       "thread_id": "PRRT_kwDOTN0BU86V6jvk",
       "comment_id": 3702616660,
       "path": "backend/django/apps/audit/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/audit/models.py:created_at editable=False and server assignment in save",
+        "backend/django/apps/audit/tests.py:test_creation_time_is_assigned_and_ipv6_round_trips",
+        "PR369 final-head CI/Security pass;822backendtests;14PGaudit tests"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep audit timestamps non-editable**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/251#discussion_r3702616660"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/251#discussion_r3702616660",
+      "remediation_pr": 369,
+      "remediation_commit": "464a41d6a6d6646da4ed20cede9f722e7523cb91",
+      "disposition_note": "Merged PR369 after completed final-head Codex review, no unresolved findings, and successful CI/Security.822backend and14PG audit tests pass, including keyed forgery rejection, normalization, bulk mutations and append concurrency.",
+      "merged_commit": "6d241f3950db77efac1bf79d6743f4cfcdf55d84"
     },
     {
       "pr_number": 251,
       "thread_id": "PRRT_kwDOTN0BU86V6jvn",
       "comment_id": 3702616663,
       "path": "backend/django/apps/audit/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/audit/models.py:ensure_public_id before event_hash; integrity.py:event_payload/event_authentication",
+        "backend/django/apps/audit/tests.py:test_public_id_tampering_is_detected; test_legacy_backfill_preserves_hashes_and_authenticates_public_id",
+        "PR369 final-head CI/Security pass;822backendtests;14PGaudit tests"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include the public event ID in the integrity payload**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/251#discussion_r3702616663"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/251#discussion_r3702616663",
+      "remediation_pr": 369,
+      "remediation_commit": "464a41d6a6d6646da4ed20cede9f722e7523cb91",
+      "disposition_note": "Merged PR369 after completed final-head Codex review, no unresolved findings, and successful CI/Security.822backend and14PG audit tests pass, including keyed forgery rejection, normalization, bulk mutations and append concurrency.",
+      "merged_commit": "6d241f3950db77efac1bf79d6743f4cfcdf55d84"
     },
     {
       "pr_number": 251,
@@ -4380,40 +4577,66 @@
       "thread_id": "PRRT_kwDOTN0BU86V6nUA",
       "comment_id": 3702637529,
       "path": "backend/django/apps/audit/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/audit/models.py:AuditEvent.save",
+        "backend/django/apps/audit/services.py:lock_audit_chain",
+        "PR #369 PostgreSQL validation: test_concurrent_appends_have_one_authenticated_chain passed"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Serialize per-tenant audit-chain appends**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/252#discussion_r3702637529"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/252#discussion_r3702637529",
+      "disposition_note": "Current main serializes appends with the tenant row lock; a dedicated concurrent PostgreSQL regression confirms one chain."
     },
     {
       "pr_number": 252,
       "thread_id": "PRRT_kwDOTN0BU86V6nUD",
       "comment_id": 3702637533,
       "path": "backend/django/apps/audit/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/audit/models.py:AuditEventQuerySet; backend/django/apps/audit/admin.py:view-only permissions",
+        "backend/django/apps/audit/tests.py:test_queryset_and_admin_mutations_are_blocked",
+        "PR369 final-head CI/Security pass;822backendtests;14PGaudit tests"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Block queryset deletion of audit events**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/252#discussion_r3702637533"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/252#discussion_r3702637533",
+      "remediation_pr": 369,
+      "remediation_commit": "464a41d6a6d6646da4ed20cede9f722e7523cb91",
+      "disposition_note": "Merged PR369 after completed final-head Codex review, no unresolved findings, and successful CI/Security.822backend and14PG audit tests pass, including keyed forgery rejection, normalization, bulk mutations and append concurrency.",
+      "merged_commit": "6d241f3950db77efac1bf79d6743f4cfcdf55d84"
     },
     {
       "pr_number": 252,
       "thread_id": "PRRT_kwDOTN0BU86V6nUG",
       "comment_id": 3702637536,
       "path": "backend/django/apps/audit/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/audit/models.py:AuditEvent.save IPv6 normalization before event_hash",
+        "backend/django/apps/audit/tests.py:test_creation_time_is_assigned_and_ipv6_round_trips",
+        "PR369 final-head CI/Security pass;822backendtests;14PGaudit tests"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Hash the normalized IP address**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/252#discussion_r3702637536"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/252#discussion_r3702637536",
+      "remediation_pr": 369,
+      "remediation_commit": "464a41d6a6d6646da4ed20cede9f722e7523cb91",
+      "disposition_note": "Merged PR369 after completed final-head Codex review, no unresolved findings, and successful CI/Security.822backend and14PG audit tests pass, including keyed forgery rejection, normalization, bulk mutations and append concurrency.",
+      "merged_commit": "6d241f3950db77efac1bf79d6743f4cfcdf55d84"
     },
     {
       "pr_number": 252,
       "thread_id": "PRRT_kwDOTN0BU86V6nUI",
       "comment_id": 3702637540,
       "path": "backend/django/apps/verifications/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/tasks.py",
+        "backend/django/apps/verifications/tests.py:test_cleanup_does_not_defer_held_media_before_retention_is_due"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Check retention eligibility before recording a deferral**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/252#discussion_r3702637540"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/252#discussion_r3702637540",
+      "verified_main": "7cc7bfe76501b478897eeabc3fa794bdefd872a7",
+      "disposition_note": "Original hold/expiration finding independently checked against current implementation and its specific regression.172 targeted risk/finalization/verification tests pass."
     },
     {
       "pr_number": 252,
@@ -4430,30 +4653,51 @@
       "thread_id": "PRRT_kwDOTN0BU86V6nUP",
       "comment_id": 3702637549,
       "path": "backend/django/apps/audit/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/audit/models.py:ensure_public_id before event_hash; integrity.py:event_payload/event_authentication",
+        "backend/django/apps/audit/tests.py:test_public_id_tampering_is_detected; test_legacy_backfill_preserves_hashes_and_authenticates_public_id",
+        "PR369 final-head CI/Security pass;822backendtests;14PGaudit tests"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include the audit event identifier in its integrity hash**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/252#discussion_r3702637549"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/252#discussion_r3702637549",
+      "remediation_pr": 369,
+      "remediation_commit": "464a41d6a6d6646da4ed20cede9f722e7523cb91",
+      "disposition_note": "Merged PR369 after completed final-head Codex review, no unresolved findings, and successful CI/Security.822backend and14PG audit tests pass, including keyed forgery rejection, normalization, bulk mutations and append concurrency.",
+      "merged_commit": "6d241f3950db77efac1bf79d6743f4cfcdf55d84"
     },
     {
       "pr_number": 252,
       "thread_id": "PRRT_kwDOTN0BU86V6nUT",
       "comment_id": 3702637553,
       "path": "backend/django/apps/verifications/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/tasks.py",
+        "backend/django/apps/verifications/tests.py:test_cleanup_retained_media_task_respects_active_legal_hold"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Match tenant-wide legal holds explicitly**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/252#discussion_r3702637553"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/252#discussion_r3702637553",
+      "verified_main": "7cc7bfe76501b478897eeabc3fa794bdefd872a7",
+      "disposition_note": "Original hold/expiration finding independently checked against current implementation and its specific regression.172 targeted risk/finalization/verification tests pass."
     },
     {
       "pr_number": 252,
       "thread_id": "PRRT_kwDOTN0BU86V6nUX",
       "comment_id": 3702637558,
       "path": "backend/django/apps/audit/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/audit/models.py:created_at editable=False and server assignment in save",
+        "backend/django/apps/audit/tests.py:test_creation_time_is_assigned_and_ipv6_round_trips",
+        "PR369 final-head CI/Security pass;822backendtests;14PGaudit tests"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep audit timestamps application-controlled**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/252#discussion_r3702637558"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/252#discussion_r3702637558",
+      "remediation_pr": 369,
+      "remediation_commit": "464a41d6a6d6646da4ed20cede9f722e7523cb91",
+      "disposition_note": "Merged PR369 after completed final-head Codex review, no unresolved findings, and successful CI/Security.822backend and14PG audit tests pass, including keyed forgery rejection, normalization, bulk mutations and append concurrency.",
+      "merged_commit": "6d241f3950db77efac1bf79d6743f4cfcdf55d84"
     },
     {
       "pr_number": 253,
@@ -4740,10 +4984,15 @@
       "thread_id": "PRRT_kwDOTN0BU86XlUc7",
       "comment_id": 3743170367,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/identity_documents/tests.py:test_document_pipeline_invokes_the_provider_selected_by_active_routes",
+        "/tmp/provider-bootstrap-tests.log: 95 provider/biometric/result tests pass; /tmp/provider-bootstrap-full.log: 813 backend tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Invoke the provider selected by the route**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/277#discussion_r3743170367"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/277#discussion_r3743170367",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Document and biometric production pipelines execute the selected provider through route orchestration."
     },
     {
       "pr_number": 277,
@@ -4760,170 +5009,254 @@
       "thread_id": "PRRT_kwDOTN0BU86XlUdB",
       "comment_id": 3743170377,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_provider_check_records_actual_enabled_step_and_keeps_route_metadata",
+        "/tmp/provider-bootstrap-tests.log: 95 provider/biometric/result tests pass; /tmp/provider-bootstrap-full.log: 813 backend tests pass"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Record the selected route step's actual position**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/277#discussion_r3743170377"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/277#discussion_r3743170377",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Selected step position comes from the actual route step, including disabled predecessor handling."
     },
     {
       "pr_number": 277,
       "thread_id": "PRRT_kwDOTN0BU86XlUdC",
       "comment_id": 3743170380,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_provider_check_records_actual_enabled_step_and_keeps_route_metadata",
+        "/tmp/provider-bootstrap-tests.log: 95 provider/biometric/result tests pass; /tmp/provider-bootstrap-full.log: 813 backend tests pass"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve route metadata when invoking the check**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/277#discussion_r3743170380"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/277#discussion_r3743170380",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Route selection metadata is retained by the invocation metadata merge."
     },
     {
       "pr_number": 277,
       "thread_id": "PRRT_kwDOTN0BU86XlUdE",
       "comment_id": 3743170381,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_publication_revalidates_and_rejects_deleted_configuration",
+        "/tmp/provider-bootstrap-tests.log: 95 provider/biometric/result tests pass; /tmp/provider-bootstrap-full.log: 813 backend tests pass"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Revalidate every route step during publication**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/277#discussion_r3743170381"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/277#discussion_r3743170381",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Publication calls full_clean on every active step and rejects incompatible capability changes."
     },
     {
       "pr_number": 277,
       "thread_id": "PRRT_kwDOTN0BU86XlUdH",
       "comment_id": 3743170385,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_publication_revalidates_and_rejects_deleted_configuration",
+        "/tmp/provider-bootstrap-tests.log: 95 provider/biometric/result tests pass; /tmp/provider-bootstrap-full.log: 813 backend tests pass"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject soft-deleted routes and steps during publication**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/277#discussion_r3743170385"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/277#discussion_r3743170385",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Deleted routes/steps are rejected during publication and excluded from route resolution."
     },
     {
       "pr_number": 277,
       "thread_id": "PRRT_kwDOTN0BU86XlUdI",
       "comment_id": 3743170386,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/projects/tests.py:test_environment_cannot_change_after_verification_activity",
+        "/tmp/provider-bootstrap-tests.log: 95 provider/biometric/result tests pass; /tmp/provider-bootstrap-full.log: 813 backend tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Snapshot the verification environment before routing**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/277#discussion_r3743170386"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/277#discussion_r3743170386",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Project API prohibits environment changes after verification activity, preserving route environment."
     },
     {
       "pr_number": 277,
       "thread_id": "PRRT_kwDOTN0BU86XlUdK",
       "comment_id": 3743170388,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/services.py:resolve_provider_chain_for_verification",
+        "/tmp/provider-bootstrap-tests.log: 95 provider/biometric/result tests pass; /tmp/provider-bootstrap-full.log: 813 backend tests pass"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Resolve conditions from the referenced identity document**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/277#discussion_r3743170388"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/277#discussion_r3743170388",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Country/type conditions use the referenced identity_document_id before falling back to the latest document."
     },
     {
       "pr_number": 278,
       "thread_id": "PRRT_kwDOTN0BU86XldWd",
       "comment_id": 3743216235,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/biometrics/tests.py:test_biometric_pipeline_invokes_the_provider_selected_by_active_routes",
+        "/tmp/provider-bootstrap-tests.log: 95 provider/biometric/result tests pass; /tmp/provider-bootstrap-full.log: 813 backend tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Wire route execution into the production provider pipelines**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/278#discussion_r3743216235"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/278#discussion_r3743216235",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Both production pipelines invoke execute_provider_route and invoke_selected_provider_operation."
     },
     {
       "pr_number": 278,
       "thread_id": "PRRT_kwDOTN0BU86XldWg",
       "comment_id": 3743216238,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_failed_half_open_probe_does_not_retry_and_stale_claim_recovers",
+        "/tmp/provider-bootstrap-tests.log: 95 provider/biometric/result tests pass; /tmp/provider-bootstrap-full.log: 813 backend tests pass"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Stop retrying after a half-open probe fails**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/278#discussion_r3743216238"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/278#discussion_r3743216238",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "A failed recovery probe does not consume remaining immediate retries."
     },
     {
       "pr_number": 278,
       "thread_id": "PRRT_kwDOTN0BU86XldWh",
       "comment_id": 3743216239,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_failed_half_open_probe_does_not_retry_and_stale_claim_recovers",
+        "/tmp/provider-bootstrap-tests.log: 95 provider/biometric/result tests pass; /tmp/provider-bootstrap-full.log: 813 backend tests pass"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Recover abandoned half-open circuit claims**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/278#discussion_r3743216239"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/278#discussion_r3743216239",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Half-open claims carry retry_after leases and expired claims can be reclaimed."
     },
     {
       "pr_number": 278,
       "thread_id": "PRRT_kwDOTN0BU86XldWl",
       "comment_id": 3743216243,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_nonretryable_response_resets_closed_circuit_failure_streak",
+        "/tmp/provider-bootstrap-tests.log: 95 provider/biometric/result tests pass; /tmp/provider-bootstrap-full.log: 813 backend tests pass"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reset the failure streak after nonretryable responses**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/278#discussion_r3743216243"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/278#discussion_r3743216243",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Deterministic responses reset closed and half-open transient failure streaks."
     },
     {
       "pr_number": 278,
       "thread_id": "PRRT_kwDOTN0BU86XldWn",
       "comment_id": 3743216245,
       "path": "backend/django/apps/providers/http_adapter.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_timeout_is_explicitly_retryable",
+        "backend/django/apps/providers/http_adapter.py",
+        "23 SecureHTTPProviderAdapterTests pass; full provider/biometric/result suite passes 95 tests."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Mark secure HTTP timeouts as timeout checks**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/278#discussion_r3743216245"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/278#discussion_r3743216245",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Timeout status metadata is propagated into provider check and execution attempt outcomes."
     },
     {
       "pr_number": 278,
       "thread_id": "PRRT_kwDOTN0BU86XldWo",
       "comment_id": 3743216247,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/services.py:_apply_route_final_action",
+        "/tmp/provider-bootstrap-tests.log: 95 provider/biometric/result tests pass; /tmp/provider-bootstrap-full.log: 813 backend tests pass"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Emit status events when route exhaustion changes verification state**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/278#discussion_r3743216247"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/278#discussion_r3743216247",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Terminal route actions queue webhook and status notification records in the same transaction."
     },
     {
       "pr_number": 279,
       "thread_id": "PRRT_kwDOTN0BU86Xlnoo",
       "comment_id": 3743269289,
       "path": "backend/django/apps/providers/health.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/projects/serializers.py:ProjectSerializer.validate blocks environment changes after verification activity",
+        "backend/django/apps/projects/tests.py:test_environment_cannot_change_after_verification_activity"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve each check's execution environment**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269289"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269289",
+      "disposition_note": "Original finding read; current implementation inspected. Six management API tests and four project tests pass; environment mutation trigger is now rejected, and payload-free full-chain/capability/circuit behavior is covered."
     },
     {
       "pr_number": 279,
       "thread_id": "PRRT_kwDOTN0BU86Xlnou",
       "comment_id": 3743269295,
       "path": "backend/django/apps/providers/health.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/health.py:provider_health_scope filters by tenant/environment/provider and selects scalar fields; complete capability-specific route chain; disabled-provider and expired-circuit eligibility",
+        "backend/django/config/test_management_apis.py:test_provider_health_is_scoped_redacted_and_includes_route_circuit_state; test_provider_filtered_health_keeps_full_capability_specific_route"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Compute route health from the complete provider chain**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269295"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269295",
+      "disposition_note": "Original finding read; current implementation inspected. Six management API tests and four project tests pass; environment mutation trigger is now rejected, and payload-free full-chain/capability/circuit behavior is covered."
     },
     {
       "pr_number": 279,
       "thread_id": "PRRT_kwDOTN0BU86Xlnox",
       "comment_id": 3743269299,
       "path": "backend/django/apps/providers/health.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/health.py:provider_health_scope filters by tenant/environment/provider and selects scalar fields; complete capability-specific route chain; disabled-provider and expired-circuit eligibility",
+        "backend/django/config/test_management_apis.py:test_provider_health_is_scoped_redacted_and_includes_route_circuit_state; test_provider_filtered_health_keeps_full_capability_specific_route"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Aggregate health without loading encrypted check payloads**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269299"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269299",
+      "disposition_note": "Original finding read; current implementation inspected. Six management API tests and four project tests pass; environment mutation trigger is now rejected, and payload-free full-chain/capability/circuit behavior is covered."
     },
     {
       "pr_number": 279,
       "thread_id": "PRRT_kwDOTN0BU86Xlno0",
       "comment_id": 3743269303,
       "path": "backend/django/apps/providers/health.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "health.py:_safe_error_code rejects uncontrolled codes but HTTP family needed narrower validation",
+        "PR372:test_only_controlled_codes_and_three_ascii_error_status_digits_are_public"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Allowlist error codes before returning them**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269303"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269303",
+      "remediation_pr": 372,
+      "remediation_commit": "554772524fb2950a335b90510079c1a2e9970c9c",
+      "disposition_note": "Fixed in merged PR372. Controlled ASCII HTTP300-599 errors only; unknown/private values redact. Provider discovery preserves no_data groups.12 health/management/project tests pass.",
+      "merged_commit": "1bfedfc8a78b03105be9f89de5f91ac2e85a6544"
     },
     {
       "pr_number": 279,
       "thread_id": "PRRT_kwDOTN0BU86Xlno3",
       "comment_id": 3743269306,
       "path": "backend/django/apps/providers/health.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/health.py:provider_health_scope filters by tenant/environment/provider and selects scalar fields; complete capability-specific route chain; disabled-provider and expired-circuit eligibility",
+        "backend/django/config/test_management_apis.py:test_provider_health_is_scoped_redacted_and_includes_route_circuit_state; test_provider_filtered_health_keeps_full_capability_specific_route"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Account for disabled providers in route status**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269306"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269306",
+      "disposition_note": "Original finding read; current implementation inspected. Six management API tests and four project tests pass; environment mutation trigger is now rejected, and payload-free full-chain/capability/circuit behavior is covered."
     },
     {
       "pr_number": 279,
@@ -4940,30 +5273,42 @@
       "thread_id": "PRRT_kwDOTN0BU86Xlno7",
       "comment_id": 3743269311,
       "path": "frontend/platform-admin/src/features/ai-providers/live-data.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/platform-admin/src/features/ai-providers/live-data.ts:route-health label includes tenant_id, route key/version and environment"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep the tenant scope on route-health labels**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269311"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269311",
+      "verified_main": "7cc7bfe76501b478897eeabc3fa794bdefd872a7",
+      "disposition_note": "Current source retains tenant identity on every route health label, so matching route keys from different tenants remain distinguishable."
     },
     {
       "pr_number": 279,
       "thread_id": "PRRT_kwDOTN0BU86Xlno-",
       "comment_id": 3743269315,
       "path": "backend/django/apps/providers/health.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/health.py:provider_health_scope filters by tenant/environment/provider and selects scalar fields; complete capability-specific route chain; disabled-provider and expired-circuit eligibility",
+        "backend/django/config/test_management_apis.py:test_provider_health_is_scoped_redacted_and_includes_route_circuit_state; test_provider_filtered_health_keeps_full_capability_specific_route"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Treat expired open circuits as recovery-ready**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269315"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269315",
+      "disposition_note": "Original finding read; current implementation inspected. Six management API tests and four project tests pass; environment mutation trigger is now rejected, and payload-free full-chain/capability/circuit behavior is covered."
     },
     {
       "pr_number": 279,
       "thread_id": "PRRT_kwDOTN0BU86XlnpD",
       "comment_id": 3743269321,
       "path": "backend/django/apps/providers/health.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/health.py:provider_health_scope filters by tenant/environment/provider and selects scalar fields; complete capability-specific route chain; disabled-provider and expired-circuit eligibility",
+        "backend/django/config/test_management_apis.py:test_provider_health_is_scoped_redacted_and_includes_route_circuit_state; test_provider_filtered_health_keeps_full_capability_specific_route"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Scope route metrics to the route capability**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269321"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269321",
+      "disposition_note": "Original finding read; current implementation inspected. Six management API tests and four project tests pass; environment mutation trigger is now rejected, and payload-free full-chain/capability/circuit behavior is covered."
     },
     {
       "pr_number": 280,
@@ -5118,10 +5463,16 @@
       "thread_id": "PRRT_kwDOTN0BU86YnsuL",
       "comment_id": 3767725090,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/providers/test_historical_provider_audit.py:test_public_provenance_prefers_nested_workflow_outcome"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Read nested workflow outcomes in public provenance**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/286#discussion_r3767725090"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/286#discussion_r3767725090",
+      "remediation_pr": 366,
+      "remediation_commit": "c286b07d7c44a63a87f49d830df160a643f4fc41",
+      "disposition_note": "Fixed in merged PR #366 after final-head Codex review with no findings, all threads resolved with evidence, and passing CI/Security.",
+      "merged_commit": "ef273441cf496876481edb9a8ade63fda84cf858"
     },
     {
       "pr_number": 287,
@@ -5158,10 +5509,16 @@
       "thread_id": "PRRT_kwDOTN0BU86YoYWF",
       "comment_id": 3767984332,
       "path": "backend/django/apps/risk/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/risk/services.py",
+        "backend/django/apps/risk/test_decision_races.py:test_provider_exhaustion_preserves_pending_human_decision",
+        "backend/django/apps/verifications/processing_jobs.py:exhaust_processing_job"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Use one lock order for verification decisions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/288#discussion_r3767984332"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/288#discussion_r3767984332",
+      "verified_main": "7cc7bfe76501b478897eeabc3fa794bdefd872a7",
+      "disposition_note": "Original finding independently checked against current source;172 targeted risk/finalization/verification tests,6 PostgreSQL decision/external races and10 authenticity tests pass."
     },
     {
       "pr_number": 289,
@@ -5346,60 +5703,96 @@
       "thread_id": "PRRT_kwDOTN0BU86YpcoL",
       "comment_id": 3768393498,
       "path": "backend/django/apps/providers/http_adapter.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_rejects_tls_encrypted_https_proxy_before_resolution",
+        "backend/django/apps/providers/http_adapter.py",
+        "23 SecureHTTPProviderAdapterTests pass; full provider/biometric/result suite passes 95 tests."
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Implement TLS-in-TLS for HTTPS proxies**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/291#discussion_r3768393498"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/291#discussion_r3768393498",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "HTTPS-scheme proxies are explicitly rejected; no invalid SSLSocket nesting is attempted."
     },
     {
       "pr_number": 291,
       "thread_id": "PRRT_kwDOTN0BU86YpcoR",
       "comment_id": 3768393505,
       "path": "backend/django/apps/providers/http_adapter.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_proxy_connect_brackets_ipv6_host_authority",
+        "backend/django/apps/providers/http_adapter.py",
+        "23 SecureHTTPProviderAdapterTests pass; full provider/biometric/result suite passes 95 tests."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Bracket IPv6 addresses in the tunnel Host header**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/291#discussion_r3768393505"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/291#discussion_r3768393505",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "IPv6 CONNECT Host headers contain a bracketed address and destination port."
     },
     {
       "pr_number": 291,
       "thread_id": "PRRT_kwDOTN0BU86YpcoX",
       "comment_id": 3768393511,
       "path": "backend/django/apps/providers/http_adapter.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_rejects_malformed_bracketed_proxy_url",
+        "backend/django/apps/providers/http_adapter.py",
+        "23 SecureHTTPProviderAdapterTests pass; full provider/biometric/result suite passes 95 tests."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Convert proxy URL parsing failures to adapter errors**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/291#discussion_r3768393511"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/291#discussion_r3768393511",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Malformed proxy URL/bracket parsing is translated to provider_proxy_invalid."
     },
     {
       "pr_number": 291,
       "thread_id": "PRRT_kwDOTN0BU86Yp0V9",
       "comment_id": 3768535818,
       "path": "backend/django/apps/providers/http_adapter.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_rejects_tls_proxy_before_provider_dns",
+        "backend/django/apps/providers/http_adapter.py",
+        "23 SecureHTTPProviderAdapterTests pass; full provider/biometric/result suite passes 95 tests."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject unsupported proxy before resolving provider**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/291#discussion_r3768535818"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/291#discussion_r3768535818",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Unsupported proxy validation precedes provider DNS resolution."
     },
     {
       "pr_number": 291,
       "thread_id": "PRRT_kwDOTN0BU86Yp0WD",
       "comment_id": 3768535824,
       "path": "backend/django/apps/providers/http_adapter.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_proxy_bypass_uses_port_qualified_destination",
+        "backend/django/apps/providers/http_adapter.py",
+        "23 SecureHTTPProviderAdapterTests pass; full provider/biometric/result suite passes 95 tests."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include the destination port in proxy bypass checks**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/291#discussion_r3768535824"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/291#discussion_r3768535824",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "NO_PROXY bypass checks include destination port/IPv6 authority."
     },
     {
       "pr_number": 291,
       "thread_id": "PRRT_kwDOTN0BU86Yp8Ll",
       "comment_id": 3768583724,
       "path": "backend/django/apps/providers/http_adapter.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/tests.py:test_proxy_bypass_checks_ipv6_authority_and_raw_host",
+        "backend/django/apps/providers/http_adapter.py",
+        "23 SecureHTTPProviderAdapterTests pass; full provider/biometric/result suite passes 95 tests."
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Honor unbracketed IPv6 proxy bypass entries**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/291#discussion_r3768583724"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/291#discussion_r3768583724",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "NO_PROXY checks both the raw hostname and bracketed port-qualified IPv6 authority."
     },
     {
       "pr_number": 293,
@@ -5966,10 +6359,14 @@
       "thread_id": "PRRT_kwDOTN0BU86bY5sM",
       "comment_id": 3836099300,
       "path": "backend/django/apps/webhooks/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/services.py",
+        "test_delivery_sends_version_and_event_bound_signature_headers; test_delivery_is_signed_with_current_and_previous_keys_during_overlap"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve compatibility while rolling out v1 signatures**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836099300"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836099300",
+      "disposition_note": "Read original finding and current queue/claim/finalization/action code. Existing protection is retained on main60fc; all49 webhook tests pass on PostgreSQL and SQLite (one new environment test belongs to PR370)."
     },
     {
       "pr_number": 302,
@@ -6026,10 +6423,14 @@
       "thread_id": "PRRT_kwDOTN0BU86bY-o8",
       "comment_id": 3836127976,
       "path": "backend/django/apps/webhooks/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/services.py",
+        "test_delivery_refreshes_signing_state_after_concurrent_rotation"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Refresh endpoint signing state immediately before delivery**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836127976"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836127976",
+      "disposition_note": "Read original finding and current queue/claim/finalization/action code. Existing protection is retained on main60fc; all49 webhook tests pass on PostgreSQL and SQLite (one new environment test belongs to PR370)."
     },
     {
       "pr_number": 302,
@@ -6056,10 +6457,17 @@
       "thread_id": "PRRT_kwDOTN0BU86bZLDE",
       "comment_id": 3836202000,
       "path": "backend/django/apps/verifications/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/tasks.py",
+        "backend/django/apps/verifications/evidence_commit.py",
+        "backend/django/apps/verifications/test_evidence_commit.py:test_rollback_discards_evidence_callback",
+        "backend/django/apps/verifications/test_evidence_commit.py:test_commit_reloads_persisted_verification_before_evidence_generation"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Defer expiration evidence until after commit**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836202000"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836202000",
+      "verified_main": "7cc7bfe76501b478897eeabc3fa794bdefd872a7",
+      "disposition_note": "Original hold/expiration finding independently checked against current implementation and its specific regression.172 targeted risk/finalization/verification tests pass."
     },
     {
       "pr_number": 303,
@@ -6076,10 +6484,14 @@
       "thread_id": "PRRT_kwDOTN0BU86bZYOA",
       "comment_id": 3836280032,
       "path": "backend/django/apps/webhooks/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/services.py",
+        "providers/services.py:_apply_route_final_action @transaction.atomic; test_queue_requires_an_active_domain_transaction"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Wrap provider-route finalization in a transaction**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836280032"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836280032",
+      "disposition_note": "Read original finding and current queue/claim/finalization/action code. Existing protection is retained on main60fc; all49 webhook tests pass on PostgreSQL and SQLite (one new environment test belongs to PR370)."
     },
     {
       "pr_number": 303,
@@ -6256,10 +6668,15 @@
       "thread_id": "PRRT_kwDOTN0BU86baMNS",
       "comment_id": 3836586943,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/services.py:_lock_route_final_action_processing_job",
+        "/tmp/provider-bootstrap-tests.log: 95 provider/biometric/result tests pass; /tmp/provider-bootstrap-full.log: 813 backend tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Validate the route finalizer's attempt generation**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836586943"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836586943",
+      "verified_commit": "4c2765ca9cea23d146f71543ce5c2f5d79145331",
+      "disposition_note": "Route finalization validates the originating job generation and active lease before committing lifecycle effects."
     },
     {
       "pr_number": 303,
@@ -6336,10 +6753,16 @@
       "thread_id": "PRRT_kwDOTN0BU86bblIT",
       "comment_id": 3837115811,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/providers/test_historical_provider_audit.py:test_stale_owner_cannot_reserve_half_open_probe"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Validate ownership before reserving circuit probes**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3837115811"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3837115811",
+      "remediation_pr": 366,
+      "remediation_commit": "c286b07d7c44a63a87f49d830df160a643f4fc41",
+      "disposition_note": "Fixed in merged PR #366 after final-head Codex review with no findings, all threads resolved with evidence, and passing CI/Security.",
+      "merged_commit": "ef273441cf496876481edb9a8ade63fda84cf858"
     },
     {
       "pr_number": 304,
@@ -6506,10 +6929,16 @@
       "thread_id": "PRRT_kwDOTN0BU86bbOst",
       "comment_id": 3836982509,
       "path": "backend/django/apps/providers/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/providers/test_historical_provider_audit.py:test_stale_owner_cannot_reserve_half_open_probe"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate ownership before claiming a circuit probe**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/307#discussion_r3836982509"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/307#discussion_r3836982509",
+      "remediation_pr": 366,
+      "remediation_commit": "c286b07d7c44a63a87f49d830df160a643f4fc41",
+      "disposition_note": "Fixed in merged PR #366 after final-head Codex review with no findings, all threads resolved with evidence, and passing CI/Security.",
+      "merged_commit": "ef273441cf496876481edb9a8ade63fda84cf858"
     },
     {
       "pr_number": 307,
@@ -6536,10 +6965,15 @@
       "thread_id": "PRRT_kwDOTN0BU86hS4S2",
       "comment_id": 3984757470,
       "path": "backend/shared/logging_redaction.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/shared/logging_redaction.py:current process-wide sanitization and deployed credential corpus",
+        "backend/django/common/test_safe_logging.py + test_safe_logging_boundaries.py:25 tests pass on main 69a6c0b",
+        "frontend/packages/api-client/src/safe-logging.ts and test/safe-logging.test.mjs:mirrored corpus lint and tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Cover structured-key spellings in free-text redaction**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3984757470"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3984757470",
+      "disposition_note": "Individually read the original finding and checked current source and corresponding regressions. NumPy redaction and safe media-error messages also verified against current code; Uvicorn protocol formatting regression passes."
     },
     {
       "pr_number": 308,
@@ -6556,90 +6990,135 @@
       "thread_id": "PRRT_kwDOTN0BU86hS4S9",
       "comment_id": 3984757478,
       "path": "backend/shared/logging_redaction.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/shared/logging_redaction.py:current process-wide sanitization and deployed credential corpus",
+        "backend/django/common/test_safe_logging.py + test_safe_logging_boundaries.py:25 tests pass on main 69a6c0b",
+        "frontend/packages/api-client/src/safe-logging.ts and test/safe-logging.test.mjs:mirrored corpus lint and tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve Uvicorn access-record arguments for its formatter**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3984757478"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3984757478",
+      "disposition_note": "Individually read the original finding and checked current source and corresponding regressions. NumPy redaction and safe media-error messages also verified against current code; Uvicorn protocol formatting regression passes."
     },
     {
       "pr_number": 308,
       "thread_id": "PRRT_kwDOTN0BU86hS4TA",
       "comment_id": 3984757482,
       "path": "backend/shared/logging_redaction.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/shared/logging_redaction.py:current process-wide sanitization and deployed credential corpus",
+        "backend/django/common/test_safe_logging.py + test_safe_logging_boundaries.py:25 tests pass on main 69a6c0b",
+        "frontend/packages/api-client/src/safe-logging.ts and test/safe-logging.test.mjs:mirrored corpus lint and tests pass"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Sanitize underscore-prefixed logging extras**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3984757482"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3984757482",
+      "disposition_note": "Individually read the original finding and checked current source and corresponding regressions. NumPy redaction and safe media-error messages also verified against current code; Uvicorn protocol formatting regression passes."
     },
     {
       "pr_number": 308,
       "thread_id": "PRRT_kwDOTN0BU86hTIBr",
       "comment_id": 3984858851,
       "path": "backend/shared/logging_redaction.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/shared/logging_redaction.py:current process-wide sanitization and deployed credential corpus",
+        "backend/django/common/test_safe_logging.py + test_safe_logging_boundaries.py:25 tests pass on main 69a6c0b",
+        "frontend/packages/api-client/src/safe-logging.ts and test/safe-logging.test.mjs:mirrored corpus lint and tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Redact NumPy arrays before generic stringification**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3984858851"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3984858851",
+      "disposition_note": "Individually read the original finding and checked current source and corresponding regressions. NumPy redaction and safe media-error messages also verified against current code; Uvicorn protocol formatting regression passes."
     },
     {
       "pr_number": 308,
       "thread_id": "PRRT_kwDOTN0BU86hTIBt",
       "comment_id": 3984858854,
       "path": "backend/shared/logging_redaction.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/shared/logging_redaction.py:current process-wide sanitization and deployed credential corpus",
+        "backend/django/common/test_safe_logging.py + test_safe_logging_boundaries.py:25 tests pass on main 69a6c0b",
+        "frontend/packages/api-client/src/safe-logging.ts and test/safe-logging.test.mjs:mirrored corpus lint and tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Recognize deployed secret-key suffixes**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3984858854"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3984858854",
+      "disposition_note": "Individually read the original finding and checked current source and corresponding regressions. NumPy redaction and safe media-error messages also verified against current code; Uvicorn protocol formatting regression passes."
     },
     {
       "pr_number": 308,
       "thread_id": "PRRT_kwDOTN0BU86hTIBw",
       "comment_id": 3984858857,
       "path": "backend/shared/logging_redaction.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/shared/logging_redaction.py:current process-wide sanitization and deployed credential corpus",
+        "backend/django/common/test_safe_logging.py + test_safe_logging_boundaries.py:25 tests pass on main 69a6c0b",
+        "frontend/packages/api-client/src/safe-logging.ts and test/safe-logging.test.mjs:mirrored corpus lint and tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Cover natural-language evidence paths in exception text**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3984858857"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3984858857",
+      "disposition_note": "Individually read the original finding and checked current source and corresponding regressions. NumPy redaction and safe media-error messages also verified against current code; Uvicorn protocol formatting regression passes."
     },
     {
       "pr_number": 308,
       "thread_id": "PRRT_kwDOTN0BU86hTIBy",
       "comment_id": 3984858860,
       "path": "backend/shared/logging_redaction.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/shared/logging_redaction.py:current process-wide sanitization and deployed credential corpus",
+        "backend/django/common/test_safe_logging.py + test_safe_logging_boundaries.py:25 tests pass on main 69a6c0b",
+        "frontend/packages/api-client/src/safe-logging.ts and test/safe-logging.test.mjs:mirrored corpus lint and tests pass"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Contain all interpolation errors inside logging**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3984858860"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3984858860",
+      "disposition_note": "Individually read the original finding and checked current source and corresponding regressions. NumPy redaction and safe media-error messages also verified against current code; Uvicorn protocol formatting regression passes."
     },
     {
       "pr_number": 308,
       "thread_id": "PRRT_kwDOTN0BU86hTIB1",
       "comment_id": 3984858867,
       "path": "backend/shared/logging_redaction.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/shared/logging_redaction.py:current process-wide sanitization and deployed credential corpus",
+        "backend/django/common/test_safe_logging.py + test_safe_logging_boundaries.py:25 tests pass on main 69a6c0b",
+        "frontend/packages/api-client/src/safe-logging.ts and test/safe-logging.test.mjs:mirrored corpus lint and tests pass"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Redact IPv6 addresses in free text**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3984858867"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3984858867",
+      "disposition_note": "Individually read the original finding and checked current source and corresponding regressions. NumPy redaction and safe media-error messages also verified against current code; Uvicorn protocol formatting regression passes."
     },
     {
       "pr_number": 308,
       "thread_id": "PRRT_kwDOTN0BU86hTIB6",
       "comment_id": 3984858872,
       "path": "backend/shared/logging_redaction.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/shared/logging_redaction.py:current process-wide sanitization and deployed credential corpus",
+        "backend/django/common/test_safe_logging.py + test_safe_logging_boundaries.py:25 tests pass on main 69a6c0b",
+        "frontend/packages/api-client/src/safe-logging.ts and test/safe-logging.test.mjs:mirrored corpus lint and tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Redact signatures and generated presigned URLs**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3984858872"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3984858872",
+      "disposition_note": "Individually read the original finding and checked current source and corresponding regressions. NumPy redaction and safe media-error messages also verified against current code; Uvicorn protocol formatting regression passes."
     },
     {
       "pr_number": 308,
       "thread_id": "PRRT_kwDOTN0BU86hXQDF",
       "comment_id": 3986522250,
       "path": "backend/shared/logging_redaction.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/shared/logging_redaction.py:current process-wide sanitization and deployed credential corpus",
+        "backend/django/common/test_safe_logging.py + test_safe_logging_boundaries.py:25 tests pass on main 69a6c0b",
+        "frontend/packages/api-client/src/safe-logging.ts and test/safe-logging.test.mjs:mirrored corpus lint and tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Redact bare sensitive positional arguments**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3986522250"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3986522250",
+      "disposition_note": "Individually read the original finding and checked current source and corresponding regressions. NumPy redaction and safe media-error messages also verified against current code; Uvicorn protocol formatting regression passes."
     },
     {
       "pr_number": 308,
@@ -6666,10 +7145,15 @@
       "thread_id": "PRRT_kwDOTN0BU86hmYDm",
       "comment_id": 3992438266,
       "path": "backend/shared/logging_redaction.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/shared/logging_redaction.py:current process-wide sanitization and deployed credential corpus",
+        "backend/django/common/test_safe_logging.py + test_safe_logging_boundaries.py:25 tests pass on main 69a6c0b",
+        "frontend/packages/api-client/src/safe-logging.ts and test/safe-logging.test.mjs:mirrored corpus lint and tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Redact complete sensitive values across delimiters**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3992438266"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3992438266",
+      "disposition_note": "Individually read the original finding and checked current source and corresponding regressions. NumPy redaction and safe media-error messages also verified against current code; Uvicorn protocol formatting regression passes."
     },
     {
       "pr_number": 308,
@@ -6686,60 +7170,90 @@
       "thread_id": "PRRT_kwDOTN0BU86hnH-P",
       "comment_id": 3992730059,
       "path": "backend/shared/logging_redaction.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/shared/logging_redaction.py:current process-wide sanitization and deployed credential corpus",
+        "backend/django/common/test_safe_logging.py + test_safe_logging_boundaries.py:25 tests pass on main 69a6c0b",
+        "frontend/packages/api-client/src/safe-logging.ts and test/safe-logging.test.mjs:mirrored corpus lint and tests pass"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve exception data for Django's email handler**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3992730059"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3992730059",
+      "disposition_note": "Individually read the original finding and checked current source and corresponding regressions. NumPy redaction and safe media-error messages also verified against current code; Uvicorn protocol formatting regression passes."
     },
     {
       "pr_number": 308,
       "thread_id": "PRRT_kwDOTN0BU86huOiQ",
       "comment_id": 3995510007,
       "path": "backend/shared/logging_redaction.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/shared/logging_redaction.py:current process-wide sanitization and deployed credential corpus",
+        "backend/django/common/test_safe_logging.py + test_safe_logging_boundaries.py:25 tests pass on main 69a6c0b",
+        "frontend/packages/api-client/src/safe-logging.ts and test/safe-logging.test.mjs:mirrored corpus lint and tests pass"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve Django request objects for email handlers**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3995510007"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3995510007",
+      "disposition_note": "Individually read the original finding and checked current source and corresponding regressions. NumPy redaction and safe media-error messages also verified against current code; Uvicorn protocol formatting regression passes."
     },
     {
       "pr_number": 308,
       "thread_id": "PRRT_kwDOTN0BU86huWAk",
       "comment_id": 3995554725,
       "path": "backend/shared/logging_redaction.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/shared/logging_redaction.py:current process-wide sanitization and deployed credential corpus",
+        "backend/django/common/test_safe_logging.py + test_safe_logging_boundaries.py:25 tests pass on main 69a6c0b",
+        "frontend/packages/api-client/src/safe-logging.ts and test/safe-logging.test.mjs:mirrored corpus lint and tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Redact credentials embedded in URL userinfo**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3995554725"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3995554725",
+      "disposition_note": "Individually read the original finding and checked current source and corresponding regressions. NumPy redaction and safe media-error messages also verified against current code; Uvicorn protocol formatting regression passes."
     },
     {
       "pr_number": 308,
       "thread_id": "PRRT_kwDOTN0BU86huWAp",
       "comment_id": 3995554731,
       "path": "backend/shared/logging_redaction.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/shared/logging_redaction.py:current process-wide sanitization and deployed credential corpus",
+        "backend/django/common/test_safe_logging.py + test_safe_logging_boundaries.py:25 tests pass on main 69a6c0b",
+        "frontend/packages/api-client/src/safe-logging.ts and test/safe-logging.test.mjs:mirrored corpus lint and tests pass"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Catch failures while sanitizing logging arguments**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3995554731"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3995554731",
+      "disposition_note": "Individually read the original finding and checked current source and corresponding regressions. NumPy redaction and safe media-error messages also verified against current code; Uvicorn protocol formatting regression passes."
     },
     {
       "pr_number": 308,
       "thread_id": "PRRT_kwDOTN0BU86huWAr",
       "comment_id": 3995554733,
       "path": "backend/shared/logging_redaction.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/shared/logging_redaction.py:current process-wide sanitization and deployed credential corpus",
+        "backend/django/common/test_safe_logging.py + test_safe_logging_boundaries.py:25 tests pass on main 69a6c0b",
+        "frontend/packages/api-client/src/safe-logging.ts and test/safe-logging.test.mjs:mirrored corpus lint and tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Replace the cached GET value on sanitized requests**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3995554733"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3995554733",
+      "disposition_note": "Individually read the original finding and checked current source and corresponding regressions. NumPy redaction and safe media-error messages also verified against current code; Uvicorn protocol formatting regression passes."
     },
     {
       "pr_number": 308,
       "thread_id": "PRRT_kwDOTN0BU86h1Jdo",
       "comment_id": 3998204473,
       "path": "backend/shared/logging_redaction.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/shared/logging_redaction.py:current process-wide sanitization and deployed credential corpus",
+        "backend/django/common/test_safe_logging.py + test_safe_logging_boundaries.py:25 tests pass on main 69a6c0b",
+        "frontend/packages/api-client/src/safe-logging.ts and test/safe-logging.test.mjs:mirrored corpus lint and tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Redact signing keys and encryption keyrings**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3998204473"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3998204473",
+      "disposition_note": "Individually read the original finding and checked current source and corresponding regressions. NumPy redaction and safe media-error messages also verified against current code; Uvicorn protocol formatting regression passes."
     },
     {
       "pr_number": 308,
@@ -6776,60 +7290,90 @@
       "thread_id": "PRRT_kwDOTN0BU86h3lS_",
       "comment_id": 3999173430,
       "path": "backend/shared/logging_redaction.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/shared/logging_redaction.py:current process-wide sanitization and deployed credential corpus",
+        "backend/django/common/test_safe_logging.py + test_safe_logging_boundaries.py:25 tests pass on main 69a6c0b",
+        "frontend/packages/api-client/src/safe-logging.ts and test/safe-logging.test.mjs:mirrored corpus lint and tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Redact handoff and recovery-code credential fields**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3999173430"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3999173430",
+      "disposition_note": "Individually read the original finding and checked current source and corresponding regressions. NumPy redaction and safe media-error messages also verified against current code; Uvicorn protocol formatting regression passes."
     },
     {
       "pr_number": 308,
       "thread_id": "PRRT_kwDOTN0BU86h8IAL",
       "comment_id": 4000934624,
       "path": "backend/shared/logging_redaction.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/shared/logging_redaction.py:current process-wide sanitization and deployed credential corpus",
+        "backend/django/common/test_safe_logging.py + test_safe_logging_boundaries.py:25 tests pass on main 69a6c0b",
+        "frontend/packages/api-client/src/safe-logging.ts and test/safe-logging.test.mjs:mirrored corpus lint and tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Redact identifiers embedded in request paths**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r4000934624"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r4000934624",
+      "disposition_note": "Individually read the original finding and checked current source and corresponding regressions. NumPy redaction and safe media-error messages also verified against current code; Uvicorn protocol formatting regression passes."
     },
     {
       "pr_number": 308,
       "thread_id": "PRRT_kwDOTN0BU86h8PSD",
       "comment_id": 4000978030,
       "path": "backend/shared/logging_redaction.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/shared/logging_redaction.py:current process-wide sanitization and deployed credential corpus",
+        "backend/django/common/test_safe_logging.py + test_safe_logging_boundaries.py:25 tests pass on main 69a6c0b",
+        "frontend/packages/api-client/src/safe-logging.ts and test/safe-logging.test.mjs:mirrored corpus lint and tests pass"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve Decimal values used by numeric log formats**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r4000978030"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r4000978030",
+      "disposition_note": "Individually read the original finding and checked current source and corresponding regressions. NumPy redaction and safe media-error messages also verified against current code; Uvicorn protocol formatting regression passes."
     },
     {
       "pr_number": 308,
       "thread_id": "PRRT_kwDOTN0BU86h8PSG",
       "comment_id": 4000978033,
       "path": "backend/shared/logging_redaction.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/shared/logging_redaction.py:current process-wide sanitization and deployed credential corpus",
+        "backend/django/common/test_safe_logging.py + test_safe_logging_boundaries.py:25 tests pass on main 69a6c0b",
+        "frontend/packages/api-client/src/safe-logging.ts and test/safe-logging.test.mjs:mirrored corpus lint and tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Redact the actual raw OCR result fields**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r4000978033"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r4000978033",
+      "disposition_note": "Individually read the original finding and checked current source and corresponding regressions. NumPy redaction and safe media-error messages also verified against current code; Uvicorn protocol formatting regression passes."
     },
     {
       "pr_number": 308,
       "thread_id": "PRRT_kwDOTN0BU86iCjxS",
       "comment_id": 4003477518,
       "path": "backend/shared/logging_redaction.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/shared/logging_redaction.py:current process-wide sanitization and deployed credential corpus",
+        "backend/django/common/test_safe_logging.py + test_safe_logging_boundaries.py:25 tests pass on main 69a6c0b",
+        "frontend/packages/api-client/src/safe-logging.ts and test/safe-logging.test.mjs:mirrored corpus lint and tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Redact normalized OCR line content**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r4003477518"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r4003477518",
+      "disposition_note": "Individually read the original finding and checked current source and corresponding regressions. NumPy redaction and safe media-error messages also verified against current code; Uvicorn protocol formatting regression passes."
     },
     {
       "pr_number": 308,
       "thread_id": "PRRT_kwDOTN0BU86iCjxW",
       "comment_id": 4003477523,
       "path": "backend/shared/logging_redaction.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/shared/logging_redaction.py:current process-wide sanitization and deployed credential corpus",
+        "backend/django/common/test_safe_logging.py + test_safe_logging_boundaries.py:25 tests pass on main 69a6c0b",
+        "frontend/packages/api-client/src/safe-logging.ts and test/safe-logging.test.mjs:mirrored corpus lint and tests pass"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Redact MFA codes under their request context**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r4003477523"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r4003477523",
+      "disposition_note": "Individually read the original finding and checked current source and corresponding regressions. NumPy redaction and safe media-error messages also verified against current code; Uvicorn protocol formatting regression passes."
     },
     {
       "pr_number": 312,
@@ -6886,20 +7430,29 @@
       "thread_id": "PRRT_kwDOTN0BU86hnTag",
       "comment_id": 3992799279,
       "path": "backend/django/apps/webhooks/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/services.py",
+        "test_failed_endpoint_keeps_new_events_pending_for_recovery"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve new events while an endpoint is failed**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3992799279"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3992799279",
+      "disposition_note": "Read original finding and current queue/claim/finalization/action code. Existing protection is retained on main60fc; all49 webhook tests pass on PostgreSQL and SQLite (one new environment test belongs to PR370)."
     },
     {
       "pr_number": 312,
       "thread_id": "PRRT_kwDOTN0BU86hnTan",
       "comment_id": 3992799288,
       "path": "backend/django/apps/verifications/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/tasks.py",
+        "backend/django/apps/verifications/tests.py:test_cleanup_retained_media_task_respects_active_legal_hold"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Exclude held verifications before slicing the cleanup batch**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3992799288"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3992799288",
+      "verified_main": "7cc7bfe76501b478897eeabc3fa794bdefd872a7",
+      "disposition_note": "Original hold/expiration finding independently checked against current implementation and its specific regression.172 targeted risk/finalization/verification tests pass."
     },
     {
       "pr_number": 312,
@@ -6916,10 +7469,14 @@
       "thread_id": "PRRT_kwDOTN0BU86huNov",
       "comment_id": 3995504947,
       "path": "backend/django/apps/webhooks/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/services.py",
+        "test_pending_worker_cancels_events_for_disabled_endpoint"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Cancel pending events for explicitly disabled endpoints**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3995504947"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3995504947",
+      "disposition_note": "Read original finding and current queue/claim/finalization/action code. Existing protection is retained on main60fc; all49 webhook tests pass on PostgreSQL and SQLite (one new environment test belongs to PR370)."
     },
     {
       "pr_number": 312,
@@ -6936,10 +7493,14 @@
       "thread_id": "PRRT_kwDOTN0BU86huNo0",
       "comment_id": 3995504953,
       "path": "backend/django/apps/webhooks/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/services.py",
+        "test_missing_signing_key_marks_event_failed"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Fail endpoints when their signing key is unavailable**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3995504953"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3995504953",
+      "disposition_note": "Read original finding and current queue/claim/finalization/action code. Existing protection is retained on main60fc; all49 webhook tests pass on PostgreSQL and SQLite (one new environment test belongs to PR370)."
     },
     {
       "pr_number": 312,
@@ -6956,50 +7517,71 @@
       "thread_id": "PRRT_kwDOTN0BU86huNo5",
       "comment_id": 3995504961,
       "path": "backend/django/apps/webhooks/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/services.py",
+        "test_missing_signing_key_marks_event_failed"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Mark missing-key endpoints failed as well**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3995504961"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3995504961",
+      "disposition_note": "Read original finding and current queue/claim/finalization/action code. Existing protection is retained on main60fc; all49 webhook tests pass on PostgreSQL and SQLite (one new environment test belongs to PR370)."
     },
     {
       "pr_number": 312,
       "thread_id": "PRRT_kwDOTN0BU86huNo6",
       "comment_id": 3995504963,
       "path": "backend/django/apps/verifications/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/tasks.py",
+        "backend/django/apps/verifications/tests.py:test_cleanup_rechecks_hold_immediately_before_deletion"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Recheck legal holds immediately before media deletion**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3995504963"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3995504963",
+      "verified_main": "7cc7bfe76501b478897eeabc3fa794bdefd872a7",
+      "disposition_note": "Original hold/expiration finding independently checked against current implementation and its specific regression.172 targeted risk/finalization/verification tests pass."
     },
     {
       "pr_number": 312,
       "thread_id": "PRRT_kwDOTN0BU86huT2D",
       "comment_id": 3995541335,
       "path": "backend/django/apps/webhooks/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/services.py",
+        "test_final_failure_does_not_overwrite_concurrent_disable"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve a concurrent endpoint disable**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3995541335"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3995541335",
+      "disposition_note": "Read original finding and current queue/claim/finalization/action code. Existing protection is retained on main60fc; all49 webhook tests pass on PostgreSQL and SQLite (one new environment test belongs to PR370)."
     },
     {
       "pr_number": 312,
       "thread_id": "PRRT_kwDOTN0BU86huT2E",
       "comment_id": 3995541336,
       "path": "backend/django/apps/webhooks/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/services.py",
+        "test_materialized_batch_stops_after_endpoint_failure"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Stop delivering the materialized batch after endpoint failure**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3995541336"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3995541336",
+      "disposition_note": "Read original finding and current queue/claim/finalization/action code. Existing protection is retained on main60fc; all49 webhook tests pass on PostgreSQL and SQLite (one new environment test belongs to PR370)."
     },
     {
       "pr_number": 312,
       "thread_id": "PRRT_kwDOTN0BU86h1JYr",
       "comment_id": 3998204003,
       "path": "backend/django/apps/webhooks/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/services.py",
+        "test_disable_action_cancels_pending_events_before_reactivation"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Cancel pending events when disabling the endpoint**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3998204003"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3998204003",
+      "disposition_note": "Read original finding and current queue/claim/finalization/action code. Existing protection is retained on main60fc; all49 webhook tests pass on PostgreSQL and SQLite (one new environment test belongs to PR370)."
     },
     {
       "pr_number": 312,
@@ -7026,30 +7608,42 @@
       "thread_id": "PRRT_kwDOTN0BU86h1VJf",
       "comment_id": 3998277312,
       "path": "backend/django/apps/webhooks/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/services.py",
+        "test_final_failure_does_not_overwrite_concurrent_success; delivery lease claim guards"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Avoid failing an endpoint after a concurrent successful delivery**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3998277312"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3998277312",
+      "disposition_note": "Read original finding and current queue/claim/finalization/action code. Existing protection is retained on main60fc; all49 webhook tests pass on PostgreSQL and SQLite (one new environment test belongs to PR370)."
     },
     {
       "pr_number": 312,
       "thread_id": "PRRT_kwDOTN0BU86h3q8I",
       "comment_id": 3999206935,
       "path": "backend/django/apps/webhooks/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/services.py",
+        "test_failed_event_replay_reactivates_endpoint_and_preserves_queue_order"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Requeue failed events before enabling delivery**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3999206935"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3999206935",
+      "disposition_note": "Read original finding and current queue/claim/finalization/action code. Existing protection is retained on main60fc; all49 webhook tests pass on PostgreSQL and SQLite (one new environment test belongs to PR370)."
     },
     {
       "pr_number": 312,
       "thread_id": "PRRT_kwDOTN0BU86h3q8M",
       "comment_id": 3999206940,
       "path": "backend/django/apps/webhooks/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/services.py",
+        "test_http_runs_without_database_locks_and_duplicate_claim_is_skipped"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Avoid sharing the delivery lock with outbox producers**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3999206940"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3999206940",
+      "disposition_note": "Read original finding and current queue/claim/finalization/action code. Existing protection is retained on main60fc; all49 webhook tests pass on PostgreSQL and SQLite (one new environment test belongs to PR370)."
     },
     {
       "pr_number": 312,
@@ -7066,10 +7660,14 @@
       "thread_id": "PRRT_kwDOTN0BU86h8HQz",
       "comment_id": 4000929904,
       "path": "backend/django/apps/webhooks/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/services.py",
+        "queue_webhook_events tenant lock then endpoint select_for_update; disable action same order"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Serialize event creation with endpoint disablement**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r4000929904"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r4000929904",
+      "disposition_note": "Read original finding and current queue/claim/finalization/action code. Existing protection is retained on main60fc; all49 webhook tests pass on PostgreSQL and SQLite (one new environment test belongs to PR370)."
     },
     {
       "pr_number": 312,
@@ -7086,20 +7684,29 @@
       "thread_id": "PRRT_kwDOTN0BU86h8Od6",
       "comment_id": 4000973121,
       "path": "backend/django/apps/webhooks/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/services.py",
+        "delivery/finalization and disable/replay use endpoint before event row; outbound HTTP outside locks"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Use a consistent lock order for webhook disablement**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r4000973121"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r4000973121",
+      "disposition_note": "Read original finding and current queue/claim/finalization/action code. Existing protection is retained on main60fc; all49 webhook tests pass on PostgreSQL and SQLite (one new environment test belongs to PR370)."
     },
     {
       "pr_number": 312,
       "thread_id": "PRRT_kwDOTN0BU86h8Od8",
       "comment_id": 4000973125,
       "path": "backend/django/apps/verifications/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/tasks.py",
+        "backend/django/apps/verifications/tests.py:test_cleanup_does_not_defer_held_media_before_retention_is_due"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Restrict hold audits to media that is retention-due**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r4000973125"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r4000973125",
+      "verified_main": "7cc7bfe76501b478897eeabc3fa794bdefd872a7",
+      "disposition_note": "Original hold/expiration finding independently checked against current implementation and its specific regression.172 targeted risk/finalization/verification tests pass."
     },
     {
       "pr_number": 312,
@@ -7426,20 +8033,30 @@
       "thread_id": "PRRT_kwDOTN0BU86oyIoz",
       "comment_id": 4177487945,
       "path": "backend/django/apps/risk/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/risk/services.py",
+        "backend/django/apps/risk/test_external_races.py:test_slow_external_io_does_not_block_cancellation"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Move external risk I/O before locked finalization**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/338#discussion_r4177487945"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/338#discussion_r4177487945",
+      "verified_main": "7cc7bfe76501b478897eeabc3fa794bdefd872a7",
+      "disposition_note": "Original finding independently checked against current source;172 targeted risk/finalization/verification tests,6 PostgreSQL decision/external races and10 authenticity tests pass."
     },
     {
       "pr_number": 339,
       "thread_id": "PRRT_kwDOTN0BU86oyfAz",
       "comment_id": 4177644435,
       "path": "backend/django/apps/risk/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/risk/services.py",
+        "backend/django/apps/identity_documents/test_authenticity.py:test_risk_signals_exclude_raw_provider_debug_data"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Strip raw provider output from risk signals**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/339#discussion_r4177644435"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/339#discussion_r4177644435",
+      "verified_main": "7cc7bfe76501b478897eeabc3fa794bdefd872a7",
+      "disposition_note": "Original finding independently checked against current source;172 targeted risk/finalization/verification tests,6 PostgreSQL decision/external races and10 authenticity tests pass."
     },
     {
       "pr_number": 340,
@@ -7740,8 +8357,138 @@
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Guard upserts through bulk_create**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/362#discussion_r4186225694"
+    },
+    {
+      "pr_number": 363,
+      "thread_id": "PRRT_kwDOTN0BU86pH1lS",
+      "comment_id": 4186335655,
+      "path": "backend/ai-service/app/document_classification/classifier.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Gate the whole result on a foreign passport MRZ**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/363#discussion_r4186335655",
+      "remediation_pr": 363,
+      "remediation_commit": "29e57369fb483d98d3ee7a0f7417fad3b498b97a",
+      "merged_commit": "8872d9a7fea8054f9685a33f77bd9d6e7ea33695",
+      "evidence": [
+        "backend/ai-service/tests/test_document_classification.py"
+      ],
+      "disposition_note": "Resolved with fixing-commit and regression evidence before final-head Codex review and passing CI/Security merge."
+    },
+    {
+      "pr_number": 363,
+      "thread_id": "PRRT_kwDOTN0BU86pOtXP",
+      "comment_id": 4189165586,
+      "path": "backend/django/apps/biometrics/tasks.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Move selfie promotion outside the atomic finalizer**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/363#discussion_r4189165586",
+      "remediation_pr": 363,
+      "remediation_commit": "f4f8cee925beaa4e2a7888cf8bc9c5c12aed668b",
+      "merged_commit": "8872d9a7fea8054f9685a33f77bd9d6e7ea33695",
+      "evidence": [
+        "backend/django/apps/biometrics/test_finalization_recovery.py"
+      ],
+      "disposition_note": "Resolved with fixing-commit and regression evidence before final-head Codex review and passing CI/Security merge."
+    },
+    {
+      "pr_number": 366,
+      "thread_id": "PRRT_kwDOTN0BU86pS50f",
+      "comment_id": 4190910023,
+      "path": "backend/django/apps/providers/services.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reuse processing biometric bootstrap checks**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/366#discussion_r4190910023",
+      "remediation_pr": 366,
+      "remediation_commit": "7d884a1ad4f7ad88aba9b0587c45d3ff40502a98",
+      "merged_commit": "ef273441cf496876481edb9a8ade63fda84cf858",
+      "evidence": [
+        "Fixed in c286b07d7c44a63a87f49d830df160a643f4fc41. Both pending and processing bootstrap checks can be reused when no execution attempt exists; persisted-attempt lookup still prevents repeated invocation from overwriting earlier history. A new regression starts from an unattempted processing check, verifies the same row completes, and asserts one check/attempt remains. All 95 provider/biometric/result tests and all 813 backend tests pass (28 PostgreSQL-only skips)."
+      ],
+      "disposition_note": "Merged after completed final-head Codex review, resolved evidence threads and successful CI/Security."
+    },
+    {
+      "pr_number": 368,
+      "thread_id": "PRRT_kwDOTN0BU86pTQg-",
+      "comment_id": 4191054574,
+      "path": "backend/ai-service/Dockerfile",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Align the replacement with the declared OpenCV requirement**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/368#discussion_r4191054574",
+      "remediation_pr": 368,
+      "remediation_commit": "13e412ca207d51f40212d2523153a5c843bff476",
+      "merged_commit": "60fc042eb208b2876a405bd7559a63f435492d35",
+      "evidence": [
+        "Fixed in 13e412ca207d51f40212d2523153a5c843bff476. The manifest, frozen lock, CI and container now consistently select opencv-contrib-python-headless==5.0.0.93. UV explicitly excludes the three conflicting cv2 distributions, and the complete frozen export is installed without reintroducing their dependencies. uv lock --check passes; the frozen AI export contains exactly that OpenCV distribution. A real isolated OpenCV 5.0.0 import passes the runtime guard, and conflicting package layouts are rejected."
+      ],
+      "disposition_note": "Merged after completed final-head Codex review, resolved evidence threads and successful CI/Security."
+    },
+    {
+      "pr_number": 369,
+      "thread_id": "PRRT_kwDOTN0BU86pYAam",
+      "comment_id": 4192999830,
+      "path": "backend/django/apps/audit/services.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Handle malformed hashes as verification failures**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/369#discussion_r4192999830",
+      "remediation_pr": 369,
+      "remediation_commit": "464a41d6a6d6646da4ed20cede9f722e7523cb91",
+      "merged_commit": "6d241f3950db77efac1bf79d6743f4cfcdf55d84",
+      "evidence": [
+        "Fixed in 464a41d6a6d6646da4ed20cede9f722e7523cb91. Hash comparison is now inside the guarded verification path, so non-ASCII hashes or authentication tags return (False, event.public_id). A raw database-tampering regression covers both fields. All 822 backend tests pass (29 PostgreSQL-only skips); 14 PostgreSQL audit tests previously passed. The processing inventory now documents all three integrity fields, and its seven validation tests pass."
+      ],
+      "disposition_note": "Merged after completed final-head Codex review, resolved evidence threads and successful CI/Security."
+    },
+    {
+      "pr_number": 370,
+      "thread_id": "PRRT_kwDOTN0BU86pYZO-",
+      "comment_id": 4193157690,
+      "path": "backend/django/apps/webhooks/services.py",
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/webhooks/services.py:_event_matches_endpoint_environment",
+        "backend/django/apps/webhooks/tests.py:test_verification_delivery_rejects_missing_ids_but_allows_test_events"
+      ],
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reject verification events that omit their verification ID**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/370#discussion_r4193157690",
+      "remediation_pr": 370,
+      "remediation_commit": "b6344fbbdaea1461794a31266d4ceb2d2ca39049",
+      "merged_commit": "8c8c379cce744444073c3094e8336e3819b7c4af",
+      "disposition_note": "Fixed and merged after final-head Codex review, regression evidence, resolved review threads and successful CI/Security."
+    },
+    {
+      "pr_number": 371,
+      "thread_id": "PRRT_kwDOTN0BU86pYhmD",
+      "comment_id": 4193211206,
+      "path": "docs/reviews/historical-review-dispositions.json",
+      "status": "fixed",
+      "evidence": [
+        "docs/reviews/historical-review-dispositions.json"
+      ],
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Add evidence before marking audit findings fixed**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/371#discussion_r4193211206",
+      "remediation_pr": 371,
+      "remediation_commit": "579266d97665635063a860e4e2a76713e0ca7bec",
+      "merged_commit": "7cc7bfe76501b478897eeabc3fa794bdefd872a7",
+      "disposition_note": "Fixed and merged after final-head Codex review, regression evidence, resolved review threads and successful CI/Security."
+    },
+    {
+      "pr_number": 372,
+      "thread_id": "PRRT_kwDOTN0BU86pYlhr",
+      "comment_id": 4193236465,
+      "path": "backend/django/apps/providers/health.py",
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/providers/health.py:provider_health_scope",
+        "backend/django/config/test_management_apis.py:test_provider_health_retains_provider_with_only_nonmetric_attempts"
+      ],
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve providers that only have non-metric checks**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/372#discussion_r4193236465",
+      "remediation_pr": 372,
+      "remediation_commit": "554772524fb2950a335b90510079c1a2e9970c9c",
+      "merged_commit": "1bfedfc8a78b03105be9f89de5f91ac2e85a6544",
+      "disposition_note": "Fixed and merged after final-head Codex review, regression evidence, resolved review threads and successful CI/Security."
     }
   ],
-  "verified_main": "69a6c0b1a8c3b8134cdd29cd33fd9d9f3fe143b9",
+  "verified_main": "7cc7bfe76501b478897eeabc3fa794bdefd872a7",
   "inventory_note": "754 uniquely identified historical threads through merged PRs #360 and #362. Pending entries remain pending; GitHub resolution state is not evidence."
 }

@@ -235,6 +235,7 @@ class ProcessingJob(PublicIdModel, BaseModel):
         db_index=True,
     )
     attempt_count = models.PositiveSmallIntegerField(default=0)
+    lease_generation = models.PositiveIntegerField(default=0, db_default=0)
     max_attempts = models.PositiveSmallIntegerField(default=3)
     heartbeat_at = models.DateTimeField(null=True, blank=True)
     lease_expires_at = models.DateTimeField(db_index=True)

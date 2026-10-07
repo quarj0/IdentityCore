@@ -2,6 +2,7 @@
 package io.identitycore.models;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 
@@ -14,7 +15,7 @@ public final class GeneratedModels {
 
     }
 
-    public record ErrorEnvelope(@JsonProperty("success") JsonNode success, @JsonProperty("error") Error error, @JsonProperty("request_id") String request_id) {
+    public record ErrorEnvelope(@JsonProperty("success") Boolean success, @JsonProperty("error") Error error, @JsonProperty("request_id") String request_id) {
 
     }
 
@@ -22,7 +23,34 @@ public final class GeneratedModels {
 
     }
 
-    public record Policy(@JsonProperty("id") String id, @JsonProperty("name") String name, @JsonProperty("description") String description, @JsonProperty("version") Integer version, @JsonProperty("status") String status, @JsonProperty("required_document_types") List<String> required_document_types, @JsonProperty("required_liveness_level") String required_liveness_level, @JsonProperty("face_match_threshold") Double face_match_threshold, @JsonProperty("manual_review_threshold") Double manual_review_threshold, @JsonProperty("review_reason_rules") JsonNode review_reason_rules, @JsonProperty("reuse_rules") JsonNode reuse_rules, @JsonProperty("document_consistency_rules") JsonNode document_consistency_rules, @JsonProperty("document_authenticity_required") Boolean document_authenticity_required, @JsonProperty("document_authenticity_min_confidence") Double document_authenticity_min_confidence, @JsonProperty("external_risk_enabled") Boolean external_risk_enabled, @JsonProperty("external_risk_failure_action") String external_risk_failure_action, @JsonProperty("external_risk_review_threshold") Double external_risk_review_threshold, @JsonProperty("maker_checker_required") Boolean maker_checker_required, @JsonProperty("verification_expiry_minutes") Integer verification_expiry_minutes, @JsonProperty("media_retention_days") Integer media_retention_days, @JsonProperty("metadata_retention_days") Integer metadata_retention_days, @JsonProperty("created_at") String created_at, @JsonProperty("updated_at") String updated_at) {
+    public enum PolicyStatus {
+        Draft("draft"), Active("active"), Archived("archived");
+
+        private final String value;
+        PolicyStatus(String value) { this.value = value; }
+        @JsonValue
+        public String value() { return value; }
+    }
+
+    public enum PolicyRequiredLivenessLevel {
+        Passive("passive"), Active("active");
+
+        private final String value;
+        PolicyRequiredLivenessLevel(String value) { this.value = value; }
+        @JsonValue
+        public String value() { return value; }
+    }
+
+    public enum PolicyExternalRiskFailureAction {
+        ManualReview("manual_review"), Ignore("ignore");
+
+        private final String value;
+        PolicyExternalRiskFailureAction(String value) { this.value = value; }
+        @JsonValue
+        public String value() { return value; }
+    }
+
+    public record Policy(@JsonProperty("id") String id, @JsonProperty("name") String name, @JsonProperty("description") String description, @JsonProperty("version") Integer version, @JsonProperty("status") PolicyStatus status, @JsonProperty("required_document_types") List<String> required_document_types, @JsonProperty("required_liveness_level") PolicyRequiredLivenessLevel required_liveness_level, @JsonProperty("face_match_threshold") Double face_match_threshold, @JsonProperty("manual_review_threshold") Double manual_review_threshold, @JsonProperty("review_reason_rules") JsonNode review_reason_rules, @JsonProperty("reuse_rules") JsonNode reuse_rules, @JsonProperty("document_consistency_rules") JsonNode document_consistency_rules, @JsonProperty("document_authenticity_required") Boolean document_authenticity_required, @JsonProperty("document_authenticity_min_confidence") Double document_authenticity_min_confidence, @JsonProperty("external_risk_enabled") Boolean external_risk_enabled, @JsonProperty("external_risk_failure_action") PolicyExternalRiskFailureAction external_risk_failure_action, @JsonProperty("external_risk_review_threshold") Double external_risk_review_threshold, @JsonProperty("maker_checker_required") Boolean maker_checker_required, @JsonProperty("verification_expiry_minutes") Integer verification_expiry_minutes, @JsonProperty("media_retention_days") Integer media_retention_days, @JsonProperty("metadata_retention_days") Integer metadata_retention_days, @JsonProperty("created_at") String created_at, @JsonProperty("updated_at") String updated_at) {
 
     }
 
@@ -62,7 +90,25 @@ public final class GeneratedModels {
 
     }
 
-    public record VerificationPolicyCreateRequest(@JsonProperty("project_id") String project_id, @JsonProperty("name") String name, @JsonProperty("description") String description, @JsonProperty("consent_template_id") String consent_template_id, @JsonProperty("default_locale") String default_locale, @JsonProperty("supported_locales") List<String> supported_locales, @JsonProperty("required_document_types") List<String> required_document_types, @JsonProperty("required_liveness_level") String required_liveness_level, @JsonProperty("face_match_threshold") Double face_match_threshold, @JsonProperty("manual_review_threshold") Double manual_review_threshold, @JsonProperty("review_reason_rules") JsonNode review_reason_rules, @JsonProperty("reuse_rules") JsonNode reuse_rules, @JsonProperty("document_consistency_rules") JsonNode document_consistency_rules, @JsonProperty("document_authenticity_required") Boolean document_authenticity_required, @JsonProperty("document_authenticity_min_confidence") Double document_authenticity_min_confidence, @JsonProperty("external_risk_enabled") Boolean external_risk_enabled, @JsonProperty("external_risk_failure_action") String external_risk_failure_action, @JsonProperty("external_risk_review_threshold") Double external_risk_review_threshold, @JsonProperty("maker_checker_required") Boolean maker_checker_required, @JsonProperty("verification_expiry_minutes") Integer verification_expiry_minutes, @JsonProperty("media_retention_days") Integer media_retention_days, @JsonProperty("metadata_retention_days") Integer metadata_retention_days) {
+    public enum VerificationPolicyCreateRequestRequiredLivenessLevel {
+        Passive("passive"), Active("active");
+
+        private final String value;
+        VerificationPolicyCreateRequestRequiredLivenessLevel(String value) { this.value = value; }
+        @JsonValue
+        public String value() { return value; }
+    }
+
+    public enum VerificationPolicyCreateRequestExternalRiskFailureAction {
+        ManualReview("manual_review"), Ignore("ignore");
+
+        private final String value;
+        VerificationPolicyCreateRequestExternalRiskFailureAction(String value) { this.value = value; }
+        @JsonValue
+        public String value() { return value; }
+    }
+
+    public record VerificationPolicyCreateRequest(@JsonProperty("project_id") String project_id, @JsonProperty("name") String name, @JsonProperty("description") String description, @JsonProperty("consent_template_id") String consent_template_id, @JsonProperty("default_locale") String default_locale, @JsonProperty("supported_locales") List<String> supported_locales, @JsonProperty("required_document_types") List<String> required_document_types, @JsonProperty("required_liveness_level") VerificationPolicyCreateRequestRequiredLivenessLevel required_liveness_level, @JsonProperty("face_match_threshold") Double face_match_threshold, @JsonProperty("manual_review_threshold") Double manual_review_threshold, @JsonProperty("review_reason_rules") JsonNode review_reason_rules, @JsonProperty("reuse_rules") JsonNode reuse_rules, @JsonProperty("document_consistency_rules") JsonNode document_consistency_rules, @JsonProperty("document_authenticity_required") Boolean document_authenticity_required, @JsonProperty("document_authenticity_min_confidence") Double document_authenticity_min_confidence, @JsonProperty("external_risk_enabled") Boolean external_risk_enabled, @JsonProperty("external_risk_failure_action") VerificationPolicyCreateRequestExternalRiskFailureAction external_risk_failure_action, @JsonProperty("external_risk_review_threshold") Double external_risk_review_threshold, @JsonProperty("maker_checker_required") Boolean maker_checker_required, @JsonProperty("verification_expiry_minutes") Integer verification_expiry_minutes, @JsonProperty("media_retention_days") Integer media_retention_days, @JsonProperty("metadata_retention_days") Integer metadata_retention_days) {
 
     }
 
@@ -82,11 +128,29 @@ public final class GeneratedModels {
 
     }
 
-    public record VerificationSessionSelfieRequest(@JsonProperty("capture_type") String capture_type, @JsonProperty("upload_id") String upload_id) {
+    public enum VerificationSessionSelfieRequestCaptureType {
+        Image("image"), Video("video");
+
+        private final String value;
+        VerificationSessionSelfieRequestCaptureType(String value) { this.value = value; }
+        @JsonValue
+        public String value() { return value; }
+    }
+
+    public record VerificationSessionSelfieRequest(@JsonProperty("capture_type") VerificationSessionSelfieRequestCaptureType capture_type, @JsonProperty("upload_id") String upload_id) {
 
     }
 
-    public record VerificationSessionLivenessRequest(@JsonProperty("liveness_type") String liveness_type, @JsonProperty("selfie_capture_id") String selfie_capture_id, @JsonProperty("challenge_id") String challenge_id) {
+    public enum VerificationSessionLivenessRequestLivenessType {
+        Passive("passive"), Active("active");
+
+        private final String value;
+        VerificationSessionLivenessRequestLivenessType(String value) { this.value = value; }
+        @JsonValue
+        public String value() { return value; }
+    }
+
+    public record VerificationSessionLivenessRequest(@JsonProperty("liveness_type") VerificationSessionLivenessRequestLivenessType liveness_type, @JsonProperty("selfie_capture_id") String selfie_capture_id, @JsonProperty("challenge_id") String challenge_id) {
 
     }
 
@@ -94,7 +158,16 @@ public final class GeneratedModels {
 
     }
 
-    public record VerificationSessionResponse(@JsonProperty("session_id") String session_id, @JsonProperty("verification_id") String verification_id, @JsonProperty("status") String status, @JsonProperty("organization") JsonNode organization, @JsonProperty("purpose") String purpose, @JsonProperty("redirect_url") String redirect_url, @JsonProperty("required_steps") List<String> required_steps, @JsonProperty("workflow") JsonNode workflow, @JsonProperty("locale") String locale, @JsonProperty("supported_locales") List<String> supported_locales, @JsonProperty("direction") String direction, @JsonProperty("consent") JsonNode consent, @JsonProperty("document") JsonNode document, @JsonProperty("available_documents") List<JsonNode> available_documents, @JsonProperty("available_countries") List<JsonNode> available_countries, @JsonProperty("expires_at") String expires_at) {
+    public enum VerificationSessionResponseDirection {
+        Ltr("ltr"), Rtl("rtl");
+
+        private final String value;
+        VerificationSessionResponseDirection(String value) { this.value = value; }
+        @JsonValue
+        public String value() { return value; }
+    }
+
+    public record VerificationSessionResponse(@JsonProperty("session_id") String session_id, @JsonProperty("verification_id") String verification_id, @JsonProperty("status") String status, @JsonProperty("organization") JsonNode organization, @JsonProperty("purpose") String purpose, @JsonProperty("redirect_url") String redirect_url, @JsonProperty("required_steps") List<String> required_steps, @JsonProperty("workflow") JsonNode workflow, @JsonProperty("locale") String locale, @JsonProperty("supported_locales") List<String> supported_locales, @JsonProperty("direction") VerificationSessionResponseDirection direction, @JsonProperty("consent") JsonNode consent, @JsonProperty("document") JsonNode document, @JsonProperty("available_documents") List<JsonNode> available_documents, @JsonProperty("available_countries") List<JsonNode> available_countries, @JsonProperty("expires_at") String expires_at) {
 
     }
 
@@ -118,7 +191,7 @@ public final class GeneratedModels {
 
     }
 
-    public record VerificationSessionStatusResponse(@JsonProperty("verification_id") String verification_id, @JsonProperty("status") String status, @JsonProperty("current_step") String current_step, @JsonProperty("message") String message, @JsonProperty("evidence") JsonNode evidence) {
+    public record VerificationSessionStatusResponse(@JsonProperty("verification_id") String verification_id, @JsonProperty("status") String status, @JsonProperty("current_step") String current_step, @JsonProperty("message") String message, @JsonProperty("withdrawal_available") Boolean withdrawal_available, @JsonProperty("evidence") JsonNode evidence) {
 
     }
 
@@ -134,11 +207,29 @@ public final class GeneratedModels {
 
     }
 
-    public record SandboxSimulationRequest(@JsonProperty("scenario") String scenario) {
+    public enum SandboxSimulationRequestScenario {
+        Approved("approved"), Declined("declined"), Review("review"), Timeout("timeout"), ProviderError("provider_error");
+
+        private final String value;
+        SandboxSimulationRequestScenario(String value) { this.value = value; }
+        @JsonValue
+        public String value() { return value; }
+    }
+
+    public record SandboxSimulationRequest(@JsonProperty("scenario") SandboxSimulationRequestScenario scenario) {
 
     }
 
-    public record SandboxSimulationMarker(@JsonProperty("scenario") String scenario, @JsonProperty("version") Integer version) {
+    public enum SandboxSimulationMarkerScenario {
+        Approved("approved"), Declined("declined"), Review("review"), Timeout("timeout"), ProviderError("provider_error");
+
+        private final String value;
+        SandboxSimulationMarkerScenario(String value) { this.value = value; }
+        @JsonValue
+        public String value() { return value; }
+    }
+
+    public record SandboxSimulationMarker(@JsonProperty("scenario") SandboxSimulationMarkerScenario scenario, @JsonProperty("version") Integer version) {
 
     }
 
@@ -162,7 +253,25 @@ public final class GeneratedModels {
 
     }
 
-    public record PortalUploadCreateRequest(@JsonProperty("capture_method") String capture_method, @JsonProperty("purpose") String purpose, @JsonProperty("mime_type") String mime_type, @JsonProperty("file_size_bytes") Integer file_size_bytes) {
+    public enum PortalUploadCreateRequestCaptureMethod {
+        Camera("camera"), LiveRecording("live_recording"), File("file"), Unreported("unreported");
+
+        private final String value;
+        PortalUploadCreateRequestCaptureMethod(String value) { this.value = value; }
+        @JsonValue
+        public String value() { return value; }
+    }
+
+    public enum PortalUploadCreateRequestPurpose {
+        DocumentCapture("document_capture"), SelfieCapture("selfie_capture"), LivenessCapture("liveness_capture");
+
+        private final String value;
+        PortalUploadCreateRequestPurpose(String value) { this.value = value; }
+        @JsonValue
+        public String value() { return value; }
+    }
+
+    public record PortalUploadCreateRequest(@JsonProperty("capture_method") PortalUploadCreateRequestCaptureMethod capture_method, @JsonProperty("purpose") PortalUploadCreateRequestPurpose purpose, @JsonProperty("mime_type") String mime_type, @JsonProperty("file_size_bytes") Integer file_size_bytes) {
 
     }
 
@@ -178,7 +287,16 @@ public final class GeneratedModels {
 
     }
 
-    public record OrganizationBrandingAssetUploadRequest(@JsonProperty("asset_type") String asset_type, @JsonProperty("filename") String filename, @JsonProperty("mime_type") String mime_type) {
+    public enum OrganizationBrandingAssetUploadRequestAssetType {
+        Logo("logo"), BrandingImage("branding_image");
+
+        private final String value;
+        OrganizationBrandingAssetUploadRequestAssetType(String value) { this.value = value; }
+        @JsonValue
+        public String value() { return value; }
+    }
+
+    public record OrganizationBrandingAssetUploadRequest(@JsonProperty("asset_type") OrganizationBrandingAssetUploadRequestAssetType asset_type, @JsonProperty("filename") String filename, @JsonProperty("mime_type") String mime_type) {
 
     }
 
@@ -202,15 +320,42 @@ public final class GeneratedModels {
 
     }
 
-    public record ProjectSummary(@JsonProperty("id") String id, @JsonProperty("name") String name, @JsonProperty("slug") String slug, @JsonProperty("environment") String environment, @JsonProperty("status") String status, @JsonProperty("allowed_origins") List<String> allowed_origins, @JsonProperty("is_default") Boolean is_default, @JsonProperty("created_at") String created_at, @JsonProperty("updated_at") String updated_at) {
+    public enum ProjectSummaryEnvironment {
+        Sandbox("sandbox"), Production("production");
+
+        private final String value;
+        ProjectSummaryEnvironment(String value) { this.value = value; }
+        @JsonValue
+        public String value() { return value; }
+    }
+
+    public record ProjectSummary(@JsonProperty("id") String id, @JsonProperty("name") String name, @JsonProperty("slug") String slug, @JsonProperty("environment") ProjectSummaryEnvironment environment, @JsonProperty("status") String status, @JsonProperty("allowed_origins") List<String> allowed_origins, @JsonProperty("is_default") Boolean is_default, @JsonProperty("created_at") String created_at, @JsonProperty("updated_at") String updated_at) {
 
     }
 
-    public record ProjectCreateRequest(@JsonProperty("name") String name, @JsonProperty("slug") String slug, @JsonProperty("environment") String environment, @JsonProperty("allowed_origins") List<String> allowed_origins) {
+    public enum ProjectCreateRequestEnvironment {
+        Sandbox("sandbox"), Production("production");
+
+        private final String value;
+        ProjectCreateRequestEnvironment(String value) { this.value = value; }
+        @JsonValue
+        public String value() { return value; }
+    }
+
+    public record ProjectCreateRequest(@JsonProperty("name") String name, @JsonProperty("slug") String slug, @JsonProperty("environment") ProjectCreateRequestEnvironment environment, @JsonProperty("allowed_origins") List<String> allowed_origins) {
 
     }
 
-    public record ProjectUpdateRequest(@JsonProperty("name") String name, @JsonProperty("slug") String slug, @JsonProperty("environment") String environment, @JsonProperty("allowed_origins") List<String> allowed_origins) {
+    public enum ProjectUpdateRequestEnvironment {
+        Sandbox("sandbox"), Production("production");
+
+        private final String value;
+        ProjectUpdateRequestEnvironment(String value) { this.value = value; }
+        @JsonValue
+        public String value() { return value; }
+    }
+
+    public record ProjectUpdateRequest(@JsonProperty("name") String name, @JsonProperty("slug") String slug, @JsonProperty("environment") ProjectUpdateRequestEnvironment environment, @JsonProperty("allowed_origins") List<String> allowed_origins) {
 
     }
 
@@ -250,7 +395,16 @@ public final class GeneratedModels {
 
     }
 
-    public record ManualReviewDecisionRequest(@JsonProperty("decision") String decision, @JsonProperty("reason_code") String reason_code, @JsonProperty("reason_detail") String reason_detail) {
+    public enum ManualReviewDecisionRequestDecision {
+        Verified("verified"), Rejected("rejected"), Failed("failed");
+
+        private final String value;
+        ManualReviewDecisionRequestDecision(String value) { this.value = value; }
+        @JsonValue
+        public String value() { return value; }
+    }
+
+    public record ManualReviewDecisionRequest(@JsonProperty("decision") ManualReviewDecisionRequestDecision decision, @JsonProperty("reason_code") String reason_code, @JsonProperty("reason_detail") String reason_detail) {
 
     }
 
@@ -262,7 +416,16 @@ public final class GeneratedModels {
 
     }
 
-    public record ManualReviewApprovalRequest(@JsonProperty("decision") String decision, @JsonProperty("reason_code") String reason_code, @JsonProperty("reason_detail") String reason_detail) {
+    public enum ManualReviewApprovalRequestDecision {
+        Verified("verified"), Rejected("rejected"), Failed("failed");
+
+        private final String value;
+        ManualReviewApprovalRequestDecision(String value) { this.value = value; }
+        @JsonValue
+        public String value() { return value; }
+    }
+
+    public record ManualReviewApprovalRequest(@JsonProperty("decision") ManualReviewApprovalRequestDecision decision, @JsonProperty("reason_code") String reason_code, @JsonProperty("reason_detail") String reason_detail) {
 
     }
 

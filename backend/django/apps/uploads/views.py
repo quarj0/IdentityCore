@@ -9,7 +9,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from apps.uploads.serializers import UploadCreateSerializer
-from apps.uploads.models import Upload, UploadStatus
+from apps.uploads.models import Upload, UploadPurpose, UploadStatus
+from apps.consent.services import lock_session_consent
 from apps.uploads.scanning import inspect_upload_content
 from apps.uploads.provenance import issue_receipt
 from common.authentication import (
@@ -37,6 +38,17 @@ def _upload_for_session(request, upload_id: str) -> Upload:
     if upload is None:
         raise NotFound("This upload is no longer available.")
     return upload
+
+
+def _lock_upload_consent(request, purpose, action):
+    scope = {
+        UploadPurpose.DOCUMENT_CAPTURE: "document",
+        UploadPurpose.SELFIE_CAPTURE: "biometrics",
+        UploadPurpose.LIVENESS_CAPTURE: "biometrics",
+    }.get(purpose)
+    if scope is None:
+        raise ValidationError("This upload purpose is unavailable.")
+    lock_session_consent(request, scope=scope, action=action)
 
 
 def _validate_upload_content(
@@ -165,11 +177,13 @@ class UploadCreateView(APIView):
         super().initial(request, *args, **kwargs)
         require_verification_session_action(request, self.required_session_action)
 
+    @transaction.atomic
     def post(self, request):
         serializer = UploadCreateSerializer(
             data=request.data, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
+        _lock_upload_consent(request, serializer.validated_data["purpose"], self.required_session_action)
         payload = serializer.save()
         return success_response(
             payload, request=request, status=status.HTTP_201_CREATED
@@ -185,8 +199,11 @@ class UploadTransferView(APIView):
         super().initial(request, *args, **kwargs)
         require_verification_session_action(request, self.required_session_action)
 
+    @transaction.atomic
     def post(self, request, upload_id: str):
         upload = _upload_for_session(request, upload_id)
+        _lock_upload_consent(request, upload.purpose, self.required_session_action)
+        upload = Upload.objects.select_for_update().get(pk=upload.pk)
         uploaded_file = request.FILES.get("file")
         if uploaded_file is None:
             raise ValidationError({"file": "Choose a file to upload."})
@@ -217,8 +234,11 @@ class UploadTransferView(APIView):
 
 
 class UploadCompleteView(UploadTransferView):
+    @transaction.atomic
     def post(self, request, upload_id: str):
         upload = _upload_for_session(request, upload_id)
+        _lock_upload_consent(request, upload.purpose, self.required_session_action)
+        upload = Upload.objects.select_for_update().get(pk=upload.pk)
         if upload.status in {
             UploadStatus.UPLOADED,
             UploadStatus.CONSUMED,

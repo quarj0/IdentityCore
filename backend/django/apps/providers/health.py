@@ -1,4 +1,5 @@
 import math
+import re
 from collections import Counter, defaultdict
 from datetime import timedelta
 
@@ -6,6 +7,7 @@ from django.db.models import Prefetch, Q
 from django.utils import timezone
 
 from apps.providers.models import (
+    Provider,
     ProviderCheck,
     ProviderCheckStatus,
     ProviderCircuitState,
@@ -59,10 +61,7 @@ def _metric_status(*, total: int, availability: float, error_rate: float) -> str
 def _safe_error_code(value: str) -> str:
     if value in SAFE_ERROR_CODES:
         return value
-    if (
-        value.startswith("provider_http_")
-        and value.removeprefix("provider_http_").isdigit()
-    ):
+    if re.fullmatch(r"provider_http_[345][0-9]{2}", value):
         return value
     return "provider_error"
 
@@ -174,6 +173,13 @@ def provider_health_scope(
         )
     if provider_id:
         checks_query = checks_query.filter(provider_id__in=provider_filter_ids)
+    providers = {
+        provider.pk: provider
+        for provider in Provider.objects.filter(pk__in=checks_query.values("provider_id")).only(
+            "id", "public_id", "code", "name", "status"
+        )
+    }
+    checks_query = checks_query.filter(status__in=TERMINAL_HEALTH_STATUSES)
     checks = list(
         checks_query.select_related("provider")
         .only(
@@ -194,7 +200,6 @@ def provider_health_scope(
 
     checks_by_provider = defaultdict(list)
     checks_by_provider_capability = defaultdict(list)
-    providers = {}
     for check in checks:
         checks_by_provider[check.provider_id].append(check)
         checks_by_provider_capability[(check.provider_id, check.check_type)].append(

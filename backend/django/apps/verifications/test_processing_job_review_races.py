@@ -1,3 +1,4 @@
+from apps.consent.test_helpers import case_with_test_consent
 from datetime import timedelta
 
 from django.db import transaction
@@ -53,14 +54,14 @@ class ProcessingJobReviewRaceTests(TestCase):
         )
 
     def _verification(self, *, status=VerificationStatus.PROCESSING):
-        return Verification.objects.create(
+        return case_with_test_consent(Verification.objects.create(
             tenant=self.tenant,
             organization=self.organization,
             verification_subject=self.subject,
             purpose="Processing race regression",
             status=status,
             expires_at=timezone.now() + timedelta(hours=1),
-        )
+        ))
 
     def _liveness(self, verification, suffix):
         selfie = SelfieCapture.objects.create(

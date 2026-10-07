@@ -92,6 +92,38 @@ class VerificationSessionPortalTests(APITestCase):
         self.session.set_session_token(self.raw_session_token)
         self.session.save()
 
+    def test_applicant_withdrawal_revokes_only_own_case_session(self):
+        record = ConsentRecord.objects.create(
+            tenant=self.tenant, verification=self.verification,
+            verification_subject=self.subject, consent_text_snapshot="Synthetic notice",
+            accepted_at=timezone.now(),
+        )
+        url = reverse("verification-session-consent-withdraw", kwargs={"session_id": self.session.public_id})
+        response = self.client.post(url, {}, format="json", **self.session_headers())
+        self.assertEqual(response.status_code, 200)
+        record.refresh_from_db()
+        self.session.refresh_from_db()
+        self.assertIsNotNone(record.withdrawn_at)
+        self.assertEqual(self.session.status, "revoked")
+        retry = self.client.post(url, {}, format="json", **self.session_headers())
+        self.assertEqual(retry.status_code, 200)
+        self.assertEqual(retry.json()["data"]["withdrawn_at"], response.json()["data"]["withdrawn_at"])
+        self.assertEqual(self.client.get(reverse("verification-session-detail", kwargs={"session_id": self.session.public_id}), **self.session_headers()).status_code, 401)
+        self.assertEqual(self.client.post(url, {}, format="json", **self.session_headers(token="wrong-token")).status_code, 401)
+
+    def test_withdrawal_replay_rejects_unrelated_revocation_and_expiry(self):
+        url = reverse("verification-session-consent-withdraw", kwargs={"session_id": self.session.public_id})
+        self.session.status = "revoked"
+        self.session.save(update_fields=["status", "updated_at"])
+        self.assertEqual(self.client.post(url, {}, format="json", **self.session_headers()).status_code, 401)
+        record = ConsentRecord.objects.create(tenant=self.tenant, verification=self.verification,
+            verification_subject=self.subject, consent_text_snapshot="Synthetic notice", accepted_at=timezone.now())
+        from apps.consent.services import withdraw
+        withdraw(record)
+        self.session.expires_at = timezone.now() - timedelta(seconds=1)
+        self.session.save(update_fields=["expires_at", "updated_at"])
+        self.assertEqual(self.client.post(url, {}, format="json", **self.session_headers()).status_code, 401)
+
     def session_headers(self, token=None):
         return {
             "HTTP_AUTHORIZATION": f"Bearer {token or self.raw_session_token}",
@@ -926,6 +958,8 @@ class VerificationSessionPortalTests(APITestCase):
     def test_submit_liveness_creates_provider_checks_and_queues_background_processing(
         self, mock_delay
     ):
+        from apps.consent.test_helpers import accept_test_consent
+        accept_test_consent(self.verification)
         identity_document = IdentityDocument.objects.create(
             tenant=self.tenant,
             verification=self.verification,
@@ -962,7 +996,8 @@ class VerificationSessionPortalTests(APITestCase):
         )
         self.verification.status = VerificationStatus.PROCESSING
         self.verification.metadata_json = {"workflow": "administrator_onboarding"}
-        self.verification.save(update_fields=["status", "metadata_json", "updated_at"])
+        self.verification.review_owner = "platform"
+        self.verification.save(update_fields=["status", "metadata_json", "review_owner", "updated_at"])
 
         challenge = LivenessChallenge.objects.create(
             tenant=self.tenant,

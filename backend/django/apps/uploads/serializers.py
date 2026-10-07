@@ -4,7 +4,7 @@ from django.conf import settings
 from django.utils import timezone
 from rest_framework import serializers
 
-from apps.uploads.services import build_signed_upload_url, create_upload
+from apps.uploads.services import create_upload
 
 UPLOAD_PURPOSE_CHOICES = (
     ("document_capture", "Document Capture"),
@@ -87,7 +87,9 @@ class UploadCreateSerializer(serializers.Serializer):
                 upload_headers["x-amz-server-side-encryption"] = encryption
         return {
             "upload_id": upload.public_id,
-            "upload_url": build_signed_upload_url(upload=upload),
+            # Session evidence is accepted only through the consent-aware API.
+            # A presigned PUT remains usable after consent/session revocation.
+            "upload_url": "",
             "upload_headers": upload_headers,
             "upload_transfer_path": f"/uploads/{upload.public_id}/transfer",
             "upload_complete_path": f"/uploads/{upload.public_id}/complete",

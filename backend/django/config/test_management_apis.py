@@ -7,7 +7,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.access_control.models import Permission, Role, RolePermission, RoleScope
+from apps.access_control.models import Permission, Role, RolePermission, RoleScope, UserRole
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.biometrics.models import SelfieCapture
 from apps.consent.models import ConsentRecord, ConsentTemplate, ConsentTemplateStatus
@@ -163,6 +163,10 @@ class ManagementAPIEndpointTests(APITestCase):
             self.client.get(reverse("consent-template-list")).status_code,
             status.HTTP_200_OK,
         )
+        permission = Permission.objects.create(code="manage_consent", name="Manage consent")
+        role = Role.objects.create(tenant=self.tenant, name="Privacy", scope=RoleScope.TENANT)
+        RolePermission.objects.create(role=role, permission=permission)
+        UserRole.objects.create(user=self.user, tenant=self.tenant, role=role)
         self.assertEqual(
             self.client.get(reverse("consent-record-list")).status_code,
             status.HTTP_200_OK,
@@ -345,6 +349,25 @@ class ManagementAPIEndpointTests(APITestCase):
             "error_message",
         ):
             self.assertNotIn(private_key, serialized)
+
+    def test_provider_health_retains_provider_with_only_nonmetric_attempts(self):
+        from apps.providers.health import grouped_platform_provider_health
+        provider = Provider.objects.create(name="Pending Provider", code="pending-health",
+            provider_type=ProviderType.DOCUMENT)
+        for check_status in (ProviderCheckStatus.PENDING, ProviderCheckStatus.PROCESSING, ProviderCheckStatus.CANCELLED):
+            ProviderCheck.objects.create(tenant=self.tenant, verification=self.verification,
+                provider=provider, check_type=ProviderCheckType.DOCUMENT_OCR,
+                status=check_status, started_at=timezone.now(),
+                completed_at=timezone.now() if check_status == ProviderCheckStatus.CANCELLED else None)
+        snapshot = provider_health_scope(tenant=self.tenant, environment="sandbox", provider_id=provider.public_id)
+        self.assertEqual(len(snapshot["providers"]), 1)
+        metric = snapshot["providers"][0]
+        self.assertEqual(metric["status"], "no_data")
+        self.assertEqual(metric["total_attempts"], 0)
+        groups = grouped_platform_provider_health(provider_id=provider.public_id)
+        self.assertEqual(len(groups), 1)
+        self.assertEqual(groups[0]["scope"]["environment"], "sandbox")
+        self.assertEqual(groups[0]["providers"][0]["status"], "no_data")
 
     def test_provider_health_requires_a_valid_explicit_scope(self):
         self.assertEqual(

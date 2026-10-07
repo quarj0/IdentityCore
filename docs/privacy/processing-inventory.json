@@ -122,7 +122,8 @@
         "IP address",
         "user agent",
         "event metadata",
-        "evidence bundle references"
+        "evidence bundle references",
+        "Versioned audit integrity hashes and authentication tags with nonsecret application key identifiers; no cryptographic key material is persisted in audit events."
       ],
       "purpose": "Demonstrate authorization, accountability, integrity, and compliance decisions.",
       "locations": [
@@ -1246,6 +1247,11 @@
     },
     {
       "source": "backend/django/apps/audit/models.py",
+      "field": "AuditEvent.authentication_tag",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/audit/models.py",
       "field": "AuditEvent.created_at",
       "activity": "consent-audit-and-compliance"
     },
@@ -1262,6 +1268,16 @@
     {
       "source": "backend/django/apps/audit/models.py",
       "field": "AuditEvent.integrity_hash",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/audit/models.py",
+      "field": "AuditEvent.integrity_key_id",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/audit/models.py",
+      "field": "AuditEvent.integrity_version",
       "activity": "consent-audit-and-compliance"
     },
     {
@@ -1796,6 +1812,11 @@
     },
     {
       "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentRecord.proof_json",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
       "field": "ConsentRecord.public_id",
       "activity": "consent-audit-and-compliance"
     },
@@ -1847,6 +1868,11 @@
     {
       "source": "backend/django/apps/consent/models.py",
       "field": "ConsentTemplate.deleted_at",
+      "activity": "consent-audit-and-compliance"
+    },
+    {
+      "source": "backend/django/apps/consent/models.py",
+      "field": "ConsentTemplate.evidence_scope_json",
       "activity": "consent-audit-and-compliance"
     },
     {
@@ -4312,6 +4338,11 @@
     {
       "source": "backend/django/apps/verifications/models.py",
       "field": "ProcessingJob.lease_expires_at",
+      "activity": "verification-subject-and-session"
+    },
+    {
+      "source": "backend/django/apps/verifications/models.py",
+      "field": "ProcessingJob.lease_generation",
       "activity": "verification-subject-and-session"
     },
     {

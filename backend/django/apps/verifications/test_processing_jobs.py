@@ -1,3 +1,4 @@
+from apps.consent.test_helpers import accept_test_consent
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -56,6 +57,7 @@ class ProcessingJobRecoveryTests(TestCase):
             country_profile_id="GH",
             status=IdentityDocumentStatus.PROCESSING,
         )
+        accept_test_consent(self.verification)
 
     @patch("apps.identity_documents.tasks.process_identity_document_task.delay")
     def test_queue_persists_job_before_dispatch(self, mock_delay):

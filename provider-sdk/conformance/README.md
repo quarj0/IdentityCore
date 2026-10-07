@@ -11,7 +11,8 @@ Start the provider in a dedicated conformance mode, then run:
 ```bash
 python provider-sdk/conformance/run.py \
   --url http://127.0.0.1:8080 \
-  --key-id conformance-key
+  --key-id conformance-key \
+  --secret disposable-conformance-secret
 ```
 
 Use a disposable conformance key and sandbox-only process. Do not pass a production

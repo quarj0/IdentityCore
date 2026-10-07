@@ -115,7 +115,7 @@ jobs:
       - name: Apply migrations to an empty PostgreSQL database
         run: uv run --project backend python backend/django/manage.py migrate --noinput
       - name: Test concurrent idempotency, human decisions and audit chains on PostgreSQL
-        run: uv run --project backend python backend/django/manage.py test common.test_tenant_crypto.TenantEnvelopeRaceTests apps.verifications.test_review_queues.ReviewQueueRaceTests apps.verifications.test_review_quality.ReviewQualityRaceTests apps.verifications.test_simulator.SandboxSimulatorRaceTests apps.accounts.test_mfa_races apps.verifications.test_failure_injection apps.verifications.test_deployment_rollout apps.verification_sessions.test_handoff_races.MobileHandoffRaceTests apps.risk.test_reuse_races.ReuseFingerprintRaceTests apps.providers.test_system_provider_races.SystemProviderCreationRaceTests apps.accounts.test_session_races.DashboardSessionRaceTests apps.accounts.test_invitation_races.InvitationRaceTests apps.api_clients.test_usage apps.api_clients.test_idempotency apps.risk.test_decision_races apps.risk.test_external_races apps.providers.test_manifest_races --verbosity 1
+        run: uv run --project backend python backend/django/manage.py test common.test_tenant_crypto.TenantEnvelopeRaceTests apps.verifications.test_review_queues.ReviewQueueRaceTests apps.verifications.test_review_quality.ReviewQualityRaceTests apps.verifications.test_simulator.SandboxSimulatorRaceTests apps.accounts.test_mfa_races apps.verifications.test_failure_injection apps.verifications.test_deployment_rollout apps.verification_sessions.test_handoff_races.MobileHandoffRaceTests apps.risk.test_reuse_races.ReuseFingerprintRaceTests apps.providers.test_system_provider_races.SystemProviderCreationRaceTests apps.accounts.test_session_races.DashboardSessionRaceTests apps.accounts.test_invitation_races.InvitationRaceTests apps.api_clients.test_usage apps.api_clients.test_idempotency apps.risk.test_decision_races apps.risk.test_external_races apps.providers.test_manifest_races apps.consent.test_races --verbosity 1
 
   ai-service:
     runs-on: ubuntu-latest
@@ -176,6 +176,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+      - name: Install shells for native completion regressions
+        run: sudo apt-get update && sudo apt-get install -y fish zsh
       - run: python -m unittest discover -s sdk/python/tests
       - run: python -m pip install build && python -m build sdk/python
       - run: npm test

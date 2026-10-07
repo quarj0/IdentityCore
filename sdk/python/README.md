@@ -29,6 +29,8 @@ result = client.verifications.result(verification["id"])
 print(verification["verification_url"])
 ```
 
+An optional `project_id` must identify an active project in the same workspace and match the selected policy’s project. Omit it to use the policy’s project. Unknown or mismatched IDs are rejected before creating the verification.
+
 GET requests retry transient failures automatically. Verification creation is idempotent and safely retried; cancellation and link resend are not retried automatically.
 
 ## CLI
@@ -61,6 +63,7 @@ identitycore completion bash >> ~/.bashrc
 identitycore completion zsh >> ~/.zshrc
 
 # Fish
+mkdir -p ~/.config/fish/completions
 identitycore completion fish > ~/.config/fish/completions/identitycore.fish
 ```
 
@@ -89,3 +92,5 @@ valid = verify_webhook_signature(
 Always verify the unmodified webhook body before parsing JSON. The default timestamp tolerance is five minutes. `claim_processed_event_id` must atomically insert the event ID only if it does not exist and return whether the claim succeeded. During rotation, supply both secrets only until the API-provided overlap expiry; IdentityCore emits v1 signatures for both during that window. The original `X-IdentityCore-Signature` header remains available for staged migration of legacy receivers.
 
 Required scopes are `policies:read`, `verifications:create`, and `verifications:read` for their corresponding resources.
+
+CLI options require their full names (for example, `--profile`); abbreviated long options are rejected so parsing stays consistent with shell completion.

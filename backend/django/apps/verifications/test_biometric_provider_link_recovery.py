@@ -1,3 +1,4 @@
+from apps.consent.test_helpers import accept_test_consent
 from datetime import timedelta
 
 from django.test import TestCase, override_settings
@@ -164,6 +165,7 @@ class BiometricProviderLinkRecoveryTests(TestCase):
             started_at=timezone.now(),
             completed_at=timezone.now(),
         )
+        accept_test_consent(self.verification)
 
     def test_acquire_repairs_fallback_provider_links_before_worker_continues(self):
         job = acquire_processing_job(

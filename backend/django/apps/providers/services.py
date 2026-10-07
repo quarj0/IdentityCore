@@ -327,6 +327,15 @@ def _lock_processing_owner(processing_job) -> None:
     lock_processing_job_for_finalization(processing_job)
 
 
+def _lock_provider_consent(provider_check):
+    from apps.audit.services import lock_audit_chain
+    from apps.consent.services import require_active_consent, scope_for_check
+    from apps.verifications.models import Verification
+    lock_audit_chain(provider_check.tenant_id)
+    case = Verification.objects.select_for_update(no_key=True).get(pk=provider_check.verification_id, tenant_id=provider_check.tenant_id)
+    require_active_consent(case, scope_for_check(provider_check.check_type))
+
+
 @observed("provider", "invoke_provider_check")
 def invoke_provider_check(
     *,
@@ -360,6 +369,7 @@ def invoke_provider_check(
         merged_request_metadata
     )
     with transaction.atomic():
+        _lock_provider_consent(provider_check)
         _lock_processing_owner(processing_job)
         provider_check.save(
             update_fields=[
@@ -426,6 +436,7 @@ def invoke_provider_check(
             },
         }
         with transaction.atomic():
+            _lock_provider_consent(provider_check)
             _lock_processing_owner(processing_job)
             provider_check.save(
                 update_fields=[
@@ -458,6 +469,7 @@ def invoke_provider_check(
     )
     provider_check.normalized_result_json = normalized
     with transaction.atomic():
+        _lock_provider_consent(provider_check)
         _lock_processing_owner(processing_job)
         provider_check.save(
             update_fields=[
@@ -722,6 +734,7 @@ def _lock_route_final_action_processing_job(
             or locked_job.resource_public_id != job_resource_public_id
             or locked_job.status != ProcessingJobStatus.PROCESSING
             or locked_job.attempt_count != processing_job.attempt_count
+            or locked_job.lease_generation != processing_job.lease_generation
         ):
             raise ProcessingJobOwnershipLost(
                 f"Processing job {locked_job.public_id} no longer owns route finalization."
@@ -757,6 +770,7 @@ def _apply_route_final_action(
     processing_job=None,
 ) -> str:
     from apps.audit.services import record_audit_event
+    from apps.verifications.decision_contract import system_decision_contract_fields
     from apps.notifications.services import queue_verification_status_notifications
     from apps.webhooks.services import queue_webhook_events
     from apps.verifications.models import (
@@ -770,10 +784,14 @@ def _apply_route_final_action(
     # Canonical lifecycle lock order: Verification first, ProcessingJob second.
     from apps.risk.services import _automatic_conflict
 
+    from apps.audit.services import lock_audit_chain
+    from apps.consent.services import require_active_consent, scope_for_check
+    lock_audit_chain(verification.tenant_id)
     requested = verification
     verification = Verification.objects.select_for_update(no_key=True).get(
         pk=verification.pk
     )
+    require_active_consent(verification, scope_for_check(check_type))
     conflict, _ = _automatic_conflict(requested, verification)
     if conflict:
         # Preserve the final-action enum expected by exhaustion handlers.
@@ -827,6 +845,7 @@ def _apply_route_final_action(
             "decision": target_status,
             "decision_type": VerificationDecisionType.SYSTEM,
             "reason_code": "provider_route_exhausted",
+            **system_decision_contract_fields(verification, "provider_route_exhausted"),
             "reason_detail": (
                 "Automated providers could not complete the requested capability."
             ),
@@ -886,6 +905,27 @@ def execute_provider_route(
     enforce that timeout at their I/O boundary.
     """
     from apps.verifications.processing_jobs import ProcessingJobOwnershipLost
+
+    if processing_job is not None and getattr(processing_job, "recovering_consent_proof", False):
+        with transaction.atomic():
+            _lock_processing_owner(processing_job)
+            candidates = verification.provider_checks.filter(
+                check_type=check_type, status=ProviderCheckStatus.COMPLETED,
+            ).order_by("-completed_at", "-created_at")
+            for check in candidates:
+                metadata = check.request_metadata_json or {}
+                normalized = check.normalized_result_json or {}
+                if not isinstance(metadata, dict) or not isinstance(normalized, dict):
+                    continue
+                if (not all(metadata.get(key) == value for key, value in (request_metadata or {}).items())
+                    or normalized.get("capability") != check_type
+                    or normalized.get("contract_version") != PROVIDER_CONTRACT_VERSION):
+                    continue
+                try:
+                    normalized = normalize_provider_result(check_type, normalized)
+                except ProviderContractError:
+                    continue
+                return ProviderRouteExecutionResult(result=normalized, provider_check=check, attempts=())
 
     resolution = resolve_provider_chain_for_verification(
         verification=verification,
