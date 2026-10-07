@@ -4,7 +4,7 @@ const { assess } = require('./review-gate.cjs');
 const head = 'a'.repeat(40);
 const fixed = 'b'.repeat(40);
 const reviewer = 'chatgpt-codex-connector';
-const baseline = () => ({ head, reviewer, resolver: 'maintainer', protectedDefinitions: {'.github/scripts/review-gate.cjs': true, '.github/workflows/review-gate.yml': true, '.github/workflows/review-evidence-signal.yml': true, '.github/scripts/merge-reviewed-pr.cjs': true, '.github/review-gate-policy.json': true}, trustedWorkflows: {CI: {id: 1, definitionMatches: true, path: '.github/workflows/ci.yml'}, Security: {id: 2, definitionMatches: true, path: '.github/workflows/security.yml'}}, commits: [head, fixed], runs: ['CI', 'Security'].map((name, index) => ({name, workflow_id: index + 1, path: `.github/workflows/${name === 'CI' ? 'ci' : 'security'}.yml`, head_sha: head, event: 'pull_request', id: 1, status: 'completed', conclusion: 'success'})), reviews: [{ user: { login: reviewer }, commit_id: head, state: 'COMMENTED', submitted_at: '2026-02-01T00:00:00Z' }], comments: [], threads: [] });
+const baseline = () => ({ pullNumber: 1, baseRef: 'main', head, reviewer, resolver: 'maintainer', protectedDefinitions: {'.github/scripts/review-gate.cjs': true, '.github/workflows/review-gate.yml': true, '.github/workflows/review-evidence-signal.yml': true, '.github/scripts/merge-reviewed-pr.cjs': true, '.github/review-gate-policy.json': true}, trustedWorkflows: {CI: {id: 1, definitionMatches: true, path: '.github/workflows/ci.yml'}, Security: {id: 2, definitionMatches: true, path: '.github/workflows/security.yml'}}, commits: [head, fixed], runs: ['CI', 'Security'].map((name, index) => ({name, workflow_id: index + 1, path: `.github/workflows/${name === 'CI' ? 'ci' : 'security'}.yml`, head_sha: head, event: 'pull_request', pull_requests: [{number: 1, base: {ref: 'main'}, head: {sha: head}}], id: 1, status: 'completed', conclusion: 'success'})), reviews: [{ user: { login: reviewer }, commit_id: head, state: 'COMMENTED', submitted_at: '2026-02-01T00:00:00Z' }], comments: [], threads: [] });
 test('requires completed review of the current head', () => {
   for (const state of ['old', 'dismissed', 'absent']) {
     const input = baseline();
@@ -502,15 +502,15 @@ test('trusted workflow searches are separate from unrelated repository runs', as
 
 test('bulk validation of 257 PRs stays below the installation REST budget', async () => {
   const {preparePullRequests, bucketTargets, runBucket} = require('./review-gate.cjs');
-  let requests = 0;
+  let requests = 0; let currentNumber = 1;
   const prs = Array.from({length: 257}, (_, i) => ({number: i + 1}));
   const methods = {list: Symbol('list'), reviews: Symbol('reviews'), comments: Symbol('comments'), commits: Symbol('commits')};
   const github = {rest: {
-    pulls: {list: methods.list, listReviews: methods.reviews, get: async () => {requests++; return {data: {state: 'open', head: {sha: head}}};}},
+    pulls: {list: methods.list, listReviews: methods.reviews, get: async ({pull_number}) => {currentNumber = pull_number; requests++; return {data: {state: 'open', head: {sha: head}}};}},
     issues: {listComments: methods.comments},
     repos: {compareCommitsWithBasehead: async ({basehead}) => {requests++; const sha = basehead.startsWith(head.slice(0, 10)) ? head : fixed; return {data: {status: sha === head ? 'identical' : 'ahead', base_commit: {sha}, merge_base_commit: {sha}}};}, listCommits: methods.commits, get: async () => {requests++; return {data: {default_branch: 'main'}};}},
     actions: {getWorkflow: async ({workflow_id}) => {requests++; return {data: {id: workflow_id === 'ci.yml' ? 1 : 2}};},
-      listWorkflowRuns: async ({workflow_id}) => {requests++; return {data: {workflow_runs: baseline().runs.filter(run => run.workflow_id === workflow_id)}};}},
+      listWorkflowRuns: async ({workflow_id}) => {requests++; return {data: {workflow_runs: baseline().runs.filter(run => run.workflow_id === workflow_id).map(run => ({...run, pull_requests: [{number: currentNumber, base: {ref: 'main'}, head: {sha: head}}]}))}};}},
     checks: {create: async () => {requests++; return {data: {id: 42}};}, update: async () => {requests++;}}
   }, paginate: async method => {
     requests += method === methods.list ? 3 : 1;
@@ -799,4 +799,26 @@ test('a push CI rerun during final live assessment blocks merging', async () => 
     validate: async ({github: live}) => {assessments++; await live.rest.checks.update({conclusion: 'success'});},
     merge: async () => {merged = true;}}), /no active runs/);
   assert.equal(assessments, 2); assert.equal(merged, false);
+});
+
+for (const wording of ['Tests passed. Except integration.', 'Tests passed; except integration', 'Tests passed. But integration failed.', 'Tests passed. Only unit coverage.']) {
+  test(`validation rejects negative follow-up clauses: ${wording}`, () => {
+    const {affirmativeValidation} = require('./review-gate.cjs');
+    assert.equal(affirmativeValidation(wording), false);
+  });
+}
+for (const mutation of [run => {run.pull_requests[0].base.ref = 'dev';}, run => {run.pull_requests[0].number = 2;}, run => {run.pull_requests = [];}]) {
+  test('publisher and live merger reject CI from another PR base or missing association', () => {
+    const {assertCI} = require('./merge-reviewed-pr.cjs');
+    const input = baseline(); mutation(input.runs[0]);
+    assert.match(assess(input).join(' '), /CI has not passed/);
+    assert.throws(() => assertCI(input.runs, input.trustedWorkflows, head, {number: 1, baseRef: 'main'}));
+  });
+}
+test('gate CI and Security respond to PR base edits', () => {
+  const fs = require('node:fs'); const path = require('node:path');
+  for (const name of ['review-gate.yml', 'ci.yml', 'security.yml']) {
+    const source = fs.readFileSync(path.join(__dirname, '../workflows', name), 'utf8');
+    assert.match(source, /pull_request(?:_target)?:\n\s+types: \[[^\]]*edited/);
+  }
 });
