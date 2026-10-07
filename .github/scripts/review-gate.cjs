@@ -22,9 +22,10 @@ function assess({ head, reviewer, resolver, reviews, comments, threads, commits,
   for (const name of ['CI', 'Security']) {
     const trusted = trustedWorkflows?.[name];
     if (!trusted?.definitionMatches) problems.push(`${name} workflow definition differs from trusted default-branch content.`);
-    const latest = runs.filter(r => trusted && r.workflow_id === trusted.id && typeof r.path === 'string' && r.path.split('@', 1)[0] === trusted.path && r.head_sha === head && r.event === 'pull_request')
-      .sort((a, b) => b.id - a.id)[0];
-    if (!latest || latest.status !== 'completed' || latest.conclusion !== 'success') problems.push(`${name} has not passed for the final head.`);
+    const candidates = runs.filter(r => trusted && r.workflow_id === trusted.id && typeof r.path === 'string' && r.path.split('@', 1)[0] === trusted.path && r.head_sha === head && r.event === 'pull_request');
+    const activity = run => Date.parse(run.updated_at || run.run_started_at || run.created_at) || 0;
+    const latest = candidates.sort((a, b) => activity(b) - activity(a) || b.id - a.id)[0];
+    if (candidates.some(r => r.status !== 'completed') || !latest || latest.conclusion !== 'success') problems.push(`${name} has not passed for the final head.`);
   }
   for (const path of ['.github/scripts/review-gate.cjs', '.github/workflows/review-gate.yml', '.github/workflows/review-evidence-signal.yml']) {
     if (!protectedDefinitions?.[path]) problems.push(`Protected review-gate definition differs: ${path}.`);
@@ -87,6 +88,15 @@ async function fetchThreads(github, owner, repo, number) {
   return threads;
 }
 
+async function fetchWorkflowRuns({ github, owner, repo, head }) {
+  const runs = [];
+  for (let page = 1; ; page++) {
+    const { data } = await github.rest.actions.listWorkflowRunsForRepo({ owner, repo, head_sha: head, per_page: 100, page });
+    runs.push(...data.workflow_runs);
+    if (data.workflow_runs.length < 100) return { data: { workflow_runs: runs } };
+  }
+}
+
 async function run({ github, context }) {
   const { owner, repo } = context.repo;
   const number = context.payload.pull_request?.number ||
@@ -110,7 +120,7 @@ async function run({ github, context }) {
   const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number, per_page: 100 });
   const commits = (await github.paginate(github.rest.pulls.listCommits, { owner, repo, pull_number: number, per_page: 100 })).map(c => c.sha);
   const threads = await fetchThreads(github, owner, repo, number);
-  const { data: workflowRuns } = await github.rest.actions.listWorkflowRunsForRepo({ owner, repo, head_sha: head, per_page: 100 });
+  const { data: workflowRuns } = await fetchWorkflowRuns({ github, owner, repo, head });
   const trustedWorkflows = {};
   const { data: repository } = await github.rest.repos.get({ owner, repo });
   for (const [name, file] of [['CI', 'ci.yml'], ['Security', 'security.yml']]) {
@@ -139,7 +149,7 @@ async function run({ github, context }) {
     github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number, per_page: 100 }),
     fetchThreads(github, owner, repo, number),
     github.rest.pulls.get({ owner, repo, pull_number: number }),
-    github.rest.actions.listWorkflowRunsForRepo({ owner, repo, head_sha: head, per_page: 100 })
+    fetchWorkflowRuns({ github, owner, repo, head })
   ]);
   if (JSON.stringify([reviews, comments, threads]) !== JSON.stringify([currentReviews, currentComments, currentThreads])) {
     problems.push('Mutable review evidence changed during validation; rerun against a stable snapshot.');
@@ -194,4 +204,25 @@ async function preparePullRequests({ github, context }) {
   return results.map(result => result.value).filter(Boolean);
 }
 
-module.exports = { assess, run, preparePullRequests };
+function bucketTargets(targets) {
+  return [...new Set(targets.map(target => target.number % 256))].sort((a, b) => a - b);
+}
+
+async function runBucket({ github, context, bucket }) {
+  if (!Number.isInteger(bucket) || bucket < 0 || bucket >= 256) throw new Error('Invalid review bucket.');
+  const { owner, repo } = context.repo;
+  // Refresh the whole stable bucket after taking its lock. A newer individual
+  // event can replace a queued bulk job without dropping another PR's validation.
+  const prs = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
+  const failures = [];
+  for (const pr of prs.filter(pr => pr.number % 256 === bucket)) {
+    try {
+      await run({ github, context: { ...context, payload: { pull_request: { number: pr.number } } } });
+    } catch (error) {
+      failures.push(`#${pr.number}: ${error.message}`);
+    }
+  }
+  if (failures.length) throw new Error(failures.join('\n'));
+}
+
+module.exports = { assess, run, preparePullRequests, fetchWorkflowRuns, bucketTargets, runBucket };

@@ -298,7 +298,7 @@ test('all workflow-associated PRs are discovered and duplicate numbers are remov
 
 test('bulk and individual assessments use the same per-PR concurrency group', () => {
   const workflow = require('node:fs').readFileSync(require('node:path').join(__dirname, '../workflows/review-gate.yml'), 'utf8');
-  assert.match(workflow, /group: review-evidence-\$\{\{ matrix.target.number \}\}/);
+  assert.match(workflow, /group: review-evidence-bucket-\$\{\{ matrix.bucket \}\}/);
   assert.doesNotMatch(workflow, /github.run_id/);
   assert.match(workflow, /needs: discover/);
   assert.match(workflow, /cancel-in-progress: false/);
@@ -368,4 +368,80 @@ test('resolution metadata cannot replace the configured trusted disposition auth
   assert.match(assess(input).join(' '), /no fixing-commit and validation evidence/);
   input.threads[0].resolvedBy = {login: 'maintainer'};
   assert.match(assess(input).join(' '), /no fixing-commit and validation evidence/);
+});
+
+for (const state of ['queued', 'in_progress', 'failure', 'success']) {
+  test(`older workflow rerun with ${state} uses current-attempt activity`, () => {
+    const input = baseline();
+    input.runs[0] = {...input.runs[0], id: 20, updated_at: '2026-01-02T00:00:00Z'};
+    input.runs.push({...input.runs[0], id: 10, run_attempt: 2,
+      updated_at: '2026-01-03T00:00:00Z', status: ['queued', 'in_progress'].includes(state) ? state : 'completed',
+      conclusion: ['queued', 'in_progress'].includes(state) ? null : state});
+    assert.equal(assess(input).length, state === 'success' ? 0 : 1);
+    if (state === 'in_progress') {
+      input.runs[0].updated_at = '2026-01-04T00:00:00Z';
+      assert.equal(assess(input).length, 1);
+    }
+  });
+}
+
+test('both evidence snapshots paginate beyond the first workflow-run page', async () => {
+  const { fetchWorkflowRuns } = require('./review-gate.cjs');
+  const pages = [];
+  const github = {rest: {actions: {listWorkflowRunsForRepo: async ({page, per_page, head_sha}) => {
+    pages.push(page); assert.equal(per_page, 100); assert.equal(head_sha, head);
+    return {data: {workflow_runs: page === 1 ? Array.from({length: 100}, (_, id) => ({id, name: 'Signal'})) : baseline().runs}};
+  }}}};
+  for (let snapshot = 0; snapshot < 2; snapshot++) {
+    const {data} = await fetchWorkflowRuns({github, owner: 'test', repo: 'test', head});
+    assert.equal(data.workflow_runs.length, 102);
+    assert.deepEqual(data.workflow_runs.slice(100), baseline().runs);
+  }
+  assert.deepEqual(pages, [1, 2, 1, 2]);
+});
+
+test('arbitrarily large discovery stays within 256 stable concurrency buckets', () => {
+  const { bucketTargets } = require('./review-gate.cjs');
+  const targets = Array.from({length: 1025}, (_, index) => ({number: index + 1}));
+  const buckets = bucketTargets(targets);
+  assert.equal(buckets.length, 256);
+  assert.deepEqual(buckets, Array.from({length: 256}, (_, index) => index));
+  assert.deepEqual(bucketTargets([{number: 11}, {number: 267}]), [11]);
+});
+
+test('a replacement bucket job refreshes every open PR sharing its lock', async () => {
+  const { runBucket } = require('./review-gate.cjs');
+  const visited = [];
+  const github = {rest: {pulls: {list: Symbol('list'), get: async ({pull_number}) => {
+    visited.push(pull_number); return {data: {state: 'closed'}};
+  }}}, paginate: async () => [{number: 11}, {number: 267}, {number: 12}]};
+  await runBucket({github, context: {repo: {owner: 'test', repo: 'test'}}, bucket: 11});
+  assert.deepEqual(visited, [11, 267]);
+  await assert.rejects(runBucket({github, context: {repo: {owner: 'test', repo: 'test'}}, bucket: 256}), /Invalid review bucket/);
+});
+
+test('embedded discovery and bucket scripts execute their configured entry points', async () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const lines = fs.readFileSync(path.join(__dirname, '../workflows/review-gate.yml'), 'utf8').split('\n');
+  const scripts = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trim() !== 'script: |') continue;
+    const body = [];
+    while (++i < lines.length && (lines[i].startsWith('            ') || !lines[i].trim())) body.push(lines[i].slice(12));
+    i--; scripts.push(body.join('\n'));
+  }
+  assert.equal(scripts.length, 2);
+  const {bucketTargets} = require('./review-gate.cjs');
+  const calls = [];
+  const exports = {preparePullRequests: async () => [{number: 11}, {number: 267}, {number: 12}], bucketTargets,
+    runBucket: async args => calls.push(args)};
+  const loader = name => name === 'node:fs' ? {existsSync: () => true} : exports;
+  const output = {};
+  const core = {setOutput: (key, value) => {output[key] = value;}};
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+  const context = {repo: {owner: 'test', repo: 'test'}};
+  for (const script of scripts) await new AsyncFunction('require', 'github', 'context', 'core', 'process', script)(loader, {}, context, core, {env: {REVIEW_BUCKET: '11'}});
+  assert.deepEqual(JSON.parse(output.targets), [11, 12]);
+  assert.equal(calls.length, 1); assert.equal(calls[0].bucket, 11); assert.equal(calls[0].context, context);
 });
