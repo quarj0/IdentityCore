@@ -202,10 +202,10 @@ async function fetchTargetReceipt({github, owner, repo, run, workflow}) {
   return getAttempt(run.run_attempt);
 }
 
-async function fetchWorkflowRuns({ github, owner, repo, head, target, workflows = [{id: 'ci.yml'}, {id: 'security.yml'}] }) {
+async function fetchWorkflowRuns({ github, owner, repo, head, target, events = ['pull_request', 'push'], workflows = [{id: 'ci.yml'}, {id: 'security.yml'}] }) {
   const runs = [];
   for (const workflow of workflows) {
-    for (const event of ['pull_request', 'push']) {
+    for (const event of events) {
     for (let page = 1; ; page++) {
       const { data } = await github.rest.actions.listWorkflowRuns({ owner, repo, workflow_id: workflow.id, head_sha: head, event, per_page: 100, page });
       for (const candidate of data.workflow_runs) {
@@ -295,16 +295,32 @@ async function run({ github, context, prepared, resolverLogin, approvedUpdates =
     context.payload.workflow_run?.pull_requests?.[0]?.number ||
     Number(context.payload.inputs?.pr_number);
   if (!number) throw new Error('A pull-request number is required.');
-  const pr = prepared?.pr || (await github.rest.pulls.get({ owner, repo, pull_number: number })).data;
-  if (pr.state !== 'open') return;
-  // This function runs inside the per-PR workflow lock. Fetch its current head
-  // here so discovery ordering cannot leave a newer head check orphaned.
+  // A prepared entry may have waited behind another PR's evidence collection.
+  // Refresh it under the same lock and invalidate any changed current head first.
+  if (!prepared?.pr?.head?.sha || !Number.isSafeInteger(prepared?.pendingCheck?.id)) prepared = undefined;
+  let pr, pendingCheck;
+  const begin = async current => (await github.rest.checks.create({owner, repo, head_sha: current.head.sha,
+    name: 'review-evidence', status: 'in_progress',
+    output: {title: 'Review evidence validation in progress', summary: `Revalidating mutable evidence for ${current.head.sha}.`}
+  })).data;
+  try {
+    pr = (await github.rest.pulls.get({owner, repo, pull_number: number})).data;
+    if (prepared && (pr.state !== 'open' || pr.head.sha !== prepared.pr.head.sha)) {
+      if (pr.state === 'open') pendingCheck = await begin(pr);
+      await github.rest.checks.update({owner, repo, check_run_id: prepared.pendingCheck.id, status: 'completed', conclusion: 'failure',
+        output: {title: 'Prepared PR changed', summary: 'The prepared head was superseded or closed before assessment.'}});
+    } else pendingCheck = prepared?.pendingCheck;
+    if (pr.state !== 'open') return;
+    pendingCheck ||= await begin(pr);
+  } catch (error) {
+    if (prepared) await github.rest.checks.update({owner, repo, check_run_id: prepared.pendingCheck.id, status: 'completed', conclusion: 'failure',
+      output: {title: 'Prepared PR refresh failed', summary: 'The live head could not be invalidated; retry assessment.'}});
+    if (pendingCheck && pendingCheck.id !== prepared?.pendingCheck.id) await github.rest.checks.update({owner, repo, check_run_id: pendingCheck.id, status: 'completed', conclusion: 'failure',
+      output: {title: 'Prepared PR refresh failed', summary: 'The assessment could not start; retry assessment.'}});
+    throw error;
+  }
   const head = pr.head.sha;
   const resolver = resolverLogin || process.env.REVIEW_GATE_RESOLVER_LOGIN || owner;
-  const pendingCheck = prepared?.pendingCheck || (await github.rest.checks.create({ owner, repo, head_sha: head,
-    name: 'review-evidence', status: 'in_progress',
-    output: { title: 'Review evidence validation in progress', summary: `Revalidating mutable evidence for ${head}.` }
-  })).data;
   let completed = false;
   try {
   const reviews = relevantReviews(await github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number: number, per_page: 100 }));
@@ -320,7 +336,7 @@ async function run({ github, context, prepared, resolverLogin, approvedUpdates =
   }
   const trustedWorkflows = Object.fromEntries(Object.entries(workflows).map(([name, workflow]) => [name, {...workflow, definitionMatches: matches[workflow.path]}]));
   const protectedDefinitions = Object.fromEntries(PROTECTED_PATHS.map(path => [path, matches[path]]));
-  const {data: workflowRuns} = await fetchWorkflowRuns({github, owner, repo, head, target: {number, baseRef: pr.base?.ref || 'main', head}, workflows: Object.values(workflows)});
+  const {data: workflowRuns} = await fetchWorkflowRuns({github, owner, repo, head, target: {number, baseRef: pr.base?.ref || 'main', head}, events: ['pull_request'], workflows: Object.values(workflows)});
   const problems = assess({ pullNumber: number, baseRef: pr.base?.ref || 'main', head, resolver, commitProof, trustedWorkflows, protectedDefinitions, runs: workflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews, comments, threads, commits });
   if (threads.some(t => t.comments.pageInfo.hasNextPage)) problems.push('A thread exceeds the evidence page limit; review it explicitly.');
   const [currentReviewsRaw, currentCommentsRaw, currentThreads, {data: current}, {data: currentWorkflowRuns}] = await Promise.all([
@@ -328,7 +344,7 @@ async function run({ github, context, prepared, resolverLogin, approvedUpdates =
     github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number, per_page: 100 }),
     fetchThreads(github, owner, repo, number),
     github.rest.pulls.get({ owner, repo, pull_number: number }),
-    fetchWorkflowRuns({ github, owner, repo, head, target: {number, baseRef: pr.base?.ref || 'main', head}, workflows: Object.values(workflows) })
+    fetchWorkflowRuns({ github, owner, repo, head, target: {number, baseRef: pr.base?.ref || 'main', head}, events: ['pull_request'], workflows: Object.values(workflows) })
   ]);
   if (approvedBase) {
     if ((await github.rest.repos.getBranch({owner, repo, branch: repository.default_branch})).data.commit.sha !== approvedBase) problems.push('Protected update approval base moved during validation.');
@@ -362,6 +378,7 @@ async function run({ github, context, prepared, resolverLogin, approvedUpdates =
 
 async function preparePullRequests({ github, context }) {
   const { owner, repo } = context.repo;
+  if (context.eventName === 'workflow_run' && context.payload.action && context.payload.action !== 'completed') return [];
   const number = context.payload.pull_request?.number ||
     (context.payload.issue?.pull_request ? context.payload.issue.number : undefined) ||
     Number(context.payload.inputs?.pr_number);
@@ -374,6 +391,14 @@ async function preparePullRequests({ github, context }) {
       // Fork CI/Security runs and review signals can omit PR association metadata.
       // Revalidate every open PR without trusting a PR-written artifact.
       pullRequests = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
+      const activity = context.payload.workflow_run;
+      if (['CI', 'Security'].includes(activity.name) && /^[0-9a-f]{40}$/.test(activity.head_sha || '')) {
+        const heads = pullRequests.filter(pr => pr.head?.sha === activity.head_sha);
+        const source = heads.filter(pr => (!activity.head_repository?.id || pr.head?.repo?.id === activity.head_repository.id) &&
+          (!activity.head_branch || pr.head?.ref === activity.head_branch));
+        // Source metadata narrows discovery only; positive CI proof still binds the immutable event.
+        pullRequests = source.length ? source : heads;
+      }
     }
   } else {
     if (!number) throw new Error('A pull-request number is required.');
