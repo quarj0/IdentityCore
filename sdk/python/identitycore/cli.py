@@ -430,7 +430,7 @@ _identitycore() {{
 }}
 if (( ! $+functions[compdef] )); then
   autoload -Uz compinit
-  compinit
+  compinit -i
 fi
 compdef _identitycore identitycore"""
     lines = ["""# fish completion for identitycore
