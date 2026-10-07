@@ -888,6 +888,8 @@ class UploadCreateTests(APITestCase):
         self.raw_session_token = "portal-secret-token"
         self.session.set_session_token(self.raw_session_token)
         self.session.save()
+        from apps.consent.test_helpers import accept_test_consent
+        self.consent = accept_test_consent(self.verification)
 
     def auth_headers(self, token=None, session_id=None):
         return {
@@ -895,7 +897,99 @@ class UploadCreateTests(APITestCase):
             "HTTP_X_SESSION_ID": session_id or self.session.public_id,
         }
 
-    def test_create_upload_returns_expiring_upload_url(self):
+    def _restrict_consent(self, scopes):
+        from apps.consent.test_helpers import accept_test_consent
+        self.verification.policy_snapshot_json = {"consent": {"evidence_scope": scopes}}
+        self.verification.save(update_fields=["policy_snapshot_json"])
+        return accept_test_consent(self.verification)
+
+    @patch("apps.uploads.services.build_presigned_upload_url")
+    def test_upload_creation_requires_accepted_consent(self, signed_url):
+        from apps.consent.models import ConsentRecord
+        ConsentRecord.objects.create(
+            tenant=self.tenant, verification=self.verification,
+            verification_subject=self.subject, consent_text_snapshot="Declined",
+            accepted=False, accepted_at=timezone.now(),
+        )
+        response = self.client.post(reverse("upload-create"), {
+            "purpose": "document_capture", "mime_type": "image/jpeg", "file_size_bytes": 4,
+        }, format="json", **self.auth_headers())
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Upload.objects.exists())
+        signed_url.assert_not_called()
+
+    @patch("apps.uploads.views.inspect_upload_content", return_value=(True, ""))
+    @patch("apps.uploads.views.put_object_bytes")
+    @patch("apps.uploads.services.build_presigned_upload_url")
+    def test_operational_runner_transfers_evidence_through_authenticated_api(self, presign, put, inspect):
+        import importlib.util
+        from pathlib import Path
+        script = Path(__file__).resolve().parents[4] / "scripts/run_operational_load.py"
+        spec = importlib.util.spec_from_file_location("synthetic_load_runner", script)
+        runner = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(runner)
+        calls = []
+        def request(method, path, headers, body=None, *, files=None):
+            calls.append((method, path))
+            if files:
+                filename, content, mime = files["file"]
+                data = {"file": SimpleUploadedFile(filename, content, content_type=mime)}
+                response = self.client.post("/api/v1" + path, data, format="multipart", **headers)
+            else:
+                response = self.client.post("/api/v1" + path, body, format="json", **headers)
+            self.assertIn(response.status_code, (200, 201))
+            return response.data["data"]
+        upload_id = runner.upload_session_evidence(request, purpose="document_capture",
+            content=b"test", headers=self.auth_headers())
+        self.assertEqual(calls, [("POST", "/uploads/"), ("POST", f"/uploads/{upload_id}/transfer")])
+        self.assertEqual(Upload.objects.get(public_id=upload_id).status, UploadStatus.UPLOADED)
+        put.assert_called_once()
+        presign.assert_not_called()
+
+    def test_document_only_consent_cannot_authorize_biometric_uploads(self):
+        self._restrict_consent(["document"])
+        for purpose, mime in [("selfie_capture", "image/jpeg"), ("liveness_capture", "video/mp4")]:
+            with self.subTest(purpose=purpose):
+                response = self.client.post(reverse("upload-create"), {
+                    "purpose": purpose, "mime_type": mime, "file_size_bytes": 4,
+                }, format="json", **self.auth_headers())
+                self.assertEqual(response.status_code, 400)
+        self.assertFalse(Upload.objects.exists())
+        response = self.client.post(reverse("upload-create"), {
+            "purpose": "document_capture", "mime_type": "image/jpeg", "file_size_bytes": 4,
+        }, format="json", **self.auth_headers())
+        self.assertEqual(response.status_code, 201)
+
+    @patch("apps.uploads.views.get_object_bytes")
+    @patch("apps.uploads.views.put_object_bytes")
+    @patch("apps.uploads.views.inspect_upload_content")
+    def test_finalization_rechecks_scope_before_reading_or_persisting_evidence(self, inspect, put, get):
+        created = self.client.post(reverse("upload-create"), {
+            "purpose": "selfie_capture", "mime_type": "image/jpeg", "file_size_bytes": 4,
+        }, format="json", **self.auth_headers())
+        upload = Upload.objects.get(public_id=created.data["data"]["upload_id"])
+        self._restrict_consent(["document"])
+        for endpoint in ["upload-transfer", "upload-complete"]:
+            with self.subTest(endpoint=endpoint):
+                response = self.client.post(reverse(endpoint, kwargs={"upload_id": upload.public_id}),
+                    {"file": SimpleUploadedFile("selfie.jpg", b"test", content_type="image/jpeg")},
+                    format="multipart", **self.auth_headers())
+                self.assertEqual(response.status_code, 400)
+        inspect.assert_not_called()
+        put.assert_not_called()
+        get.assert_not_called()
+        upload.refresh_from_db()
+        self.assertEqual(upload.status, UploadStatus.INITIATED)
+        # The idempotent completion shortcut must also recheck consent.
+        upload.status = UploadStatus.UPLOADED
+        upload.save(update_fields=["status"])
+        response = self.client.post(reverse("upload-complete", kwargs={"upload_id": upload.public_id}),
+            {}, format="json", **self.auth_headers())
+        self.assertEqual(response.status_code, 400)
+        get.assert_not_called()
+
+    @patch("apps.uploads.services.build_presigned_upload_url")
+    def test_create_upload_returns_consent_aware_transfer_path(self, presign):
         response = self.client.post(
             reverse("upload-create"),
             {
@@ -909,9 +1003,7 @@ class UploadCreateTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(response.data["data"]["upload_id"].startswith("upl_"))
-        self.assertIn(
-            response.data["data"]["upload_id"], response.data["data"]["upload_url"]
-        )
+        self.assertEqual(response.data["data"]["upload_url"], "")
         self.assertEqual(
             response.data["data"]["upload_headers"],
             {
@@ -933,6 +1025,7 @@ class UploadCreateTests(APITestCase):
             response.data["data"]["upload_complete_path"],
             f"/uploads/{upload.public_id}/complete",
         )
+        presign.assert_not_called()
         self.assertEqual(
             upload.storage_key,
             (

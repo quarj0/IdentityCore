@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.test import TestCase
 from django.utils import timezone
 
+from apps.consent.test_helpers import accept_test_consent
 from apps.biometrics.models import LivenessCheck, LivenessCheckStatus, SelfieCapture
 from apps.organizations.models import Organization
 from apps.providers.models import (
@@ -52,6 +53,7 @@ class RouteFinalActionOwnershipTests(TestCase):
             status=VerificationStatus.PROCESSING,
             expires_at=timezone.now() + timedelta(hours=1),
         )
+        accept_test_consent(self.verification)
         selfie = SelfieCapture.objects.create(
             tenant=self.tenant,
             verification=self.verification,

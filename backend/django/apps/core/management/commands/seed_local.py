@@ -126,6 +126,7 @@ class Command(BaseCommand):
                     ("manage_webhooks", "Manage webhooks"),
                     ("manage_team", "Manage team invitations"),
                     ("manage_encryption", "Manage customer encryption keys"),
+                    ("manage_consent", "Manage consent"),
                     ("manage_providers", "Manage providers"),
                     ("approve_provider_promotion", "Approve provider promotion"),
                 ):

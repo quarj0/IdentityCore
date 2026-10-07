@@ -1,3 +1,4 @@
+from apps.consent.test_helpers import accept_test_consent
 from apps.uploads.test_helpers import seal_test_upload
 from datetime import timedelta
 from decimal import Decimal
@@ -136,6 +137,7 @@ class BiometricsTaskTests(TestCase):
             status="inconclusive",
             matched_at=timezone.now(),
         )
+        accept_test_consent(self.verification)
 
     @patch("apps.biometrics.tasks.run_face_compare")
     @patch("apps.biometrics.tasks.run_liveness_check")

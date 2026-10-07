@@ -24,6 +24,7 @@ import {
 
 import {
   acceptConsent,
+  withdrawConsent,
   clearSessionCredentials,
   consumeSessionCredentials,
   createMobileHandoff,
@@ -92,6 +93,9 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
   const [selectedDocumentType, setSelectedDocumentType] = useState("");
   const [consented, setConsented] = useState(false);
+  const [withdrawn, setWithdrawn] = useState(false);
+  const [confirmWithdrawal, setConfirmWithdrawal] = useState(false);
+  const withdrawalStarted = useRef(false);
   const [busy, setBusy] = useState(false);
   const [busyMessage, setBusyMessage] = useState("Submitting securely…");
   const [error, setError] = useState<string | null>(null);
@@ -118,6 +122,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
       fetchVerificationSession(nextCredentials, preferredLocale),
       fetchVerificationStatus(nextCredentials),
     ]);
+    if (withdrawalStarted.current) return nextStatus;
     setSession(nextSession);
     document.documentElement.lang = nextSession.locale;
     document.documentElement.dir =
@@ -196,25 +201,34 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
   }, [session?.direction, session?.locale]);
 
   useEffect(() => {
-    if (!credentials || !status || !PROCESSING_STEPS.has(status.current_step)) {
+    if (
+      withdrawn ||
+      !credentials ||
+      !status ||
+      !PROCESSING_STEPS.has(status.current_step)
+    ) {
       return;
     }
     const timer = window.setInterval(() => {
       void fetchVerificationStatus(credentials)
         .then((next) => {
+          if (withdrawalStarted.current) return;
           setStatus(next);
           setError(null);
         })
-        .catch((caught) => setError(messageOf(caught)));
+        .catch((caught) => {
+          if (!withdrawalStarted.current) setError(messageOf(caught));
+        });
     }, 3500);
     return () => window.clearInterval(timer);
-  }, [credentials, status]);
+  }, [credentials, status, withdrawn]);
 
   useEffect(() => {
-    if (!handoffUrl || !credentials || continueOnDevice) return;
+    if (withdrawn || !handoffUrl || !credentials || continueOnDevice) return;
     const timer = window.setInterval(() => {
       void fetchVerificationStatus(credentials)
         .then((next) => {
+          if (withdrawalStarted.current) return;
           setStatus(next);
           if (
             ["completed", "failed", "expired", "cancelled"].includes(
@@ -224,10 +238,35 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
             setContinueOnDevice(true);
           }
         })
-        .catch((caught) => setError(messageOf(caught)));
+        .catch((caught) => {
+          if (!withdrawalStarted.current) setError(messageOf(caught));
+        });
     }, 3000);
     return () => window.clearInterval(timer);
-  }, [continueOnDevice, credentials, handoffUrl]);
+  }, [continueOnDevice, credentials, handoffUrl, withdrawn]);
+
+  async function withdraw() {
+    if (!credentials || !session || busy) return;
+    withdrawalStarted.current = true;
+    setBusy(true);
+    setBusyMessage(translate(session.locale, "withdrawing"));
+    setError(null);
+    setNotice(null);
+    try {
+      await withdrawConsent(credentials);
+      setWithdrawn(true);
+      setFile(null);
+      setDocumentFiles({});
+      setDocumentUploadIds({});
+      resetActiveLivenessAttempt();
+      clearSessionCredentials(credentials.sessionId);
+    } catch (caught) {
+      withdrawalStarted.current = false;
+      setError(messageOf(caught));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function run(
     action: () => Promise<unknown>,
@@ -337,13 +376,21 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
   }
 
   async function changeLocale(locale: string) {
-    if (!credentials || !session) return;
+    if (!credentials || !session || busy) return;
     const normalizedLocale = locale.toLowerCase();
     if (
       !session.supported_locales
         .map((item) => item.toLowerCase())
         .includes(normalizedLocale)
     ) {
+      return;
+    }
+    if (withdrawn) {
+      setSession({
+        ...session,
+        locale: normalizedLocale,
+        direction: direction(resolveLocale(normalizedLocale)),
+      });
       return;
     }
     try {
@@ -420,7 +467,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
     );
   }
 
-  const step = status.current_step;
+  const step = withdrawn ? "withdrawn" : status.current_step;
   const availableCountries = session.available_countries?.length
     ? session.available_countries
     : [
@@ -477,7 +524,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
         session.organization.logo_url,
       )}
       purpose={session.purpose}
-      currentStep={step}
+      currentStep={withdrawn ? "cancelled" : step}
       reference={status.verification_id}
       locale={resolveLocale(session.locale)}
       supportedLocales={(() => {
@@ -526,6 +573,15 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
         </div>
       ) : null}
 
+      {withdrawn ? (
+        <StepCard
+          title={translate(session.locale, "withdrawnTitle")}
+          description={translate(session.locale, "withdrawnDescription")}
+          eyebrow={t("Consent is recorded in the audit trail")}
+        >
+          <Button onClick={finish}>{t("Finish and return")}</Button>
+        </StepCard>
+      ) : null}
       {step === "consent" ? (
         <StepCard
           eyebrow={t("Step 1 of 5")}
@@ -1094,6 +1150,50 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
         />
       ) : null}
 
+      {!withdrawn && (status.withdrawal_available ?? [
+        "document_capture",
+        "document_processing",
+        "selfie_capture",
+        "liveness_check",
+        "processing",
+        "completed",
+        "failed",
+        "cancelled",
+      ].includes(step)) ? (
+        <div className="mt-6 rounded-2xl border border-border p-4">
+          {confirmWithdrawal ? (
+            <>
+              <p id="withdraw-explanation" className="mb-3 text-sm">
+                {translate(session.locale, "withdrawExplanation")}
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  disabled={busy}
+                  aria-describedby="withdraw-explanation"
+                  onClick={() => void withdraw()}
+                >
+                  {translate(session.locale, "withdrawConfirm")}
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => setConfirmWithdrawal(false)}
+                >
+                  {translate(session.locale, "withdrawCancel")}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() => setConfirmWithdrawal(true)}
+            >
+              {translate(session.locale, "withdraw")}
+            </Button>
+          )}
+        </div>
+      ) : null}
       {busy ? (
         <p
           aria-live="polite"

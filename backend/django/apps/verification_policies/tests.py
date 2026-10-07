@@ -28,6 +28,40 @@ class VerificationPolicyAPITests(APITestCase):
         )
         self.client.force_authenticate(self.user)
 
+    def test_policy_rejects_scope_missing_required_biometric_steps(self):
+        from apps.consent.models import ConsentTemplate
+        from apps.verification_policies.serializers import VerificationPolicyCreateSerializer, VerificationPolicyUpdateSerializer
+        from types import SimpleNamespace
+        template = ConsentTemplate.objects.create(tenant=self.tenant, name="Scope", version=1,
+            language="en", content="Document only", status="active", evidence_scope_json=["document"])
+        request = SimpleNamespace(user=self.user)
+        create = VerificationPolicyCreateSerializer(data={
+            "name": "Scope", "consent_template_id": template.public_id,
+            "required_document_types": ["passport"], "required_liveness_level": "passive",
+            "face_match_threshold": "0.85", "manual_review_threshold": "0.65", "verification_expiry_minutes": 60, "media_retention_days": 30, "metadata_retention_days": 365,
+        }, context={"request": request})
+        self.assertFalse(create.is_valid())
+        self.assertIn("consent_template_id", create.errors)
+        policy = VerificationPolicy.objects.create(tenant=self.tenant, name="Scope", created_by=self.user)
+        update = VerificationPolicyUpdateSerializer(policy, data={"consent_template_id": template.public_id},
+            partial=True, context={"request": request})
+        self.assertFalse(update.is_valid())
+        self.assertIn("consent_template_id", update.errors)
+
+    def test_snapshot_rejects_incompatible_locale_specific_consent_scope(self):
+        from apps.consent.models import ConsentTemplate
+        from django.core.exceptions import ValidationError
+        base = ConsentTemplate.objects.create(tenant=self.tenant, name="Scope", version=1,
+            language="en", content="Full", status="active", evidence_scope_json=["document", "biometrics"])
+        ConsentTemplate.objects.create(tenant=self.tenant, name="Scope", version=1,
+            language="fr", content="Document only", status="active", evidence_scope_json=["document"])
+        policy = VerificationPolicy.objects.create(tenant=self.tenant, name="Scope", created_by=self.user,
+            consent_template=base, supported_locales_json=["en", "fr"])
+        with self.assertRaisesMessage(ValidationError, "document and biometrics"):
+            policy.snapshot()
+        policy.supported_locales_json = ["en"]
+        self.assertEqual(policy.snapshot()["consent"]["translations"]["en"]["evidence_scope"], ["document", "biometrics"])
+
     def create_api_client(
         self, *, scopes=None, tenant=None, user=None, secret="secret"
     ):

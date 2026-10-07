@@ -71,6 +71,7 @@ export interface VerificationStatus {
   status: string;
   current_step: string;
   message: string;
+  withdrawal_available?: boolean;
   evidence: {
     identity_document_id: string;
     selfie_capture_id: string;
@@ -243,6 +244,14 @@ export function acceptConsent(
       content_hash: consent.content_hash,
     }),
   });
+}
+
+export function withdrawConsent(credentials: SessionCredentials) {
+  return request<{ consent_record_id: string; withdrawn_at: string }>(
+    credentials,
+    `/sessions/${credentials.sessionId}/consent/withdraw`,
+    { method: "POST" },
+  );
 }
 
 export async function createUpload(

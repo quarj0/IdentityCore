@@ -28,6 +28,15 @@ class LoadFailure(RuntimeError):
     """Fixed, payload-free failure code safe for a retained report."""
 
 
+def upload_session_evidence(request, *, purpose, content, headers):
+    uploaded = request("POST", "/uploads/", headers, {
+        "purpose": purpose, "mime_type": "image/jpeg", "file_size_bytes": len(content),
+    })
+    request("POST", uploaded["upload_transfer_path"], headers,
+        files={"file": ("synthetic.jpg", content, "image/jpeg")})
+    return uploaded["upload_id"]
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--env-file", required=True)
@@ -312,9 +321,9 @@ def main():
             timings[name].append(time.monotonic() - started)
         return result
 
-    def request(method, path, headers, body=None):
+    def request(method, path, headers, body=None, *, files=None):
         try:
-            response = api.request(method, BASE + path, headers=headers, json=body)
+            response = api.request(method, BASE + path, headers=headers, json=body, files=files)
         except httpx.HTTPError as error:
             raise LoadFailure(
                 f"{type(error).__name__} at {method} {path.split('/')[1]}"
@@ -393,29 +402,7 @@ def main():
             )
 
             def upload(purpose):
-                uploaded = request(
-                    "POST",
-                    "/uploads/",
-                    session_headers,
-                    {
-                        "purpose": purpose,
-                        "mime_type": "image/jpeg",
-                        "file_size_bytes": len(media),
-                    },
-                )
-                response = api.put(
-                    uploaded["upload_url"],
-                    content=media,
-                    headers=uploaded["upload_headers"],
-                )
-                if response.status_code != 200:
-                    raise LoadFailure("Synthetic storage upload failed")
-                request(
-                    "POST",
-                    f"/uploads/{uploaded['upload_id']}/complete",
-                    session_headers,
-                )
-                return uploaded["upload_id"]
+                return upload_session_evidence(request, purpose=purpose, content=media, headers=session_headers)
 
             front = measured("upload", lambda: upload("document_capture"))
             back = measured("upload", lambda: upload("document_capture"))
