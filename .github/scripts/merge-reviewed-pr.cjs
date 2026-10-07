@@ -69,7 +69,7 @@ function createGhAdapter(fullName, execute = ghJson) {
   const root = `repos/${fullName}`;
   const request = async (suffix, params = {}) => {
     const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value !== undefined));
-    return {data: execute(['api', `${root}/${suffix}${query.size ? `?${query}` : ''}`])};
+    return {data: execute(['api', `${root}${suffix ? `/${suffix}` : ''}${query.size ? `?${query}` : ''}`])};
   };
   const github = {rest: {
     repos: {get: () => request(''), compareCommitsWithBasehead: ({basehead}) => request(`compare/${encodeURIComponent(basehead)}`)},
