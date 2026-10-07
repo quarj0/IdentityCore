@@ -509,26 +509,26 @@ test('trusted workflow searches are separate from unrelated repository runs', as
   assert.deepEqual(requested, [[1, 'pull_request'], [1, 'push'], [2, 'pull_request'], [2, 'push']]); assert.deepEqual(data.workflow_runs, baseline().runs);
 });
 
-for (const fork of [false, true]) test(`bulk validation of 257 ${fork ? 'fork' : 'associated'} PRs stays below the installation REST budget`, async () => {
+for (const fork of [false, true]) test(`bulk validation of 257 ${fork ? 'fork' : 'associated'} PRs stays below the installation REST budget`, async t => {
   const {preparePullRequests, bucketTargets, runBucket} = require('./review-gate.cjs');
-  let requests = 0; let currentNumber = 1;
-  const prs = Array.from({length: 257}, (_, i) => ({number: i + 1, head: {sha: head}}));
+  let requests = 0; let currentNumber = 1; let currentHead;
+  const prs = Array.from({length: 257}, (_, i) => ({number: i + 1, head: {sha: require('node:crypto').createHash('sha1').update(String(i)).digest('hex')}}));
   const methods = {list: Symbol('list'), reviews: Symbol('reviews'), comments: Symbol('comments'), commits: Symbol('commits')};
   const github = {rest: {
-    pulls: {list: methods.list, listReviews: methods.reviews, get: async ({pull_number}) => {currentNumber = pull_number; requests++; return {data: {state: 'open', head: {sha: head}}};}},
+    pulls: {list: methods.list, listReviews: methods.reviews, get: async ({pull_number}) => {currentNumber = pull_number; currentHead = prs[pull_number-1].head.sha; requests++; return {data: {state: 'open', head: {sha: currentHead}}};}},
     issues: {listComments: methods.comments},
-    repos: {compareCommitsWithBasehead: async ({basehead}) => {requests++; const sha = basehead.startsWith(head.slice(0, 10)) ? head : fixed; return {data: {status: sha === head ? 'identical' : 'ahead', base_commit: {sha}, merge_base_commit: {sha}}};}, listCommits: methods.commits, get: async () => {requests++; return {data: {default_branch: 'main'}};}},
+    repos: {compareCommitsWithBasehead: async ({basehead}) => {requests++; const sha = basehead.startsWith(currentHead.slice(0, 10)) ? currentHead : fixed; return {data: {status: sha === currentHead ? 'identical' : 'ahead', base_commit: {sha}, merge_base_commit: {sha}}};}, listCommits: methods.commits, get: async () => {requests++; return {data: {default_branch: 'main'}};}},
     actions: {getWorkflow: async ({workflow_id}) => {requests++; return {data: {id: workflow_id === 'ci.yml' ? 1 : 2}};},
-      downloadWorkflowRunAttemptLogs: async ({run_id}) => {requests++; const number = Math.floor(run_id / 10); const label = run_id % 10 === 1 ? 'CI' : 'Security'; return {data: proofArchive({number, head, base: 'main', run_id, run_attempt: 1}, {label})};},
-      listWorkflowRuns: async ({workflow_id, event}) => {requests++; return {data: {workflow_runs: baseline().runs.filter(run => run.workflow_id === workflow_id && run.event === event).map(run => ({...run, id: currentNumber * 10 + workflow_id, run_attempt: 1, pull_requests: fork ? [] : [{number: currentNumber, base: {ref: 'main'}, head: {sha: head}}]}))}};}},
+      downloadWorkflowRunAttemptLogs: async ({run_id}) => {requests++; const number = Math.floor(run_id / 10); const label = run_id % 10 === 1 ? 'CI' : 'Security'; return {data: proofArchive({number, head: prs[number-1].head.sha, base: 'main', run_id, run_attempt: 1}, {label})};},
+      listWorkflowRuns: async ({workflow_id, event}) => {requests++; return {data: {workflow_runs: baseline().runs.filter(run => run.workflow_id === workflow_id && run.event === event).map(run => ({...run, head_sha: currentHead, id: currentNumber * 10 + workflow_id, run_attempt: 1, pull_requests: fork ? [] : [{number: currentNumber, base: {ref: 'main'}, head: {sha: currentHead}}]}))}};}},
     checks: {create: async () => {requests++; return {data: {id: 42}};}, update: async () => {requests++;}}
   }, paginate: async (method, params) => {
-    if (params.pull_number) currentNumber = params.pull_number;
+    if (params.pull_number) {currentNumber = params.pull_number; currentHead = prs[currentNumber-1].head.sha;}
     requests += method === methods.list ? 3 : 1;
     if (method === methods.list) return prs;
-    if (method === methods.reviews) return baseline().reviews;
-    if (method === methods.comments) return [{user: {login: reviewer}, body: `**Reviewed commit:** \`${head.slice(0, 10)}\``}];
-    if (method === methods.commits) return [{sha: head}];
+    if (method === methods.reviews) return baseline().reviews.map(review => ({...review, commit_id: currentHead}));
+    if (method === methods.comments) return [{user: {login: reviewer}, body: `**Reviewed commit:** \`${currentHead.slice(0, 10)}\``}];
+    if (method === methods.commits) return [{sha: currentHead}];
     assert.fail('Unexpected pagination');
   }, graphql: async () => ({repository: {pullRequest: {reviewThreads: {nodes: [], pageInfo: {hasNextPage: false}}},
     ...Object.fromEntries(Array.from({length: 7}, (_, i) => [[`trusted${i}`, {__typename: 'Blob', oid: fixed}], [`proposed${i}`, {__typename: 'Blob', oid: fixed}]]).flat())}})};
@@ -536,6 +536,7 @@ for (const fork of [false, true]) test(`bulk validation of 257 ${fork ? 'fork' :
   const targets = await preparePullRequests({github, context});
   const buckets = bucketTargets(targets); assert.equal(buckets.length, 8);
   for (const bucket of buckets) await runBucket({github: {...github}, context, bucket});
+  t.diagnostic(`${requests} REST requests for 257 distinct ${fork?'fork':'associated'} heads`);
   assert.ok(requests < 5000, `${requests} requests exceed the installation budget`);
 });
 
@@ -1029,8 +1030,8 @@ test('standalone disposition grammar accepts the current neutral fixing referenc
 
 test('bucket invalidates all selected current heads before collecting any PR evidence',async()=>{
  const {runBucket}=require('./review-gate.cjs');const list=Symbol('list'),reviews=Symbol('reviews');const events=[];
- const github={rest:{pulls:{list,listReviews:reviews,get:async({pull_number})=>({data:{state:'open',head:{sha:head},number:pull_number}})},checks:{create:async({head_sha})=>{events.push('pending');return {data:{id:events.length}};},update:async()=>events.push('failed')}},paginate:async method=>{
-  if(method===list)return [{number:11,head:{sha:head}},{number:267,head:{sha:head}},{number:12,head:{sha:head}}];
+ const github={rest:{pulls:{list,listReviews:reviews,get:async({pull_number})=>({data:{state:'open',head:{sha:pull_number===267?fixed:head},number:pull_number}})},checks:{create:async({head_sha})=>{events.push('pending');return {data:{id:events.length}};},update:async()=>events.push('failed')}},paginate:async method=>{
+  if(method===list)return [{number:11,head:{sha:head}},{number:267,head:{sha:fixed}},{number:12,head:{sha:'c'.repeat(40)}}];
   assert.deepEqual(events.slice(0,2),['pending','pending']);events.push('assessed');throw new Error('synthetic assessment error');
  }};
  await assert.rejects(runBucket({github,context:{repo:{owner:'test',repo:'test'}},bucket:3}),/synthetic assessment error/);
@@ -1225,4 +1226,17 @@ test('frontend CI retains Playwright failure evidence without changing success r
  assert.match(workflow,/name: Upload browser failure evidence\n        if: failure\(\)\n        uses: actions\/upload-artifact@v4/);
  assert.match(workflow,/path: frontend\/verification-portal\/test-results\//);
  assert.match(workflow,/if-no-files-found: ignore\n          retention-days: 7/);
+});
+
+for(const other of [267,12])test(`duplicate PR heads fail closed across ${other===267?'one bucket':'different buckets'}`,async()=>{
+ const {runBucket}=require('./review-gate.cjs');const checks=[];
+ const github={paginate:async()=>[{number:11,head:{sha:head}},{number:other,head:{sha:head},base:{ref:'another-base'}}],rest:{pulls:{list:Symbol('list'),get:async({pull_number})=>({data:{number:pull_number,state:'open',head:{sha:head}}})},checks:{create:async()=>({data:{id:42}}),update:async input=>checks.push(input)}}};
+ await assert.rejects(runBucket({github,context:{repo:{owner:'owner',repo:'repo'}},bucket:3}),/Another open PR shares/);
+ assert.equal(checks.length,other===267?2:1);assert.ok(checks.every(check=>check.conclusion==='failure'));
+});
+test('a duplicate head appearing in the final evidence snapshot blocks a successful publication',async()=>{
+ const {run}=require('./review-gate.cjs');const list=Symbol('list'),reviews=Symbol('reviews'),comments=Symbol('comments');let reads=0;let published;
+ const github={rest:{pulls:{list,listReviews:reviews,get:async()=>({data:{number:1,state:'open',head:{sha:head}}})},issues:{listComments:comments},repos:{get:async()=>({data:{default_branch:'main'}})},actions:{getWorkflow:async({workflow_id})=>({data:{id:workflow_id==='ci.yml'?1:2}}),listWorkflowRuns:async({workflow_id,event})=>({data:{workflow_runs:baseline().runs.filter(run=>run.workflow_id===workflow_id&&run.event===event)}})},checks:{create:async()=>({data:{id:42}}),update:async input=>published=input}},paginate:async method=>method===list?(++reads===1?[{number:1,head:{sha:head}}]:[{number:1,head:{sha:head}},{number:2,head:{sha:head}}]):method===reviews?baseline().reviews:[],graphql:async()=>({repository:{pullRequest:{reviewThreads:{nodes:[],pageInfo:{hasNextPage:false}}},...Object.fromEntries(Array.from({length:7},(_,i)=>[[`trusted${i}`,{__typename:'Blob',oid:fixed}],[`proposed${i}`,{__typename:'Blob',oid:fixed}]]).flat())}})};
+ await assert.rejects(run({github,context:{repo:{owner:'owner',repo:'repo'},payload:{pull_request:{number:1}}}}),/Another open PR shares/);
+ assert.equal(reads,2);assert.equal(published.conclusion,'failure');
 });

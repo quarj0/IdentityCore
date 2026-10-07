@@ -312,7 +312,7 @@ async function definitionMatches({ github, owner, repo, head, defaultBranch }) {
   }));
 }
 
-async function run({ github, context, prepared, resolverLogin, approvedUpdates = process.env.REVIEW_GATE_APPROVED_UPDATES || '' }) {
+async function run({ github, context, prepared, openPRs, resolverLogin, approvedUpdates = process.env.REVIEW_GATE_APPROVED_UPDATES || '' }) {
   const { owner, repo } = context.repo;
   const number = context.payload.pull_request?.number ||
     (context.payload.issue?.pull_request ? context.payload.issue.number : undefined) ||
@@ -347,6 +347,9 @@ async function run({ github, context, prepared, resolverLogin, approvedUpdates =
   const resolver = resolverLogin || process.env.REVIEW_GATE_RESOLVER_LOGIN || owner;
   let completed = false;
   try {
+  const openHeads = openPRs || await github.paginate(github.rest.pulls.list, {owner, repo, state: 'open', per_page: 100});
+  const sharesHead = prs => prs.some(other => other.number !== number && other.state !== 'closed' && other.head?.sha === head);
+  if (sharesHead(openHeads)) throw new Error('Another open PR shares this head; use a unique commit per open PR and revalidate.');
   const reviews = relevantReviews(await github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number: number, per_page: 100 }));
   const comments = relevantComments(await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number, per_page: 100 }));
   const threads = await fetchThreads(github, owner, repo, number);
@@ -363,13 +366,15 @@ async function run({ github, context, prepared, resolverLogin, approvedUpdates =
   const {data: workflowRuns} = await fetchWorkflowRuns({github, owner, repo, head, target: {number, baseRef: pr.base?.ref || 'main', head}, events: ['pull_request'], workflows: Object.values(workflows)});
   const problems = assess({ pullNumber: number, baseRef: pr.base?.ref || 'main', head, resolver, commitProof, fixingCommitProof, trustedWorkflows, protectedDefinitions, runs: workflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews, comments, threads, commits });
   if (threads.some(t => t.comments.pageInfo.hasNextPage)) problems.push('A thread exceeds the evidence page limit; review it explicitly.');
-  const [currentReviewsRaw, currentCommentsRaw, currentThreads, {data: current}, {data: currentWorkflowRuns}] = await Promise.all([
+  const [currentReviewsRaw, currentCommentsRaw, currentThreads, {data: current}, {data: currentWorkflowRuns}, currentOpenHeads] = await Promise.all([
     github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number: number, per_page: 100 }),
     github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number, per_page: 100 }),
     fetchThreads(github, owner, repo, number),
     github.rest.pulls.get({ owner, repo, pull_number: number }),
-    fetchWorkflowRuns({ github, owner, repo, head, target: {number, baseRef: pr.base?.ref || 'main', head}, events: ['pull_request'], workflows: Object.values(workflows) })
+    fetchWorkflowRuns({ github, owner, repo, head, target: {number, baseRef: pr.base?.ref || 'main', head}, events: ['pull_request'], workflows: Object.values(workflows) }),
+    github.paginate(github.rest.pulls.list, {owner, repo, state: 'open', per_page: 100})
   ]);
+  if (sharesHead(currentOpenHeads)) problems.push('Another open PR shares this head; use a unique commit per open PR and revalidate.');
   if (approvedBase) {
     if ((await github.rest.repos.getBranch({owner, repo, branch: repository.default_branch})).data.commit.sha !== approvedBase) problems.push('Protected update approval base moved during validation.');
     approvedDefinitionPaths({manifest: approvedUpdates, head, base: approvedBase});
@@ -473,7 +478,7 @@ async function runBucket({ github, context, bucket, retrySleep = ms => new Promi
     })));
   } else for (const prepared of ready) {
     try {
-      await run({ github, prepared, context: { ...context, payload: { pull_request: { number: prepared.number } } } });
+      await run({ github, prepared, openPRs: prs, context: { ...context, payload: { pull_request: { number: prepared.number } } } });
     } catch (error) {
       failures.push(`#${prepared.number}: ${error.message}`);
     }
