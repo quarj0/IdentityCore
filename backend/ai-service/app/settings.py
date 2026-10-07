@@ -6,14 +6,28 @@ from pathlib import Path
 from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+PUBLIC_AI_TOKEN_FINGERPRINT = (
+    "79629f59fda9e6e75efdf001192ee4e9b5409def42acf48eac30b0931bd71c54"
+)
+
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = SettingsConfigDict(extra="ignore", hide_input_in_errors=True)
 
     service_name: str = Field(default="ai-service", alias="AI_SERVICE_NAME")
     service_version: str = Field(default="1.0.0", alias="AI_SERVICE_VERSION")
     service_mode: str = Field(default="real", alias="AI_SERVICE_MODE")
     shared_token: str = Field(default="", alias="AI_SERVICE_SHARED_TOKEN")
+
+    @field_validator("shared_token", mode="before")
+    @classmethod
+    def reject_published_token(cls, value):
+        token = str(value or "").strip()
+        if hashlib.sha256(token.encode()).hexdigest() == PUBLIC_AI_TOKEN_FINGERPRINT:
+            raise ValueError(
+                "AI_SERVICE_SHARED_TOKEN must replace the formerly published example credential."
+            )
+        return value
 
     cache_dir: str = Field(default="/tmp/identitycore-ai", alias="AI_SERVICE_CACHE_DIR")
     ai_model_root: Path = Field(
