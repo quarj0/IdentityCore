@@ -244,7 +244,7 @@ async function fetchCommitEvidence({ github, owner, repo, head, base, resolver, 
     const latestBodies = dispositions.filter(comment => Date.parse(comment.updatedAt || comment.createdAt) === latest).map(comment => comment.body);
     bodies.push(...latestBodies); fixingBodies.push(...latestBodies);
   }
-  const tokens = [...new Set(bodies.flatMap(body => [...body.matchAll(/\b([0-9a-f]{7,40})\b/g)].map(match => match[1])))];
+  const tokens = [...new Set(bodies.flatMap(body => [...body.matchAll(/\b([0-9a-f]{7,40})\b/gi)].map(match => match[1].toLowerCase())))];
   const commitProof = {[head]: head};
   for (const token of tokens) {
     if (token === head) continue;
@@ -437,22 +437,33 @@ function bucketTargets(targets) {
   return [...new Set(targets.map(target => target.number % BUCKET_COUNT))].sort((a, b) => a - b);
 }
 
-async function runBucket({ github, context, bucket }) {
+async function runBucket({ github, context, bucket, retrySleep = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
   if (!Number.isInteger(bucket) || bucket < 0 || bucket >= BUCKET_COUNT) throw new Error('Invalid review bucket.');
   const { owner, repo } = context.repo;
   // Refresh the whole stable bucket after taking its lock. A newer individual
   // event can replace a queued bulk job without dropping another PR's validation.
   const prs = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
-  // Invalidate every selected current head before any serial evidence collection.
-  // Keep the fresh PR read and pending check together under this bucket's lock.
+  // Invalidate listed heads before a fallible per-PR refresh. run() refreshes
+  // each prepared entry and invalidates a moved head before collecting evidence.
   const initialized = await Promise.allSettled(prs.filter(pr => pr.number % BUCKET_COUNT === bucket).map(async target => {
-    const pr = (await github.rest.pulls.get({owner, repo, pull_number: target.number})).data;
-    if (pr.state !== 'open') return null;
-    const pendingCheck = (await github.rest.checks.create({owner, repo, head_sha: pr.head.sha,
-      name: 'review-evidence', status: 'in_progress',
-      output: {title: 'Review evidence validation in progress', summary: `Revalidating mutable evidence for ${pr.head.sha}.`}
-    })).data;
-    return {number: target.number, pr, pendingCheck};
+    if (!/^[0-9a-f]{40}$/.test(target.head?.sha || '')) throw new Error(`Missing discovered head for #${target.number}.`);
+    let pendingCheck;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        pendingCheck = (await github.rest.checks.create({owner, repo, head_sha: target.head.sha,
+          name: 'review-evidence', status: 'in_progress',
+          output: {title: 'Review evidence validation in progress', summary: `Revalidating mutable evidence for ${target.head.sha}.`}
+        })).data;
+        break;
+      } catch (error) {
+        if (attempt === 2) throw error;
+        const retryAfter = Number(error.response?.headers?.['retry-after']);
+        const reset = Number(error.response?.headers?.['x-ratelimit-reset']) * 1000 - Date.now();
+        const requested = retryAfter > 0 ? retryAfter * 1000 : reset > 0 ? reset : 1000 * 2 ** attempt;
+        await retrySleep(Math.min(45000, requested));
+      }
+    }
+    return {number: target.number, pr: {...target, state: 'open'}, pendingCheck};
   }));
   const failures = initialized.filter(result => result.status === 'rejected').map(result => result.reason.message);
   const ready = initialized.filter(result => result.status === 'fulfilled' && result.value).map(result => result.value);

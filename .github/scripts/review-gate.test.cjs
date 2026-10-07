@@ -423,7 +423,7 @@ test('a replacement bucket job refreshes every open PR sharing its lock', async 
   const visited = [];
   const github = {rest: {pulls: {list: Symbol('list'), get: async ({pull_number}) => {
     visited.push(pull_number); return {data: {state: 'closed'}};
-  }}}, paginate: async () => [{number: 11}, {number: 267}, {number: 12}]};
+  }}, checks: {create: async () => ({data: {id: 42}}), update: async () => {}}}, paginate: async () => [{number: 11, head: {sha: head}}, {number: 267, head: {sha: head}}, {number: 12, head: {sha: head}}]};
   await runBucket({github, context: {repo: {owner: 'test', repo: 'test'}}, bucket: 3});
   assert.deepEqual(visited, [11, 267]);
   await assert.rejects(runBucket({github, context: {repo: {owner: 'test', repo: 'test'}}, bucket: 256}), /Invalid review bucket/);
@@ -512,7 +512,7 @@ test('trusted workflow searches are separate from unrelated repository runs', as
 for (const fork of [false, true]) test(`bulk validation of 257 ${fork ? 'fork' : 'associated'} PRs stays below the installation REST budget`, async () => {
   const {preparePullRequests, bucketTargets, runBucket} = require('./review-gate.cjs');
   let requests = 0; let currentNumber = 1;
-  const prs = Array.from({length: 257}, (_, i) => ({number: i + 1}));
+  const prs = Array.from({length: 257}, (_, i) => ({number: i + 1, head: {sha: head}}));
   const methods = {list: Symbol('list'), reviews: Symbol('reviews'), comments: Symbol('comments'), commits: Symbol('commits')};
   const github = {rest: {
     pulls: {list: methods.list, listReviews: methods.reviews, get: async ({pull_number}) => {currentNumber = pull_number; requests++; return {data: {state: 'open', head: {sha: head}}};}},
@@ -1030,17 +1030,17 @@ test('standalone disposition grammar accepts the current neutral fixing referenc
 test('bucket invalidates all selected current heads before collecting any PR evidence',async()=>{
  const {runBucket}=require('./review-gate.cjs');const list=Symbol('list'),reviews=Symbol('reviews');const events=[];
  const github={rest:{pulls:{list,listReviews:reviews,get:async({pull_number})=>({data:{state:'open',head:{sha:head},number:pull_number}})},checks:{create:async({head_sha})=>{events.push('pending');return {data:{id:events.length}};},update:async()=>events.push('failed')}},paginate:async method=>{
-  if(method===list)return [{number:11},{number:267},{number:12}];
+  if(method===list)return [{number:11,head:{sha:head}},{number:267,head:{sha:head}},{number:12,head:{sha:head}}];
   assert.deepEqual(events.slice(0,2),['pending','pending']);events.push('assessed');throw new Error('synthetic assessment error');
  }};
  await assert.rejects(runBucket({github,context:{repo:{owner:'test',repo:'test'}},bucket:3}),/synthetic assessment error/);
  assert.equal(events.filter(event=>event==='pending').length,2);assert.equal(events.filter(event=>event==='failed').length,2);
 });
-test('bucket initialization errors complete every already-created pending check as failure',async()=>{
+test('bucket refresh errors complete every discovered pending check as failure',async()=>{
  const {runBucket}=require('./review-gate.cjs');const list=Symbol('list');const completed=[];
- const github={rest:{pulls:{list,get:async({pull_number})=>{if(pull_number===267)throw new Error('invalidation failed');return {data:{state:'open',head:{sha:head}}};}},checks:{create:async()=>({data:{id:42}}),update:async update=>completed.push(update)}},paginate:async()=>[{number:11},{number:267}]};
+ const github={rest:{pulls:{list,get:async({pull_number})=>{if(pull_number===267)throw new Error('invalidation failed');return {data:{state:'open',head:{sha:head}}};}},checks:{create:async()=>({data:{id:42}}),update:async update=>completed.push(update)}},paginate:async()=>[{number:11,head:{sha:head}},{number:267,head:{sha:head}}]};
  await assert.rejects(runBucket({github,context:{repo:{owner:'test',repo:'test'}},bucket:3}),/invalidation failed/);
- assert.equal(completed.length,1);assert.equal(completed[0].check_run_id,42);assert.equal(completed[0].conclusion,'failure');
+ assert.equal(completed.length,2);assert.ok(completed.every(check=>check.check_run_id===42 && check.conclusion==='failure'));
 });
 test('protected approval revoked during the final CI fetch blocks merge',async()=>{
  const {mergeReviewedPR}=require('./merge-reviewed-pr.cjs');const input=nativePolicy();let assessments=0,revoked=false,merged=false;
@@ -1176,4 +1176,53 @@ for(const base of [undefined,head])test(`fixing references require a distinct cu
  const args={github,owner:'owner',repo:'repo',head,base,resolver:'maintainer',comments:[],threads:[{comments:{nodes:[{author:{login:'maintainer'},body:`Fixed in ${head}. Tests passed.`,createdAt:'2026-01-02T00:00:00Z'}]}}]};
  if(!base)await assert.rejects(fetchCommitEvidence(args),/base SHA/);
  else assert.deepEqual((await fetchCommitEvidence(args)).fixingCommitProof,{});
+});
+
+for(const token of [fixed.toUpperCase(),fixed.slice(0,7).toUpperCase()])test(`uppercase fixing references receive ancestry and PR-range proof: ${token.length}`,async()=>{
+ const {fetchCommitEvidence}=require('./review-gate.cjs');const base='c'.repeat(40);const calls=[];
+ const github={rest:{repos:{compareCommitsWithBasehead:async({basehead})=>{
+  calls.push(basehead);return {data:{status:basehead.endsWith(head)?'ahead':'behind',base_commit:{sha:fixed},merge_base_commit:{sha:basehead.endsWith(head)?fixed:base}}};
+ }}}};
+ const proof=await fetchCommitEvidence({github,owner:'owner',repo:'repo',head,base,resolver:'maintainer',comments:[],threads:[{comments:{nodes:[{author:{login:'maintainer'},body:`Fixed in ${token}. Tests passed.`,createdAt:'2026-01-02T00:00:00Z'}]}}]});
+ assert.equal(proof.fixingCommitProof[token.toLowerCase()],fixed);assert.deepEqual(calls,[`${token.toLowerCase()}...${head}`,`${fixed}...${base}`]);
+});
+test('a failed fresh PR read cannot retain the prior successful check on the discovered head',async()=>{
+ const {runBucket}=require('./review-gate.cjs');const events=[];
+ const github={paginate:async()=>[{number:11,head:{sha:head}}],rest:{pulls:{list:Symbol('list'),get:async()=>{events.push('refresh failed');throw new Error('refresh unavailable');}},checks:{create:async input=>{events.push('pending');assert.equal(input.head_sha,head);return {data:{id:42}};},update:async input=>{events.push('failed');assert.equal(input.check_run_id,42);assert.equal(input.conclusion,'failure');}}}};
+ await assert.rejects(runBucket({github,context:{repo:{owner:'owner',repo:'repo'}},bucket:3}),/refresh unavailable/);
+ assert.deepEqual(events,['pending','refresh failed','failed']);
+});
+test('transient pending-check creation is retried before the fallible PR refresh',async()=>{
+ const {runBucket}=require('./review-gate.cjs');let attempts=0;const events=[];
+ const github={paginate:async()=>[{number:11,head:{sha:head}}],rest:{pulls:{list:Symbol('list'),get:async()=>{events.push('refresh');throw new Error('refresh unavailable');}},checks:{create:async()=>{attempts++;if(attempts===1)throw new Error('transient creation failure');events.push('pending');return {data:{id:42}};},update:async()=>events.push('failed')}}};
+ await assert.rejects(runBucket({github,context:{repo:{owner:'owner',repo:'repo'}},bucket:3}),/refresh unavailable/);
+ assert.equal(attempts,2);assert.deepEqual(events,['pending','refresh','failed']);
+});
+
+test('persistent check creation errors stop serial evidence assessment',async()=>{
+ const {runBucket}=require('./review-gate.cjs');let attempts=0;const failed=[];
+ const github={paginate:async()=>[{number:11,head:{sha:head}},{number:267,head:{sha:fixed}}],rest:{pulls:{list:Symbol('list'),get:async()=>assert.fail('No serial assessment before complete invalidation')},checks:{create:async({head_sha})=>{if(head_sha===fixed){attempts++;throw new Error('check API unavailable');}return {data:{id:42}};},update:async input=>failed.push(input)}}};
+ await assert.rejects(runBucket({github,context:{repo:{owner:'owner',repo:'repo'}},bucket:3}),/check API unavailable/);
+ assert.equal(attempts,3);assert.equal(failed.length,1);assert.equal(failed[0].conclusion,'failure');
+});
+
+test('operator documentation describes fail-closed tied dispositions',()=>{
+ const doc=require('node:fs').readFileSync(require('node:path').join(__dirname,'../../docs/operations/review-evidence-gate.md'),'utf8');
+ assert.match(doc,/every tied disposition must contain valid fixing and validation evidence/);
+ assert.match(doc,/post restoring evidence in a later timestamp second/);
+ assert.doesNotMatch(doc,/Tied resolver timestamps select the last thread comment/);
+});
+
+test('pending-check retries back off using GitHub retry-after metadata',async()=>{
+ const {runBucket}=require('./review-gate.cjs');let attempts=0;const delays=[];
+ const github={paginate:async()=>[{number:11,head:{sha:head}}],rest:{pulls:{list:Symbol('list'),get:async()=>{throw new Error('refresh unavailable');}},checks:{create:async()=>{if(++attempts===1)throw Object.assign(new Error('rate limited'),{status:429,response:{headers:{'retry-after':'2'}}});return {data:{id:42}};},update:async()=>{}}}};
+ await assert.rejects(runBucket({github,context:{repo:{owner:'owner',repo:'repo'}},bucket:3,retrySleep:async ms=>delays.push(ms)}),/refresh unavailable/);
+ assert.deepEqual(delays,[2000]);assert.equal(attempts,2);
+});
+
+test('frontend CI retains Playwright failure evidence without changing success requirements',()=>{
+ const workflow=require('node:fs').readFileSync(require('node:path').join(__dirname,'../workflows/ci.yml'),'utf8');
+ assert.match(workflow,/name: Upload browser failure evidence\n        if: failure\(\)\n        uses: actions\/upload-artifact@v4/);
+ assert.match(workflow,/path: frontend\/verification-portal\/test-results\//);
+ assert.match(workflow,/if-no-files-found: ignore\n          retention-days: 7/);
 });

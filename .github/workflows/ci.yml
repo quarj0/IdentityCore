@@ -189,6 +189,14 @@ jobs:
       - name: Run platform-admin accessibility journeys
         run: pnpm --filter verification-portal exec playwright test --config=playwright.platform-admin.config.ts
         working-directory: frontend
+      - name: Upload browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-browser-failures-${{ github.run_attempt }}
+          path: frontend/verification-portal/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
       - run: docker build -f verification-portal/Dockerfile -t identitycore/verification-portal:ci .
         working-directory: frontend
 
