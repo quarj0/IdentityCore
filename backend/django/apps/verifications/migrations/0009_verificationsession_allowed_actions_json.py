@@ -2,7 +2,6 @@
 
 from django.db import migrations, models
 
-
 SESSION_ACTIONS = [
     "session:read",
     "consent:accept",

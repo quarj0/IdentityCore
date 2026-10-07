@@ -370,7 +370,11 @@ class VerificationResendLinkView(VerificationAccessMixin, APIView):
         verification = Verification.objects.select_for_update().get(pk=verification.pk)
         from apps.verifications.models import SandboxSimulation
         from apps.verifications.transitions import TERMINAL_STATUSES
-        if verification.status in TERMINAL_STATUSES or SandboxSimulation.objects.filter(verification=verification).exists():
+
+        if (
+            verification.status in TERMINAL_STATUSES
+            or SandboxSimulation.objects.filter(verification=verification).exists()
+        ):
             raise ValidationError("This case cannot issue a new capture session.")
         serializer = VerificationResendLinkSerializer(data=request.data or {})
         serializer.is_valid(raise_exception=True)
@@ -649,7 +653,9 @@ class ManualReviewApprovalView(APIView):
         )
         lock_audit_chain(verification.tenant_id)
         verification = get_object_or_404(
-            manual_review_queryset_for_user(request.user).select_for_update(of=("self",), no_key=True),
+            manual_review_queryset_for_user(request.user).select_for_update(
+                of=("self",), no_key=True
+            ),
             pk=verification.pk,
         )
         decision_record = get_object_or_404(
@@ -675,10 +681,15 @@ class ManualReviewApprovalView(APIView):
         approval.is_valid(raise_exception=True)
         from django.core.exceptions import ValidationError as DjangoValidationError
         from apps.verifications.review_reasons import validate_reviewer_input
-        reason = approval.validated_data.get("reason_code", f"manual_review_{approval.validated_data['decision']}")
+
+        reason = approval.validated_data.get(
+            "reason_code", f"manual_review_{approval.validated_data['decision']}"
+        )
         notes = approval.validated_data.get("reason_detail", "")
         try:
-            validate_reviewer_input(verification, approval.validated_data["decision"], reason, notes)
+            validate_reviewer_input(
+                verification, approval.validated_data["decision"], reason, notes
+            )
         except DjangoValidationError as exc:
             raise ValidationError({"reason_code": exc.messages}) from exc
         now = timezone.now()
@@ -707,6 +718,7 @@ class ManualReviewApprovalView(APIView):
             verification, decision_record.decision, completed_at=now
         )
         from apps.verifications.review_quality import sample_final_decision
+
         sample_final_decision(verification, decision_record)
         record_audit_event(
             tenant=verification.tenant,
@@ -762,10 +774,21 @@ class SandboxSimulationView(VerificationAccessMixin, APIView):
     def post(self, request, verification_id):
         from rest_framework import serializers
         from apps.verifications.simulator import SCENARIOS, simulate_verification
+
         class Input(serializers.Serializer):
             scenario = serializers.ChoiceField(choices=list(SCENARIOS))
+
         serializer = Input(data=request.data)
         serializer.is_valid(raise_exception=True)
-        case = get_object_or_404(self._scope_to_client_environment(request, Verification.objects.all()), tenant=self._get_tenant(request), public_id=verification_id)
-        data = simulate_verification(case, serializer.validated_data["scenario"], actor=self._get_actor(request), request=request)
+        case = get_object_or_404(
+            self._scope_to_client_environment(request, Verification.objects.all()),
+            tenant=self._get_tenant(request),
+            public_id=verification_id,
+        )
+        data = simulate_verification(
+            case,
+            serializer.validated_data["scenario"],
+            actor=self._get_actor(request),
+            request=request,
+        )
         return success_response(data, request=request)

@@ -2,7 +2,6 @@ from io import BytesIO
 
 from PIL import Image, UnidentifiedImageError
 
-
 IMAGE_FORMATS = {
     "JPEG": "image/jpeg",
     "PNG": "image/png",
@@ -119,7 +118,9 @@ def _iso_stbl_has_video_sample_entry(content: bytes, start: int, end: int) -> bo
         or content[chunk_start] != 0
         or int.from_bytes(content[chunk_start + 4 : chunk_start + 8], "big") == 0
         or int.from_bytes(
-            content[chunk_start + 8 : chunk_start + (16 if chunk_box[0] == b"co64" else 12)],
+            content[
+                chunk_start + 8 : chunk_start + (16 if chunk_box[0] == b"co64" else 12)
+            ],
             "big",
         )
         == 0
@@ -243,9 +244,7 @@ def _is_supported_iso_video(content: bytes, declared_mime_type: str) -> bool:
     if len(ftyp) < 8 or (len(ftyp) - 8) % 4:
         return False
     major_brand = ftyp[:4]
-    compatible_brands = {
-        ftyp[index : index + 4] for index in range(8, len(ftyp), 4)
-    }
+    compatible_brands = {ftyp[index : index + 4] for index in range(8, len(ftyp), 4)}
     brands = compatible_brands | {major_brand}
     if declared_mime_type == "video/quicktime":
         if QUICKTIME_BRAND not in brands:
@@ -291,9 +290,7 @@ def _ebml_elements(
     offset = start
     elements = []
     while offset < end:
-        element_id = _read_ebml_vint(
-            content, offset, keep_marker=True, max_width=4
-        )
+        element_id = _read_ebml_vint(content, offset, keep_marker=True, max_width=4)
         if element_id is None:
             return None
         element_value, id_width, _ = element_id
@@ -368,9 +365,7 @@ def _webm_tracks_include_video(content: bytes, start: int, end: int) -> bool:
             elif child_id == 0x86:
                 codec_id = payload
             elif child_id == 0xE0:
-                video = _ebml_elements(
-                    content, start=payload_start, end=payload_end
-                )
+                video = _ebml_elements(content, start=payload_start, end=payload_end)
                 if not video:
                     continue
                 width = next(
@@ -398,7 +393,10 @@ def _webm_tracks_include_video(content: bytes, start: int, end: int) -> bool:
             and track_type == 1
             and codec_id in WEBM_VIDEO_CODECS
             and video_dimensions is not None
-            and all(dimension is not None and dimension > 0 for dimension in video_dimensions)
+            and all(
+                dimension is not None and dimension > 0
+                for dimension in video_dimensions
+            )
         ):
             return True
     return False
@@ -488,9 +486,14 @@ def _is_supported_webm_video(content: bytes) -> bool:
     return has_info and has_cluster and has_video_track
 
 
-def inspect_upload_content(*, content: bytes, declared_mime_type: str) -> tuple[bool, str]:
+def inspect_upload_content(
+    *, content: bytes, declared_mime_type: str
+) -> tuple[bool, str]:
     """Fail closed when uploaded bytes do not match the declared media type."""
-    if b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*" in content:
+    if (
+        b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
+        in content
+    ):
         return False, "malware_signature_detected"
 
     if declared_mime_type.startswith("image/"):

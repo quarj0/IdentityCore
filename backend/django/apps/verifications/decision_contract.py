@@ -1,6 +1,5 @@
 from apps.providers.models import ProviderCheck
 
-
 DECISION_CONTRACT_VERSION = "1"
 
 
@@ -14,9 +13,11 @@ def system_decision_contract_fields(verification, reason_code: str) -> dict:
     return {
         "contract_version": DECISION_CONTRACT_VERSION,
         "reason_codes_json": [reason_code],
-        "input_snapshot_json": build_decision_input_snapshot(verification)
-        if subject_active and not verification.deleted_at
-        else {},
+        "input_snapshot_json": (
+            build_decision_input_snapshot(verification)
+            if subject_active and not verification.deleted_at
+            else {}
+        ),
     }
 
 

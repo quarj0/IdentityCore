@@ -131,5 +131,7 @@ class HandoffLifecycleTests(APITestCase):
         cache.clear()
 
     def test_non_object_claim_payload_is_rejected(self):
-        response = APIClient().post("/api/v1/sessions/mobile-handoff/redeem", ["invalid"], format="json")
+        response = APIClient().post(
+            "/api/v1/sessions/mobile-handoff/redeem", ["invalid"], format="json"
+        )
         self.assertEqual(response.status_code, 400)

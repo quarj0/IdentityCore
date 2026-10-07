@@ -8,32 +8,96 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tenants', '0001_initial'),
-        ('verifications', '0001_initial'),
+        ("tenants", "0001_initial"),
+        ("verifications", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='VerificationDecision',
+            name="VerificationDecision",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('deleted_at', models.DateTimeField(blank=True, null=True)),
-                ('public_id', models.CharField(editable=False, max_length=64, unique=True)),
-                ('decision', models.CharField(choices=[('created', 'Created'), ('pending_consent', 'Pending Consent'), ('in_progress', 'In Progress'), ('awaiting_document', 'Awaiting Document'), ('awaiting_selfie', 'Awaiting Selfie'), ('processing', 'Processing'), ('manual_review_required', 'Manual Review Required'), ('verified', 'Verified'), ('rejected', 'Rejected'), ('expired', 'Expired'), ('cancelled', 'Cancelled'), ('failed', 'Failed')], db_index=True, max_length=32)),
-                ('decision_type', models.CharField(choices=[('automatic', 'Automatic'), ('manual', 'Manual'), ('system', 'System')], max_length=32)),
-                ('reason_code', models.CharField(blank=True, max_length=120)),
-                ('reason_detail', models.TextField(blank=True)),
-                ('evidence_summary_json', models.JSONField(blank=True, default=dict)),
-                ('decided_at', models.DateTimeField(db_index=True)),
-                ('decided_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='verification_decisions', to=settings.AUTH_USER_MODEL)),
-                ('tenant', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='verification_decisions', to='tenants.tenant')),
-                ('verification', models.OneToOneField(on_delete=django.db.models.deletion.PROTECT, related_name='decision_record', to='verifications.verification')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("deleted_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "public_id",
+                    models.CharField(editable=False, max_length=64, unique=True),
+                ),
+                (
+                    "decision",
+                    models.CharField(
+                        choices=[
+                            ("created", "Created"),
+                            ("pending_consent", "Pending Consent"),
+                            ("in_progress", "In Progress"),
+                            ("awaiting_document", "Awaiting Document"),
+                            ("awaiting_selfie", "Awaiting Selfie"),
+                            ("processing", "Processing"),
+                            ("manual_review_required", "Manual Review Required"),
+                            ("verified", "Verified"),
+                            ("rejected", "Rejected"),
+                            ("expired", "Expired"),
+                            ("cancelled", "Cancelled"),
+                            ("failed", "Failed"),
+                        ],
+                        db_index=True,
+                        max_length=32,
+                    ),
+                ),
+                (
+                    "decision_type",
+                    models.CharField(
+                        choices=[
+                            ("automatic", "Automatic"),
+                            ("manual", "Manual"),
+                            ("system", "System"),
+                        ],
+                        max_length=32,
+                    ),
+                ),
+                ("reason_code", models.CharField(blank=True, max_length=120)),
+                ("reason_detail", models.TextField(blank=True)),
+                ("evidence_summary_json", models.JSONField(blank=True, default=dict)),
+                ("decided_at", models.DateTimeField(db_index=True)),
+                (
+                    "decided_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="verification_decisions",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "tenant",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="verification_decisions",
+                        to="tenants.tenant",
+                    ),
+                ),
+                (
+                    "verification",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="decision_record",
+                        to="verifications.verification",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-decided_at'],
+                "ordering": ["-decided_at"],
             },
         ),
     ]

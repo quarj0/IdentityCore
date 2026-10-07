@@ -582,9 +582,12 @@ def build_signed_upload_url(
     expires_in = max(1, min(600, expires_in))
     from common.tenant_storage import resolve_reference
 
-    resolved_bucket_name = resolve_reference(storage_key, resolved_bucket_name, tenant_scope=tenant_scope, environment=environment)[
-        "bucket"
-    ]
+    resolved_bucket_name = resolve_reference(
+        storage_key,
+        resolved_bucket_name,
+        tenant_scope=tenant_scope,
+        environment=environment,
+    )["bucket"]
     client = get_object_storage_client()
 
     if client and resolved_bucket_name:

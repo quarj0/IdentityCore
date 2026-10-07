@@ -8,7 +8,6 @@ from apps.verification_policies.views import (
     VerificationPolicyListCreateView,
 )
 
-
 urlpatterns = [
     public_api_path(
         "",

@@ -73,7 +73,9 @@ def reserve_request(client, *, now=None):
     wait = (
         max(
             1,
-            ceil(max((bucket.ends_at - now).total_seconds() for bucket, _ in exhausted)),
+            ceil(
+                max((bucket.ends_at - now).total_seconds() for bucket, _ in exhausted)
+            ),
         )
         if exhausted
         else 0

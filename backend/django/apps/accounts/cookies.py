@@ -26,7 +26,9 @@ def get_refresh_cookie_name(request) -> str:
     return f"{settings.AUTH_REFRESH_COOKIE_NAME}_{suffix}"
 
 
-def set_refresh_cookie(response, refresh_token: str, *, cookie_name: str | None = None) -> None:
+def set_refresh_cookie(
+    response, refresh_token: str, *, cookie_name: str | None = None
+) -> None:
     response.set_cookie(
         cookie_name or settings.AUTH_REFRESH_COOKIE_NAME,
         refresh_token,

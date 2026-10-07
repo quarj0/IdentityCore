@@ -92,9 +92,7 @@ class StorageHelpersTests(TestCase):
         MEDIA_DOWNLOAD_URL_EXPIRES_SECONDS=300,
     )
     @patch("common.storage.boto3.client")
-    def test_s3_compatible_storage_generates_presigned_urls(
-        self, mock_client_factory
-    ):
+    def test_s3_compatible_storage_generates_presigned_urls(self, mock_client_factory):
         mock_client = Mock()
         mock_client.generate_presigned_url.side_effect = [
             "https://r2.example/upload",

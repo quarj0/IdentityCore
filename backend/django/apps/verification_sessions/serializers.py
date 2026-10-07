@@ -40,7 +40,6 @@ from apps.verifications.transitions import (
 )
 from common.catalog import COUNTRY_PROFILES, DOCUMENT_TYPES
 
-
 SUPPORTED_LOCALES = {"en", "ar"}
 
 
@@ -68,7 +67,10 @@ def _request_locale(request, policy_snapshot: dict | None = None) -> str:
     candidates.sort(key=lambda candidate: (-candidate[1], candidate[2]))
     for requested, _quality, _index in candidates:
         for supported in supported_locales:
-            if requested == supported or requested.split("-", 1)[0] == supported.split("-", 1)[0]:
+            if (
+                requested == supported
+                or requested.split("-", 1)[0] == supported.split("-", 1)[0]
+            ):
                 return supported
     return default_locale
 
@@ -95,7 +97,9 @@ def _policy_locales(verification, policy_snapshot: dict) -> list[str]:
     if not consent:
         return configured
     translations = consent.get("translations") or {
-        str(consent.get("language") or policy_snapshot.get("default_locale") or "en"): consent
+        str(
+            consent.get("language") or policy_snapshot.get("default_locale") or "en"
+        ): consent
     }
     available = {str(locale).lower() for locale in translations}
     matched = [locale for locale in configured if locale in available]
@@ -112,7 +116,9 @@ def _consent_artifact(verification, locale: str) -> dict:
         return {
             "template_id": str(frozen.get("template_id") or "generated"),
             "version": int(frozen.get("version") or 1),
-            "locale": str(frozen.get("language") or consent_snapshot.get("language") or locale),
+            "locale": str(
+                frozen.get("language") or consent_snapshot.get("language") or locale
+            ),
             "content": content,
             "content_hash": hashlib.sha256(content.encode("utf-8")).hexdigest(),
         }
@@ -220,7 +226,10 @@ def resolve_session_upload(
         raise serializers.ValidationError(
             {"upload_id": "Upload must be completed and validated before submission."}
         )
-    if upload.status in {UploadStatus.CONSUMED, UploadStatus.PROMOTED} and not allow_consumed:
+    if (
+        upload.status in {UploadStatus.CONSUMED, UploadStatus.PROMOTED}
+        and not allow_consumed
+    ):
         raise serializers.ValidationError(
             {"upload_id": "Upload has already been used."}
         )
@@ -271,11 +280,15 @@ STATUS_PRESENTATION = {
 }
 
 
-def serialize_verification_session(verification_session: VerificationSession, request=None) -> dict:
+def serialize_verification_session(
+    verification_session: VerificationSession, request=None
+) -> dict:
     verification = verification_session.verification
     organization = verification.organization
     organization_settings = organization.settings_json or {}
-    environment = verification.project.environment if verification.project_id else "sandbox"
+    environment = (
+        verification.project.environment if verification.project_id else "sandbox"
+    )
     environment_branding = (
         organization_settings.get("branding_environments", {})
         .get(environment, {})
@@ -302,9 +315,7 @@ def serialize_verification_session(verification_session: VerificationSession, re
             for item in supported_documents
             if item["document_type"] in required_document_types
         ]
-    supported_document_types = {
-        item["document_type"] for item in supported_documents
-    }
+    supported_document_types = {item["document_type"] for item in supported_documents}
     document_type = (
         configured_document_type
         if configured_document_type in supported_document_types
@@ -316,7 +327,11 @@ def serialize_verification_session(verification_session: VerificationSession, re
     )
     document_label = _resolve_document_label(document_type, country_code)
     document_configuration = next(
-        (item for item in supported_documents if item["document_type"] == document_type),
+        (
+            item
+            for item in supported_documents
+            if item["document_type"] == document_type
+        ),
         None,
     )
     policy_snapshot = verification.policy_snapshot_json or {}
@@ -325,9 +340,7 @@ def serialize_verification_session(verification_session: VerificationSession, re
     if session_locales:
         locale_snapshot["supported_locales"] = session_locales
     locale = _request_locale(request, locale_snapshot)
-    configured_liveness = str(
-        policy_snapshot.get("required_liveness_level", "passive")
-    )
+    configured_liveness = str(policy_snapshot.get("required_liveness_level", "passive"))
     liveness_mode = "active" if configured_liveness == "active" else "passive"
     required_steps = ["consent", "document_capture", "selfie_capture"]
     required_steps.append("liveness_check")
@@ -404,7 +417,10 @@ def serialize_verification_session_status(
     latest_selfie = verification.selfie_captures.order_by("-created_at").first()
     latest_document = verification.identity_documents.order_by("-created_at").first()
     latest_liveness = verification.liveness_checks.order_by("-created_at").first()
-    if latest_document is not None and latest_document.status == IdentityDocumentStatus.PROCESSING:
+    if (
+        latest_document is not None
+        and latest_document.status == IdentityDocumentStatus.PROCESSING
+    ):
         current_step = "document_processing"
         message = "Your identity document is being checked before selfie capture."
     elif latest_document is not None and latest_document.status in {
@@ -435,14 +451,21 @@ def serialize_verification_session_status(
         elif "document_type_mismatch" in classification_issues:
             predicted_code = str(classification.get("predicted_document_type", ""))
             predicted_label = next(
-                (item["name"] for item in DOCUMENT_TYPES if item["code"] == predicted_code),
+                (
+                    item["name"]
+                    for item in DOCUMENT_TYPES
+                    if item["code"] == predicted_code
+                ),
                 predicted_code.replace("_", " ").title() or "another document type",
             )
             message = (
                 f"That image appears to be {predicted_label}, not {document_label}. "
                 f"Please capture the physical {document_label} and try again."
             )
-        elif "document_type_not_determined" in classification_issues or "ocr_confidence_too_low" in classification_issues:
+        elif (
+            "document_type_not_determined" in classification_issues
+            or "ocr_confidence_too_low" in classification_issues
+        ):
             message = (
                 f"We could not read enough information to confirm this as {document_label}. "
                 "Capture the full physical document in clear, even lighting and try again."
@@ -524,7 +547,9 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
                 transition_verification(verification, VerificationStatus.IN_PROGRESS)
             return existing_record
 
-        consent_snapshot = (verification.policy_snapshot_json or {}).get("consent") or {}
+        consent_snapshot = (verification.policy_snapshot_json or {}).get(
+            "consent"
+        ) or {}
         consent_template = (
             ConsentTemplate.objects.filter(
                 tenant=verification.tenant,
@@ -817,7 +842,9 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
                     "detail": "An identity document must be submitted before selfie capture."
                 }
             )
-        latest_document = verification.identity_documents.order_by("-created_at").first()
+        latest_document = verification.identity_documents.order_by(
+            "-created_at"
+        ).first()
         if latest_document.status != IdentityDocumentStatus.PROCESSED:
             raise serializers.ValidationError(
                 {
@@ -920,11 +947,18 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
         )
         if attrs["liveness_type"] != expected_liveness:
             raise serializers.ValidationError(
-                {"liveness_type": "Liveness type does not match this verification policy."}
+                {
+                    "liveness_type": "Liveness type does not match this verification policy."
+                }
             )
 
-        latest_document = verification.identity_documents.order_by("-created_at").first()
-        if latest_document is None or latest_document.status != IdentityDocumentStatus.PROCESSED:
+        latest_document = verification.identity_documents.order_by(
+            "-created_at"
+        ).first()
+        if (
+            latest_document is None
+            or latest_document.status != IdentityDocumentStatus.PROCESSED
+        ):
             raise serializers.ValidationError(
                 {
                     "detail": (
@@ -971,12 +1005,18 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
                 )
             except LivenessChallenge.DoesNotExist as exc:
                 raise serializers.ValidationError(
-                    {"challenge_id": "Liveness challenge was not found for this session."}
+                    {
+                        "challenge_id": "Liveness challenge was not found for this session."
+                    }
                 ) from exc
             if challenge.completed_at is not None:
-                raise serializers.ValidationError({"challenge_id": "Liveness challenge was already used."})
+                raise serializers.ValidationError(
+                    {"challenge_id": "Liveness challenge was already used."}
+                )
             if challenge.expires_at <= timezone.now():
-                raise serializers.ValidationError({"challenge_id": "Liveness challenge has expired."})
+                raise serializers.ValidationError(
+                    {"challenge_id": "Liveness challenge has expired."}
+                )
             if selfie_capture.capture_type != SelfieCaptureType.VIDEO:
                 raise serializers.ValidationError(
                     {"selfie_capture_id": "Active liveness requires a video capture."}
@@ -1084,16 +1124,21 @@ class VerificationSessionLivenessChallengeSerializer(serializers.Serializer):
     def create(self, validated_data):
         request = self.context["request"]
         verification_session = request.verification_session
-        if verification_session.verification.policy_snapshot_json.get(
-            "required_liveness_level", "passive"
-        ) != "active":
+        if (
+            verification_session.verification.policy_snapshot_json.get(
+                "required_liveness_level", "passive"
+            )
+            != "active"
+        ):
             raise serializers.ValidationError(
                 "An active liveness challenge is not enabled by this verification policy."
             )
         now = timezone.now()
-        actions = list(secrets.SystemRandom().sample(
-            ["turn_left", "turn_right", "look_up", "look_down"], k=2
-        ))
+        actions = list(
+            secrets.SystemRandom().sample(
+                ["turn_left", "turn_right", "look_up", "look_down"], k=2
+            )
+        )
         return LivenessChallenge.objects.create(
             tenant=verification_session.tenant,
             verification=verification_session.verification,

@@ -14,7 +14,9 @@ def serialize_audit_event(event: AuditEvent) -> dict:
     if event.actor_type == "platform_user" and event.actor_id:
         user = event.tenant.platform_users.filter(public_id=event.actor_id).first()
         if user:
-            actor_display_name = f"{user.first_name} {user.last_name}".strip() or user.email
+            actor_display_name = (
+                f"{user.first_name} {user.last_name}".strip() or user.email
+            )
             if user.email and user.email not in actor_display_name:
                 actor_display_name = f"{actor_display_name} ({user.email})"
     elif event.actor_id:
@@ -24,7 +26,9 @@ def serialize_audit_event(event: AuditEvent) -> dict:
         "actor_type": event.actor_type,
         "actor_id": event.actor_id,
         "action": event.action,
-        "action_label": ACTION_LABELS.get(event.action, event.action.replace(".", " ").replace("_", " ").title()),
+        "action_label": ACTION_LABELS.get(
+            event.action, event.action.replace(".", " ").replace("_", " ").title()
+        ),
         "actor_display_name": actor_display_name,
         "target_type": event.target_type,
         "target_id": event.target_id,

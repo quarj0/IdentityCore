@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('providers', '0009_providerenvironmentconfiguration'),
+        ("providers", "0009_providerenvironmentconfiguration"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='providerenvironmentconfiguration',
-            name='diff_json',
+            model_name="providerenvironmentconfiguration",
+            name="diff_json",
             field=models.JSONField(blank=True, default=dict),
         ),
     ]

@@ -88,19 +88,21 @@ class BiometricFinalizationRecoveryTests(TestCase):
             session_token_hash="finalization-recovery-token",
             expires_at=timezone.now() + timedelta(hours=1),
         )
-        seal_test_upload(Upload.objects.create(
-            tenant=self.tenant,
-            verification=self.verification,
-            verification_session=session,
-            purpose=UploadPurpose.SELFIE_CAPTURE,
-            storage_key=self.selfie_capture.storage_key,
-            storage_provider="local",
-            mime_type="image/jpeg",
-            file_size_bytes=1024,
-            status=UploadStatus.CONSUMED,
-            expires_at=timezone.now() + timedelta(minutes=10),
-            consumed_at=timezone.now(),
-        ))
+        seal_test_upload(
+            Upload.objects.create(
+                tenant=self.tenant,
+                verification=self.verification,
+                verification_session=session,
+                purpose=UploadPurpose.SELFIE_CAPTURE,
+                storage_key=self.selfie_capture.storage_key,
+                storage_provider="local",
+                mime_type="image/jpeg",
+                file_size_bytes=1024,
+                status=UploadStatus.CONSUMED,
+                expires_at=timezone.now() + timedelta(minutes=10),
+                consumed_at=timezone.now(),
+            )
+        )
         liveness_provider_check = create_provider_check(
             verification=self.verification,
             check_type=ProviderCheckType.LIVENESS,
@@ -149,10 +151,14 @@ class BiometricFinalizationRecoveryTests(TestCase):
         self.liveness_check.refresh_from_db()
         self.assertEqual(self.verification.status, VerificationStatus.PROCESSING)
         self.assertEqual(self.liveness_check.status, LivenessCheckStatus.ERROR)
-        self.assertFalse(VerificationDecision.objects.filter(verification=self.verification).exists())
+        self.assertFalse(
+            VerificationDecision.objects.filter(verification=self.verification).exists()
+        )
         mock_move.assert_called_once()
 
-        job = ProcessingJob.objects.get(resource_public_id=self.liveness_check.public_id)
+        job = ProcessingJob.objects.get(
+            resource_public_id=self.liveness_check.public_id
+        )
         job.lease_expires_at = timezone.now() - timedelta(seconds=1)
         job.save(update_fields=["lease_expires_at", "updated_at"])
         mock_webhooks.side_effect = None

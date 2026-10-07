@@ -14,4 +14,3 @@ def normalize_text(value: str) -> str:
         else:
             characters.append(" ")
     return re.sub(r"\s+", " ", "".join(characters)).strip()
-

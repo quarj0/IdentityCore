@@ -3,7 +3,6 @@ from typing import Any
 
 from apps.verifications.models import Verification
 
-
 VERIFICATION_RESULT_SCHEMA_VERSION = "1"
 
 SAFE_EVIDENCE_FIELDS = (
@@ -194,6 +193,7 @@ def serialize_verification_result(verification: Verification) -> dict:
 
     if decision is not None:
         from apps.verifications.review_reasons import organization_reason_codes
+
         manual_codes = organization_reason_codes(verification, decision)
         if manual_codes is not None:
             reason_codes = manual_codes
@@ -243,7 +243,11 @@ def serialize_verification_result(verification: Verification) -> dict:
         },
     }
     from apps.verifications.models import SandboxSimulation
+
     simulation = SandboxSimulation.objects.filter(verification=verification).first()
     if simulation is not None:
-        result["simulation"] = {"scenario": simulation.scenario, "version": simulation.version}
+        result["simulation"] = {
+            "scenario": simulation.scenario,
+            "version": simulation.version,
+        }
     return result

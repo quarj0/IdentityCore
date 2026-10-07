@@ -1,4 +1,8 @@
-from app.document_classification import build_ocr_lines, classify_document, normalize_text
+from app.document_classification import (
+    build_ocr_lines,
+    classify_document,
+    normalize_text,
+)
 from app.document_classification.mrz import evaluate_td3_mrz
 
 
@@ -40,7 +44,10 @@ def _build_valid_td3_mrz(passport_number: str = "A1234567") -> tuple[str, str]:
 
 
 def test_normalize_text_preserves_letters_and_digits():
-    assert normalize_text("Electoral Commission—of Ghana 123") == "ELECTORAL COMMISSION OF GHANA 123"
+    assert (
+        normalize_text("Electoral Commission—of Ghana 123")
+        == "ELECTORAL COMMISSION OF GHANA 123"
+    )
 
 
 def test_build_ocr_lines_preserves_text_and_scores():
@@ -83,6 +90,7 @@ def test_classify_recognizes_enabled_west_african_passports():
 
     for country_code, phrase in country_phrases.items():
         from app.document_classification.mrz_countries import ISO_ALPHA2_TO_ALPHA3
+
         issued_line1 = line1.replace("P<UTO", "P<" + ISO_ALPHA2_TO_ALPHA3[country_code])
         result = classify_document(
             build_ocr_lines([phrase, issued_line1, line2], [0.96, 0.98, 0.98]),
@@ -182,7 +190,9 @@ def test_passport_mrz_validation_covers_common_failures():
     assert invalid_length.valid is False
     assert "passport_mrz_invalid" in invalid_length.reason_codes
 
-    invalid_chars = evaluate_td3_mrz([valid_line1, valid_line2[:10] + "?" + valid_line2[11:]])
+    invalid_chars = evaluate_td3_mrz(
+        [valid_line1, valid_line2[:10] + "?" + valid_line2[11:]]
+    )
     assert invalid_chars.valid is False
 
     tampered = list(valid_line2)
@@ -230,7 +240,9 @@ def test_document_classification_policy_is_configurable(monkeypatch):
             },
         )()
 
-    monkeypatch.setattr("app.document_classification.classifier._get_settings", lambda: FakeSettings())
+    monkeypatch.setattr(
+        "app.document_classification.classifier._get_settings", lambda: FakeSettings()
+    )
 
     result = classify_document(
         build_ocr_lines(["Electoral Commission of Ghana", "Voter Card"], [0.97, 0.96]),
@@ -276,7 +288,8 @@ def test_passport_mrz_cannot_authorize_a_different_expected_country():
     for country in ("GH", "NG", "ZZ"):
         result = classify_document(
             build_ocr_lines(["passport", line1, line2], [0.4, 0.95, 0.95]),
-            expected_document_type="passport", country_code=country,
+            expected_document_type="passport",
+            country_code=country,
         )
         assert result["requires_manual_review"] is True
         assert result["matched_expected_document_type"] is not True
@@ -288,7 +301,8 @@ def test_foreign_passport_mrz_overrides_weaker_matching_id_wording():
     line1 = line1.replace("P<UTO", "P<USA")
     result = classify_document(
         build_ocr_lines(["PASSPORT", "ECOWAS IDENTITY CARD", line1, line2], [0.99] * 4),
-        expected_document_type="national_id", country_code="GH",
+        expected_document_type="national_id",
+        country_code="GH",
     )
     assert result["requires_manual_review"] is True
     assert result["matched_expected_document_type"] is not True

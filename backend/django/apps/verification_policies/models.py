@@ -98,7 +98,12 @@ class VerificationPolicy(PublicIdModel, BaseModel):
     def clean(self):
         super().clean()
         from apps.verifications.review_reasons import validate_reason_rules
-        validate_reason_rules({} if self.review_reason_rules_json is None else self.review_reason_rules_json)
+
+        validate_reason_rules(
+            {}
+            if self.review_reason_rules_json is None
+            else self.review_reason_rules_json
+        )
         if self.created_by_id and self.created_by.tenant_id != self.tenant_id:
             raise ValidationError(
                 {
@@ -108,7 +113,12 @@ class VerificationPolicy(PublicIdModel, BaseModel):
 
     def save(self, *args, **kwargs):
         from apps.verifications.review_reasons import validate_reason_rules
-        validate_reason_rules({} if self.review_reason_rules_json is None else self.review_reason_rules_json)
+
+        validate_reason_rules(
+            {}
+            if self.review_reason_rules_json is None
+            else self.review_reason_rules_json
+        )
         return super().save(*args, **kwargs)
 
     @property

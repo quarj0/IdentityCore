@@ -11,7 +11,6 @@ from apps.verifications.models import Verification, VerificationStatus
 from common.permissions import IsTenantUser
 from common.responses import success_response
 
-
 MIN_COHORT_SIZE = 10
 SUPPORTED_WINDOWS_DAYS = {7, 30, 90}
 FAILURE_REASON_GROUPS = {
@@ -50,7 +49,9 @@ class ProductMetricsView(APIView):
         try:
             days = int(request.query_params.get("days", "30"))
         except (TypeError, ValueError) as exc:
-            raise ValidationError({"days": "Choose a 7, 30, or 90 day window."}) from exc
+            raise ValidationError(
+                {"days": "Choose a 7, 30, or 90 day window."}
+            ) from exc
         if days not in SUPPORTED_WINDOWS_DAYS:
             raise ValidationError({"days": "Choose a 7, 30, or 90 day window."})
 
@@ -58,15 +59,37 @@ class ProductMetricsView(APIView):
             tenant=tenant,
             created_at__gte=timezone.now() - timedelta(days=days),
         )
-        completed_statuses = (VerificationStatus.VERIFIED, VerificationStatus.REJECTED, VerificationStatus.MANUAL_REVIEW_REQUIRED)
+        completed_statuses = (
+            VerificationStatus.VERIFIED,
+            VerificationStatus.REJECTED,
+            VerificationStatus.MANUAL_REVIEW_REQUIRED,
+        )
         failure_statuses = (VerificationStatus.REJECTED, VerificationStatus.FAILED)
         aggregates = verifications.aggregate(
             cohort_size=Count("id"),
-            completed_count=Count("id", filter=Q(completed_at__isnull=False) | Q(status__in=completed_statuses)),
-            abandoned_count=Count("id", filter=Q(status__in=(VerificationStatus.EXPIRED, VerificationStatus.CANCELLED))),
-            review_count=Count("id", filter=Q(status=VerificationStatus.MANUAL_REVIEW_REQUIRED)),
+            completed_count=Count(
+                "id",
+                filter=Q(completed_at__isnull=False) | Q(status__in=completed_statuses),
+            ),
+            abandoned_count=Count(
+                "id",
+                filter=Q(
+                    status__in=(
+                        VerificationStatus.EXPIRED,
+                        VerificationStatus.CANCELLED,
+                    )
+                ),
+            ),
+            review_count=Count(
+                "id", filter=Q(status=VerificationStatus.MANUAL_REVIEW_REQUIRED)
+            ),
             failure_count=Count("id", filter=Q(status__in=failure_statuses)),
-            latency=Avg(ExpressionWrapper(F("completed_at") - F("created_at"), output_field=DurationField()), filter=Q(completed_at__isnull=False)),
+            latency=Avg(
+                ExpressionWrapper(
+                    F("completed_at") - F("created_at"), output_field=DurationField()
+                ),
+                filter=Q(completed_at__isnull=False),
+            ),
             latency_count=Count("id", filter=Q(completed_at__isnull=False)),
         )
         cohort_size = aggregates["cohort_size"]
@@ -138,7 +161,15 @@ class ProductMetricsView(APIView):
         settings_json["product_metrics_opt_out"] = value
         tenant.settings_json = settings_json
         tenant.save(update_fields=["settings_json", "updated_at"])
-        record_audit_event(tenant=tenant, actor=request.user, request=request, action="tenant.product_metrics.preference_changed", target_type="tenant", target_id=tenant.public_id, metadata={"product_metrics_opt_out": value})
+        record_audit_event(
+            tenant=tenant,
+            actor=request.user,
+            request=request,
+            action="tenant.product_metrics.preference_changed",
+            target_type="tenant",
+            target_id=tenant.public_id,
+            metadata={"product_metrics_opt_out": value},
+        )
         return success_response(
             {"product_metrics_opt_out": value},
             request=request,

@@ -82,7 +82,10 @@ def _expire_pending_verification(verification_id: int, now) -> bool:
         .select_related("tenant", "verification_subject")
         .get(pk=verification_id)
     )
-    if verification.status not in EXPIRABLE_VERIFICATION_STATUSES or verification.expires_at > now:
+    if (
+        verification.status not in EXPIRABLE_VERIFICATION_STATUSES
+        or verification.expires_at > now
+    ):
         return False
     verification, changed = transition_verification(
         verification,

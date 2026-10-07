@@ -6,23 +6,65 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('providers', '0010_alter_providerenvironmentconfiguration_diff_json'),
+        ("providers", "0010_alter_providerenvironmentconfiguration_diff_json"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='providerassignment',
-            name='assignment_key',
-            field=models.CharField(choices=[('document_authenticity', 'Document Authenticity'), ('document_ocr', 'Document OCR'), ('document_classification', 'Document Classification'), ('document_quality', 'Document Quality'), ('face_match', 'Face Match'), ('liveness', 'Liveness'), ('identity_lookup', 'Identity Lookup'), ('risk_check', 'Risk Check'), ('notification_email', 'Notification Email'), ('notification_sms', 'Notification SMS'), ('notification_in_app', 'Notification In-App')], db_index=True, max_length=64),
+            model_name="providerassignment",
+            name="assignment_key",
+            field=models.CharField(
+                choices=[
+                    ("document_authenticity", "Document Authenticity"),
+                    ("document_ocr", "Document OCR"),
+                    ("document_classification", "Document Classification"),
+                    ("document_quality", "Document Quality"),
+                    ("face_match", "Face Match"),
+                    ("liveness", "Liveness"),
+                    ("identity_lookup", "Identity Lookup"),
+                    ("risk_check", "Risk Check"),
+                    ("notification_email", "Notification Email"),
+                    ("notification_sms", "Notification SMS"),
+                    ("notification_in_app", "Notification In-App"),
+                ],
+                db_index=True,
+                max_length=64,
+            ),
         ),
         migrations.AlterField(
-            model_name='providercheck',
-            name='check_type',
-            field=models.CharField(choices=[('document_authenticity', 'Document Authenticity'), ('document_ocr', 'Document OCR'), ('document_classification', 'Document Classification'), ('document_quality', 'Document Quality'), ('face_match', 'Face Match'), ('liveness', 'Liveness'), ('identity_lookup', 'Identity Lookup'), ('risk_check', 'Risk Check')], db_index=True, max_length=32),
+            model_name="providercheck",
+            name="check_type",
+            field=models.CharField(
+                choices=[
+                    ("document_authenticity", "Document Authenticity"),
+                    ("document_ocr", "Document OCR"),
+                    ("document_classification", "Document Classification"),
+                    ("document_quality", "Document Quality"),
+                    ("face_match", "Face Match"),
+                    ("liveness", "Liveness"),
+                    ("identity_lookup", "Identity Lookup"),
+                    ("risk_check", "Risk Check"),
+                ],
+                db_index=True,
+                max_length=32,
+            ),
         ),
         migrations.AlterField(
-            model_name='providerroute',
-            name='capability',
-            field=models.CharField(choices=[('document_authenticity', 'Document Authenticity'), ('document_ocr', 'Document OCR'), ('document_classification', 'Document Classification'), ('document_quality', 'Document Quality'), ('face_match', 'Face Match'), ('liveness', 'Liveness'), ('identity_lookup', 'Identity Lookup'), ('risk_check', 'Risk Check')], db_index=True, max_length=32),
+            model_name="providerroute",
+            name="capability",
+            field=models.CharField(
+                choices=[
+                    ("document_authenticity", "Document Authenticity"),
+                    ("document_ocr", "Document OCR"),
+                    ("document_classification", "Document Classification"),
+                    ("document_quality", "Document Quality"),
+                    ("face_match", "Face Match"),
+                    ("liveness", "Liveness"),
+                    ("identity_lookup", "Identity Lookup"),
+                    ("risk_check", "Risk Check"),
+                ],
+                db_index=True,
+                max_length=32,
+            ),
         ),
     ]

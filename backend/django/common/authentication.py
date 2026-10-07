@@ -132,7 +132,10 @@ class VerificationSessionAuthentication(BaseAuthentication):
             raise _verification_session_rejected("session_inactive")
 
         from apps.verifications.models import SandboxSimulation
-        if SandboxSimulation.objects.filter(verification=verification_session.verification).exists():
+
+        if SandboxSimulation.objects.filter(
+            verification=verification_session.verification
+        ).exists():
             raise _verification_session_rejected("synthetic_case")
 
         request.verification_session = verification_session

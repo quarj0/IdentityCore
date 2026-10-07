@@ -125,7 +125,9 @@ class UploadVideoInspectionTests(TestCase):
             declared_mime_type=mime_type,
         )
         self.assertEqual(safe, expected_safe)
-        self.assertEqual(reason, "" if expected_safe else "video_container_unrecognized")
+        self.assertEqual(
+            reason, "" if expected_safe else "video_container_unrecognized"
+        )
 
     def test_accepts_structurally_valid_supported_video_containers(self):
         fixtures = (
@@ -315,7 +317,11 @@ class UploadCreateTests(APITestCase):
 
         duplicate_response = self.client.post(
             reverse("upload-transfer", kwargs={"upload_id": upload_id}),
-            {"file": SimpleUploadedFile("document.jpg", b"test", content_type="image/jpeg")},
+            {
+                "file": SimpleUploadedFile(
+                    "document.jpg", b"test", content_type="image/jpeg"
+                )
+            },
             format="multipart",
             **self.auth_headers(),
         )
@@ -347,21 +353,33 @@ class UploadCreateTests(APITestCase):
     ):
         create_response = self.client.post(
             reverse("upload-create"),
-            {"purpose": "document_capture", "mime_type": "image/jpeg", "file_size_bytes": 4},
+            {
+                "purpose": "document_capture",
+                "mime_type": "image/jpeg",
+                "file_size_bytes": 4,
+            },
             format="json",
             **self.auth_headers(),
         )
         upload_id = create_response.data["data"]["upload_id"]
         self.client.post(
             reverse("upload-transfer", kwargs={"upload_id": upload_id}),
-            {"file": SimpleUploadedFile("document.jpg", b"test", content_type="image/jpeg")},
+            {
+                "file": SimpleUploadedFile(
+                    "document.jpg", b"test", content_type="image/jpeg"
+                )
+            },
             format="multipart",
             **self.auth_headers(),
         )
 
         response = self.client.post(
             reverse("upload-transfer", kwargs={"upload_id": upload_id}),
-            {"file": SimpleUploadedFile("document.jpg", b"nope", content_type="image/jpeg")},
+            {
+                "file": SimpleUploadedFile(
+                    "document.jpg", b"nope", content_type="image/jpeg"
+                )
+            },
             format="multipart",
             **self.auth_headers(),
         )
@@ -420,10 +438,16 @@ class UploadCreateTests(APITestCase):
         put_object_bytes.assert_called_once()
 
     @patch("apps.uploads.views.put_object_bytes")
-    def test_unrecognized_content_is_quarantined_before_processing(self, put_object_bytes):
+    def test_unrecognized_content_is_quarantined_before_processing(
+        self, put_object_bytes
+    ):
         create_response = self.client.post(
             reverse("upload-create"),
-            {"purpose": "document_capture", "mime_type": "image/jpeg", "file_size_bytes": 4},
+            {
+                "purpose": "document_capture",
+                "mime_type": "image/jpeg",
+                "file_size_bytes": 4,
+            },
             format="json",
             **self.auth_headers(),
         )
@@ -431,7 +455,11 @@ class UploadCreateTests(APITestCase):
 
         response = self.client.post(
             reverse("upload-transfer", kwargs={"upload_id": upload_id}),
-            {"file": SimpleUploadedFile("document.jpg", b"test", content_type="image/jpeg")},
+            {
+                "file": SimpleUploadedFile(
+                    "document.jpg", b"test", content_type="image/jpeg"
+                )
+            },
             format="multipart",
             **self.auth_headers(),
         )
@@ -745,36 +773,40 @@ class UploadRetentionTaskTests(TestCase):
         self.session.save()
 
     def test_cleanup_expired_uploads_marks_temporary_upload_expired_and_deleted(self):
-        expired_upload = seal_test_upload(Upload.objects.create(
-            tenant=self.tenant,
-            verification=self.verification,
-            verification_session=self.session,
-            purpose=UploadPurpose.DOCUMENT_CAPTURE,
-            storage_key=(
-                f"organizations/{self.organization.public_id}"
-                f"/verifications/{self.verification.public_id}/documents/upl_expired"
-            ),
-            storage_provider="local",
-            mime_type="image/jpeg",
-            file_size_bytes=1024,
-            status=UploadStatus.INITIATED,
-            expires_at=timezone.now() - timedelta(minutes=1),
-        ))
-        active_upload = seal_test_upload(Upload.objects.create(
-            tenant=self.tenant,
-            verification=self.verification,
-            verification_session=self.session,
-            purpose=UploadPurpose.SELFIE_CAPTURE,
-            storage_key=(
-                f"organizations/{self.organization.public_id}"
-                f"/verifications/{self.verification.public_id}/selfies/upl_active"
-            ),
-            storage_provider="local",
-            mime_type="image/jpeg",
-            file_size_bytes=2048,
-            status=UploadStatus.INITIATED,
-            expires_at=timezone.now() + timedelta(minutes=10),
-        ))
+        expired_upload = seal_test_upload(
+            Upload.objects.create(
+                tenant=self.tenant,
+                verification=self.verification,
+                verification_session=self.session,
+                purpose=UploadPurpose.DOCUMENT_CAPTURE,
+                storage_key=(
+                    f"organizations/{self.organization.public_id}"
+                    f"/verifications/{self.verification.public_id}/documents/upl_expired"
+                ),
+                storage_provider="local",
+                mime_type="image/jpeg",
+                file_size_bytes=1024,
+                status=UploadStatus.INITIATED,
+                expires_at=timezone.now() - timedelta(minutes=1),
+            )
+        )
+        active_upload = seal_test_upload(
+            Upload.objects.create(
+                tenant=self.tenant,
+                verification=self.verification,
+                verification_session=self.session,
+                purpose=UploadPurpose.SELFIE_CAPTURE,
+                storage_key=(
+                    f"organizations/{self.organization.public_id}"
+                    f"/verifications/{self.verification.public_id}/selfies/upl_active"
+                ),
+                storage_provider="local",
+                mime_type="image/jpeg",
+                file_size_bytes=2048,
+                status=UploadStatus.INITIATED,
+                expires_at=timezone.now() + timedelta(minutes=10),
+            )
+        )
 
         cleaned = cleanup_expired_uploads_task(limit=10)
 
@@ -792,23 +824,27 @@ class UploadRetentionTaskTests(TestCase):
             ).exists()
         )
 
-    def test_cleanup_expired_uploads_deletes_consumed_temp_upload_after_retention_window(self):
-        consumed_upload = seal_test_upload(Upload.objects.create(
-            tenant=self.tenant,
-            verification=self.verification,
-            verification_session=self.session,
-            purpose=UploadPurpose.SELFIE_CAPTURE,
-            storage_key=(
-                f"organizations/{self.organization.public_id}"
-                f"/verifications/{self.verification.public_id}/selfies/upl_consumed"
-            ),
-            storage_provider="local",
-            mime_type="image/jpeg",
-            file_size_bytes=1024,
-            status=UploadStatus.CONSUMED,
-            expires_at=timezone.now() + timedelta(minutes=10),
-            consumed_at=timezone.now() - timedelta(hours=25),
-        ))
+    def test_cleanup_expired_uploads_deletes_consumed_temp_upload_after_retention_window(
+        self,
+    ):
+        consumed_upload = seal_test_upload(
+            Upload.objects.create(
+                tenant=self.tenant,
+                verification=self.verification,
+                verification_session=self.session,
+                purpose=UploadPurpose.SELFIE_CAPTURE,
+                storage_key=(
+                    f"organizations/{self.organization.public_id}"
+                    f"/verifications/{self.verification.public_id}/selfies/upl_consumed"
+                ),
+                storage_provider="local",
+                mime_type="image/jpeg",
+                file_size_bytes=1024,
+                status=UploadStatus.CONSUMED,
+                expires_at=timezone.now() + timedelta(minutes=10),
+                consumed_at=timezone.now() - timedelta(hours=25),
+            )
+        )
 
         cleaned = cleanup_expired_uploads_task(limit=10)
 
@@ -818,23 +854,44 @@ class UploadRetentionTaskTests(TestCase):
         self.assertIsNotNone(consumed_upload.deleted_at)
 
     def _expired_upload(self, status=UploadStatus.INITIATED):
-        return seal_test_upload(Upload.objects.create(
-            tenant=self.tenant, verification=self.verification,
-            verification_session=self.session, purpose=UploadPurpose.DOCUMENT_CAPTURE,
-            storage_key=f"private/{Upload.objects.count()}.jpg", storage_provider="s3",
-            mime_type="image/jpeg", file_size_bytes=100, status=status,
-            expires_at=timezone.now() - timedelta(days=2),
-            consumed_at=timezone.now() - timedelta(days=2) if status == UploadStatus.CONSUMED else None,
-        ))
+        return seal_test_upload(
+            Upload.objects.create(
+                tenant=self.tenant,
+                verification=self.verification,
+                verification_session=self.session,
+                purpose=UploadPurpose.DOCUMENT_CAPTURE,
+                storage_key=f"private/{Upload.objects.count()}.jpg",
+                storage_provider="s3",
+                mime_type="image/jpeg",
+                file_size_bytes=100,
+                status=status,
+                expires_at=timezone.now() - timedelta(days=2),
+                consumed_at=(
+                    timezone.now() - timedelta(days=2)
+                    if status == UploadStatus.CONSUMED
+                    else None
+                ),
+            )
+        )
 
-    @patch("apps.uploads.tasks.get_object_storage_temp_bucket_name", return_value="temporary")
+    @patch(
+        "apps.uploads.tasks.get_object_storage_temp_bucket_name",
+        return_value="temporary",
+    )
     @patch("apps.uploads.tasks.delete_object")
     def test_active_holds_protect_all_temporary_upload_states(self, delete, _bucket):
         from apps.verifications.models import RetentionLegalHold
 
         for scope in (None, self.verification):
-            hold = RetentionLegalHold.objects.create(tenant=self.tenant, verification=scope, reason="incident")
-            for upload_status in (UploadStatus.INITIATED, UploadStatus.UPLOADED, UploadStatus.QUARANTINED, UploadStatus.CONSUMED):
+            hold = RetentionLegalHold.objects.create(
+                tenant=self.tenant, verification=scope, reason="incident"
+            )
+            for upload_status in (
+                UploadStatus.INITIATED,
+                UploadStatus.UPLOADED,
+                UploadStatus.QUARANTINED,
+                UploadStatus.CONSUMED,
+            ):
                 upload = self._expired_upload(upload_status)
                 self.assertEqual(cleanup_expired_uploads_task(limit=10), 0)
                 upload.refresh_from_db()
@@ -845,21 +902,39 @@ class UploadRetentionTaskTests(TestCase):
             self.assertEqual(cleanup_expired_uploads_task(limit=10), 4)
             delete.reset_mock()
 
-    @patch("apps.uploads.tasks.get_object_storage_temp_bucket_name", return_value="temporary")
+    @patch(
+        "apps.uploads.tasks.get_object_storage_temp_bucket_name",
+        return_value="temporary",
+    )
     @patch("apps.uploads.tasks.delete_object")
     def test_expired_and_other_tenant_holds_do_not_block_cleanup(self, delete, _bucket):
         from apps.verifications.models import RetentionLegalHold
 
         other_org = Organization.objects.create(name="Other", slug="other-retention")
-        other = Tenant.objects.create(organization=other_org, name="Other", slug="other-retention", status="active")
+        other = Tenant.objects.create(
+            organization=other_org,
+            name="Other",
+            slug="other-retention",
+            status="active",
+        )
         RetentionLegalHold.objects.create(tenant=other, reason="other tenant")
-        RetentionLegalHold.objects.create(tenant=self.tenant, reason="expired", expires_at=timezone.now() - timedelta(seconds=1))
+        RetentionLegalHold.objects.create(
+            tenant=self.tenant,
+            reason="expired",
+            expires_at=timezone.now() - timedelta(seconds=1),
+        )
         upload = self._expired_upload()
         self.assertEqual(cleanup_expired_uploads_task(limit=10), 1)
         delete.assert_called_once_with(bucket_name="temporary", key=upload.storage_key)
 
-    @patch("apps.uploads.tasks.get_object_storage_temp_bucket_name", return_value="temporary")
-    @patch("apps.uploads.tasks.delete_object", side_effect=RuntimeError("private-storage-error"))
+    @patch(
+        "apps.uploads.tasks.get_object_storage_temp_bucket_name",
+        return_value="temporary",
+    )
+    @patch(
+        "apps.uploads.tasks.delete_object",
+        side_effect=RuntimeError("private-storage-error"),
+    )
     def test_storage_failure_remains_retryable(self, delete, _bucket):
         upload = self._expired_upload()
         self.assertEqual(cleanup_expired_uploads_task(limit=10), 0)
@@ -868,16 +943,24 @@ class UploadRetentionTaskTests(TestCase):
         self.assertEqual(upload.status, UploadStatus.INITIATED)
         self.assertEqual(upload.deletion_attempt_count, 1)
         self.assertGreater(upload.deletion_retry_at, timezone.now())
-        failure = AuditEvent.objects.get(action="retention.temporary_upload_deletion_failed", target_id=upload.public_id)
+        failure = AuditEvent.objects.get(
+            action="retention.temporary_upload_deletion_failed",
+            target_id=upload.public_id,
+        )
         self.assertNotIn(upload.storage_key, str(failure.metadata_json))
         delete.side_effect = None
         upload.deletion_retry_at = timezone.now() - timedelta(seconds=1)
         upload.save(update_fields=["deletion_retry_at", "updated_at"])
         self.assertEqual(cleanup_expired_uploads_task(limit=10), 1)
 
-    @patch("apps.uploads.tasks.get_object_storage_temp_bucket_name", return_value="temporary")
+    @patch(
+        "apps.uploads.tasks.get_object_storage_temp_bucket_name",
+        return_value="temporary",
+    )
     @patch("apps.uploads.tasks.delete_object")
-    def test_failed_oldest_upload_does_not_monopolize_cleanup_batch(self, delete, _bucket):
+    def test_failed_oldest_upload_does_not_monopolize_cleanup_batch(
+        self, delete, _bucket
+    ):
         oldest = self._expired_upload()
         oldest.expires_at = timezone.now() - timedelta(days=3)
         oldest.save(update_fields=["expires_at", "updated_at"])
@@ -894,7 +977,9 @@ class UploadRetentionTaskTests(TestCase):
         self.assertIsNotNone(later.deleted_at)
 
     @patch("apps.uploads.tasks.get_object_storage_temp_bucket_name", return_value="")
-    def test_missing_remote_storage_configuration_does_not_claim_deletion(self, _bucket):
+    def test_missing_remote_storage_configuration_does_not_claim_deletion(
+        self, _bucket
+    ):
         upload = self._expired_upload()
         self.assertEqual(cleanup_expired_uploads_task(limit=10), 0)
         upload.refresh_from_db()

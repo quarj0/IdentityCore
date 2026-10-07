@@ -5,7 +5,6 @@ import re
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 
-
 PASSWORD_LETTER_RE = re.compile(r"[A-Za-z]")
 PASSWORD_DIGIT_RE = re.compile(r"\d")
 PASSWORD_SPECIAL_RE = re.compile(r"[^A-Za-z0-9]")
@@ -105,8 +104,6 @@ def validate_business_email(value: str) -> str:
     if domain in DISPOSABLE_EMAIL_DOMAINS:
         raise ValidationError("Disposable email addresses are not allowed.")
     if domain in PUBLIC_EMAIL_DOMAINS:
-        raise ValidationError(
-            "Use your organization email address instead."
-        )
+        raise ValidationError("Use your organization email address instead.")
 
     return email

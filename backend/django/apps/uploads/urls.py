@@ -1,7 +1,6 @@
 from apps.uploads.views import UploadCompleteView, UploadCreateView, UploadTransferView
 from common.public_api import public_api_path
 
-
 urlpatterns = [
     public_api_path(
         "", UploadCreateView.as_view(), methods=("POST",), name="upload-create"

@@ -19,11 +19,15 @@ PURPOSE_STORAGE_SEGMENT = {
 
 def build_upload_storage_key(*, verification, purpose: str, upload_id: str) -> str:
     from common.tenant_storage import route_key
-    return route_key(verification, (
-        f"organizations/{verification.organization.public_id}"
-        f"/verifications/{verification.public_id}"
-        f"/{PURPOSE_STORAGE_SEGMENT[purpose]}/{upload_id}"
-    ))
+
+    return route_key(
+        verification,
+        (
+            f"organizations/{verification.organization.public_id}"
+            f"/verifications/{verification.public_id}"
+            f"/{PURPOSE_STORAGE_SEGMENT[purpose]}/{upload_id}"
+        ),
+    )
 
 
 def build_signed_upload_url(*, upload: Upload) -> str:

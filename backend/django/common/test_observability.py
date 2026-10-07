@@ -66,7 +66,11 @@ class ObservabilityTests(SimpleTestCase):
             "api",
             "request",
             context=telemetry.extract(
-                {"traceparent": "broken", "baggage": "pii=value", "tracestate": "vendor=private-applicant"}
+                {
+                    "traceparent": "broken",
+                    "baggage": "pii=value",
+                    "tracestate": "vendor=private-applicant",
+                }
             ),
         ):
             outgoing = {}
@@ -84,7 +88,9 @@ class ObservabilityTests(SimpleTestCase):
         )
 
     def test_disabled_tracer_omits_trace_header_and_preserves_request_id(self):
-        with patch.object(telemetry.trace, "get_tracer", return_value=telemetry.trace.NoOpTracer()):
+        with patch.object(
+            telemetry.trace, "get_tracer", return_value=telemetry.trace.NoOpTracer()
+        ):
             response = Client().get("/api/v1/health", HTTP_X_REQUEST_ID="req_support")
         self.assertNotIn("X-Trace-Id", response)
         self.assertEqual(response["X-Request-Id"], "req_support")

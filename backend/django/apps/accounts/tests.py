@@ -405,13 +405,19 @@ class MFAEndpointTests(APITestCase):
         self.assertFalse(login.data["data"]["mfa_enrollment_required"])
         challenged = self.client.post(
             reverse("auth-mfa-challenge"),
-            {"mfa_token": login.data["data"]["mfa_token"], "code": totp(secret, timestamp=int(time.time()) + 30)},
+            {
+                "mfa_token": login.data["data"]["mfa_token"],
+                "code": totp(secret, timestamp=int(time.time()) + 30),
+            },
             format="json",
         )
         self.assertEqual(challenged.status_code, status.HTTP_200_OK)
         challenge_replay = self.client.post(
             reverse("auth-mfa-challenge"),
-            {"mfa_token": login.data["data"]["mfa_token"], "code": totp(secret, timestamp=int(time.time()) + 30)},
+            {
+                "mfa_token": login.data["data"]["mfa_token"],
+                "code": totp(secret, timestamp=int(time.time()) + 30),
+            },
             format="json",
         )
         self.assertEqual(challenge_replay.status_code, status.HTTP_401_UNAUTHORIZED)
@@ -439,13 +445,19 @@ class MFAEndpointTests(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
         rejected = self.client.post(
             reverse("auth-mfa-reset"),
-            {"password": "wrong", "code": totp(secret, timestamp=int(time.time()) + 30)},
+            {
+                "password": "wrong",
+                "code": totp(secret, timestamp=int(time.time()) + 30),
+            },
             format="json",
         )
         self.assertEqual(rejected.status_code, status.HTTP_401_UNAUTHORIZED)
         response = self.client.post(
             reverse("auth-mfa-reset"),
-            {"password": "StrongPassword123!", "code": totp(secret, timestamp=int(time.time()) + 30)},
+            {
+                "password": "StrongPassword123!",
+                "code": totp(secret, timestamp=int(time.time()) + 30),
+            },
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)

@@ -6,7 +6,6 @@ from django.utils import timezone
 
 from apps.platform_settings.models import PlatformSetting, PlatformSettingRevision
 
-
 _UNSET = object()
 
 
@@ -227,7 +226,9 @@ def list_platform_settings() -> list[dict[str, Any]]:
     rows = []
     for key, definition in PLATFORM_SETTING_DEFINITIONS.items():
         setting = get_platform_setting_record(key)
-        value = definition["default_value"] if setting is None else setting.effective_value
+        value = (
+            definition["default_value"] if setting is None else setting.effective_value
+        )
         is_secret = definition["is_secret"] if setting is None else setting.is_secret
         rows.append(
             {
@@ -247,13 +248,17 @@ def list_platform_settings() -> list[dict[str, Any]]:
                 "requires_restart": definition["requires_restart"],
                 "created_at": setting.created_at.isoformat() if setting else None,
                 "updated_at": setting.updated_at.isoformat() if setting else None,
-                "updated_by_email": setting.updated_by.email if setting and setting.updated_by else None,
+                "updated_by_email": (
+                    setting.updated_by.email if setting and setting.updated_by else None
+                ),
             }
         )
     return rows
 
 
-def upsert_platform_setting(*, key: str, value: Any, changed_by=None, change_reason: str = "") -> PlatformSetting:
+def upsert_platform_setting(
+    *, key: str, value: Any, changed_by=None, change_reason: str = ""
+) -> PlatformSetting:
     definition = get_platform_setting_definition(key)
     if definition is None:
         raise KeyError(key)
@@ -296,7 +301,9 @@ def upsert_platform_setting(*, key: str, value: Any, changed_by=None, change_rea
     return setting
 
 
-def reset_platform_setting(*, key: str, changed_by=None, change_reason: str = "") -> PlatformSetting:
+def reset_platform_setting(
+    *, key: str, changed_by=None, change_reason: str = ""
+) -> PlatformSetting:
     definition = get_platform_setting_definition(key)
     if definition is None:
         raise KeyError(key)

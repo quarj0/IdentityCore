@@ -12,7 +12,6 @@ from apps.verification_sessions.views import (
     VerificationMobileHandoffRedeemView,
 )
 
-
 urlpatterns = [
     public_api_path(
         "mobile-handoff/redeem",
