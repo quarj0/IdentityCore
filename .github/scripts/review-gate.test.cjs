@@ -110,7 +110,7 @@ test('a head change during validation fails the check for the inspected SHA', as
       return {data: {workflow_runs: runs}};
     };
     await assert.rejects(run({github, context: {repo: {owner: 'synthetic', repo: 'test'}, payload: {pull_request: {number: 1}}}}), /CI/);
-    assert.equal(runReads, 8);
+    assert.equal(runReads, 4);
     assert.equal(published.conclusion, 'failure');
   }
   reads = 0;
@@ -1053,4 +1053,49 @@ test('protected approval revoked during the final CI fetch blocks merge',async()
  });
  await assert.rejects(mergeReviewedPR({github,context:{repo:{owner:'test',repo:'test'}},number:1,api,policy:mergerPolicy,validate:async({github:live})=>{assessments++;await live.rest.checks.update({conclusion:'success'});},merge:async()=>{merged=true;}}),/approval changed during final validation/);
  assert.equal(assessments,2);assert.equal(merged,false);
+});
+
+test('six fork workflow activity events schedule only two affected buckets',async()=>{
+ const {preparePullRequests,bucketTargets}=require('./review-gate.cjs');let listingCalls=0;const scheduled=[];
+ const prs=Array.from({length:257},(_,i)=>({number:i+1,head:{sha:head,repo:{id:101+i},ref:`branch${i+1}`}}));
+ const github={rest:{pulls:{list:Symbol()}},paginate:async()=>{listingCalls++;return prs;}};
+ for(const name of ['CI','Security'])for(const action of ['requested','in_progress','completed']){
+  const targets=await preparePullRequests({github,context:{repo:{owner:'owner',repo:'repo'},eventName:'workflow_run',payload:{action,workflow_run:{name,head_sha:head,head_repository:{id:111},head_branch:'branch11',pull_requests:[]}}}});
+  scheduled.push(...bucketTargets(targets));if(action==='completed')assert.deepEqual(targets,[{number:11}]);else assert.deepEqual(targets,[]);
+ }
+ assert.equal(listingCalls,2);assert.deepEqual(scheduled,[3,3]);
+ const yaml=require('node:fs').readFileSync(require('node:path').join(__dirname,'../workflows/review-gate.yml'),'utf8');
+ assert.match(yaml,/workflows: \[CI, Security, Review evidence signal\]\s+types: \[completed\]/);
+});
+test('fork discovery falls back to matching heads when source metadata is missing',async()=>{
+ const {preparePullRequests}=require('./review-gate.cjs');const github={rest:{pulls:{list:Symbol()}},paginate:async()=>[{number:1,head:{sha:head}},{number:2,head:{sha:fixed}}]};
+ const targets=await preparePullRequests({github,context:{repo:{owner:'owner',repo:'repo'},eventName:'workflow_run',payload:{action:'completed',workflow_run:{name:'CI',head_sha:head,pull_requests:[]}}}});
+ assert.deepEqual(targets,[{number:1}]);
+});
+test('prepared PR movement invalidates the current head before collecting its evidence',async()=>{
+ const {run}=require('./review-gate.cjs');const events=[];
+ const github={rest:{pulls:{get:async()=>({data:{state:'open',head:{sha:head}}}),listReviews:Symbol()},checks:{create:async request=>{events.push(['pending',request.head_sha]);return {data:{id:42}};},update:async request=>events.push(['completed',request.check_run_id,request.conclusion])}},paginate:async()=>{
+  assert.deepEqual(events,[['pending',head],['completed',41,'failure']]);throw new Error('synthetic evidence error');
+ }};
+ await assert.rejects(run({github,context:{repo:{owner:'owner',repo:'repo'},payload:{pull_request:{number:1}}},prepared:{pr:{state:'open',head:{sha:fixed}},pendingCheck:{id:41}}}),/synthetic evidence error/);
+ assert.deepEqual(events.at(-1),['completed',42,'failure']);
+});
+test('a closed prepared PR completes its old pending check without collecting evidence',async()=>{
+ const {run}=require('./review-gate.cjs');let completion;
+ const github={rest:{pulls:{get:async()=>({data:{state:'closed',head:{sha:head}}})},checks:{update:async request=>completion=request,create:async()=>assert.fail('closed PR must not create a check')}},paginate:async()=>assert.fail('closed PR must not collect evidence')};
+ await run({github,context:{repo:{owner:'owner',repo:'repo'},payload:{pull_request:{number:1}}},prepared:{pr:{state:'open',head:{sha:head}},pendingCheck:{id:41}}});
+ assert.equal(completion.check_run_id,41);assert.equal(completion.conclusion,'failure');
+});
+
+test('live merger rechecks its native guard after final policy reads',async()=>{
+ const {mergeReviewedPR}=require('./merge-reviewed-pr.cjs');const input=nativePolicy();let assessments=0,captured,merged=false;
+ const github={rest:{repos:{get:async()=>({data:input.repository})},pulls:{get:async()=>({data:{state:'open',base:{ref:'main'},head:{sha:head}}})},actions:{getWorkflow:async({workflow_id})=>({data:{id:workflow_id==='ci.yml'?1:2}}),listWorkflowRuns:async({workflow_id,event})=>({data:{workflow_runs:baseline().runs.filter(run=>run.workflow_id===workflow_id&&run.event===event)}})}}};
+ const original=mockGuardAPI(async suffix=>suffix.includes('protection')?input.protection:suffix.includes('rulesets')?input.ruleset:[{id:1,name:'review-evidence',app:{id:mergerPolicy.publisher_app_id},status:'completed',conclusion:'success'}]);
+ const api=async(suffix,field,options)=>{
+  const value=await original(suffix,field,options);if(suffix==='rulesets/999'&&!options)captured=value;
+  if(assessments===2&&suffix.includes('REVIEW_GATE_RESOLVER_LOGIN'))captured.bypass_actors.push({actor_id:5});
+  return value;
+ };
+ await assert.rejects(mergeReviewedPR({github,context:{repo:{owner:'test',repo:'test'}},number:1,api,policy:mergerPolicy,validate:async({github:live})=>{assessments++;await live.rest.checks.update({conclusion:'success'});},merge:async()=>{merged=true;}}),/not enforced/);
+ assert.equal(merged,false);assert.equal(assessments,2);
 });

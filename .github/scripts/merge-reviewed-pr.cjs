@@ -1,5 +1,5 @@
 const { spawnSync } = require('node:child_process');
-const { run, fetchWorkflowRuns, metadata, verifyApprovedDefinitionPaths, isRunForPR } = require('./review-gate.cjs');
+const { run, fetchWorkflowRuns, metadata, verifyApprovedDefinitionPaths, approvedDefinitionPaths, isRunForPR } = require('./review-gate.cjs');
 const policy = require('../review-gate-policy.json');
 
 function assertTrustedPolicy({ repository, protection, ruleset, policy }) {
@@ -130,6 +130,8 @@ async function mergeReviewedPR({ github, context, number, api, merge, validate =
       if (JSON.parse(approvedUpdates).base !== base) throw new Error('Protected update approval base moved during final validation.');
       await verifyApprovedDefinitionPaths({github, owner, repo, manifest: currentApproval, head, base});
     }
+    if (merge) await verifyGuard();
+    if (approvedUpdates) approvedDefinitionPaths({manifest: approvedUpdates, head, base: JSON.parse(approvedUpdates).base});
     if (merge) await merge(head);
   };
   if (merge) await withMainMergeGuard({api, number, operation: finalAssessment, record: guardRecord});
