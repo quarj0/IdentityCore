@@ -1,4 +1,5 @@
-function assess({ head, reviewer, reviews, comments, threads, commits, runs, trustedWorkflows, protectedDefinitions }) {
+function assess({ head, reviewer, resolver, reviews, comments, threads, commits, runs, trustedWorkflows, protectedDefinitions }) {
+  const isResolver = author => Boolean(resolver) && author?.login === resolver;
   const isReviewer = author => author?.login === reviewer || author?.login === `${reviewer}[bot]`;
   const finalReviews = reviews.filter(r => isReviewer(r.user) && r.commit_id === head);
   let changesRequested = false;
@@ -35,10 +36,10 @@ function assess({ head, reviewer, reviews, comments, threads, commits, runs, tru
       continue;
     }
     const nodes = thread.comments.nodes;
-    const feedback = nodes.filter(c => c.author?.login !== thread.resolvedBy?.login);
+    const feedback = nodes.filter(c => !isResolver(c.author));
     const feedbackTimes = feedback.map(c => Date.parse(c.updatedAt || c.createdAt));
     const lastFeedback = Math.max(...feedbackTimes);
-    const dispositions = nodes.filter(c => c.author?.login === thread.resolvedBy?.login);
+    const dispositions = nodes.filter(c => isResolver(c.author));
     const dispositionTimes = dispositions.map(c => Date.parse(c.updatedAt || c.createdAt));
     const latestDisposition = Math.max(...dispositionTimes);
     const evidence = feedbackTimes.length > 0 && feedbackTimes.every(Number.isFinite) &&
@@ -49,7 +50,7 @@ function assess({ head, reviewer, reviews, comments, threads, commits, runs, tru
       [...c.body.matchAll(/\b([0-9a-f]{7,40})\b/g)].some(m => commits.some(sha => sha.startsWith(m[1])))
     );
     if (evidence && evidence.length) evidenceTimes.push(Math.max(...evidence.map(c => Date.parse(c.updatedAt || c.createdAt))));
-    if (!evidence || !evidence.length) problems.push(`Resolved thread ${thread.id} has no fixing-commit and validation evidence from its resolver.`);
+    if (!evidence || !evidence.length) problems.push(`Resolved thread ${thread.id} has no fixing-commit and validation evidence from the trusted resolver.`);
   }
   if (reviewed && evidenceTimes.length) {
     const completed = [
@@ -75,7 +76,7 @@ async function fetchThreads(github, owner, repo, number) {
     const data = await github.graphql(`query($owner:String!,$repo:String!,$number:Int!,$cursor:String) {
       repository(owner:$owner,name:$repo) { pullRequest(number:$number) {
         reviewThreads(first:100,after:$cursor) { pageInfo { hasNextPage endCursor }
-          nodes { id isResolved resolvedBy { login } comments(first:100) { nodes { body createdAt updatedAt author { login } } pageInfo { hasNextPage } } }
+          nodes { id isResolved comments(first:100) { nodes { body createdAt updatedAt author { login } } pageInfo { hasNextPage } } }
         }
       } }
     }`, { owner, repo, number, cursor });
@@ -86,7 +87,7 @@ async function fetchThreads(github, owner, repo, number) {
   return threads;
 }
 
-async function run({ github, context, prepared }) {
+async function run({ github, context }) {
   const { owner, repo } = context.repo;
   const number = context.payload.pull_request?.number ||
     (context.payload.issue?.pull_request ? context.payload.issue.number : undefined) ||
@@ -95,14 +96,16 @@ async function run({ github, context, prepared }) {
   if (!number) throw new Error('A pull-request number is required.');
   const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: number });
   if (pr.state !== 'open') return;
-  const head = prepared?.head || pr.head.sha;
-  const pendingCheck = prepared ? { id: prepared.check_id } : (await github.rest.checks.create({ owner, repo, head_sha: head,
+  // This function runs inside the per-PR workflow lock. Fetch its current head
+  // here so discovery ordering cannot leave a newer head check orphaned.
+  const head = pr.head.sha;
+  const resolver = process.env.REVIEW_GATE_RESOLVER_LOGIN || owner;
+  const pendingCheck = (await github.rest.checks.create({ owner, repo, head_sha: head,
     name: 'review-evidence', status: 'in_progress',
     output: { title: 'Review evidence validation in progress', summary: `Revalidating mutable evidence for ${head}.` }
   })).data;
   let completed = false;
   try {
-  if (pr.head.sha !== head) throw new Error('Prepared pull-request head moved; rerun discovery.');
   const reviews = await github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number: number, per_page: 100 });
   const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number, per_page: 100 });
   const commits = (await github.paginate(github.rest.pulls.listCommits, { owner, repo, pull_number: number, per_page: 100 })).map(c => c.sha);
@@ -129,7 +132,7 @@ async function run({ github, context, prepared }) {
     ]);
     protectedDefinitions[path] = trusted.type === 'file' && proposed.type === 'file' && trusted.sha === proposed.sha;
   }
-  const problems = assess({ head, trustedWorkflows, protectedDefinitions, runs: workflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews, comments, threads, commits });
+  const problems = assess({ head, resolver, trustedWorkflows, protectedDefinitions, runs: workflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews, comments, threads, commits });
   if (threads.some(t => t.comments.pageInfo.hasNextPage)) problems.push('A thread exceeds the evidence page limit; review it explicitly.');
   const [currentReviews, currentComments, currentThreads, {data: current}, {data: currentWorkflowRuns}] = await Promise.all([
     github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number: number, per_page: 100 }),
@@ -141,7 +144,7 @@ async function run({ github, context, prepared }) {
   if (JSON.stringify([reviews, comments, threads]) !== JSON.stringify([currentReviews, currentComments, currentThreads])) {
     problems.push('Mutable review evidence changed during validation; rerun against a stable snapshot.');
   }
-  problems.push(...assess({ head, trustedWorkflows, protectedDefinitions, runs: currentWorkflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews: currentReviews, comments: currentComments, threads: currentThreads, commits }));
+  problems.push(...assess({ head, resolver, trustedWorkflows, protectedDefinitions, runs: currentWorkflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews: currentReviews, comments: currentComments, threads: currentThreads, commits }));
   if (current.head.sha !== head) problems.push('Pull-request head moved during validation; rerun against its current head.');
   await github.rest.checks.update({ owner, repo, check_run_id: pendingCheck.id, status: 'completed',
     conclusion: problems.length ? 'failure' : 'success',
@@ -180,17 +183,11 @@ async function preparePullRequests({ github, context }) {
     if (!number) throw new Error('A pull-request number is required.');
     pullRequests = [{ number }];
   }
-  // Invalidate every affected head before any matrix assessment can start.
-  // Failure here leaves created checks pending and prevents publication.
+  // Discovery only selects PR numbers. Check creation and current-head reads
+  // happen together inside the per-PR assessment lock.
   const results = await Promise.allSettled([...new Set(pullRequests.map(pr => pr.number))].map(async number => {
     const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: number });
-    if (pr.state !== 'open') return null;
-    const head = pr.head.sha;
-    const { data: check } = await github.rest.checks.create({ owner, repo, head_sha: head,
-      name: 'review-evidence', status: 'in_progress',
-      output: { title: 'Review evidence validation queued', summary: `Revalidating mutable evidence for ${head}.` }
-    });
-    return { number, head, check_id: check.id };
+    return pr.state === 'open' ? { number } : null;
   }));
   const failures = results.filter(result => result.status === 'rejected');
   if (failures.length) throw new Error(failures.map(result => result.reason.message).join('\n'));

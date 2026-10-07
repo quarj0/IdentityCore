@@ -70,7 +70,7 @@ jobs:
     # Every event, including default-branch bulk revalidation, shares this lock.
     concurrency:
       group: review-evidence-${{ matrix.target.number }}
-      cancel-in-progress: true
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     environment: review-evidence-publisher
     steps:
@@ -92,11 +92,12 @@ jobs:
       - uses: actions/github-script@v8
         env:
           REVIEW_TARGET: ${{ toJSON(matrix.target) }}
+          REVIEW_GATE_RESOLVER_LOGIN: ${{ vars.REVIEW_GATE_RESOLVER_LOGIN }}
         with:
           github-token: ${{ steps.publisher.outputs.token }}
           script: |
             const prepared = JSON.parse(process.env.REVIEW_TARGET);
             const { run } = require('./.github/scripts/review-gate.cjs');
-            await run({ github, prepared, context: {
+            await run({ github, context: {
               ...context, payload: { pull_request: { number: prepared.number } }
             } });

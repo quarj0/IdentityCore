@@ -12,6 +12,10 @@ Before this gate can enforce merging, a repository administrator must complete t
 4. Require conversation resolution at merge time. Thread unresolution must block merging even before the queued validator runs.
 5. Preserve existing CI, Security and review requirements when changing protection. Install the gate through a controlled bootstrap: its validator and signal must be on the default branch before its dedicated check can run. Keep the protection and publisher reviews open until bootstrap and the enforcement checks below have evidence.
 
+Disposition evidence must be authored by a fixed trusted maintainer: the repository owner by default, or `REVIEW_GATE_RESOLVER_LOGIN` configured in the protected publisher environment. The actor who clicks Resolve is not an evidence authority. Unresolving a thread blocks merging through native conversation protection; re-resolving it cannot manufacture or replace the required trusted evidence. New feedback and edited or deleted evidence still require revalidation and a later final-head review.
+
+Discovery selects PR numbers only. Each assessment reads the current head and creates its pending check inside the per-PR concurrency group. Active assessments are not canceled by newer discovery, and queued jobs create no App checks. This prevents canceled or out-of-order discovery from orphaning the latest required check.
+
 The App token is scoped to this repository, explicitly requests the needed permissions, and is revoked after each job. Both discovery and per-PR assessment use the protected environment and the dedicated token. Missing configuration fails the action; there is no GitHub Actions publisher fallback.
 
 ## Enforcement checks
@@ -20,7 +24,7 @@ The App token is scoped to this repository, explicitly requests the needed permi
 - Confirm a PR job requesting the publisher environment cannot obtain its key because its ref is not `main`.
 - Confirm a same-named GitHub Actions check cannot satisfy the required dedicated-App check.
 - Unresolve a substantive thread and confirm merging is blocked by conversation resolution. Submit/edit/dismiss a review and edit/delete a review comment; confirm the signal triggers default-branch validation and invalidates prior evidence.
-- Confirm a new head, changed protected definition, missing resolver evidence, or failing CI/Security prevents success.
+- Confirm a new head, changed protected definition, missing trusted-maintainer evidence, or failing CI/Security prevents success. Re-resolve a thread under another actor and confirm this does not substitute that actor for the configured evidence author.
 - Record configuration and validation evidence before resolving the administration reviews on #364.
 
 Authenticated `gh` administration verified that `main` already enforces conversation resolution and applies protection to administrators. The `review-evidence-publisher` environment is configured with a custom deployment policy allowing only the literal `main` branch. Dedicated App registration, installation, its environment credentials, and the App-bound required check remain deployment prerequisites. GitHub App registration uses GitHub settings or its browser manifest flow; repository administration through `gh api` does not itself register an App.
