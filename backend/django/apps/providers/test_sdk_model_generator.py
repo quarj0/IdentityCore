@@ -95,7 +95,10 @@ class SDKModelGeneratorTests(SimpleTestCase):
         self.assertIn('DocumentCapture("document_capture")', generated["java"])
         self.assertIn("@JsonValue", generated["java"])
         self.assertIn("RequestPurpose purpose", generated["java"])
-        self.assertIn("JsonStringEnumConverter<RequestPurpose>", generated["dotnet"])
+        self.assertIn(
+            "ContractStringEnumConverter<RequestPurpose>", generated["dotnet"]
+        )
+        self.assertIn("allowIntegerValues: false", generated["dotnet"])
         self.assertIn("public RequestPurpose? Purpose", generated["dotnet"])
         self.assertEqual(
             generated["dotnet"].count(
@@ -107,6 +110,17 @@ class SDKModelGeneratorTests(SimpleTestCase):
             'WhenWritingNull)]\n    [JsonPropertyName("required_null")]',
             generated["dotnet"],
         )
+        required = generator.generate(
+            {
+                "Request": {
+                    "required": ["decision"],
+                    "properties": {
+                        "decision": {"type": "string", "enum": ["verified", "rejected"]}
+                    },
+                }
+            }
+        )["dotnet"]
+        self.assertIn("public required RequestDecision Decision", required)
 
     def test_public_fixture_matches_contract(self):
         schemas = yaml.safe_load(generator.SPEC.read_text())["components"]["schemas"]

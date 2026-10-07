@@ -34,5 +34,9 @@ public sealed class GeneratedModelsTests
         Assert.Equal("verified", JsonDocument.Parse(json).RootElement.GetProperty("decision").GetString());
         Assert.Equal(request.Decision, JsonSerializer.Deserialize<ManualReviewDecisionRequest>(json)!.Decision);
         Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<ManualReviewDecisionRequest>("{\"decision\":\"invalid\"}"));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<ManualReviewDecisionRequest>("{\"decision\":99}"));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<ManualReviewDecisionRequest>("{\"decision\":0}"));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<ManualReviewApprovalRequest>("{}"));
+        Assert.Throws<JsonException>(() => JsonSerializer.Serialize(new ManualReviewDecisionRequest { Decision = (ManualReviewDecisionRequestDecision)99 }));
     }
 }

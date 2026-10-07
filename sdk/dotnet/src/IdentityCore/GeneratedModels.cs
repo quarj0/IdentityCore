@@ -1,8 +1,14 @@
 // Generated from docs/openapi/identitycore-public-api.yaml. DO NOT EDIT.
+using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace IdentityCore.Models;
+
+public sealed class ContractStringEnumConverter<TEnum> : JsonStringEnumConverter<TEnum> where TEnum : struct, Enum
+{
+    public ContractStringEnumConverter() : base(namingPolicy: null, allowIntegerValues: false) { }
+}
 
 public sealed record Error
 {
@@ -58,7 +64,7 @@ public sealed record WorkflowSummary
     public string? UpdatedAt { get; init; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<PolicyStatus>))]
+[JsonConverter(typeof(ContractStringEnumConverter<PolicyStatus>))]
 public enum PolicyStatus
 {
     draft,
@@ -66,14 +72,14 @@ public enum PolicyStatus
     archived,
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<PolicyRequiredLivenessLevel>))]
+[JsonConverter(typeof(ContractStringEnumConverter<PolicyRequiredLivenessLevel>))]
 public enum PolicyRequiredLivenessLevel
 {
     passive,
     active,
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<PolicyExternalRiskFailureAction>))]
+[JsonConverter(typeof(ContractStringEnumConverter<PolicyExternalRiskFailureAction>))]
 public enum PolicyExternalRiskFailureAction
 {
     manual_review,
@@ -92,11 +98,11 @@ public sealed record Policy
     [JsonPropertyName("version")]
     public int Version { get; init; }
     [JsonPropertyName("status")]
-    public PolicyStatus Status { get; init; }
+    public required PolicyStatus Status { get; init; }
     [JsonPropertyName("required_document_types")]
     public IReadOnlyList<string> RequiredDocumentTypes { get; init; }
     [JsonPropertyName("required_liveness_level")]
-    public PolicyRequiredLivenessLevel RequiredLivenessLevel { get; init; }
+    public required PolicyRequiredLivenessLevel RequiredLivenessLevel { get; init; }
     [JsonPropertyName("face_match_threshold")]
     public double FaceMatchThreshold { get; init; }
     [JsonPropertyName("manual_review_threshold")]
@@ -267,14 +273,14 @@ public sealed record PlatformUserMfaEnrollment
     public string ProvisioningUri { get; init; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<VerificationPolicyCreateRequestRequiredLivenessLevel>))]
+[JsonConverter(typeof(ContractStringEnumConverter<VerificationPolicyCreateRequestRequiredLivenessLevel>))]
 public enum VerificationPolicyCreateRequestRequiredLivenessLevel
 {
     passive,
     active,
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<VerificationPolicyCreateRequestExternalRiskFailureAction>))]
+[JsonConverter(typeof(ContractStringEnumConverter<VerificationPolicyCreateRequestExternalRiskFailureAction>))]
 public enum VerificationPolicyCreateRequestExternalRiskFailureAction
 {
     manual_review,
@@ -303,7 +309,7 @@ public sealed record VerificationPolicyCreateRequest
     [JsonPropertyName("required_document_types")]
     public IReadOnlyList<string> RequiredDocumentTypes { get; init; }
     [JsonPropertyName("required_liveness_level")]
-    public VerificationPolicyCreateRequestRequiredLivenessLevel RequiredLivenessLevel { get; init; }
+    public required VerificationPolicyCreateRequestRequiredLivenessLevel RequiredLivenessLevel { get; init; }
     [JsonPropertyName("face_match_threshold")]
     public double FaceMatchThreshold { get; init; }
     [JsonPropertyName("manual_review_threshold")]
@@ -400,7 +406,7 @@ public sealed record VerificationSessionDocumentRequest
     public IReadOnlyList<JsonElement> Captures { get; init; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<VerificationSessionSelfieRequestCaptureType>))]
+[JsonConverter(typeof(ContractStringEnumConverter<VerificationSessionSelfieRequestCaptureType>))]
 public enum VerificationSessionSelfieRequestCaptureType
 {
     image,
@@ -410,12 +416,12 @@ public enum VerificationSessionSelfieRequestCaptureType
 public sealed record VerificationSessionSelfieRequest
 {
     [JsonPropertyName("capture_type")]
-    public VerificationSessionSelfieRequestCaptureType CaptureType { get; init; }
+    public required VerificationSessionSelfieRequestCaptureType CaptureType { get; init; }
     [JsonPropertyName("upload_id")]
     public string UploadId { get; init; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<VerificationSessionLivenessRequestLivenessType>))]
+[JsonConverter(typeof(ContractStringEnumConverter<VerificationSessionLivenessRequestLivenessType>))]
 public enum VerificationSessionLivenessRequestLivenessType
 {
     passive,
@@ -425,7 +431,7 @@ public enum VerificationSessionLivenessRequestLivenessType
 public sealed record VerificationSessionLivenessRequest
 {
     [JsonPropertyName("liveness_type")]
-    public VerificationSessionLivenessRequestLivenessType LivenessType { get; init; }
+    public required VerificationSessionLivenessRequestLivenessType LivenessType { get; init; }
     [JsonPropertyName("selfie_capture_id")]
     public string SelfieCaptureId { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -443,7 +449,7 @@ public sealed record VerificationMobileHandoffRedeemResponse
     public string VerificationId { get; init; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<VerificationSessionResponseDirection>))]
+[JsonConverter(typeof(ContractStringEnumConverter<VerificationSessionResponseDirection>))]
 public enum VerificationSessionResponseDirection
 {
     ltr,
@@ -473,7 +479,7 @@ public sealed record VerificationSessionResponse
     [JsonPropertyName("supported_locales")]
     public IReadOnlyList<string> SupportedLocales { get; init; }
     [JsonPropertyName("direction")]
-    public VerificationSessionResponseDirection Direction { get; init; }
+    public required VerificationSessionResponseDirection Direction { get; init; }
     [JsonPropertyName("consent")]
     public JsonElement Consent { get; init; }
     [JsonPropertyName("document")]
@@ -612,7 +618,7 @@ public sealed record VerificationDetail
     public string ExpiresAt { get; init; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<SandboxSimulationRequestScenario>))]
+[JsonConverter(typeof(ContractStringEnumConverter<SandboxSimulationRequestScenario>))]
 public enum SandboxSimulationRequestScenario
 {
     approved,
@@ -625,10 +631,10 @@ public enum SandboxSimulationRequestScenario
 public sealed record SandboxSimulationRequest
 {
     [JsonPropertyName("scenario")]
-    public SandboxSimulationRequestScenario Scenario { get; init; }
+    public required SandboxSimulationRequestScenario Scenario { get; init; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<SandboxSimulationMarkerScenario>))]
+[JsonConverter(typeof(ContractStringEnumConverter<SandboxSimulationMarkerScenario>))]
 public enum SandboxSimulationMarkerScenario
 {
     approved,
@@ -641,7 +647,7 @@ public enum SandboxSimulationMarkerScenario
 public sealed record SandboxSimulationMarker
 {
     [JsonPropertyName("scenario")]
-    public SandboxSimulationMarkerScenario Scenario { get; init; }
+    public required SandboxSimulationMarkerScenario Scenario { get; init; }
     [JsonPropertyName("version")]
     public int Version { get; init; }
 }
@@ -735,7 +741,7 @@ public sealed record EvidenceReport
     public string PdfDownloadUrl { get; init; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<PortalUploadCreateRequestCaptureMethod>))]
+[JsonConverter(typeof(ContractStringEnumConverter<PortalUploadCreateRequestCaptureMethod>))]
 public enum PortalUploadCreateRequestCaptureMethod
 {
     camera,
@@ -744,7 +750,7 @@ public enum PortalUploadCreateRequestCaptureMethod
     unreported,
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<PortalUploadCreateRequestPurpose>))]
+[JsonConverter(typeof(ContractStringEnumConverter<PortalUploadCreateRequestPurpose>))]
 public enum PortalUploadCreateRequestPurpose
 {
     document_capture,
@@ -758,7 +764,7 @@ public sealed record PortalUploadCreateRequest
     [JsonPropertyName("capture_method")]
     public PortalUploadCreateRequestCaptureMethod? CaptureMethod { get; init; }
     [JsonPropertyName("purpose")]
-    public PortalUploadCreateRequestPurpose Purpose { get; init; }
+    public required PortalUploadCreateRequestPurpose Purpose { get; init; }
     [JsonPropertyName("mime_type")]
     public string MimeType { get; init; }
     [JsonPropertyName("file_size_bytes")]
@@ -827,7 +833,7 @@ public sealed record OrganizationProfile
     public string? UpdatedAt { get; init; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<OrganizationBrandingAssetUploadRequestAssetType>))]
+[JsonConverter(typeof(ContractStringEnumConverter<OrganizationBrandingAssetUploadRequestAssetType>))]
 public enum OrganizationBrandingAssetUploadRequestAssetType
 {
     logo,
@@ -837,7 +843,7 @@ public enum OrganizationBrandingAssetUploadRequestAssetType
 public sealed record OrganizationBrandingAssetUploadRequest
 {
     [JsonPropertyName("asset_type")]
-    public OrganizationBrandingAssetUploadRequestAssetType AssetType { get; init; }
+    public required OrganizationBrandingAssetUploadRequestAssetType AssetType { get; init; }
     [JsonPropertyName("filename")]
     public string Filename { get; init; }
     [JsonPropertyName("mime_type")]
@@ -902,7 +908,7 @@ public sealed record OrganizationSupportingDocumentDeleteResponse
     public bool Deleted { get; init; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<ProjectSummaryEnvironment>))]
+[JsonConverter(typeof(ContractStringEnumConverter<ProjectSummaryEnvironment>))]
 public enum ProjectSummaryEnvironment
 {
     sandbox,
@@ -918,7 +924,7 @@ public sealed record ProjectSummary
     [JsonPropertyName("slug")]
     public string Slug { get; init; }
     [JsonPropertyName("environment")]
-    public ProjectSummaryEnvironment Environment { get; init; }
+    public required ProjectSummaryEnvironment Environment { get; init; }
     [JsonPropertyName("status")]
     public string Status { get; init; }
     [JsonPropertyName("allowed_origins")]
@@ -931,7 +937,7 @@ public sealed record ProjectSummary
     public string UpdatedAt { get; init; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<ProjectCreateRequestEnvironment>))]
+[JsonConverter(typeof(ContractStringEnumConverter<ProjectCreateRequestEnvironment>))]
 public enum ProjectCreateRequestEnvironment
 {
     sandbox,
@@ -953,7 +959,7 @@ public sealed record ProjectCreateRequest
     public IReadOnlyList<string>? AllowedOrigins { get; init; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<ProjectUpdateRequestEnvironment>))]
+[JsonConverter(typeof(ContractStringEnumConverter<ProjectUpdateRequestEnvironment>))]
 public enum ProjectUpdateRequestEnvironment
 {
     sandbox,
@@ -1172,7 +1178,7 @@ public sealed record ManualReviewSummary
     public string CreatedAt { get; init; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<ManualReviewDecisionRequestDecision>))]
+[JsonConverter(typeof(ContractStringEnumConverter<ManualReviewDecisionRequestDecision>))]
 public enum ManualReviewDecisionRequestDecision
 {
     verified,
@@ -1183,7 +1189,7 @@ public enum ManualReviewDecisionRequestDecision
 public sealed record ManualReviewDecisionRequest
 {
     [JsonPropertyName("decision")]
-    public ManualReviewDecisionRequestDecision Decision { get; init; }
+    public required ManualReviewDecisionRequestDecision Decision { get; init; }
     [JsonPropertyName("reason_code")]
     public string ReasonCode { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -1215,7 +1221,7 @@ public sealed record ManualReviewPendingDecisionResponse
     public bool ApprovalRequired { get; init; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<ManualReviewApprovalRequestDecision>))]
+[JsonConverter(typeof(ContractStringEnumConverter<ManualReviewApprovalRequestDecision>))]
 public enum ManualReviewApprovalRequestDecision
 {
     verified,
@@ -1226,7 +1232,7 @@ public enum ManualReviewApprovalRequestDecision
 public sealed record ManualReviewApprovalRequest
 {
     [JsonPropertyName("decision")]
-    public ManualReviewApprovalRequestDecision Decision { get; init; }
+    public required ManualReviewApprovalRequestDecision Decision { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("reason_code")]
     public string? ReasonCode { get; init; }

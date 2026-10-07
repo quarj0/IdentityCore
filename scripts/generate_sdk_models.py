@@ -177,10 +177,16 @@ def generate(schemas: dict[str, Any]) -> dict[str, str]:
     ]
     cs = [
         f"// {HEADER}",
+        "using System;",
         "using System.Text.Json;",
         "using System.Text.Json.Serialization;",
         "",
         "namespace IdentityCore.Models;",
+        "",
+        "public sealed class ContractStringEnumConverter<TEnum> : JsonStringEnumConverter<TEnum> where TEnum : struct, Enum",
+        "{",
+        "    public ContractStringEnumConverter() : base(namingPolicy: null, allowIntegerValues: false) { }",
+        "}",
         "",
     ]
     for name, schema in objects:
@@ -219,7 +225,7 @@ def generate(schemas: dict[str, Any]) -> dict[str, str]:
                 "",
             ]
             cs += [
-                f"[JsonConverter(typeof(JsonStringEnumConverter<{enum_name}>))]",
+                f"[JsonConverter(typeof(ContractStringEnumConverter<{enum_name}>))]",
                 f"public enum {enum_name}",
                 "{",
             ]
@@ -254,13 +260,14 @@ def generate(schemas: dict[str, Any]) -> dict[str, str]:
         cs += [f"public sealed record {name}", "{"]
         for k, v in props.items():
             optional = k not in required or kind(v)[1]
+            presence = "required " if k in required and k in enum_types else ""
             if k not in required:
                 cs += [
                     "    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]"
                 ]
             cs += [
                 f'    [JsonPropertyName("{k}")]',
-                f"    public {enum_types.get(k, cstype(v))}{'?' if optional else ''} {pascal(k)} {{ get; init; }}",
+                f"    public {presence}{enum_types.get(k, cstype(v))}{'?' if optional else ''} {pascal(k)} {{ get; init; }}",
             ]
         cs += ["}", ""]
     java += ["}", ""]
