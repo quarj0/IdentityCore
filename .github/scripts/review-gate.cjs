@@ -26,6 +26,15 @@ function approvedDefinitionPaths({manifest, head, base, now = Date.now()}) {
   return new Set(paths);
 }
 
+async function verifyApprovedDefinitionPaths({github, owner, repo, manifest, head, base}) {
+  const paths = approvedDefinitionPaths({manifest, head, base});
+  if (paths.size) {
+    const {data} = await github.rest.repos.compareCommitsWithBasehead({owner, repo, basehead: `${base}...${head}`});
+    if (!['ahead', 'identical'].includes(data.status) || data.base_commit?.sha !== base || data.merge_base_commit?.sha !== base) throw new Error('Approved main base must be an ancestor of the reviewed head.');
+  }
+  return paths;
+}
+
 function assess({ head, reviewer, resolver, reviews, comments, threads, commits, commitProof, runs, trustedWorkflows, protectedDefinitions }) {
   const provenToken = token => commitProof ? commitProof[token] : commits.find(sha => sha.startsWith(token));
   const isResolver = author => Boolean(resolver) && author?.login === resolver;
@@ -216,7 +225,7 @@ async function run({ github, context, resolverLogin, approvedUpdates = process.e
   let approvedBase;
   if (approvedUpdates) {
     approvedBase = (await github.rest.repos.getBranch({owner, repo, branch: repository.default_branch})).data.commit.sha;
-    for (const path of approvedDefinitionPaths({manifest: approvedUpdates, head, base: approvedBase})) matches[path] = true;
+    for (const path of await verifyApprovedDefinitionPaths({github, owner, repo, manifest: approvedUpdates, head, base: approvedBase})) matches[path] = true;
   }
   const trustedWorkflows = Object.fromEntries(Object.entries(workflows).map(([name, workflow]) => [name, {...workflow, definitionMatches: matches[workflow.path]}]));
   const protectedDefinitions = Object.fromEntries(PROTECTED_PATHS.map(path => [path, matches[path]]));
@@ -230,7 +239,10 @@ async function run({ github, context, resolverLogin, approvedUpdates = process.e
     github.rest.pulls.get({ owner, repo, pull_number: number }),
     fetchWorkflowRuns({ github, owner, repo, head, workflows: Object.values(workflows) })
   ]);
-  if (approvedBase && (await github.rest.repos.getBranch({owner, repo, branch: repository.default_branch})).data.commit.sha !== approvedBase) problems.push('Protected update approval base moved during validation.');
+  if (approvedBase) {
+    if ((await github.rest.repos.getBranch({owner, repo, branch: repository.default_branch})).data.commit.sha !== approvedBase) problems.push('Protected update approval base moved during validation.');
+    approvedDefinitionPaths({manifest: approvedUpdates, head, base: approvedBase});
+  }
   const currentReviews = relevantReviews(currentReviewsRaw);
   const currentComments = relevantComments(currentCommentsRaw);
   if (JSON.stringify([reviews, comments, threads]) !== JSON.stringify([currentReviews, currentComments, currentThreads])) {
@@ -307,4 +319,4 @@ async function runBucket({ github, context, bucket }) {
   if (failures.length) throw new Error(failures.join('\n'));
 }
 
-module.exports = { approvedDefinitionPaths, assess, run, preparePullRequests, fetchWorkflowRuns, bucketTargets, runBucket, affirmativeValidation, fetchCommitEvidence, relevantComments, relevantReviews, definitionMatches, metadata };
+module.exports = { verifyApprovedDefinitionPaths, approvedDefinitionPaths, assess, run, preparePullRequests, fetchWorkflowRuns, bucketTargets, runBucket, affirmativeValidation, fetchCommitEvidence, relevantComments, relevantReviews, definitionMatches, metadata };

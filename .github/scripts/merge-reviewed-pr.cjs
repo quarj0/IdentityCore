@@ -1,5 +1,5 @@
 const { spawnSync } = require('node:child_process');
-const { run, fetchWorkflowRuns, metadata } = require('./review-gate.cjs');
+const { run, fetchWorkflowRuns, metadata, verifyApprovedDefinitionPaths } = require('./review-gate.cjs');
 const policy = require('../review-gate-policy.json');
 
 function assertTrustedPolicy({ repository, protection, ruleset, policy }) {
@@ -70,6 +70,17 @@ async function mergeReviewedPR({ github, context, number, api, merge, validate =
   result = undefined;
   await validate({github: liveGithub, context: {...context, payload: {pull_request: {number}}}, approvedUpdates, resolverLogin});
   if (result?.conclusion !== 'success') throw new Error('Final live review evidence did not pass.');
+  let currentResolver = owner;
+  try { currentResolver = (await api('environments/review-evidence-publisher/variables/REVIEW_GATE_RESOLVER_LOGIN'))?.value || owner; }
+  catch (error) { if (error.status !== 404) throw error; }
+  if (currentResolver !== resolverLogin) throw new Error('Trusted resolver policy changed during final validation.');
+  if (approvedUpdates) {
+    const currentApproval = (await api('environments/review-evidence-publisher/variables/REVIEW_GATE_APPROVED_UPDATES'))?.value;
+    if (currentApproval !== approvedUpdates) throw new Error('Protected update approval changed during final validation.');
+    const base = (await github.rest.repos.getBranch({owner, repo, branch: 'main'})).data.commit.sha;
+    if (JSON.parse(approvedUpdates).base !== base) throw new Error('Protected update approval base moved during final validation.');
+    await verifyApprovedDefinitionPaths({github, owner, repo, manifest: currentApproval, head, base});
+  }
   const {data: finalPR} = await github.rest.pulls.get({owner, repo, pull_number: number});
   if (finalPR.state !== 'open' || finalPR.head.sha !== head) throw new Error('PR head moved during final live validation.');
   if (merge) await merge(head);
