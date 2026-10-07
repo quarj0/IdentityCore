@@ -171,8 +171,8 @@ async function preparePullRequests({ github, context }) {
     pullRequests = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
   } else if (context.eventName === 'workflow_run') {
     pullRequests = context.payload.workflow_run.pull_requests || [];
-    if (!pullRequests.length && context.payload.workflow_run.name === 'Review evidence signal') {
-      // Some review-event runs have no PR association in workflow_run metadata.
+    if (!pullRequests.length && ['CI', 'Security', 'Review evidence signal'].includes(context.payload.workflow_run.name)) {
+      // Fork CI/Security runs and review signals can omit PR association metadata.
       // Revalidate every open PR without trusting a PR-written artifact.
       pullRequests = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
     }
