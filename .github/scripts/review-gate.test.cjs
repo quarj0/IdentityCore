@@ -4,7 +4,7 @@ const { assess } = require('./review-gate.cjs');
 const head = 'a'.repeat(40);
 const fixed = 'b'.repeat(40);
 const reviewer = 'chatgpt-codex-connector';
-const baseline = () => ({ head, reviewer, resolver: 'maintainer', protectedDefinitions: {'.github/scripts/review-gate.cjs': true, '.github/workflows/review-gate.yml': true, '.github/workflows/review-evidence-signal.yml': true}, trustedWorkflows: {CI: {id: 1, definitionMatches: true, path: '.github/workflows/ci.yml'}, Security: {id: 2, definitionMatches: true, path: '.github/workflows/security.yml'}}, commits: [head, fixed], runs: ['CI', 'Security'].map((name, index) => ({name, workflow_id: index + 1, path: `.github/workflows/${name === 'CI' ? 'ci' : 'security'}.yml`, head_sha: head, event: 'pull_request', id: 1, status: 'completed', conclusion: 'success'})), reviews: [{ user: { login: reviewer }, commit_id: head, state: 'COMMENTED', submitted_at: '2026-02-01T00:00:00Z' }], comments: [], threads: [] });
+const baseline = () => ({ head, reviewer, resolver: 'maintainer', protectedDefinitions: {'.github/scripts/review-gate.cjs': true, '.github/workflows/review-gate.yml': true, '.github/workflows/review-evidence-signal.yml': true, '.github/scripts/merge-reviewed-pr.cjs': true, '.github/review-gate-policy.json': true}, trustedWorkflows: {CI: {id: 1, definitionMatches: true, path: '.github/workflows/ci.yml'}, Security: {id: 2, definitionMatches: true, path: '.github/workflows/security.yml'}}, commits: [head, fixed], runs: ['CI', 'Security'].map((name, index) => ({name, workflow_id: index + 1, path: `.github/workflows/${name === 'CI' ? 'ci' : 'security'}.yml`, head_sha: head, event: 'pull_request', id: 1, status: 'completed', conclusion: 'success'})), reviews: [{ user: { login: reviewer }, commit_id: head, state: 'COMMENTED', submitted_at: '2026-02-01T00:00:00Z' }], comments: [], threads: [] });
 test('requires completed review of the current head', () => {
   for (const state of ['old', 'dismissed', 'absent']) {
     const input = baseline();
@@ -60,11 +60,11 @@ test('a head change during validation fails the check for the inspected SHA', as
   const listCommits = () => {};
   const github = {
     rest: {
-      pulls: { get: async () => ({data: {state: 'open', head: {sha: ++reads === 1 ? head : fixed}}}), listReviews, listCommits },
+      pulls: { get: async () => ({data: {state: 'open', head: {sha: ++reads === 1 ? head : fixed}}}), listReviews },
       issues: {listComments},
-      repos: {get: async () => ({data: {default_branch: 'main'}}),
+      repos: {listCommits, get: async () => ({data: {default_branch: 'main'}}),
         getContent: async () => ({data: {type: 'file', sha: fixed}})},
-      actions: {getWorkflow: async ({workflow_id}) => ({data: {id: workflow_id === 'ci.yml' ? 1 : 2}}), listWorkflowRunsForRepo: async () => ({data: {workflow_runs: baseline().runs}})},
+      actions: {getWorkflow: async ({workflow_id}) => ({data: {id: workflow_id === 'ci.yml' ? 1 : 2}}), listWorkflowRuns: async () => ({data: {workflow_runs: baseline().runs}})},
       checks: {
         create: async input => { started = input; return {data: {id: 42}}; },
         update: async input => { published = input; }
@@ -74,7 +74,7 @@ test('a head change during validation fails the check for the inspected SHA', as
       assert.equal(started.status, 'in_progress');
       return method === listReviews ? baseline().reviews : method === listCommits ? [{sha: head}] : [];
     },
-    graphql: async () => ({repository: {pullRequest: {reviewThreads: {nodes: [], pageInfo: {hasNextPage: false}}}}})
+    graphql: async () => ({repository: {pullRequest: {reviewThreads: {nodes: [], pageInfo: {hasNextPage: false}}}, ...Object.fromEntries(Array.from({length: 7}, (_, i) => [[`trusted${i}`, {__typename: 'Blob', oid: fixed}], [`proposed${i}`, {__typename: 'Blob', oid: fixed}]]).flat())}})
   };
   await assert.rejects(run({github, context: {repo: {owner: 'synthetic', repo: 'test'}, payload: {pull_request: {number: 1}}}}), /head moved/);
   assert.equal(started.head_sha, head);
@@ -92,9 +92,9 @@ test('a head change during validation fails the check for the inspected SHA', as
     : method === listCommits ? [{sha: head}] : [];
   for (const state of ['queued', 'in_progress', 'failure']) {
     let runReads = 0;
-    github.rest.actions.listWorkflowRunsForRepo = async () => {
+    github.rest.actions.listWorkflowRuns = async () => {
       const runs = baseline().runs;
-      if (++runReads > 1) {
+      if (++runReads > 2) {
         runs[0].status = state === 'failure' ? 'completed' : state;
         runs[0].conclusion = state === 'failure' ? 'failure' : null;
         runs[0].run_attempt = 2;
@@ -102,7 +102,7 @@ test('a head change during validation fails the check for the inspected SHA', as
       return {data: {workflow_runs: runs}};
     };
     await assert.rejects(run({github, context: {repo: {owner: 'synthetic', repo: 'test'}, payload: {pull_request: {number: 1}}}}), /CI/);
-    assert.equal(runReads, 2);
+    assert.equal(runReads, 4);
     assert.equal(published.conclusion, 'failure');
   }
   reads = 0;
@@ -388,25 +388,25 @@ for (const state of ['queued', 'in_progress', 'failure', 'success']) {
 test('both evidence snapshots paginate beyond the first workflow-run page', async () => {
   const { fetchWorkflowRuns } = require('./review-gate.cjs');
   const pages = [];
-  const github = {rest: {actions: {listWorkflowRunsForRepo: async ({page, per_page, head_sha}) => {
+  const github = {rest: {actions: {listWorkflowRuns: async ({page, per_page, head_sha}) => {
     pages.push(page); assert.equal(per_page, 100); assert.equal(head_sha, head);
     return {data: {workflow_runs: page === 1 ? Array.from({length: 100}, (_, id) => ({id, name: 'Signal'})) : baseline().runs}};
   }}}};
   for (let snapshot = 0; snapshot < 2; snapshot++) {
-    const {data} = await fetchWorkflowRuns({github, owner: 'test', repo: 'test', head});
+    const {data} = await fetchWorkflowRuns({github, owner: 'test', repo: 'test', head, workflows: [{id: 1}]});
     assert.equal(data.workflow_runs.length, 102);
     assert.deepEqual(data.workflow_runs.slice(100), baseline().runs);
   }
   assert.deepEqual(pages, [1, 2, 1, 2]);
 });
 
-test('arbitrarily large discovery stays within 256 stable concurrency buckets', () => {
+test('arbitrarily large discovery stays within eight stable concurrency buckets', () => {
   const { bucketTargets } = require('./review-gate.cjs');
   const targets = Array.from({length: 1025}, (_, index) => ({number: index + 1}));
   const buckets = bucketTargets(targets);
-  assert.equal(buckets.length, 256);
-  assert.deepEqual(buckets, Array.from({length: 256}, (_, index) => index));
-  assert.deepEqual(bucketTargets([{number: 11}, {number: 267}]), [11]);
+  assert.equal(buckets.length, 8);
+  assert.deepEqual(buckets, Array.from({length: 8}, (_, index) => index));
+  assert.deepEqual(bucketTargets([{number: 11}, {number: 267}]), [3]);
 });
 
 test('a replacement bucket job refreshes every open PR sharing its lock', async () => {
@@ -415,7 +415,7 @@ test('a replacement bucket job refreshes every open PR sharing its lock', async 
   const github = {rest: {pulls: {list: Symbol('list'), get: async ({pull_number}) => {
     visited.push(pull_number); return {data: {state: 'closed'}};
   }}}, paginate: async () => [{number: 11}, {number: 267}, {number: 12}]};
-  await runBucket({github, context: {repo: {owner: 'test', repo: 'test'}}, bucket: 11});
+  await runBucket({github, context: {repo: {owner: 'test', repo: 'test'}}, bucket: 3});
   assert.deepEqual(visited, [11, 267]);
   await assert.rejects(runBucket({github, context: {repo: {owner: 'test', repo: 'test'}}, bucket: 256}), /Invalid review bucket/);
 });
@@ -441,7 +441,168 @@ test('embedded discovery and bucket scripts execute their configured entry point
   const core = {setOutput: (key, value) => {output[key] = value;}};
   const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
   const context = {repo: {owner: 'test', repo: 'test'}};
-  for (const script of scripts) await new AsyncFunction('require', 'github', 'context', 'core', 'process', script)(loader, {}, context, core, {env: {REVIEW_BUCKET: '11'}});
-  assert.deepEqual(JSON.parse(output.targets), [11, 12]);
-  assert.equal(calls.length, 1); assert.equal(calls[0].bucket, 11); assert.equal(calls[0].context, context);
+  for (const script of scripts) await new AsyncFunction('require', 'github', 'context', 'core', 'process', script)(loader, {}, context, core, {env: {REVIEW_BUCKET: '3'}});
+  assert.deepEqual(JSON.parse(output.targets), [3, 4]);
+  assert.equal(calls.length, 1); assert.equal(calls[0].bucket, 3); assert.equal(calls[0].context, context);
 });
+
+for (const body of ['tests fail', 'validation did not pass', 'tests not passed', 'validation unsuccessful', 'tests failed but passed earlier']) {
+  test(`negative validation statement is rejected: ${body}`, () => {
+    const {affirmativeValidation} = require('./review-gate.cjs');
+    assert.equal(affirmativeValidation(`Fixed in ${fixed}; ${body}.`), false);
+  });
+}
+test('affirmative validation requires a result, not a subject word', () => {
+  const {affirmativeValidation} = require('./review-gate.cjs');
+  assert.equal(affirmativeValidation('Tests pending.'), false);
+  assert.equal(affirmativeValidation('All 35 regression tests passed.'), true);
+  assert.equal(affirmativeValidation('Validation passes.'), true);
+});
+test('unrelated issue comments and formal reviews cannot change evidence snapshots', () => {
+  const {relevantComments, relevantReviews} = require('./review-gate.cjs');
+  const trusted = {user: {login: `${reviewer}[bot]`}, body: 'Summary'};
+  assert.deepEqual(relevantComments([trusted, {user: {login: 'outsider'}, body: 'Churn'}]), [trusted]);
+  assert.deepEqual(relevantComments([trusted, {user: {login: 'outsider'}, body: 'Edited churn'}]), [trusted]);
+  assert.deepEqual(relevantReviews([trusted, {user: {login: 'outsider'}, state: 'COMMENTED'}]), [trusted]);
+});
+test('ancestry comparison verifies evidence beyond 250 PR commits without listing history', async () => {
+  const {fetchCommitEvidence} = require('./review-gate.cjs');
+  const github = {rest: {repos: {compareCommitsWithBasehead: async ({basehead}) => {
+    assert.equal(basehead, `${fixed.slice(0, 7)}...${head}`);
+    return {data: {status: 'ahead', ahead_by: 300, base_commit: {sha: fixed}, merge_base_commit: {sha: fixed}}};
+  }}}};
+  const evidence = await fetchCommitEvidence({github, owner: 'test', repo: 'test', head, resolver: 'maintainer', threads: [],
+    comments: [{body: `Validation passed for ${fixed.slice(0, 7)}.`}]});
+  assert.deepEqual(evidence.commits, [head, fixed]); assert.equal(evidence.commitProof[fixed.slice(0, 7)], fixed);
+});
+test('ambiguous abbreviations and non-ancestor commits cannot be evidence', async () => {
+  const {fetchCommitEvidence} = require('./review-gate.cjs');
+  const github = {rest: {repos: {compareCommitsWithBasehead: async ({basehead}) => {
+    if (basehead.startsWith('ccccccc')) throw Object.assign(new Error('ambiguous'), {status: 422});
+    return {data: {status: 'diverged', base_commit: {sha: fixed}, merge_base_commit: {sha: 'd'.repeat(40)}}};
+  }}}};
+  const evidence = await fetchCommitEvidence({github, owner: 'test', repo: 'test', head, resolver: 'maintainer', threads: [],
+    comments: [{body: `Validation passed for ccccccc and ${fixed.slice(0, 7)}.`}]});
+  assert.deepEqual(evidence.commits, [head]);
+  assert.equal(evidence.commitProof.ccccccc, undefined);
+  const input = baseline(); input.reviews = []; input.commits = [head]; input.commitProof = evidence.commitProof;
+  input.comments = [{user: {login: reviewer}, body: `**Reviewed commit:** \`${head.slice(0, 10)}\``}];
+  assert.match(assess(input).join(' '), /Configured review/);
+});
+
+test('trusted workflow searches are separate from unrelated repository runs', async () => {
+  const {fetchWorkflowRuns} = require('./review-gate.cjs');
+  const requested = [];
+  const github = {rest: {actions: {listWorkflowRuns: async ({workflow_id}) => {
+    requested.push(workflow_id); return {data: {workflow_runs: baseline().runs.filter(run => run.workflow_id === workflow_id)}};
+  }}}};
+  const {data} = await fetchWorkflowRuns({github, owner: 'test', repo: 'test', head, workflows: [{id: 1}, {id: 2}]});
+  assert.deepEqual(requested, [1, 2]); assert.deepEqual(data.workflow_runs, baseline().runs);
+});
+
+test('bulk validation of 257 PRs stays below the installation REST budget', async () => {
+  const {preparePullRequests, bucketTargets, runBucket} = require('./review-gate.cjs');
+  let requests = 0;
+  const prs = Array.from({length: 257}, (_, i) => ({number: i + 1}));
+  const methods = {list: Symbol('list'), reviews: Symbol('reviews'), comments: Symbol('comments'), commits: Symbol('commits')};
+  const github = {rest: {
+    pulls: {list: methods.list, listReviews: methods.reviews, get: async () => {requests++; return {data: {state: 'open', head: {sha: head}}};}},
+    issues: {listComments: methods.comments},
+    repos: {compareCommitsWithBasehead: async ({basehead}) => {requests++; const sha = basehead.startsWith(head.slice(0, 10)) ? head : fixed; return {data: {status: sha === head ? 'identical' : 'ahead', base_commit: {sha}, merge_base_commit: {sha}}};}, listCommits: methods.commits, get: async () => {requests++; return {data: {default_branch: 'main'}};}},
+    actions: {getWorkflow: async ({workflow_id}) => {requests++; return {data: {id: workflow_id === 'ci.yml' ? 1 : 2}};},
+      listWorkflowRuns: async ({workflow_id}) => {requests++; return {data: {workflow_runs: baseline().runs.filter(run => run.workflow_id === workflow_id)}};}},
+    checks: {create: async () => {requests++; return {data: {id: 42}};}, update: async () => {requests++;}}
+  }, paginate: async method => {
+    requests += method === methods.list ? 3 : 1;
+    if (method === methods.list) return prs;
+    if (method === methods.reviews) return baseline().reviews;
+    if (method === methods.comments) return [{user: {login: reviewer}, body: `**Reviewed commit:** \`${head.slice(0, 10)}\``}];
+    if (method === methods.commits) return [{sha: head}];
+    assert.fail('Unexpected pagination');
+  }, graphql: async () => ({repository: {pullRequest: {reviewThreads: {nodes: [], pageInfo: {hasNextPage: false}}},
+    ...Object.fromEntries(Array.from({length: 7}, (_, i) => [[`trusted${i}`, {__typename: 'Blob', oid: fixed}], [`proposed${i}`, {__typename: 'Blob', oid: fixed}]]).flat())}})};
+  const context = {repo: {owner: 'test', repo: 'test'}, eventName: 'push', payload: {}};
+  const targets = await preparePullRequests({github, context});
+  const buckets = bucketTargets(targets); assert.equal(buckets.length, 8);
+  for (const bucket of buckets) await runBucket({github: {...github}, context, bucket});
+  assert.ok(requests < 5000, `${requests} requests exceed the installation budget`);
+});
+
+const mergerPolicy = {publisher_app_id: 5218906, trusted_mergers_ruleset_id: 24627093};
+const nativePolicy = () => ({policy: mergerPolicy, repository: {permissions: {admin: true}},
+  protection: {enforce_admins: {enabled: true}, required_conversation_resolution: {enabled: true}, required_status_checks: {checks: [{context: 'review-evidence', app_id: mergerPolicy.publisher_app_id}]}},
+  ruleset: {enforcement: 'active', conditions: {ref_name: {include: ['refs/heads/main'], exclude: []}}, rules: [{type: 'update'}],
+    bypass_actors: [{actor_type: 'RepositoryRole', actor_id: 5, bypass_mode: 'pull_request'}]}});
+
+test('trusted merger requires native administrator-only PR update restriction', () => {
+  const {assertTrustedPolicy} = require('./merge-reviewed-pr.cjs');
+  assert.doesNotThrow(() => assertTrustedPolicy(nativePolicy()));
+  for (const mutation of [input => {input.repository.permissions.admin = false;}, input => {input.protection.enforce_admins.enabled = false;},
+    input => {input.protection.required_conversation_resolution.enabled = false;}, input => {input.protection.required_status_checks.checks[0].app_id = 15368;},
+    input => {input.ruleset.bypass_actors.push({actor_type: 'RepositoryRole', actor_id: 3, bypass_mode: 'pull_request'});},
+    input => {input.ruleset.bypass_actors[0].bypass_mode = 'always';}, input => {input.ruleset.enforcement = 'disabled';}]) {
+    const input = nativePolicy(); mutation(input); assert.throws(() => assertTrustedPolicy(input));
+  }
+});
+test('a same-named Actions check cannot satisfy the trusted merger', () => {
+  const {assertAppCheck} = require('./merge-reviewed-pr.cjs');
+  const genuine = {id: 1, name: 'review-evidence', app: {id: mergerPolicy.publisher_app_id}, status: 'completed', conclusion: 'success'};
+  const spoof = {...genuine, id: 10, app: {id: 15368}};
+  assert.throws(() => assertAppCheck([spoof], mergerPolicy.publisher_app_id));
+  assert.doesNotThrow(() => assertAppCheck([genuine, spoof], mergerPolicy.publisher_app_id));
+  assert.throws(() => assertAppCheck([genuine, {...genuine, id: 11, status: 'in_progress', conclusion: null}], mergerPolicy.publisher_app_id));
+});
+test('trusted merger rejects queued failed or missing final-head CI', () => {
+  const {assertCI} = require('./merge-reviewed-pr.cjs');
+  const workflows = {CI: {id: 1}, Security: {id: 2}};
+  assert.doesNotThrow(() => assertCI(baseline().runs, workflows));
+  for (const state of ['queued', 'failure']) {
+    const runs = baseline().runs; runs[0] = {...runs[0], status: state === 'queued' ? state : 'completed', conclusion: state};
+    assert.throws(() => assertCI(runs, workflows));
+  }
+  assert.throws(() => assertCI([], workflows));
+});
+test('cached success cannot skip live pre-merge assessment', async () => {
+  const {mergeReviewedPR} = require('./merge-reviewed-pr.cjs');
+  const input = nativePolicy(); let merged = false;
+  const github = {rest: {repos: {get: async () => ({data: input.repository})}, pulls: {get: async () => ({data: {state: 'open', base: {ref: 'main'}, head: {sha: head}}})}}};
+  const api = async suffix => suffix.includes('protection') ? input.protection : suffix.includes('rulesets') ? input.ruleset
+    : [{id: 1, name: 'review-evidence', app: {id: mergerPolicy.publisher_app_id}, status: 'completed', conclusion: 'success'}];
+  await assert.rejects(mergeReviewedPR({github, context: {repo: {owner: 'test', repo: 'test'}}, number: 1, api, policy: mergerPolicy,
+    validate: async () => {throw new Error('Evidence was edited after cached success');}, merge: async () => {merged = true;}}), /Evidence was edited/);
+  assert.equal(merged, false);
+});
+
+test('mixed failed and passed validation statements remain blocking', () => {
+  const {affirmativeValidation} = require('./review-gate.cjs');
+  assert.equal(affirmativeValidation('Tests failed. Other regression tests passed.'), false);
+  assert.equal(affirmativeValidation('Validation did not pass. Unit tests passed.'), false);
+});
+
+test('gh adapter resolves commit ancestry using the comparison endpoint', async () => {
+  const {createGhAdapter} = require('./merge-reviewed-pr.cjs');
+  const calls = [];
+  const {github} = createGhAdapter('test/project', args => {calls.push(args); return {status: 'ahead'};});
+  await github.rest.repos.compareCommitsWithBasehead({basehead: `${fixed}...${head}`});
+  assert.deepEqual(calls, [['api', `repos/test/project/compare/${fixed}...${head}`]]);
+});
+
+for (const moved of [false, true]) {
+  test(`live merger ${moved ? 'rejects a moved head' : 'validates before merging the exact head'}`, async () => {
+    const {mergeReviewedPR} = require('./merge-reviewed-pr.cjs');
+    const input = nativePolicy(); let reads = 0; let validated = false; let merged = null;
+    const github = {rest: {
+      repos: {get: async () => ({data: input.repository})},
+      pulls: {get: async () => ({data: {state: 'open', base: {ref: 'main'}, head: {sha: ++reads > 1 && moved ? fixed : head}}})},
+      actions: {getWorkflow: async ({workflow_id}) => ({data: {id: workflow_id === 'ci.yml' ? 1 : 2}}),
+        listWorkflowRuns: async ({workflow_id}) => ({data: {workflow_runs: baseline().runs.filter(run => run.workflow_id === workflow_id)}})}
+    }};
+    const api = async suffix => suffix.includes('protection') ? input.protection : suffix.includes('rulesets') ? input.ruleset
+      : [{id: 1, name: 'review-evidence', app: {id: mergerPolicy.publisher_app_id}, status: 'completed', conclusion: 'success'}];
+    const operation = mergeReviewedPR({github, context: {repo: {owner: 'test', repo: 'test'}}, number: 1, api, policy: mergerPolicy,
+      validate: async ({github: live}) => {validated = true; await live.rest.checks.update({conclusion: 'success'});},
+      merge: async sha => {assert.equal(validated, true); merged = sha;}});
+    if (moved) {await assert.rejects(operation, /head moved/); assert.equal(merged, null);}
+    else {assert.equal(await operation, head); assert.equal(merged, head);}
+  });
+}
