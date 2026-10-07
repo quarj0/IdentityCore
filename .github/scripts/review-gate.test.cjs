@@ -520,7 +520,7 @@ for (const fork of [false, true]) test(`bulk validation of 257 ${fork ? 'fork' :
     repos: {compareCommitsWithBasehead: async ({basehead}) => {requests++; const sha = basehead.startsWith(head.slice(0, 10)) ? head : fixed; return {data: {status: sha === head ? 'identical' : 'ahead', base_commit: {sha}, merge_base_commit: {sha}}};}, listCommits: methods.commits, get: async () => {requests++; return {data: {default_branch: 'main'}};}},
     actions: {getWorkflow: async ({workflow_id}) => {requests++; return {data: {id: workflow_id === 'ci.yml' ? 1 : 2}};},
       downloadWorkflowRunAttemptLogs: async ({run_id}) => {requests++; const number = Math.floor(run_id / 10); const label = run_id % 10 === 1 ? 'CI' : 'Security'; return {data: proofArchive({number, head, base: 'main', run_id, run_attempt: 1}, {label})};},
-      listWorkflowRuns: async ({workflow_id}) => {requests++; return {data: {workflow_runs: baseline().runs.filter(run => run.workflow_id === workflow_id).map(run => ({...run, id: currentNumber * 10 + workflow_id, run_attempt: 1, pull_requests: fork ? [] : [{number: currentNumber, base: {ref: 'main'}, head: {sha: head}}]}))}};}},
+      listWorkflowRuns: async ({workflow_id, event}) => {requests++; return {data: {workflow_runs: baseline().runs.filter(run => run.workflow_id === workflow_id && run.event === event).map(run => ({...run, id: currentNumber * 10 + workflow_id, run_attempt: 1, pull_requests: fork ? [] : [{number: currentNumber, base: {ref: 'main'}, head: {sha: head}}]}))}};}},
     checks: {create: async () => {requests++; return {data: {id: 42}};}, update: async () => {requests++;}}
   }, paginate: async method => {
     requests += method === methods.list ? 3 : 1;
@@ -973,4 +973,44 @@ test('guard recovers a successful creation whose API response was lost', async (
   };
   await assert.rejects(withMainMergeGuard({api, number: 1, operation: async () => {operated = true;}}), /response lost/);
   assert.equal(removed, true); assert.equal(operated, false);
+});
+
+test('fork partial reruns preserve proof from the originating attempt of the same run', async () => {
+  const {fetchTargetReceipt} = require('./review-gate.cjs'); const attempts = [];
+  const run = {...forkRun(), run_attempt: 3};
+  const github = {rest: {actions: {downloadWorkflowRunAttemptLogs: async ({attempt_number}) => {
+    attempts.push(attempt_number);
+    return {data: attempt_number === 1 ? proofArchive({...forkProof(), run_attempt: 1}) : proofArchive(forkProof(), {folder: 'frontend'})};
+  }}}};
+  const args = {github, owner: 'owner', repo: 'repo', run, workflow: baseline().trustedWorkflows.CI};
+  const proof = await fetchTargetReceipt(args); assert.equal(proof.run_attempt, 1); assert.equal(proof.base, 'main');
+  assert.deepEqual(attempts, [3, 2, 1]); assert.deepEqual(await fetchTargetReceipt(args), proof); assert.deepEqual(attempts, [3, 2, 1]);
+});
+test('fork rerun fallback cannot ignore corrupt conflicting or duplicate current proof', async () => {
+  const {fetchTargetReceipt} = require('./review-gate.cjs');
+  for (const value of ['corrupt', 'conflicting', 'duplicate']) {
+    const attempts=[]; const run={...forkRun(),run_attempt:3};
+    const github={rest:{actions:{downloadWorkflowRunAttemptLogs:async ({attempt_number})=>{
+      attempts.push(attempt_number);return {data:value==='corrupt'?Buffer.alloc(0):proofArchive({...forkProof(),run_attempt:value==='conflicting'?2:3},{duplicate:value==='duplicate'})};
+    }}}};
+    await assert.rejects(fetchTargetReceipt({github,owner:'owner',repo:'repo',run,workflow:baseline().trustedWorkflows.CI})); assert.deepEqual(attempts,[3]);
+  }
+});
+
+test('superseded fork runs with unusable proof cannot veto newer verified CI', async () => {
+  const {fetchWorkflowRuns}=require('./review-gate.cjs');const args={owner:'owner',repo:'repo',head,target:{number:1,head,baseRef:'main'},workflows:[baseline().trustedWorkflows.CI]};
+  const old={...forkRun(),id:43,conclusion:'cancelled',updated_at:'2026-10-07T00:00:00Z'};
+  const newest={...forkRun(),updated_at:'2026-10-07T01:00:00Z'};
+  const github={rest:{actions:{listWorkflowRuns:async ({event})=>({data:{workflow_runs:event==='pull_request'?[old,newest]:[]}}),downloadWorkflowRunAttemptLogs:async ({run_id})=>({data:run_id===43?proofArchive(forkProof(),{folder:'frontend'}):proofArchive(forkProof())})}}};
+  const input=baseline();input.runs=[...(await fetchWorkflowRuns({github,...args})).data.workflow_runs,input.runs[1]];
+  assert.deepEqual(assess(input),[]);assert.doesNotThrow(()=>require('./merge-reviewed-pr.cjs').assertCI(input.runs,input.trustedWorkflows,head));
+  input.runs[0].updated_at='2026-10-07T02:00:00Z';assert.match(assess(input).join(' '),/CI has not passed/);
+  assert.throws(()=>require('./merge-reviewed-pr.cjs').assertCI(input.runs,input.trustedWorkflows,head));
+});
+test('fork log authorization and collection errors remain blocking', async () => {
+  const {fetchWorkflowRuns}=require('./review-gate.cjs');
+  for(const status of [403,429,500]) {
+    const github={rest:{actions:{listWorkflowRuns:async ({event})=>({data:{workflow_runs:event==='pull_request'?[forkRun()]:[]}}),downloadWorkflowRunAttemptLogs:async ()=>{const error=new Error('collection unavailable');error.status=status;throw error;}}}};
+    await assert.rejects(fetchWorkflowRuns({github,owner:'owner',repo:'repo',head,target:{number:1,head,baseRef:'main'},workflows:[baseline().trustedWorkflows.CI]}),/collection unavailable/);
+  }
 });
