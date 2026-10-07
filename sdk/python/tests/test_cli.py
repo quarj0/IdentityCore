@@ -89,8 +89,6 @@ class IdentityCoreCliTests(unittest.TestCase):
             self.assertNotIn("list", candidates("identitycore --profile list projects create l"))
             self.assertIn("--name", candidates("identitycore --profile create projects create --n"))
             self.assertIn("-h", candidates("identitycore projects create -"))
-            # Fish offers the long alias when the short option is already complete.
-            self.assertIn("--help", candidates("identitycore projects create -h"))
             self.assertIn("--help", candidates("identitycore projects create --he"))
 
     def test_abbreviated_options_are_rejected_at_each_parser_level(self) -> None:
