@@ -522,7 +522,8 @@ for (const fork of [false, true]) test(`bulk validation of 257 ${fork ? 'fork' :
       downloadWorkflowRunAttemptLogs: async ({run_id}) => {requests++; const number = Math.floor(run_id / 10); const label = run_id % 10 === 1 ? 'CI' : 'Security'; return {data: proofArchive({number, head, base: 'main', run_id, run_attempt: 1}, {label})};},
       listWorkflowRuns: async ({workflow_id, event}) => {requests++; return {data: {workflow_runs: baseline().runs.filter(run => run.workflow_id === workflow_id && run.event === event).map(run => ({...run, id: currentNumber * 10 + workflow_id, run_attempt: 1, pull_requests: fork ? [] : [{number: currentNumber, base: {ref: 'main'}, head: {sha: head}}]}))}};}},
     checks: {create: async () => {requests++; return {data: {id: 42}};}, update: async () => {requests++;}}
-  }, paginate: async method => {
+  }, paginate: async (method, params) => {
+    if (params.pull_number) currentNumber = params.pull_number;
     requests += method === methods.list ? 3 : 1;
     if (method === methods.list) return prs;
     if (method === methods.reviews) return baseline().reviews;
@@ -1013,4 +1014,43 @@ test('fork log authorization and collection errors remain blocking', async () =>
     const github={rest:{actions:{listWorkflowRuns:async ({event})=>({data:{workflow_runs:event==='pull_request'?[forkRun()]:[]}}),downloadWorkflowRunAttemptLogs:async ()=>{const error=new Error('collection unavailable');error.status=status;throw error;}}}};
     await assert.rejects(fetchWorkflowRuns({github,owner:'owner',repo:'repo',head,target:{number:1,head,baseRef:'main'},workflows:[baseline().trustedWorkflows.CI]}),/collection unavailable/);
   }
+});
+
+for (const followup of ['Integration skipped.', 'Integration omitted.', 'Integration disabled.', 'Integration remains red.', 'Deployment not executed.', 'Integration deferred.', 'Validation outstanding.', 'A component had issues.']) {
+  test(`standalone canonical evidence rejects arbitrary follow-up: ${followup}`, () => {
+    const {affirmativeValidation}=require('./review-gate.cjs');
+    assert.equal(affirmativeValidation(`Fixed in ${fixed}. All 123 gate regression tests passed. ${followup}`),false);
+  });
+}
+test('standalone disposition grammar accepts the current neutral fixing reference',()=>{
+ const {affirmativeValidation}=require('./review-gate.cjs');
+ assert.equal(affirmativeValidation(`Current fixing code and preceding implementation evidence confirmed at ${head}. Validation: all 123 gate regression tests passed.`),true);
+});
+
+test('bucket invalidates all selected current heads before collecting any PR evidence',async()=>{
+ const {runBucket}=require('./review-gate.cjs');const list=Symbol('list'),reviews=Symbol('reviews');const events=[];
+ const github={rest:{pulls:{list,listReviews:reviews,get:async({pull_number})=>({data:{state:'open',head:{sha:head},number:pull_number}})},checks:{create:async({head_sha})=>{events.push('pending');return {data:{id:events.length}};},update:async()=>events.push('failed')}},paginate:async method=>{
+  if(method===list)return [{number:11},{number:267},{number:12}];
+  assert.deepEqual(events.slice(0,2),['pending','pending']);events.push('assessed');throw new Error('synthetic assessment error');
+ }};
+ await assert.rejects(runBucket({github,context:{repo:{owner:'test',repo:'test'}},bucket:3}),/synthetic assessment error/);
+ assert.equal(events.filter(event=>event==='pending').length,2);assert.equal(events.filter(event=>event==='failed').length,2);
+});
+test('bucket initialization errors complete every already-created pending check as failure',async()=>{
+ const {runBucket}=require('./review-gate.cjs');const list=Symbol('list');const completed=[];
+ const github={rest:{pulls:{list,get:async({pull_number})=>{if(pull_number===267)throw new Error('invalidation failed');return {data:{state:'open',head:{sha:head}}};}},checks:{create:async()=>({data:{id:42}}),update:async update=>completed.push(update)}},paginate:async()=>[{number:11},{number:267}]};
+ await assert.rejects(runBucket({github,context:{repo:{owner:'test',repo:'test'}},bucket:3}),/invalidation failed/);
+ assert.equal(completed.length,1);assert.equal(completed[0].check_run_id,42);assert.equal(completed[0].conclusion,'failure');
+});
+test('protected approval revoked during the final CI fetch blocks merge',async()=>{
+ const {mergeReviewedPR}=require('./merge-reviewed-pr.cjs');const input=nativePolicy();let assessments=0,revoked=false,merged=false;
+ const approval=JSON.stringify({base:fixed,expires_at:new Date(Date.now()+3600000).toISOString(),heads:{[head]:['.github/scripts/review-gate.cjs']}});
+ const github={rest:{repos:{get:async()=>({data:input.repository}),getBranch:async()=>({data:{commit:{sha:fixed}}}),compareCommitsWithBasehead:async()=>({data:{status:'ahead',base_commit:{sha:fixed},merge_base_commit:{sha:fixed}}})},pulls:{get:async()=>({data:{state:'open',base:{ref:'main'},head:{sha:head}}})},actions:{getWorkflow:async({workflow_id})=>({data:{id:workflow_id==='ci.yml'?1:2}}),listWorkflowRuns:async({workflow_id,event})=>{if(assessments===2)revoked=true;return {data:{workflow_runs:baseline().runs.filter(run=>run.workflow_id===workflow_id&&run.event===event)}};}}}};
+ const api=mockGuardAPI(async suffix=>{
+  if(suffix.includes('protection'))return input.protection;if(suffix.includes('rulesets'))return input.ruleset;
+  if(suffix.includes('REVIEW_GATE_APPROVED_UPDATES'))return {value:revoked?'':approval};if(suffix.includes('REVIEW_GATE_RESOLVER_LOGIN'))return {value:'test'};
+  return [{id:1,name:'review-evidence',app:{id:mergerPolicy.publisher_app_id},status:'completed',conclusion:'success'}];
+ });
+ await assert.rejects(mergeReviewedPR({github,context:{repo:{owner:'test',repo:'test'}},number:1,api,policy:mergerPolicy,validate:async({github:live})=>{assessments++;await live.rest.checks.update({conclusion:'success'});},merge:async()=>{merged=true;}}),/approval changed during final validation/);
+ assert.equal(assessments,2);assert.equal(merged,false);
 });

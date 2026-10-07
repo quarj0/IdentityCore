@@ -114,6 +114,11 @@ async function mergeReviewedPR({ github, context, number, api, merge, validate =
     result = undefined;
     await validate({github: liveGithub, context: {...context, payload: {pull_request: {number}}}, approvedUpdates, resolverLogin});
     if (result?.conclusion !== 'success') throw new Error('Final live review evidence did not pass.');
+    const {data: finalRuns} = await fetchWorkflowRuns({github: liveGithub, owner, repo, head, target: {number, baseRef: pr.base.ref, head}, workflows: Object.values(workflows)});
+    assertCI(finalRuns.workflow_runs, workflows, head, {number, baseRef: pr.base.ref});
+    const {data: finalPR} = await github.rest.pulls.get({owner, repo, pull_number: number});
+    if (finalPR.state !== 'open' || finalPR.head.sha !== head || finalPR.base?.ref !== pr.base.ref) throw new Error('PR head moved during final live validation.');
+    if (merge) await verifyGuard();
     let currentResolver = owner;
     try { currentResolver = (await api('environments/review-evidence-publisher/variables/REVIEW_GATE_RESOLVER_LOGIN'))?.value || owner; }
     catch (error) { if (error.status !== 404) throw error; }
@@ -125,11 +130,7 @@ async function mergeReviewedPR({ github, context, number, api, merge, validate =
       if (JSON.parse(approvedUpdates).base !== base) throw new Error('Protected update approval base moved during final validation.');
       await verifyApprovedDefinitionPaths({github, owner, repo, manifest: currentApproval, head, base});
     }
-    const {data: finalRuns} = await fetchWorkflowRuns({github: liveGithub, owner, repo, head, target: {number, baseRef: pr.base.ref, head}, workflows: Object.values(workflows)});
-    assertCI(finalRuns.workflow_runs, workflows, head, {number, baseRef: pr.base.ref});
-    const {data: finalPR} = await github.rest.pulls.get({owner, repo, pull_number: number});
-    if (finalPR.state !== 'open' || finalPR.head.sha !== head || finalPR.base?.ref !== pr.base.ref) throw new Error('PR head moved during final live validation.');
-    if (merge) {await verifyGuard(); await merge(head);}
+    if (merge) await merge(head);
   };
   if (merge) await withMainMergeGuard({api, number, operation: finalAssessment, record: guardRecord});
   else await finalAssessment();
