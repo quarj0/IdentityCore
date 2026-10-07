@@ -7,11 +7,13 @@ const relevantComments = comments => comments.filter(comment => isEvidenceReview
 const relevantReviews = reviews => reviews.filter(review => isEvidenceReviewer(review.user));
 
 function affirmativeValidation(body) {
-  body = body.replace(/\b(\w+)n['’]t\b/gi, '$1 not');
-  const clauses = body.split(/[.!?\n;:]+/);
-  if (clauses.some(clause => /^\s*(?:except|excluding|partial(?:ly)?|incomplete|but|however|only|not|none|no|zero)\b/i.test(clause))) return false;
-  if (clauses.some(clause => /\b(fail|fails|failed|failing|failure|failures|not|never|unable|incomplete|pending|unverified|unsuccessful|cannot|no|none|zero|0|partial|partially|except|exception|exceptions)\b/i.test(clause))) return false;
-  return clauses.some(clause => /^\s*(?:all\s+)?(?:[1-9]\d*\s+)?(?:(?:gate|regression|unit|integration|e2e|targeted|frontend|backend|sdk|live|smoke|added|new)\s+)*(?:tests?|validation)(?:\s+(?:have|has))?\s+(?:pass(?:ed|es)?|(?:was|were|is|are)\s+successful|successful(?:ly)?)\s*$/i.test(clause));
+  const clauses = body.split(/[.!?\n;:]+/).map(clause => clause.trim()).filter(Boolean);
+  const positive = /^(?:all\s+)?(?:[1-9]\d*\s+)?(?:(?:gate|regression|unit|integration|e2e|targeted|frontend|backend|sdk|live|smoke|added|new)\s+)*(?:tests?|validation)(?:\s+(?:have|has))?\s+(?:pass(?:ed|es)?|(?:was|were|is|are)\s+successful|successful(?:ly)?)$/i;
+  const fixingCommit = /^(?:(?:fixed|superseded|inapplicable) in|current (?:fix|fixing code) and preceding implementation evidence confirmed at) [0-9a-f]{7,40}$/i;
+  // Evidence is a standalone claim. Additional prose belongs in an earlier reply;
+  // accepting arbitrary follow-ups makes a vocabulary blacklist bypassable.
+  return clauses.some(clause => positive.test(clause)) &&
+    clauses.every(clause => positive.test(clause) || fixingCommit.test(clause) || /^validation$/i.test(clause));
 }
 
 function approvedDefinitionPaths({manifest, head, base, now = Date.now()}) {
@@ -286,20 +288,20 @@ async function definitionMatches({ github, owner, repo, head, defaultBranch }) {
   }));
 }
 
-async function run({ github, context, resolverLogin, approvedUpdates = process.env.REVIEW_GATE_APPROVED_UPDATES || '' }) {
+async function run({ github, context, prepared, resolverLogin, approvedUpdates = process.env.REVIEW_GATE_APPROVED_UPDATES || '' }) {
   const { owner, repo } = context.repo;
   const number = context.payload.pull_request?.number ||
     (context.payload.issue?.pull_request ? context.payload.issue.number : undefined) ||
     context.payload.workflow_run?.pull_requests?.[0]?.number ||
     Number(context.payload.inputs?.pr_number);
   if (!number) throw new Error('A pull-request number is required.');
-  const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: number });
+  const pr = prepared?.pr || (await github.rest.pulls.get({ owner, repo, pull_number: number })).data;
   if (pr.state !== 'open') return;
   // This function runs inside the per-PR workflow lock. Fetch its current head
   // here so discovery ordering cannot leave a newer head check orphaned.
   const head = pr.head.sha;
   const resolver = resolverLogin || process.env.REVIEW_GATE_RESOLVER_LOGIN || owner;
-  const pendingCheck = (await github.rest.checks.create({ owner, repo, head_sha: head,
+  const pendingCheck = prepared?.pendingCheck || (await github.rest.checks.create({ owner, repo, head_sha: head,
     name: 'review-evidence', status: 'in_progress',
     output: { title: 'Review evidence validation in progress', summary: `Revalidating mutable evidence for ${head}.` }
   })).data;
@@ -392,12 +394,28 @@ async function runBucket({ github, context, bucket }) {
   // Refresh the whole stable bucket after taking its lock. A newer individual
   // event can replace a queued bulk job without dropping another PR's validation.
   const prs = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
-  const failures = [];
-  for (const pr of prs.filter(pr => pr.number % BUCKET_COUNT === bucket)) {
+  // Invalidate every selected current head before any serial evidence collection.
+  // Keep the fresh PR read and pending check together under this bucket's lock.
+  const initialized = await Promise.allSettled(prs.filter(pr => pr.number % BUCKET_COUNT === bucket).map(async target => {
+    const pr = (await github.rest.pulls.get({owner, repo, pull_number: target.number})).data;
+    if (pr.state !== 'open') return null;
+    const pendingCheck = (await github.rest.checks.create({owner, repo, head_sha: pr.head.sha,
+      name: 'review-evidence', status: 'in_progress',
+      output: {title: 'Review evidence validation in progress', summary: `Revalidating mutable evidence for ${pr.head.sha}.`}
+    })).data;
+    return {number: target.number, pr, pendingCheck};
+  }));
+  const failures = initialized.filter(result => result.status === 'rejected').map(result => result.reason.message);
+  const ready = initialized.filter(result => result.status === 'fulfilled' && result.value).map(result => result.value);
+  if (failures.length) {
+    await Promise.all(ready.map(prepared => github.rest.checks.update({owner, repo, check_run_id: prepared.pendingCheck.id,
+      status: 'completed', conclusion: 'failure', output: {title: 'Bucket invalidation failed', summary: 'Retry after all selected heads can be invalidated.'}
+    })));
+  } else for (const prepared of ready) {
     try {
-      await run({ github, context: { ...context, payload: { pull_request: { number: pr.number } } } });
+      await run({ github, prepared, context: { ...context, payload: { pull_request: { number: prepared.number } } } });
     } catch (error) {
-      failures.push(`#${pr.number}: ${error.message}`);
+      failures.push(`#${prepared.number}: ${error.message}`);
     }
   }
   if (failures.length) throw new Error(failures.join('\n'));
