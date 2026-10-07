@@ -665,7 +665,7 @@ for (const moved of [false, true]) {
     const github = {rest: {
       pulls: {get: async () => ({data: {state: 'open', head: {sha: head}}}), listReviews: methods.reviews},
       issues: {listComments: methods.comments},
-      repos: {get: async () => ({data: {default_branch: 'main'}}), getBranch: async () => ({data: {commit: {sha: ++reads > 1 && moved ? head : fixed}}})},
+      repos: {compareCommitsWithBasehead: async () => ({data: {status: 'ahead', base_commit: {sha: fixed}, merge_base_commit: {sha: fixed}}}), get: async () => ({data: {default_branch: 'main'}}), getBranch: async () => ({data: {commit: {sha: ++reads > 1 && moved ? head : fixed}}})},
       actions: {getWorkflow: async ({workflow_id}) => ({data: {id: workflow_id === 'ci.yml' ? 1 : 2}}),
         listWorkflowRuns: async ({workflow_id}) => ({data: {workflow_runs: baseline().runs.filter(run => run.workflow_id === workflow_id)}})},
       checks: {create: async () => ({data: {id: 1}}), update: async result => {conclusion = result.conclusion;}}
@@ -725,3 +725,41 @@ test('live merger reads the configured resolver from the protected environment',
     validate: async ({github: live, resolverLogin}) => {resolvers.push(resolverLogin); await live.rest.checks.update({conclusion: 'success'});}});
   assert.deepEqual(resolvers, ['other-maintainer', 'other-maintainer']);
 });
+
+for (const status of ['ahead', 'identical', 'diverged', 'behind']) {
+  test(`governed definition approval verifies base ancestry: ${status}`, async () => {
+    const {verifyApprovedDefinitionPaths} = require('./review-gate.cjs');
+    const manifest = JSON.stringify({base: fixed, expires_at: new Date(Date.now() + 3600000).toISOString(), heads: {[head]: ['.github/scripts/review-gate.cjs']}});
+    const github = {rest: {repos: {compareCommitsWithBasehead: async ({basehead}) => {
+      assert.equal(basehead, `${fixed}...${head}`);
+      return {data: {status, base_commit: {sha: fixed}, merge_base_commit: {sha: ['ahead', 'identical'].includes(status) ? fixed : head}}};
+    }}}};
+    const operation = verifyApprovedDefinitionPaths({github, owner: 'test', repo: 'test', manifest, head, base: fixed});
+    if (['ahead', 'identical'].includes(status)) assert.equal((await operation).size, 1);
+    else await assert.rejects(operation, /must be an ancestor/);
+  });
+}
+for (const state of ['revoked', 'expired', 'base-moved']) {
+  test(`final validation rejects a protected approval that is ${state}`, async () => {
+    const {mergeReviewedPR} = require('./merge-reviewed-pr.cjs');
+    const input = nativePolicy(); let assessments = 0; let merged = false;
+    const approval = {base: fixed, expires_at: new Date(Date.now() + 3600000).toISOString(), heads: {[head]: ['.github/scripts/review-gate.cjs']}};
+    const manifest = JSON.stringify(approval);
+    const github = {rest: {
+      repos: {get: async () => ({data: input.repository}), getBranch: async () => ({data: {commit: {sha: state === 'base-moved' ? head : fixed}}})},
+      pulls: {get: async () => ({data: {state: 'open', base: {ref: 'main'}, head: {sha: head}}})},
+      actions: {getWorkflow: async ({workflow_id}) => ({data: {id: workflow_id === 'ci.yml' ? 1 : 2}}),
+        listWorkflowRuns: async ({workflow_id}) => ({data: {workflow_runs: baseline().runs.filter(run => run.workflow_id === workflow_id)}})}
+    }};
+    const api = async suffix => suffix.includes('protection') ? input.protection : suffix.includes('rulesets') ? input.ruleset
+      : suffix.endsWith('/REVIEW_GATE_APPROVED_UPDATES') ? {value: assessments === 2 && state === 'revoked' ? '' : manifest}
+      : [{id: 1, name: 'review-evidence', app: {id: mergerPolicy.publisher_app_id}, status: 'completed', conclusion: 'success'}];
+    const originalNow = Date.now;
+    try { await assert.rejects(mergeReviewedPR({github, context: {repo: {owner: 'test', repo: 'test'}}, number: 1, api, policy: mergerPolicy,
+      validate: async ({github: live}) => {
+        if (++assessments === 2 && state === 'expired') {const parsed = JSON.parse(manifest); Date.now = () => Date.parse(parsed.expires_at) + 1;}
+        await live.rest.checks.update({conclusion: 'success'});
+      }, merge: async () => {merged = true;}})); } finally {Date.now = originalNow;}
+    assert.equal(assessments, 2); assert.equal(merged, false);
+  });
+}
