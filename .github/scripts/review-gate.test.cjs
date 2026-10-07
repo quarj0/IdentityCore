@@ -1,3 +1,11 @@
+function mockGuardAPI(original) {
+  let guard;
+  return async (suffix, field, options) => {
+    if (suffix === 'rulesets' && options?.method === 'POST') return guard = {...options.body, id: 999};
+    if (suffix === 'rulesets/999') {if (options?.method === 'DELETE') {guard = undefined; return;} return guard;}
+    return original(suffix, field, options);
+  };
+}
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { assess } = require('./review-gate.cjs');
@@ -284,7 +292,7 @@ test('bulk discovery never publishes checks outside the per-PR lock', async () =
     if (pull_number === 11) throw new Error('synthetic discovery failure');
     return {data: {state: 'open'}};
   };
-  await assert.rejects(preparePullRequests({github, context}), /synthetic discovery failure/);
+  assert.deepEqual(await preparePullRequests({github, context}), [{number: 11}, {number: 12}]);
 });
 
 test('all workflow-associated PRs are discovered and duplicate numbers are removed', async () => {
@@ -293,7 +301,7 @@ test('all workflow-associated PRs are discovered and duplicate numbers are remov
     checks: {create: async () => ({data: {id: 1}})}}};
   const targets = await preparePullRequests({github, context: {repo: {owner: 'test', repo: 'test'},
     eventName: 'workflow_run', payload: {workflow_run: {pull_requests: [{number: 11}, {number: 12}, {number: 11}, {number: 13}]}}}});
-  assert.deepEqual(targets.map(target => target.number), [11, 12]);
+  assert.deepEqual(targets.map(target => target.number), [11, 12, 13]);
 });
 
 test('bulk and individual assessments use the same per-PR concurrency group', () => {
@@ -501,7 +509,7 @@ test('trusted workflow searches are separate from unrelated repository runs', as
   assert.deepEqual(requested, [[1, 'pull_request'], [1, 'push'], [2, 'pull_request'], [2, 'push']]); assert.deepEqual(data.workflow_runs, baseline().runs);
 });
 
-test('bulk validation of 257 PRs stays below the installation REST budget', async () => {
+for (const fork of [false, true]) test(`bulk validation of 257 ${fork ? 'fork' : 'associated'} PRs stays below the installation REST budget`, async () => {
   const {preparePullRequests, bucketTargets, runBucket} = require('./review-gate.cjs');
   let requests = 0; let currentNumber = 1;
   const prs = Array.from({length: 257}, (_, i) => ({number: i + 1}));
@@ -511,7 +519,8 @@ test('bulk validation of 257 PRs stays below the installation REST budget', asyn
     issues: {listComments: methods.comments},
     repos: {compareCommitsWithBasehead: async ({basehead}) => {requests++; const sha = basehead.startsWith(head.slice(0, 10)) ? head : fixed; return {data: {status: sha === head ? 'identical' : 'ahead', base_commit: {sha}, merge_base_commit: {sha}}};}, listCommits: methods.commits, get: async () => {requests++; return {data: {default_branch: 'main'}};}},
     actions: {getWorkflow: async ({workflow_id}) => {requests++; return {data: {id: workflow_id === 'ci.yml' ? 1 : 2}};},
-      listWorkflowRuns: async ({workflow_id}) => {requests++; return {data: {workflow_runs: baseline().runs.filter(run => run.workflow_id === workflow_id).map(run => ({...run, pull_requests: [{number: currentNumber, base: {ref: 'main'}, head: {sha: head}}]}))}};}},
+      downloadWorkflowRunAttemptLogs: async ({run_id}) => {requests++; const number = Math.floor(run_id / 10); const label = run_id % 10 === 1 ? 'CI' : 'Security'; return {data: proofArchive({number, head, base: 'main', run_id, run_attempt: 1}, {label})};},
+      listWorkflowRuns: async ({workflow_id}) => {requests++; return {data: {workflow_runs: baseline().runs.filter(run => run.workflow_id === workflow_id).map(run => ({...run, id: currentNumber * 10 + workflow_id, run_attempt: 1, pull_requests: fork ? [] : [{number: currentNumber, base: {ref: 'main'}, head: {sha: head}}]}))}};}},
     checks: {create: async () => {requests++; return {data: {id: 42}};}, update: async () => {requests++;}}
   }, paginate: async method => {
     requests += method === methods.list ? 3 : 1;
@@ -567,8 +576,8 @@ test('cached success cannot skip live pre-merge assessment', async () => {
   const {mergeReviewedPR} = require('./merge-reviewed-pr.cjs');
   const input = nativePolicy(); let merged = false;
   const github = {rest: {repos: {get: async () => ({data: input.repository})}, pulls: {get: async () => ({data: {state: 'open', base: {ref: 'main'}, head: {sha: head}}})}}};
-  const api = async suffix => suffix.includes('protection') ? input.protection : suffix.includes('rulesets') ? input.ruleset
-    : [{id: 1, name: 'review-evidence', app: {id: mergerPolicy.publisher_app_id}, status: 'completed', conclusion: 'success'}];
+  const api = mockGuardAPI(async suffix => suffix.includes('protection') ? input.protection : suffix.includes('rulesets') ? input.ruleset
+    : [{id: 1, name: 'review-evidence', app: {id: mergerPolicy.publisher_app_id}, status: 'completed', conclusion: 'success'}]);
   await assert.rejects(mergeReviewedPR({github, context: {repo: {owner: 'test', repo: 'test'}}, number: 1, api, policy: mergerPolicy,
     validate: async () => {throw new Error('Evidence was edited after cached success');}, merge: async () => {merged = true;}}), /Evidence was edited/);
   assert.equal(merged, false);
@@ -598,8 +607,8 @@ for (const moved of [false, true]) {
       actions: {getWorkflow: async ({workflow_id}) => ({data: {id: workflow_id === 'ci.yml' ? 1 : 2}}),
         listWorkflowRuns: async ({workflow_id}) => ({data: {workflow_runs: baseline().runs.filter(run => run.workflow_id === workflow_id)}})}
     }};
-    const api = async suffix => suffix.includes('protection') ? input.protection : suffix.includes('rulesets') ? input.ruleset
-      : [{id: 1, name: 'review-evidence', app: {id: mergerPolicy.publisher_app_id}, status: 'completed', conclusion: 'success'}];
+    const api = mockGuardAPI(async suffix => suffix.includes('protection') ? input.protection : suffix.includes('rulesets') ? input.ruleset
+      : [{id: 1, name: 'review-evidence', app: {id: mergerPolicy.publisher_app_id}, status: 'completed', conclusion: 'success'}]);
     const operation = mergeReviewedPR({github, context: {repo: {owner: 'test', repo: 'test'}}, number: 1, api, policy: mergerPolicy,
       validate: async ({github: live}) => {validated = true; await live.rest.checks.update({conclusion: 'success'});},
       merge: async sha => {assert.equal(validated, true); merged = sha;}});
@@ -688,8 +697,8 @@ test('evidence edited during other merge preflights is collected again', async (
     actions: {getWorkflow: async ({workflow_id}) => ({data: {id: workflow_id === 'ci.yml' ? 1 : 2}}),
       listWorkflowRuns: async ({workflow_id}) => ({data: {workflow_runs: baseline().runs.filter(run => run.workflow_id === workflow_id)}})}
   }};
-  const api = async suffix => suffix.includes('protection') ? input.protection : suffix.includes('rulesets') ? input.ruleset
-    : [{id: 1, name: 'review-evidence', app: {id: mergerPolicy.publisher_app_id}, status: 'completed', conclusion: 'success'}];
+  const api = mockGuardAPI(async suffix => suffix.includes('protection') ? input.protection : suffix.includes('rulesets') ? input.ruleset
+    : [{id: 1, name: 'review-evidence', app: {id: mergerPolicy.publisher_app_id}, status: 'completed', conclusion: 'success'}]);
   await assert.rejects(mergeReviewedPR({github, context: {repo: {owner: 'test', repo: 'test'}}, number: 1, api, policy: mergerPolicy,
     validate: async ({github: live}) => {
       if (++assessments === 2) throw new Error('Mutable evidence edited during preflight');
@@ -719,9 +728,9 @@ test('live merger reads the configured resolver from the protected environment',
     actions: {getWorkflow: async ({workflow_id}) => ({data: {id: workflow_id === 'ci.yml' ? 1 : 2}}),
       listWorkflowRuns: async ({workflow_id}) => ({data: {workflow_runs: baseline().runs.filter(run => run.workflow_id === workflow_id)}})}
   }};
-  const api = async suffix => suffix.includes('protection') ? input.protection : suffix.includes('rulesets') ? input.ruleset
+  const api = mockGuardAPI(async suffix => suffix.includes('protection') ? input.protection : suffix.includes('rulesets') ? input.ruleset
     : suffix.endsWith('/REVIEW_GATE_RESOLVER_LOGIN') ? {value: 'other-maintainer'}
-    : [{id: 1, name: 'review-evidence', app: {id: mergerPolicy.publisher_app_id}, status: 'completed', conclusion: 'success'}];
+    : [{id: 1, name: 'review-evidence', app: {id: mergerPolicy.publisher_app_id}, status: 'completed', conclusion: 'success'}]);
   await mergeReviewedPR({github, context: {repo: {owner: 'test', repo: 'test'}}, number: 1, api, policy: mergerPolicy,
     validate: async ({github: live, resolverLogin}) => {resolvers.push(resolverLogin); await live.rest.checks.update({conclusion: 'success'});}});
   assert.deepEqual(resolvers, ['other-maintainer', 'other-maintainer']);
@@ -752,9 +761,9 @@ for (const state of ['revoked', 'expired', 'base-moved']) {
       actions: {getWorkflow: async ({workflow_id}) => ({data: {id: workflow_id === 'ci.yml' ? 1 : 2}}),
         listWorkflowRuns: async ({workflow_id}) => ({data: {workflow_runs: baseline().runs.filter(run => run.workflow_id === workflow_id)}})}
     }};
-    const api = async suffix => suffix.includes('protection') ? input.protection : suffix.includes('rulesets') ? input.ruleset
+    const api = mockGuardAPI(async suffix => suffix.includes('protection') ? input.protection : suffix.includes('rulesets') ? input.ruleset
       : suffix.endsWith('/REVIEW_GATE_APPROVED_UPDATES') ? {value: assessments === 2 && state === 'revoked' ? '' : manifest}
-      : [{id: 1, name: 'review-evidence', app: {id: mergerPolicy.publisher_app_id}, status: 'completed', conclusion: 'success'}];
+      : [{id: 1, name: 'review-evidence', app: {id: mergerPolicy.publisher_app_id}, status: 'completed', conclusion: 'success'}]);
     const originalNow = Date.now;
     try { await assert.rejects(mergeReviewedPR({github, context: {repo: {owner: 'test', repo: 'test'}}, number: 1, api, policy: mergerPolicy,
       validate: async ({github: live}) => {
@@ -794,8 +803,8 @@ test('a push CI rerun during final live assessment blocks merging', async () => 
         ...baseline().runs.filter(run => run.workflow_id === workflow_id),
         ...(assessments === 2 ? [{...baseline().runs[workflow_id - 1], id: 99, event: 'push', status: 'queued', conclusion: null}] : [])]}})}
   }};
-  const api = async suffix => suffix.includes('protection') ? input.protection : suffix.includes('rulesets') ? input.ruleset
-    : [{id: 1, name: 'review-evidence', app: {id: mergerPolicy.publisher_app_id}, status: 'completed', conclusion: 'success'}];
+  const api = mockGuardAPI(async suffix => suffix.includes('protection') ? input.protection : suffix.includes('rulesets') ? input.ruleset
+    : [{id: 1, name: 'review-evidence', app: {id: mergerPolicy.publisher_app_id}, status: 'completed', conclusion: 'success'}]);
   await assert.rejects(mergeReviewedPR({github, context: {repo: {owner: 'test', repo: 'test'}}, number: 1, api, policy: mergerPolicy,
     validate: async ({github: live}) => {assessments++; await live.rest.checks.update({conclusion: 'success'});},
     merge: async () => {merged = true;}}), /no active runs/);
@@ -843,7 +852,7 @@ for (const [file, job, name] of [['ci.yml', 'required-ci', 'CI required'], ['sec
   test(`${name} includes every workflow job and rejects any nonsuccess result`, () => {
     const fs = require('node:fs'); const path = require('node:path'); const {spawnSync} = require('node:child_process');
     const source = fs.readFileSync(path.join(__dirname, '../workflows', file), 'utf8');
-    const allJobs = [...source.matchAll(/^  ([a-z0-9-]+):$/gm)].map(match => match[1]).filter(value => value !== job);
+    const allJobs = [...source.split('\njobs:\n')[1].matchAll(/^  ([a-z0-9-]+):$/gm)].map(match => match[1]).filter(value => value !== job);
     const summary = source.slice(source.indexOf(`  ${job}:`));
     const needs = summary.match(/needs: \[([^\]]+)\]/)[1].split(',').map(value => value.trim());
     assert.deepEqual(needs.sort(), allJobs.sort()); assert.match(summary, /always\(\)/);
@@ -857,3 +866,111 @@ for (const [file, job, name] of [['ci.yml', 'required-ci', 'CI required'], ['sec
     assert.notEqual(empty.status, 0);
   });
 }
+
+function proofArchive(proof, {label = 'CI', folder, duplicate = false, compressed = true} = {}) {
+  const script = `import io,json,sys,zipfile
+p=json.loads(sys.argv[1]); out=io.BytesIO()
+with zipfile.ZipFile(out,'w',compression=zipfile.ZIP_DEFLATED if p['compressed'] else zipfile.ZIP_STORED) as z:
+ z.writestr(p['folder']+'/2_Record immutable PR target.txt','2026-10-07T00:00:00Z IDENTITYCORE_PR_TARGET '+json.dumps(p['proof'])+'\\n')
+ if p['duplicate']: z.writestr(p['folder']+'/3_Record immutable PR target.txt','IDENTITYCORE_PR_TARGET '+json.dumps(p['proof']))
+sys.stdout.buffer.write(out.getvalue())`;
+  const result = require('node:child_process').spawnSync('python', ['-c', script, JSON.stringify({proof, folder: folder || `${label} target proof`, duplicate, compressed})]);
+  assert.equal(result.status, 0, result.stderr.toString()); return result.stdout;
+}
+const forkProof = () => ({number: 1, head, base: 'main', head_repo: 'fork/repo', head_branch: 'change', run_id: 44, run_attempt: 2});
+const forkRun = () => ({...baseline().runs[0], id: 44, run_attempt: 2, pull_requests: []});
+test('fork CI proof binds the immutable event to run attempt and current PR target', () => {
+  const {targetReceiptFromArchive, isRunForPR} = require('./review-gate.cjs');
+  const run = forkRun(); run.pr_target_receipt = targetReceiptFromArchive(proofArchive(forkProof()), run, baseline().trustedWorkflows.CI);
+  assert.equal(isRunForPR(run, {number: 1, baseRef: 'main', head}), true);
+  assert.equal(isRunForPR(run, {number: 2, baseRef: 'main', head}), false);
+  assert.equal(isRunForPR(run, {number: 1, baseRef: 'dev', head}), false);
+  assert.equal(isRunForPR(run, {number: 1, baseRef: 'main', head: fixed}), false);
+  const input = baseline(); input.runs[0] = run; assert.deepEqual(assess(input), []);
+  assert.doesNotThrow(() => require('./merge-reviewed-pr.cjs').assertCI(input.runs, input.trustedWorkflows, head));
+});
+for (const options of [{folder: 'frontend'}, {duplicate: true}]) {
+  test('a receipt in another job or duplicated proof cannot authorize fork CI', () => {
+    const {targetReceiptFromArchive} = require('./review-gate.cjs');
+    assert.throws(() => targetReceiptFromArchive(proofArchive(forkProof(), options), forkRun(), baseline().trustedWorkflows.CI));
+  });
+}
+test('fork proof rejects altered run head attempt malformed ZIP and corrupt log', () => {
+  const {targetReceiptFromArchive} = require('./review-gate.cjs'); const workflow = baseline().trustedWorkflows.CI;
+  for (const change of [{head: fixed}, {run_id: 45}, {run_attempt: 1}]) {
+    assert.throws(() => targetReceiptFromArchive(proofArchive({...forkProof(), ...change}), forkRun(), workflow));
+  }
+  const archive = proofArchive(forkProof(), {compressed: false});
+  const location = archive.indexOf(Buffer.from('IDENTITYCORE_PR_TARGET')); archive[location] ^= 1;
+  assert.throws(() => targetReceiptFromArchive(archive, forkRun(), workflow), /checksum/);
+  assert.throws(() => targetReceiptFromArchive(Buffer.alloc(0), forkRun(), workflow));
+  assert.throws(() => targetReceiptFromArchive(Buffer.alloc(100), forkRun(), workflow));
+});
+test('completed fork run receipts are downloaded once across live snapshots and remote receipts are ignored', async () => {
+  const {fetchWorkflowRuns} = require('./review-gate.cjs'); let downloads = 0;
+  const archive = proofArchive(forkProof());
+  const github = {rest: {actions: {
+    listWorkflowRuns: async ({event}) => ({data: {workflow_runs: event === 'pull_request' ? [{...forkRun(), pr_target_receipt: {base: 'spoof'}}] : []}}),
+    downloadWorkflowRunAttemptLogs: async () => {downloads++; return {data: archive};}
+  }}};
+  const args = {github, owner: 'owner', repo: 'repo', head, target: {number: 1, baseRef: 'main', head}, workflows: [baseline().trustedWorkflows.CI]};
+  const first = await fetchWorkflowRuns(args); const second = await fetchWorkflowRuns(args);
+  assert.equal(downloads, 1); assert.equal(first.data.workflow_runs[0].pr_target_receipt.base, 'main'); assert.deepEqual(first, second);
+});
+test('an active fork run without association blocks older successful CI proof', () => {
+  const input = baseline(); input.runs.push({...forkRun(), status: 'queued', conclusion: null});
+  assert.match(assess(input).join(' '), /CI has not passed/);
+  assert.throws(() => require('./merge-reviewed-pr.cjs').assertCI(input.runs, input.trustedWorkflows, head), /still active/);
+});
+test('gh adapter downloads binary logs from the immutable run attempt endpoint', async () => {
+  const {createGhAdapter} = require('./merge-reviewed-pr.cjs'); const calls = []; const binary = Buffer.from('zip');
+  const {github} = createGhAdapter('owner/repo', () => assert.fail('JSON cannot decode logs'), args => {calls.push(args); return binary;});
+  assert.equal((await github.rest.actions.downloadWorkflowRunAttemptLogs({run_id: 44, attempt_number: 2})).data, binary);
+  assert.deepEqual(calls, [['api', 'repos/owner/repo/actions/runs/44/attempts/2/logs']]);
+});
+test('main merge guard applies to every nonmain branch with zero bypass actors and cleans up on merge errors', async () => {
+  const {withMainMergeGuard} = require('./merge-reviewed-pr.cjs');
+  for (const failed of [false, true]) {
+    let guard; let removed = false; const records = [];
+    const api = async (suffix, field, options) => {
+      if (options?.method === 'POST') {guard = {...options.body, id: 999}; return guard;}
+      if (options?.method === 'DELETE') {removed = true; return;}
+      return guard;
+    };
+    const task = withMainMergeGuard({api, number: 1, record: value => records.push(value), operation: async verify => {
+      assert.equal(removed, false); assert.deepEqual(guard.conditions.ref_name, {include: ['~ALL'], exclude: ['refs/heads/main']}); assert.deepEqual(guard.bypass_actors, []);
+      await verify(); if (failed) throw new Error('target retargeted'); return head;
+    }});
+    if (failed) await assert.rejects(task, /retargeted/); else assert.equal(await task, head);
+    assert.equal(removed, true); assert.deepEqual(records.map(record => record.phase), ['creating', 'active', 'removed']);
+  }
+});
+test('main merge guard rejects weakening during assessment and still removes its ruleset', async () => {
+  const {withMainMergeGuard} = require('./merge-reviewed-pr.cjs'); let guard; let removed = false;
+  const api = async (suffix, field, options) => {
+    if (options?.method === 'POST') return guard = {...options.body, id: 999};
+    if (options?.method === 'DELETE') {removed = true; return;}
+    return guard;
+  };
+  await assert.rejects(withMainMergeGuard({api, number: 1, operation: async verify => {guard.bypass_actors.push({actor_id: 5}); await verify();}}), /not enforced/);
+  assert.equal(removed, true);
+});
+test('guard cleanup failure reports the exact recovery ruleset', async () => {
+  const {withMainMergeGuard} = require('./merge-reviewed-pr.cjs'); let guard;
+  const api = async (suffix, field, options) => {
+    if (options?.method === 'POST') return guard = {...options.body, id: 999};
+    if (options?.method === 'DELETE') throw new Error('API unavailable');
+    return guard;
+  };
+  await assert.rejects(withMainMergeGuard({api, number: 1, operation: async () => head}), /delete repository ruleset 999/);
+});
+test('guard recovers a successful creation whose API response was lost', async () => {
+  const {withMainMergeGuard} = require('./merge-reviewed-pr.cjs'); let guard; let removed = false; let operated = false;
+  const api = async (suffix, field, options) => {
+    if (options?.method === 'POST') {guard = {...options.body, id: 999}; throw new Error('response lost');}
+    if (options?.method === 'DELETE') {removed = true; return;}
+    return suffix.startsWith('rulesets?') ? [guard] : guard;
+  };
+  await assert.rejects(withMainMergeGuard({api, number: 1, operation: async () => {operated = true;}}), /response lost/);
+  assert.equal(removed, true); assert.equal(operated, false);
+});
