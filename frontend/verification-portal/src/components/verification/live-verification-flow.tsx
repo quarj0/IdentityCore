@@ -95,6 +95,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
   const [consented, setConsented] = useState(false);
   const [withdrawn, setWithdrawn] = useState(false);
   const [confirmWithdrawal, setConfirmWithdrawal] = useState(false);
+  const [withdrawalError, setWithdrawalError] = useState<string | null>(null);
   const withdrawalStarted = useRef(false);
   const [busy, setBusy] = useState(false);
   const [busyMessage, setBusyMessage] = useState("Submitting securely…");
@@ -248,6 +249,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
   async function withdraw() {
     if (!credentials || !session || busy) return;
     withdrawalStarted.current = true;
+    setWithdrawalError(null);
     setBusy(true);
     setBusyMessage(translate(session.locale, "withdrawing"));
     setError(null);
@@ -262,7 +264,8 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
       clearSessionCredentials(credentials.sessionId);
     } catch (caught) {
       withdrawalStarted.current = false;
-      setError(messageOf(caught));
+      // Status polling must not erase the action failure before a retry.
+      setWithdrawalError(messageOf(caught));
     } finally {
       setBusy(false);
     }
@@ -1150,26 +1153,41 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
         />
       ) : null}
 
-      {!withdrawn && (status.withdrawal_available ?? [
-        "document_capture",
-        "document_processing",
-        "selfie_capture",
-        "liveness_check",
-        "processing",
-        "completed",
-        "failed",
-        "cancelled",
-      ].includes(step)) ? (
+      {!withdrawn &&
+      (status.withdrawal_available ??
+        [
+          "document_capture",
+          "document_processing",
+          "selfie_capture",
+          "liveness_check",
+          "processing",
+          "completed",
+          "failed",
+          "cancelled",
+        ].includes(step)) ? (
         <div className="mt-6 rounded-2xl border border-border p-4">
           {confirmWithdrawal ? (
             <>
               <p id="withdraw-explanation" className="mb-3 text-sm">
                 {translate(session.locale, "withdrawExplanation")}
               </p>
+              {withdrawalError ? (
+                <p
+                  id="withdraw-error"
+                  role="alert"
+                  className="mb-3 rounded-2xl bg-destructive/10 p-3 text-sm text-destructive"
+                >
+                  {localizeText(session.locale, withdrawalError)}
+                </p>
+              ) : null}
               <div className="flex flex-wrap gap-3">
                 <Button
                   disabled={busy}
-                  aria-describedby="withdraw-explanation"
+                  aria-describedby={
+                    withdrawalError
+                      ? "withdraw-explanation withdraw-error"
+                      : "withdraw-explanation"
+                  }
                   onClick={() => void withdraw()}
                 >
                   {translate(session.locale, "withdrawConfirm")}
@@ -1177,7 +1195,10 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
                 <Button
                   variant="outline"
                   disabled={busy}
-                  onClick={() => setConfirmWithdrawal(false)}
+                  onClick={() => {
+                    setWithdrawalError(null);
+                    setConfirmWithdrawal(false);
+                  }}
                 >
                   {translate(session.locale, "withdrawCancel")}
                 </Button>
