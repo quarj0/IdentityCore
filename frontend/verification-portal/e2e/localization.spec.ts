@@ -16,15 +16,11 @@ test("locale negotiation, formatting, RTL, and fallback are deterministic", asyn
   expect(resolveLocale("fr-CA, ar;q=0.7")).toBe("ar");
   expect(resolveLocale("fr-CA")).toBe("en");
   expect(direction(resolveLocale("ar"))).toBe("rtl");
-  expect(formatNumber("ar", 1234.5)).not.toBe(
-    formatNumber("en", 1234.5),
-  );
+  expect(formatNumber("ar", 1234.5)).not.toBe(formatNumber("en", 1234.5));
   expect(formatDate("ar", "2026-09-27")).not.toBe(
     formatDate("en", "2026-09-27"),
   );
-  expect(translate("fr", "consentTitle")).toBe(
-    translate("en", "consentTitle"),
-  );
+  expect(translate("fr", "consentTitle")).toBe(translate("en", "consentTitle"));
 });
 
 test("applicant language selection fetches matching consent and records its locale", async ({
@@ -45,7 +41,10 @@ test("applicant language selection fetches matching consent and records its loca
       path === `/api/verification/sessions/${sessionId}` &&
       method === "GET"
     ) {
-      const locale = request.headers()["accept-language"]?.toLowerCase().startsWith("ar")
+      const locale = request
+        .headers()
+        ["accept-language"]?.toLowerCase()
+        .startsWith("ar")
         ? "ar"
         : "en";
       const isArabic = locale === "ar";
@@ -113,6 +112,10 @@ test("applicant language selection fetches matching consent and records its loca
       .click();
   }
 
+  await page.getByRole("checkbox").check();
+  await expect(
+    page.getByRole("button", { name: "Accept and continue" }),
+  ).toBeEnabled();
   await page.locator("#applicant-language").selectOption("ar");
   await expect(page.locator("html")).toHaveAttribute("lang", "ar");
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
@@ -121,6 +124,10 @@ test("applicant language selection fetches matching consent and records its loca
   ).toBeVisible();
   await expect(page.getByText("أوافق على معالجة بيانات التحقق.")).toBeVisible();
 
+  await expect(page.getByRole("checkbox")).not.toBeChecked();
+  await expect(
+    page.getByRole("button", { name: "الموافقة والمتابعة" }),
+  ).toBeDisabled();
   await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "الموافقة والمتابعة" }).click();
   await expect.poll(() => consentPayload).not.toBeNull();

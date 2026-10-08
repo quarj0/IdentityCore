@@ -128,6 +128,7 @@ function json(route: Route, data: unknown, status = 200) {
 
 test("fragment handoff binds the source, clears the claim before sending, and resumes mobile", async ({
   page,
+  isMobile,
 }) => {
   const mobileId = "ses_mobile_claim";
   let redeemed = 0;
@@ -192,6 +193,13 @@ test("fragment handoff binds the source, clears the claim before sending, and re
     return route.abort("failed");
   });
   await page.goto(`/verify/${sessionId}#handoff=hnd_test.one-time-claim`);
+  await expect(page.getByText("Consent text", { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/verify/${mobileId}$`));
+  expect(redeemed).toBe(1);
+  await page.reload();
+  if (!isMobile) {
+    await page.getByRole("button", { name: "Continue on this computer" }).click();
+  }
   await expect(page.getByText("Consent text", { exact: true })).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`/verify/${mobileId}$`));
   expect(redeemed).toBe(1);

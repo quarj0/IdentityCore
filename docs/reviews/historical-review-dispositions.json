@@ -1227,10 +1227,13 @@
       "thread_id": "PRRT_kwDOTN0BU86ThUz0",
       "comment_id": 3644674543,
       "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts:automatic expiry and explicit replacement before camera permission"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Let users replace an expired challenge**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/29#discussion_r3644674543"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/29#discussion_r3644674543",
+      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
     },
     {
       "pr_number": 31,
@@ -1261,10 +1264,13 @@
       "thread_id": "PRRT_kwDOTN0BU86Thqhb",
       "comment_id": 3644802547,
       "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts:automatic expiry and explicit replacement before camera permission"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Allow users to replace an expired challenge**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/31#discussion_r3644802547"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/31#discussion_r3644802547",
+      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
     },
     {
       "pr_number": 32,
@@ -1811,10 +1817,13 @@
       "thread_id": "PRRT_kwDOTN0BU86TmspL",
       "comment_id": 3646657136,
       "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts:automatic expiry and explicit replacement before camera permission"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Let users replace expired live challenges**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/44#discussion_r3646657136"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/44#discussion_r3646657136",
+      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
     },
     {
       "pr_number": 44,
@@ -1841,10 +1850,13 @@
       "thread_id": "PRRT_kwDOTN0BU86Tmsse",
       "comment_id": 3646657424,
       "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts:automatic expiry and explicit replacement before camera permission"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Let users replace expired live challenges**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/44#discussion_r3646657424"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/44#discussion_r3646657424",
+      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
     },
     {
       "pr_number": 44,
@@ -2371,10 +2383,13 @@
       "thread_id": "PRRT_kwDOTN0BU86UYNDT",
       "comment_id": 3665042776,
       "path": "backend/django/apps/consent/migrations/0002_consentrecord_locale_and_hash.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "apps.consent.test_legacy_locale_migration:linked Arabic/French legacy metadata repaired; signed and fingerprinted notices unchanged"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Backfill locales for existing consent records**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665042776"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665042776",
+      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
     },
     {
       "pr_number": 70,
@@ -2391,10 +2406,13 @@
       "thread_id": "PRRT_kwDOTN0BU86UYNDY",
       "comment_id": 3665042782,
       "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts:passive instructions do not promise an active recorded challenge"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Render passive-specific liveness instructions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665042782"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665042782",
+      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
     },
     {
       "pr_number": 70,
@@ -2519,10 +2537,13 @@
       "thread_id": "PRRT_kwDOTN0BU86UYgp_",
       "comment_id": 3665156299,
       "path": "backend/django/apps/consent/migrations/0002_consentrecord_locale_and_hash.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "apps.consent.test_legacy_locale_migration:linked Arabic/French legacy metadata repaired; signed and fingerprinted notices unchanged"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Backfill locales for existing consent records**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156299"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156299",
+      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
     },
     {
       "pr_number": 71,
@@ -2539,10 +2560,13 @@
       "thread_id": "PRRT_kwDOTN0BU86UYgqH",
       "comment_id": 3665156311,
       "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts:passive instructions do not promise an active recorded challenge"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Hide active-challenge instructions in passive mode**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156311"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156311",
+      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
     },
     {
       "pr_number": 72,
