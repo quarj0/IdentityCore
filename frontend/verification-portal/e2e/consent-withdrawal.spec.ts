@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 
 const sessionId = "ses_withdrawal";
 
@@ -158,22 +158,27 @@ for (const locale of ["en", "ar"]) {
       await expect(
         page.getByRole("button", { name: withdraw, exact: true }),
       ).toHaveCount(0);
+      // Match mobile touch input: WebKit can focus without activating mouse clicks.
+      const activate = async (button: Locator) => {
+        if (isMobile) await button.tap();
+        else await button.click();
+      };
       await page.getByRole("checkbox").check();
-      await page
-        .getByRole("button", {
+      await activate(
+        page.getByRole("button", {
           name: locale === "ar" ? "الموافقة والمتابعة" : "Accept and continue",
-        })
-        .click();
-      await page.getByRole("button", { name: withdraw, exact: true }).click();
-      await page.getByRole("button", { name: keep }).click();
+        }),
+      );
+      await activate(page.getByRole("button", { name: withdraw, exact: true }));
+      await activate(page.getByRole("button", { name: keep }));
       expect(withdrawals).toBe(0);
-      await page.getByRole("button", { name: withdraw, exact: true }).click();
-      await page.getByRole("button", { name: confirm }).click();
+      await activate(page.getByRole("button", { name: withdraw, exact: true }));
+      await activate(page.getByRole("button", { name: confirm }));
       await expect(
         page.getByRole("alert").filter({ hasText: "Please retry withdrawal." }),
       ).toContainText("Please retry withdrawal.");
       expect(cleared).toBe(0);
-      await page.getByRole("button", { name: confirm }).click();
+      await activate(page.getByRole("button", { name: confirm }));
       await expect(
         page.getByRole("heading", {
           name: locale === "ar" ? "تم سحب الموافقة" : "Consent withdrawn",
