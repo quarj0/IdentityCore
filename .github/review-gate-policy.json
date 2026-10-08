@@ -1,0 +1,14 @@
+{
+  "publisher_app_id": 5218906,
+  "trusted_mergers_ruleset_id": 24627093,
+  "required_ci_checks": [
+    {
+      "context": "CI required",
+      "app_id": 15368
+    },
+    {
+      "context": "Security required",
+      "app_id": 15368
+    }
+  ]
+}

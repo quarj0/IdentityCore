@@ -3,8 +3,43 @@ name: CI
 on:
   push:
   pull_request:
+    types: [opened, synchronize, reopened, edited]
 
 jobs:
+  pr-target-proof:
+    name: CI target proof
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Record immutable PR target
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+          PR_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          python - <<'PYTHON'
+          import json, os
+          if os.environ["PR_NUMBER"]:
+              print("IDENTITYCORE_PR_TARGET " + json.dumps({
+                  "number": int(os.environ["PR_NUMBER"]), "head": os.environ["PR_HEAD"],
+                  "base": os.environ["PR_BASE"], "head_repo": os.environ["PR_REPO"],
+                  "head_branch": os.environ["PR_BRANCH"], "run_id": int(os.environ["RUN_ID"]),
+                  "run_attempt": int(os.environ["RUN_ATTEMPT"])}))
+          PYTHON
+
+  review-gate-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node .github/scripts/review-gate.test.cjs
+
   operational-alerts:
     runs-on: ubuntu-latest
     steps:
@@ -154,6 +189,14 @@ jobs:
       - name: Run platform-admin accessibility journeys
         run: pnpm --filter verification-portal exec playwright test --config=playwright.platform-admin.config.ts
         working-directory: frontend
+      - name: Upload browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-browser-failures-${{ github.run_attempt }}
+          path: frontend/verification-portal/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
       - run: docker build -f verification-portal/Dockerfile -t identitycore/verification-portal:ci .
         working-directory: frontend
 
@@ -305,3 +348,23 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m unittest discover -s scripts -p test_deployed_security.py
+
+  required-ci:
+    name: CI required
+    if: ${{ always() }}
+    needs: [pr-target-proof, review-gate-tests, operational-alerts, operational-restore, documentation, backend, backend-migrations, ai-service, frontend, sdks, java-sdk, dotnet-sdk, sdk-live-python, sdk-live-javascript, sdk-live-java, sdk-live-dotnet, deployment-health-fixtures, deployment-security-fixtures]
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Require every workflow job to succeed
+        env:
+          WORKFLOW_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python - <<'PY'
+          import json, os
+          results = json.loads(os.environ["WORKFLOW_RESULTS"])
+          blocked = [name for name, result in results.items() if result.get("result") != "success"]
+          if not results or blocked:
+              raise SystemExit("Required jobs did not succeed: " + ", ".join(blocked))
+          print("Every required workflow job succeeded.")
+          PY

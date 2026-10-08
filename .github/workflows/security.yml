@@ -3,6 +3,7 @@ name: Security
 on:
   push:
   pull_request:
+    types: [opened, synchronize, reopened, edited]
   workflow_dispatch:
   schedule:
     - cron: "23 4 * * 1"
@@ -11,6 +12,31 @@ permissions:
   contents: read
 
 jobs:
+  pr-target-proof:
+    name: Security target proof
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Record immutable PR target
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+          PR_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          python - <<'PYTHON'
+          import json, os
+          if os.environ["PR_NUMBER"]:
+              print("IDENTITYCORE_PR_TARGET " + json.dumps({
+                  "number": int(os.environ["PR_NUMBER"]), "head": os.environ["PR_HEAD"],
+                  "base": os.environ["PR_BASE"], "head_repo": os.environ["PR_REPO"],
+                  "head_branch": os.environ["PR_BRANCH"], "run_id": int(os.environ["RUN_ID"]),
+                  "run_attempt": int(os.environ["RUN_ATTEMPT"])}))
+          PYTHON
+
   repository-scan:
     name: Dependencies and secrets
     runs-on: ubuntu-latest
@@ -123,3 +149,23 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: 1
+
+  required-security:
+    name: Security required
+    if: ${{ always() }}
+    needs: [pr-target-proof, repository-scan, container-scan]
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Require every workflow job to succeed
+        env:
+          WORKFLOW_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python - <<'PY'
+          import json, os
+          results = json.loads(os.environ["WORKFLOW_RESULTS"])
+          blocked = [name for name, result in results.items() if result.get("result") != "success"]
+          if not results or blocked:
+              raise SystemExit("Required jobs did not succeed: " + ", ".join(blocked))
+          print("Every required workflow job succeeded.")
+          PY

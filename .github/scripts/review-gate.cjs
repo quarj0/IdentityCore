@@ -1,0 +1,489 @@
+const PROTECTED_PATHS = ['.github/scripts/review-gate.cjs', '.github/workflows/review-gate.yml', '.github/workflows/review-evidence-signal.yml', '.github/scripts/merge-reviewed-pr.cjs', '.github/review-gate-policy.json'];
+const REVIEWER = 'chatgpt-codex-connector';
+const BUCKET_COUNT = 8;
+const trustedMetadata = new WeakMap();
+const fixingRangeCache = new WeakMap();
+const isEvidenceReviewer = author => [REVIEWER, `${REVIEWER}[bot]`].includes(author?.login);
+const relevantComments = comments => comments.filter(comment => isEvidenceReviewer(comment.user));
+const relevantReviews = reviews => reviews.filter(review => isEvidenceReviewer(review.user));
+
+const FIXING_REFERENCE = /^(?:(?:fixed|superseded|inapplicable) in|current (?:fix|fixing code) and preceding implementation evidence confirmed at) ([0-9a-f]{7,40})$/i;
+function fixingReferences(body) {
+  return body.split(/[.!?\n;:]+/).map(clause => FIXING_REFERENCE.exec(clause.trim())?.[1]?.toLowerCase()).filter(Boolean);
+}
+
+function affirmativeValidation(body) {
+  const clauses = body.split(/[.!?\n;:]+/).map(clause => clause.trim()).filter(Boolean);
+  const positive = /^(?:all\s+)?(?:[1-9]\d*\s+)?(?:(?:gate|regression|unit|integration|e2e|targeted|frontend|backend|sdk|live|smoke|added|new)\s+)*(?:tests?|validation)(?:\s+(?:have|has))?\s+(?:pass(?:ed|es)?|(?:was|were|is|are)\s+successful|successful(?:ly)?)$/i;
+  const fixingCommit = FIXING_REFERENCE;
+  // Evidence is a standalone claim. Additional prose belongs in an earlier reply;
+  // accepting arbitrary follow-ups makes a vocabulary blacklist bypassable.
+  return fixingReferences(body).length <= 1 && clauses.some(clause => positive.test(clause)) &&
+    clauses.every(clause => positive.test(clause) || fixingCommit.test(clause) || /^validation$/i.test(clause));
+}
+
+function approvedDefinitionPaths({manifest, head, base, now = Date.now()}) {
+  if (!manifest) return new Set();
+  const approval = JSON.parse(manifest);
+  const expiry = Date.parse(approval.expires_at);
+  if (!/^[0-9a-f]{40}$/.test(approval.base || '') || !Number.isFinite(expiry) || expiry <= now || expiry > now + 86400000) throw new Error('Protected update approval requires a full base SHA and an expiry within 24 hours.');
+  if (approval.base !== base) return new Set();
+  const paths = approval.heads?.[head];
+  if (!paths) return new Set();
+  if (!/^[0-9a-f]{40}$/.test(head) || !Array.isArray(paths) || !paths.length || paths.some(path => !['.github/workflows/ci.yml', '.github/workflows/security.yml', ...PROTECTED_PATHS].includes(path))) throw new Error('Protected update approval must identify an exact head and known protected paths.');
+  return new Set(paths);
+}
+
+async function verifyApprovedDefinitionPaths({github, owner, repo, manifest, head, base}) {
+  const paths = approvedDefinitionPaths({manifest, head, base});
+  if (paths.size) {
+    const {data} = await github.rest.repos.compareCommitsWithBasehead({owner, repo, basehead: `${base}...${head}`});
+    if (!['ahead', 'identical'].includes(data.status) || data.base_commit?.sha !== base || data.merge_base_commit?.sha !== base) throw new Error('Approved main base must be an ancestor of the reviewed head.');
+  }
+  return paths;
+}
+
+function assess({ pullNumber, baseRef, head, reviewer, resolver, reviews, comments, threads, commits, commitProof, fixingCommitProof, runs, trustedWorkflows, protectedDefinitions }) {
+  const provenToken = token => commitProof ? commitProof[token] : commits.find(sha => sha.startsWith(token));
+  const provenFix = token => fixingCommitProof ? fixingCommitProof[token] : provenToken(token);
+  const isResolver = author => Boolean(resolver) && author?.login === resolver;
+  const isReviewer = author => author?.login === reviewer || author?.login === `${reviewer}[bot]`;
+  const finalReviews = reviews.filter(r => isReviewer(r.user) && r.commit_id === head);
+  let changesRequested = false;
+  for (const review of reviews.filter(r => isReviewer(r.user))) {
+    // COMMENTED does not clear a review decision. The API replaces the
+    // original state with DISMISSED when an authorized dismissal occurs.
+    if (review.state === 'CHANGES_REQUESTED') changesRequested = true;
+    if (review.state === 'APPROVED') changesRequested = false;
+  }
+  const blockingReview = changesRequested || finalReviews.some(r => r.state === 'PENDING');
+  const reviewed = !blockingReview && (reviews.some(r => isReviewer(r.user) && r.commit_id === head && ['APPROVED', 'COMMENTED'].includes(r.state)) ||
+    comments.some(c => isReviewer(c.user) && (
+      [...c.body.matchAll(/\*\*Reviewed commit:\*\*\s*`([0-9a-f]{10,40})`/g)].some(m => head.startsWith(m[1]) && provenToken(m[1]) === head) ||
+      (c.body.startsWith('<!-- codex-pull-request-review-summary -->') &&
+        [...c.body.matchAll(/^\|[^|\n]*\*\*Code Review\*\*[^|\n]*\|\s*✅\s*\*\*Completed\*\*[^|\n]*\|\s*`([0-9a-f]{7,40})`/gm)]
+          .some(m => head.startsWith(m[1]) && provenToken(m[1]) === head && commits.filter(sha => sha.startsWith(m[1])).length === 1))
+    )));
+  const problems = [];
+  const evidenceTimes = [];
+  for (const name of ['CI', 'Security']) {
+    const trusted = trustedWorkflows?.[name];
+    if (!trusted?.definitionMatches) problems.push(`${name} workflow definition differs from trusted default-branch content.`);
+    const candidates = runs.filter(r => trusted && r.workflow_id === trusted.id && typeof r.path === 'string' && r.path.split('@', 1)[0] === trusted.path && r.head_sha === head && r.event === 'pull_request' && (!baseRef || isRunForPR(r, {number: pullNumber, baseRef, head})));
+    const activity = run => Date.parse(run.updated_at || run.run_started_at || run.created_at) || 0;
+    const latest = candidates.sort((a, b) => activity(b) - activity(a) || b.id - a.id)[0];
+    if (runs.some(r => trusted && r.workflow_id === trusted.id && r.path?.split('@', 1)[0] === trusted.path && r.head_sha === head && r.event === 'pull_request' && !r.pull_requests?.length && (r.status !== 'completed' || (!r.pr_target_receipt && (!latest || activity(r) >= activity(latest))))) || candidates.some(r => r.status !== 'completed') || !latest || latest.conclusion !== 'success') problems.push(`${name} has not passed for the final head.`);
+  }
+  for (const path of PROTECTED_PATHS) {
+    if (!protectedDefinitions?.[path]) problems.push(`Protected review-gate definition differs: ${path}.`);
+  }
+  if (!reviewed) problems.push(`Configured review has not completed for ${head}.`);
+  for (const thread of threads) {
+    if (!thread.isResolved) {
+      problems.push(`Unresolved thread ${thread.id}.`);
+      continue;
+    }
+    const nodes = thread.comments.nodes;
+    const feedback = nodes.filter(c => !isResolver(c.author));
+    const feedbackTimes = feedback.map(c => Date.parse(c.updatedAt || c.createdAt));
+    const lastFeedback = Math.max(...feedbackTimes);
+    const dispositions = nodes.filter(c => isResolver(c.author));
+    const dispositionTimes = dispositions.map(c => Date.parse(c.updatedAt || c.createdAt));
+    const latestDisposition = Math.max(...dispositionTimes);
+    const evidence = feedbackTimes.length > 0 && feedbackTimes.every(Number.isFinite) &&
+      dispositionTimes.every(Number.isFinite) && dispositions.filter(c => Date.parse(c.updatedAt || c.createdAt) === latestDisposition).every(c =>
+      Date.parse(c.updatedAt || c.createdAt) === latestDisposition &&
+      latestDisposition > lastFeedback &&
+      affirmativeValidation(c.body) &&
+      fixingReferences(c.body).length === 1 && Boolean(provenFix(fixingReferences(c.body)[0]))
+    );
+    if (evidence && dispositions.length) evidenceTimes.push(latestDisposition);
+    if (!evidence || !dispositions.length) problems.push(`Resolved thread ${thread.id} has no fixing-commit and validation evidence from the trusted resolver.`);
+  }
+  if (reviewed && evidenceTimes.length) {
+    const completed = [
+      ...finalReviews.filter(r => ['APPROVED', 'COMMENTED'].includes(r.state)).map(r => Date.parse(r.submitted_at)),
+      ...comments.filter(c => isReviewer(c.user) && (
+        [...c.body.matchAll(/\*\*Reviewed commit:\*\*\s*`([0-9a-f]{10,40})`/g)].some(m => head.startsWith(m[1]) && provenToken(m[1]) === head) ||
+        (c.body.startsWith('<!-- codex-pull-request-review-summary -->') &&
+          [...c.body.matchAll(/^\|[^|\n]*\*\*Code Review\*\*[^|\n]*\|\s*✅\s*\*\*Completed\*\*[^|\n]*\|\s*`([0-9a-f]{7,40})`/gm)]
+            .some(m => head.startsWith(m[1]) && provenToken(m[1]) === head && commits.filter(sha => sha.startsWith(m[1])).length === 1))
+      )).map(c => Date.parse(c.updated_at || c.created_at))
+    ].filter(Number.isFinite);
+    if (!completed.some(time => time > Math.max(...evidenceTimes))) {
+      problems.push('Final-head review must complete after the latest resolver evidence.');
+    }
+  }
+  return problems;
+}
+
+async function fetchThreads(github, owner, repo, number) {
+  const threads = [];
+  let cursor = null;
+  do {
+    const data = await github.graphql(`query($owner:String!,$repo:String!,$number:Int!,$cursor:String) {
+      repository(owner:$owner,name:$repo) { pullRequest(number:$number) {
+        reviewThreads(first:100,after:$cursor) { pageInfo { hasNextPage endCursor }
+          nodes { id isResolved comments(first:100) { nodes { body createdAt updatedAt author { login } } pageInfo { hasNextPage } } }
+        }
+      } }
+    }`, { owner, repo, number, cursor });
+    const page = data.repository.pullRequest.reviewThreads;
+    threads.push(...page.nodes);
+    cursor = page.pageInfo.hasNextPage ? page.pageInfo.endCursor : null;
+  } while (cursor);
+  return threads;
+}
+
+const receiptCache = new WeakMap();
+function isRunForPR(run, {number, baseRef, head}) {
+  return run.pull_requests?.some(pr => pr.number === number && pr.base?.ref === baseRef && pr.head?.sha === head) ||
+    (run.pr_target_receipt?.number === number && run.pr_target_receipt?.base === baseRef && run.pr_target_receipt?.head === head);
+}
+
+// Read only the fixed proof job's step log. Never extract a PR-controlled ZIP path.
+function targetReceiptFromArchive(input, run, workflow) {
+  const {inflateRawSync} = require('node:zlib');
+  const zip = Buffer.from(input);
+  if (zip.length < 22 || zip.length > 64 * 1024 * 1024) throw new Error('Invalid target proof archive size.');
+  let end = zip.length - 22;
+  while (end >= Math.max(0, zip.length - 65557) && zip.readUInt32LE(end) !== 0x06054b50) end--;
+  if (end < 0 || zip.readUInt32LE(end) !== 0x06054b50 || end + 22 + zip.readUInt16LE(end + 20) !== zip.length ||
+      zip.readUInt16LE(end + 4) || zip.readUInt16LE(end + 6) || zip.readUInt16LE(end + 8) !== zip.readUInt16LE(end + 10)) throw new Error('Invalid target proof ZIP directory.');
+  const count = zip.readUInt16LE(end + 10), directory = zip.readUInt32LE(end + 16), size = zip.readUInt32LE(end + 12);
+  if (directory + size !== end || count === 65535) throw new Error('Unsupported target proof ZIP directory.');
+  const label = workflow.path === '.github/workflows/ci.yml' ? 'CI' : workflow.path === '.github/workflows/security.yml' ? 'Security' : null;
+  if (!label) throw new Error('Unknown target proof workflow.');
+  let cursor = directory; const matches = [];
+  for (let index = 0; index < count; index++) {
+    if (cursor + 46 > end || zip.readUInt32LE(cursor) !== 0x02014b50) throw new Error('Invalid target proof ZIP entry.');
+    const nameSize = zip.readUInt16LE(cursor + 28), extra = zip.readUInt16LE(cursor + 30), comment = zip.readUInt16LE(cursor + 32);
+    const next = cursor + 46 + nameSize + extra + comment;
+    if (next > end) throw new Error('Truncated target proof ZIP entry.');
+    const name = zip.subarray(cursor + 46, cursor + 46 + nameSize).toString('utf8');
+    if (name.startsWith(`${label} target proof/`) && /^\d+_Record immutable PR target\.txt$/.test(name.slice(`${label} target proof/`.length))) {
+      const flags = zip.readUInt16LE(cursor + 8), method = zip.readUInt16LE(cursor + 10), compressed = zip.readUInt32LE(cursor + 20), length = zip.readUInt32LE(cursor + 24), local = zip.readUInt32LE(cursor + 42);
+      if (flags & 1 || ![0, 8].includes(method) || length > 65536 || compressed > 65536 || local + 30 > directory || zip.readUInt32LE(local) !== 0x04034b50) throw new Error('Unsupported target proof ZIP entry.');
+      const localName = zip.readUInt16LE(local + 26), localExtra = zip.readUInt16LE(local + 28), start = local + 30 + localName + localExtra;
+      if (start + compressed > directory || zip.subarray(local + 30, local + 30 + localName).toString('utf8') !== name || zip.readUInt16LE(local + 8) !== method) throw new Error('Invalid target proof local entry.');
+      const bytes = zip.subarray(start, start + compressed);
+      const text = method === 8 ? inflateRawSync(bytes, {maxOutputLength: 65536}) : bytes;
+      if (text.length !== length) throw new Error('Invalid target proof log length.');
+      let crc = 0xffffffff;
+      for (const byte of text) {crc ^= byte; for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);}
+      if (((crc ^ 0xffffffff) >>> 0) !== zip.readUInt32LE(cursor + 16)) throw new Error('Invalid target proof log checksum.');
+      for (const line of text.toString('utf8').split('\n')) {
+        const match = line.match(/(?:^|\s)IDENTITYCORE_PR_TARGET (\{.*\})\s*$/);
+        if (match) matches.push(JSON.parse(match[1]));
+      }
+    }
+    cursor = next;
+  }
+  if (cursor !== end || matches.length > 1) throw new Error('A unique immutable PR target proof is required.');
+  if (!matches.length) {const error = new Error('The target proof job is absent from this attempt.'); error.code = 'TARGET_PROOF_MISSING'; throw error;}
+  const proof = matches[0];
+  if (!Number.isSafeInteger(proof.number) || proof.number <= 0 || proof.head !== run.head_sha || !proof.base ||
+      proof.run_id !== run.id || proof.run_attempt !== run.run_attempt) throw new Error('Target proof does not match its workflow run attempt.');
+  return proof;
+}
+
+async function fetchTargetReceipt({github, owner, repo, run, workflow}) {
+  let cache = receiptCache.get(github);
+  if (!cache) {cache = new Map(); receiptCache.set(github, cache);}
+  const getAttempt = attempt => {
+    const key = `${owner}/${repo}/${run.id}/${attempt}`;
+    if (!cache.has(key)) cache.set(key, (async () => {
+      const {data} = await github.rest.actions.downloadWorkflowRunAttemptLogs({owner, repo, run_id: run.id, attempt_number: attempt});
+      try {return targetReceiptFromArchive(data, {...run, run_attempt: attempt}, workflow);}
+      catch (error) {
+        // Partial reruns preserve the event but omit jobs that already succeeded.
+        // Only an absent proof permits a prior attempt; malformed or conflicting proof blocks.
+        if (error.code !== 'TARGET_PROOF_MISSING') {error.code = 'TARGET_PROOF_INVALID'; throw error;}
+        if (attempt <= 1) throw error;
+        return getAttempt(attempt - 1);
+      }
+    })());
+    return cache.get(key);
+  };
+  if (!Number.isSafeInteger(run.run_attempt) || run.run_attempt < 1) throw new Error('A valid workflow run attempt is required.');
+  return getAttempt(run.run_attempt);
+}
+
+async function fetchWorkflowRuns({ github, owner, repo, head, target, events = ['pull_request', 'push'], workflows = [{id: 'ci.yml'}, {id: 'security.yml'}] }) {
+  const runs = [];
+  for (const workflow of workflows) {
+    for (const event of events) {
+      for (let page = 1; page <= 10; page++) {
+        const {data} = await github.rest.actions.listWorkflowRuns({owner, repo, workflow_id: workflow.id, head_sha: head, event, per_page: 100, page});
+        // Sequential status queries cannot establish completeness across transitions.
+        if (data.total_count >= 1000 || (page === 10 && data.workflow_runs.length === 100)) throw new Error('Workflow history reached GitHub’s ceiling; complete history is required for merge evidence.');
+        for (const candidate of data.workflow_runs) {
+          const run = {...candidate}; delete run.pr_target_receipt;
+          if (target && event === 'pull_request' && !run.pull_requests?.length && run.status === 'completed' &&
+              run.head_sha === head && run.workflow_id === workflow.id && run.path?.split('@', 1)[0] === workflow.path) {
+            try {run.pr_target_receipt = await fetchTargetReceipt({github, owner, repo, run, workflow});}
+            catch (error) {
+              if (!['TARGET_PROOF_MISSING', 'TARGET_PROOF_INVALID'].includes(error.code) && error.status !== 404) throw error;
+            }
+          }
+          runs.push(run);
+        }
+        if (data.workflow_runs.length < 100) break;
+      }
+    }
+  }
+  return {data: {workflow_runs: runs}};
+}
+
+async function fetchCommitEvidence({ github, owner, repo, head, base, resolver, comments, threads }) {
+  const bodies = comments.map(comment => comment.body);
+  const fixingBodies = [];
+  for (const thread of threads) {
+    const dispositions = thread.comments.nodes.filter(comment => comment.author?.login === resolver);
+    const latest = Math.max(...dispositions.map(comment => Date.parse(comment.updatedAt || comment.createdAt)));
+    const latestBodies = dispositions.filter(comment => Date.parse(comment.updatedAt || comment.createdAt) === latest).map(comment => comment.body);
+    bodies.push(...latestBodies); fixingBodies.push(...latestBodies);
+  }
+  const tokens = [...new Set(bodies.flatMap(body => [...body.matchAll(/\b([0-9a-f]{7,40})\b/gi)].map(match => match[1].toLowerCase())))];
+  const commitProof = {[head]: head};
+  for (const token of tokens) {
+    if (token === head) continue;
+    try {
+      const {data} = await github.rest.repos.compareCommitsWithBasehead({owner, repo, basehead: `${token}...${head}`});
+      if (['ahead', 'identical'].includes(data.status) && data.base_commit?.sha?.startsWith(token) && data.merge_base_commit?.sha === data.base_commit.sha) commitProof[token] = data.base_commit.sha;
+    } catch (error) {
+      // Prose may contain a nonexistent or ambiguous hexadecimal identifier.
+      // Missing tokens cannot become evidence; collection/authorization failures fail closed.
+      if (![404, 422].includes(error.status)) throw error;
+    }
+  }
+  const fixingTokens = new Set(fixingBodies.flatMap(body => fixingReferences(body)));
+  const fixingCommitProof = {};
+  if (fixingTokens.size && !/^[0-9a-f]{40}$/.test(base || '')) throw new Error('Current PR base SHA is required for fixing evidence.');
+  let cache = fixingRangeCache.get(github);
+  if (!cache) {cache = new Map(); fixingRangeCache.set(github, cache);}
+  for (const token of fixingTokens) {
+    const sha = commitProof[token];
+    if (!sha || sha === base) continue;
+    const key = `${owner}/${repo}/${sha}/${base}`;
+    if (!cache.has(key)) cache.set(key, (async () => {
+      const {data} = await github.rest.repos.compareCommitsWithBasehead({owner, repo, basehead: `${sha}...${base}`});
+      return ['behind', 'diverged'].includes(data.status) && data.base_commit?.sha === sha &&
+        Boolean(data.merge_base_commit?.sha) && data.merge_base_commit.sha !== sha;
+    })());
+    if (await cache.get(key)) fixingCommitProof[token] = sha;
+  }
+  return {commits: [...new Set(Object.values(commitProof))], commitProof, fixingCommitProof};
+}
+
+async function metadata({ github, owner, repo }) {
+  let cache = trustedMetadata.get(github);
+  if (!cache) { cache = new Map(); trustedMetadata.set(github, cache); }
+  const key = `${owner}/${repo}`;
+  if (!cache.has(key)) cache.set(key, (async () => {
+    const [{data: repository}, {data: ci}, {data: security}] = await Promise.all([
+      github.rest.repos.get({owner, repo}),
+      github.rest.actions.getWorkflow({owner, repo, workflow_id: 'ci.yml'}),
+      github.rest.actions.getWorkflow({owner, repo, workflow_id: 'security.yml'})
+    ]);
+    return {repository, workflows: {CI: {id: ci.id, path: '.github/workflows/ci.yml'}, Security: {id: security.id, path: '.github/workflows/security.yml'}}};
+  })());
+  return cache.get(key);
+}
+
+async function definitionMatches({ github, owner, repo, head, defaultBranch }) {
+  const paths = ['.github/workflows/ci.yml', '.github/workflows/security.yml', ...PROTECTED_PATHS];
+  const variables = {owner, repo};
+  const declarations = ['$owner:String!', '$repo:String!'];
+  const objects = [];
+  paths.forEach((path, i) => {
+    for (const [kind, ref] of [['trusted', defaultBranch], ['proposed', head]]) {
+      const key = `${kind}${i}`;
+      variables[key] = `${ref}:${path}`;
+      declarations.push(`$${key}:String!`);
+      objects.push(`${key}:object(expression:$${key}) { __typename ... on Blob { oid } }`);
+    }
+  });
+  const data = await github.graphql(`query(${declarations.join(',')}) { repository(owner:$owner,name:$repo) { ${objects.join(' ')} } }`, variables);
+  return Object.fromEntries(paths.map((path, i) => {
+    const trusted = data.repository[`trusted${i}`];
+    const proposed = data.repository[`proposed${i}`];
+    return [path, trusted?.__typename === 'Blob' && proposed?.__typename === 'Blob' && trusted.oid === proposed.oid];
+  }));
+}
+
+async function run({ github, context, prepared, openPRs, resolverLogin, approvedUpdates = process.env.REVIEW_GATE_APPROVED_UPDATES || '' }) {
+  const { owner, repo } = context.repo;
+  const number = context.payload.pull_request?.number ||
+    (context.payload.issue?.pull_request ? context.payload.issue.number : undefined) ||
+    context.payload.workflow_run?.pull_requests?.[0]?.number ||
+    Number(context.payload.inputs?.pr_number);
+  if (!number) throw new Error('A pull-request number is required.');
+  // A prepared entry may have waited behind another PR's evidence collection.
+  // Refresh it under the same lock and invalidate any changed current head first.
+  if (!prepared?.pr?.head?.sha || !Number.isSafeInteger(prepared?.pendingCheck?.id)) prepared = undefined;
+  let pr, pendingCheck;
+  const begin = async current => (await github.rest.checks.create({owner, repo, head_sha: current.head.sha,
+    name: 'review-evidence', status: 'in_progress',
+    output: {title: 'Review evidence validation in progress', summary: `Revalidating mutable evidence for ${current.head.sha}.`}
+  })).data;
+  try {
+    pr = (await github.rest.pulls.get({owner, repo, pull_number: number})).data;
+    if (prepared && (pr.state !== 'open' || pr.head.sha !== prepared.pr.head.sha)) {
+      if (pr.state === 'open') pendingCheck = await begin(pr);
+      await github.rest.checks.update({owner, repo, check_run_id: prepared.pendingCheck.id, status: 'completed', conclusion: 'failure',
+        output: {title: 'Prepared PR changed', summary: 'The prepared head was superseded or closed before assessment.'}});
+    } else pendingCheck = prepared?.pendingCheck;
+    if (pr.state !== 'open') return;
+    pendingCheck ||= await begin(pr);
+  } catch (error) {
+    if (prepared) await github.rest.checks.update({owner, repo, check_run_id: prepared.pendingCheck.id, status: 'completed', conclusion: 'failure',
+      output: {title: 'Prepared PR refresh failed', summary: 'The live head could not be invalidated; retry assessment.'}});
+    if (pendingCheck && pendingCheck.id !== prepared?.pendingCheck.id) await github.rest.checks.update({owner, repo, check_run_id: pendingCheck.id, status: 'completed', conclusion: 'failure',
+      output: {title: 'Prepared PR refresh failed', summary: 'The assessment could not start; retry assessment.'}});
+    throw error;
+  }
+  const head = pr.head.sha;
+  const resolver = resolverLogin || process.env.REVIEW_GATE_RESOLVER_LOGIN || owner;
+  let completed = false;
+  try {
+  const openHeads = openPRs || await github.paginate(github.rest.pulls.list, {owner, repo, state: 'open', per_page: 100});
+  const sharesHead = prs => prs.some(other => other.number !== number && other.state !== 'closed' && other.head?.sha === head);
+  if (sharesHead(openHeads)) throw new Error('Another open PR shares this head; use a unique commit per open PR and revalidate.');
+  const reviews = relevantReviews(await github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number: number, per_page: 100 }));
+  const comments = relevantComments(await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number, per_page: 100 }));
+  const threads = await fetchThreads(github, owner, repo, number);
+  const {commits, commitProof, fixingCommitProof} = await fetchCommitEvidence({github, owner, repo, head, base: pr.base?.sha, resolver, comments, threads});
+  const {repository, workflows} = await metadata({github, owner, repo});
+  const matches = await definitionMatches({github, owner, repo, head, defaultBranch: repository.default_branch});
+  let approvedBase;
+  if (approvedUpdates) {
+    approvedBase = (await github.rest.repos.getBranch({owner, repo, branch: repository.default_branch})).data.commit.sha;
+    for (const path of await verifyApprovedDefinitionPaths({github, owner, repo, manifest: approvedUpdates, head, base: approvedBase})) matches[path] = true;
+  }
+  const trustedWorkflows = Object.fromEntries(Object.entries(workflows).map(([name, workflow]) => [name, {...workflow, definitionMatches: matches[workflow.path]}]));
+  const protectedDefinitions = Object.fromEntries(PROTECTED_PATHS.map(path => [path, matches[path]]));
+  const {data: workflowRuns} = await fetchWorkflowRuns({github, owner, repo, head, target: {number, baseRef: pr.base?.ref || 'main', head}, events: ['pull_request'], workflows: Object.values(workflows)});
+  const problems = assess({ pullNumber: number, baseRef: pr.base?.ref || 'main', head, resolver, commitProof, fixingCommitProof, trustedWorkflows, protectedDefinitions, runs: workflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews, comments, threads, commits });
+  if (threads.some(t => t.comments.pageInfo.hasNextPage)) problems.push('A thread exceeds the evidence page limit; review it explicitly.');
+  const [currentReviewsRaw, currentCommentsRaw, currentThreads, {data: current}, {data: currentWorkflowRuns}, currentOpenHeads] = await Promise.all([
+    github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number: number, per_page: 100 }),
+    github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number, per_page: 100 }),
+    fetchThreads(github, owner, repo, number),
+    github.rest.pulls.get({ owner, repo, pull_number: number }),
+    fetchWorkflowRuns({ github, owner, repo, head, target: {number, baseRef: pr.base?.ref || 'main', head}, events: ['pull_request'], workflows: Object.values(workflows) }),
+    github.paginate(github.rest.pulls.list, {owner, repo, state: 'open', per_page: 100})
+  ]);
+  if (sharesHead(currentOpenHeads)) problems.push('Another open PR shares this head; use a unique commit per open PR and revalidate.');
+  if (approvedBase) {
+    if ((await github.rest.repos.getBranch({owner, repo, branch: repository.default_branch})).data.commit.sha !== approvedBase) problems.push('Protected update approval base moved during validation.');
+    approvedDefinitionPaths({manifest: approvedUpdates, head, base: approvedBase});
+  }
+  const currentReviews = relevantReviews(currentReviewsRaw);
+  const currentComments = relevantComments(currentCommentsRaw);
+  if (JSON.stringify([reviews, comments, threads]) !== JSON.stringify([currentReviews, currentComments, currentThreads])) {
+    problems.push('Mutable review evidence changed during validation; rerun against a stable snapshot.');
+  }
+  problems.push(...assess({ pullNumber: number, baseRef: pr.base?.ref || 'main', head, resolver, commitProof, fixingCommitProof, trustedWorkflows, protectedDefinitions, runs: currentWorkflowRuns.workflow_runs, reviewer: 'chatgpt-codex-connector', reviews: currentReviews, comments: currentComments, threads: currentThreads, commits }));
+  if (current.base?.sha !== pr.base?.sha || (current.base?.ref || 'main') !== (pr.base?.ref || 'main')) problems.push('Pull-request base changed during validation.');
+  if (current.head.sha !== head) problems.push('Pull-request head moved during validation; rerun against its current head.');
+  await github.rest.checks.update({ owner, repo, check_run_id: pendingCheck.id, status: 'completed',
+    conclusion: problems.length ? 'failure' : 'success',
+    output: { title: problems.length ? 'Review evidence incomplete' : 'Final-head review evidence verified',
+      summary: problems.length ? problems.join('\n') : `Configured review completed for ${head}; every thread has commit and validation evidence.` }
+  });
+  completed = true;
+  if (problems.length) throw new Error(problems.join('\n'));
+  } catch (error) {
+    if (!completed) {
+      await github.rest.checks.update({ owner, repo, check_run_id: pendingCheck.id,
+        status: 'completed', conclusion: 'failure',
+        output: { title: 'Review evidence validation failed', summary: 'Evidence could not be collected or validated; retry the gate.' }
+      });
+    }
+    throw error;
+  }
+}
+
+async function preparePullRequests({ github, context }) {
+  const { owner, repo } = context.repo;
+  if (context.eventName === 'workflow_run' && context.payload.action && context.payload.action !== 'completed') return [];
+  const number = context.payload.pull_request?.number ||
+    (context.payload.issue?.pull_request ? context.payload.issue.number : undefined) ||
+    Number(context.payload.inputs?.pr_number);
+  let pullRequests;
+  if (context.eventName === 'push') {
+    pullRequests = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
+  } else if (context.eventName === 'workflow_run') {
+    pullRequests = context.payload.workflow_run.pull_requests || [];
+    if (!pullRequests.length && ['CI', 'Security', 'Review evidence signal'].includes(context.payload.workflow_run.name)) {
+      // Fork CI/Security runs and review signals can omit PR association metadata.
+      // Revalidate every open PR without trusting a PR-written artifact.
+      pullRequests = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
+      const activity = context.payload.workflow_run;
+      if (['CI', 'Security'].includes(activity.name) && /^[0-9a-f]{40}$/.test(activity.head_sha || '')) {
+        const heads = pullRequests.filter(pr => pr.head?.sha === activity.head_sha);
+        const source = heads.filter(pr => (!activity.head_repository?.id || pr.head?.repo?.id === activity.head_repository.id) &&
+          (!activity.head_branch || pr.head?.ref === activity.head_branch));
+        // Source metadata narrows discovery only; positive CI proof still binds the immutable event.
+        pullRequests = source.length ? source : heads;
+      }
+    }
+  } else {
+    if (!number) throw new Error('A pull-request number is required.');
+    pullRequests = [{ number }];
+  }
+  // Discovery only selects PR numbers. Check creation and current-head reads
+  // happen together inside the per-PR assessment lock.
+  return [...new Set(pullRequests.map(pr => pr.number))].map(number => ({number}));
+}
+
+function bucketTargets(targets) {
+  return [...new Set(targets.map(target => target.number % BUCKET_COUNT))].sort((a, b) => a - b);
+}
+
+async function runBucket({ github, context, bucket, retrySleep = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
+  if (!Number.isInteger(bucket) || bucket < 0 || bucket >= BUCKET_COUNT) throw new Error('Invalid review bucket.');
+  const { owner, repo } = context.repo;
+  // Refresh the whole stable bucket after taking its lock. A newer individual
+  // event can replace a queued bulk job without dropping another PR's validation.
+  const prs = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
+  // Invalidate listed heads before a fallible per-PR refresh. run() refreshes
+  // each prepared entry and invalidates a moved head before collecting evidence.
+  const initialized = await Promise.allSettled(prs.filter(pr => pr.number % BUCKET_COUNT === bucket).map(async target => {
+    if (!/^[0-9a-f]{40}$/.test(target.head?.sha || '')) throw new Error(`Missing discovered head for #${target.number}.`);
+    let pendingCheck;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        pendingCheck = (await github.rest.checks.create({owner, repo, head_sha: target.head.sha,
+          name: 'review-evidence', status: 'in_progress',
+          output: {title: 'Review evidence validation in progress', summary: `Revalidating mutable evidence for ${target.head.sha}.`}
+        })).data;
+        break;
+      } catch (error) {
+        if (attempt === 2) throw error;
+        const retryAfter = Number(error.response?.headers?.['retry-after']);
+        const reset = Number(error.response?.headers?.['x-ratelimit-reset']) * 1000 - Date.now();
+        const requested = retryAfter > 0 ? retryAfter * 1000 : reset > 0 ? reset : 1000 * 2 ** attempt;
+        await retrySleep(Math.min(45000, requested));
+      }
+    }
+    return {number: target.number, pr: {...target, state: 'open'}, pendingCheck};
+  }));
+  const failures = initialized.filter(result => result.status === 'rejected').map(result => result.reason.message);
+  const ready = initialized.filter(result => result.status === 'fulfilled' && result.value).map(result => result.value);
+  if (failures.length) {
+    await Promise.all(ready.map(prepared => github.rest.checks.update({owner, repo, check_run_id: prepared.pendingCheck.id,
+      status: 'completed', conclusion: 'failure', output: {title: 'Bucket invalidation failed', summary: 'Retry after all selected heads can be invalidated.'}
+    })));
+  } else for (const prepared of ready) {
+    try {
+      await run({ github, prepared, openPRs: prs, context: { ...context, payload: { pull_request: { number: prepared.number } } } });
+    } catch (error) {
+      failures.push(`#${prepared.number}: ${error.message}`);
+    }
+  }
+  if (failures.length) throw new Error(failures.join('\n'));
+}
+
+module.exports = { fixingReferences, isRunForPR, targetReceiptFromArchive, fetchTargetReceipt, verifyApprovedDefinitionPaths, approvedDefinitionPaths, assess, run, preparePullRequests, fetchWorkflowRuns, bucketTargets, runBucket, affirmativeValidation, fetchCommitEvidence, relevantComments, relevantReviews, definitionMatches, metadata };

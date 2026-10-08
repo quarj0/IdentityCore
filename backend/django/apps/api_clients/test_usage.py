@@ -206,19 +206,22 @@ class UsageRaceTests(TransactionTestCase):
             requests_per_month=4,
         )
         start = Barrier(12)
+        # Exercise one quota window even when worker scheduling crosses a minute.
+        reservation_time = timezone.now()
 
         def request():
             close_old_connections()
             try:
                 current = APIClient.objects.select_related("project").get(pk=client.pk)
                 start.wait(timeout=10)
-                return reserve_request(current)[0]
+                return reserve_request(current, now=reservation_time)[0]
             finally:
                 close_old_connections()
 
         with ThreadPoolExecutor(max_workers=12) as pool:
             values = list(pool.map(lambda _: request(), range(12)))
         self.assertEqual(sum(values), 4)
+        self.assertEqual(APIUsageBucket.objects.count(), 3)
         for bucket in APIUsageBucket.objects.all():
             self.assertEqual(bucket.accepted, 4)
             self.assertEqual(bucket.denied, 8)
