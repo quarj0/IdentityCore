@@ -532,7 +532,8 @@ for (const fork of [false, true]) test(`bulk validation of 257 ${fork ? 'fork' :
     assert.fail('Unexpected pagination');
   }, graphql: async () => ({repository: {pullRequest: {reviewThreads: {nodes: [], pageInfo: {hasNextPage: false}}},
     ...Object.fromEntries(Array.from({length: 7}, (_, i) => [[`trusted${i}`, {__typename: 'Blob', oid: fixed}], [`proposed${i}`, {__typename: 'Blob', oid: fixed}]]).flat())}})};
-  const context = {repo: {owner: 'test', repo: 'test'}, eventName: 'push', payload: {}};
+  // Actions Context exposes repo through a prototype getter, not an own field.
+  const context = Object.assign(Object.create({get repo() {return {owner: 'test', repo: 'test'};}}), {eventName: 'push', payload: {}});
   const targets = await preparePullRequests({github, context});
   const buckets = bucketTargets(targets); assert.equal(buckets.length, 8);
   for (const bucket of buckets) await runBucket({github: {...github}, context, bucket});
@@ -1239,4 +1240,20 @@ test('a duplicate head appearing in the final evidence snapshot blocks a success
  const github={rest:{pulls:{list,listReviews:reviews,get:async()=>({data:{number:1,state:'open',head:{sha:head}}})},issues:{listComments:comments},repos:{get:async()=>({data:{default_branch:'main'}})},actions:{getWorkflow:async({workflow_id})=>({data:{id:workflow_id==='ci.yml'?1:2}}),listWorkflowRuns:async({workflow_id,event})=>({data:{workflow_runs:baseline().runs.filter(run=>run.workflow_id===workflow_id&&run.event===event)}})},checks:{create:async()=>({data:{id:42}}),update:async input=>published=input}},paginate:async method=>method===list?(++reads===1?[{number:1,head:{sha:head}}]:[{number:1,head:{sha:head}},{number:2,head:{sha:head}}]):method===reviews?baseline().reviews:[],graphql:async()=>({repository:{pullRequest:{reviewThreads:{nodes:[],pageInfo:{hasNextPage:false}}},...Object.fromEntries(Array.from({length:7},(_,i)=>[[`trusted${i}`,{__typename:'Blob',oid:fixed}],[`proposed${i}`,{__typename:'Blob',oid:fixed}]]).flat())}})};
  await assert.rejects(run({github,context:{repo:{owner:'owner',repo:'repo'},payload:{pull_request:{number:1}}}}),/Another open PR shares/);
  assert.equal(reads,2);assert.equal(published.conclusion,'failure');
+});
+
+
+test('native merge preserves the expected head without overriding protection',async()=>{
+ const {mergeWithExpectedHead}=require('./merge-reviewed-pr.cjs');const calls=[];
+ const result=await mergeWithExpectedHead({number:12,head,api:async(...args)=>{calls.push(args);return {merged:true,sha:fixed};}});
+ assert.equal(result,fixed);
+ assert.deepEqual(calls,[['pulls/12/merge',undefined,{method:'PUT',body:{sha:head,merge_method:'squash'}}]]);
+});
+for(const result of [{merged:false,message:'Required check failed'},null,{}])test(`native merge rejects unsuccessful response ${JSON.stringify(result)}`,async()=>{
+ const {mergeWithExpectedHead}=require('./merge-reviewed-pr.cjs');
+ await assert.rejects(mergeWithExpectedHead({number:12,head,api:async()=>result}),/Required check failed|Native merge refused/);
+});
+test('native merge propagates API protection and expected-head rejection',async()=>{
+ const {mergeWithExpectedHead}=require('./merge-reviewed-pr.cjs');const failure=Object.assign(new Error('Head moved or policy prohibits merge'),{status:405});
+ await assert.rejects(mergeWithExpectedHead({number:12,head,api:async()=>{throw failure;}}),error=>error===failure);
 });
