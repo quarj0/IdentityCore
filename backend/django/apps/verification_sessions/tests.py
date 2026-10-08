@@ -572,7 +572,9 @@ class VerificationSessionPortalTests(APITestCase):
         self.verification.policy_snapshot_json = {
             "required_document_types": ["national_id"]
         }
-        self.verification.save(update_fields=["status", "policy_snapshot_json", "updated_at"])
+        self.verification.save(
+            update_fields=["status", "policy_snapshot_json", "updated_at"]
+        )
         upload = self.create_upload(purpose=UploadPurpose.DOCUMENT_CAPTURE, suffix="POLICY")
         response = self.client.post(
             reverse(

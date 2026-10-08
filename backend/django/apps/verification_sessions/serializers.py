@@ -713,7 +713,8 @@ class VerificationSessionDocumentSerializer(serializers.Serializer):
             item["document_type"] for item in _supported_documents(country_code)
         }
         required_document_types = set(
-            (verification.policy_snapshot_json or {}).get("required_document_types") or []
+            (verification.policy_snapshot_json or {}).get("required_document_types")
+            or []
         )
         if required_document_types:
             supported_types.intersection_update(required_document_types)
