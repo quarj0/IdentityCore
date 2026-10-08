@@ -741,6 +741,14 @@ Response:
       "selfie_capture",
       "liveness_check"
     ],
+    "consent": {
+      "template_id": "ctm_01JABC...",
+      "version": 1,
+      "locale": "en",
+      "content": "I consent to identity document and biometric verification.",
+      "content_hash": "f27925362904029b74a709329048244eb9fc24c86b4f833d15761751f9ac9dae",
+      "evidence_scope": ["document", "biometrics"]
+    },
     "expires_at": "2026-07-05T12:00:00Z"
   },
   "request_id": "req_01JABC..."
@@ -755,13 +763,17 @@ Implementation note:
 
 ## POST /sessions/{session_id}/consent
 
-Accepts consent.
+Accepts the exact notice returned in the session detail response. Copy `template_id`, `version`, `locale`, and `content_hash` from its `consent` object; do not construct the fingerprint yourself.
 
 Request:
 
 ```json
 {
-  "accepted": true
+  "accepted": true,
+  "template_id": "ctm_01JABC...",
+  "version": 1,
+  "locale": "en",
+  "content_hash": "f27925362904029b74a709329048244eb9fc24c86b4f833d15761751f9ac9dae"
 }
 ```
 
@@ -780,6 +792,9 @@ Response:
 
 Business rules:
 
+- Dynamic notices, including generated notices, require all four fingerprint fields. Only an immutable consent snapshot in the verification policy permits legacy acceptance without a fingerprint.
+- Ambiguous active named templates require an explicit tenant-owned `metadata.consent_template_id` when creating the verification, or an immutable policy notice. A higher-version unrelated template cannot replace that selection.
+- Generated English notices are labelled `en` regardless of the requested interface locale.
 - Accepting consent creates a Consent Record.
 - Accepting consent advances the Verification to `in_progress`.
 - If no active tenant consent template exists yet, the backend stores a generated consent text snapshot so the acceptance remains auditable during bootstrap.

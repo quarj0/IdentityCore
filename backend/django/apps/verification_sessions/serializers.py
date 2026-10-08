@@ -44,14 +44,20 @@ from common.catalog import COUNTRY_PROFILES, DOCUMENT_TYPES
 SUPPORTED_LOCALES = {"en", "ar"}
 
 
-def _request_locale(request, policy_snapshot: dict | None = None) -> str:
+def _request_locale(
+    request, policy_snapshot: dict | None = None, *, locale_hint: str | None = None
+) -> str:
     snapshot = policy_snapshot or {}
     default_locale = str(snapshot.get("default_locale") or "en").lower()
     configured = snapshot.get("supported_locales") or list(SUPPORTED_LOCALES)
     supported_locales = [str(locale).lower() for locale in configured]
     if default_locale not in supported_locales:
         supported_locales.append(default_locale)
-    header = request.headers.get("Accept-Language", "") if request is not None else ""
+    header = (
+        locale_hint
+        if locale_hint is not None
+        else (request.headers.get("Accept-Language", "") if request is not None else "")
+    )
     candidates = []
     for index, item in enumerate(header.split(",")):
         tag, *parameters = item.strip().split(";")
@@ -81,8 +87,31 @@ def _resolve_consent_template(verification, locale: str):
         tenant=verification.tenant,
         status=ConsentTemplateStatus.ACTIVE,
     )
+    template_id = (verification.metadata_json or {}).get("consent_template_id")
+    if template_id:
+        intended = templates.filter(public_id=str(template_id)).first()
+        if intended is None:
+            raise serializers.ValidationError(
+                {
+                    "consent_template_id": "The selected consent template is not active for this tenant."
+                }
+            )
+        return (
+            templates.filter(
+                name=intended.name, version=intended.version, language__iexact=locale
+            ).first()
+            or intended
+        )
+    if templates.order_by().values("name").distinct().count() > 1:
+        raise serializers.ValidationError(
+            {
+                "consent_template_id": "Multiple consent notices are active. Select the intended template in verification metadata or use an immutable policy notice."
+            }
+        )
     return (
-        templates.filter(language=locale).order_by("-version", "-created_at").first()
+        templates.filter(language__iexact=locale)
+        .order_by("-version", "-created_at")
+        .first()
         or templates.filter(language="en").order_by("-version", "-created_at").first()
         or templates.order_by("-version", "-created_at").first()
     )
@@ -111,8 +140,11 @@ def _policy_locales(verification, policy_snapshot: dict) -> list[str]:
 def _consent_artifact(verification, locale: str) -> dict:
     consent_snapshot = (verification.policy_snapshot_json or {}).get("consent") or {}
     if consent_snapshot:
-        translations = consent_snapshot.get("translations") or {}
-        frozen = translations.get(locale) or consent_snapshot
+        translations = {
+            str(key).lower(): value
+            for key, value in (consent_snapshot.get("translations") or {}).items()
+        }
+        frozen = translations.get(locale.lower()) or consent_snapshot
         content = str(frozen.get("content") or "")
         return {
             "template_id": str(frozen.get("template_id") or "generated"),
@@ -137,7 +169,7 @@ def _consent_artifact(verification, locale: str) -> dict:
     return {
         "template_id": template.public_id if template is not None else "generated",
         "version": template.version if template is not None else 1,
-        "locale": template.language if template is not None else locale,
+        "locale": template.language if template is not None else "en",
         "content": content,
         "content_hash": hashlib.sha256(content.encode("utf-8")).hexdigest(),
         "evidence_scope": (
@@ -309,12 +341,30 @@ def serialize_verification_session(
         "logo_url", organization_settings.get("logo_url", "")
     )
     metadata = verification.metadata_json or {}
-    configured_country_code = str(metadata.get("country_code", "")).upper()
+    registration = (organization_settings.get("onboarding") or {}).get(
+        "registration"
+    ) or {}
+    configured_country_code = (
+        str(
+            metadata.get("country_code")
+            or registration.get("organization_country")
+            or ""
+        )
+        .strip()
+        .upper()
+    )
     supported_country_codes = {profile["code"] for profile in COUNTRY_PROFILES}
-    country_code = (
+    if (
         configured_country_code
-        if configured_country_code in supported_country_codes
-        else (COUNTRY_PROFILES[0]["code"] if COUNTRY_PROFILES else "")
+        and configured_country_code not in supported_country_codes
+    ):
+        raise serializers.ValidationError(
+            {
+                "country_code": "The configured issuing country is not supported. Choose a supported issuing country when creating the verification."
+            }
+        )
+    country_code = configured_country_code or (
+        COUNTRY_PROFILES[0]["code"] if COUNTRY_PROFILES else ""
     )
     configured_document_type = str(metadata.get("document_type", "national_id"))
     supported_documents = _supported_documents(country_code)
@@ -387,7 +437,7 @@ def serialize_verification_session(
             for item in session_locales
             or [policy_snapshot.get("default_locale") or "en"]
         ],
-        "direction": "rtl" if locale == "ar" else "ltr",
+        "direction": "rtl" if locale.split("-", 1)[0] == "ar" else "ltr",
         "consent": _consent_artifact(verification, locale),
         "document": {
             "country_code": country_code,
@@ -573,7 +623,11 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
 
         artifact = _consent_artifact(
             verification,
-            _request_locale(request, verification.policy_snapshot_json or {}),
+            _request_locale(
+                request,
+                verification.policy_snapshot_json or {},
+                locale_hint=self.validated_data.get("locale"),
+            ),
         )
         from apps.consent.services import require_workflow_scope
 
@@ -591,6 +645,13 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
         if submitted_artifact and submitted_artifact != expected_artifact:
             raise serializers.ValidationError(
                 "The consent notice changed. Review the current notice before accepting."
+            )
+
+        if not (verification.policy_snapshot_json or {}).get("consent") and set(
+            submitted_artifact
+        ) != {"template_id", "version", "locale", "content_hash"}:
+            raise serializers.ValidationError(
+                "All consent notice fingerprint fields are required for a dynamic notice."
             )
 
         existing_record = verification.consent_records.order_by(
@@ -611,10 +672,12 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
             proof = existing_record.proof_json
             if {"document", "biometrics"}.issubset(proof["evidence_scope"]):
                 if (
+                    proof.get("template_id"),
                     proof["notice_version"],
                     proof["locale"],
                     proof["content_hash"],
                 ) != (
+                    artifact["template_id"],
                     artifact["version"],
                     artifact["locale"],
                     artifact["content_hash"],
@@ -930,7 +993,10 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
         latest_document = verification.identity_documents.order_by(
             "-created_at"
         ).first()
-        if latest_document.status != IdentityDocumentStatus.PROCESSED:
+        if latest_document.status not in {
+            IdentityDocumentStatus.PROCESSED,
+            IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
+        }:
             raise serializers.ValidationError(
                 {
                     "detail": (
@@ -1040,10 +1106,10 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
         latest_document = verification.identity_documents.order_by(
             "-created_at"
         ).first()
-        if (
-            latest_document is None
-            or latest_document.status != IdentityDocumentStatus.PROCESSED
-        ):
+        if latest_document is None or latest_document.status not in {
+            IdentityDocumentStatus.PROCESSED,
+            IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
+        }:
             raise serializers.ValidationError(
                 {
                     "detail": (
