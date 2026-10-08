@@ -1,28 +1,36 @@
 # Pull-request review gate
 
-Before merging a pull request:
+This is the reviewer checklist. The authoritative **deployment, native protection, publisher-identity, approved-maintenance and merge** specification is [Review evidence gate deployment](review-evidence-gate.md). Follow that specification in full; this checklist is **not** an alternative branch-protection setup procedure.
 
-1. Review the complete change and request the configured GitHub review. Wait for the review to finish; an empty thread list while a review is running is not completion.
-2. Reproduce each substantive finding against the current code. Fix valid findings with an appropriate regression or explain why the finding is superseded or inapplicable, linking current code and validation.
-3. Reply to each original review thread with the fixing commit and evidence. Resolve a thread only after that evidence exists. Never infer correctness from GitHub's resolved flag.
-4. After review fixes, request a fresh review of the final head and wait for its result. Address new findings before proceeding.
-5. Require all relevant CI and security checks to pass for the final head, including PostgreSQL concurrency checks when locking or transactional behavior changes.
-6. Refresh the pull-request head and unresolved threads immediately before merging. Merge with the expected head SHA so concurrent updates cannot be silently included.
+## Before merging
 
-Delayed feedback on an already merged pull request must be audited against current main and addressed through a follow-up pull request. Preserve links to original findings and evidence. Historical issue #281 remains open until every inventory finding has a supported disposition; counting resolved threads is insufficient.
+1. Review the complete diff and request the configured independent review for the exact final head. An empty thread list while review is running does not mean review is complete.
+2. Reproduce substantive findings against the current implementation. Fix valid findings with regression tests or provide verifiable current-code evidence that a finding is inapplicable or superseded.
+3. Reply to each original thread with a trustworthy fixing commit and affirmative validation evidence. Resolve only after the evidence exists; a resolved GitHub flag alone does not prove implementation.
+4. After the final code and disposition changes, request a fresh configured review of that exact head. Address any newly reported findings and repeat if the head or mutable evidence changes.
+5. Require completed, successful CI and Security for the **current** PR head, not a previous head or a pending workflow. Include PostgreSQL concurrency tests when transactions or locks change.
+6. Have a trusted repository administrator use the **live merger** documented in [Review evidence gate deployment](review-evidence-gate.md#trusted-live-merge-command). It independently refreshes review evidence, expected head, required checks, protected definitions and administrative policies before requesting a native GitHub merge. Do not replace it with a checklist-only merge or rely on an expected-head SHA as proof that review evidence is immutable.
 
-## Required repository setting
+For delayed feedback on already-merged pull requests, assess the finding against the current `main` and use a separate remediation PR. Link original findings to tested fixes. Keep [historical audit #281](https://github.com/quarj0/IdentityCore/issues/281) open until the entire inventory has evidence-backed dispositions.
 
-After the workflow is on the default branch, configure `review-evidence` as a required status check in the ruleset or branch protection for `main`, and prohibit bypass for ordinary merges. The workflow publishes this check directly against the pull-request head SHA; it does not treat the workflow run's base-branch SHA as reviewed. Only the configured reviewer can attest to final-head review, and resolved threads must have a fixing commit and validation evidence from their resolver.
+## Publisher identity and native branch protection
 
-The connected GitHub integration cannot read or change branch protection (GitHub returns `Resource not accessible by integration`). A repository administrator must enable the required check. Until that setting is enabled, the workflow reports failures but does not make GitHub reject a merge. This limitation remains part of the review-gate finding; Markdown checkboxes alone do not enforce it.
+The implemented `.github/workflows/review-gate.yml` publishes `review-evidence` through the dedicated **IdentityCore Review Evidence** GitHub App, not GitHub Actions' shared check identity. Its ordinary `GITHUB_TOKEN` lacks Checks write permission. The review-signal workflow is credential-free, and publisher credentials are isolated to the `review-evidence-publisher` environment with a **literal `main`-only** deployment policy. There is no shared-Actions-token fallback. Seeing an App-authored check is not, by itself, proof that `main` requires that exact App as the trusted publisher.
 
-Resolve threads before requesting the final review. If a thread is resolved after the last review/comment event, rerun `Review evidence gate` with its pull-request number. The workflow reads trusted default-branch validator source, never PR-controlled source with its write-capable check token.
+An administrator must verify **all** native controls specified in [Required administration](review-evidence-gate.md#required-administration) and the [Enforcement checks](review-evidence-gate.md#enforcement-checks), including:
 
-Repository administration must also enable **Require conversation resolution before merging** on `main`. This native GitHub merge requirement rechecks unresolved threads at merge time, including a thread reopened after a successful status check without a new comment. Actions has no `pull_request_review_thread` trigger; the status check alone cannot enforce this condition. Keep enforcement findings open until both the required `review-evidence` check and native conversation-resolution setting are confirmed. This integration cannot configure these administration settings.
+- Require `review-evidence` **from the dedicated GitHub App**, not just a matching check name from GitHub Actions.
+- Require `CI required` and `Security required` with GitHub Actions (App ID `15368`) as the expected publisher, and require **strict up-to-date** status checks so an outdated PR base cannot merge.
+- Require conversation resolution, appropriate review requirements and enforcement for **administrators** as well as contributors.
+- Restrict `main` updates using the administrator-only **Trusted main mergers** ruleset with pull-request-only administrative bypass. Use its protected trusted merger; never disable protection or use an override to force a merge.
+- Keep the publisher private key exclusively in the protected, main-only environment; keep protected definition changes governed by the explicit approval process described in [Governed changes to protected definitions](review-evidence-gate.md#governed-changes-to-protected-definitions).
 
-CI and Security workflow definitions must match the trusted default branch byte for byte. Changes to those definitions fail this gate until separately reviewed workflow maintenance reaches the default branch; workflow IDs and paths alone do not attest executed checks. Resolver evidence must follow the latest feedback from another participant in the thread.
+A connector without administration access cannot attest to required-check publisher binding or all these settings. Record independently verified GitHub administration evidence before closing associated enforcement findings. The repository already has real App-published `review-evidence` checks, but the **App-bound required check and full native enforcement still require separate confirmation**; do not silently assume verification from check-run existence.
 
-The validator source and review-gate workflow are protected definitions too. Changes must use the independently governed maintenance path. New resolver evidence must be posted after every reviewer's latest comment update time; edits to earlier feedback invalidate older evidence. Missing or invalid feedback timestamps fail closed.
+If a thread is resolved after the last review or comment event, trigger the default-branch `Review evidence gate` for that PR number. Changed review evidence, comments or review submissions must be reassessed. CI/Security workflow definitions and protected validator files are compared with trusted `main`; privileged changes require the separately approved maintenance path.
 
-The provisional `review-evidence` publisher uses GitHub Actions' shared check identity. A required check name and GitHub Actions source alone cannot authenticate this validator: another same-repository workflow with `checks: write` could publish the same name. Production enforcement must bind validation to an independently required trusted workflow identity, or publish through a dedicated external GitHub App whose check credential is unavailable to PR jobs. Repository-wide Actions secrets alone do not provide that credential isolation. Until this deployment requirement and native conversation resolution are configured, the Actions check provides evidence but does not establish the promised merge enforcement.
+## Non-atomic evidence-to-merge limitation
+
+GitHub can condition a native merge on the expected **head commit SHA**, but not on a version or lock of mutable review comments, resolutions, and review submissions. Evidence can change between the trusted live merger's final evidence collection and the native merge without changing that head SHA. The live merger performs repeated checks and uses native conversation protection, yet **does not provide an atomic guarantee** against every last-instant review-evidence mutation.
+
+The administrator must follow [Merge API limitation](review-evidence-gate.md#merge-api-limitation) and make an explicit repository-owner policy decision about that residual risk; **leave the associated P1 finding open** until a supported mitigation or evidence-backed risk acceptance exists. Do not describe an expected-head lease or stale resolved thread as a full solution.
