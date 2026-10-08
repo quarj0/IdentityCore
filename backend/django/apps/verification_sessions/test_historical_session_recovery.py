@@ -39,6 +39,26 @@ class HistoricalSessionRecoveryTests(APITestCase):
             },
         )
 
+    def test_challenge_returns_server_relative_lifetime(self):
+        accept_test_consent(self.verification)
+        self.verification.policy_snapshot_json["required_liveness_level"] = "active"
+        self.verification.save(update_fields=["policy_snapshot_json", "updated_at"])
+        self.session.expires_at = timezone.now() + timedelta(seconds=45)
+        self.session.save(update_fields=["expires_at", "updated_at"])
+        response = self.client.post(
+            reverse(
+                "verification-session-liveness-challenge",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            {},
+            format="json",
+            **self.session_headers(),
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertGreater(response.data["data"]["expires_in"], 0)
+        self.assertLessEqual(response.data["data"]["expires_in"], 45)
+        self.assertIn("expires_at", response.data["data"])
+
     def test_review_flagged_document_can_submit_selfie(self):
         document = self.document()
         upload = self.create_upload(

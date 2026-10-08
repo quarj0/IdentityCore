@@ -1,12 +1,20 @@
 import { expect, test } from "@playwright/test";
 
-for (const mode of ["passive", "active"] as const) {
-  test(`${mode} liveness instructions match the capture and allow challenge replacement`, async ({
+for (const { mode, clockOffset } of [
+  { mode: "passive", clockOffset: 0 },
+  { mode: "active", clockOffset: 600_000 },
+  { mode: "active", clockOffset: -600_000 },
+] as const) {
+  test(`${mode} liveness allows challenge replacement with clock offset ${clockOffset}`, async ({
     page,
     isMobile,
   }) => {
     test.setTimeout(90_000);
     const sessionId = `ses_historical_${mode}`;
+    await page.addInitScript((offset) => {
+      const realNow = Date.now;
+      Date.now = () => realNow() + offset;
+    }, clockOffset);
     let issued = 0;
     let submitted: unknown;
     await page.route("**/api/verification/**", async (route) => {
@@ -22,6 +30,7 @@ for (const mode of ["passive", "active"] as const) {
         return reply({
           challenge_id: `lch_${issued}`,
           actions: ["turn_left", "look_up"],
+          expires_in: issued === 1 ? 8 : 60,
           expires_at: new Date(
             Date.now() + (issued === 1 ? 8000 : 60_000),
           ).toISOString(),
@@ -113,6 +122,11 @@ for (const mode of ["passive", "active"] as const) {
       await expect(
         page.getByRole("button", { name: "Start a new live challenge" }),
       ).toBeVisible();
+      await expect(
+        page.getByText(
+          "Your live challenge expired. Begin a new live camera check.",
+        ),
+      ).toHaveCount(0);
       await expect(
         page.getByText(
           "Your live challenge expired. Begin a new live camera check.",

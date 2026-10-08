@@ -90,6 +90,7 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
     challenge_id: string;
     actions: string[];
     expires_at: string;
+    expires_at_monotonic: number;
   } | null>(null);
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
   const [selectedDocumentType, setSelectedDocumentType] = useState("");
@@ -332,8 +333,8 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
 
   useEffect(() => {
     if (!livenessChallenge) return;
-    const expiresAt = Date.parse(livenessChallenge.expires_at);
-    const remaining = Number.isFinite(expiresAt) ? expiresAt - Date.now() : 0;
+    const remaining =
+      livenessChallenge.expires_at_monotonic - performance.now();
     const timer = window.setTimeout(
       () => {
         resetActiveLivenessAttempt(

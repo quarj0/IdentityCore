@@ -382,13 +382,19 @@ export function submitLiveness(
   });
 }
 
-export function createLivenessChallenge(credentials: SessionCredentials) {
-  return request<{
+export async function createLivenessChallenge(credentials: SessionCredentials) {
+  const startedAt = performance.now();
+  const result = await request<{
     challenge_id: string;
     actions: string[];
     expires_at: string;
+    expires_in: number;
   }>(credentials, `/sessions/${credentials.sessionId}/liveness/challenge`, {
     method: "POST",
     body: "{}",
   });
+  const lifetime = Number.isFinite(result.expires_in)
+    ? Math.max(0, result.expires_in) * 1000
+    : 0;
+  return { ...result, expires_at_monotonic: startedAt + lifetime };
 }

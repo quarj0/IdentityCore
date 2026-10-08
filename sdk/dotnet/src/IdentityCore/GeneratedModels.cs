@@ -536,6 +536,8 @@ public sealed record VerificationSessionLivenessChallengeResponse
     public IReadOnlyList<string> Actions { get; init; }
     [JsonPropertyName("expires_at")]
     public string ExpiresAt { get; init; }
+    [JsonPropertyName("expires_in")]
+    public int ExpiresIn { get; init; }
 }
 
 public sealed record VerificationSessionStatusResponse

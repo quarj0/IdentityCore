@@ -482,6 +482,9 @@ class VerificationSessionLivenessChallengeView(VerificationSessionBaseView):
                 "challenge_id": challenge.public_id,
                 "actions": challenge.actions,
                 "expires_at": challenge.expires_at.isoformat(),
+                "expires_in": max(
+                    0, int((challenge.expires_at - timezone.now()).total_seconds())
+                ),
             },
             request=request,
         )
