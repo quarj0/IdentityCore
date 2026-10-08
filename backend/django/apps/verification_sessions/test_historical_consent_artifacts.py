@@ -1,0 +1,245 @@
+import hashlib
+
+from django.urls import reverse
+from rest_framework.test import APITestCase
+
+from apps.consent.models import ConsentTemplate
+from apps.verification_sessions import tests as fixtures
+from apps.verification_sessions.serializers import _consent_artifact
+
+
+class HistoricalConsentArtifactTests(APITestCase):
+    setUp = fixtures.VerificationSessionPortalTests.setUp
+    session_headers = fixtures.VerificationSessionPortalTests.session_headers
+
+    def template(
+        self,
+        name="Identity",
+        content="Identity document and biometric notice",
+        version=1,
+    ):
+        return ConsentTemplate.objects.create(
+            tenant=self.tenant,
+            name=name,
+            content=content,
+            version=version,
+            language="en",
+            status="active",
+            evidence_scope_json=["document", "biometrics"],
+        )
+
+    def accept(self, body):
+        return self.client.post(
+            reverse(
+                "verification-session-consent",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            body,
+            format="json",
+            **self.session_headers(),
+        )
+
+    def test_dynamic_notice_requires_every_fingerprint_field(self):
+        template = self.template()
+        for body in [
+            {"accepted": True},
+            {"accepted": True, "template_id": template.public_id},
+        ]:
+            with self.subTest(body=body):
+                response = self.accept(body)
+                self.assertEqual(response.status_code, 400, response.data)
+        self.assertFalse(self.verification.consent_records.exists())
+
+    def test_fully_fingerprinted_dynamic_notice_can_be_accepted(self):
+        template = self.template()
+        response = self.accept(
+            {
+                "accepted": True,
+                "template_id": template.public_id,
+                "version": template.version,
+                "locale": "en",
+                "content_hash": hashlib.sha256(template.content.encode()).hexdigest(),
+            }
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        record = self.verification.consent_records.get()
+        self.assertEqual(record.consent_template_id, template.pk)
+        self.assertEqual(
+            record.proof_json["content_hash"],
+            hashlib.sha256(template.content.encode()).hexdigest(),
+        )
+
+    def test_immutable_snapshot_preserves_legacy_acceptance(self):
+        self.verification.policy_snapshot_json["consent"] = {
+            "template_id": "generated",
+            "content": "Frozen document and biometric notice",
+            "language": "en",
+            "version": 1,
+            "evidence_scope": ["document", "biometrics"],
+        }
+        self.verification.save(update_fields=["policy_snapshot_json", "updated_at"])
+        response = self.accept({"accepted": True})
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(
+            self.verification.consent_records.get().proof_json["content_hash"],
+            hashlib.sha256(b"Frozen document and biometric notice").hexdigest(),
+        )
+
+    def test_generated_english_notice_is_not_labelled_arabic(self):
+        artifact = _consent_artifact(self.verification, "ar")
+        self.assertTrue(artifact["content"].startswith("I consent"))
+        self.assertEqual(artifact["locale"], "en")
+
+    def test_unbound_named_templates_fail_without_selecting_an_unrelated_notice(self):
+        self.template(name="Identity")
+        self.template(name="Unrelated marketing", content="Marketing", version=9)
+        response = self.client.get(
+            reverse(
+                "verification-session-detail",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            **self.session_headers(),
+        )
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertIn("consent_template_id", response.data["error"]["details"])
+
+    def test_explicit_template_identity_cannot_be_displaced_by_another_name(self):
+        intended = self.template(name="Identity")
+        self.template(name="Unrelated marketing", content="Marketing", version=9)
+        self.verification.metadata_json["consent_template_id"] = intended.public_id
+        self.verification.save(update_fields=["metadata_json", "updated_at"])
+        response = self.client.get(
+            reverse(
+                "verification-session-detail",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            **self.session_headers(),
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(
+            response.data["data"]["consent"]["template_id"], intended.public_id
+        )
+
+    def test_frozen_english_notice_keeps_its_language_for_arabic_requests(self):
+        self.verification.policy_snapshot_json["consent"] = {
+            "content": "Frozen English notice",
+            "language": "en",
+            "version": 1,
+        }
+        artifact = _consent_artifact(self.verification, "ar")
+        self.assertEqual(artifact["locale"], "en")
+
+    def test_explicit_template_must_be_active_and_owned_by_the_tenant(self):
+        from apps.organizations.models import Organization
+        from apps.tenants.models import Tenant
+
+        organization = Organization.objects.create(name="Other", slug="other")
+        tenant = Tenant.objects.create(
+            organization=organization, name="Other", slug="other"
+        )
+        foreign = ConsentTemplate.objects.create(
+            tenant=tenant, name="Identity", content="Foreign notice", status="active"
+        )
+        inactive = self.template()
+        inactive.status = "archived"
+        inactive.save(update_fields=["status", "updated_at"])
+        for template_id in [foreign.public_id, inactive.public_id, "ctm_missing"]:
+            with self.subTest(template_id=template_id):
+                self.verification.metadata_json["consent_template_id"] = template_id
+                self.verification.save(update_fields=["metadata_json", "updated_at"])
+                response = self.client.get(
+                    reverse(
+                        "verification-session-detail",
+                        kwargs={"session_id": self.session.public_id},
+                    ),
+                    **self.session_headers(),
+                )
+                self.assertEqual(response.status_code, 400, response.data)
+                self.assertIn("consent_template_id", response.data["error"]["details"])
+        self.assertFalse(self.verification.consent_records.exists())
+
+    def test_translations_in_one_notice_family_are_not_ambiguous(self):
+        self.template()
+        ConsentTemplate.objects.create(
+            tenant=self.tenant,
+            name="Identity",
+            content="Notice en français",
+            version=1,
+            language="fr",
+            status="active",
+            evidence_scope_json=["document", "biometrics"],
+        )
+        artifact = _consent_artifact(self.verification, "fr")
+        self.assertEqual(artifact["locale"], "fr")
+        self.assertEqual(artifact["content"], "Notice en français")
+
+    def test_notice_rotation_rejects_the_previous_fingerprint(self):
+        previous = self.template()
+        fingerprint = _consent_artifact(self.verification, "en")
+        self.template(version=2, content="Updated document and biometric notice")
+        response = self.accept(
+            {
+                "accepted": True,
+                **{
+                    key: fingerprint[key]
+                    for key in ("template_id", "version", "locale", "content_hash")
+                },
+            }
+        )
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertFalse(self.verification.consent_records.exists())
+        self.assertEqual(previous.version, 1)
+
+    def test_region_specific_arabic_locale_uses_rtl_direction(self):
+        self.verification.policy_snapshot_json.update(
+            {
+                "default_locale": "ar-EG",
+                "supported_locales": ["ar-EG"],
+                "consent": {
+                    "language": "ar-EG",
+                    "content": "إشعار الموافقة",
+                    "version": 1,
+                },
+            }
+        )
+        self.verification.save(update_fields=["policy_snapshot_json", "updated_at"])
+        response = self.client.get(
+            reverse(
+                "verification-session-detail",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            HTTP_ACCEPT_LANGUAGE="ar-EG",
+            **self.session_headers(),
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data["data"]["locale"], "ar-eg")
+        self.assertEqual(response.data["data"]["direction"], "rtl")
+
+    def test_template_link_remains_bound_when_another_version_activates(self):
+        from unittest.mock import patch
+
+        intended = self.template()
+        fingerprint = _consent_artifact(self.verification, "en")
+
+        def rotate_after_resolution(verification, locale):
+            artifact = _consent_artifact(verification, locale)
+            self.template(version=2, content="Later notice")
+            return artifact
+
+        with patch(
+            "apps.verification_sessions.serializers._consent_artifact",
+            side_effect=rotate_after_resolution,
+        ):
+            response = self.accept(
+                {
+                    "accepted": True,
+                    **{
+                        key: fingerprint[key]
+                        for key in ("template_id", "version", "locale", "content_hash")
+                    },
+                }
+            )
+        self.assertEqual(response.status_code, 200, response.data)
+        record = self.verification.consent_records.get()
+        self.assertEqual(record.consent_template_id, intended.pk)
+        self.assertEqual(record.proof_json["content_hash"], fingerprint["content_hash"])

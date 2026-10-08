@@ -81,6 +81,22 @@ def _resolve_consent_template(verification, locale: str):
         tenant=verification.tenant,
         status=ConsentTemplateStatus.ACTIVE,
     )
+    template_id = (verification.metadata_json or {}).get("consent_template_id")
+    if template_id:
+        intended = templates.filter(public_id=str(template_id)).first()
+        if intended is None:
+            raise serializers.ValidationError(
+                {
+                    "consent_template_id": "The selected consent template is not active for this tenant."
+                }
+            )
+        return intended
+    if templates.order_by().values("name").distinct().count() > 1:
+        raise serializers.ValidationError(
+            {
+                "consent_template_id": "Multiple consent notices are active. Select the intended template in verification metadata or use an immutable policy notice."
+            }
+        )
     return (
         templates.filter(language=locale).order_by("-version", "-created_at").first()
         or templates.filter(language="en").order_by("-version", "-created_at").first()
@@ -137,7 +153,7 @@ def _consent_artifact(verification, locale: str) -> dict:
     return {
         "template_id": template.public_id if template is not None else "generated",
         "version": template.version if template is not None else 1,
-        "locale": template.language if template is not None else locale,
+        "locale": template.language if template is not None else "en",
         "content": content,
         "content_hash": hashlib.sha256(content.encode("utf-8")).hexdigest(),
         "evidence_scope": (
@@ -309,12 +325,30 @@ def serialize_verification_session(
         "logo_url", organization_settings.get("logo_url", "")
     )
     metadata = verification.metadata_json or {}
-    configured_country_code = str(metadata.get("country_code", "")).upper()
+    registration = (organization_settings.get("onboarding") or {}).get(
+        "registration"
+    ) or {}
+    configured_country_code = (
+        str(
+            metadata.get("country_code")
+            or registration.get("organization_country")
+            or ""
+        )
+        .strip()
+        .upper()
+    )
     supported_country_codes = {profile["code"] for profile in COUNTRY_PROFILES}
-    country_code = (
+    if (
         configured_country_code
-        if configured_country_code in supported_country_codes
-        else (COUNTRY_PROFILES[0]["code"] if COUNTRY_PROFILES else "")
+        and configured_country_code not in supported_country_codes
+    ):
+        raise serializers.ValidationError(
+            {
+                "country_code": "The configured issuing country is not supported. Choose a supported issuing country when creating the verification."
+            }
+        )
+    country_code = configured_country_code or (
+        COUNTRY_PROFILES[0]["code"] if COUNTRY_PROFILES else ""
     )
     configured_document_type = str(metadata.get("document_type", "national_id"))
     supported_documents = _supported_documents(country_code)
@@ -387,7 +421,7 @@ def serialize_verification_session(
             for item in session_locales
             or [policy_snapshot.get("default_locale") or "en"]
         ],
-        "direction": "rtl" if locale == "ar" else "ltr",
+        "direction": "rtl" if locale.split("-", 1)[0] == "ar" else "ltr",
         "consent": _consent_artifact(verification, locale),
         "document": {
             "country_code": country_code,
@@ -636,6 +670,13 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
         ):
             raise serializers.ValidationError(
                 "Consent cannot be accepted for a terminal or expired verification."
+            )
+
+        if not (verification.policy_snapshot_json or {}).get("consent") and set(
+            submitted_artifact
+        ) != {"template_id", "version", "locale", "content_hash"}:
+            raise serializers.ValidationError(
+                "All consent notice fingerprint fields are required for a dynamic notice."
             )
 
         consent_template = ConsentTemplate.objects.filter(
@@ -930,7 +971,10 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
         latest_document = verification.identity_documents.order_by(
             "-created_at"
         ).first()
-        if latest_document.status != IdentityDocumentStatus.PROCESSED:
+        if latest_document.status not in {
+            IdentityDocumentStatus.PROCESSED,
+            IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
+        }:
             raise serializers.ValidationError(
                 {
                     "detail": (
@@ -1040,10 +1084,10 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
         latest_document = verification.identity_documents.order_by(
             "-created_at"
         ).first()
-        if (
-            latest_document is None
-            or latest_document.status != IdentityDocumentStatus.PROCESSED
-        ):
+        if latest_document is None or latest_document.status not in {
+            IdentityDocumentStatus.PROCESSED,
+            IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
+        }:
             raise serializers.ValidationError(
                 {
                     "detail": (
