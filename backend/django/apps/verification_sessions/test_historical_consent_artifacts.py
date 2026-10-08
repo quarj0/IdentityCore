@@ -383,6 +383,48 @@ class HistoricalConsentArtifactTests(APITestCase):
         self.assertEqual(artifact["locale"], "ar-EG")
         self.assertEqual(artifact["content"], "الموافقة")
 
+    def test_dynamic_replay_still_requires_all_four_fingerprint_fields(self):
+        self.template()
+        notice = _consent_artifact(self.verification, "en")
+        body = {
+            "accepted": True,
+            **{
+                key: notice[key]
+                for key in ("template_id", "version", "locale", "content_hash")
+            },
+        }
+        self.assertEqual(self.accept(body).status_code, 200)
+        for key in ("template_id", "version", "locale", "content_hash"):
+            partial = {field: value for field, value in body.items() if field != key}
+            with self.subTest(missing=key):
+                self.assertEqual(self.accept(partial).status_code, 400)
+        self.assertEqual(self.accept({"accepted": True}).status_code, 400)
+        self.assertEqual(self.accept(body).status_code, 200)
+        self.assertEqual(self.verification.consent_records.count(), 1)
+
+    def test_identical_replacement_notice_does_not_reuse_a_different_template_proof(
+        self,
+    ):
+        first = self.template()
+        notice = _consent_artifact(self.verification, "en")
+        body = {
+            "accepted": True,
+            **{
+                key: notice[key]
+                for key in ("template_id", "version", "locale", "content_hash")
+            },
+        }
+        self.assertEqual(self.accept(body).status_code, 200)
+        first.status = "archived"
+        first.save(update_fields=["status", "updated_at"])
+        replacement = self.template(name="Replacement")
+        body["template_id"] = replacement.public_id
+        response = self.accept(body)
+        self.assertEqual(response.status_code, 400, response.data)
+        record = self.verification.consent_records.get()
+        self.assertEqual(record.consent_template_id, first.pk)
+        self.assertEqual(record.proof_json["template_id"], first.public_id)
+
 
 class ConsentDocumentationContractTests(SimpleTestCase):
     def test_session_and_acceptance_examples_share_the_exact_notice_fingerprint(self):

@@ -195,3 +195,19 @@ class HistoricalSessionRecoveryTests(APITestCase):
         self.assertFalse(self.verification.identity_documents.exists())
         upload.refresh_from_db()
         self.assertEqual(upload.status, "uploaded")
+
+    def test_review_flagged_document_status_displays_the_selfie_step(self):
+        document = self.document()
+        response = self.client.get(
+            reverse(
+                "verification-session-status",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            **self.session_headers(),
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data["data"]["current_step"], "selfie_capture")
+        self.assertEqual(
+            response.data["data"]["evidence"]["identity_document_id"],
+            document.public_id,
+        )
