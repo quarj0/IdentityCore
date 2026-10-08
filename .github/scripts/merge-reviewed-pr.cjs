@@ -197,6 +197,16 @@ function createGhAdapter(fullName, execute = ghJson, executeBinary = ghBinary) {
   return {github, api};
 }
 
+async function mergeWithExpectedHead({api, number, head}) {
+  // The CLI's generic BLOCKED preflight does not distinguish PR-only ruleset
+  // authority. The native endpoint still enforces all repository protections.
+  const result = await api(`pulls/${number}/merge`, undefined, {
+    method: 'PUT', body: {sha: head, merge_method: 'squash'}
+  });
+  if (result?.merged !== true) throw new Error(result?.message || 'Native merge refused.');
+  return result.sha;
+}
+
 if (require.main === module) {
   (async () => {
     const args = process.argv.slice(2);
@@ -205,14 +215,11 @@ if (require.main === module) {
     if (!args.includes('--repo') || !args.includes('--pr') || !/^[\w.-]+\/[\w.-]+$/.test(fullName) || !Number.isInteger(number) || number <= 0) throw new Error('Usage: node merge-reviewed-pr.cjs --repo OWNER/REPO --pr NUMBER [--merge]');
     const [owner, repo] = fullName.split('/');
     const {github, api} = createGhAdapter(fullName);
-    const merge = args.includes('--merge') ? async head => {
-      const result = spawnSync('gh', ['pr', 'merge', String(number), '--repo', fullName, '--squash', '--match-head-commit', head], {encoding: 'utf8', timeout: 60000});
-      if (result.error || result.status !== 0) throw new Error(result.stderr?.trim() || result.error?.message || 'Merge failed');
-    } : undefined;
+    const merge = args.includes('--merge') ? head => mergeWithExpectedHead({api, number, head}) : undefined;
     const guardFile = require('node:path').resolve(process.cwd(), `.identitycore-merge-guard-${number}.json`);
     const guardRecord = async value => value.phase === 'removed' ? require('node:fs').rmSync(guardFile, {force: true}) : require('node:fs').writeFileSync(guardFile, JSON.stringify({...value, repository: fullName, recorded_at: new Date().toISOString()}, null, 2) + '\n', {mode: 0o600});
     const head = await mergeReviewedPR({guardRecord, github, context: {repo: {owner, repo}}, number, api, merge});
     console.log(`${args.includes('--merge') ? 'Merged' : 'Validated'} #${number} at ${head}.`);
   })().catch(error => {console.error(error.message); process.exitCode = 1;});
 }
-module.exports = {assertMainMergeGuard, withMainMergeGuard, assertTrustedPolicy, assertAppCheck, assertCI, mergeReviewedPR, createGhAdapter};
+module.exports = {assertMainMergeGuard, withMainMergeGuard, assertTrustedPolicy, assertAppCheck, assertCI, mergeReviewedPR, mergeWithExpectedHead, createGhAdapter};
