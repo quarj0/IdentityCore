@@ -64,7 +64,9 @@ class VerificationSubjectDetailView(APIView):
                 request.user.tenant.verification_subjects, public_id=subject_id
             )
             return success_response(
-                create_subject_export(subject=subject, actor=request.user, request=request),
+                create_subject_export(
+                    subject=subject, actor=request.user, request=request
+                ),
                 request=request,
                 status=201,
             )
@@ -79,7 +81,9 @@ class VerificationSubjectDetailView(APIView):
             request.user.tenant.verification_subjects, public_id=subject_id
         )
         return success_response(
-            request_subject_deletion(subject=subject, actor=request.user, request=request),
+            request_subject_deletion(
+                subject=subject, actor=request.user, request=request
+            ),
             request=request,
         )
 
@@ -95,7 +99,9 @@ class VerificationSubjectExportDownloadView(APIView):
         )
         token = request.query_params.get("token", "")
         try:
-            payload = download_subject_export(export=export, raw_token=token, request=request)
+            payload = download_subject_export(
+                export=export, raw_token=token, request=request
+            )
         except ValueError:
             return error_response(
                 "export_unavailable",

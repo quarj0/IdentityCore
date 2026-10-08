@@ -25,7 +25,11 @@ from apps.providers.models import (
 from apps.providers.services import create_provider_check
 from apps.tenants.models import Tenant
 from apps.verification_subjects.models import VerificationSubject
-from apps.verifications.models import ProcessingJobType, Verification, VerificationStatus
+from apps.verifications.models import (
+    ProcessingJobType,
+    Verification,
+    VerificationStatus,
+)
 from apps.verifications.processing_jobs import acquire_processing_job
 
 

@@ -144,7 +144,10 @@ class MFAEnrollView(APIView):
         # Recheck the signed password/revocation binding after taking the user lock.
         _mfa_user(request, "enrollment")
         secret = generate_secret()
-        user.mfa_config_json = {"pending_totp_secret": secret, "enrollment_required": True}
+        user.mfa_config_json = {
+            "pending_totp_secret": secret,
+            "enrollment_required": True,
+        }
         user.save(update_fields=["mfa_config_json", "updated_at"])
         record_audit_event(
             tenant_id=user.tenant_id,
@@ -174,7 +177,11 @@ class MFAEnrollConfirmView(APIView):
         # Recheck the signed password/revocation binding after taking the user lock.
         _mfa_user(request, "enrollment")
         secret = user.mfa_config_json.get("pending_totp_secret", "")
-        step = verified_totp_step(secret, str(request.data.get("code", ""))) if secret else None
+        step = (
+            verified_totp_step(secret, str(request.data.get("code", "")))
+            if secret
+            else None
+        )
         if step is None:
             raise AuthenticationFailed("Invalid authentication code.")
         recovery_codes = enable_mfa(user, secret, accepted_step=step)
@@ -203,17 +210,27 @@ class MFAChallengeView(APIView):
         with transaction.atomic():
             lock_audit_chain(user.tenant_id)
             user = PlatformUser.objects.select_for_update().get(pk=user.pk)
-            method = verify_login_challenge(user, token, str(request.data.get("code", "")))
+            method = verify_login_challenge(
+                user, token, str(request.data.get("code", ""))
+            )
             if method is None:
                 record_audit_event(
-                    tenant_id=user.tenant_id, actor=user, request=request,
-                    action="user.mfa_challenge_failed", target_type="platform_user", target_id=user.public_id,
+                    tenant_id=user.tenant_id,
+                    actor=user,
+                    request=request,
+                    action="user.mfa_challenge_failed",
+                    target_type="platform_user",
+                    target_id=user.public_id,
                 )
                 response = None
             else:
                 record_audit_event(
-                    tenant_id=user.tenant_id, actor=user, request=request,
-                    action="user.mfa_challenge_succeeded", target_type="platform_user", target_id=user.public_id,
+                    tenant_id=user.tenant_id,
+                    actor=user,
+                    request=request,
+                    action="user.mfa_challenge_succeeded",
+                    target_type="platform_user",
+                    target_id=user.public_id,
                     metadata={"method": method},
                 )
                 response = complete_login(request, user, mfa_method=method)

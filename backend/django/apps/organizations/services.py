@@ -8,7 +8,6 @@ from common.storage import (
     get_object_storage_public_bucket_name,
 )
 
-
 ORGANIZATION_BRANDING_SEGMENTS = {
     "logo": "logos",
     "branding_image": "branding-images",

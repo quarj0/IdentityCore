@@ -99,8 +99,12 @@ class PlatformAdminEndpointTests(APITestCase):
         self.assertEqual(webhook_response.status_code, status.HTTP_200_OK)
         self.assertEqual(audit_response.status_code, status.HTTP_200_OK)
 
-        self.assertEqual(provider_response.data["data"]["results"][0]["code"], "internal-ocr")
-        self.assertEqual(policy_response.data["data"]["results"][0]["id"], self.policy.public_id)
+        self.assertEqual(
+            provider_response.data["data"]["results"][0]["code"], "internal-ocr"
+        )
+        self.assertEqual(
+            policy_response.data["data"]["results"][0]["id"], self.policy.public_id
+        )
         self.assertEqual(
             api_client_response.data["data"]["results"][0]["public_id"],
             self.api_client.public_id,

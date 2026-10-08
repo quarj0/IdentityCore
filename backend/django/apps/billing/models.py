@@ -38,4 +38,3 @@ class BillingRecord(PublicIdModel, BaseModel):
 
     class Meta:
         ordering = ["-updated_at"]
-

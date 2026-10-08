@@ -7,26 +7,54 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tenants', '0005_tenantkmsbinding'),
+        ("tenants", "0005_tenantkmsbinding"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='TenantStorageRoute',
+            name="TenantStorageRoute",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('deleted_at', models.DateTimeField(blank=True, null=True)),
-                ('public_id', models.CharField(editable=False, max_length=64, unique=True)),
-                ('environment', models.CharField(choices=[('sandbox', 'Sandbox'), ('production', 'Production')], max_length=16)),
-                ('bucket', models.CharField(max_length=63)),
-                ('residency_region', models.CharField(max_length=64)),
-                ('active', models.BooleanField(default=True)),
-                ('tenant', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='tenants.tenant')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("deleted_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "public_id",
+                    models.CharField(editable=False, max_length=64, unique=True),
+                ),
+                (
+                    "environment",
+                    models.CharField(
+                        choices=[("sandbox", "Sandbox"), ("production", "Production")],
+                        max_length=16,
+                    ),
+                ),
+                ("bucket", models.CharField(max_length=63)),
+                ("residency_region", models.CharField(max_length=64)),
+                ("active", models.BooleanField(default=True)),
+                (
+                    "tenant",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT, to="tenants.tenant"
+                    ),
+                ),
             ],
             options={
-                'constraints': [models.UniqueConstraint(condition=models.Q(('active', True)), fields=('tenant', 'environment'), name='tenant_storage_unique_active')],
+                "constraints": [
+                    models.UniqueConstraint(
+                        condition=models.Q(("active", True)),
+                        fields=("tenant", "environment"),
+                        name="tenant_storage_unique_active",
+                    )
+                ],
             },
         ),
     ]

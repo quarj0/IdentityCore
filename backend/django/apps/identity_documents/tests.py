@@ -63,23 +63,25 @@ class IdentityDocumentTaskTests(TestCase):
             storage_key="uploads/documents/doc_good",
             captured_at=timezone.now(),
         )
-        self.upload = seal_test_upload(Upload.objects.create(
-            tenant=self.tenant,
-            verification=self.verification,
-            verification_session=self.verification.sessions.create(
+        self.upload = seal_test_upload(
+            Upload.objects.create(
                 tenant=self.tenant,
-                session_token_hash="placeholder",
-                expires_at=timezone.now() + timedelta(hours=1),
-            ),
-            purpose=UploadPurpose.DOCUMENT_CAPTURE,
-            storage_key=self.capture.storage_key,
-            storage_provider="local",
-            mime_type="image/jpeg",
-            file_size_bytes=1024,
-            status=UploadStatus.CONSUMED,
-            expires_at=timezone.now() + timedelta(minutes=10),
-            consumed_at=timezone.now(),
-        ))
+                verification=self.verification,
+                verification_session=self.verification.sessions.create(
+                    tenant=self.tenant,
+                    session_token_hash="placeholder",
+                    expires_at=timezone.now() + timedelta(hours=1),
+                ),
+                purpose=UploadPurpose.DOCUMENT_CAPTURE,
+                storage_key=self.capture.storage_key,
+                storage_provider="local",
+                mime_type="image/jpeg",
+                file_size_bytes=1024,
+                status=UploadStatus.CONSUMED,
+                expires_at=timezone.now() + timedelta(minutes=10),
+                consumed_at=timezone.now(),
+            )
+        )
         create_provider_check(
             verification=self.verification,
             check_type=ProviderCheckType.DOCUMENT_OCR,

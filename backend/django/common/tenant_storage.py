@@ -84,7 +84,10 @@ def route_key(verification, legacy_key):
         deleted_at__isnull=True,
     ).first()
     if route is None:
-        if TenantStorageRoute.objects.filter(tenant_id=verification.tenant_id, environment=environment_for_instance(verification)).exists():
+        if TenantStorageRoute.objects.filter(
+            tenant_id=verification.tenant_id,
+            environment=environment_for_instance(verification),
+        ).exists():
             raise ValueError(ERROR)
         return legacy_key
     validate_destination(route.bucket, route.residency_region)

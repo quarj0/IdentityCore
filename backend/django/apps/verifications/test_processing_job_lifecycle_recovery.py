@@ -195,12 +195,8 @@ class ProcessingJobLifecycleRecoveryTests(TestCase):
         verification.refresh_from_db()
         self.assertEqual((recovered, exhausted), (0, 1))
         self.assertEqual(job.status, ProcessingJobStatus.EXHAUSTED)
-        self.assertEqual(
-            document.status, IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED
-        )
-        self.assertEqual(
-            verification.status, VerificationStatus.MANUAL_REVIEW_REQUIRED
-        )
+        self.assertEqual(document.status, IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED)
+        self.assertEqual(verification.status, VerificationStatus.MANUAL_REVIEW_REQUIRED)
         self.assertEqual(
             verification.decision_record.reason_code, "processing_retries_exhausted"
         )

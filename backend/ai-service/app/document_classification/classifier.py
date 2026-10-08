@@ -25,6 +25,7 @@ def _get_settings():
 
         return get_settings()
     except ModuleNotFoundError:
+
         class _FallbackSettings:
             document_classification_policy = DocumentClassificationPolicy()
             document_classification_scoring_config = ClassificationScoringConfig()
@@ -70,7 +71,11 @@ def _score_definition(
             candidate_match = phrase_match(phrase, list(lines))
             if candidate_match is None:
                 continue
-            if best_group_match is None or candidate_match.combined_evidence_score > best_group_match["combined_evidence_score"]:
+            if (
+                best_group_match is None
+                or candidate_match.combined_evidence_score
+                > best_group_match["combined_evidence_score"]
+            ):
                 best_group_match = {
                     "expected_phrase": candidate_match.expected_phrase,
                     "matched_text": candidate_match.matched_text,
@@ -149,12 +154,14 @@ def _score_definition(
         else 0.0
     )
     optional_evidence_score = (
-        sum(match["combined_evidence_score"] for match in optional_matches) / len(optional_matches)
+        sum(match["combined_evidence_score"] for match in optional_matches)
+        / len(optional_matches)
         if optional_matches
         else 0.0
     )
     negative_penalty = (
-        sum(match["combined_evidence_score"] for match in negative_matches) / len(negative_matches)
+        sum(match["combined_evidence_score"] for match in negative_matches)
+        / len(negative_matches)
         if negative_matches
         else 0.0
     )
@@ -171,7 +178,9 @@ def _score_definition(
     )
     evidence_items: list[dict[str, Any]] = []
     if required_group_matches:
-        evidence_items.append({"type": "required_phrases", "items": required_group_matches})
+        evidence_items.append(
+            {"type": "required_phrases", "items": required_group_matches}
+        )
     if optional_matches:
         evidence_items.append({"type": "optional_phrases", "items": optional_matches})
     if structural_evidence:
@@ -273,15 +282,15 @@ def classify_document(
     for definition in applicable_definitions:
         scored = _score_definition(definition, lines, config=scoring_config)
         candidate_score = scored["score"]
-        has_valid_passport_mrz = (
-            definition.document_type == "passport"
-            and any(item.get("valid") for item in scored["structural_evidence"])
+        has_valid_passport_mrz = definition.document_type == "passport" and any(
+            item.get("valid") for item in scored["structural_evidence"]
         )
         if definition.document_type == "passport" and not has_valid_passport_mrz:
             skipped_issues.append("passport_mrz_invalid")
             continue
         if has_valid_passport_mrz and not any(
-            item.get("valid") and issuer_matches_country(item.get("issuing_country"), country_code)
+            item.get("valid")
+            and issuer_matches_country(item.get("issuing_country"), country_code)
             for item in scored["structural_evidence"]
         ):
             skipped_issues.append("passport_mrz_country_mismatch")
@@ -306,12 +315,24 @@ def classify_document(
                 "document_type": definition.document_type,
                 "country_code": definition.country_code,
                 "score": round(candidate_score.score, 4),
-                "required_group_coverage": round(candidate_score.required_group_coverage, 4),
-                "required_evidence_score": round(candidate_score.required_evidence_score, 4),
-                "optional_evidence_score": round(candidate_score.optional_evidence_score, 4),
-                "structural_evidence_score": round(candidate_score.structural_evidence_score, 4),
-                "average_ocr_confidence": round(candidate_score.average_ocr_confidence, 4),
-                "negative_evidence_penalty": round(candidate_score.negative_evidence_penalty, 4),
+                "required_group_coverage": round(
+                    candidate_score.required_group_coverage, 4
+                ),
+                "required_evidence_score": round(
+                    candidate_score.required_evidence_score, 4
+                ),
+                "optional_evidence_score": round(
+                    candidate_score.optional_evidence_score, 4
+                ),
+                "structural_evidence_score": round(
+                    candidate_score.structural_evidence_score, 4
+                ),
+                "average_ocr_confidence": round(
+                    candidate_score.average_ocr_confidence, 4
+                ),
+                "negative_evidence_penalty": round(
+                    candidate_score.negative_evidence_penalty, 4
+                ),
                 "evidence": scored["evidence"],
                 "structural_evidence": scored["structural_evidence"],
             }
@@ -320,8 +341,16 @@ def classify_document(
     candidates.sort(key=lambda item: item["score"], reverse=True)
     average_confidence = round(_average_confidence(lines), 4)
     if not candidates:
-        status = "insufficient_evidence" if average_confidence < policy.minimum_average_ocr_confidence else "unknown"
-        issue = "ocr_confidence_too_low" if status == "insufficient_evidence" else "document_type_not_determined"
+        status = (
+            "insufficient_evidence"
+            if average_confidence < policy.minimum_average_ocr_confidence
+            else "unknown"
+        )
+        issue = (
+            "ocr_confidence_too_low"
+            if status == "insufficient_evidence"
+            else "document_type_not_determined"
+        )
         if (
             expected_document_type == "passport"
             and "passport_mrz_invalid" in skipped_issues
@@ -366,12 +395,18 @@ def classify_document(
                 "name": "paddleocr",
                 "version": "PP-OCRv5",
             },
-            "recommendation": _recommendation_for_status(status, None, decision_mode).value,
+            "recommendation": _recommendation_for_status(
+                status, None, decision_mode
+            ).value,
         }
 
     top_candidate = candidates[0]
     second_candidate = candidates[1] if len(candidates) > 1 else None
-    margin = round(top_candidate["score"] - second_candidate["score"], 4) if second_candidate else 1.0
+    margin = (
+        round(top_candidate["score"] - second_candidate["score"], 4)
+        if second_candidate
+        else 1.0
+    )
 
     if second_candidate is not None and margin < policy.minimum_classification_margin:
         status = "ambiguous"
@@ -399,7 +434,9 @@ def classify_document(
         issues.append("passport_mrz_country_mismatch")
         manual_review_priority = "high"
 
-    requires_manual_review = status != "recognized" or matched_expected_document_type is False
+    requires_manual_review = (
+        status != "recognized" or matched_expected_document_type is False
+    )
     workflow_action = (
         ClassificationWorkflowAction.CONTINUE.value
         if status == "recognized" and matched_expected_document_type is True
@@ -419,7 +456,9 @@ def classify_document(
     result = {
         "classification_status": status,
         "predicted_document_type": predicted_type,
-        "predicted_country_code": top_candidate["country_code"] if status == "recognized" else None,
+        "predicted_country_code": (
+            top_candidate["country_code"] if status == "recognized" else None
+        ),
         "expected_document_type": expected_document_type,
         "matched_expected_document_type": matched_expected_document_type,
         "confidence_score": round(top_candidate["score"], 4),
@@ -442,12 +481,22 @@ def classify_document(
             ],
         },
         "score_components": {
-            "required_group_coverage": round(top_candidate["required_group_coverage"], 4),
-            "required_evidence_score": round(top_candidate["required_evidence_score"], 4),
-            "optional_evidence_score": round(top_candidate["optional_evidence_score"], 4),
-            "structural_evidence_score": round(top_candidate["structural_evidence_score"], 4),
+            "required_group_coverage": round(
+                top_candidate["required_group_coverage"], 4
+            ),
+            "required_evidence_score": round(
+                top_candidate["required_evidence_score"], 4
+            ),
+            "optional_evidence_score": round(
+                top_candidate["optional_evidence_score"], 4
+            ),
+            "structural_evidence_score": round(
+                top_candidate["structural_evidence_score"], 4
+            ),
             "average_ocr_confidence": round(top_candidate["average_ocr_confidence"], 4),
-            "negative_evidence_penalty": round(top_candidate["negative_evidence_penalty"], 4),
+            "negative_evidence_penalty": round(
+                top_candidate["negative_evidence_penalty"], 4
+            ),
         },
         "evidence": top_candidate["evidence"],
         "candidates": candidates,
@@ -461,6 +510,8 @@ def classify_document(
             "name": "paddleocr",
             "version": "PP-OCRv5",
         },
-        "recommendation": _recommendation_for_status(status, matched_expected_document_type, decision_mode).value,
+        "recommendation": _recommendation_for_status(
+            status, matched_expected_document_type, decision_mode
+        ).value,
     }
     return result

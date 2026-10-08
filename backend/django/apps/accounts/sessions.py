@@ -231,7 +231,9 @@ def rotate_refresh_token(raw_token: str, *, request=None) -> tuple[str, str]:
             raise TokenError("Wrong session scope")
         if row and (row.consumed_at is not None or row.revoked_at is not None):
             _revoke_family(family_id)
-            PlatformUser.objects.filter(pk=user.pk).update(auth_valid_after=timezone.now())
+            PlatformUser.objects.filter(pk=user.pk).update(
+                auth_valid_after=timezone.now()
+            )
             reused = True
         else:
             RefreshToken(raw_token)
@@ -315,5 +317,9 @@ def purge_expired_session_history(*, limit=1000):
         .values_list("pk", flat=True)[:limit]
     )
     removed += DashboardSession.objects.filter(pk__in=ids).delete()[0]
-    ids = list(OutstandingToken.objects.filter(expires_at__lt=now).order_by("expires_at").values_list("pk", flat=True)[:limit])
+    ids = list(
+        OutstandingToken.objects.filter(expires_at__lt=now)
+        .order_by("expires_at")
+        .values_list("pk", flat=True)[:limit]
+    )
     return removed + OutstandingToken.objects.filter(pk__in=ids).delete()[0]

@@ -13,7 +13,6 @@ from apps.verification_sessions.views import (
     VerificationMobileHandoffRedeemView,
 )
 
-
 urlpatterns = [
     internal_api_path("<str:session_id>/consent/withdraw", VerificationSessionConsentWithdrawView.as_view(), name="verification-session-consent-withdraw"),
     public_api_path(

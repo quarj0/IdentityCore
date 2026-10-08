@@ -18,7 +18,6 @@ from apps.providers.models import (
     ProviderStatus,
 )
 
-
 TERMINAL_HEALTH_STATUSES = {
     ProviderCheckStatus.COMPLETED,
     ProviderCheckStatus.FAILED,
@@ -175,9 +174,9 @@ def provider_health_scope(
         checks_query = checks_query.filter(provider_id__in=provider_filter_ids)
     providers = {
         provider.pk: provider
-        for provider in Provider.objects.filter(pk__in=checks_query.values("provider_id")).only(
-            "id", "public_id", "code", "name", "status"
-        )
+        for provider in Provider.objects.filter(
+            pk__in=checks_query.values("provider_id")
+        ).only("id", "public_id", "code", "name", "status")
     }
     checks_query = checks_query.filter(status__in=TERMINAL_HEALTH_STATUSES)
     checks = list(

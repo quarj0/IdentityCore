@@ -30,7 +30,8 @@ def readiness(request):
     available = ready()
     response = success_json_response(
         {"status": "ready" if available else "unavailable"},
-        request=request, status=200 if available else 503,
+        request=request,
+        status=200 if available else 503,
     )
     response["Cache-Control"] = "no-store"
     return response

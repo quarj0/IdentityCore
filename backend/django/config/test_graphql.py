@@ -179,7 +179,9 @@ class GraphQLAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         payload = response.json()
         self.assertNotIn("errors", payload)
-        gh = next(item for item in payload["data"]["countryProfiles"] if item["code"] == "GH")
+        gh = next(
+            item for item in payload["data"]["countryProfiles"] if item["code"] == "GH"
+        )
         national_id = next(
             item
             for item in gh["supportedDocumentTypes"]
@@ -269,10 +271,12 @@ class GraphQLAPITests(APITestCase):
         self.assertNotIn("errors", payload)
         self.assertEqual(
             payload["data"]["verifications"],
-            [{
-                "id": own_verification.public_id,
-                "verificationSubject": {"fullName": "Own Tenant Subject"},
-            }],
+            [
+                {
+                    "id": own_verification.public_id,
+                    "verificationSubject": {"fullName": "Own Tenant Subject"},
+                }
+            ],
         )
         self.assertNotContains(response, other_verification.public_id)
         self.assertNotContains(response, "Cross Tenant Subject")
@@ -325,20 +329,16 @@ class GraphQLAPITests(APITestCase):
             status=VerificationStatus.IN_PROGRESS,
         )
 
-        response = self.post_graphql(
-            """
+        response = self.post_graphql("""
                 mutation TenantBoundAdministratorVerification {
                   createAdministratorOnboardingVerification {
                     verificationId
                     action
                   }
                 }
-            """
-        )
+            """)
 
-        payload = response.json()["data"][
-            "createAdministratorOnboardingVerification"
-        ]
+        payload = response.json()["data"]["createAdministratorOnboardingVerification"]
         self.assertEqual(payload["action"], "initial")
         self.assertNotEqual(payload["verificationId"], other_verification.public_id)
         self.assertEqual(
@@ -347,8 +347,7 @@ class GraphQLAPITests(APITestCase):
         )
 
     def test_create_administrator_onboarding_verification_is_server_linked(self):
-        response = self.post_graphql(
-            """
+        response = self.post_graphql("""
                 mutation CreateAdministratorVerification {
                   createAdministratorOnboardingVerification {
                     verificationId
@@ -358,8 +357,7 @@ class GraphQLAPITests(APITestCase):
                     action
                   }
                 }
-            """
-        )
+            """)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         payload = response.json()
@@ -374,8 +372,7 @@ class GraphQLAPITests(APITestCase):
         self.assertNotIn("?token=", launch["verificationUrl"])
         self.assertEqual(launch["action"], "initial")
 
-        resumed_response = self.post_graphql(
-            """
+        resumed_response = self.post_graphql("""
                 mutation ResumeAdministratorVerification {
                   createAdministratorOnboardingVerification {
                     verificationId
@@ -383,8 +380,7 @@ class GraphQLAPITests(APITestCase):
                     action
                   }
                 }
-            """
-        )
+            """)
         resumed = resumed_response.json()["data"][
             "createAdministratorOnboardingVerification"
         ]
@@ -394,13 +390,11 @@ class GraphQLAPITests(APITestCase):
 
         verification.status = "verified"
         verification.save(update_fields=["status", "updated_at"])
-        blocked = self.post_graphql(
-            """
+        blocked = self.post_graphql("""
                 mutation BlockCasualReverification {
                   createAdministratorOnboardingVerification { action }
                 }
-            """
-        ).json()
+            """).json()
         self.assertIn("already verified", blocked["errors"][0]["message"])
 
         reverification = self.post_graphql(
@@ -1019,11 +1013,15 @@ class GraphQLAPITests(APITestCase):
             "organization_verification_required",
         )
         self.assertEqual(
-            payload["data"]["organizationOnboarding"]["organizationVerificationSubmittedAt"],
+            payload["data"]["organizationOnboarding"][
+                "organizationVerificationSubmittedAt"
+            ],
             submitted_at,
         )
         self.assertFalse(
-            payload["data"]["organizationOnboarding"]["organizationVerificationEditable"]
+            payload["data"]["organizationOnboarding"][
+                "organizationVerificationEditable"
+            ]
         )
         self.assertEqual(
             payload["data"]["organizationOnboarding"][
@@ -1140,9 +1138,9 @@ class GraphQLAPITests(APITestCase):
             token=onboarding_token,
         )
         self.assertEqual(
-            submitted_response.json()["data"]["submitOrganizationOnboardingVerification"][
-                "onboarding"
-            ]["currentStep"],
+            submitted_response.json()["data"][
+                "submitOrganizationOnboardingVerification"
+            ]["onboarding"]["currentStep"],
             "administrator_identity_verification",
         )
 
@@ -1174,10 +1172,19 @@ class GraphQLAPITests(APITestCase):
         )
         review_payload = review_response.json()["data"]["reviewOrganizationOnboarding"]
         self.assertEqual(review_payload["nextAction"], "provide_additional_information")
-        self.assertEqual(review_payload["onboarding"]["currentStep"], "organization_verification")
-        self.assertEqual(review_payload["onboarding"]["organizationVerificationReviewStatus"], "needs_information")
-        self.assertTrue(review_payload["onboarding"]["organizationVerificationEditable"])
-        self.assertEqual(review_payload["onboarding"]["organizationStatus"], "pending_review")
+        self.assertEqual(
+            review_payload["onboarding"]["currentStep"], "organization_verification"
+        )
+        self.assertEqual(
+            review_payload["onboarding"]["organizationVerificationReviewStatus"],
+            "needs_information",
+        )
+        self.assertTrue(
+            review_payload["onboarding"]["organizationVerificationEditable"]
+        )
+        self.assertEqual(
+            review_payload["onboarding"]["organizationStatus"], "pending_review"
+        )
         self.assertEqual(review_payload["onboarding"]["tenantStatus"], "pending_review")
 
         resubmit_response = self.post_graphql(
@@ -1380,12 +1387,18 @@ class GraphQLAPITests(APITestCase):
             },
             token=onboarding_token,
         )
-        edit_payload = edit_response.json()["data"]["submitOrganizationOnboardingVerification"]
+        edit_payload = edit_response.json()["data"][
+            "submitOrganizationOnboardingVerification"
+        ]
         self.assertEqual(edit_payload["nextAction"], "await_platform_review")
         self.assertEqual(edit_payload["onboarding"]["currentStep"], "platform_review")
-        self.assertEqual(edit_payload["onboarding"]["organizationStatus"], "pending_review")
+        self.assertEqual(
+            edit_payload["onboarding"]["organizationStatus"], "pending_review"
+        )
         self.assertEqual(edit_payload["onboarding"]["tenantStatus"], "pending_review")
-        self.assertEqual(edit_payload["onboarding"]["onboardingStatus"], "platform_review_pending")
+        self.assertEqual(
+            edit_payload["onboarding"]["onboardingStatus"], "platform_review_pending"
+        )
         self.assertEqual(
             edit_payload["onboarding"]["organizationVerificationReviewStatus"],
             "changed_after_approval",
@@ -1416,7 +1429,9 @@ class GraphQLAPITests(APITestCase):
             queue_payload[0]["organizationVerificationReviewStatus"],
             "changed_after_approval",
         )
-        self.assertTrue(queue_payload[0]["organizationVerificationChangedAfterApproval"])
+        self.assertTrue(
+            queue_payload[0]["organizationVerificationChangedAfterApproval"]
+        )
 
 
 class PlatformAdminGraphQLTests(APITestCase):
@@ -1705,13 +1720,18 @@ class PlatformAdminGraphQLTests(APITestCase):
                 for setting in payload["platformSettings"]
             )
         )
-        self.assertEqual(payload["platformVerificationPolicies"][0]["id"], self.policy.public_id)
+        self.assertEqual(
+            payload["platformVerificationPolicies"][0]["id"], self.policy.public_id
+        )
         self.assertTrue(
             payload["platformVerificationPolicies"][0]["makerCheckerRequired"]
         )
-        self.assertEqual(payload["platformApiClients"][0]["publicId"], self.api_client.public_id)
         self.assertEqual(
-            payload["platformWebhookEndpoints"][0]["id"], self.webhook_endpoint.public_id
+            payload["platformApiClients"][0]["publicId"], self.api_client.public_id
+        )
+        self.assertEqual(
+            payload["platformWebhookEndpoints"][0]["id"],
+            self.webhook_endpoint.public_id,
         )
 
     def test_platform_admin_graphql_queries_return_remaining_live_console_data(self):
@@ -1770,13 +1790,17 @@ class PlatformAdminGraphQLTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         payload = response.json()["data"]
         self.assertEqual(payload["platformDashboardSummary"]["billingRecordsTotal"], 1)
-        self.assertEqual(payload["platformDashboardSummary"]["analyticsDashboardsTotal"], 1)
+        self.assertEqual(
+            payload["platformDashboardSummary"]["analyticsDashboardsTotal"], 1
+        )
         self.assertEqual(payload["platformDashboardSummary"]["incidentsTotal"], 1)
         self.assertEqual(payload["platformDashboardSummary"]["securityCasesTotal"], 1)
         self.assertEqual(payload["platformDashboardSummary"]["supportTicketsTotal"], 1)
         self.assertEqual(payload["platformDashboardSummary"]["templatesTotal"], 1)
         self.assertEqual(payload["platformDashboardSummary"]["featureFlagsTotal"], 1)
-        self.assertEqual(payload["platformBillingRecords"][0]["id"], self.billing_record.public_id)
+        self.assertEqual(
+            payload["platformBillingRecords"][0]["id"], self.billing_record.public_id
+        )
         self.assertEqual(
             payload["platformAnalyticsDashboards"][0]["id"],
             self.analytics_dashboard.public_id,
@@ -1856,7 +1880,9 @@ class PlatformAdminGraphQLTests(APITestCase):
             token="",
         )
         self.assertEqual(accept_response.status_code, status.HTTP_200_OK)
-        accepted_user = accept_response.json()["data"]["acceptPlatformAdminInvitation"]["user"]
+        accepted_user = accept_response.json()["data"]["acceptPlatformAdminInvitation"][
+            "user"
+        ]
         self.assertTrue(accepted_user["isPlatformAdmin"])
         self.assertEqual(accepted_user["email"], "new-admin@example.com")
 
@@ -1876,7 +1902,9 @@ class PlatformAdminGraphQLTests(APITestCase):
                 }
             """,
             {
-                "userId": PlatformUser.objects.get(email="new-admin@example.com").public_id,
+                "userId": PlatformUser.objects.get(
+                    email="new-admin@example.com"
+                ).public_id,
                 "roleId": platform_role.public_id,
             },
             token=self.platform_access_token,
@@ -1896,7 +1924,11 @@ class PlatformAdminGraphQLTests(APITestCase):
                   }
                 }
             """,
-            {"userId": PlatformUser.objects.get(email="new-admin@example.com").public_id},
+            {
+                "userId": PlatformUser.objects.get(
+                    email="new-admin@example.com"
+                ).public_id
+            },
             token=self.platform_access_token,
         )
         self.assertEqual(deactivate_response.status_code, status.HTTP_200_OK)
@@ -1911,7 +1943,9 @@ class PlatformAdminGraphQLTests(APITestCase):
             full_name="Pending Reviewer",
             email="reviewer@example.com",
         )
-        self.create_supporting_document(self.organization, self.tenant, self.tenant_user)
+        self.create_supporting_document(
+            self.organization, self.tenant, self.tenant_user
+        )
         self.post_graphql(
             """
                 mutation SubmitOrganizationVerification($input: OrganizationVerificationInput!) {
@@ -2088,6 +2122,8 @@ class PlatformAdminGraphQLTests(APITestCase):
         )
         self.assertEqual(success.status_code, status.HTTP_200_OK)
         self.assertEqual(
-            success.json()["data"]["reviewOrganizationOnboarding"]["onboarding"]["organizationStatus"],
+            success.json()["data"]["reviewOrganizationOnboarding"]["onboarding"][
+                "organizationStatus"
+            ],
             "active",
         )

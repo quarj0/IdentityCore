@@ -180,23 +180,25 @@ class VerificationSessionPortalTests(APITestCase):
             UploadPurpose.SELFIE_CAPTURE: "selfies",
             UploadPurpose.LIVENESS_CAPTURE: "liveness",
         }[purpose]
-        return seal_test_upload(Upload.objects.create(
-            tenant=self.tenant,
-            verification=self.verification,
-            verification_session=self.session,
-            purpose=purpose,
-            storage_key=(
-                f"organizations/{self.organization.public_id}"
-                f"/verifications/{self.verification.public_id}"
-                f"/{storage_segment}/upl_{suffix}"
-            ),
-            storage_provider="local",
-            mime_type=mime_type,
-            file_size_bytes=1024,
-            checksum_sha256=f"validated-{suffix}",
-            status=UploadStatus.UPLOADED,
-            expires_at=timezone.now() + timedelta(minutes=10),
-        ))
+        return seal_test_upload(
+            Upload.objects.create(
+                tenant=self.tenant,
+                verification=self.verification,
+                verification_session=self.session,
+                purpose=purpose,
+                storage_key=(
+                    f"organizations/{self.organization.public_id}"
+                    f"/verifications/{self.verification.public_id}"
+                    f"/{storage_segment}/upl_{suffix}"
+                ),
+                storage_provider="local",
+                mime_type=mime_type,
+                file_size_bytes=1024,
+                checksum_sha256=f"validated-{suffix}",
+                status=UploadStatus.UPLOADED,
+                expires_at=timezone.now() + timedelta(minutes=10),
+            )
+        )
 
     def test_get_session_returns_portal_context_and_activates_session(self):
         response = self.client.get(
@@ -352,7 +354,10 @@ class VerificationSessionPortalTests(APITestCase):
 
         response = self.client.post(
             reverse("verification-mobile-handoff-redeem"),
-            {"handoff": f"{handoff.public_id}.{raw_handoff_token}", "session_id":self.session.public_id},
+            {
+                "handoff": f"{handoff.public_id}.{raw_handoff_token}",
+                "session_id": self.session.public_id,
+            },
             format="json",
         )
 

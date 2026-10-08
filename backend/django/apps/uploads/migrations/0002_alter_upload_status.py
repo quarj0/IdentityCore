@@ -6,13 +6,24 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('uploads', '0001_initial'),
+        ("uploads", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='upload',
-            name='status',
-            field=models.CharField(choices=[('initiated', 'Initiated'), ('consumed', 'Consumed'), ('promoted', 'Promoted'), ('expired', 'Expired'), ('deleted', 'Deleted')], db_index=True, default='initiated', max_length=32),
+            model_name="upload",
+            name="status",
+            field=models.CharField(
+                choices=[
+                    ("initiated", "Initiated"),
+                    ("consumed", "Consumed"),
+                    ("promoted", "Promoted"),
+                    ("expired", "Expired"),
+                    ("deleted", "Deleted"),
+                ],
+                db_index=True,
+                default="initiated",
+                max_length=32,
+            ),
         ),
     ]

@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('webhooks', '0001_initial'),
+        ("webhooks", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='webhookendpoint',
-            name='signing_key',
+            model_name="webhookendpoint",
+            name="signing_key",
             field=models.CharField(blank=True, max_length=64),
         ),
     ]

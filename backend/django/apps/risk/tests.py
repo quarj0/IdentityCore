@@ -74,9 +74,15 @@ class RiskDecisionTests(TestCase):
 
     def test_ocr_outage_reason_remains_a_review_gate(self):
         from apps.risk.services import _document_requires_manual_review
+
         for classification in (
             {"issues": ["document_ocr_unavailable"]},
-            {"manual_review": {"required": False, "reason_codes": ["document_ocr_unavailable"]}},
+            {
+                "manual_review": {
+                    "required": False,
+                    "reason_codes": ["document_ocr_unavailable"],
+                }
+            },
         ):
             self.assertTrue(_document_requires_manual_review(classification))
         self.assertFalse(_document_requires_manual_review({"issues": []}))

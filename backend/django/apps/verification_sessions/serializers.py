@@ -41,7 +41,6 @@ from apps.verifications.transitions import (
 )
 from common.catalog import COUNTRY_PROFILES, DOCUMENT_TYPES
 
-
 SUPPORTED_LOCALES = {"en", "ar"}
 
 
@@ -69,7 +68,10 @@ def _request_locale(request, policy_snapshot: dict | None = None) -> str:
     candidates.sort(key=lambda candidate: (-candidate[1], candidate[2]))
     for requested, _quality, _index in candidates:
         for supported in supported_locales:
-            if requested == supported or requested.split("-", 1)[0] == supported.split("-", 1)[0]:
+            if (
+                requested == supported
+                or requested.split("-", 1)[0] == supported.split("-", 1)[0]
+            ):
                 return supported
     return default_locale
 
@@ -96,7 +98,9 @@ def _policy_locales(verification, policy_snapshot: dict) -> list[str]:
     if not consent:
         return configured
     translations = consent.get("translations") or {
-        str(consent.get("language") or policy_snapshot.get("default_locale") or "en"): consent
+        str(
+            consent.get("language") or policy_snapshot.get("default_locale") or "en"
+        ): consent
     }
     available = {str(locale).lower() for locale in translations}
     matched = [locale for locale in configured if locale in available]
@@ -113,10 +117,16 @@ def _consent_artifact(verification, locale: str) -> dict:
         return {
             "template_id": str(frozen.get("template_id") or "generated"),
             "version": int(frozen.get("version") or 1),
-            "locale": str(frozen.get("language") or consent_snapshot.get("language") or locale),
+            "locale": str(
+                frozen.get("language") or consent_snapshot.get("language") or locale
+            ),
             "content": content,
             "content_hash": hashlib.sha256(content.encode("utf-8")).hexdigest(),
-            "evidence_scope": frozen.get("evidence_scope") if frozen.get("evidence_scope") is not None else ["document", "biometrics"],
+            "evidence_scope": (
+                frozen.get("evidence_scope")
+                if frozen.get("evidence_scope") is not None
+                else ["document", "biometrics"]
+            ),
         }
     template = _resolve_consent_template(verification, locale)
     content = (
@@ -130,8 +140,11 @@ def _consent_artifact(verification, locale: str) -> dict:
         "locale": template.language if template is not None else locale,
         "content": content,
         "content_hash": hashlib.sha256(content.encode("utf-8")).hexdigest(),
-        "evidence_scope": template.evidence_scope_json if template is not None and template.evidence_scope_json is not None else ["document", "biometrics"],
-
+        "evidence_scope": (
+            template.evidence_scope_json
+            if template is not None and template.evidence_scope_json is not None
+            else ["document", "biometrics"]
+        ),
     }
 
 
@@ -224,7 +237,10 @@ def resolve_session_upload(
         raise serializers.ValidationError(
             {"upload_id": "Upload must be completed and validated before submission."}
         )
-    if upload.status in {UploadStatus.CONSUMED, UploadStatus.PROMOTED} and not allow_consumed:
+    if (
+        upload.status in {UploadStatus.CONSUMED, UploadStatus.PROMOTED}
+        and not allow_consumed
+    ):
         raise serializers.ValidationError(
             {"upload_id": "Upload has already been used."}
         )
@@ -275,11 +291,15 @@ STATUS_PRESENTATION = {
 }
 
 
-def serialize_verification_session(verification_session: VerificationSession, request=None) -> dict:
+def serialize_verification_session(
+    verification_session: VerificationSession, request=None
+) -> dict:
     verification = verification_session.verification
     organization = verification.organization
     organization_settings = organization.settings_json or {}
-    environment = verification.project.environment if verification.project_id else "sandbox"
+    environment = (
+        verification.project.environment if verification.project_id else "sandbox"
+    )
     environment_branding = (
         organization_settings.get("branding_environments", {})
         .get(environment, {})
@@ -306,9 +326,7 @@ def serialize_verification_session(verification_session: VerificationSession, re
             for item in supported_documents
             if item["document_type"] in required_document_types
         ]
-    supported_document_types = {
-        item["document_type"] for item in supported_documents
-    }
+    supported_document_types = {item["document_type"] for item in supported_documents}
     document_type = (
         configured_document_type
         if configured_document_type in supported_document_types
@@ -320,7 +338,11 @@ def serialize_verification_session(verification_session: VerificationSession, re
     )
     document_label = _resolve_document_label(document_type, country_code)
     document_configuration = next(
-        (item for item in supported_documents if item["document_type"] == document_type),
+        (
+            item
+            for item in supported_documents
+            if item["document_type"] == document_type
+        ),
         None,
     )
     policy_snapshot = verification.policy_snapshot_json or {}
@@ -329,9 +351,7 @@ def serialize_verification_session(verification_session: VerificationSession, re
     if session_locales:
         locale_snapshot["supported_locales"] = session_locales
     locale = _request_locale(request, locale_snapshot)
-    configured_liveness = str(
-        policy_snapshot.get("required_liveness_level", "passive")
-    )
+    configured_liveness = str(policy_snapshot.get("required_liveness_level", "passive"))
     liveness_mode = "active" if configured_liveness == "active" else "passive"
     required_steps = ["consent", "document_capture", "selfie_capture"]
     required_steps.append("liveness_check")
@@ -408,11 +428,17 @@ def serialize_verification_session_status(
     latest_selfie = verification.selfie_captures.order_by("-created_at").first()
     latest_document = verification.identity_documents.order_by("-created_at").first()
     latest_liveness = verification.liveness_checks.order_by("-created_at").first()
-    latest_consent = verification.consent_records.order_by("-accepted_at", "-pk").first()
+    latest_consent = verification.consent_records.order_by(
+        "-accepted_at", "-pk"
+    ).first()
     from apps.verifications.transitions import TERMINAL_STATUSES
+
     presentation_proof = None
-    if (latest_consent is not None and latest_consent.withdrawn_at is None
-            and verification.status not in TERMINAL_STATUSES):
+    if (
+        latest_consent is not None
+        and latest_consent.withdrawn_at is None
+        and verification.status not in TERMINAL_STATUSES
+    ):
         try:
             presentation_proof = latest_consent.proof_json
         except ValueError:
@@ -423,13 +449,20 @@ def serialize_verification_session_status(
         latest_consent is not None
         and latest_consent.withdrawn_at is None
         and verification.status not in TERMINAL_STATUSES
-        and (presentation_proof is None or not {"document", "biometrics"}.issubset(
-            presentation_proof.get("evidence_scope", [])))
+        and (
+            presentation_proof is None
+            or not {"document", "biometrics"}.issubset(
+                presentation_proof.get("evidence_scope", [])
+            )
+        )
     )
     if unbound_legacy_consent:
         current_step = "consent"
         message = "Please review and accept the current consent notice to continue."
-    elif latest_document is not None and latest_document.status == IdentityDocumentStatus.PROCESSING:
+    elif (
+        latest_document is not None
+        and latest_document.status == IdentityDocumentStatus.PROCESSING
+    ):
         current_step = "document_processing"
         message = "Your identity document is being checked before selfie capture."
     elif latest_document is not None and latest_document.status in {
@@ -460,14 +493,21 @@ def serialize_verification_session_status(
         elif "document_type_mismatch" in classification_issues:
             predicted_code = str(classification.get("predicted_document_type", ""))
             predicted_label = next(
-                (item["name"] for item in DOCUMENT_TYPES if item["code"] == predicted_code),
+                (
+                    item["name"]
+                    for item in DOCUMENT_TYPES
+                    if item["code"] == predicted_code
+                ),
                 predicted_code.replace("_", " ").title() or "another document type",
             )
             message = (
                 f"That image appears to be {predicted_label}, not {document_label}. "
                 f"Please capture the physical {document_label} and try again."
             )
-        elif "document_type_not_determined" in classification_issues or "ocr_confidence_too_low" in classification_issues:
+        elif (
+            "document_type_not_determined" in classification_issues
+            or "ocr_confidence_too_low" in classification_issues
+        ):
             message = (
                 f"We could not read enough information to confirm this as {document_label}. "
                 "Capture the full physical document in clear, even lighting and try again."
@@ -497,7 +537,9 @@ def serialize_verification_session_status(
         "status": verification.status,
         "current_step": current_step,
         "message": message,
-        "withdrawal_available": latest_consent is not None and latest_consent.accepted and latest_consent.withdrawn_at is None,
+        "withdrawal_available": latest_consent is not None
+        and latest_consent.accepted
+        and latest_consent.withdrawn_at is None,
         "evidence": {
             "identity_document_id": (
                 latest_document.public_id if latest_document is not None else ""
@@ -534,6 +576,7 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
             _request_locale(request, verification.policy_snapshot_json or {}),
         )
         from apps.consent.services import require_workflow_scope
+
         try:
             require_workflow_scope(artifact["evidence_scope"])
         except DjangoValidationError as exc:
@@ -550,26 +593,50 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
                 "The consent notice changed. Review the current notice before accepting."
             )
 
-        existing_record = verification.consent_records.order_by("-accepted_at", "-pk").first()
+        existing_record = verification.consent_records.order_by(
+            "-accepted_at", "-pk"
+        ).first()
         if existing_record and (
-            existing_record.proof_json is not None or existing_record.withdrawn_at is not None
+            existing_record.proof_json is not None
+            or existing_record.withdrawn_at is not None
         ):
             from apps.consent.services import require_active_consent
+
             try:
                 require_active_consent(verification)
             except DjangoValidationError:
-                raise serializers.ValidationError("Active consent is unavailable; a withdrawn proof cannot be reused.") from None
+                raise serializers.ValidationError(
+                    "Active consent is unavailable; a withdrawn proof cannot be reused."
+                ) from None
             proof = existing_record.proof_json
             if {"document", "biometrics"}.issubset(proof["evidence_scope"]):
-                if (proof["notice_version"], proof["locale"], proof["content_hash"]) != (artifact["version"], artifact["locale"], artifact["content_hash"]):
-                    raise serializers.ValidationError("A different notice requires a new consent proof.")
+                if (
+                    proof["notice_version"],
+                    proof["locale"],
+                    proof["content_hash"],
+                ) != (
+                    artifact["version"],
+                    artifact["locale"],
+                    artifact["content_hash"],
+                ):
+                    raise serializers.ValidationError(
+                        "A different notice requires a new consent proof."
+                    )
                 existing_record._already_existing = True
                 if verification.status == VerificationStatus.PENDING_CONSENT:
-                    transition_verification(verification, VerificationStatus.IN_PROGRESS)
+                    transition_verification(
+                        verification, VerificationStatus.IN_PROGRESS
+                    )
                 return existing_record
         from apps.verifications.transitions import TERMINAL_STATUSES
-        if verification.status in TERMINAL_STATUSES or verification.expires_at <= timezone.now():
-            raise serializers.ValidationError("Consent cannot be accepted for a terminal or expired verification.")
+
+        if (
+            verification.status in TERMINAL_STATUSES
+            or verification.expires_at <= timezone.now()
+        ):
+            raise serializers.ValidationError(
+                "Consent cannot be accepted for a terminal or expired verification."
+            )
 
         consent_template = ConsentTemplate.objects.filter(
             tenant=verification.tenant, public_id=artifact["template_id"]
@@ -634,6 +701,7 @@ class VerificationSessionDocumentSerializer(serializers.Serializer):
         verification = verification_session.verification
 
         from apps.consent.services import active_consent
+
         if active_consent(verification, "document") is None:
             raise serializers.ValidationError(
                 {"detail": "Consent must be accepted before document submission."}
@@ -847,6 +915,7 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
         verification = verification_session.verification
 
         from apps.consent.services import active_consent
+
         if active_consent(verification, "biometrics") is None:
             raise serializers.ValidationError(
                 {"detail": "Consent must be accepted before selfie submission."}
@@ -857,7 +926,9 @@ class VerificationSessionSelfieSerializer(serializers.Serializer):
                     "detail": "An identity document must be submitted before selfie capture."
                 }
             )
-        latest_document = verification.identity_documents.order_by("-created_at").first()
+        latest_document = verification.identity_documents.order_by(
+            "-created_at"
+        ).first()
         if latest_document.status != IdentityDocumentStatus.PROCESSED:
             raise serializers.ValidationError(
                 {
@@ -960,11 +1031,18 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
         )
         if attrs["liveness_type"] != expected_liveness:
             raise serializers.ValidationError(
-                {"liveness_type": "Liveness type does not match this verification policy."}
+                {
+                    "liveness_type": "Liveness type does not match this verification policy."
+                }
             )
 
-        latest_document = verification.identity_documents.order_by("-created_at").first()
-        if latest_document is None or latest_document.status != IdentityDocumentStatus.PROCESSED:
+        latest_document = verification.identity_documents.order_by(
+            "-created_at"
+        ).first()
+        if (
+            latest_document is None
+            or latest_document.status != IdentityDocumentStatus.PROCESSED
+        ):
             raise serializers.ValidationError(
                 {
                     "detail": (
@@ -1011,12 +1089,18 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
                 )
             except LivenessChallenge.DoesNotExist as exc:
                 raise serializers.ValidationError(
-                    {"challenge_id": "Liveness challenge was not found for this session."}
+                    {
+                        "challenge_id": "Liveness challenge was not found for this session."
+                    }
                 ) from exc
             if challenge.completed_at is not None:
-                raise serializers.ValidationError({"challenge_id": "Liveness challenge was already used."})
+                raise serializers.ValidationError(
+                    {"challenge_id": "Liveness challenge was already used."}
+                )
             if challenge.expires_at <= timezone.now():
-                raise serializers.ValidationError({"challenge_id": "Liveness challenge has expired."})
+                raise serializers.ValidationError(
+                    {"challenge_id": "Liveness challenge has expired."}
+                )
             if selfie_capture.capture_type != SelfieCaptureType.VIDEO:
                 raise serializers.ValidationError(
                     {"selfie_capture_id": "Active liveness requires a video capture."}
@@ -1124,16 +1208,21 @@ class VerificationSessionLivenessChallengeSerializer(serializers.Serializer):
     def create(self, validated_data):
         request = self.context["request"]
         verification_session = request.verification_session
-        if verification_session.verification.policy_snapshot_json.get(
-            "required_liveness_level", "passive"
-        ) != "active":
+        if (
+            verification_session.verification.policy_snapshot_json.get(
+                "required_liveness_level", "passive"
+            )
+            != "active"
+        ):
             raise serializers.ValidationError(
                 "An active liveness challenge is not enabled by this verification policy."
             )
         now = timezone.now()
-        actions = list(secrets.SystemRandom().sample(
-            ["turn_left", "turn_right", "look_up", "look_down"], k=2
-        ))
+        actions = list(
+            secrets.SystemRandom().sample(
+                ["turn_left", "turn_right", "look_up", "look_down"], k=2
+            )
+        )
         return LivenessChallenge.objects.create(
             tenant=verification_session.tenant,
             verification=verification_session.verification,

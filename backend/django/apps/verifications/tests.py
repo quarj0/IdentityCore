@@ -248,24 +248,34 @@ class VerificationWorkflowTests(APITestCase):
         self.policy.project = selected
         self.policy.save(update_fields=["project"])
         payload = {
-            "purpose": "Project-bound onboarding", "policy_id": self.policy.public_id,
+            "purpose": "Project-bound onboarding",
+            "policy_id": self.policy.public_id,
             "verification_subject": {"full_name": "Synthetic applicant"},
         }
         for project_id in ("prj_missing", other.public_id):
             with self.subTest(project_id=project_id):
                 response = self.client.post(
-                    reverse("verification-list-create"), {**payload, "project_id": project_id},
-                    format="json", **self.auth_headers(),
+                    reverse("verification-list-create"),
+                    {**payload, "project_id": project_id},
+                    format="json",
+                    **self.auth_headers(),
                 )
                 self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
                 self.assertIn("project_id", response.data["error"]["details"])
-                self.assertFalse(Verification.objects.filter(purpose=payload["purpose"]).exists())
+                self.assertFalse(
+                    Verification.objects.filter(purpose=payload["purpose"]).exists()
+                )
         response = self.client.post(
-            reverse("verification-list-create"), {**payload, "project_id": selected.public_id},
-            format="json", **self.auth_headers(),
+            reverse("verification-list-create"),
+            {**payload, "project_id": selected.public_id},
+            format="json",
+            **self.auth_headers(),
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Verification.objects.get(public_id=response.data["data"]["id"]).project_id, selected.pk)
+        self.assertEqual(
+            Verification.objects.get(public_id=response.data["data"]["id"]).project_id,
+            selected.pk,
+        )
 
     def test_api_client_create_requires_idempotency_key(self):
         response = self.client.post(
@@ -2083,9 +2093,12 @@ class VerificationOperationsTaskTests(TestCase):
 
     def test_expiry_preserves_submitted_review_and_rechecks_locked_state(self):
         from apps.verifications.tasks import _expire_pending_verification
+
         verification = Verification.objects.create(
-            tenant=self.tenant, organization=self.organization,
-            verification_subject=self.subject, purpose="Submitted review",
+            tenant=self.tenant,
+            organization=self.organization,
+            verification_subject=self.subject,
+            purpose="Submitted review",
             status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
             expires_at=timezone.now() - timedelta(minutes=5),
         )
@@ -2093,8 +2106,14 @@ class VerificationOperationsTaskTests(TestCase):
         self.assertFalse(_expire_pending_verification(verification.pk, timezone.now()))
         verification.refresh_from_db()
         self.assertEqual(verification.status, VerificationStatus.MANUAL_REVIEW_REQUIRED)
-        self.assertFalse(AuditEvent.objects.filter(target_id=verification.public_id, action="verification.expired").exists())
-        self.assertFalse(WebhookEvent.objects.filter(event_type="verification.expired").exists())
+        self.assertFalse(
+            AuditEvent.objects.filter(
+                target_id=verification.public_id, action="verification.expired"
+            ).exists()
+        )
+        self.assertFalse(
+            WebhookEvent.objects.filter(event_type="verification.expired").exists()
+        )
 
     def test_cleanup_expired_verification_sessions_task_marks_due_sessions_expired(
         self,

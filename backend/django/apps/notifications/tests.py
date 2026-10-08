@@ -97,7 +97,9 @@ class NotificationModelTests(TestCase):
         self.assertIn("sent_at", exc.exception.message_dict)
 
     @patch("apps.notifications.tasks.deliver_notification_task.delay")
-    def test_dispatch_notification_delivery_enqueues_immediately_on_commit(self, mock_delay):
+    def test_dispatch_notification_delivery_enqueues_immediately_on_commit(
+        self, mock_delay
+    ):
         notification = Notification.objects.create(
             tenant=self.tenant,
             recipient_type=NotificationRecipientType.VERIFICATION_SUBJECT,
@@ -202,7 +204,9 @@ class NotificationModelTests(TestCase):
 
         notification.refresh_from_db()
         self.assertEqual(notification.status, NotificationStatus.SENT)
-        self.assertEqual(notification.provider_reference, f"primary-smtp:{notification.public_id}")
+        self.assertEqual(
+            notification.provider_reference, f"primary-smtp:{notification.public_id}"
+        )
         self.assertEqual(mail.outbox[0].from_email, "notify@example.com")
 
     def test_sms_notification_fails_without_adapter_configuration(self):

@@ -80,7 +80,15 @@ def request_subject_deletion(
             document.local_document_name = ""
             document.issuing_authority = ""
             document.extracted_data_json = {}
-            document.save(update_fields=["document_number_hash", "local_document_name", "issuing_authority", "extracted_data_json", "updated_at"])
+            document.save(
+                update_fields=[
+                    "document_number_hash",
+                    "local_document_name",
+                    "issuing_authority",
+                    "extracted_data_json",
+                    "updated_at",
+                ]
+            )
             document_count += 1
         verification_count = 0
         for verification in subject.verifications.select_related("tenant").all():

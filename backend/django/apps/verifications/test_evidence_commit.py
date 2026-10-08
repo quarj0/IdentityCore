@@ -39,9 +39,7 @@ class VerificationEvidenceCommitTests(TransactionTestCase):
             expires_at=timezone.now() + timedelta(hours=1),
         )
 
-    @patch(
-        "apps.verifications.evidence_commit.ensure_verification_evidence_report"
-    )
+    @patch("apps.verifications.evidence_commit.ensure_verification_evidence_report")
     def test_rollback_discards_evidence_callback(self, mock_evidence_report):
         with self.assertRaisesRegex(RuntimeError, "force rollback"):
             with transaction.atomic():
@@ -50,9 +48,7 @@ class VerificationEvidenceCommitTests(TransactionTestCase):
 
         mock_evidence_report.assert_not_called()
 
-    @patch(
-        "apps.verifications.evidence_commit.ensure_verification_evidence_report"
-    )
+    @patch("apps.verifications.evidence_commit.ensure_verification_evidence_report")
     def test_commit_reloads_persisted_verification_before_evidence_generation(
         self,
         mock_evidence_report,

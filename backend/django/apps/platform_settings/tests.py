@@ -44,4 +44,3 @@ class PlatformSettingsTests(TestCase):
 
         self.assertEqual(reset_setting.effective_value, 60)
         self.assertEqual(PlatformSettingRevision.objects.count(), 2)
-

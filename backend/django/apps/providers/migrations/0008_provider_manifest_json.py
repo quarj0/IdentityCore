@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('providers', '0007_providerroute_circuit_failure_threshold_and_more'),
+        ("providers", "0007_providerroute_circuit_failure_threshold_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='provider',
-            name='manifest_json',
+            model_name="provider",
+            name="manifest_json",
             field=models.JSONField(blank=True, default=dict),
         ),
     ]

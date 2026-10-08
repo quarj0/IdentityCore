@@ -388,6 +388,7 @@ def invoke_configured_provider(
         ),
     }
     from common.tenant_storage import transfer_references
+
     result = SecureHTTPProviderAdapter(public).post_json(
         url=public["endpoint_url"],
         payload={

@@ -735,7 +735,9 @@ def exhaust_processing_job(job: ProcessingJob) -> None:
                     "decision": VerificationStatus.MANUAL_REVIEW_REQUIRED,
                     "decision_type": VerificationDecisionType.SYSTEM,
                     "reason_code": "processing_retries_exhausted",
-                    **system_decision_contract_fields(verification, "processing_retries_exhausted"),
+                    **system_decision_contract_fields(
+                        verification, "processing_retries_exhausted"
+                    ),
                     "reason_detail": (
                         "Automated processing could not finish after bounded recovery "
                         "attempts and requires human review."
