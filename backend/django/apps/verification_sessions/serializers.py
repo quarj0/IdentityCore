@@ -44,14 +44,20 @@ from common.catalog import COUNTRY_PROFILES, DOCUMENT_TYPES
 SUPPORTED_LOCALES = {"en", "ar"}
 
 
-def _request_locale(request, policy_snapshot: dict | None = None) -> str:
+def _request_locale(
+    request, policy_snapshot: dict | None = None, *, locale_hint: str | None = None
+) -> str:
     snapshot = policy_snapshot or {}
     default_locale = str(snapshot.get("default_locale") or "en").lower()
     configured = snapshot.get("supported_locales") or list(SUPPORTED_LOCALES)
     supported_locales = [str(locale).lower() for locale in configured]
     if default_locale not in supported_locales:
         supported_locales.append(default_locale)
-    header = request.headers.get("Accept-Language", "") if request is not None else ""
+    header = (
+        locale_hint
+        if locale_hint is not None
+        else (request.headers.get("Accept-Language", "") if request is not None else "")
+    )
     candidates = []
     for index, item in enumerate(header.split(",")):
         tag, *parameters = item.strip().split(";")
@@ -607,7 +613,11 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
 
         artifact = _consent_artifact(
             verification,
-            _request_locale(request, verification.policy_snapshot_json or {}),
+            _request_locale(
+                request,
+                verification.policy_snapshot_json or {},
+                locale_hint=self.validated_data.get("locale"),
+            ),
         )
         from apps.consent.services import require_workflow_scope
 
