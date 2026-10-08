@@ -352,14 +352,33 @@ class ManagementAPIEndpointTests(APITestCase):
 
     def test_provider_health_retains_provider_with_only_nonmetric_attempts(self):
         from apps.providers.health import grouped_platform_provider_health
-        provider = Provider.objects.create(name="Pending Provider", code="pending-health",
-            provider_type=ProviderType.DOCUMENT)
-        for check_status in (ProviderCheckStatus.PENDING, ProviderCheckStatus.PROCESSING, ProviderCheckStatus.CANCELLED):
-            ProviderCheck.objects.create(tenant=self.tenant, verification=self.verification,
-                provider=provider, check_type=ProviderCheckType.DOCUMENT_OCR,
-                status=check_status, started_at=timezone.now(),
-                completed_at=timezone.now() if check_status == ProviderCheckStatus.CANCELLED else None)
-        snapshot = provider_health_scope(tenant=self.tenant, environment="sandbox", provider_id=provider.public_id)
+
+        provider = Provider.objects.create(
+            name="Pending Provider",
+            code="pending-health",
+            provider_type=ProviderType.DOCUMENT,
+        )
+        for check_status in (
+            ProviderCheckStatus.PENDING,
+            ProviderCheckStatus.PROCESSING,
+            ProviderCheckStatus.CANCELLED,
+        ):
+            ProviderCheck.objects.create(
+                tenant=self.tenant,
+                verification=self.verification,
+                provider=provider,
+                check_type=ProviderCheckType.DOCUMENT_OCR,
+                status=check_status,
+                started_at=timezone.now(),
+                completed_at=(
+                    timezone.now()
+                    if check_status == ProviderCheckStatus.CANCELLED
+                    else None
+                ),
+            )
+        snapshot = provider_health_scope(
+            tenant=self.tenant, environment="sandbox", provider_id=provider.public_id
+        )
         self.assertEqual(len(snapshot["providers"]), 1)
         metric = snapshot["providers"][0]
         self.assertEqual(metric["status"], "no_data")

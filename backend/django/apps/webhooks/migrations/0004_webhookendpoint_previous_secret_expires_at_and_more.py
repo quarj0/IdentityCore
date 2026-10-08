@@ -6,23 +6,23 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('webhooks', '0003_webhook_endpoint_project'),
+        ("webhooks", "0003_webhook_endpoint_project"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='webhookendpoint',
-            name='previous_signing_key',
+            model_name="webhookendpoint",
+            name="previous_signing_key",
             field=models.CharField(blank=True, max_length=64),
         ),
         migrations.AddField(
-            model_name='webhookendpoint',
-            name='previous_secret_expires_at',
+            model_name="webhookendpoint",
+            name="previous_secret_expires_at",
             field=models.DateTimeField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='webhookendpoint',
-            name='signing_secret_version',
+            model_name="webhookendpoint",
+            name="signing_secret_version",
             field=models.PositiveIntegerField(default=1),
         ),
     ]

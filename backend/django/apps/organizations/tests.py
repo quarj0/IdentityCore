@@ -10,7 +10,10 @@ from apps.organizations.models import Organization, OrganizationStatus
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.tenants.models import Tenant
 from apps.organizations.models import OrganizationSupportingDocument
-from apps.organizations.onboarding import resend_onboarding_email_verification, serialize_onboarding_state
+from apps.organizations.onboarding import (
+    resend_onboarding_email_verification,
+    serialize_onboarding_state,
+)
 from apps.notifications.models import Notification
 from apps.access_control.models import RolePermission
 from apps.organizations.onboarding import ensure_tenant_administrator_role
@@ -26,6 +29,7 @@ class OrganizationModelTests(TestCase):
         self.assertTrue(organization.public_id.startswith("org_"))
         self.assertEqual(len(organization.public_id.split("_", maxsplit=1)[1]), 26)
         self.assertEqual(organization.status, OrganizationStatus.PENDING_REVIEW)
+
 
 class TenantAdministratorRoleTests(TestCase):
     def test_default_administrator_can_manage_webhooks(self):
@@ -54,6 +58,7 @@ class TenantAdministratorRoleTests(TestCase):
                 permission__code="manage_webhooks",
             ).exists()
         )
+
 
 class OrganizationBrandingTests(APITestCase):
     def setUp(self):
@@ -88,7 +93,10 @@ class OrganizationBrandingTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertIn(f"organizations/{self.organization.public_id}/branding/logos/", response.data["data"]["storage_key"])
+        self.assertIn(
+            f"organizations/{self.organization.public_id}/branding/logos/",
+            response.data["data"]["storage_key"],
+        )
 
     def test_branding_upload_rejects_svg_and_mismatched_mime(self):
         for filename, mime_type in (
@@ -135,7 +143,9 @@ class OrganizationBrandingTests(APITestCase):
         self.assertEqual(draft_response.status_code, status.HTTP_200_OK)
         self.organization.refresh_from_db()
         self.assertEqual(
-            self.organization.settings_json["branding_environments"]["sandbox"]["draft"]["primary_color"],
+            self.organization.settings_json["branding_environments"]["sandbox"][
+                "draft"
+            ]["primary_color"],
             "#ff0000",
         )
         self.assertNotIn("primary_color", self.organization.settings_json)
@@ -160,7 +170,9 @@ class OrganizationBrandingTests(APITestCase):
         self.assertEqual(publish_response.status_code, status.HTTP_200_OK)
         self.organization.refresh_from_db()
         self.assertEqual(
-            self.organization.settings_json["branding_environments"]["sandbox"]["published"]["primary_color"],
+            self.organization.settings_json["branding_environments"]["sandbox"][
+                "published"
+            ]["primary_color"],
             "#1d4ed8",
         )
         self.assertNotIn("primary_color", self.organization.settings_json)
@@ -183,7 +195,9 @@ class OrganizationBrandingTests(APITestCase):
         self.organization.refresh_from_db()
         environments = self.organization.settings_json["branding_environments"]
         self.assertEqual(environments["sandbox"]["draft"]["primary_color"], "#1d4ed8")
-        self.assertEqual(environments["production"]["draft"]["primary_color"], "#15803d")
+        self.assertEqual(
+            environments["production"]["draft"]["primary_color"], "#15803d"
+        )
         self.assertIsNone(environments["sandbox"].get("published"))
 
     def test_publishing_legacy_palette_validates_its_actual_fallback(self):
@@ -224,9 +238,7 @@ class OrganizationBrandingTests(APITestCase):
         )
 
     def test_patch_organization_branding_sets_logo_url_from_public_storage_key(self):
-        logo_storage_key = (
-            f"organizations/{self.organization.public_id}/branding/logos/{self.organization.public_id}.png"
-        )
+        logo_storage_key = f"organizations/{self.organization.public_id}/branding/logos/{self.organization.public_id}.png"
 
         response = self.client.patch(
             reverse("organization-detail"),
@@ -236,11 +248,15 @@ class OrganizationBrandingTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.organization.refresh_from_db()
-        draft = self.organization.settings_json["branding_environments"]["sandbox"]["draft"]
+        draft = self.organization.settings_json["branding_environments"]["sandbox"][
+            "draft"
+        ]
         self.assertEqual(draft["logo_storage_key"], logo_storage_key)
         self.assertTrue(draft["logo_url"])
         self.assertEqual(
-            response.data["data"]["settings"]["branding_environments"]["sandbox"]["draft"]["logo_url"],
+            response.data["data"]["settings"]["branding_environments"]["sandbox"][
+                "draft"
+            ]["logo_url"],
             draft["logo_url"],
         )
         self.assertNotIn("logo_storage_key", self.organization.settings_json)

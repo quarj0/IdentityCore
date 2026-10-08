@@ -73,9 +73,13 @@ class SandboxSimulation(BaseModel):
     verification = models.OneToOneField(
         "Verification", on_delete=models.CASCADE, related_name="sandbox_simulation"
     )
-    scenario = models.CharField(max_length=24, choices=[
-        (value, value) for value in ("approved", "declined", "review", "timeout", "provider_error")
-    ])
+    scenario = models.CharField(
+        max_length=24,
+        choices=[
+            (value, value)
+            for value in ("approved", "declined", "review", "timeout", "provider_error")
+        ],
+    )
     version = models.PositiveSmallIntegerField(default=1)
 
 
@@ -427,30 +431,44 @@ class VerificationDecision(PublicIdModel, BaseModel):
 class ReviewQueue(PublicIdModel, BaseModel):
     public_id_prefix = "rvq"
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.PROTECT)
-    environment = models.CharField(max_length=16, choices=[("sandbox", "Sandbox"), ("production", "Production")])
+    environment = models.CharField(
+        max_length=16, choices=[("sandbox", "Sandbox"), ("production", "Production")]
+    )
     name = models.CharField(max_length=100)
     priority = models.PositiveSmallIntegerField(default=0)
     sla_minutes = models.PositiveIntegerField(default=60)
-    sampling_percent = models.PositiveSmallIntegerField(default=0, null=True, blank=True)
+    sampling_percent = models.PositiveSmallIntegerField(
+        default=0, null=True, blank=True
+    )
     country_codes = models.JSONField(default=list)
     required_skills = models.JSONField(default=list)
     active = models.BooleanField(default=True)
 
 
 class ReviewQueueMember(BaseModel):
-    queue = models.ForeignKey(ReviewQueue, on_delete=models.CASCADE, related_name="members")
+    queue = models.ForeignKey(
+        ReviewQueue, on_delete=models.CASCADE, related_name="members"
+    )
     user = models.ForeignKey("accounts.PlatformUser", on_delete=models.PROTECT)
     skills = models.JSONField(default=list)
     available = models.BooleanField(default=True)
     last_assigned_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["queue", "user"], name="review_queue_unique_member")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["queue", "user"], name="review_queue_unique_member"
+            )
+        ]
 
 
 class ReviewQueueEntry(BaseModel):
-    verification = models.OneToOneField(Verification, on_delete=models.CASCADE, related_name="queue_entry")
-    queue = models.ForeignKey(ReviewQueue, on_delete=models.PROTECT, related_name="entries")
+    verification = models.OneToOneField(
+        Verification, on_delete=models.CASCADE, related_name="queue_entry"
+    )
+    queue = models.ForeignKey(
+        ReviewQueue, on_delete=models.PROTECT, related_name="entries"
+    )
     priority = models.PositiveSmallIntegerField()
     due_at = models.DateTimeField()
     required_skills = models.JSONField(default=list)
@@ -460,20 +478,45 @@ class ReviewQueueEntry(BaseModel):
 class ReviewQualityAssignment(PublicIdModel, BaseModel):
     public_id_prefix = "rqa"
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.PROTECT)
-    verification = models.ForeignKey(Verification, on_delete=models.PROTECT, related_name="quality_assignments")
+    verification = models.ForeignKey(
+        Verification, on_delete=models.PROTECT, related_name="quality_assignments"
+    )
     queue = models.ForeignKey(ReviewQueue, on_delete=models.PROTECT)
     decision_revision = models.PositiveIntegerField()
     sampling_percent = models.PositiveSmallIntegerField()
     original_outcome = models.CharField(max_length=32)
     original_reason_codes = models.JSONField(default=list)
-    maker = models.ForeignKey("accounts.PlatformUser", on_delete=models.PROTECT, related_name="made_quality_samples")
-    checker = models.ForeignKey("accounts.PlatformUser", on_delete=models.PROTECT, related_name="checked_quality_samples", null=True, blank=True)
-    reviewer = models.ForeignKey("accounts.PlatformUser", on_delete=models.PROTECT, related_name="quality_assignments", null=True, blank=True)
+    maker = models.ForeignKey(
+        "accounts.PlatformUser",
+        on_delete=models.PROTECT,
+        related_name="made_quality_samples",
+    )
+    checker = models.ForeignKey(
+        "accounts.PlatformUser",
+        on_delete=models.PROTECT,
+        related_name="checked_quality_samples",
+        null=True,
+        blank=True,
+    )
+    reviewer = models.ForeignKey(
+        "accounts.PlatformUser",
+        on_delete=models.PROTECT,
+        related_name="quality_assignments",
+        null=True,
+        blank=True,
+    )
     required_skills = models.JSONField(default=list)
     outcome = models.CharField(max_length=32, blank=True)
     reason_code = models.CharField(max_length=80, blank=True)
-    notes_json = EncryptedJSONField(default=dict, blank=True, encryption_purpose="review.quality.notes")
+    notes_json = EncryptedJSONField(
+        default=dict, blank=True, encryption_purpose="review.quality.notes"
+    )
     completed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["verification", "decision_revision"], name="review_quality_unique_revision")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["verification", "decision_revision"],
+                name="review_quality_unique_revision",
+            )
+        ]

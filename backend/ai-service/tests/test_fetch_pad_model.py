@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pytest
 
-
 SCRIPT_PATH = Path(__file__).parents[3] / "scripts" / "fetch_pad_model.py"
 SPEC = importlib.util.spec_from_file_location("fetch_pad_model", SCRIPT_PATH)
 assert SPEC is not None and SPEC.loader is not None

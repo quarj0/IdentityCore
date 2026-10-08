@@ -12,7 +12,14 @@ class WebhookEndpointAdmin(admin.ModelAdmin):
 
 @admin.register(WebhookEvent)
 class WebhookEventAdmin(admin.ModelAdmin):
-    list_display = ("public_id", "tenant", "webhook_endpoint", "event_type", "status", "created_at")
+    list_display = (
+        "public_id",
+        "tenant",
+        "webhook_endpoint",
+        "event_type",
+        "status",
+        "created_at",
+    )
     list_filter = ("tenant", "status", "event_type")
     search_fields = ("public_id", "event_type", "webhook_endpoint__public_id")
 

@@ -6,9 +6,8 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0006_mfa'),
-        ('accounts', '0006_refreshtokensession'),
+        ("accounts", "0006_mfa"),
+        ("accounts", "0006_refreshtokensession"),
     ]
 
-    operations = [
-    ]
+    operations = []

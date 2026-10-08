@@ -26,7 +26,10 @@ class Migration(migrations.Migration):
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("deleted_at", models.DateTimeField(blank=True, null=True)),
-                ("public_id", models.CharField(editable=False, max_length=64, unique=True)),
+                (
+                    "public_id",
+                    models.CharField(editable=False, max_length=64, unique=True),
+                ),
                 ("token_hash", models.CharField(max_length=64, unique=True)),
                 ("expires_at", models.DateTimeField(db_index=True)),
                 ("used_at", models.DateTimeField(blank=True, null=True)),

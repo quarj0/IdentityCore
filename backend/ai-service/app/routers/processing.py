@@ -20,7 +20,6 @@ from app.services.processing import (
     process_liveness,
 )
 
-
 router = APIRouter()
 
 

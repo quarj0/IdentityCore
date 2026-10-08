@@ -59,7 +59,12 @@ class MFATransactionTests(TestCase):
             "query": query,
             "variables": {"email": self.user.email, "password": "StrongPassword123!"},
         }
-        response = client.post("/api/graphql", body, format="json", HTTP_X_IDENTITYCORE_SESSION_SCOPE="dashboard")
+        response = client.post(
+            "/api/graphql",
+            body,
+            format="json",
+            HTTP_X_IDENTITYCORE_SESSION_SCOPE="dashboard",
+        )
         self.assertNotIn("errors", response.json())
         payload = response.json()["data"]["login"]
         self.assertTrue(payload["mfaRequired"])
@@ -69,16 +74,27 @@ class MFATransactionTests(TestCase):
         from apps.access_control.models import UserRole
 
         UserRole.objects.filter(user=self.user).delete()
-        response = client.post("/api/graphql", body, format="json", HTTP_X_IDENTITYCORE_SESSION_SCOPE="dashboard")
+        response = client.post(
+            "/api/graphql",
+            body,
+            format="json",
+            HTTP_X_IDENTITYCORE_SESSION_SCOPE="dashboard",
+        )
         self.assertNotIn("errors", response.json())
         payload = response.json()["data"]["login"]
         self.assertFalse(payload["mfaRequired"])
         self.assertTrue(payload["tokens"]["access"])
         from django.conf import settings
+
         cookie_name = settings.AUTH_REFRESH_COOKIE_NAME + "_dashboard"
         self.assertIn(cookie_name, response.cookies)
         self.assertTrue(response.cookies[cookie_name]["httponly"])
-        refreshed = client.post(reverse("auth-refresh"), {}, format="json", HTTP_X_IDENTITYCORE_SESSION_SCOPE="dashboard")
+        refreshed = client.post(
+            reverse("auth-refresh"),
+            {},
+            format="json",
+            HTTP_X_IDENTITYCORE_SESSION_SCOPE="dashboard",
+        )
         self.assertEqual(refreshed.status_code, 200, refreshed.data)
         self.assertTrue(refreshed.data["data"]["tokens"]["access"])
 
@@ -126,6 +142,7 @@ class MFATransactionTests(TestCase):
 
     def test_non_ascii_authenticator_digits_are_rejected(self):
         from apps.accounts.mfa import verified_totp_step
+
         self.assertIsNone(verified_totp_step(generate_secret(), "١٢٣٤٥٦"))
 
     def test_payload_has_keyed_binding_without_password_hash(self):

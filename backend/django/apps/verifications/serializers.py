@@ -102,7 +102,9 @@ def serialize_verification(verification: Verification, request=None) -> dict:
             "id": verification.policy_public_id,
             "name": verification.policy_snapshot_json.get("name", ""),
             "version": verification.policy_snapshot_json.get("version"),
-            "review_reason_rules": verification.policy_snapshot_json.get("review_reason_rules", {}),
+            "review_reason_rules": verification.policy_snapshot_json.get(
+                "review_reason_rules", {}
+            ),
         },
         "workflow": {
             "id": verification.workflow_snapshot_json.get("workflow_id"),
@@ -185,6 +187,7 @@ def serialize_verification(verification: Verification, request=None) -> dict:
         "expires_at": verification.expires_at.isoformat(),
     }
     from apps.verifications.models import SandboxSimulation
+
     marker = SandboxSimulation.objects.filter(verification=verification).first()
     if marker is not None:
         result["simulation"] = {"scenario": marker.scenario, "version": marker.version}
@@ -298,12 +301,22 @@ class VerificationCreateSerializer(serializers.Serializer):
                 public_id=project_id, status="active", deleted_at__isnull=True
             ).first()
             if project is None:
-                raise serializers.ValidationError({"project_id": "Choose an active project in this workspace."})
+                raise serializers.ValidationError(
+                    {"project_id": "Choose an active project in this workspace."}
+                )
             policy = attrs.get("policy")
             if policy is not None and policy.project_id != project.pk:
-                raise serializers.ValidationError({"project_id": "The project must match the verification template."})
-            if is_api_client_request and policy is None and request.api_client.project_id != project.pk:
-                raise serializers.ValidationError({"project_id": "The project must match the API client."})
+                raise serializers.ValidationError(
+                    {"project_id": "The project must match the verification template."}
+                )
+            if (
+                is_api_client_request
+                and policy is None
+                and request.api_client.project_id != project.pk
+            ):
+                raise serializers.ValidationError(
+                    {"project_id": "The project must match the API client."}
+                )
             attrs["resolved_project"] = project
         return attrs
 
@@ -450,11 +463,14 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
         ]
     )
     reason_code = serializers.CharField(max_length=80)
-    reason_detail = serializers.CharField(required=False, allow_blank=True, max_length=4000)
+    reason_detail = serializers.CharField(
+        required=False, allow_blank=True, max_length=4000
+    )
 
     @transaction.atomic
     def save(self, *, verification: Verification, decided_by):
         from apps.audit.services import lock_audit_chain
+
         lock_audit_chain(verification.tenant_id)
         verification = (
             Verification.objects.select_for_update(of=("self",), no_key=True)
@@ -501,15 +517,40 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
             )
         from apps.verifications.models import ReviewQueue
         from apps.verifications.review_queues import case_environment
-        if verification.review_owner == "tenant" and verification.assigned_reviewer_id is None and ReviewQueue.objects.filter(tenant_id=verification.tenant_id, environment=case_environment(verification), active=True, deleted_at__isnull=True).exists():
-            raise serializers.ValidationError({"decision": "Use the queue to assign this verification before deciding."})
+
+        if (
+            verification.review_owner == "tenant"
+            and verification.assigned_reviewer_id is None
+            and ReviewQueue.objects.filter(
+                tenant_id=verification.tenant_id,
+                environment=case_environment(verification),
+                active=True,
+                deleted_at__isnull=True,
+            ).exists()
+        ):
+            raise serializers.ValidationError(
+                {
+                    "decision": "Use the queue to assign this verification before deciding."
+                }
+            )
         from apps.verifications.models import ReviewQueueEntry, ReviewQueueMember
         from apps.verifications.review_queues import eligible
+
         entry = ReviewQueueEntry.objects.filter(verification=verification).first()
         if entry:
-            member = ReviewQueueMember.objects.filter(queue=entry.queue, user=decided_by).select_related("user").first()
-            if member is None or not entry.queue.active or not eligible(member, verification, entry.required_skills):
-                raise serializers.ValidationError({"decision": "Current queue reviewer eligibility is required."})
+            member = (
+                ReviewQueueMember.objects.filter(queue=entry.queue, user=decided_by)
+                .select_related("user")
+                .first()
+            )
+            if (
+                member is None
+                or not entry.queue.active
+                or not eligible(member, verification, entry.required_skills)
+            ):
+                raise serializers.ValidationError(
+                    {"decision": "Current queue reviewer eligibility is required."}
+                )
         assigned_now = verification.assigned_reviewer_id is None
         if assigned_now:
             verification.assigned_reviewer = decided_by
@@ -529,8 +570,14 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
 
         from django.core.exceptions import ValidationError as DjangoValidationError
         from apps.verifications.review_reasons import validate_reviewer_input
+
         try:
-            validate_reviewer_input(verification, self.validated_data["decision"], self.validated_data["reason_code"], self.validated_data.get("reason_detail", ""))
+            validate_reviewer_input(
+                verification,
+                self.validated_data["decision"],
+                self.validated_data["reason_code"],
+                self.validated_data.get("reason_detail", ""),
+            )
         except DjangoValidationError as exc:
             raise serializers.ValidationError({"reason_code": exc.messages}) from exc
 
@@ -594,6 +641,7 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
                 completed_at=now,
             )
         from apps.verifications.review_quality import sample_final_decision
+
         sample_final_decision(verification, decision_record)
         decision_record._review_assigned_now = assigned_now
         return decision_record
@@ -601,7 +649,9 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
 
 class ManualReviewApprovalSerializer(serializers.Serializer):
     reason_code = serializers.CharField(max_length=80, required=False)
-    reason_detail = serializers.CharField(required=False, allow_blank=True, max_length=4000)
+    reason_detail = serializers.CharField(
+        required=False, allow_blank=True, max_length=4000
+    )
     decision = serializers.ChoiceField(
         choices=[
             (VerificationStatus.VERIFIED, "Verified"),

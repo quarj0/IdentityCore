@@ -226,7 +226,12 @@ def process_identity_document_task(identity_document_id: str) -> str:
             quality_operation_kwargs = {
                 "verification_id": verification.public_id,
                 "document_storage_key": capture.storage_key,
-                "document_storage_bucket": resolve_reference(capture.storage_key, temp_bucket, tenant_scope=verification.tenant.public_id, environment=environment_for_instance(verification))["bucket"],
+                "document_storage_bucket": resolve_reference(
+                    capture.storage_key,
+                    temp_bucket,
+                    tenant_scope=verification.tenant.public_id,
+                    environment=environment_for_instance(verification),
+                )["bucket"],
             }
             quality_execution = execute_provider_route(
                 verification=verification,
@@ -340,7 +345,12 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 "document_storage_key": primary_capture.storage_key,
                 "document_type": identity_document.document_type_id,
                 "country_code": identity_document.country_profile_id,
-                "document_storage_bucket": resolve_reference(primary_capture.storage_key, temp_bucket, tenant_scope=verification.tenant.public_id, environment=environment_for_instance(verification))["bucket"],
+                "document_storage_bucket": resolve_reference(
+                    primary_capture.storage_key,
+                    temp_bucket,
+                    tenant_scope=verification.tenant.public_id,
+                    environment=environment_for_instance(verification),
+                )["bucket"],
             }
             classification_execution = execute_provider_route(
                 verification=verification,
@@ -392,7 +402,12 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 "document_storage_key": primary_capture.storage_key,
                 "document_type": identity_document.document_type_id,
                 "country_code": identity_document.country_profile_id,
-                "document_storage_bucket": resolve_reference(primary_capture.storage_key, temp_bucket, tenant_scope=verification.tenant.public_id, environment=environment_for_instance(verification))["bucket"],
+                "document_storage_bucket": resolve_reference(
+                    primary_capture.storage_key,
+                    temp_bucket,
+                    tenant_scope=verification.tenant.public_id,
+                    environment=environment_for_instance(verification),
+                )["bucket"],
             }
             ocr_execution = execute_provider_route(
                 verification=verification,

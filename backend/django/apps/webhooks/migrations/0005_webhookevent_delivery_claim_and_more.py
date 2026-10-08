@@ -6,18 +6,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('webhooks', '0004_webhookendpoint_previous_secret_expires_at_and_more'),
+        ("webhooks", "0004_webhookendpoint_previous_secret_expires_at_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='webhookevent',
-            name='delivery_claim',
-            field=models.CharField(blank=True, default='', max_length=32),
+            model_name="webhookevent",
+            name="delivery_claim",
+            field=models.CharField(blank=True, default="", max_length=32),
         ),
         migrations.AddField(
-            model_name='webhookevent',
-            name='delivery_claim_expires_at',
+            model_name="webhookevent",
+            name="delivery_claim_expires_at",
             field=models.DateTimeField(blank=True, db_index=True, null=True),
         ),
     ]

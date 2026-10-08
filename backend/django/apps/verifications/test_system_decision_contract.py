@@ -93,7 +93,9 @@ class ProcessingSystemDecisionContractTests(SystemDecisionContractAssertions):
                 }
             },
         )
-        self.assertEqual(request_subject_deletion(subject=self.subject)["status"], "completed")
+        self.assertEqual(
+            request_subject_deletion(subject=self.subject)["status"], "completed"
+        )
         # The caller may still have a pre-erasure subject cached on its case.
         job = queue_identity_document_processing(self.identity_document)
         exhaust_processing_job(job)

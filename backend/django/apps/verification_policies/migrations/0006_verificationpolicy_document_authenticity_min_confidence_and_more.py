@@ -7,18 +7,30 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('verification_policies', '0005_verificationpolicy_external_risk_enabled_and_more'),
+        (
+            "verification_policies",
+            "0005_verificationpolicy_external_risk_enabled_and_more",
+        ),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='verificationpolicy',
-            name='document_authenticity_min_confidence',
-            field=models.DecimalField(db_default=0.9, decimal_places=4, default=0.9, max_digits=5, validators=[django.core.validators.MinValueValidator(0), django.core.validators.MaxValueValidator(1)]),
+            model_name="verificationpolicy",
+            name="document_authenticity_min_confidence",
+            field=models.DecimalField(
+                db_default=0.9,
+                decimal_places=4,
+                default=0.9,
+                max_digits=5,
+                validators=[
+                    django.core.validators.MinValueValidator(0),
+                    django.core.validators.MaxValueValidator(1),
+                ],
+            ),
         ),
         migrations.AddField(
-            model_name='verificationpolicy',
-            name='document_authenticity_required',
+            model_name="verificationpolicy",
+            name="document_authenticity_required",
             field=models.BooleanField(db_default=False, default=False),
         ),
     ]

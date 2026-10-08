@@ -9,30 +9,67 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('tenants', '0001_initial'),
+        ("tenants", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='AuditEvent',
+            name="AuditEvent",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('public_id', models.CharField(editable=False, max_length=64, unique=True)),
-                ('actor_type', models.CharField(choices=[('platform_user', 'Platform User'), ('api_client', 'API Client'), ('verification_subject', 'Verification Subject'), ('system', 'System'), ('provider', 'Provider')], db_index=True, max_length=32)),
-                ('actor_id', models.CharField(blank=True, db_index=True, max_length=64)),
-                ('action', models.CharField(db_index=True, max_length=120)),
-                ('target_type', models.CharField(db_index=True, max_length=64)),
-                ('target_id', models.CharField(db_index=True, max_length=64)),
-                ('ip_address', models.GenericIPAddressField(blank=True, null=True)),
-                ('user_agent', models.TextField(blank=True)),
-                ('device_fingerprint', models.CharField(blank=True, max_length=255)),
-                ('metadata_json', models.JSONField(blank=True, default=dict)),
-                ('sensitive_metadata_hash', models.CharField(blank=True, max_length=64)),
-                ('created_at', models.DateTimeField(auto_now_add=True, db_index=True)),
-                ('tenant', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='audit_events', to='tenants.tenant')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "public_id",
+                    models.CharField(editable=False, max_length=64, unique=True),
+                ),
+                (
+                    "actor_type",
+                    models.CharField(
+                        choices=[
+                            ("platform_user", "Platform User"),
+                            ("api_client", "API Client"),
+                            ("verification_subject", "Verification Subject"),
+                            ("system", "System"),
+                            ("provider", "Provider"),
+                        ],
+                        db_index=True,
+                        max_length=32,
+                    ),
+                ),
+                (
+                    "actor_id",
+                    models.CharField(blank=True, db_index=True, max_length=64),
+                ),
+                ("action", models.CharField(db_index=True, max_length=120)),
+                ("target_type", models.CharField(db_index=True, max_length=64)),
+                ("target_id", models.CharField(db_index=True, max_length=64)),
+                ("ip_address", models.GenericIPAddressField(blank=True, null=True)),
+                ("user_agent", models.TextField(blank=True)),
+                ("device_fingerprint", models.CharField(blank=True, max_length=255)),
+                ("metadata_json", models.JSONField(blank=True, default=dict)),
+                (
+                    "sensitive_metadata_hash",
+                    models.CharField(blank=True, max_length=64),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True, db_index=True)),
+                (
+                    "tenant",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="audit_events",
+                        to="tenants.tenant",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
+                "ordering": ["-created_at"],
             },
         ),
     ]

@@ -7,17 +7,20 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('organizations', '0004_organizationsupportingdocument'),
-        ('projects', '0002_alter_project_deleted_at_alter_project_public_id'),
-        ('tenants', '0003_alter_tenant_settings_json'),
-        ('verification_subjects', '0002_alter_verificationsubject_metadata_json'),
-        ('verifications', '0007_verification_review_owner'),
+        ("organizations", "0004_organizationsupportingdocument"),
+        ("projects", "0002_alter_project_deleted_at_alter_project_public_id"),
+        ("tenants", "0003_alter_tenant_settings_json"),
+        ("verification_subjects", "0002_alter_verificationsubject_metadata_json"),
+        ("verifications", "0007_verification_review_owner"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddIndex(
-            model_name='verification',
-            index=models.Index(fields=['tenant', '-created_at', '-id'], name='verif_tenant_created_pk_idx'),
+            model_name="verification",
+            index=models.Index(
+                fields=["tenant", "-created_at", "-id"],
+                name="verif_tenant_created_pk_idx",
+            ),
         ),
     ]

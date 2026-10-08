@@ -95,19 +95,21 @@ class BiometricsTaskTests(TestCase):
             session_token_hash="placeholder",
             expires_at=timezone.now() + timedelta(hours=1),
         )
-        self.selfie_upload = seal_test_upload(Upload.objects.create(
-            tenant=self.tenant,
-            verification=self.verification,
-            verification_session=self.session,
-            purpose=UploadPurpose.SELFIE_CAPTURE,
-            storage_key=self.selfie_capture.storage_key,
-            storage_provider="local",
-            mime_type="image/jpeg",
-            file_size_bytes=1024,
-            status=UploadStatus.CONSUMED,
-            expires_at=timezone.now() + timedelta(minutes=10),
-            consumed_at=timezone.now(),
-        ))
+        self.selfie_upload = seal_test_upload(
+            Upload.objects.create(
+                tenant=self.tenant,
+                verification=self.verification,
+                verification_session=self.session,
+                purpose=UploadPurpose.SELFIE_CAPTURE,
+                storage_key=self.selfie_capture.storage_key,
+                storage_provider="local",
+                mime_type="image/jpeg",
+                file_size_bytes=1024,
+                status=UploadStatus.CONSUMED,
+                expires_at=timezone.now() + timedelta(minutes=10),
+                consumed_at=timezone.now(),
+            )
+        )
         self.liveness_provider_check = create_provider_check(
             verification=self.verification,
             check_type=ProviderCheckType.LIVENESS,
@@ -362,9 +364,7 @@ class BiometricsTaskTests(TestCase):
 
         with self.captureOnCommitCallbacks(execute=True) as callbacks:
             with self.assertRaisesRegex(RuntimeError, "outbox insert failed"):
-                process_verification_biometrics_task(
-                    self.liveness_check.public_id
-                )
+                process_verification_biometrics_task(self.liveness_check.public_id)
 
         self.verification.refresh_from_db()
         self.assertEqual(self.verification.status, VerificationStatus.PROCESSING)
@@ -409,9 +409,7 @@ class BiometricsTaskTests(TestCase):
         }
 
         with self.captureOnCommitCallbacks(execute=True):
-            result = process_verification_biometrics_task(
-                self.liveness_check.public_id
-            )
+            result = process_verification_biometrics_task(self.liveness_check.public_id)
 
         self.assertEqual(result, VerificationStatus.REJECTED)
         self.selfie_capture.refresh_from_db()

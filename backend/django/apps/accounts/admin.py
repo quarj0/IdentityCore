@@ -5,7 +5,14 @@ from apps.accounts.models import ContactInquiry, PasswordResetToken, PlatformUse
 
 @admin.register(PlatformUser)
 class PlatformUserAdmin(admin.ModelAdmin):
-    list_display = ("email", "public_id", "tenant", "status", "is_platform_admin", "mfa_enabled")
+    list_display = (
+        "email",
+        "public_id",
+        "tenant",
+        "status",
+        "is_platform_admin",
+        "mfa_enabled",
+    )
     list_filter = ("status", "is_platform_admin", "mfa_enabled", "is_staff")
     search_fields = ("email", "public_id", "first_name", "last_name")
 
@@ -19,6 +26,13 @@ class PasswordResetTokenAdmin(admin.ModelAdmin):
 
 @admin.register(ContactInquiry)
 class ContactInquiryAdmin(admin.ModelAdmin):
-    list_display = ("public_id", "full_name", "business_email", "interest", "status", "created_at")
+    list_display = (
+        "public_id",
+        "full_name",
+        "business_email",
+        "interest",
+        "status",
+        "created_at",
+    )
     search_fields = ("public_id", "full_name", "business_email", "organization_name")
     list_filter = ("status", "interest")

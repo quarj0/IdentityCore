@@ -10,14 +10,20 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
-from apps.accounts.models import EmailVerificationToken, PlatformUser, PlatformUserStatus
+from apps.accounts.models import (
+    EmailVerificationToken,
+    PlatformUser,
+    PlatformUserStatus,
+)
 from apps.notifications.models import (
     Notification,
     NotificationChannel,
     NotificationRecipientType,
 )
-from apps.notifications.services import create_notification, enqueue_notification_delivery
-
+from apps.notifications.services import (
+    create_notification,
+    enqueue_notification_delivery,
+)
 
 EMAIL_VERIFICATION_EXPIRY_HOURS = 24
 
@@ -45,7 +51,9 @@ def issue_email_verification_token(
     expires_in: timedelta | None = None,
 ) -> tuple[EmailVerificationToken, str]:
     if user.tenant_id is None:
-        raise ValueError("Email verification tokens are only supported for tenant users.")
+        raise ValueError(
+            "Email verification tokens are only supported for tenant users."
+        )
 
     EmailVerificationToken.objects.filter(
         user=user,
@@ -83,7 +91,9 @@ def queue_email_verification_notification(
     )
 
 
-def issue_and_queue_email_verification(*, user: PlatformUser) -> tuple[EmailVerificationToken, str]:
+def issue_and_queue_email_verification(
+    *, user: PlatformUser
+) -> tuple[EmailVerificationToken, str]:
     token, raw_token = issue_email_verification_token(user=user)
     notification = queue_email_verification_notification(
         user=user,

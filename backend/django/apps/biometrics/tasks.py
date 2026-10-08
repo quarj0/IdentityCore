@@ -223,8 +223,11 @@ def _finalize_unavailable_biometrics(
     # the decision/outbox transaction so recovery does not move missing temp data.
     promote_upload_to_media_by_storage_key(liveness_check.selfie_capture.storage_key)
     return _persist_unavailable_biometric_decision(
-        verification=verification, liveness_check=liveness_check,
-        face_match=face_match, processing_job=processing_job, error=error,
+        verification=verification,
+        liveness_check=liveness_check,
+        face_match=face_match,
+        processing_job=processing_job,
+        error=error,
     )
 
 
@@ -254,7 +257,9 @@ def _persist_unavailable_biometric_decision(
             "decision": VerificationStatus.MANUAL_REVIEW_REQUIRED,
             "decision_type": VerificationDecisionType.SYSTEM,
             "reason_code": "biometric_provider_unavailable",
-            **system_decision_contract_fields(verification, "biometric_provider_unavailable"),
+            **system_decision_contract_fields(
+                verification, "biometric_provider_unavailable"
+            ),
             "reason_detail": (
                 "Biometric processing was unavailable. The submitted evidence "
                 "requires human review."
@@ -390,7 +395,12 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                     "verification_id": verification.public_id,
                     "selfie_storage_key": selfie_capture.storage_key,
                     "liveness_type": liveness_check.liveness_type,
-                    "selfie_storage_bucket": resolve_reference(selfie_capture.storage_key, temp_bucket, tenant_scope=verification.tenant.public_id, environment=environment_for_instance(verification))["bucket"],
+                    "selfie_storage_bucket": resolve_reference(
+                        selfie_capture.storage_key,
+                        temp_bucket,
+                        tenant_scope=verification.tenant.public_id,
+                        environment=environment_for_instance(verification),
+                    )["bucket"],
                     "selfie_mime_type": selfie_capture.mime_type,
                     "challenge_actions": (
                         liveness_check.challenge.actions
@@ -534,14 +544,24 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                     "selfie_storage_key": selfie_capture.storage_key,
                     "document_storage_key": document_storage_key,
                     "threshold": threshold,
-                    "selfie_storage_bucket": resolve_reference(selfie_capture.storage_key, temp_bucket, tenant_scope=verification.tenant.public_id, environment=environment_for_instance(verification))["bucket"],
+                    "selfie_storage_bucket": resolve_reference(
+                        selfie_capture.storage_key,
+                        temp_bucket,
+                        tenant_scope=verification.tenant.public_id,
+                        environment=environment_for_instance(verification),
+                    )["bucket"],
                     "selfie_mime_type": selfie_capture.mime_type,
-                    "document_storage_bucket": resolve_reference(document_storage_key, (
-                        media_bucket
-                        if source_document_capture
-                        and source_document_capture.status != "uploaded"
-                        else temp_bucket
-                    ), tenant_scope=verification.tenant.public_id, environment=environment_for_instance(verification))["bucket"],
+                    "document_storage_bucket": resolve_reference(
+                        document_storage_key,
+                        (
+                            media_bucket
+                            if source_document_capture
+                            and source_document_capture.status != "uploaded"
+                            else temp_bucket
+                        ),
+                        tenant_scope=verification.tenant.public_id,
+                        environment=environment_for_instance(verification),
+                    )["bucket"],
                 }
                 face_execution = execute_provider_route(
                     verification=verification,
@@ -656,7 +676,9 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             if processing_stage == "liveness" and liveness_provider_check is not None:
                 liveness_provider_check.status = ProviderCheckStatus.FAILED
                 liveness_provider_check.error_code = "provider_unavailable"
-                liveness_provider_check.error_message = "Biometric processing was unavailable."
+                liveness_provider_check.error_message = (
+                    "Biometric processing was unavailable."
+                )
                 liveness_provider_check.completed_at = now
                 liveness_provider_check.save(
                     update_fields=[
@@ -670,7 +692,9 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
             if processing_stage == "face_match" and face_provider_check is not None:
                 face_provider_check.status = ProviderCheckStatus.FAILED
                 face_provider_check.error_code = "provider_unavailable"
-                face_provider_check.error_message = "Biometric processing was unavailable."
+                face_provider_check.error_message = (
+                    "Biometric processing was unavailable."
+                )
                 face_provider_check.completed_at = now
                 face_provider_check.save(
                     update_fields=[

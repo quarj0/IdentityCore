@@ -1,4 +1,5 @@
 """Versioned authenticity evidence and source-coordinate suspicious regions."""
+
 from common.tenant_storage import resolve_reference
 from common.fields import environment_for_instance
 
@@ -216,7 +217,12 @@ def source_size_for_capture(capture):
         if upload.status == "promoted"
         else get_object_storage_temp_bucket_name()
     )
-    bucket = resolve_reference(capture.storage_key, bucket, tenant_scope=capture.tenant.public_id, environment=environment_for_instance(capture))["bucket"]
+    bucket = resolve_reference(
+        capture.storage_key,
+        bucket,
+        tenant_scope=capture.tenant.public_id,
+        environment=environment_for_instance(capture),
+    )["bucket"]
     content, _ = get_object_bytes(
         bucket_name=bucket, key=capture.storage_key, max_bytes=20 * 1024 * 1024
     )

@@ -11,7 +11,6 @@ import urllib.request
 from dataclasses import dataclass
 from urllib.parse import unquote, urlsplit
 
-
 DEFAULT_MAX_RESPONSE_BYTES = 1 * 1024 * 1024
 DEFAULT_TIMEOUT_SECONDS = 10
 MAX_TIMEOUT_SECONDS = 30

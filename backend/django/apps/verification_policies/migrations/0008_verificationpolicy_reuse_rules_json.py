@@ -6,13 +6,16 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('verification_policies', '0007_verificationpolicy_document_consistency_rules_json'),
+        (
+            "verification_policies",
+            "0007_verificationpolicy_document_consistency_rules_json",
+        ),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='verificationpolicy',
-            name='reuse_rules_json',
+            model_name="verificationpolicy",
+            name="reuse_rules_json",
             field=models.JSONField(blank=True, default=dict),
         ),
     ]
