@@ -1,9 +1,5 @@
 import { expect, test, type Locator } from "@playwright/test";
 
-// Recording mobile WebKit video competes with rendering during this multi-step flow.
-// Retained traces and failure screenshots still capture interaction and polling failures.
-test.use({ video: "off" });
-
 const sessionId = "ses_withdrawal";
 
 test("BFF admits only the exact authenticated withdrawal route", async ({
@@ -44,27 +40,73 @@ test("BFF admits only the exact authenticated withdrawal route", async ({
 });
 
 for (const step of ["cancelled", "failed"]) {
-  test(`pre-consent ${step} session offers no withdrawal`, async ({ page, isMobile }) => {
-    await page.route("**/api/verification/**", async route => {
+  test(`pre-consent ${step} session offers no withdrawal`, async ({
+    page,
+    isMobile,
+  }) => {
+    await page.route("**/api/verification/**", async (route) => {
       const path = new URL(route.request().url()).pathname;
       const data = path.endsWith("/status")
-        ? { verification_id: "ver_no_consent", status: step, current_step: step, withdrawal_available: false, message: "Session ended", evidence: {} }
-        : { session_id: sessionId, verification_id: "ver_no_consent", status: "active", organization: { name: "Example Bank", logo_url: "" }, purpose: "Customer onboarding", redirect_url: "", required_steps: ["consent"], workflow: { steps: ["consent"], liveness_mode: "passive" }, locale: "en", supported_locales: ["en"], direction: "ltr", consent: { content: "Notice" }, document: { country_code: "GH", document_type: "passport", label: "Passport", capture_requirements: [] }, expires_at: new Date(Date.now() + 60000).toISOString() };
-      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ success: true, data }) });
+        ? {
+            verification_id: "ver_no_consent",
+            status: step,
+            current_step: step,
+            withdrawal_available: false,
+            message: "Session ended",
+            evidence: {},
+          }
+        : {
+            session_id: sessionId,
+            verification_id: "ver_no_consent",
+            status: "active",
+            organization: { name: "Example Bank", logo_url: "" },
+            purpose: "Customer onboarding",
+            redirect_url: "",
+            required_steps: ["consent"],
+            workflow: { steps: ["consent"], liveness_mode: "passive" },
+            locale: "en",
+            supported_locales: ["en"],
+            direction: "ltr",
+            consent: { content: "Notice" },
+            document: {
+              country_code: "GH",
+              document_type: "passport",
+              label: "Passport",
+              capture_requirements: [],
+            },
+            expires_at: new Date(Date.now() + 60000).toISOString(),
+          };
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({ success: true, data }),
+      });
     });
     await page.goto(`/verify/${sessionId}#token=browser-secret`);
-    if (!isMobile) await page.getByRole("button", { name: "Continue on this computer" }).click();
-    await expect(page.getByText("Session ended", { exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Withdraw consent", exact: true })).toHaveCount(0);
+    if (!isMobile)
+      await page
+        .getByRole("button", { name: "Continue on this computer" })
+        .click();
+    await expect(
+      page.getByText("Session ended", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Withdraw consent", exact: true }),
+    ).toHaveCount(0);
   });
 }
 
 for (const locale of ["en", "ar"]) {
-  for (const afterConsent of ["processing", "cancelled", "consent_key_unavailable"]) {
+  for (const afterConsent of [
+    "processing",
+    "cancelled",
+    "consent_key_unavailable",
+  ]) {
     test(`subject withdraws consent with confirmation and retry (${locale}, ${afterConsent})`, async ({
       page,
       isMobile,
     }) => {
+      // Processing cases also wait for a real status poll and verify it stops.
+      if (afterConsent === "processing") test.setTimeout(60_000);
       let step = "consent";
       let accepted = false;
       let withdrawals = 0;
@@ -101,7 +143,10 @@ for (const locale of ["en", "ar"]) {
         }
         if (path.endsWith("/consent")) {
           accepted = true;
-          step = afterConsent === "consent_key_unavailable" ? "consent" : afterConsent;
+          step =
+            afterConsent === "consent_key_unavailable"
+              ? "consent"
+              : afterConsent;
           return json({});
         }
         if (path.endsWith("/status")) {
@@ -162,6 +207,7 @@ for (const locale of ["en", "ar"]) {
       await expect(
         page.getByRole("button", { name: withdraw, exact: true }),
       ).toHaveCount(0);
+      // Match mobile touch input: WebKit can focus without activating mouse clicks.
       const activate = async (button: Locator) => {
         if (isMobile) await button.tap();
         else await button.click();
@@ -181,6 +227,19 @@ for (const locale of ["en", "ar"]) {
         page.getByRole("alert").filter({ hasText: "Please retry withdrawal." }),
       ).toContainText("Please retry withdrawal.");
       expect(cleared).toBe(0);
+      if (afterConsent === "processing") {
+        const pollsAtFailure = statusRequests;
+        await expect
+          .poll(() => statusRequests, { timeout: 10_000 })
+          .toBeGreaterThan(pollsAtFailure);
+        await expect(
+          page
+            .getByRole("alert")
+            .filter({ hasText: "Please retry withdrawal." }),
+        ).toContainText("Please retry withdrawal.");
+        expect(withdrawals).toBe(1);
+        expect(cleared).toBe(0);
+      }
       await activate(page.getByRole("button", { name: confirm }));
       await expect(
         page.getByRole("heading", {
