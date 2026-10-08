@@ -8,7 +8,7 @@ Record the relevant checks and any remaining limitations.
 
 ## Review gate
 
-Follow [the mandatory review gate](../docs/operations/pull-request-review-gate.md).
+Follow [the mandatory review gate](https://github.com/quarj0/IdentityCore/blob/main/docs/operations/pull-request-review-gate.md).
 
 - [ ] Configured review completed for the final head.
 - [ ] Every substantive finding has a commit or current-code explanation and validation linked in its original thread.
