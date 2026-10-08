@@ -53,20 +53,31 @@
       "thread_id": "PRRT_kwDOTN0BU86R9OlY",
       "comment_id": 3607689354,
       "path": "frontend/verification-portal/src/lib/session-api.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/uploads/serializers.py:UploadCreateSerializer.create returns empty upload_url and authenticated transfer path",
+        "backend/django/apps/uploads/tests.py:test_create_upload_returns_consent_aware_transfer_path"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Fall back to transfer for non-presigned upload URLs**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/3#discussion_r3607689354"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/3#discussion_r3607689354",
+      "verified_main": "1e5666dcd36d93fac0b7f377380f83bb25d0bd06",
+      "disposition_note": "Current implementation supersedes the original finding. All 77 targeted upload, failure-injection and biometric-recovery tests and all 14 classification tests passed in the isolated audit."
     },
     {
       "pr_number": 3,
       "thread_id": "PRRT_kwDOTN0BU86R9Olb",
       "comment_id": 3607689356,
       "path": "backend/django/apps/verification_sessions/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verification_sessions/views.py:VerificationSessionLivenessView.post transaction.atomic rolls back failures before durable job creation",
+        "backend/django/apps/verifications/processing_jobs.py:enqueue_processing_job and dispatch_processing_job persist failed publication for scheduled recovery",
+        "backend/django/apps/verifications/test_failure_injection.py:test_broker_outage_preserves_durable_job_and_recovers_once"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Re-enqueue existing liveness checks on retry**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/3#discussion_r3607689356"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/3#discussion_r3607689356",
+      "verified_main": "1e5666dcd36d93fac0b7f377380f83bb25d0bd06",
+      "disposition_note": "Current implementation supersedes the original finding. All 77 targeted upload, failure-injection and biometric-recovery tests and all 14 classification tests passed in the isolated audit."
     },
     {
       "pr_number": 3,
@@ -143,30 +154,46 @@
       "thread_id": "PRRT_kwDOTN0BU86R9bci",
       "comment_id": 3607761309,
       "path": "backend/django/apps/verification_sessions/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/processing_jobs.py:dispatch_processing_job preserves queued job and expired dispatch lease on broker failure",
+        "backend/django/apps/verifications/test_failure_injection.py:test_broker_outage_preserves_durable_job_and_recovers_once",
+        "backend/django/apps/verifications/test_failure_injection.py:test_database_failure_rolls_back_job_creation_and_retry_creates_one_job"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Requeue existing liveness checks after enqueue failures**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3607761309"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3607761309",
+      "verified_main": "1e5666dcd36d93fac0b7f377380f83bb25d0bd06",
+      "disposition_note": "Current implementation supersedes the original finding. All 77 targeted upload, failure-injection and biometric-recovery tests and all 14 classification tests passed in the isolated audit."
     },
     {
       "pr_number": 4,
       "thread_id": "PRRT_kwDOTN0BU86R9bcj",
       "comment_id": 3607761310,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/biometrics/tasks.py:processing_stage prevents downstream failures overwriting completed provider results",
+        "backend/django/apps/biometrics/test_finalization_recovery.py:test_retry_resumes_finalization_without_reinvoking_providers"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve biometric results after side-effect failures**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3607761310"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3607761310",
+      "verified_main": "1e5666dcd36d93fac0b7f377380f83bb25d0bd06",
+      "disposition_note": "Current implementation supersedes the original finding. All 77 targeted upload, failure-injection and biometric-recovery tests and all 14 classification tests passed in the isolated audit."
     },
     {
       "pr_number": 4,
       "thread_id": "PRRT_kwDOTN0BU86R9bck",
       "comment_id": 3607761311,
       "path": "frontend/verification-portal/src/lib/session-api.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/uploads/serializers.py:UploadCreateSerializer.create disables presigned capabilities",
+        "backend/django/apps/uploads/tests.py:test_create_upload_returns_consent_aware_transfer_path"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Do not infer direct uploads from URL origin**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3607761311"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3607761311",
+      "verified_main": "1e5666dcd36d93fac0b7f377380f83bb25d0bd06",
+      "disposition_note": "Current implementation supersedes the original finding. All 77 targeted upload, failure-injection and biometric-recovery tests and all 14 classification tests passed in the isolated audit."
     },
     {
       "pr_number": 4,
@@ -344,30 +371,41 @@
       "thread_id": "PRRT_kwDOTN0BU86R-VIt",
       "comment_id": 3608092467,
       "path": ".env.example",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "config.test_local_frontend_origins:sample CORS regression fails against main"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep all local frontends in the CORS allowlist**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3608092467"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3608092467",
+      "disposition_note": "Reproduced against current main; isolated correction and regression validation prepared, awaiting final-head review, CI and merge."
     },
     {
       "pr_number": 4,
       "thread_id": "PRRT_kwDOTN0BU86R-VIu",
       "comment_id": 3608092468,
       "path": "backend/ai-service/app/document_classification/classifier.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/app/document_classification/classifier.py:issuer_matches_country rejects mismatched TD3 country before candidate acceptance",
+        "backend/ai-service/tests/test_document_classification.py:test_passport_mrz_cannot_authorize_a_different_expected_country"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Route country-unknown MRZ-only passports to review**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3608092468"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3608092468",
+      "verified_main": "1e5666dcd36d93fac0b7f377380f83bb25d0bd06",
+      "disposition_note": "Current implementation supersedes the original finding. All 77 targeted upload, failure-injection and biometric-recovery tests and all 14 classification tests passed in the isolated audit."
     },
     {
       "pr_number": 4,
       "thread_id": "PRRT_kwDOTN0BU86R-VIv",
       "comment_id": 3608092469,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "apps.verification_sessions.tests.VerificationSessionPortalTests.test_submit_documents_rejects_country_supported_type_outside_policy:regression demonstrates missing policy restriction"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Enforce policy-required document types**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3608092469"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3608092469",
+      "disposition_note": "Reproduced against current main; isolated correction and regression validation prepared, awaiting final-head review, CI and merge."
     },
     {
       "pr_number": 4,
