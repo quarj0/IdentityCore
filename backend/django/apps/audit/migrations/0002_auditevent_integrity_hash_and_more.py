@@ -8,7 +8,9 @@ from django.db import migrations, models
 
 def backfill_integrity_hashes(apps, schema_editor):
     AuditEvent = apps.get_model("audit", "AuditEvent")
-    tenant_ids = AuditEvent.objects.order_by().values_list("tenant_id", flat=True).distinct()
+    tenant_ids = (
+        AuditEvent.objects.order_by().values_list("tenant_id", flat=True).distinct()
+    )
     for tenant_id in tenant_ids:
         previous_hash = ""
         events = AuditEvent.objects.filter(tenant_id=tenant_id).order_by("id")
@@ -29,7 +31,9 @@ def backfill_integrity_hashes(apps, schema_editor):
                 "created_at": event.created_at.isoformat(),
             }
             integrity_hash = hashlib.sha256(
-                json.dumps(payload, sort_keys=True, default=str, separators=(",", ":")).encode()
+                json.dumps(
+                    payload, sort_keys=True, default=str, separators=(",", ":")
+                ).encode()
             ).hexdigest()
             AuditEvent.objects.filter(pk=event.pk).update(
                 previous_event_hash=previous_hash,

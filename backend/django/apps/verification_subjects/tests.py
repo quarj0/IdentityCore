@@ -7,8 +7,15 @@ from apps.organizations.models import Organization
 from apps.tenants.models import Tenant
 from apps.audit.models import AuditEvent
 from apps.identity_documents.models import IdentityDocument
-from apps.verification_subjects.models import VerificationSubject, VerificationSubjectExport
-from apps.verifications.models import RetentionLegalHold, Verification, VerificationStatus
+from apps.verification_subjects.models import (
+    VerificationSubject,
+    VerificationSubjectExport,
+)
+from apps.verifications.models import (
+    RetentionLegalHold,
+    Verification,
+    VerificationStatus,
+)
 from apps.verification_subjects.services import request_subject_deletion
 from django.utils import timezone
 from datetime import timedelta
@@ -132,7 +139,9 @@ class VerificationSubjectAPITests(APITestCase):
         subject.refresh_from_db()
         self.assertEqual(subject.full_name, "Held Subject")
 
-    def test_subject_export_requires_tenant_authorization_and_redacts_sensitive_data(self):
+    def test_subject_export_requires_tenant_authorization_and_redacts_sensitive_data(
+        self,
+    ):
         subject = VerificationSubject.objects.create(
             tenant=self.tenant,
             full_name="Kwame Mensah",
@@ -159,11 +168,15 @@ class VerificationSubjectAPITests(APITestCase):
             AuditEvent.objects.filter(action="privacy.subject_export_created").exists()
         )
         self.assertTrue(
-            AuditEvent.objects.filter(action="privacy.subject_export_downloaded").exists()
+            AuditEvent.objects.filter(
+                action="privacy.subject_export_downloaded"
+            ).exists()
         )
 
     def test_subject_export_token_expires(self):
-        subject = VerificationSubject.objects.create(tenant=self.tenant, full_name="Expired")
+        subject = VerificationSubject.objects.create(
+            tenant=self.tenant, full_name="Expired"
+        )
         export = VerificationSubjectExport.objects.create(
             tenant=self.tenant,
             subject=subject,

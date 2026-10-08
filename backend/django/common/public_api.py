@@ -7,7 +7,6 @@ from typing import Any
 
 from django.urls import path
 
-
 PUBLIC_METHODS_ATTRIBUTE = "_identitycore_public_methods"
 API_VISIBILITY_ATTRIBUTE = "_identitycore_api_visibility"
 

@@ -66,7 +66,9 @@ def fetch_object_bytes(storage_key: str, *, bucket_name: str | None = None) -> b
     client = get_storage_client()
     resolved_bucket_name = bucket_name or get_object_storage_media_bucket_name()
     if not resolved_bucket_name:
-        raise StorageConfigurationError("No object storage bucket is configured for media reads.")
+        raise StorageConfigurationError(
+            "No object storage bucket is configured for media reads."
+        )
     response = client.get_object(
         Bucket=resolved_bucket_name,
         Key=storage_key,

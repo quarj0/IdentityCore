@@ -8,7 +8,6 @@ from app.pipeline import get_insightface_analyzer, get_paddle_ocr_engine
 from app.pad import validate_pad_model_contract
 from app.settings import get_settings
 
-
 PADDLE_MODEL_CANDIDATES = {
     "det": ("PP-OCRv5_server_det", "PP-OCRv5_mobile_det"),
     "rec": ("en_PP-OCRv5_mobile_rec", "PP-OCRv5_server_rec", "PP-OCRv5_mobile_rec"),

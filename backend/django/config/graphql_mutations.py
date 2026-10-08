@@ -20,7 +20,11 @@ from apps.access_control.models import Role, RoleScope, UserRole
 from apps.accounts.contact import submit_contact_inquiry
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.accounts.mfa import is_mfa_required, issue_mfa_token, prepare_password_login
-from apps.accounts.cookies import get_refresh_cookie_name, set_refresh_cookie, require_trusted_cookie_origin
+from apps.accounts.cookies import (
+    get_refresh_cookie_name,
+    set_refresh_cookie,
+    require_trusted_cookie_origin,
+)
 from apps.accounts.passwords import (
     request_password_reset,
     reset_password_with_token,
@@ -710,7 +714,8 @@ class Mutation:
         require_trusted_cookie_origin(request)
         digest = PlatformAdminInvitation.digest_token(token.strip())
         invitation = (
-            PlatformAdminInvitation.objects.select_for_update(of=("self",)).select_related("role")
+            PlatformAdminInvitation.objects.select_for_update(of=("self",))
+            .select_related("role")
             .filter(
                 token_hash=digest,
                 status=PlatformAdminInvitationStatus.PENDING,
@@ -753,7 +758,11 @@ class Mutation:
                 mfa_token=issue_mfa_token(user, purpose="enrollment"),
             )
         refresh = issue_refresh_token(user, request=request)
-        set_refresh_cookie(info.context["response"], str(refresh), cookie_name=get_refresh_cookie_name(request))
+        set_refresh_cookie(
+            info.context["response"],
+            str(refresh),
+            cookie_name=get_refresh_cookie_name(request),
+        )
         if getattr(user, "tenant_id", None) is not None:
             record_audit_event(
                 tenant=user.tenant,
@@ -1042,10 +1051,16 @@ class Mutation:
             return AuthPayload(
                 mfa_required=True,
                 mfa_enrollment_required=not user.mfa_enabled,
-                mfa_token=issue_mfa_token(user, purpose="challenge" if user.mfa_enabled else "enrollment"),
+                mfa_token=issue_mfa_token(
+                    user, purpose="challenge" if user.mfa_enabled else "enrollment"
+                ),
             )
         refresh = issue_refresh_token(user, request=request)
-        set_refresh_cookie(info.context["response"], str(refresh), cookie_name=get_refresh_cookie_name(request))
+        set_refresh_cookie(
+            info.context["response"],
+            str(refresh),
+            cookie_name=get_refresh_cookie_name(request),
+        )
         if user.tenant is not None:
             record_audit_event(
                 tenant=user.tenant,

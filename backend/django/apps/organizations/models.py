@@ -44,9 +44,19 @@ class Organization(PublicIdModel, BaseModel):
 
 class OrganizationSupportingDocument(PublicIdModel, BaseModel):
     public_id_prefix = "odoc"
-    organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name="supporting_documents")
-    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.PROTECT, related_name="organization_supporting_documents")
-    uploaded_by = models.ForeignKey("accounts.PlatformUser", on_delete=models.PROTECT, related_name="organization_documents_uploaded")
+    organization = models.ForeignKey(
+        Organization, on_delete=models.PROTECT, related_name="supporting_documents"
+    )
+    tenant = models.ForeignKey(
+        "tenants.Tenant",
+        on_delete=models.PROTECT,
+        related_name="organization_supporting_documents",
+    )
+    uploaded_by = models.ForeignKey(
+        "accounts.PlatformUser",
+        on_delete=models.PROTECT,
+        related_name="organization_documents_uploaded",
+    )
     filename = models.CharField(max_length=255)
     mime_type = models.CharField(max_length=100, default="application/pdf")
     file_size_bytes = models.PositiveBigIntegerField()

@@ -12,7 +12,13 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import PlatformUser, PlatformUserStatus
-from apps.access_control.models import Permission, Role, RolePermission, RoleScope, UserRole
+from apps.access_control.models import (
+    Permission,
+    Role,
+    RolePermission,
+    RoleScope,
+    UserRole,
+)
 from apps.audit.models import AuditEvent
 from apps.organizations.models import Organization
 from apps.tenants.models import Tenant
@@ -38,9 +44,15 @@ from apps.webhooks.services import (
 
 
 def _test_verification(tenant):
-    return Verification.objects.create(tenant=tenant, organization=tenant.organization,
-        verification_subject=VerificationSubject.objects.create(tenant=tenant, full_name="Delivery Test"),
-        purpose="Webhook delivery fixture", expires_at=timezone.now() + timedelta(hours=1))
+    return Verification.objects.create(
+        tenant=tenant,
+        organization=tenant.organization,
+        verification_subject=VerificationSubject.objects.create(
+            tenant=tenant, full_name="Delivery Test"
+        ),
+        purpose="Webhook delivery fixture",
+        expires_at=timezone.now() + timedelta(hours=1),
+    )
 
 
 def _delivery_payload(payload, verification_id):
@@ -51,7 +63,9 @@ def _delivery_payload(payload, verification_id):
 
 class WebhookEndpointTests(APITestCase):
     def setUp(self):
-        self.organization = Organization.objects.create(name="Acme", slug="acme", status="active")
+        self.organization = Organization.objects.create(
+            name="Acme", slug="acme", status="active"
+        )
         self.tenant = Tenant.objects.create(
             organization=self.organization,
             name="Acme Tenant",
@@ -87,7 +101,9 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant, name="Webhook manager", scope=RoleScope.TENANT
         )
         RolePermission.objects.create(role=webhook_manager, permission=manage_webhooks)
-        UserRole.objects.create(user=self.user, role=webhook_manager, tenant=self.tenant)
+        UserRole.objects.create(
+            user=self.user, role=webhook_manager, tenant=self.tenant
+        )
 
     def test_create_webhook_endpoint_returns_secret_once(self):
         response = self.client.post(
@@ -347,7 +363,9 @@ class WebhookEndpointTests(APITestCase):
             ) as select_for_update,
         ):
             response = self.client.post(
-                reverse("webhook-endpoint-rotate", kwargs={"webhook_id": endpoint.public_id}),
+                reverse(
+                    "webhook-endpoint-rotate", kwargs={"webhook_id": endpoint.public_id}
+                ),
                 format="json",
                 HTTP_IDEMPOTENCY_KEY="rotate-webhook-secret",
             )
@@ -382,10 +400,16 @@ class WebhookEndpointTests(APITestCase):
         )
         endpoint.set_secret("old-secret")
         endpoint.save()
-        url = reverse("webhook-endpoint-rotate", kwargs={"webhook_id": endpoint.public_id})
+        url = reverse(
+            "webhook-endpoint-rotate", kwargs={"webhook_id": endpoint.public_id}
+        )
 
-        first = self.client.post(url, format="json", HTTP_IDEMPOTENCY_KEY="same-rotation")
-        replay = self.client.post(url, format="json", HTTP_IDEMPOTENCY_KEY="same-rotation")
+        first = self.client.post(
+            url, format="json", HTTP_IDEMPOTENCY_KEY="same-rotation"
+        )
+        replay = self.client.post(
+            url, format="json", HTTP_IDEMPOTENCY_KEY="same-rotation"
+        )
 
         self.assertEqual(first.data["data"], replay.data["data"])
         endpoint.refresh_from_db()
@@ -400,14 +424,20 @@ class WebhookEndpointTests(APITestCase):
         )
         endpoint.set_secret("original-secret")
         endpoint.save()
-        url = reverse("webhook-endpoint-rotate", kwargs={"webhook_id": endpoint.public_id})
+        url = reverse(
+            "webhook-endpoint-rotate", kwargs={"webhook_id": endpoint.public_id}
+        )
 
-        first = self.client.post(url, format="json", HTTP_IDEMPOTENCY_KEY="first-rotation")
+        first = self.client.post(
+            url, format="json", HTTP_IDEMPOTENCY_KEY="first-rotation"
+        )
         first_secret = first.data["data"]["secret"]
         endpoint.refresh_from_db()
         endpoint.previous_secret_expires_at = timezone.now() - timedelta(seconds=1)
         endpoint.save(update_fields=["previous_secret_expires_at", "updated_at"])
-        second = self.client.post(url, format="json", HTTP_IDEMPOTENCY_KEY="second-rotation")
+        second = self.client.post(
+            url, format="json", HTTP_IDEMPOTENCY_KEY="second-rotation"
+        )
         obsolete_replay = self.client.post(
             url, format="json", HTTP_IDEMPOTENCY_KEY="first-rotation"
         )
@@ -428,9 +458,13 @@ class WebhookEndpointTests(APITestCase):
         )
         endpoint.set_secret("old-secret")
         endpoint.save()
-        url = reverse("webhook-endpoint-rotate", kwargs={"webhook_id": endpoint.public_id})
+        url = reverse(
+            "webhook-endpoint-rotate", kwargs={"webhook_id": endpoint.public_id}
+        )
 
-        first = self.client.post(url, format="json", HTTP_IDEMPOTENCY_KEY="rotation-one")
+        first = self.client.post(
+            url, format="json", HTTP_IDEMPOTENCY_KEY="rotation-one"
+        )
         rejected = self.client.post(
             url, format="json", HTTP_IDEMPOTENCY_KEY="rotation-two"
         )
@@ -459,7 +493,9 @@ class WebhookEndpointTests(APITestCase):
         endpoint.save()
 
         response = self.client.post(
-            reverse("webhook-endpoint-rotate", kwargs={"webhook_id": endpoint.public_id}),
+            reverse(
+                "webhook-endpoint-rotate", kwargs={"webhook_id": endpoint.public_id}
+            ),
             format="json",
         )
 
@@ -468,7 +504,9 @@ class WebhookEndpointTests(APITestCase):
         self.assertEqual(endpoint.signing_secret_version, 1)
 
     def test_rotate_signing_secret_cannot_cross_tenant_boundary(self):
-        other_organization = Organization.objects.create(name="Other", slug="other", status="active")
+        other_organization = Organization.objects.create(
+            name="Other", slug="other", status="active"
+        )
         other_tenant = Tenant.objects.create(
             organization=other_organization,
             name="Other Tenant",
@@ -491,7 +529,9 @@ class WebhookEndpointTests(APITestCase):
         endpoint.save()
 
         response = self.client.post(
-            reverse("webhook-endpoint-rotate", kwargs={"webhook_id": endpoint.public_id}),
+            reverse(
+                "webhook-endpoint-rotate", kwargs={"webhook_id": endpoint.public_id}
+            ),
             format="json",
             HTTP_IDEMPOTENCY_KEY="cross-tenant-rotation",
         )
@@ -590,14 +630,19 @@ class WebhookEndpointTests(APITestCase):
         verification = Verification.objects.create(
             tenant=self.tenant,
             organization=self.organization,
-            verification_subject=VerificationSubject.objects.create(tenant=self.tenant, full_name="Case"),
+            verification_subject=VerificationSubject.objects.create(
+                tenant=self.tenant, full_name="Case"
+            ),
             purpose="Manual review case",
             expires_at=self.tenant.created_at,
             status=VerificationStatus.MANUAL_REVIEW_REQUIRED,
         )
 
         response = self.client.post(
-            reverse("manual-review-decision", kwargs={"verification_id": verification.public_id}),
+            reverse(
+                "manual-review-decision",
+                kwargs={"verification_id": verification.public_id},
+            ),
             {
                 "decision": "verified",
                 "reason_code": "evidence_confirmed",
@@ -617,7 +662,9 @@ class WebhookEndpointTests(APITestCase):
         )
 
     @patch("apps.webhooks.services._send_webhook_request")
-    def test_deliver_webhook_event_marks_event_delivered_and_logs_attempt(self, mock_send_request):
+    def test_deliver_webhook_event_marks_event_delivered_and_logs_attempt(
+        self, mock_send_request
+    ):
         mock_send_request.return_value = (202, '{"received":true}', 42)
         endpoint = WebhookEndpoint(
             tenant=self.tenant,
@@ -631,13 +678,22 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json=_delivery_payload({"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}}, self.delivery_verification.public_id),
+            payload_json=_delivery_payload(
+                {
+                    "id": "evt_1",
+                    "type": "verification.verified",
+                    "data": {"status": "verified"},
+                },
+                self.delivery_verification.public_id,
+            ),
         )
 
         deliver_webhook_event(webhook_event)
 
         webhook_event.refresh_from_db()
-        sent_payload = json.loads(mock_send_request.call_args.kwargs["payload_bytes"].decode())
+        sent_payload = json.loads(
+            mock_send_request.call_args.kwargs["payload_bytes"].decode()
+        )
         self.assertEqual(sent_payload["id"], webhook_event.public_id)
         self.assertEqual(sent_payload["schema_version"], "1")
         self.assertEqual(webhook_event.status, WebhookEventStatus.DELIVERED)
@@ -656,21 +712,48 @@ class WebhookEndpointTests(APITestCase):
     @patch("apps.webhooks.services._send_webhook_request")
     def test_delivery_revalidates_legacy_and_changed_environment(self, send):
         from apps.projects.models import Project
-        project = Project.objects.create(tenant=self.tenant, created_by=self.user,
-            name="Production", slug="production-delivery", environment="production")
-        verification = Verification.objects.create(tenant=self.tenant,
-            organization=self.organization, project=project,
-            verification_subject=VerificationSubject.objects.create(tenant=self.tenant, full_name="Webhook Subject"),
-            purpose="Delivery environment test", expires_at=timezone.now() + timedelta(hours=1))
-        endpoint = WebhookEndpoint(tenant=self.tenant, created_by=self.user,
-            url="https://example.com/hook", events_json=["verification.created"])
+
+        project = Project.objects.create(
+            tenant=self.tenant,
+            created_by=self.user,
+            name="Production",
+            slug="production-delivery",
+            environment="production",
+        )
+        verification = Verification.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            project=project,
+            verification_subject=VerificationSubject.objects.create(
+                tenant=self.tenant, full_name="Webhook Subject"
+            ),
+            purpose="Delivery environment test",
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            created_by=self.user,
+            url="https://example.com/hook",
+            events_json=["verification.created"],
+        )
         endpoint.set_secret("synthetic-secret")
         endpoint.save()
+
         def event():
-            return WebhookEvent.objects.create(tenant=self.tenant, webhook_endpoint=endpoint,
-                event_type="verification.created", payload_json=_delivery_payload({"data": {"verification_id": verification.public_id}}, self.delivery_verification.public_id))
+            return WebhookEvent.objects.create(
+                tenant=self.tenant,
+                webhook_endpoint=endpoint,
+                event_type="verification.created",
+                payload_json=_delivery_payload(
+                    {"data": {"verification_id": verification.public_id}},
+                    self.delivery_verification.public_id,
+                ),
+            )
+
         legacy = event()
-        self.assertEqual(deliver_webhook_event(legacy).status, WebhookEventStatus.CANCELLED)
+        self.assertEqual(
+            deliver_webhook_event(legacy).status, WebhookEventStatus.CANCELLED
+        )
         send.assert_not_called()
         endpoint.project = project
         endpoint.save(update_fields=["project"])
@@ -678,35 +761,66 @@ class WebhookEndpointTests(APITestCase):
         cached.webhook_endpoint = endpoint
         Project.objects.filter(pk=project.pk).update(environment="sandbox")
         # The verification remains production in a distinct project.
-        other = Project.objects.create(tenant=self.tenant, created_by=self.user,
-            name="Other Production", slug="other-production", environment="production")
+        other = Project.objects.create(
+            tenant=self.tenant,
+            created_by=self.user,
+            name="Other Production",
+            slug="other-production",
+            environment="production",
+        )
         Verification.objects.filter(pk=verification.pk).update(project=other)
-        self.assertEqual(deliver_webhook_event(cached).status, WebhookEventStatus.CANCELLED)
+        self.assertEqual(
+            deliver_webhook_event(cached).status, WebhookEventStatus.CANCELLED
+        )
         send.assert_not_called()
         endpoint.project = other
         endpoint.save(update_fields=["project"])
         matched = event()
         send.return_value = (202, "", 1)
-        self.assertEqual(deliver_webhook_event(matched).status, WebhookEventStatus.DELIVERED)
+        self.assertEqual(
+            deliver_webhook_event(matched).status, WebhookEventStatus.DELIVERED
+        )
         send.assert_called_once()
 
     @patch("apps.webhooks.services._send_webhook_request")
-    def test_verification_delivery_rejects_missing_ids_but_allows_test_events(self, send):
-        endpoint = WebhookEndpoint(tenant=self.tenant, created_by=self.user,
-            url="https://example.com/hook", events_json=["verification.created", "webhook.test"])
+    def test_verification_delivery_rejects_missing_ids_but_allows_test_events(
+        self, send
+    ):
+        endpoint = WebhookEndpoint(
+            tenant=self.tenant,
+            created_by=self.user,
+            url="https://example.com/hook",
+            events_json=["verification.created", "webhook.test"],
+        )
         endpoint.set_secret("synthetic-secret")
         endpoint.save()
-        for payload in ({}, {"data": {}}, {"data": {"verification_id": ""}},
-                {"data": {"verification_id": "ver_missing"}}):
+        for payload in (
+            {},
+            {"data": {}},
+            {"data": {"verification_id": ""}},
+            {"data": {"verification_id": "ver_missing"}},
+        ):
             with self.subTest(payload=payload):
-                event = WebhookEvent.objects.create(tenant=self.tenant, webhook_endpoint=endpoint,
-                    event_type="verification.created", payload_json=payload)
-                self.assertEqual(deliver_webhook_event(event).status, WebhookEventStatus.CANCELLED)
+                event = WebhookEvent.objects.create(
+                    tenant=self.tenant,
+                    webhook_endpoint=endpoint,
+                    event_type="verification.created",
+                    payload_json=payload,
+                )
+                self.assertEqual(
+                    deliver_webhook_event(event).status, WebhookEventStatus.CANCELLED
+                )
         send.assert_not_called()
-        test_event = WebhookEvent.objects.create(tenant=self.tenant, webhook_endpoint=endpoint,
-            event_type="webhook.test", payload_json={"data": {}})
+        test_event = WebhookEvent.objects.create(
+            tenant=self.tenant,
+            webhook_endpoint=endpoint,
+            event_type="webhook.test",
+            payload_json={"data": {}},
+        )
         send.return_value = (202, "", 1)
-        self.assertEqual(deliver_webhook_event(test_event).status, WebhookEventStatus.DELIVERED)
+        self.assertEqual(
+            deliver_webhook_event(test_event).status, WebhookEventStatus.DELIVERED
+        )
         send.assert_called_once()
 
     @patch("apps.webhooks.services._send_webhook_request")
@@ -724,7 +838,14 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json=_delivery_payload({"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}}, self.delivery_verification.public_id),
+            payload_json=_delivery_payload(
+                {
+                    "id": "evt_1",
+                    "type": "verification.verified",
+                    "data": {"status": "verified"},
+                },
+                self.delivery_verification.public_id,
+            ),
         )
 
         deliver_webhook_event(webhook_event)
@@ -751,7 +872,14 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json=_delivery_payload({"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}}, self.delivery_verification.public_id),
+            payload_json=_delivery_payload(
+                {
+                    "id": "evt_1",
+                    "type": "verification.verified",
+                    "data": {"status": "verified"},
+                },
+                self.delivery_verification.public_id,
+            ),
         )
 
         with self.settings(WEBHOOK_MAX_ATTEMPTS=2):
@@ -766,7 +894,10 @@ class WebhookEndpointTests(APITestCase):
         self.assertEqual(webhook_event.status, WebhookEventStatus.FAILED)
         self.assertEqual(webhook_event.attempt_count, 2)
         self.assertEqual(endpoint.status, "failed")
-        self.assertEqual(WebhookDeliveryAttempt.objects.filter(webhook_event=webhook_event).count(), 2)
+        self.assertEqual(
+            WebhookDeliveryAttempt.objects.filter(webhook_event=webhook_event).count(),
+            2,
+        )
         self.assertTrue(
             AuditEvent.objects.filter(
                 tenant=self.tenant,
@@ -789,11 +920,14 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json=_delivery_payload({
-                "id": "placeholder",
-                "type": "verification.verified",
-                "data": {"status": "verified"},
-            }, self.delivery_verification.public_id),
+            payload_json=_delivery_payload(
+                {
+                    "id": "placeholder",
+                    "type": "verification.verified",
+                    "data": {"status": "verified"},
+                },
+                self.delivery_verification.public_id,
+            ),
             status=WebhookEventStatus.FAILED,
             attempt_count=5,
             last_attempt_at=timezone.now(),
@@ -944,7 +1078,9 @@ class WebhookEndpointTests(APITestCase):
         self.assertEqual(webhook_event.status, WebhookEventStatus.FAILED)
 
     def test_failed_event_replay_cannot_cross_tenants(self):
-        other_org = Organization.objects.create(name="Other Replay", slug="other-replay")
+        other_org = Organization.objects.create(
+            name="Other Replay", slug="other-replay"
+        )
         other_tenant = Tenant.objects.create(
             organization=other_org,
             name="Other Replay",
@@ -997,7 +1133,14 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json=_delivery_payload({"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}}, self.delivery_verification.public_id),
+            payload_json=_delivery_payload(
+                {
+                    "id": "evt_1",
+                    "type": "verification.verified",
+                    "data": {"status": "verified"},
+                },
+                self.delivery_verification.public_id,
+            ),
         )
 
         deliver_webhook_event(webhook_event)
@@ -1069,7 +1212,14 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json=_delivery_payload({"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}}, self.delivery_verification.public_id),
+            payload_json=_delivery_payload(
+                {
+                    "id": "evt_1",
+                    "type": "verification.verified",
+                    "data": {"status": "verified"},
+                },
+                self.delivery_verification.public_id,
+            ),
             status=WebhookEventStatus.DELIVERED,
             attempt_count=1,
             last_attempt_at=timezone.now(),
@@ -1080,7 +1230,10 @@ class WebhookEndpointTests(APITestCase):
         webhook_event.refresh_from_db()
         self.assertEqual(webhook_event.status, WebhookEventStatus.DELIVERED)
         self.assertEqual(webhook_event.attempt_count, 1)
-        self.assertEqual(WebhookDeliveryAttempt.objects.filter(webhook_event=webhook_event).count(), 0)
+        self.assertEqual(
+            WebhookDeliveryAttempt.objects.filter(webhook_event=webhook_event).count(),
+            0,
+        )
         mock_send_request.assert_not_called()
 
     def test_missing_signing_key_marks_event_failed(self):
@@ -1096,7 +1249,14 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json=_delivery_payload({"id": "evt_1", "type": "verification.verified", "data": {"status": "verified"}}, self.delivery_verification.public_id),
+            payload_json=_delivery_payload(
+                {
+                    "id": "evt_1",
+                    "type": "verification.verified",
+                    "data": {"status": "verified"},
+                },
+                self.delivery_verification.public_id,
+            ),
         )
 
         deliver_webhook_event(webhook_event)
@@ -1150,7 +1310,9 @@ class WebhookEndpointTests(APITestCase):
         self.assertEqual(endpoint.status, WebhookEndpointStatus.DISABLED)
 
     @patch("apps.webhooks.services._send_webhook_request")
-    def test_retry_failure_does_not_revive_concurrently_cancelled_event(self, send_request):
+    def test_retry_failure_does_not_revive_concurrently_cancelled_event(
+        self, send_request
+    ):
         endpoint = WebhookEndpoint(
             tenant=self.tenant,
             url="https://example.com/webhooks/concurrent-cancel",
@@ -1253,7 +1415,9 @@ class WebhookEndpointTests(APITestCase):
         self.assertEqual(send_request.call_count, 1)
 
     @patch("apps.webhooks.services._send_webhook_request")
-    def test_process_pending_webhook_events_only_processes_due_events(self, mock_send_request):
+    def test_process_pending_webhook_events_only_processes_due_events(
+        self, mock_send_request
+    ):
         mock_send_request.return_value = (200, "ok", 10)
         endpoint = WebhookEndpoint(
             tenant=self.tenant,
@@ -1267,14 +1431,28 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json=_delivery_payload({"id": "evt_due", "type": "verification.verified", "data": {"status": "verified"}}, self.delivery_verification.public_id),
+            payload_json=_delivery_payload(
+                {
+                    "id": "evt_due",
+                    "type": "verification.verified",
+                    "data": {"status": "verified"},
+                },
+                self.delivery_verification.public_id,
+            ),
             next_retry_at=timezone.now(),
         )
         future_event = WebhookEvent.objects.create(
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json=_delivery_payload({"id": "evt_future", "type": "verification.verified", "data": {"status": "verified"}}, self.delivery_verification.public_id),
+            payload_json=_delivery_payload(
+                {
+                    "id": "evt_future",
+                    "type": "verification.verified",
+                    "data": {"status": "verified"},
+                },
+                self.delivery_verification.public_id,
+            ),
             next_retry_at=timezone.now() + timedelta(hours=1),
         )
 
@@ -1287,7 +1465,12 @@ class WebhookEndpointTests(APITestCase):
         self.assertEqual(future_event.status, WebhookEventStatus.PENDING)
 
     def test_signature_format_uses_endpoint_signing_key(self):
-        fixture = json.loads((Path(__file__).resolve().parents[4] / "sdk/fixtures/webhook-signature-v1.json").read_text())
+        fixture = json.loads(
+            (
+                Path(__file__).resolve().parents[4]
+                / "sdk/fixtures/webhook-signature-v1.json"
+            ).read_text()
+        )
         endpoint = WebhookEndpoint(
             tenant=self.tenant,
             url="https://example.com/webhooks/identitycore",
@@ -1296,14 +1479,26 @@ class WebhookEndpointTests(APITestCase):
         )
         endpoint.set_secret(fixture["current_secret"])
 
-        signature = _build_signature(endpoint.signing_key, fixture["timestamp"], fixture["event_id"], fixture["raw_body"].encode())
-        other_event_signature = _build_signature(endpoint.signing_key, fixture["timestamp"], "evt_other", fixture["raw_body"].encode())
+        signature = _build_signature(
+            endpoint.signing_key,
+            fixture["timestamp"],
+            fixture["event_id"],
+            fixture["raw_body"].encode(),
+        )
+        other_event_signature = _build_signature(
+            endpoint.signing_key,
+            fixture["timestamp"],
+            "evt_other",
+            fixture["raw_body"].encode(),
+        )
 
         self.assertEqual(signature, fixture["current_signature"])
         self.assertNotEqual(signature, other_event_signature)
 
     @patch("apps.webhooks.services.request.urlopen")
-    def test_delivery_sends_version_and_event_bound_signature_headers(self, mock_urlopen):
+    def test_delivery_sends_version_and_event_bound_signature_headers(
+        self, mock_urlopen
+    ):
         response = MagicMock(status=200)
         response.read.return_value = b"ok"
         mock_urlopen.return_value.__enter__.return_value = response
@@ -1320,7 +1515,10 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json=_delivery_payload({"id": "placeholder", "schema_version": "1"}, self.delivery_verification.public_id),
+            payload_json=_delivery_payload(
+                {"id": "placeholder", "schema_version": "1"},
+                self.delivery_verification.public_id,
+            ),
         )
 
         _send_webhook_request(
@@ -1330,14 +1528,26 @@ class WebhookEndpointTests(APITestCase):
         )
 
         sent_request = mock_urlopen.call_args.args[0]
-        self.assertEqual(sent_request.get_header("X-identitycore-event-id"), event.public_id)
-        self.assertEqual(sent_request.get_header("X-identitycore-signature-version"), "v1")
-        self.assertEqual(sent_request.get_header("X-identitycore-signing-secret-version"), "3")
-        self.assertTrue(sent_request.get_header("X-identitycore-signature").startswith("sha256="))
-        self.assertTrue(sent_request.get_header("X-identitycore-signature-v1").startswith("v1="))
+        self.assertEqual(
+            sent_request.get_header("X-identitycore-event-id"), event.public_id
+        )
+        self.assertEqual(
+            sent_request.get_header("X-identitycore-signature-version"), "v1"
+        )
+        self.assertEqual(
+            sent_request.get_header("X-identitycore-signing-secret-version"), "3"
+        )
+        self.assertTrue(
+            sent_request.get_header("X-identitycore-signature").startswith("sha256=")
+        )
+        self.assertTrue(
+            sent_request.get_header("X-identitycore-signature-v1").startswith("v1=")
+        )
 
     @patch("apps.webhooks.services.request.urlopen")
-    def test_delivery_is_signed_with_current_and_previous_keys_during_overlap(self, mock_urlopen):
+    def test_delivery_is_signed_with_current_and_previous_keys_during_overlap(
+        self, mock_urlopen
+    ):
         response = MagicMock(status=200)
         response.read.return_value = b"ok"
         mock_urlopen.return_value.__enter__.return_value = response
@@ -1357,7 +1567,10 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json=_delivery_payload({"id": "placeholder", "schema_version": "1"}, self.delivery_verification.public_id),
+            payload_json=_delivery_payload(
+                {"id": "placeholder", "schema_version": "1"},
+                self.delivery_verification.public_id,
+            ),
         )
         payload = b'{"id":"placeholder","schema_version":"1"}'
 
@@ -1366,9 +1579,7 @@ class WebhookEndpointTests(APITestCase):
         )
 
         sent_request = mock_urlopen.call_args.args[0]
-        signature_header = sent_request.get_header(
-            "X-identitycore-signature-v1"
-        )
+        signature_header = sent_request.get_header("X-identitycore-signature-v1")
         self.assertEqual(
             signature_header.split(","),
             [
@@ -1409,7 +1620,9 @@ class WebhookEndpointTests(APITestCase):
         )
 
     @patch("apps.webhooks.services.request.urlopen")
-    def test_delivery_refreshes_signing_state_after_concurrent_rotation(self, mock_urlopen):
+    def test_delivery_refreshes_signing_state_after_concurrent_rotation(
+        self, mock_urlopen
+    ):
         response = MagicMock(status=200)
         response.read.return_value = b"ok"
         mock_urlopen.return_value.__enter__.return_value = response
@@ -1425,7 +1638,10 @@ class WebhookEndpointTests(APITestCase):
             tenant=self.tenant,
             webhook_endpoint=endpoint,
             event_type="verification.verified",
-            payload_json=_delivery_payload({"id": "placeholder", "schema_version": "1"}, self.delivery_verification.public_id),
+            payload_json=_delivery_payload(
+                {"id": "placeholder", "schema_version": "1"},
+                self.delivery_verification.public_id,
+            ),
         )
         stale_event = WebhookEvent.objects.select_related("webhook_endpoint").get(
             pk=event.pk
@@ -1499,7 +1715,10 @@ class WebhookOutboxTransactionTests(TransactionTestCase):
         return queue_webhook_events(
             tenant=self.tenant,
             event_type="verification.verified",
-            payload={"status": "verified", "verification_id": self.delivery_verification.public_id},
+            payload={
+                "status": "verified",
+                "verification_id": self.delivery_verification.public_id,
+            },
         )
 
     def test_queue_requires_an_active_domain_transaction(self):
@@ -1566,13 +1785,13 @@ class WebhookOutboxTransactionTests(TransactionTestCase):
             event = self.queue_event()[0]
 
         deliver_webhook_event(event)
-        first_event_id = send_request.call_args_list[0].kwargs[
-            "webhook_event"
-        ].public_id
+        first_event_id = (
+            send_request.call_args_list[0].kwargs["webhook_event"].public_id
+        )
         deliver_webhook_event(event)
-        second_event_id = send_request.call_args_list[1].kwargs[
-            "webhook_event"
-        ].public_id
+        second_event_id = (
+            send_request.call_args_list[1].kwargs["webhook_event"].public_id
+        )
 
         event.refresh_from_db()
         self.assertEqual(first_event_id, event.public_id)

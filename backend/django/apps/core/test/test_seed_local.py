@@ -35,7 +35,11 @@ class SeedLocalCommandTests(TestCase):
         )
         owner = PlatformUser.objects.get(email="owner@local.identitycore.test")
         self.assertTrue(owner.check_password("IdentityCoreLocal123!"))
-        self.assertTrue(owner.user_roles.filter(role__role_permissions__permission__code="manage_team").exists())
+        self.assertTrue(
+            owner.user_roles.filter(
+                role__role_permissions__permission__code="manage_team"
+            ).exists()
+        )
         self.assertIn("Development-only password", output.getvalue())
 
     @staticmethod

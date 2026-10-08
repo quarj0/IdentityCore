@@ -11,7 +11,10 @@ from apps.audit.models import AuditEvent
 from apps.audit.serializers import serialize_audit_event
 from apps.organizations.models import Organization
 from apps.organizations.models import OrganizationSupportingDocument
-from common.storage import build_signed_download_url, get_object_storage_public_bucket_name
+from common.storage import (
+    build_signed_download_url,
+    get_object_storage_public_bucket_name,
+)
 from apps.organizations.onboarding import (
     ORGANIZATION_TYPE_CHOICES,
     serialize_organization_review_state,
@@ -19,7 +22,10 @@ from apps.organizations.onboarding import (
 )
 from apps.organizations.serializers import serialize_organization
 from apps.platform_settings.models import PlatformSetting
-from apps.platform_settings.services import get_platform_setting_record, list_platform_settings
+from apps.platform_settings.services import (
+    get_platform_setting_record,
+    list_platform_settings,
+)
 from apps.platform_settings.serializers import (
     serialize_platform_setting,
     serialize_platform_setting_revision,
@@ -45,7 +51,11 @@ from apps.verification_policies.models import VerificationPolicy
 from apps.verification_policies.serializers import serialize_verification_policy
 from apps.verifications.models import VerificationStatus
 from apps.verifications.review_access import manual_review_queryset_for_user
-from apps.verifications.serializers import paginate_results, serialize_manual_review_summary, serialize_verification
+from apps.verifications.serializers import (
+    paginate_results,
+    serialize_manual_review_summary,
+    serialize_verification,
+)
 from apps.security.models import SecurityCase
 from apps.security.serializers import serialize_security_case
 from apps.support.models import SupportTicket
@@ -59,7 +69,12 @@ from apps.tenants.serializers import serialize_tenant
 from apps.projects.models import Project
 from apps.workflows.models import Workflow, WorkflowVersion
 
-from config.graphql_auth import require_authenticated_user, require_platform_admin, require_tenant_user, serialize_platform_admin_invitation
+from config.graphql_auth import (
+    require_authenticated_user,
+    require_platform_admin,
+    require_tenant_user,
+    serialize_platform_admin_invitation,
+)
 from config.graphql_types import (
     APIClientNode,
     AuditEventNode,
@@ -248,7 +263,10 @@ class Query:
                 | models.Q(provider_type__icontains=search)
             )
         page_obj, _ = paginate_results(queryset, page, page_size)
-        return [ProviderNode(**serialize_provider(provider)) for provider in page_obj.object_list]
+        return [
+            ProviderNode(**serialize_provider(provider))
+            for provider in page_obj.object_list
+        ]
 
     @strawberry.field
     def platform_ai_provider(self, info: Info, provider_id: str) -> ProviderNode | None:
@@ -308,9 +326,9 @@ class Query:
         self, info: Info, page: int = 1, page_size: int = 50
     ) -> list[VerificationPolicyNode]:
         require_platform_admin(info)
-        queryset = VerificationPolicy.objects.select_related("tenant", "project").order_by(
-            "name", "-version"
-        )
+        queryset = VerificationPolicy.objects.select_related(
+            "tenant", "project"
+        ).order_by("name", "-version")
         page_obj, _ = paginate_results(queryset, page, page_size)
         return [
             VerificationPolicyNode(**serialize_verification_policy(policy))
@@ -323,7 +341,11 @@ class Query:
     ) -> VerificationPolicyNode | None:
         require_platform_admin(info)
         policy = VerificationPolicy.objects.filter(public_id=policy_id).first()
-        return VerificationPolicyNode(**serialize_verification_policy(policy)) if policy else None
+        return (
+            VerificationPolicyNode(**serialize_verification_policy(policy))
+            if policy
+            else None
+        )
 
     @strawberry.field
     def platform_api_clients(
@@ -338,9 +360,7 @@ class Query:
         ]
 
     @strawberry.field
-    def platform_api_client(
-        self, info: Info, client_id: str
-    ) -> APIClientNode | None:
+    def platform_api_client(self, info: Info, client_id: str) -> APIClientNode | None:
         require_platform_admin(info)
         api_client = APIClient.objects.filter(public_id=client_id).first()
         return APIClientNode(**serialize_api_client(api_client)) if api_client else None
@@ -363,7 +383,11 @@ class Query:
     ) -> WebhookEndpointNode | None:
         require_platform_admin(info)
         endpoint = WebhookEndpoint.objects.filter(public_id=webhook_id).first()
-        return WebhookEndpointNode(**serialize_webhook_endpoint(endpoint)) if endpoint else None
+        return (
+            WebhookEndpointNode(**serialize_webhook_endpoint(endpoint))
+            if endpoint
+            else None
+        )
 
     @strawberry.field
     def platform_admins(self, info: Info) -> list[AuthUserNode]:
@@ -376,11 +400,17 @@ class Query:
         return [AuthUserNode(**serialize_user(user)) for user in users]
 
     @strawberry.field
-    def platform_admin_invitations(self, info: Info) -> list[PlatformAdminInvitationNode]:
+    def platform_admin_invitations(
+        self, info: Info
+    ) -> list[PlatformAdminInvitationNode]:
         require_platform_admin(info)
         return [
-            PlatformAdminInvitationNode(**serialize_platform_admin_invitation(invitation))
-            for invitation in PlatformAdminInvitation.objects.select_related("role", "invited_by").order_by("-created_at")
+            PlatformAdminInvitationNode(
+                **serialize_platform_admin_invitation(invitation)
+            )
+            for invitation in PlatformAdminInvitation.objects.select_related(
+                "role", "invited_by"
+            ).order_by("-created_at")
         ]
 
     @strawberry.field
@@ -458,7 +488,9 @@ class Query:
         ]
 
     @strawberry.field
-    def platform_setting(self, info: Info, setting_id: str) -> PlatformSettingNode | None:
+    def platform_setting(
+        self, info: Info, setting_id: str
+    ) -> PlatformSettingNode | None:
         require_platform_admin(info)
         setting = (
             PlatformSetting.objects.filter(public_id=setting_id).first()
@@ -522,9 +554,9 @@ class Query:
         assignment_key: str | None = None,
     ) -> list[ProviderAssignmentNode]:
         require_platform_admin(info)
-        queryset = ProviderAssignment.objects.select_related("tenant", "provider").order_by(
-            "tenant_id", "assignment_key"
-        )
+        queryset = ProviderAssignment.objects.select_related(
+            "tenant", "provider"
+        ).order_by("tenant_id", "assignment_key")
         if tenant_id:
             queryset = queryset.filter(tenant__public_id=tenant_id)
         if assignment_key:
@@ -580,7 +612,9 @@ class Query:
             ).count(),
             organizations_active=Organization.objects.filter(status="active").count(),
             tenants_total=Tenant.objects.count(),
-            tenants_pending_review=Tenant.objects.filter(status="pending_review").count(),
+            tenants_pending_review=Tenant.objects.filter(
+                status="pending_review"
+            ).count(),
             users_total=PlatformUser.objects.count(),
             platform_admins_total=PlatformUser.objects.filter(
                 is_platform_admin=True
@@ -610,7 +644,9 @@ class Query:
         page_size: int = 20,
     ) -> list[BillingRecordNode]:
         require_platform_admin(info)
-        queryset = BillingRecord.objects.select_related("organization", "tenant").order_by("-updated_at")
+        queryset = BillingRecord.objects.select_related(
+            "organization", "tenant"
+        ).order_by("-updated_at")
         if status:
             queryset = queryset.filter(status=status)
         if search:
@@ -694,7 +730,9 @@ class Query:
                 | models.Q(owner_team__icontains=search)
             )
         page_obj, _ = paginate_results(queryset, page, page_size)
-        return [IncidentNode(**serialize_incident(item)) for item in page_obj.object_list]
+        return [
+            IncidentNode(**serialize_incident(item)) for item in page_obj.object_list
+        ]
 
     @strawberry.field
     def platform_incident(self, info: Info, incident_id: str) -> IncidentNode | None:
@@ -745,7 +783,9 @@ class Query:
         page_size: int = 20,
     ) -> list[SupportTicketNode]:
         require_platform_admin(info)
-        queryset = SupportTicket.objects.select_related("organization").order_by("-updated_at")
+        queryset = SupportTicket.objects.select_related("organization").order_by(
+            "-updated_at"
+        )
         if status:
             queryset = queryset.filter(status=status)
         if search:
@@ -793,12 +833,12 @@ class Query:
                 | models.Q(category__icontains=search)
             )
         page_obj, _ = paginate_results(queryset, page, page_size)
-        return [TemplateNode(**serialize_template(item)) for item in page_obj.object_list]
+        return [
+            TemplateNode(**serialize_template(item)) for item in page_obj.object_list
+        ]
 
     @strawberry.field
-    def platform_template(
-        self, info: Info, template_id: str
-    ) -> TemplateNode | None:
+    def platform_template(self, info: Info, template_id: str) -> TemplateNode | None:
         require_platform_admin(info)
         template = (
             Template.objects.select_related("created_by")
@@ -833,9 +873,7 @@ class Query:
         ]
 
     @strawberry.field
-    def platform_feature_flag(
-        self, info: Info, flag_id: str
-    ) -> FeatureFlagNode | None:
+    def platform_feature_flag(self, info: Info, flag_id: str) -> FeatureFlagNode | None:
         require_platform_admin(info)
         flag = (
             FeatureFlag.objects.select_related("created_by")
@@ -864,7 +902,10 @@ class Query:
                 | models.Q(industry__icontains=search)
             )
         page_obj, _ = paginate_results(queryset, page, page_size)
-        return [OrganizationNode(**serialize_organization(item)) for item in page_obj.object_list]
+        return [
+            OrganizationNode(**serialize_organization(item))
+            for item in page_obj.object_list
+        ]
 
     @strawberry.field
     def platform_organization(
@@ -876,7 +917,11 @@ class Query:
             .filter(public_id=organization_id)
             .first()
         )
-        return OrganizationNode(**serialize_organization(organization)) if organization else None
+        return (
+            OrganizationNode(**serialize_organization(organization))
+            if organization
+            else None
+        )
 
     @strawberry.field
     def platform_organization_supporting_documents(
@@ -884,7 +929,9 @@ class Query:
     ) -> list[OrganizationSupportingDocumentNode]:
         require_platform_admin(info)
         queryset = (
-            OrganizationSupportingDocument.objects.select_related("organization", "tenant", "uploaded_by")
+            OrganizationSupportingDocument.objects.select_related(
+                "organization", "tenant", "uploaded_by"
+            )
             .filter(organization__public_id=organization_id)
             .order_by("-created_at")
         )
@@ -899,7 +946,10 @@ class Query:
                 mime_type=document.mime_type,
                 file_size_bytes=document.file_size_bytes,
                 storage_key=document.storage_key,
-                download_url=build_signed_download_url(storage_key=document.storage_key, bucket_name=get_object_storage_public_bucket_name()),
+                download_url=build_signed_download_url(
+                    storage_key=document.storage_key,
+                    bucket_name=get_object_storage_public_bucket_name(),
+                ),
                 status=document.status,
                 created_at=document.created_at.isoformat(),
                 updated_at=document.updated_at.isoformat(),
@@ -949,7 +999,11 @@ class Query:
         page_size: int = 20,
     ) -> list[AuthUserNode]:
         require_platform_admin(info)
-        queryset = PlatformUser.objects.select_related("tenant").prefetch_related("user_roles__role").order_by("email")
+        queryset = (
+            PlatformUser.objects.select_related("tenant")
+            .prefetch_related("user_roles__role")
+            .order_by("email")
+        )
         if status:
             queryset = queryset.filter(status=status)
         if search:
@@ -982,7 +1036,9 @@ class Query:
         page_size: int = 20,
     ) -> list[ProjectNode]:
         require_platform_admin(info)
-        queryset = Project.objects.select_related("tenant", "tenant__organization").order_by("environment", "name")
+        queryset = Project.objects.select_related(
+            "tenant", "tenant__organization"
+        ).order_by("environment", "name")
         if environment:
             queryset = queryset.filter(environment=environment)
         if search:
@@ -1019,7 +1075,9 @@ class Query:
         page_size: int = 20,
     ) -> list[WorkflowNode]:
         require_platform_admin(info)
-        queryset = Workflow.objects.select_related("tenant", "project", "created_by").order_by("name")
+        queryset = Workflow.objects.select_related(
+            "tenant", "project", "created_by"
+        ).order_by("name")
         if status:
             queryset = queryset.filter(status=status)
         if search:
@@ -1050,9 +1108,7 @@ class Query:
         ]
 
     @strawberry.field
-    def platform_workflow(
-        self, info: Info, workflow_id: str
-    ) -> WorkflowNode | None:
+    def platform_workflow(self, info: Info, workflow_id: str) -> WorkflowNode | None:
         require_platform_admin(info)
         workflow = (
             Workflow.objects.select_related("tenant", "project", "created_by")
@@ -1156,9 +1212,11 @@ class Query:
         self, info: Info, page: int = 1, page_size: int = 20
     ) -> list[ManualReviewNode]:
         user = require_authenticated_user(info)
-        queryset = manual_review_queryset_for_user(user).filter(
-            status=VerificationStatus.MANUAL_REVIEW_REQUIRED
-        ).order_by("-created_at")
+        queryset = (
+            manual_review_queryset_for_user(user)
+            .filter(status=VerificationStatus.MANUAL_REVIEW_REQUIRED)
+            .order_by("-created_at")
+        )
         page_obj, _ = paginate_results(queryset, page, page_size)
         return [
             ManualReviewNode(**serialize_manual_review_summary(item))

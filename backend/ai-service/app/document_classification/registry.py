@@ -9,7 +9,11 @@ from .models import DocumentDefinition
 
 ALL_DEFINITIONS: tuple[DocumentDefinition, ...] = tuple(
     definition
-    for definition in (*GH_DEFINITIONS, *GLOBAL_DEFINITIONS, *WEST_AFRICA_CANDIDATE_DEFINITIONS)
+    for definition in (
+        *GH_DEFINITIONS,
+        *GLOBAL_DEFINITIONS,
+        *WEST_AFRICA_CANDIDATE_DEFINITIONS,
+    )
     if definition.enabled and definition.status == "verified"
 )
 

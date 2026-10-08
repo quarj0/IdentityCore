@@ -3,7 +3,9 @@ from django.db import migrations
 
 def mark_incomplete_decision_contracts_legacy(apps, schema_editor):
     VerificationDecision = apps.get_model("verifications", "VerificationDecision")
-    for decision in VerificationDecision.objects.filter(contract_version="1").iterator():
+    for decision in VerificationDecision.objects.filter(
+        contract_version="1"
+    ).iterator():
         if decision.input_snapshot_json or decision.reason_codes_json:
             continue
         decision.contract_version = "legacy"

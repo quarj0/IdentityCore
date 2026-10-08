@@ -4,7 +4,9 @@ from apps.support.models import SupportTicket
 def serialize_support_ticket(ticket: SupportTicket) -> dict:
     return {
         "id": ticket.public_id,
-        "organization_id": ticket.organization.public_id if ticket.organization else None,
+        "organization_id": (
+            ticket.organization.public_id if ticket.organization else None
+        ),
         "organization_name": ticket.organization.name if ticket.organization else "",
         "title": ticket.title,
         "summary": ticket.summary,

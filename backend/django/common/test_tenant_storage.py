@@ -81,7 +81,13 @@ class TenantStorageTests(TestCase):
         route = self.route()
         key = build_verification_evidence_storage_key(self.tenant_case)
         original = resolve_reference(key, "legacy")
-        for field, value in {"bucket": "synthetic-route-two", "residency_region": "us-east-1", "tenant_id": self.tenant.pk + 100, "environment": "production", "deleted_at": timezone.now()}.items():
+        for field, value in {
+            "bucket": "synthetic-route-two",
+            "residency_region": "us-east-1",
+            "tenant_id": self.tenant.pk + 100,
+            "environment": "production",
+            "deleted_at": timezone.now(),
+        }.items():
             with self.assertRaises(ValidationError):
                 TenantStorageRoute.objects.filter(pk=route.pk).update(**{field: value})
         route.bucket = "synthetic-route-two"
@@ -93,9 +99,21 @@ class TenantStorageTests(TestCase):
         route = self.route()
         key = build_verification_evidence_storage_key(self.tenant_case)
         original = resolve_reference(key, "legacy")
-        replacement = TenantStorageRoute(pk=route.pk, public_id=route.public_id, tenant=route.tenant, environment=route.environment, bucket="synthetic-route-two", residency_region=route.residency_region)
+        replacement = TenantStorageRoute(
+            pk=route.pk,
+            public_id=route.public_id,
+            tenant=route.tenant,
+            environment=route.environment,
+            bucket="synthetic-route-two",
+            residency_region=route.residency_region,
+        )
         with self.assertRaises(ValidationError), transaction.atomic():
-            TenantStorageRoute.objects.bulk_create([replacement], update_conflicts=True, update_fields=["bucket"], unique_fields=["pk"])
+            TenantStorageRoute.objects.bulk_create(
+                [replacement],
+                update_conflicts=True,
+                update_fields=["bucket"],
+                unique_fields=["pk"],
+            )
         route.refresh_from_db()
         self.assertEqual(route.bucket, "synthetic-route-one")
         self.assertEqual(resolve_reference(key, "legacy"), original)
@@ -242,9 +260,17 @@ class TenantStorageTests(TestCase):
         route.refresh_from_db()
         self.assertEqual(route.bucket, "synthetic-route-one")
 
-    @override_settings(OBJECT_STORAGE_MEDIA_BUCKET="legacy-media", OBJECT_STORAGE_TEMP_BUCKET="legacy-temp", OBJECT_STORAGE_EVIDENCE_BUCKET="legacy-evidence", OBJECT_STORAGE_PUBLIC_BUCKET="legacy-public")
-    def test_backup_keeps_retired_route_references_and_missing_active_route_fails_closed(self):
+    @override_settings(
+        OBJECT_STORAGE_MEDIA_BUCKET="legacy-media",
+        OBJECT_STORAGE_TEMP_BUCKET="legacy-temp",
+        OBJECT_STORAGE_EVIDENCE_BUCKET="legacy-evidence",
+        OBJECT_STORAGE_PUBLIC_BUCKET="legacy-public",
+    )
+    def test_backup_keeps_retired_route_references_and_missing_active_route_fails_closed(
+        self,
+    ):
         from common.backup import required_object_refs, storage_buckets
+
         first = self.route()
         key = build_verification_evidence_storage_key(self.tenant_case)
         self.tenant_case.metadata_json = {"evidence_report_storage_key": key}

@@ -42,7 +42,9 @@ def service_readiness() -> ReadinessResponse:
         checks={
             "runtime_mode": settings.service_mode,
             "real_inference": real_status,
-            "mock_fallback": "enabled" if settings.mock_fallback_enabled else "disabled",
+            "mock_fallback": (
+                "enabled" if settings.mock_fallback_enabled else "disabled"
+            ),
         },
         missing_requirements=missing_requirements,
     )

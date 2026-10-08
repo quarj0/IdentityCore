@@ -7,23 +7,37 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('verification_policies', '0004_verificationpolicy_maker_checker_required'),
+        ("verification_policies", "0004_verificationpolicy_maker_checker_required"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='verificationpolicy',
-            name='external_risk_enabled',
+            model_name="verificationpolicy",
+            name="external_risk_enabled",
             field=models.BooleanField(db_default=False, default=False),
         ),
         migrations.AddField(
-            model_name='verificationpolicy',
-            name='external_risk_failure_action',
-            field=models.CharField(choices=[('manual_review', 'Manual review'), ('ignore', 'Ignore')], db_default='manual_review', default='manual_review', max_length=24),
+            model_name="verificationpolicy",
+            name="external_risk_failure_action",
+            field=models.CharField(
+                choices=[("manual_review", "Manual review"), ("ignore", "Ignore")],
+                db_default="manual_review",
+                default="manual_review",
+                max_length=24,
+            ),
         ),
         migrations.AddField(
-            model_name='verificationpolicy',
-            name='external_risk_review_threshold',
-            field=models.DecimalField(db_default=70, decimal_places=2, default=70, max_digits=5, validators=[django.core.validators.MinValueValidator(0), django.core.validators.MaxValueValidator(100)]),
+            model_name="verificationpolicy",
+            name="external_risk_review_threshold",
+            field=models.DecimalField(
+                db_default=70,
+                decimal_places=2,
+                default=70,
+                max_digits=5,
+                validators=[
+                    django.core.validators.MinValueValidator(0),
+                    django.core.validators.MaxValueValidator(100),
+                ],
+            ),
         ),
     ]

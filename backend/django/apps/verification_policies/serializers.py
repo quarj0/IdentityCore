@@ -93,6 +93,7 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
     def validate_review_reason_rules(self, value):
         from django.core.exceptions import ValidationError
         from apps.verifications.review_reasons import validate_reason_rules
+
         try:
             return validate_reason_rules(value)
         except ValidationError as exc:
@@ -214,7 +215,9 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
 
 class VerificationPolicyUpdateSerializer(VerificationPolicyCreateSerializer):
     review_reason_rules = serializers.JSONField(required=False)
-    validate_review_reason_rules = VerificationPolicyCreateSerializer.validate_review_reason_rules
+    validate_review_reason_rules = (
+        VerificationPolicyCreateSerializer.validate_review_reason_rules
+    )
 
     reuse_rules = serializers.JSONField(required=False)
     document_consistency_rules = serializers.JSONField(required=False)

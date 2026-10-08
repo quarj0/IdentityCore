@@ -78,7 +78,11 @@ class PlatformSetting(PublicIdModel, BaseModel):
 
     @property
     def effective_value(self):
-        return self.current_value_json if self.current_value_json != {} else self.default_value_json
+        return (
+            self.current_value_json
+            if self.current_value_json != {}
+            else self.default_value_json
+        )
 
     def __str__(self) -> str:
         return self.key

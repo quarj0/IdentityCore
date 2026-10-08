@@ -7,13 +7,15 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('notifications', '0001_initial'),
+        ("notifications", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='notification',
-            name='delivery_json',
-            field=common.fields.EncryptedJSONField(blank=True, default=dict, encryption_purpose='notifications.delivery'),
+            model_name="notification",
+            name="delivery_json",
+            field=common.fields.EncryptedJSONField(
+                blank=True, default=dict, encryption_purpose="notifications.delivery"
+            ),
         ),
     ]

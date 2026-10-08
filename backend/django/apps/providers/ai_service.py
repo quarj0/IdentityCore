@@ -7,7 +7,6 @@ from django.conf import settings
 
 from apps.platform_settings.services import get_platform_setting_value
 
-
 AI_SERVICE_UNAVAILABLE_MESSAGE = (
     "The verification service is temporarily unavailable. Please try again shortly."
 )
@@ -54,6 +53,7 @@ def _post_json(path: str, payload: dict) -> dict:
     )
     url = f"{base_url.rstrip('/')}{path}"
     from common.tenant_storage import transfer_references
+
     data = json.dumps(transfer_references(payload)).encode("utf-8")
     headers = {"Content-Type": "application/json"}
     inject(headers)

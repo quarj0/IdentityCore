@@ -3,6 +3,7 @@ name = "backend"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
+    "black>=26.3.1",
     "pytest>=9.0.3",
     "strawberry-graphql-django>=0.86.4",
 ]
@@ -38,6 +39,7 @@ django = [
     "strawberry-graphql-django>=0.86.4",
     "structlog>=26.1.0",
     "uvicorn>=0.50.0",
+    "black>=26.3.1",
 ]
 ai-service = [
     "opentelemetry-sdk>=1.40.0,<2",
