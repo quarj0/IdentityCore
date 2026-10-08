@@ -96,7 +96,12 @@ def _resolve_consent_template(verification, locale: str):
                     "consent_template_id": "The selected consent template is not active for this tenant."
                 }
             )
-        return intended
+        return (
+            templates.filter(
+                name=intended.name, version=intended.version, language__iexact=locale
+            ).first()
+            or intended
+        )
     if templates.order_by().values("name").distinct().count() > 1:
         raise serializers.ValidationError(
             {
@@ -104,7 +109,9 @@ def _resolve_consent_template(verification, locale: str):
             }
         )
     return (
-        templates.filter(language=locale).order_by("-version", "-created_at").first()
+        templates.filter(language__iexact=locale)
+        .order_by("-version", "-created_at")
+        .first()
         or templates.filter(language="en").order_by("-version", "-created_at").first()
         or templates.order_by("-version", "-created_at").first()
     )
@@ -133,8 +140,11 @@ def _policy_locales(verification, policy_snapshot: dict) -> list[str]:
 def _consent_artifact(verification, locale: str) -> dict:
     consent_snapshot = (verification.policy_snapshot_json or {}).get("consent") or {}
     if consent_snapshot:
-        translations = consent_snapshot.get("translations") or {}
-        frozen = translations.get(locale) or consent_snapshot
+        translations = {
+            str(key).lower(): value
+            for key, value in (consent_snapshot.get("translations") or {}).items()
+        }
+        frozen = translations.get(locale.lower()) or consent_snapshot
         content = str(frozen.get("content") or "")
         return {
             "template_id": str(frozen.get("template_id") or "generated"),

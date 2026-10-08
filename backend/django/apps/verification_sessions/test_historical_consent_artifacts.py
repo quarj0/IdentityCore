@@ -316,6 +316,73 @@ class HistoricalConsentArtifactTests(APITestCase):
         self.assertEqual(response.status_code, 400, response.data)
         self.assertFalse(self.verification.consent_records.exists())
 
+    def test_explicit_identity_preserves_translations_at_the_selected_version(self):
+        intended = self.template()
+        arabic = ConsentTemplate.objects.create(
+            tenant=self.tenant,
+            name="Identity",
+            language="ar-EG",
+            content="الموافقة على التحقق",
+            version=1,
+            status="active",
+            evidence_scope_json=["document", "biometrics"],
+        )
+        ConsentTemplate.objects.create(
+            tenant=self.tenant,
+            name="Identity",
+            language="ar-EG",
+            content="Later notice",
+            version=2,
+            status="active",
+        )
+        self.template(name="Unrelated", version=99)
+        self.verification.metadata_json["consent_template_id"] = intended.public_id
+        self.verification.policy_snapshot_json.update(
+            {"default_locale": "en", "supported_locales": ["en", "ar-EG"]}
+        )
+        self.verification.save(
+            update_fields=["metadata_json", "policy_snapshot_json", "updated_at"]
+        )
+        response = self.client.get(
+            reverse(
+                "verification-session-detail",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            HTTP_ACCEPT_LANGUAGE="ar-EG",
+            **self.session_headers(),
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        notice = response.data["data"]["consent"]
+        self.assertEqual(notice["template_id"], arabic.public_id)
+        self.assertEqual(notice["version"], 1)
+        accepted = self.accept(
+            {
+                "accepted": True,
+                **{
+                    key: notice[key]
+                    for key in ("template_id", "version", "locale", "content_hash")
+                },
+            }
+        )
+        self.assertEqual(accepted.status_code, 200, accepted.data)
+        self.assertEqual(
+            self.verification.consent_records.get().consent_template_id, arabic.pk
+        )
+
+    def test_regional_frozen_translation_matches_case_normalized_negotiation(self):
+        self.verification.policy_snapshot_json["consent"] = {
+            "language": "en",
+            "content": "English notice",
+            "version": 1,
+            "translations": {
+                "en": {"language": "en", "content": "English notice", "version": 1},
+                "ar-EG": {"language": "ar-EG", "content": "الموافقة", "version": 1},
+            },
+        }
+        artifact = _consent_artifact(self.verification, "ar-eg")
+        self.assertEqual(artifact["locale"], "ar-EG")
+        self.assertEqual(artifact["content"], "الموافقة")
+
 
 class ConsentDocumentationContractTests(SimpleTestCase):
     def test_session_and_acceptance_examples_share_the_exact_notice_fingerprint(self):
