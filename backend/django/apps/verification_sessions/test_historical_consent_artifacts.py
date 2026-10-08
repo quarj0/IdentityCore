@@ -1,4 +1,9 @@
 import hashlib
+import json
+import re
+
+from django.conf import settings
+from django.test import SimpleTestCase
 
 from django.urls import reverse
 from rest_framework.test import APITestCase
@@ -243,3 +248,97 @@ class HistoricalConsentArtifactTests(APITestCase):
         record = self.verification.consent_records.get()
         self.assertEqual(record.consent_template_id, intended.pk)
         self.assertEqual(record.proof_json["content_hash"], fingerprint["content_hash"])
+
+    def test_acceptance_uses_the_fingerprint_locale_without_repeating_get_headers(self):
+        self.template()
+        french = ConsentTemplate.objects.create(
+            tenant=self.tenant,
+            name="Identity",
+            language="fr",
+            content="Avis français",
+            version=1,
+            status="active",
+            evidence_scope_json=["document", "biometrics"],
+        )
+        self.verification.policy_snapshot_json.update(
+            {"default_locale": "en", "supported_locales": ["en", "fr"]}
+        )
+        self.verification.save(update_fields=["policy_snapshot_json", "updated_at"])
+        response = self.client.get(
+            reverse(
+                "verification-session-detail",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            HTTP_ACCEPT_LANGUAGE="fr",
+            **self.session_headers(),
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        artifact = response.data["data"]["consent"]
+        accepted = self.accept(
+            {
+                "accepted": True,
+                **{
+                    key: artifact[key]
+                    for key in ("template_id", "version", "locale", "content_hash")
+                },
+            }
+        )
+        self.assertEqual(accepted.status_code, 200, accepted.data)
+        record = self.verification.consent_records.get()
+        self.assertEqual(record.consent_locale, "fr")
+        self.assertEqual(record.consent_template_id, french.pk)
+
+    def test_submitted_locale_cannot_bypass_policy_supported_languages(self):
+        self.template()
+        ConsentTemplate.objects.create(
+            tenant=self.tenant,
+            name="Identity",
+            language="fr",
+            content="Avis français",
+            version=1,
+            status="active",
+            evidence_scope_json=["document", "biometrics"],
+        )
+        self.verification.policy_snapshot_json.update(
+            {"default_locale": "en", "supported_locales": ["en"]}
+        )
+        self.verification.save(update_fields=["policy_snapshot_json", "updated_at"])
+        artifact = _consent_artifact(self.verification, "fr")
+        response = self.accept(
+            {
+                "accepted": True,
+                **{
+                    key: artifact[key]
+                    for key in ("template_id", "version", "locale", "content_hash")
+                },
+            }
+        )
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertFalse(self.verification.consent_records.exists())
+
+
+class ConsentDocumentationContractTests(SimpleTestCase):
+    def test_session_and_acceptance_examples_share_the_exact_notice_fingerprint(self):
+        specification = (
+            settings.BASE_DIR.parent.parent / "docs/architecture/api-spec.md"
+        ).read_text()
+        detail_section = specification.split("## GET /sessions/{session_id}\n", 1)[
+            1
+        ].split("\n---", 1)[0]
+        acceptance_section = specification.split(
+            "## POST /sessions/{session_id}/consent\n", 1
+        )[1].split("\n---", 1)[0]
+        detail = json.loads(
+            re.search(r"```json\n(.*?)\n```", detail_section, re.S).group(1)
+        )
+        acceptance = json.loads(
+            re.search(r"```json\n(.*?)\n```", acceptance_section, re.S).group(1)
+        )
+        notice = detail["data"]["consent"]
+        self.assertTrue(acceptance["accepted"])
+        for key in ("template_id", "version", "locale", "content_hash"):
+            self.assertEqual(acceptance[key], notice[key])
+        self.assertEqual(
+            notice["content_hash"],
+            hashlib.sha256(notice["content"].encode()).hexdigest(),
+        )

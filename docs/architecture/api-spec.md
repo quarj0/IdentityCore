@@ -773,7 +773,7 @@ Request:
   "template_id": "ctm_01JABC...",
   "version": 1,
   "locale": "en",
-  "content_hash": "13edc282023b21f77e9cc4b92a89063d660a2daa87e852084b947c146c0d2ec6"
+  "content_hash": "f27925362904029b74a709329048244eb9fc24c86b4f833d15761751f9ac9dae"
 }
 ```
 
