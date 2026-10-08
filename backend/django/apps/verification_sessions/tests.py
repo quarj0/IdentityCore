@@ -560,6 +560,41 @@ class VerificationSessionPortalTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_submit_documents_rejects_country_supported_type_outside_policy(self):
+        ConsentRecord.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_subject=self.subject,
+            consent_text_snapshot="I consent to identity verification.",
+            accepted_at=timezone.now(),
+        )
+        self.verification.status = VerificationStatus.IN_PROGRESS
+        self.verification.policy_snapshot_json = {
+            "required_document_types": ["national_id"]
+        }
+        self.verification.save(
+            update_fields=["status", "policy_snapshot_json", "updated_at"]
+        )
+        upload = self.create_upload(purpose=UploadPurpose.DOCUMENT_CAPTURE, suffix="POLICY")
+        response = self.client.post(
+            reverse(
+                "verification-session-documents",
+                kwargs={"session_id": self.session.public_id},
+            ),
+            {
+                "country_code": "GH",
+                "document_type": "passport",
+                "captures": [{"side": "single", "upload_id": upload.public_id}],
+            },
+            format="json",
+            **self.session_headers(),
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("document_type", response.data["error"]["details"])
+        self.assertFalse(
+            IdentityDocument.objects.filter(verification=self.verification).exists()
+        )
+
     @patch("apps.identity_documents.tasks.process_identity_document_task.delay")
     def test_submit_documents_creates_identity_document_and_captures(self, mock_delay):
         ConsentRecord.objects.create(
