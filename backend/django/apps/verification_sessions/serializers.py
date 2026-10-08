@@ -647,6 +647,13 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
                 "The consent notice changed. Review the current notice before accepting."
             )
 
+        if not (verification.policy_snapshot_json or {}).get("consent") and set(
+            submitted_artifact
+        ) != {"template_id", "version", "locale", "content_hash"}:
+            raise serializers.ValidationError(
+                "All consent notice fingerprint fields are required for a dynamic notice."
+            )
+
         existing_record = verification.consent_records.order_by(
             "-accepted_at", "-pk"
         ).first()
@@ -665,10 +672,12 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
             proof = existing_record.proof_json
             if {"document", "biometrics"}.issubset(proof["evidence_scope"]):
                 if (
+                    proof.get("template_id"),
                     proof["notice_version"],
                     proof["locale"],
                     proof["content_hash"],
                 ) != (
+                    artifact["template_id"],
                     artifact["version"],
                     artifact["locale"],
                     artifact["content_hash"],
@@ -690,13 +699,6 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
         ):
             raise serializers.ValidationError(
                 "Consent cannot be accepted for a terminal or expired verification."
-            )
-
-        if not (verification.policy_snapshot_json or {}).get("consent") and set(
-            submitted_artifact
-        ) != {"template_id", "version", "locale", "content_hash"}:
-            raise serializers.ValidationError(
-                "All consent notice fingerprint fields are required for a dynamic notice."
             )
 
         consent_template = ConsentTemplate.objects.filter(
