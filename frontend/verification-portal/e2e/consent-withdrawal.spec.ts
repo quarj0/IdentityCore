@@ -105,8 +105,9 @@ for (const locale of ["en", "ar"]) {
       page,
       isMobile,
     }) => {
-      // Processing cases also wait for a real status poll and verify it stops.
-      if (afterConsent === "processing") test.setTimeout(60_000);
+      // Every case exercises confirmation, two requests, retry and a real
+      // post-withdrawal poll interval, including slower touch browser projects.
+      test.setTimeout(60_000);
       let step = "consent";
       let accepted = false;
       let withdrawals = 0;
