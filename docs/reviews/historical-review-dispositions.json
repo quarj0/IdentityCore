@@ -371,13 +371,17 @@
       "thread_id": "PRRT_kwDOTN0BU86R-VIt",
       "comment_id": 3608092467,
       "path": ".env.example",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
-        "config.test_local_frontend_origins:sample CORS regression fails against main"
+        "backend/django/config/test_local_frontend_origins.py:test_sample_cors_allows_every_local_frontend",
+        ".env.example:all localhost and loopback frontend origins"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep all local frontends in the CORS allowlist**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3608092467",
-      "disposition_note": "Reproduced against current main; isolated correction and regression validation prepared, awaiting final-head review, CI and merge."
+      "disposition_note": "Fixed in merged PR #387 after final-head configured review, all CI/Security and dedicated App evidence passed. All 112 targeted Django tests and 14 classification tests passed; both new regressions fail against unchanged main and pass with the fixes.",
+      "remediation_pr": 387,
+      "remediation_commit": "ef40fd8ac66b8893fd19f5b9e186cc5a46c21f2b",
+      "merged_commit": "e273fd4ba86181e3e75c81c303bfaabcce79e932"
     },
     {
       "pr_number": 4,
@@ -399,13 +403,17 @@
       "thread_id": "PRRT_kwDOTN0BU86R-VIv",
       "comment_id": 3608092469,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
-        "apps.verification_sessions.tests.VerificationSessionPortalTests.test_submit_documents_rejects_country_supported_type_outside_policy:regression demonstrates missing policy restriction"
+        "backend/django/apps/verification_sessions/serializers.py:VerificationSessionDocumentSerializer.validate intersects country support with policy requirements",
+        "backend/django/apps/verification_sessions/tests.py:test_submit_documents_rejects_country_supported_type_outside_policy"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Enforce policy-required document types**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3608092469",
-      "disposition_note": "Reproduced against current main; isolated correction and regression validation prepared, awaiting final-head review, CI and merge."
+      "disposition_note": "Fixed in merged PR #387 after final-head configured review, all CI/Security and dedicated App evidence passed. All 112 targeted Django tests and 14 classification tests passed; both new regressions fail against unchanged main and pass with the fixes.",
+      "remediation_pr": 387,
+      "remediation_commit": "ef40fd8ac66b8893fd19f5b9e186cc5a46c21f2b",
+      "merged_commit": "e273fd4ba86181e3e75c81c303bfaabcce79e932"
     },
     {
       "pr_number": 4,
