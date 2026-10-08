@@ -40,6 +40,7 @@ from apps.verifications.processing_jobs import (
     defer_processing_job,
     heartbeat_processing_job,
     lock_processing_job_for_finalization,
+    document_processing_committed,
 )
 from apps.verifications.transitions import (
     TERMINAL_STATUSES,
@@ -165,12 +166,7 @@ def process_identity_document_task(identity_document_id: str) -> str:
     )
     if processing_job is None:
         return identity_document.status
-    if identity_document.status in {
-        IdentityDocumentStatus.PROCESSED,
-        IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
-        IdentityDocumentStatus.REJECTED,
-        IdentityDocumentStatus.FAILED,
-    }:
+    if document_processing_committed(identity_document):
         complete_processing_job(processing_job)
         return identity_document.status
     captures = list(identity_document.captures.order_by("created_at"))
@@ -481,6 +477,33 @@ def process_identity_document_task(identity_document_id: str) -> str:
             manual_review_required = True
         heartbeat_processing_job(processing_job)
 
+        # Object-storage I/O precedes the guarded database finalization.
+        for capture in captures:
+            try:
+                promote_upload_to_media_by_storage_key(capture.storage_key)
+            except Exception as exc:
+                logger.warning(
+                    "Failed to promote document upload for verification %s (%s)",
+                    verification.public_id,
+                    type(exc).__name__,
+                    extra={"storage_key": capture.storage_key},
+                )
+                record_audit_event(
+                    tenant=verification.tenant,
+                    actor=verification.verification_subject,
+                    action="document.promotion_failed",
+                    target_type="verification",
+                    target_id=verification.public_id,
+                    metadata={
+                        "identity_document_id": identity_document.public_id,
+                        "storage_key": capture.storage_key,
+                    },
+                    sensitive_metadata={
+                        "error": str(exc),
+                        "error_class": exc.__class__.__name__,
+                    },
+                )
+
         with transaction.atomic():
             lock_processing_job_for_finalization(processing_job)
             identity_document.extracted_data_json = {
@@ -607,56 +630,30 @@ def process_identity_document_task(identity_document_id: str) -> str:
                     ]
                 )
 
-        for capture in captures:
-            try:
-                promote_upload_to_media_by_storage_key(capture.storage_key)
-            except Exception as exc:
-                logger.warning(
-                    "Failed to promote document upload for verification %s (%s)",
-                    verification.public_id,
-                    type(exc).__name__,
-                    extra={"storage_key": capture.storage_key},
-                )
-                record_audit_event(
-                    tenant=verification.tenant,
-                    actor=verification.verification_subject,
-                    action="document.promotion_failed",
-                    target_type="verification",
-                    target_id=verification.public_id,
-                    metadata={
-                        "identity_document_id": identity_document.public_id,
-                        "storage_key": capture.storage_key,
-                    },
-                    sensitive_metadata={
-                        "error": str(exc),
-                        "error_class": exc.__class__.__name__,
-                    },
-                )
-
-        record_audit_event(
-            tenant=verification.tenant,
-            actor=verification.verification_subject,
-            action="document.processed",
-            target_type="verification",
-            target_id=verification.public_id,
-            metadata={
-                "identity_document_id": identity_document.public_id,
-                "document_status": identity_document.status,
-            },
-        )
-        if manual_review_required:
             record_audit_event(
                 tenant=verification.tenant,
                 actor=verification.verification_subject,
-                action="document.review_flagged",
+                action="document.processed",
                 target_type="verification",
                 target_id=verification.public_id,
                 metadata={
                     "identity_document_id": identity_document.public_id,
-                    "reason_codes": classification_result.get("issues", []),
+                    "document_status": identity_document.status,
                 },
             )
-        complete_processing_job(processing_job)
+            if manual_review_required:
+                record_audit_event(
+                    tenant=verification.tenant,
+                    actor=verification.verification_subject,
+                    action="document.review_flagged",
+                    target_type="verification",
+                    target_id=verification.public_id,
+                    metadata={
+                        "identity_document_id": identity_document.public_id,
+                        "reason_codes": classification_result.get("issues", []),
+                    },
+                )
+            complete_processing_job(processing_job)
         return identity_document.status
     except ProcessingJobOwnershipLost:
         raise

@@ -786,24 +786,41 @@ def exhaust_processing_job(job: ProcessingJob) -> None:
         )
 
 
+def document_processing_committed(document) -> bool:
+    """A terminal document row alone does not establish postprocessing completion."""
+    from apps.audit.models import AuditEvent
+    from apps.identity_documents.models import IdentityDocumentStatus
+
+    if document.status not in {
+        IdentityDocumentStatus.PROCESSED,
+        IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
+        IdentityDocumentStatus.REJECTED,
+        IdentityDocumentStatus.FAILED,
+    }:
+        return False
+    return AuditEvent.objects.filter(
+        tenant_id=document.tenant_id,
+        action="document.processed",
+        target_type="verification",
+        target_id=document.verification.public_id,
+        metadata_json__identity_document_id=document.public_id,
+    ).exists()
+
+
 def _resource_processing_finished(job: ProcessingJob) -> bool:
     """Recognize committed side effects left by a worker lost at teardown."""
     if job.job_type == ProcessingJobType.IDENTITY_DOCUMENT:
-        from apps.identity_documents.models import (
-            IdentityDocument,
-            IdentityDocumentStatus,
-        )
+        from apps.identity_documents.models import IdentityDocument
 
-        return IdentityDocument.objects.filter(
-            public_id=job.resource_public_id,
-            tenant_id=job.tenant_id,
-            status__in=[
-                IdentityDocumentStatus.PROCESSED,
-                IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
-                IdentityDocumentStatus.REJECTED,
-                IdentityDocumentStatus.FAILED,
-            ],
-        ).exists()
+        document = (
+            IdentityDocument.objects.select_related("verification")
+            .filter(
+                public_id=job.resource_public_id,
+                tenant_id=job.tenant_id,
+            )
+            .first()
+        )
+        return document is not None and document_processing_committed(document)
     if job.job_type == ProcessingJobType.BIOMETRICS:
         from apps.biometrics.models import LivenessCheck, LivenessCheckStatus
 

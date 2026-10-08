@@ -5447,50 +5447,75 @@
       "thread_id": "PRRT_kwDOTN0BU86XlHRZ",
       "comment_id": 3743102504,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/processing_jobs.py:_resource_processing_finished requires final verification state",
+        "backend/django/apps/verifications/test_historical_processing_invariants.py:test_liveness_result_without_final_decision_is_redispatched"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Require the entire biometric workflow to be complete**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/275#discussion_r3743102504"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/275#discussion_r3743102504",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 275,
       "thread_id": "PRRT_kwDOTN0BU86XlHRa",
       "comment_id": 3743102505,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/identity_documents/tasks.py:commit document state, provider updates, final audit and processing job inside one guarded transaction, after media promotion",
+        "backend/django/apps/verifications/processing_jobs.py:document_processing_committed requires the exact document audit marker",
+        "backend/django/apps/verifications/test_document_postprocessing_recovery.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Wait for document post-processing before declaring success**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/275#discussion_r3743102505"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/275#discussion_r3743102505",
+      "disposition_note": "Reproduced three baseline failures: terminal document status falsely completed jobs before postprocessing. The new atomic finalization and exact-document marker regressions pass, including interrupted-commit retry. Remains actionable until final review, CI and protected merge."
     },
     {
       "pr_number": 275,
       "thread_id": "PRRT_kwDOTN0BU86XlHRc",
       "comment_id": 3743102507,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/processing_jobs.py:exhaust_processing_job skips decision writes for final lifecycle states",
+        "backend/django/apps/verifications/test_historical_processing_invariants.py:test_exhaustion_preserves_cancelled_decision"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve decisions for terminal verifications**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/275#discussion_r3743102507"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/275#discussion_r3743102507",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 275,
       "thread_id": "PRRT_kwDOTN0BU86XlHRe",
       "comment_id": 3743102508,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/processing_jobs.py:_assert_processing_job_owner, heartbeat_processing_job, defer_processing_job",
+        "backend/django/apps/verifications/test_historical_processing_invariants.py:test_superseded_generation_cannot_mutate_replacement_or_completed_job"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Fence lease updates to the attempt that acquired them**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/275#discussion_r3743102508"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/275#discussion_r3743102508",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 275,
       "thread_id": "PRRT_kwDOTN0BU86XlHRg",
       "comment_id": 3743102511,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_processing_job_lifecycle_recovery.py:test_retry_exhaustion_queues_lifecycle_outbox_and_notification_atomically",
+        "backend/django/apps/verifications/test_processing_job_lifecycle_recovery.py:test_retry_exhaustion_rolls_back_when_outbox_insert_fails"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Emit the standard side effects for exhaustion review routing**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/275#discussion_r3743102511"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/275#discussion_r3743102511",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 276,
@@ -7216,10 +7241,14 @@
       "thread_id": "PRRT_kwDOTN0BU86bZurX",
       "comment_id": 3836412271,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_processing_job_evidence_preservation.py:test_retry_exhaustion_preserves_completed_liveness_evidence"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve successful biometrics when finalization retries exhaust**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836412271"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836412271",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
@@ -7236,10 +7265,14 @@
       "thread_id": "PRRT_kwDOTN0BU86bZ2ek",
       "comment_id": 3836458305,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_processing_job_review_races.py:test_exhausted_job_aborts_surrounding_finalization_transaction"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Abort finalization after job exhaustion**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836458305"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836458305",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
@@ -7256,90 +7289,127 @@
       "thread_id": "PRRT_kwDOTN0BU86bZ2er",
       "comment_id": 3836458312,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_processing_job_review_races.py:test_route_exhaustion_repairs_only_the_originating_biometric_job"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Scope route-exhaustion repair to its originating job**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836458312"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836458312",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
       "thread_id": "PRRT_kwDOTN0BU86bZ2et",
       "comment_id": 3836458314,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_processing_job_review_races.py:test_max_attempt_sweep_grants_one_resume_for_committed_provider_result"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Recover committed results before the exhaustion decision**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836458314"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836458314",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
       "thread_id": "PRRT_kwDOTN0BU86baF6g",
       "comment_id": 3836549732,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_processing_invariants.py:test_failed_broker_preserves_grace_until_successful_worker_acquisition"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Do not consume recovery grace before broker publication**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836549732"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836549732",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
       "thread_id": "PRRT_kwDOTN0BU86baF6h",
       "comment_id": 3836549733,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_processing_invariants.py:test_route_repair_updates_exact_face_instead_of_newer_unrelated_row"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Carry the exact face-match ID into exhaustion repair**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836549733"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836549733",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
       "thread_id": "PRRT_kwDOTN0BU86baF6k",
       "comment_id": 3836549737,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_processing_invariants.py:test_already_resolved_row_retains_one_finalization_grace"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Grant recovery when biometric rows already consumed the result**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836549737"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836549737",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
       "thread_id": "PRRT_kwDOTN0BU86baF6m",
       "comment_id": 3836549739,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_processing_invariants.py:test_superseded_generation_cannot_mutate_replacement_or_completed_job"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reject completion from superseded processing attempts**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836549739"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836549739",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
       "thread_id": "PRRT_kwDOTN0BU86baISD",
       "comment_id": 3836563585,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/test_route_final_action_ownership.py:test_exhausted_job_blocks_route_decision_before_side_effects_commit"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Check ownership before committing route exhaustion**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836563585"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836563585",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
       "thread_id": "PRRT_kwDOTN0BU86baISF",
       "comment_id": 3836563587,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_processing_lock_race.py:test_finalization_and_exhaustion_share_lock_order"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Acquire verification and job locks in one order**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836563587"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836563587",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
       "thread_id": "PRRT_kwDOTN0BU86baMNR",
       "comment_id": 3836586941,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_document_postprocessing_recovery.py:test_lost_owner_escapes_without_provider_failure_writes",
+        "backend/django/apps/biometrics/tasks.py:explicit ProcessingJobOwnershipLost propagation before broad exception handler"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Let lost-ownership signals escape worker error handling**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836586941"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836586941",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
@@ -7361,10 +7431,14 @@
       "thread_id": "PRRT_kwDOTN0BU86bad0m",
       "comment_id": 3836692039,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_processing_invariants.py:test_recovery_requires_every_pending_biometric_stage"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Require every pending biometric stage to be recoverable**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836692039"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836692039",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
@@ -7391,20 +7465,29 @@
       "thread_id": "PRRT_kwDOTN0BU86ba9oi",
       "comment_id": 3836881140,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_processing_invariants.py:test_wrong_capability_or_resource_cannot_grant_grace",
+        "backend/django/apps/verifications/test_historical_processing_invariants.py:test_recovery_requires_every_pending_biometric_stage"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Verify that linked evidence belongs to its biometric stage**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3836881140"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3836881140",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 304,
       "thread_id": "PRRT_kwDOTN0BU86bbENv",
       "comment_id": 3836920422,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_processing_job_review_races.py:test_max_attempt_sweep_grants_one_resume_for_committed_provider_result canonical normalized capability fixture"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Commit the canonical recovery fixture update**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3836920422"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3836920422",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 304,
@@ -8905,10 +8988,14 @@
       "thread_id": "PRRT_kwDOTN0BU86o3YDc",
       "comment_id": 4179682116,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_processing_invariants.py:test_failed_broker_preserves_grace_until_successful_worker_acquisition"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve the biometric recovery marker during dispatch**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/350#discussion_r4179682116"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/350#discussion_r4179682116",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 351,
