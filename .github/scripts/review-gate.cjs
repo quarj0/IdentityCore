@@ -478,7 +478,7 @@ async function runBucket({ github, context, bucket, retrySleep = ms => new Promi
     })));
   } else for (const prepared of ready) {
     try {
-      await run({ github, prepared, openPRs: prs, context: { ...context, payload: { pull_request: { number: prepared.number } } } });
+      await run({ github, prepared, openPRs: prs, context: { ...context, repo: context.repo, payload: { pull_request: { number: prepared.number } } } });
     } catch (error) {
       failures.push(`#${prepared.number}: ${error.message}`);
     }
