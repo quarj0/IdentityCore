@@ -14,6 +14,9 @@ def backfill_legacy_notice_locales(apps, schema_editor):
         consent_template__isnull=False,
     ).select_related("consent_template")
     for record in legacy.iterator(chunk_size=500):
+        # An edited template cannot establish the locale of the retained notice.
+        if record.consent_text_snapshot != record.consent_template.content:
+            continue
         language = record.consent_template.language
         if language:
             records.filter(pk=record.pk).update(consent_locale=language)

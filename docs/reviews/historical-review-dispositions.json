@@ -9299,5 +9299,5 @@
     }
   ],
   "verified_main": "e273fd4ba86181e3e75c81c303bfaabcce79e932",
-  "inventory_note": "762 uniquely identified historical threads. Pending findings remain pending; GitHub resolution state is not evidence. The session/consent audit records eight reproduced fixes awaiting merge and twelve independently checked current-code findings."
+  "inventory_note": "767 uniquely identified historical threads: 93 fixed, 176 verified, 8 actionable and 490 pending individual audit. Session/consent fixes are merged in #388 (081da59c021337bbc75a1e5bab65767effa50ff3). Actionable findings remain open until their remediation merges; GitHub resolution state is not implementation evidence."
 }
