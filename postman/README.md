@@ -54,3 +54,5 @@ Import these two files into Postman:
 - The onboarding registration mutation returns a `debugEmailVerificationUrl` only when Django is running with `DEBUG=1`; production environments should rely on the delivered email instead.
 
 Upload transfers validate MIME type, content and the declared byte count, bind evidence to the authenticated session, and return an uploaded resource. Upload creation alone does not make an upload eligible for document or selfie submission. Postman must supply its own multipart boundary, so transfer requests intentionally omit an explicit Content-Type header.
+
+`make test` builds the Django Dockerfile’s `test` target, which includes Node for executing the actual collection response scripts. The default production target contains no Node dependency. Direct local Django test runs require Node on PATH for this integration.
