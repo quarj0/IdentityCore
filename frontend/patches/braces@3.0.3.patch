@@ -1,0 +1,45 @@
+diff --git a/lib/compile.js b/lib/compile.js
+index dce69beb90ece5c3b0ca234a949418f9f34eedbc..84507aad8d284b0c1bcc2f8f823a67d73e74ca43 100644
+--- a/lib/compile.js
++++ b/lib/compile.js
+@@ -32,6 +32,10 @@ const compile = (ast, options = {}) => {
+       return node.prev.type === 'comma' ? '' : invalid ? node.value : '|';
+     }
+ 
++    if (node.literal === true) {
++      return node.value.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&');
++    }
++
+     if (node.value) {
+       return node.value;
+     }
+diff --git a/lib/parse.js b/lib/parse.js
+index 3a6988e629f52aee6609dc5ec290a5e9ff47cecb..8ea4d08b2e3eade9fb35a225ae4f09e8284b19f1 100644
+--- a/lib/parse.js
++++ b/lib/parse.js
+@@ -143,6 +143,12 @@ const parse = (input, options = {}) => {
+      */
+ 
+     if (value === CHAR_LEFT_PARENTHESES) {
++      // Bound recursive AST walkers, including unmatched nesting. Patterns above
++      // this limit remain literal instead of exhausting the JavaScript stack.
++      if (stack.length >= 64) {
++        return { type: 'root', input, nodes: [{ type: 'text', value: input, literal: true }] };
++      }
++
+       block = push({ type: 'paren', nodes: [] });
+       stack.push(block);
+       push({ type: 'text', value });
+@@ -195,6 +201,12 @@ const parse = (input, options = {}) => {
+      */
+ 
+     if (value === CHAR_LEFT_CURLY_BRACE) {
++      // Bound recursive AST walkers, including unmatched nesting. Patterns above
++      // this limit remain literal instead of exhausting the JavaScript stack.
++      if (stack.length >= 64) {
++        return { type: 'root', input, nodes: [{ type: 'text', value: input, literal: true }] };
++      }
++
+       depth++;
+ 
+       const dollar = prev.value && prev.value.slice(-1) === '$' || block.dollar === true;
