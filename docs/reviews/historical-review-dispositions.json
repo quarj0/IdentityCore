@@ -2432,11 +2432,11 @@
       "path": "backend/django/apps/consent/migrations/0002_consentrecord_locale_and_hash.py",
       "status": "actionable",
       "evidence": [
-        "apps.consent.test_legacy_locale_migration:linked Arabic/French legacy metadata repaired; signed and fingerprinted notices unchanged"
+        "apps.consent.test_legacy_locale_migration:language-only and content edits preserve unsigned and retained consent metadata; signed and fingerprinted notices unchanged"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Backfill locales for existing consent records**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665042776",
-      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
+      "disposition_note": "Automatic backfill withdrawn: the original locale was not retained and mutable templates cannot establish historical language. Leave actionable pending an evidence-backed legacy repair policy; PR #389 now preserves metadata instead of inferring locales."
     },
     {
       "pr_number": 70,
@@ -2592,11 +2592,11 @@
       "path": "backend/django/apps/consent/migrations/0002_consentrecord_locale_and_hash.py",
       "status": "actionable",
       "evidence": [
-        "apps.consent.test_legacy_locale_migration:linked Arabic/French legacy metadata repaired; signed and fingerprinted notices unchanged"
+        "apps.consent.test_legacy_locale_migration:language-only and content edits preserve unsigned and retained consent metadata; signed and fingerprinted notices unchanged"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Backfill locales for existing consent records**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156299",
-      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
+      "disposition_note": "Automatic backfill withdrawn: the original locale was not retained and mutable templates cannot establish historical language. Leave actionable pending an evidence-backed legacy repair policy; PR #389 now preserves metadata instead of inferring locales."
     },
     {
       "pr_number": 71,

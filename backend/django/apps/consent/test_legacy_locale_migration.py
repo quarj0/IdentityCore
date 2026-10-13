@@ -37,7 +37,7 @@ class LegacyConsentLocaleMigrationTests(TransactionTestCase):
             **fields,
         )
 
-    def test_backfill_derives_linked_languages_without_fabricating_proofs(self):
+    def test_migration_preserves_unsigned_locales_without_fabricating_proofs(self):
         arabic = ConsentTemplate.objects.create(
             tenant=self.tenant, name="Arabic", language="ar-EG", content="إشعار"
         )
@@ -49,8 +49,8 @@ class LegacyConsentLocaleMigrationTests(TransactionTestCase):
         generated = self.legacy_record("generated")
         self.restore_latest()
         records = ConsentRecord._base_manager
-        self.assertEqual(records.get(pk=first.pk).consent_locale, "ar-EG")
-        self.assertEqual(records.get(pk=second.pk).consent_locale, "fr")
+        self.assertEqual(records.get(pk=first.pk).consent_locale, "en")
+        self.assertEqual(records.get(pk=second.pk).consent_locale, "en")
         self.assertEqual(records.get(pk=generated.pk).consent_locale, "en")
         for record in records.filter(pk__in=[first.pk, second.pk, generated.pk]):
             self.assertIsNone(record.proof_json)
@@ -101,5 +101,23 @@ class LegacyConsentLocaleMigrationTests(TransactionTestCase):
             record = ConsentRecord._base_manager.get(pk=pk)
             self.assertEqual(record.consent_locale, "en")
             self.assertEqual(record.consent_text_snapshot, "Original notice")
+            self.assertEqual(record.consent_content_hash, "")
+            self.assertIsNone(record.proof_json)
+
+    def test_language_only_template_edit_cannot_establish_historical_locale(self):
+        template = ConsentTemplate.objects.create(
+            tenant=self.tenant, name="French", language="fr", content="Unchanged notice"
+        )
+        retained = self.legacy_record("language_only", template)
+        deleted = self.legacy_record(
+            "language_only_deleted", template, deleted_at=timezone.now()
+        )
+        template.language = "ar"
+        template.save(update_fields=["language"])
+        self.restore_latest()
+        for pk in (retained.pk, deleted.pk):
+            record = ConsentRecord._base_manager.get(pk=pk)
+            self.assertEqual(record.consent_locale, "en")
+            self.assertEqual(record.consent_text_snapshot, "Unchanged notice")
             self.assertEqual(record.consent_content_hash, "")
             self.assertIsNone(record.proof_json)
