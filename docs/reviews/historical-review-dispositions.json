@@ -453,7 +453,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Persist redeemed handoff credentials before replacing the URL**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3641519078",
-      "disposition_note": "Inspected current implementation and executed regression evidence: 940 Django tests, focused browser tests across Chromium/WebKit desktop/mobile, and actual BFF-handler cookie assertions. Original Arabic-default concern is superseded by an English-only default and approved policy locale filtering."
+      "disposition_note": "The handoff BFF writes both HttpOnly session credential cookies before returning a response that exposes only the session ID. The mobile reload regression resumes using those cookies without redeeming the one-time handoff again."
     },
     {
       "pr_number": 4,
@@ -574,7 +574,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Persist redeemed handoff credentials before replacing URL**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3607869938",
-      "disposition_note": "Inspected current implementation and executed regression evidence: 940 Django tests, focused browser tests across Chromium/WebKit desktop/mobile, and actual BFF-handler cookie assertions. Original Arabic-default concern is superseded by an English-only default and approved policy locale filtering."
+      "disposition_note": "The handoff BFF persists both HttpOnly credentials before the client replaces the handoff URL. The actual-handler cookie assertions and mobile reload regression verify that the redeemed session survives reload without another redemption."
     },
     {
       "pr_number": 6,
@@ -860,7 +860,7 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Guard the new document list before rendering**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/10#discussion_r3608052736",
-      "disposition_note": "Inspected current implementation and executed regression evidence: 940 Django tests, focused browser tests across Chromium/WebKit desktop/mobile, and actual BFF-handler cookie assertions. Original Arabic-default concern is superseded by an English-only default and approved policy locale filtering."
+      "disposition_note": "The document selector checks available_documents with optional chaining and uses its fallback when the list is absent or empty. Historical session fixtures omit the field and still render successfully."
     },
     {
       "pr_number": 10,
@@ -1245,7 +1245,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Honor the verification policy before forcing active liveness**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/29#discussion_r3644674535",
-      "disposition_note": "Inspected current implementation and executed regression evidence: 940 Django tests, focused browser tests across Chromium/WebKit desktop/mobile, and actual BFF-handler cookie assertions. Original Arabic-default concern is superseded by an English-only default and approved policy locale filtering."
+      "disposition_note": "The hosted flow chooses passive or active liveness from the server workflow context derived from the immutable policy. The passive regression submits still evidence without requesting an active challenge."
     },
     {
       "pr_number": 29,
@@ -1830,7 +1830,7 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Migrate administrator verification to active liveness**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/44#discussion_r3646656984",
-      "disposition_note": "Inspected current implementation and executed regression evidence: 940 Django tests, focused browser tests across Chromium/WebKit desktop/mobile, and actual BFF-handler cookie assertions. Original Arabic-default concern is superseded by an English-only default and approved policy locale filtering."
+      "disposition_note": "Administrator onboarding launches the server-linked verification and redirects to its hosted verification URL instead of the obsolete selfie-only administrator form. The hosted portal follows the selected passive or active workflow policy."
     },
     {
       "pr_number": 44,
@@ -1843,7 +1843,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Update the portal end-to-end liveness flow**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/44#discussion_r3646657046",
-      "disposition_note": "Inspected current implementation and executed regression evidence: 940 Django tests, focused browser tests across Chromium/WebKit desktop/mobile, and actual BFF-handler cookie assertions. Original Arabic-default concern is superseded by an English-only default and approved policy locale filtering."
+      "disposition_note": "The current portal end-to-end journey requests the active challenge, enables the camera, records and uploads live video, and tests recovery from a transient submission failure. The obsolete selfie-only liveness fixture has been replaced."
     },
     {
       "pr_number": 44,
@@ -1871,7 +1871,7 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Migrate administrator verification to active liveness**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/44#discussion_r3646657412",
-      "disposition_note": "Inspected current implementation and executed regression evidence: 940 Django tests, focused browser tests across Chromium/WebKit desktop/mobile, and actual BFF-handler cookie assertions. Original Arabic-default concern is superseded by an English-only default and approved policy locale filtering."
+      "disposition_note": "Administrator verification is created by the server-linked onboarding mutation and opened through its hosted verification URL. The shared hosted flow supports the policy-selected liveness mode, replacing the obsolete administrator-specific selfie flow."
     },
     {
       "pr_number": 44,
@@ -1884,7 +1884,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Update the portal end-to-end liveness flow**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/44#discussion_r3646657418",
-      "disposition_note": "Inspected current implementation and executed regression evidence: 940 Django tests, focused browser tests across Chromium/WebKit desktop/mobile, and actual BFF-handler cookie assertions. Original Arabic-default concern is superseded by an English-only default and approved policy locale filtering."
+      "disposition_note": "The portal end-to-end fixture exercises the active camera/challenge journey and transient submission recovery, including the recorded video upload MIME type. It no longer models active liveness as an uploaded still selfie."
     },
     {
       "pr_number": 44,
@@ -2611,7 +2611,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Do not advertise Arabic before localizing the full flow**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156306",
-      "disposition_note": "Inspected current implementation and executed regression evidence: 940 Django tests, focused browser tests across Chromium/WebKit desktop/mobile, and actual BFF-handler cookie assertions. Original Arabic-default concern is superseded by an English-only default and approved policy locale filtering."
+      "disposition_note": "The default advertised locale is English only; configured locales are filtered to approved immutable consent artifacts. The session-context and frozen-artifact regressions verify that unsupported Arabic is not advertised by default."
     },
     {
       "pr_number": 71,
@@ -6730,7 +6730,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Declare the required consent request fields**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776374123",
-      "disposition_note": "Inspected current implementation and executed regression evidence: 940 Django tests, focused browser tests across Chromium/WebKit desktop/mobile, and actual BFF-handler cookie assertions. Original Arabic-default concern is superseded by an English-only default and approved policy locale filtering."
+      "disposition_note": "The public consent request schema declares accepted as required with boolean const true and exposes the notice fingerprint fields. The OpenAPI contract tests validate request examples against the implemented schemas."
     },
     {
       "pr_number": 298,
@@ -8509,7 +8509,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Handle ambiguous selfie responses before reusing the upload**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/323#discussion_r4114629210",
-      "disposition_note": "Inspected current implementation and executed regression evidence: 940 Django tests, focused browser tests across Chromium/WebKit desktop/mobile, and actual BFF-handler cookie assertions. Original Arabic-default concern is superseded by an English-only default and approved policy locale filtering."
+      "disposition_note": "A video selfie retry resolves a consumed upload only to the existing owned committed capture and reuses that capture. The committed-capture retry regression verifies recovery from an ambiguous successful response without attempting another consumption."
     },
     {
       "pr_number": 324,
@@ -8544,7 +8544,7 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Back the locale switch with localized consent artifacts**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/326#discussion_r4114761094",
-      "disposition_note": "Inspected current implementation and executed regression evidence: 940 Django tests, focused browser tests across Chromium/WebKit desktop/mobile, and actual BFF-handler cookie assertions. Original Arabic-default concern is superseded by an English-only default and approved policy locale filtering."
+      "disposition_note": "Approved locale translations are frozen into immutable policy notice artifacts. The backend selected-translation regression and Arabic browser acceptance fixture verify that locale switching is backed by the corresponding consent notice."
     },
     {
       "pr_number": 326,
@@ -8558,7 +8558,7 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Send the selected locale when accepting consent**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/326#discussion_r4114761102",
-      "disposition_note": "Inspected current implementation and executed regression evidence: 940 Django tests, focused browser tests across Chromium/WebKit desktop/mobile, and actual BFF-handler cookie assertions. Original Arabic-default concern is superseded by an English-only default and approved policy locale filtering."
+      "disposition_note": "acceptConsent sends the selected locale in Accept-Language together with the displayed notice fingerprint. The Arabic fingerprint acceptance fixture verifies that the submitted locale matches the displayed artifact."
     },
     {
       "pr_number": 326,
@@ -8572,7 +8572,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Clear consent when replacing the notice**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/326#discussion_r4114761105",
-      "disposition_note": "Inspected current implementation and executed regression evidence: 940 Django tests, focused browser tests across Chromium/WebKit desktop/mobile, and actual BFF-handler cookie assertions. Original Arabic-default concern is superseded by an English-only default and approved policy locale filtering."
+      "disposition_note": "Changing locale resets checked consent before replacing the displayed notice. The localization regression verifies that switching from a checked English notice to Arabic leaves consent unchecked and acceptance disabled."
     },
     {
       "pr_number": 326,
