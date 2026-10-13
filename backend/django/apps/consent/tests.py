@@ -23,6 +23,13 @@ from apps.verifications.models import (
 from apps.providers.services import create_provider_check, invoke_provider_check
 
 
+def notice_acceptance(request):
+    from apps.verification_sessions.serializers import _consent_artifact, _request_locale
+
+    verification = request.verification_session.verification
+    artifact = _consent_artifact(verification, _request_locale(request, verification.policy_snapshot_json or {}))
+    return {"accepted": True, **{key: artifact[key] for key in ("template_id", "version", "locale", "content_hash")}}
+
 class PortalConsentBoundaryTests(APITestCase):
     from apps.verification_sessions import tests as portal_fixtures
 
@@ -120,6 +127,8 @@ class ConsentPurposeTests(TestCase):
             status="active",
             evidence_scope_json=["document", "biometrics"],
         )
+        self.tenant_case.metadata_json["consent_template_id"] = french.public_id
+        self.tenant_case.save(update_fields=["metadata_json"])
         session = VerificationSession.objects.create(
             tenant=self.tenant,
             verification=self.tenant_case,
@@ -133,7 +142,7 @@ class ConsentPurposeTests(TestCase):
             META={},
         )
         serializer = VerificationSessionConsentSerializer(
-            data={"accepted": True}, context={"request": request}
+            data=notice_acceptance(request), context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
         record = serializer.save()
@@ -152,7 +161,7 @@ class ConsentPurposeTests(TestCase):
         session = VerificationSession.objects.create(tenant=self.tenant, verification=self.tenant_case,
             session_token_hash="synthetic-scope", expires_at=timezone.now() + timedelta(hours=1))
         request = SimpleNamespace(verification_session=session, headers={}, META={})
-        serializer = VerificationSessionConsentSerializer(data={"accepted": True}, context={"request": request})
+        serializer = VerificationSessionConsentSerializer(data=notice_acceptance(request), context={"request": request})
         serializer.is_valid(raise_exception=True)
         with self.assertRaisesMessage(ValidationError, "document and biometrics"):
             serializer.save()
@@ -171,7 +180,7 @@ class ConsentPurposeTests(TestCase):
             session_token_hash="synthetic-legacy", expires_at=timezone.now() + timedelta(hours=1))
         self.assertEqual(serialize_verification_session_status(session)["current_step"], "consent")
         request = SimpleNamespace(verification_session=session, headers={}, META={})
-        serializer = VerificationSessionConsentSerializer(data={"accepted": True}, context={"request": request})
+        serializer = VerificationSessionConsentSerializer(data=notice_acceptance(request), context={"request": request})
         serializer.is_valid(raise_exception=True)
         fresh = serializer.save()
         self.assertNotEqual(fresh.pk, legacy.pk)
@@ -200,7 +209,7 @@ class ConsentPurposeTests(TestCase):
             session_token_hash="synthetic-legacy", expires_at=timezone.now() + timedelta(hours=1))
         self.assertEqual(serialize_verification_session_status(session)["current_step"], "consent")
         request = SimpleNamespace(verification_session=session, headers={}, META={})
-        serializer = VerificationSessionConsentSerializer(data={"accepted": True}, context={"request": request})
+        serializer = VerificationSessionConsentSerializer(data=notice_acceptance(request), context={"request": request})
         serializer.is_valid(raise_exception=True)
         fresh = serializer.save()
         self.assertNotEqual(fresh.pk, legacy.pk)
@@ -212,7 +221,7 @@ class ConsentPurposeTests(TestCase):
         self.assertEqual(serialize_verification_session_status(session)["current_step"], "document_capture")
         self.assertEqual(self.tenant_case.consent_records.count(), 2)
         self.assertIsNotNone(active_consent(self.tenant_case, "biometrics"))
-        repeated = VerificationSessionConsentSerializer(data={"accepted": True}, context={"request": request})
+        repeated = VerificationSessionConsentSerializer(data=notice_acceptance(request), context={"request": request})
         repeated.is_valid(raise_exception=True)
         self.assertEqual(repeated.save().pk, fresh.pk)
 
@@ -228,7 +237,7 @@ class ConsentPurposeTests(TestCase):
             expires_at=timezone.now() + timedelta(hours=1),
         )
         request = SimpleNamespace(verification_session=session, headers={}, META={})
-        first = VerificationSessionConsentSerializer(data={"accepted": True}, context={"request": request})
+        first = VerificationSessionConsentSerializer(data=notice_acceptance(request), context={"request": request})
         first.is_valid(raise_exception=True)
         record = first.save()
         original_proof = record.proof_json
@@ -237,7 +246,7 @@ class ConsentPurposeTests(TestCase):
                 self.tenant_case.status = "in_progress" if state == "elapsed" else state
                 self.tenant_case.expires_at = timezone.now() + timedelta(hours=-1 if state == "elapsed" else 1)
                 self.tenant_case.save(update_fields=["status", "expires_at"])
-                replay = VerificationSessionConsentSerializer(data={"accepted": True}, context={"request": request})
+                replay = VerificationSessionConsentSerializer(data=notice_acceptance(request), context={"request": request})
                 replay.is_valid(raise_exception=True)
                 result = replay.save()
                 self.assertEqual(result.pk, record.pk)
@@ -260,7 +269,7 @@ class ConsentPurposeTests(TestCase):
                 session = VerificationSession.objects.create(tenant=self.tenant, verification=self.tenant_case,
                     session_token_hash="terminal-consent-" + state, expires_at=timezone.now() + timedelta(hours=1))
                 request = SimpleNamespace(verification_session=session, headers={}, META={})
-                serializer = VerificationSessionConsentSerializer(data={"accepted": True}, context={"request": request})
+                serializer = VerificationSessionConsentSerializer(data=notice_acceptance(request), context={"request": request})
                 serializer.is_valid(raise_exception=True)
                 records = ConsentRecord.objects.filter(verification=self.tenant_case).count()
                 with self.assertRaisesMessage(ValidationError, "terminal or expired"):
@@ -284,7 +293,7 @@ class ConsentPurposeTests(TestCase):
                 session = VerificationSession.objects.create(tenant=self.tenant, verification=self.tenant_case,
                     session_token_hash="progressed-" + state, expires_at=timezone.now() + timedelta(hours=1))
                 request = SimpleNamespace(verification_session=session, headers={}, META={})
-                serializer = VerificationSessionConsentSerializer(data={"accepted": True}, context={"request": request})
+                serializer = VerificationSessionConsentSerializer(data=notice_acceptance(request), context={"request": request})
                 serializer.is_valid(raise_exception=True)
                 with transaction.atomic():
                     fresh = serializer.save()

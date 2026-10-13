@@ -65,3 +65,83 @@ class MobileHandoffRaceTests(APITransactionTestCase):
             ).count(),
             1,
         )
+
+    def test_simultaneous_liveness_posts_consume_one_challenge(self):
+        from datetime import timedelta
+        from unittest.mock import patch
+        from django.utils import timezone
+        from apps.biometrics.models import (
+            LivenessChallenge,
+            LivenessCheck,
+            SelfieCapture,
+        )
+        from apps.consent.test_helpers import accept_test_consent
+        from apps.document_captures.models import DocumentCapture
+        from apps.identity_documents.models import IdentityDocument
+        from apps.verifications.models import ProcessingJob
+
+        accept_test_consent(self.verification)
+        self.verification.status = "awaiting_selfie"
+        self.verification.save(update_fields=["status", "updated_at"])
+        document = IdentityDocument.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_subject=self.subject,
+            document_type_id="national_id",
+            country_profile_id="GH",
+            status="processed",
+        )
+        DocumentCapture.objects.create(
+            tenant=self.tenant,
+            identity_document=document,
+            side="front",
+            storage_key="synthetic/front",
+            mime_type="image/jpeg",
+            status="uploaded",
+            captured_at=timezone.now(),
+        )
+        captures = [
+            SelfieCapture.objects.create(
+                tenant=self.tenant,
+                verification=self.verification,
+                verification_subject=self.subject,
+                storage_key=f"synthetic/video-{index}",
+                capture_type="video",
+                mime_type="video/webm",
+                status="uploaded",
+                captured_at=timezone.now(),
+            )
+            for index in range(2)
+        ]
+        challenge = LivenessChallenge.objects.create(
+            tenant=self.tenant,
+            verification=self.verification,
+            verification_session=self.session,
+            actions=["blink", "turn_left"],
+            expires_at=timezone.now() + timedelta(minutes=2),
+        )
+        with patch(
+            "apps.biometrics.tasks.process_verification_biometrics_task.delay"
+        ) as publish:
+            statuses = self.parallel(
+                lambda index: APIClient()
+                .post(
+                    f"/api/v1/sessions/{self.session.public_id}/liveness",
+                    {
+                        "liveness_type": "active",
+                        "selfie_capture_id": captures[index].public_id,
+                        "challenge_id": challenge.public_id,
+                    },
+                    format="json",
+                    **self.session_headers(),
+                )
+                .status_code
+            )
+        self.assertEqual(sorted(statuses), [200, 400])
+        self.assertEqual(LivenessCheck.objects.filter(challenge=challenge).count(), 1)
+        self.assertEqual(
+            ProcessingJob.objects.filter(verification=self.verification).count(), 1
+        )
+        challenge.refresh_from_db()
+        self.assertIsNotNone(challenge.completed_at)
+        publish.assert_called_once()

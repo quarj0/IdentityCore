@@ -430,10 +430,13 @@
       "thread_id": "PRRT_kwDOTN0BU86TY4rD",
       "comment_id": 3641519073,
       "path": "backend/django/apps/identity_documents/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "apps.verification_sessions.test_historical_session_recovery:review-flagged documents continue through selfie and active liveness without clearing review flags"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Allow review-flagged documents to proceed**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3641519073"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3641519073",
+      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
     },
     {
       "pr_number": 4,
@@ -678,10 +681,13 @@
       "thread_id": "PRRT_kwDOTN0BU86R-b5e",
       "comment_id": 3608129817,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "apps.verification_sessions.tests.VerificationSessionPortalTests:test_submit_documents_rejects_country_supported_type_outside_policy"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Enforce policy document types on submission**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3608129817"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3608129817",
+      "disposition_note": "Inspected current implementation and executed regression coverage; PostgreSQL single-use challenge races passed against a real isolated PostgreSQL server."
     },
     {
       "pr_number": 6,
@@ -709,10 +715,13 @@
       "thread_id": "PRRT_kwDOTN0BU86R-b5i",
       "comment_id": 3608129821,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "apps.verification_sessions.test_historical_session_recovery:test_unknown_configured_country_is_not_replaced_with_ghana"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject unsupported countries instead of defaulting**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3608129821"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3608129821",
+      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
     },
     {
       "pr_number": 6,
@@ -840,10 +849,13 @@
       "thread_id": "PRRT_kwDOTN0BU86R-N71",
       "comment_id": 3608052737,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "apps.verification_sessions.tests.VerificationSessionPortalTests:test_submit_documents_rejects_country_supported_type_outside_policy"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Enforce policy document restrictions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/10#discussion_r3608052737"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/10#discussion_r3608052737",
+      "disposition_note": "Inspected current implementation and executed regression coverage; PostgreSQL single-use challenge races passed against a real isolated PostgreSQL server."
     },
     {
       "pr_number": 10,
@@ -860,20 +872,26 @@
       "thread_id": "PRRT_kwDOTN0BU86R-N74",
       "comment_id": 3608052742,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "apps.verification_sessions.test_historical_session_recovery:test_document_submission_requires_an_issuing_country"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Default document country to the session**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/10#discussion_r3608052742"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/10#discussion_r3608052742",
+      "disposition_note": "Inspected current implementation and executed regression coverage; PostgreSQL single-use challenge races passed against a real isolated PostgreSQL server."
     },
     {
       "pr_number": 10,
       "thread_id": "PRRT_kwDOTN0BU86R-QjC",
       "comment_id": 3608067346,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "apps.verification_sessions.test_historical_session_recovery:test_missing_metadata_country_uses_organization_registration"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve the onboarding country fallback**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/10#discussion_r3608067346"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/10#discussion_r3608067346",
+      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
     },
     {
       "pr_number": 16,
@@ -1185,10 +1203,14 @@
       "thread_id": "PRRT_kwDOTN0BU86ThUzp",
       "comment_id": 3644674530,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "apps.verification_sessions.views:atomic liveness view locks verification before validating challenge",
+        "apps.verification_sessions.test_handoff_races.MobileHandoffRaceTests:test_simultaneous_liveness_posts_consume_one_challenge (actual PostgreSQL)"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Make challenge consumption atomic**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/29#discussion_r3644674530"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/29#discussion_r3644674530",
+      "disposition_note": "Inspected current implementation and executed regression coverage; PostgreSQL single-use challenge races passed against a real isolated PostgreSQL server."
     },
     {
       "pr_number": 29,
@@ -1215,10 +1237,14 @@
       "thread_id": "PRRT_kwDOTN0BU86ThqhY",
       "comment_id": 3644802540,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "apps.verification_sessions.views:atomic liveness view locks verification before validating challenge",
+        "apps.verification_sessions.test_handoff_races.MobileHandoffRaceTests:test_simultaneous_liveness_posts_consume_one_challenge (actual PostgreSQL)"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Atomically claim the active-liveness challenge**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/31#discussion_r3644802540"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/31#discussion_r3644802540",
+      "disposition_note": "Inspected current implementation and executed regression coverage; PostgreSQL single-use challenge races passed against a real isolated PostgreSQL server."
     },
     {
       "pr_number": 31,
@@ -2305,30 +2331,40 @@
       "thread_id": "PRRT_kwDOTN0BU86UXylr",
       "comment_id": 3664891822,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "apps.verification_sessions.test_historical_consent_artifacts:test_generated_english_notice_is_not_labelled_arabic"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Label generated consent with its actual language**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3664891822"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3664891822",
+      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
     },
     {
       "pr_number": 70,
       "thread_id": "PRRT_kwDOTN0BU86UXylw",
       "comment_id": 3664891831,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "apps.verification_sessions.test_historical_consent_artifacts:test_template_link_remains_bound_when_another_version_activates"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reuse the template that produced the validated artifact**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3664891831"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3664891831",
+      "disposition_note": "Inspected current implementation and executed regression coverage; PostgreSQL single-use challenge races passed against a real isolated PostgreSQL server."
     },
     {
       "pr_number": 70,
       "thread_id": "PRRT_kwDOTN0BU86UXyly",
       "comment_id": 3664891833,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "docs/architecture/api-spec.md:session detail and consent fingerprint examples",
+        "postman/IdentityCore.postman_collection.json:Session Detail exports all four fields for Accept Consent"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Update the documented consent request contract**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3664891833"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3664891833",
+      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
     },
     {
       "pr_number": 70,
@@ -2375,40 +2411,55 @@
       "thread_id": "PRRT_kwDOTN0BU86UYNDc",
       "comment_id": 3665042787,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "apps.verification_policies.models:VerificationPolicy.snapshot includes default_locale and supported_locales",
+        "apps.verification_policies.tests:test_snapshot_rejects_incompatible_locale_specific_consent_scope",
+        "apps.verification_sessions.tests:test_session_uses_immutable_policy_consent_locale_and_documents"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Add locale settings to verification policy snapshots**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665042787"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665042787",
+      "disposition_note": "Inspected current implementation and executed regression coverage; PostgreSQL single-use challenge races passed against a real isolated PostgreSQL server."
     },
     {
       "pr_number": 70,
       "thread_id": "PRRT_kwDOTN0BU86UYWap",
       "comment_id": 3665097045,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "apps.verification_sessions.serializers:ConsentTemplateStatus import",
+        "apps.verification_sessions.test_historical_consent_artifacts:dynamic notice resolution"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Import the consent-template status enum**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665097045"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665097045",
+      "disposition_note": "Inspected current implementation and executed regression coverage; PostgreSQL single-use challenge races passed against a real isolated PostgreSQL server."
     },
     {
       "pr_number": 70,
       "thread_id": "PRRT_kwDOTN0BU86UYWar",
       "comment_id": 3665097048,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "apps.verification_sessions.test_historical_consent_artifacts:test_frozen_english_notice_keeps_its_language_for_arabic_requests"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve the snapshot language in the artifact**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665097048"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665097048",
+      "disposition_note": "Inspected current implementation and executed regression coverage; PostgreSQL single-use challenge races passed against a real isolated PostgreSQL server."
     },
     {
       "pr_number": 70,
       "thread_id": "PRRT_kwDOTN0BU86UYWat",
       "comment_id": 3665097050,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "apps.verification_sessions.test_historical_consent_artifacts:test_region_specific_arabic_locale_uses_rtl_direction"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Derive text direction from the locale's base language**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665097050"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665097050",
+      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
     },
     {
       "pr_number": 71,
@@ -2455,10 +2506,13 @@
       "thread_id": "PRRT_kwDOTN0BU86UYgp6",
       "comment_id": 3665156294,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "apps.verification_sessions.test_historical_consent_artifacts:explicit template identity, tenant ownership and ambiguity regressions"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Bind consent lookup to the intended template**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156294"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156294",
+      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
     },
     {
       "pr_number": 71,
@@ -2495,10 +2549,13 @@
       "thread_id": "PRRT_kwDOTN0BU86UZB7M",
       "comment_id": 3665350835,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "apps.verification_sessions.test_historical_consent_artifacts:dynamic fingerprint requirement, rotation rejection and immutable compatibility"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Require the artifact fingerprint for dynamic consent**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/72#discussion_r3665350835"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/72#discussion_r3665350835",
+      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
     },
     {
       "pr_number": 77,
@@ -4278,10 +4335,13 @@
       "thread_id": "PRRT_kwDOTN0BU86V5qLx",
       "comment_id": 3702276391,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "apps.verification_sessions.tests:test_submit_selfie_rolls_back_when_verification_is_terminal"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Roll back selfie writes when the transition is rejected**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/241#discussion_r3702276391"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/241#discussion_r3702276391",
+      "disposition_note": "Inspected current implementation and executed regression coverage; PostgreSQL single-use challenge races passed against a real isolated PostgreSQL server."
     },
     {
       "pr_number": 241,
@@ -4503,10 +4563,14 @@
       "thread_id": "PRRT_kwDOTN0BU86V6K4-",
       "comment_id": 3702472474,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "apps.uploads.tests:test_create_upload_returns_consent_aware_transfer_path",
+        "apps.uploads.tests:test_initiated_direct_upload_cannot_be_submitted_as_evidence"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Route direct object-storage uploads through quarantine**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/246#discussion_r3702472474"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/246#discussion_r3702472474",
+      "disposition_note": "Inspected current implementation and executed regression coverage; PostgreSQL single-use challenge races passed against a real isolated PostgreSQL server."
     },
     {
       "pr_number": 246,
@@ -4564,10 +4628,13 @@
       "thread_id": "PRRT_kwDOTN0BU86V6Ql-",
       "comment_id": 3702505475,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "apps.uploads.tests:test_initiated_direct_upload_cannot_be_submitted_as_evidence"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Require a scanned status before consuming uploads**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/247#discussion_r3702505475"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/247#discussion_r3702505475",
+      "disposition_note": "Inspected current implementation and executed regression coverage; PostgreSQL single-use challenge races passed against a real isolated PostgreSQL server."
     },
     {
       "pr_number": 247,
@@ -9042,6 +9109,6 @@
       "disposition_note": "Fixed and merged after final-head Codex review, regression evidence, resolved review threads and successful CI/Security."
     }
   ],
-  "verified_main": "2e1fd5be5101aea645e194f493d118a855b5910f",
-  "inventory_note": "754 uniquely identified historical threads through merged PRs #360 and #362. Pending entries remain pending; GitHub resolution state is not evidence."
+  "verified_main": "e273fd4ba86181e3e75c81c303bfaabcce79e932",
+  "inventory_note": "762 uniquely identified historical threads. Pending findings remain pending; GitHub resolution state is not evidence. The session/consent audit records eight reproduced fixes awaiting merge and twelve independently checked current-code findings."
 }
