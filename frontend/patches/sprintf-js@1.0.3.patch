@@ -1,0 +1,34 @@
+diff --git a/src/sprintf.js b/src/sprintf.js
+index c0fc7c08b2e6fe38de2883034b8d28c8f34e9866..cdacb08c615acf66443f4a29143e82dc76d4ec76 100644
+--- a/src/sprintf.js
++++ b/src/sprintf.js
+@@ -58,6 +58,12 @@
+                     is_positive = arg >= 0
+                 }
+ 
++                // ES numeric formatting accepts at most 100 fractional digits;
++                // precision formatting additionally requires at least one digit.
++                // Clamp before calling the native methods, including huge values.
++                var precision = match[7] === undefined ? undefined :
++                    Math.min(100, Math.max(match[8] === "g" ? 1 : 0, Number(match[7])))
++
+                 switch (match[8]) {
+                     case "b":
+                         arg = arg.toString(2)
+@@ -73,13 +79,13 @@
+                         arg = JSON.stringify(arg, null, match[6] ? parseInt(match[6]) : 0)
+                     break
+                     case "e":
+-                        arg = match[7] ? arg.toExponential(match[7]) : arg.toExponential()
++                        arg = match[7] ? arg.toExponential(precision) : arg.toExponential()
+                     break
+                     case "f":
+-                        arg = match[7] ? parseFloat(arg).toFixed(match[7]) : parseFloat(arg)
++                        arg = match[7] ? parseFloat(arg).toFixed(precision) : parseFloat(arg)
+                     break
+                     case "g":
+-                        arg = match[7] ? parseFloat(arg).toPrecision(match[7]) : parseFloat(arg)
++                        arg = match[7] ? parseFloat(arg).toPrecision(precision) : parseFloat(arg)
+                     break
+                     case "o":
+                         arg = arg.toString(8)
