@@ -1257,3 +1257,23 @@ test('native merge propagates API protection and expected-head rejection',async(
  const {mergeWithExpectedHead}=require('./merge-reviewed-pr.cjs');const failure=Object.assign(new Error('Head moved or policy prohibits merge'),{status:405});
  await assert.rejects(mergeWithExpectedHead({number:12,head,api:async()=>{throw failure;}}),error=>error===failure);
 });
+
+
+test('gh adapter reads JSON evidence larger than the default child-process buffer', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const {createGhAdapter} = require('./merge-reviewed-pr.cjs');
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'identitycore-gh-json-'));
+  const previousPath = process.env.PATH;
+  try {
+    fs.writeFileSync(path.join(directory, 'gh'), `#!${process.execPath}\nprocess.stdout.write(JSON.stringify({evidence:'x'.repeat(2 * 1024 * 1024)}));\n`, {mode: 0o700});
+    process.env.PATH = directory + path.delimiter + previousPath;
+    const {github} = createGhAdapter('test/project');
+    const {data} = await github.rest.repos.get();
+    assert.equal(data.evidence.length, 2 * 1024 * 1024);
+  } finally {
+    process.env.PATH = previousPath;
+    fs.rmSync(directory, {recursive: true, force: true});
+  }
+});
