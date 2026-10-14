@@ -2,7 +2,7 @@
 
 The disposition register tracks findings by original PR, comment and thread identifier. A resolved GitHub thread does not establish that its finding was implemented. Completed dispositions cite inspected implementation and regression evidence.
 
-The register includes 767 threads from closed or merged PRs: 93 fixed, 195 verified, 9 actionable and 470 pending individual audit. It extends the original 484-thread scope with subsequent closed-PR feedback. The original issue remains open.
+The register includes 767 threads from closed or merged PRs: 93 fixed, 213 verified, 9 actionable and 452 pending individual audit. It extends the original 484-thread scope with subsequent closed-PR feedback. The original issue remains open.
 
 Merged remediation covers OCR outage gates, biometric evidence promotion, submitted-review expiry, MRZ issuer matching, provider attempt/evidence invariants, single-variant OpenCV runtime and authenticated immutable audit records. Current-main validation also covers redaction, secure HTTP adapters and webhook outbox/claim/disable/replay behavior. Delivery-time webhook isolation and controlled provider-health codes are merged in #370 and #372. Additional validation covers decision locks, external-risk I/O, authenticity redaction, retention holds and deferred evidence generation. System fallback contract fixes are merged in #373. Parser fixes are merged in #365. The independent SDK/idempotency audit verifies existing signing, replay, profile, retry and compiler behavior, and tracks live project/example, completion/type and conformance fixes in #375–#377. Conformance fixes are merged in #377; completion fixes are merged in #376. Reproduced adapter-test and partial-decision-contract findings are merged in #380, and generated SDK contract fixes in #381. Platform MFA auditing and public sample-token rejection are merged in #382, including independent AI service startup enforcement.
 
@@ -11,5 +11,7 @@ The policy restriction and local frontend CORS fixes are merged in #387. The ses
 The portal/legacy audit also reproduces passive-mode instruction mismatches, expired-challenge recovery gaps and default-English historical consent metadata. Eight additional findings remain actionable pending protected merge. Fourteen related current-code findings are independently verified, including actual BFF cookie writes, browser reloads, policy selection, frozen translations, consent reset and committed selfie retry.
 
 The processing recovery audit independently verifies nineteen generation, grace, correlation, lifecycle and lock-order findings. One reproduced document postprocessing finding remains actionable until this batch is merged. Its tests include interrupted commit recovery and actual PostgreSQL lock races.
+
+The public API contract audit independently verifies eighteen additional historical findings against current schemas and backend behavior. All 38 contract regressions passed; the account, analytics, webhook and parity suite ran 162 tests with six PostgreSQL-only skips and passed.
 
 For each remediation PR, inspect all review threads, implement valid late feedback, reply with commit and validation evidence, request a fresh final-head review, and require successful CI/Security. Refresh threads immediately before merging. Do not close #281 while pending dispositions or actionable findings remain.

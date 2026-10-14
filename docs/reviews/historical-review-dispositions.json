@@ -3090,10 +3090,15 @@
       "thread_id": "PRRT_kwDOTN0BU86Vru-y",
       "comment_id": 3696930812,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_historical_public_contract.py:test_cursor_and_manual_review_pagination_are_separate"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Split cursor metadata from the shared pagination schema**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/189#discussion_r3696930812"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/189#discussion_r3696930812",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 189,
@@ -6772,20 +6777,30 @@
       "thread_id": "PRRT_kwDOTN0BU86Y-lwi",
       "comment_id": 3776500943,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_historical_public_contract.py:test_upload_operations_require_bearer_and_session_id_together"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Model the required session ID credential**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776500943"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776500943",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86Y-lws",
       "comment_id": 3776500952,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_historical_public_contract.py:test_refresh_cookie_and_audit_bearer_match_their_authentication"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Do not advertise unsupported cookie authentication**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776500952"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776500952",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
@@ -6812,10 +6827,15 @@
       "thread_id": "PRRT_kwDOTN0BU86Y-lxG",
       "comment_id": 3776500984,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_historical_public_contract.py:test_audit_and_review_page_limits_match_backend"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Publish the audit page-size ceiling**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776500984"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776500984",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
@@ -6842,40 +6862,60 @@
       "thread_id": "PRRT_kwDOTN0BU86Y-79J",
       "comment_id": 3776632839,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_historical_public_contract.py:test_refresh_cookie_and_audit_bearer_match_their_authentication"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Declare the refresh cookie as a credential**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776632839"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776632839",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86Y-79M",
       "comment_id": 3776632844,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_historical_public_contract.py:test_mfa_challenge_response_exposes_followup_credentials"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Define the MFA challenge response schema**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776632844"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776632844",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86Y-79P",
       "comment_id": 3776632847,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_openapi_contract.py:test_session_success_responses_are_typed"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Define response schemas for verification sessions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776632847"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776632847",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86Y_fJ1",
       "comment_id": 3776842015,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_openapi_contract.py:test_policy_document_types_match_the_accepted_catalog"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Constrain policy document types to accepted values**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776842015"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776842015",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
@@ -6892,30 +6932,45 @@
       "thread_id": "PRRT_kwDOTN0BU86Y_5_K",
       "comment_id": 3776998446,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_openapi_contract.py:test_verification_session_request_schemas_match_required_inputs"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Provide a valid document-session request example**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776998446"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776998446",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86Y_5_M",
       "comment_id": 3776998448,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_openapi_contract.py:test_policy_threshold_ordering_constraint_is_documented"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Document the ordering constraint between policy thresholds**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776998448"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776998448",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86Y_5_O",
       "comment_id": 3776998450,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_openapi_contract.py:test_public_mfa_flow_and_refresh_origin_failure_are_documented"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Document the refresh endpoint's origin-rejection response**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776998450"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776998450",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
@@ -6942,50 +6997,75 @@
       "thread_id": "PRRT_kwDOTN0BU86ZARMi",
       "comment_id": 3777138617,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_openapi_contract.py:test_active_liveness_requires_a_challenge_id"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Require the challenge ID for active liveness**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3777138617"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3777138617",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86ZAmYw",
       "comment_id": 3777268256,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_historical_public_contract.py:test_client_scope_responses_can_represent_arbitrary_persisted_values"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Allow creation of clients with the policy-read scope**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3777268256"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3777268256",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86ZAmY0",
       "comment_id": 3777268262,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_historical_public_contract.py:test_audit_and_review_page_limits_match_backend"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Expose the manual-review pagination parameters**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3777268262"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3777268262",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86ZAmY6",
       "comment_id": 3777268269,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_openapi_contract.py:test_verification_detail_and_manual_review_variants_match_views"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Stop requiring summary-only fields in verification details**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3777268269"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3777268269",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86ZA4A4",
       "comment_id": 3777372475,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_historical_public_contract.py:test_client_scope_responses_can_represent_arbitrary_persisted_values"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Align the scope enum with accepted PATCH values**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3777372475"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3777372475",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 300,
@@ -8244,10 +8324,15 @@
       "thread_id": "PRRT_kwDOTN0BU86hnTat",
       "comment_id": 3992799294,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_historical_public_contract.py:test_replay_validation_and_metrics_authorization_are_documented"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Document the replay endpoint's validation response**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3992799294"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3992799294",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 312,
@@ -8692,10 +8777,15 @@
       "thread_id": "PRRT_kwDOTN0BU86mZAU9",
       "comment_id": 4114763403,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_historical_public_contract.py:test_replay_validation_and_metrics_authorization_are_documented"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Document authorization failures for both metrics operations**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/327#discussion_r4114763403"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/327#discussion_r4114763403",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 328,
