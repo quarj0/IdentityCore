@@ -36,19 +36,50 @@ The App token is scoped to this repository, explicitly requests the needed permi
 - Confirm a new head, changed protected definition, missing trusted-maintainer evidence, or failing CI/Security prevents success. Re-resolve a thread under another actor and confirm this does not substitute that actor for the configured evidence author.
 - Record configuration and validation evidence before resolving the administration reviews on #364.
 
-Authenticated `gh` administration verified that `main` already enforces conversation resolution and applies protection to administrators. The `review-evidence-publisher` environment is configured with a custom deployment policy allowing only the literal `main` branch. The dedicated App is registered and its environment credentials are configured. Repository installation is verified with only the intended read permissions and Checks write permission. The App-bound required check remains a deployment prerequisite. GitHub App registration uses GitHub settings or its browser manifest flow; repository administration through `gh api` does not itself register an App.
+On 2026-10-08, authenticated `gh` administration verified strict main protection requiring `review-evidence` from dedicated App `5218906`, plus `CI required` and `Security required` from Actions `15368`. Conversation resolution and protection apply to administrators; ruleset `24627093` permits administrator main updates only through PR merges. The App credentials are configured exclusively in the literal-main publisher environment, with repository installation limited to the intended read permissions and Checks write. After reviewed bootstraps #383 and #386, temporary probe #384 verified environment denial on its feature branch and rejection of a successful same-name Actions check alongside failing dedicated App evidence. The owned probe was closed and its branch removed. Deployment reviews on #364 are resolved with that evidence; its atomic evidence-timing review is disposed by the owner’s explicit 2026-10-13 acceptance of the documented trusted-administrator limitation. Reverify the live configuration before merging.
 
 Implementation reference: [actions/create-github-app-token](https://github.com/actions/create-github-app-token).
+
+## October 14 restoration and verification
+
+On 2026-10-14, authenticated administration found that the native branch-protection
+endpoint for `main` returned HTTP 404 ("Branch not protected"). The separate
+`Trusted main mergers` ruleset `24627093` was still active. The October 8 receipt
+above is a historical snapshot and does not establish uninterrupted enforcement.
+
+Administration restored native protection and read it back: strict up-to-date
+checks require `CI required` and `Security required` from Actions App `15368`,
+and `review-evidence` from dedicated App `5218906`; administrator enforcement
+and conversation resolution are enabled, with force pushes and deletions disabled.
+The existing main update ruleset remains active with administrator-role
+pull-request-only bypass. The publisher environment was already restricted to the
+literal `main` branch; its custom branch policy was reverified without changing it.
+Before every merge, verify force-push and deletion controls with the required REST step below, then use the trusted merger for its live protection and evidence checks.
 
 ## Trusted live merge command
 
 Load the command and validator from the fetched default branch, not a PR checkout:
 
+First run this required REST check. It fails if force pushes or branch deletion are enabled, either flag is missing, or the protection API is unavailable. These two flags are checked by this separate step; the live merger checks administrator enforcement, conversations, strict App-bound checks and the trusted update ruleset.
+
 ```sh
-git fetch origin main
-git worktree add --detach /tmp/identitycore-trusted-merge origin/main
-node /tmp/identitycore-trusted-merge/.github/scripts/merge-reviewed-pr.cjs --repo quarj0/IdentityCore --pr 123 --merge
+gh api repos/quarj0/IdentityCore/branches/main/protection --jq 'if (.allow_force_pushes.enabled == false and .allow_deletions.enabled == false) then {allow_force_pushes: .allow_force_pushes.enabled, allow_deletions: .allow_deletions.enabled} else error("Main must disallow force pushes and branch deletion") end'
 ```
+
+Proceed to the trusted merger only after that command succeeds:
+
+```sh
+(
+  set -e
+  git fetch origin main
+  trusted_merge_worktree=$(mktemp -d "${TMPDIR:-/tmp}/identitycore-trusted-merge.XXXXXXXX")
+  git worktree add --detach "$trusted_merge_worktree" origin/main
+  trap 'git worktree remove "$trusted_merge_worktree"' EXIT
+  node "$trusted_merge_worktree/.github/scripts/merge-reviewed-pr.cjs" --repo quarj0/IdentityCore --pr 123 --merge
+)
+```
+
+Each invocation creates a uniquely named temporary worktree and removes only that worktree on exit. The subshell preserves the caller’s existing traps and the merger’s failure status; cleanup does not force-remove unexpected changes.
 
 Without `--merge`, the command checks readiness. It requires administrator identity, native administrator and conversation protection, the dedicated-App required check, and the administrator-only update ruleset. It then independently reads and evaluates current review evidence, protected definitions, declared commit ancestry, and the latest final-head PR and any push CI/Security runs; active runs block, while superseded failures and unrelated dispatches do not. A previously successful check cannot skip this assessment. It checks the head again and submits a squash merge through the native pull-request API with the expected head SHA. GitHub enforces repository protections on that request. The command does not request an administrator override. This avoids the `gh pr merge` preflight interpreting a generic BLOCKED status as a refusal even when the administrator has PR-only ruleset authority. This is the authorized merger path; contributors and PR jobs cannot invoke an administrative merge. Administrators remain trusted because they can change repository protection itself.
 
@@ -69,3 +100,5 @@ Publish that value with the environment-variable API using a local JSON request 
 The command collects mutable review evidence again after its other preflight reads, then checks the PR head and immediately requests the merge. GitHub's merge API supports an expected commit SHA but no expected review-evidence version or transaction that locks comment edits and review dismissal. An evidence edit can therefore race between the final collection and merge even when the SHA is unchanged. Native conversation protection and CI remain enforced, but an atomic guarantee for mutable review content cannot be claimed. Keep any review requiring that guarantee open until the repository owner accepts this documented trusted-administrator limitation or chooses a different evidence policy.
 
 Bucket initialization publishes pending checks from the discovered PR heads before any fallible per-PR refresh. Transient check creation is retried. Each prepared entry then refreshes the live PR, invalidates a moved head, and completes a previously created pending check as failure if refresh fails. An unavailable GitHub check API cannot provide an atomic invalidation guarantee; trusted mergers must still perform the live assessment and fail closed on collection errors.
+
+On 2026-10-13, repository owner `quarj0` explicitly accepted the documented non-atomic review-evidence timing limitation for trusted administrator merges. This is a policy acceptance, not an atomicity fix. All native protection, current-head independent review, trusted dispositions, live evidence reassessment and temporary target-guard requirements remain mandatory. The accepted policy does not permit skipping inaccessible administrative checks or merging with failing CI/Security.
