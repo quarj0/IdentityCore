@@ -69,10 +69,17 @@ gh api repos/quarj0/IdentityCore/branches/main/protection --jq 'if (.allow_force
 Proceed to the trusted merger only after that command succeeds:
 
 ```sh
-git fetch origin main
-git worktree add --detach /tmp/identitycore-trusted-merge origin/main
-node /tmp/identitycore-trusted-merge/.github/scripts/merge-reviewed-pr.cjs --repo quarj0/IdentityCore --pr 123 --merge
+(
+  set -e
+  git fetch origin main
+  trusted_merge_worktree=$(mktemp -d "${TMPDIR:-/tmp}/identitycore-trusted-merge.XXXXXXXX")
+  git worktree add --detach "$trusted_merge_worktree" origin/main
+  trap 'git worktree remove "$trusted_merge_worktree"' EXIT
+  node "$trusted_merge_worktree/.github/scripts/merge-reviewed-pr.cjs" --repo quarj0/IdentityCore --pr 123 --merge
+)
 ```
+
+Each invocation creates a uniquely named temporary worktree and removes only that worktree on exit. The subshell preserves the caller’s existing traps and the merger’s failure status; cleanup does not force-remove unexpected changes.
 
 Without `--merge`, the command checks readiness. It requires administrator identity, native administrator and conversation protection, the dedicated-App required check, and the administrator-only update ruleset. It then independently reads and evaluates current review evidence, protected definitions, declared commit ancestry, and the latest final-head PR and any push CI/Security runs; active runs block, while superseded failures and unrelated dispatches do not. A previously successful check cannot skip this assessment. It checks the head again and submits a squash merge through the native pull-request API with the expected head SHA. GitHub enforces repository protections on that request. The command does not request an administrator override. This avoids the `gh pr merge` preflight interpreting a generic BLOCKED status as a refusal even when the administrator has PR-only ruleset authority. This is the authorized merger path; contributors and PR jobs cannot invoke an administrative merge. Administrators remain trusted because they can change repository protection itself.
 
