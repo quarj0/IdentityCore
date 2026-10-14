@@ -12,7 +12,8 @@
     "dev:docs": "pnpm --filter developer-portal dev",
     "dev:admin": "pnpm --filter platform-admin dev",
     "test:e2e:verify:install": "pnpm --filter verification-portal test:e2e:install",
-    "test:e2e:verify": "pnpm --filter verification-portal test:e2e"
+    "test:e2e:verify": "pnpm --filter verification-portal test:e2e",
+    "test:security": "node --test scripts/dependency-security.test.cjs"
   },
   "devDependencies": {
     "prettier": "^3.9.6"
