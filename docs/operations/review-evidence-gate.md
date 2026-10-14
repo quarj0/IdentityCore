@@ -40,6 +40,22 @@ On 2026-10-08, authenticated `gh` administration verified strict main protection
 
 Implementation reference: [actions/create-github-app-token](https://github.com/actions/create-github-app-token).
 
+## October 14 restoration and verification
+
+On 2026-10-14, authenticated administration found that the native branch-protection
+endpoint for `main` returned HTTP 404 ("Branch not protected"). The separate
+`Trusted main mergers` ruleset `24627093` was still active. The October 8 receipt
+above is a historical snapshot and does not establish uninterrupted enforcement.
+
+Administration restored native protection and read it back: strict up-to-date
+checks require `CI required` and `Security required` from Actions App `15368`,
+and `review-evidence` from dedicated App `5218906`; administrator enforcement
+and conversation resolution are enabled, with force pushes and deletions disabled.
+The existing main update ruleset remains active with administrator-role
+pull-request-only bypass. The publisher environment was already restricted to the
+literal `main` branch; its custom branch policy was reverified without changing it.
+The trusted merger must verify these live controls again before every merge.
+
 ## Trusted live merge command
 
 Load the command and validator from the fetched default branch, not a PR checkout:
