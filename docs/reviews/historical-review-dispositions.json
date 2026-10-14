@@ -2432,11 +2432,13 @@
       "path": "backend/django/apps/consent/migrations/0002_consentrecord_locale_and_hash.py",
       "status": "actionable",
       "evidence": [
-        "apps.consent.test_legacy_locale_migration:language-only and content edits preserve unsigned and retained consent metadata; signed and fingerprinted notices unchanged"
+        "backend/django/apps/consent/serializers.py:report unavailable legacy default locale as null without inferring current template language",
+        "backend/django/apps/consent/test_legacy_locale_reporting.py:actual history API regression, explicit/fingerprinted locale preservation and signed proof preservation",
+        "backend/django/apps/consent/test_legacy_locale_migration.py:mutable template edits cannot establish historical language"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Backfill locales for existing consent records**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665042776",
-      "disposition_note": "Automatic backfill withdrawn: the original locale was not retained and mutable templates cannot establish historical language. Leave actionable pending an evidence-backed legacy repair policy; PR #389 now preserves metadata instead of inferring locales."
+      "disposition_note": "The migration default incorrectly reported historical acceptances as English; two baseline assertions reproduce that misreport. This PR reports the unavailable locale explicitly rather than backfilling from mutable templates, and preserves stored records and signed proofs. Remains actionable until the final review, CI and protected merge."
     },
     {
       "pr_number": 70,
@@ -2592,11 +2594,13 @@
       "path": "backend/django/apps/consent/migrations/0002_consentrecord_locale_and_hash.py",
       "status": "actionable",
       "evidence": [
-        "apps.consent.test_legacy_locale_migration:language-only and content edits preserve unsigned and retained consent metadata; signed and fingerprinted notices unchanged"
+        "backend/django/apps/consent/serializers.py:report unavailable legacy default locale as null without inferring current template language",
+        "backend/django/apps/consent/test_legacy_locale_reporting.py:actual history API regression, explicit/fingerprinted locale preservation and signed proof preservation",
+        "backend/django/apps/consent/test_legacy_locale_migration.py:mutable template edits cannot establish historical language"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Backfill locales for existing consent records**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156299",
-      "disposition_note": "Automatic backfill withdrawn: the original locale was not retained and mutable templates cannot establish historical language. Leave actionable pending an evidence-backed legacy repair policy; PR #389 now preserves metadata instead of inferring locales."
+      "disposition_note": "The migration default incorrectly reported historical acceptances as English; two baseline assertions reproduce that misreport. This PR reports the unavailable locale explicitly rather than backfilling from mutable templates, and preserves stored records and signed proofs. Remains actionable until the final review, CI and protected merge."
     },
     {
       "pr_number": 71,
