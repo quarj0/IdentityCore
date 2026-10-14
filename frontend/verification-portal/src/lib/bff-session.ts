@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies } from "next/headers.js";
 import { randomUUID } from "node:crypto";
 
 const production = process.env.NODE_ENV === "production";
