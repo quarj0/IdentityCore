@@ -54,11 +54,19 @@ and conversation resolution are enabled, with force pushes and deletions disable
 The existing main update ruleset remains active with administrator-role
 pull-request-only bypass. The publisher environment was already restricted to the
 literal `main` branch; its custom branch policy was reverified without changing it.
-The trusted merger must verify these live controls again before every merge.
+Before every merge, verify force-push and deletion controls with the required REST step below, then use the trusted merger for its live protection and evidence checks.
 
 ## Trusted live merge command
 
 Load the command and validator from the fetched default branch, not a PR checkout:
+
+First run this required REST check. It fails if force pushes or branch deletion are enabled, either flag is missing, or the protection API is unavailable. These two flags are checked by this separate step; the live merger checks administrator enforcement, conversations, strict App-bound checks and the trusted update ruleset.
+
+```sh
+gh api repos/quarj0/IdentityCore/branches/main/protection --jq 'if (.allow_force_pushes.enabled == false and .allow_deletions.enabled == false) then {allow_force_pushes: .allow_force_pushes.enabled, allow_deletions: .allow_deletions.enabled} else error("Main must disallow force pushes and branch deletion") end'
+```
+
+Proceed to the trusted merger only after that command succeeds:
 
 ```sh
 git fetch origin main
