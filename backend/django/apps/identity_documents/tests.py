@@ -211,11 +211,17 @@ class IdentityDocumentTaskTests(TestCase):
             ],
             "recognized",
         )
-        self.assertEqual(mock_quality.call_args.kwargs["document_storage_bucket"], "")
+        expected_bucket = getattr(self, "expected_document_storage_bucket", "")
         self.assertEqual(
-            mock_classification.call_args.kwargs["document_storage_bucket"], ""
+            mock_quality.call_args.kwargs["document_storage_bucket"], expected_bucket
         )
-        self.assertEqual(mock_ocr.call_args.kwargs["document_storage_bucket"], "")
+        self.assertEqual(
+            mock_classification.call_args.kwargs["document_storage_bucket"],
+            expected_bucket,
+        )
+        self.assertEqual(
+            mock_ocr.call_args.kwargs["document_storage_bucket"], expected_bucket
+        )
 
     @patch("apps.identity_documents.tasks.run_document_classification")
     @patch("apps.identity_documents.tasks.run_document_ocr")

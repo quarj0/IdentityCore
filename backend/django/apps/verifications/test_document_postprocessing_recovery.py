@@ -2,7 +2,7 @@ from copy import deepcopy
 from datetime import timedelta
 from unittest.mock import Mock, patch
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from apps.audit.models import AuditEvent
@@ -173,6 +173,29 @@ class DocumentFinalizationCommitTests(TestCase):
                 resource_public_id=self.identity_document.public_id
             ).status,
             ProcessingJobStatus.COMPLETED,
+        )
+
+    @override_settings(
+        OBJECT_STORAGE_TEMP_BUCKET="audit-temp",
+        OBJECT_STORAGE_MEDIA_BUCKET="audit-media",
+    )
+    def test_promoted_document_provider_inputs_reference_media_bucket(self):
+        self.expected_document_storage_bucket = "audit-media"
+        self.upload.status = "promoted"
+        self.upload.save(update_fields=["status", "updated_at"])
+        with patch(
+            "apps.identity_documents.tasks.invoke_selected_provider_operation",
+            wraps=document_tasks.invoke_selected_provider_operation,
+        ) as dispatch:
+            document_fixtures.IdentityDocumentTaskTests.test_process_identity_document_task_marks_document_processed(
+                self
+            )
+        self.assertEqual(
+            [
+                call.kwargs["operation_kwargs"]["document_storage_bucket"]
+                for call in dispatch.call_args_list
+            ],
+            ["audit-media"] * 3,
         )
 
     def test_success_commits_document_marker_and_job_completion(self):

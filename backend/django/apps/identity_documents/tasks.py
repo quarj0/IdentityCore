@@ -29,6 +29,7 @@ from apps.providers.services import (
     invoke_selected_provider_operation,
     preserve_provider_result_envelope,
 )
+from apps.uploads.models import Upload, UploadStatus
 from apps.uploads.services import promote_upload_to_media_by_storage_key
 from apps.verifications.models import VerificationStatus
 from apps.verifications.models import ProcessingJobType
@@ -48,7 +49,10 @@ from apps.verifications.transitions import (
     transition_verification,
 )
 from common.authorization import ServicePrincipal, require_service_access
-from common.storage import get_object_storage_temp_bucket_name
+from common.storage import (
+    get_object_storage_media_bucket_name,
+    get_object_storage_temp_bucket_name,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -218,18 +222,31 @@ def process_identity_document_task(identity_document_id: str) -> str:
     issues_found: list[str] = []
     capture_quality_results: list[dict] = []
     temp_bucket = get_object_storage_temp_bucket_name()
+    media_bucket = get_object_storage_media_bucket_name() or temp_bucket
+    promoted_keys = set(
+        Upload.objects.filter(
+            tenant=verification.tenant,
+            verification=verification,
+            storage_key__in=[capture.storage_key for capture in captures],
+            status=UploadStatus.PROMOTED,
+            deleted_at__isnull=True,
+        ).values_list("storage_key", flat=True)
+    )
+
+    def input_bucket(storage_key):
+        return resolve_reference(
+            storage_key,
+            media_bucket if storage_key in promoted_keys else temp_bucket,
+            tenant_scope=verification.tenant.public_id,
+            environment=environment_for_instance(verification),
+        )["bucket"]
 
     try:
         for capture in captures:
             quality_operation_kwargs = {
                 "verification_id": verification.public_id,
                 "document_storage_key": capture.storage_key,
-                "document_storage_bucket": resolve_reference(
-                    capture.storage_key,
-                    temp_bucket,
-                    tenant_scope=verification.tenant.public_id,
-                    environment=environment_for_instance(verification),
-                )["bucket"],
+                "document_storage_bucket": input_bucket(capture.storage_key),
             }
             quality_execution = execute_provider_route(
                 verification=verification,
@@ -343,12 +360,7 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 "document_storage_key": primary_capture.storage_key,
                 "document_type": identity_document.document_type_id,
                 "country_code": identity_document.country_profile_id,
-                "document_storage_bucket": resolve_reference(
-                    primary_capture.storage_key,
-                    temp_bucket,
-                    tenant_scope=verification.tenant.public_id,
-                    environment=environment_for_instance(verification),
-                )["bucket"],
+                "document_storage_bucket": input_bucket(primary_capture.storage_key),
             }
             classification_execution = execute_provider_route(
                 verification=verification,
@@ -400,12 +412,7 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 "document_storage_key": primary_capture.storage_key,
                 "document_type": identity_document.document_type_id,
                 "country_code": identity_document.country_profile_id,
-                "document_storage_bucket": resolve_reference(
-                    primary_capture.storage_key,
-                    temp_bucket,
-                    tenant_scope=verification.tenant.public_id,
-                    environment=environment_for_instance(verification),
-                )["bucket"],
+                "document_storage_bucket": input_bucket(primary_capture.storage_key),
             }
             ocr_execution = execute_provider_route(
                 verification=verification,
