@@ -2216,7 +2216,7 @@
       "thread_id": "PRRT_kwDOTN0BU86UVQoo",
       "comment_id": 3663952018,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "postman/IdentityCore.postman_collection.json:session credentials, distinct front/back uploads and multipart transfer before submission",
         "backend/django/apps/verification_sessions/test_postman_document_flow.py:actual collection payloads and JavaScript response scripts through session APIs"
@@ -2224,7 +2224,9 @@
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Add the required back upload to the Postman flow**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/58#discussion_r3663952018",
       "remediation_pr": 390,
-      "disposition_note": "Reproduced the missing back capture and wrong upload credentials. The fix is published in PR #390 with 101 passing targeted tests and its Docker test interpreter/fixtures correction; remains actionable until final-head CI, review and protected merge."
+      "disposition_note": "Fixed in protected merged PR #390 after fresh independent review, all latest PR and push CI/Security success, dedicated-App evidence success and trusted merge. All three actual Postman integration tests passed again on its final head.",
+      "remediation_commit": "4cf84664580dd30a985d63bc5db533cac2ef069e",
+      "merged_commit": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 58,
@@ -9723,8 +9725,44 @@
       "remediation_commit": "95aee834f2223ab7e452a1c92a43d9ffb73a58e7",
       "merged_commit": "02e7b3b2324ded622dd907fedf4ac14e7a9436b7",
       "disposition_note": "Valid late feedback addressed before fresh final-head review and protected merge, including server-relative challenge expiry, pending-camera cancellation, preservation of uncertain legacy locale evidence, and accurate inventory metadata. Final-head backend and browser CI and Security passed."
+    },
+    {
+      "pr_number": 390,
+      "thread_id": "PRRT_kwDOTN0BU86qdMIU",
+      "comment_id": 4221554254,
+      "path": "backend/django/apps/verification_sessions/test_postman_document_flow.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Avoid requiring Node in the Django test container**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/390#discussion_r4221554254",
+      "remediation_pr": 390,
+      "remediation_commit": "4cf84664580dd30a985d63bc5db533cac2ef069e",
+      "merged_commit": "5422bd3157632f1fea910a0114fbb974f380e81d",
+      "evidence": [
+        "backend/django/Dockerfile:test target provides Node and checked-in Postman fixtures without changing production target",
+        "backend/django/apps/verification_sessions/test_postman_document_flow.py:three real session integration tests passed on final head",
+        "docs/reviews/historical-review-dispositions.json:inventory metadata agrees with independently inspected rows"
+      ],
+      "disposition_note": "Resolved in protected merged PR #390 after fresh review and successful final-head CI/Security."
+    },
+    {
+      "pr_number": 390,
+      "thread_id": "PRRT_kwDOTN0BU86qdMIa",
+      "comment_id": 4221554263,
+      "path": "docs/reviews/historical-review-dispositions.json",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Refresh the inventory note after appending audit records**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/390#discussion_r4221554263",
+      "remediation_pr": 390,
+      "remediation_commit": "4cf84664580dd30a985d63bc5db533cac2ef069e",
+      "merged_commit": "5422bd3157632f1fea910a0114fbb974f380e81d",
+      "evidence": [
+        "backend/django/Dockerfile:test target provides Node and checked-in Postman fixtures without changing production target",
+        "backend/django/apps/verification_sessions/test_postman_document_flow.py:three real session integration tests passed on final head",
+        "docs/reviews/historical-review-dispositions.json:inventory metadata agrees with independently inspected rows"
+      ],
+      "disposition_note": "Resolved in protected merged PR #390 after fresh review and successful final-head CI/Security."
     }
   ],
-  "verified_main": "02e7b3b2324ded622dd907fedf4ac14e7a9436b7",
-  "inventory_note": "774 uniquely identified historical threads: 108 fixed, 225 verified, 2 actionable and 439 pending individual audit. Session/consent fixes are merged in #388 (081da59c021337bbc75a1e5bab65767effa50ff3), and portal/legacy reporting fixes in #389 (02e7b3b2324ded622dd907fedf4ac14e7a9436b7). Actionable findings remain open until their remediation merges; GitHub resolution state is not implementation evidence."
+  "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d",
+  "inventory_note": "776 threads from closed or merged PRs: 111 fixed, 225 verified, 1 actionable and 439 pending individual audit. Actionable findings remain open until their remediation merges; GitHub resolution state is not implementation evidence."
 }

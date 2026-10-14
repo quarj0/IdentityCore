@@ -9,7 +9,7 @@ Import these two files into Postman:
 
 - REST auth requests for dashboard users
 - REST API-client verification flow requests
-- Upload creation requests
+- Session-authenticated upload creation and multipart transfer requests
 - Verification session portal requests
 - Manual review/admin requests
 - GraphQL query and mutation examples
@@ -40,7 +40,11 @@ Import these two files into Postman:
 10. Fill `api_client_id` and `api_client_secret` from an existing API client.
 11. Run `Create Verification`.
 12. Set `session_token` manually from a created verification session if you want to test the hosted-session endpoints.
-13. Run upload/session/manual-review/GraphQL requests as needed.
+13. Run `Session Detail`, then `Accept Consent` with the four exported notice fields.
+14. For the collection’s GH national ID example, select front and back JPEGs and set `document_file_size_bytes` and `document_back_file_size_bytes` to their exact byte counts. Run each upload creation followed by its multipart transfer, selecting the same file in the `file` field. Both use `session_token` plus `X-Session-Id` and must finish before `Submit Document`.
+15. Wait until `Session Status` reports the selfie step. Set `selfie_file_size_bytes`, create and transfer the selfie JPEG, then run `Submit Selfie`.
+16. `Submit Liveness` is the passive policy example. Run it only when `Session Detail` reports passive liveness; an active policy requires the hosted portal’s fresh challenge and live camera recording. The optional video upload pair alone does not satisfy an active challenge.
+17. Continue with manual-review or GraphQL requests as needed.
 
 ## Notes
 
@@ -48,3 +52,7 @@ Import these two files into Postman:
 - Session-token generation is intentionally secure, so the raw verification session token is not generally recoverable after creation unless you captured it at creation time.
 - For GraphQL, the endpoint is `POST /api/graphql`.
 - The onboarding registration mutation returns a `debugEmailVerificationUrl` only when Django is running with `DEBUG=1`; production environments should rely on the delivered email instead.
+
+Upload transfers validate MIME type, content and the declared byte count, bind evidence to the authenticated session, and return an uploaded resource. Upload creation alone does not make an upload eligible for document or selfie submission. Postman must supply its own multipart boundary, so transfer requests intentionally omit an explicit Content-Type header.
+
+`make test` builds the Django Dockerfile’s `test` target, which includes Node for executing the actual collection response scripts. The default production target contains no Node dependency. Direct local Django test runs require Node on PATH for this integration.

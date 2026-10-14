@@ -1,0 +1,6 @@
+# Use the test-only Node interpreter for the Postman/Django integration.
+services:
+  django:
+    image: identitycore/django-test:local
+    build:
+      target: test
