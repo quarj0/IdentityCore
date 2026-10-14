@@ -222,6 +222,40 @@ class DocumentFinalizationCommitTests(TestCase):
         client.return_value.copy_object.assert_not_called()
         client.return_value.delete_object.assert_not_called()
 
+    @override_settings(
+        OBJECT_STORAGE_TEMP_BUCKET="audit-temp",
+        OBJECT_STORAGE_MEDIA_BUCKET="audit-media",
+    )
+    def test_storage_probe_outage_defers_without_committing_failure(self):
+        from apps.providers.ai_service import AIServiceUnavailable
+
+        original_verification_status = self.verification.status
+        with patch(
+            "apps.identity_documents.tasks.object_exists",
+            side_effect=TimeoutError("synthetic storage outage"),
+        ), patch(
+            "apps.identity_documents.tasks.invoke_selected_provider_operation"
+        ) as provider:
+            with self.assertRaises(AIServiceUnavailable):
+                document_tasks.process_identity_document_task(
+                    self.identity_document.public_id
+                )
+        provider.assert_not_called()
+        self.identity_document.refresh_from_db()
+        self.verification.refresh_from_db()
+        self.assertEqual(
+            self.identity_document.status, IdentityDocumentStatus.PROCESSING
+        )
+        self.assertEqual(self.verification.status, original_verification_status)
+        job = ProcessingJob.objects.get(
+            resource_public_id=self.identity_document.public_id
+        )
+        self.assertEqual(job.status, ProcessingJobStatus.QUEUED)
+        self.assertEqual(job.error_code, "document_storage_unavailable")
+        self.assertFalse(
+            AuditEvent.objects.filter(action="document.processing_failed").exists()
+        )
+
     def test_success_commits_document_marker_and_job_completion(self):
         document_fixtures.IdentityDocumentTaskTests.test_process_identity_document_task_marks_document_processed(
             self

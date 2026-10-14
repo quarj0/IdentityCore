@@ -253,13 +253,21 @@ def process_identity_document_task(identity_document_id: str) -> str:
             and source_bucket
             and destination_bucket
             and source_bucket != destination_bucket
-            and not object_exists(bucket_name=source_bucket, key=storage_key)
-            and object_exists(bucket_name=destination_bucket, key=storage_key)
         ):
-            # A worker may stop between deleting the source and saving promotion.
-            # Both scoped references were validated before storage I/O.
-            upload.status = UploadStatus.PROMOTED
-            upload.save(update_fields=["status", "updated_at"])
+            try:
+                promotion_finished = not object_exists(
+                    bucket_name=source_bucket, key=storage_key
+                ) and object_exists(bucket_name=destination_bucket, key=storage_key)
+            except Exception as exc:
+                raise AIServiceUnavailable(
+                    "Document storage was temporarily unavailable.",
+                    error_code="document_storage_unavailable",
+                ) from exc
+            if promotion_finished:
+                # A worker may stop between deleting the source and saving promotion.
+                # Both scoped references were validated before storage I/O.
+                upload.status = UploadStatus.PROMOTED
+                upload.save(update_fields=["status", "updated_at"])
         bucket = (
             destination_bucket
             if upload is not None and upload.status == UploadStatus.PROMOTED
@@ -704,8 +712,8 @@ def process_identity_document_task(identity_document_id: str) -> str:
             identity_document.save(update_fields=["status", "updated_at"])
             complete_processing_job(processing_job)
             return identity_document.status
-    except AIServiceUnavailable:
-        defer_processing_job(processing_job, error_code="provider_unavailable")
+    except AIServiceUnavailable as exc:
+        defer_processing_job(processing_job, error_code=exc.error_code)
         raise
     except Exception as exc:
         with transaction.atomic():
