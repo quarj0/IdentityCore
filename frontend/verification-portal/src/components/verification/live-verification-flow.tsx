@@ -89,6 +89,8 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
   const [livenessChallenge, setLivenessChallenge] = useState<{
     challenge_id: string;
     actions: string[];
+    expires_at: string;
+    expires_at_monotonic: number;
   } | null>(null);
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
   const [selectedDocumentType, setSelectedDocumentType] = useState("");
@@ -317,14 +319,35 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
     }
   }
 
-  function resetActiveLivenessAttempt(message?: string, clearNotice = true) {
-    activeLivenessUploadIdRef.current = null;
-    activeLivenessCaptureIdRef.current = null;
-    setActiveLivenessFile(null);
-    setLivenessChallenge(null);
-    if (clearNotice) setNotice(null);
-    setError(message ?? null);
-  }
+  const resetActiveLivenessAttempt = useCallback(
+    (message?: string, clearNotice = true) => {
+      activeLivenessUploadIdRef.current = null;
+      activeLivenessCaptureIdRef.current = null;
+      setActiveLivenessFile(null);
+      setLivenessChallenge(null);
+      if (clearNotice) setNotice(null);
+      setError(message ?? null);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!livenessChallenge) return;
+    const remaining =
+      livenessChallenge.expires_at_monotonic - performance.now();
+    const timer = window.setTimeout(
+      () => {
+        resetActiveLivenessAttempt(
+          localizeText(
+            session?.locale ?? "en",
+            "Your live challenge expired. Begin a new live camera check.",
+          ),
+        );
+      },
+      Math.max(remaining, 0),
+    );
+    return () => window.clearTimeout(timer);
+  }, [livenessChallenge, resetActiveLivenessAttempt, session?.locale]);
 
   function useAnotherDevice() {
     resetActiveLivenessAttempt();
@@ -972,9 +995,11 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
               {t("Prove you are present, live")}
             </h3>
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-foreground">
-              {t(
-                "Your challenge is single-use, randomized, and recorded directly from this device in one short video.",
-              )}
+              {session.workflow.liveness_mode === "active"
+                ? t(
+                    "Your challenge is single-use, randomized, and recorded directly from this device in one short video.",
+                  )
+                : translate(session.locale, "passiveDescription")}
             </p>
             {session.workflow.liveness_mode === "passive" ? (
               <div className="mt-5 flex justify-center">
@@ -1025,6 +1050,13 @@ export function LiveVerificationFlow({ sessionId }: { sessionId: string }) {
               </div>
             ) : (
               <div className="mt-5 space-y-4">
+                <Button
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => resetActiveLivenessAttempt()}
+                >
+                  {t("Start a new live challenge")}
+                </Button>
                 {activeLivenessFile ? (
                   <div className="space-y-3">
                     <p className="text-sm font-medium text-success">

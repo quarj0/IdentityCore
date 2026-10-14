@@ -94,6 +94,8 @@ const arabicCopy: Record<string, string> = {
   "Enable your camera and follow the on-screen instructions.": "فعّل الكاميرا واتبع التعليمات الظاهرة على الشاشة.",
   "Live recording ready to submit.": "التسجيل المباشر جاهز للإرسال.",
   "Record again": "التسجيل مرة أخرى",
+  "Start a new live challenge": "ابدأ تحديًا مباشرًا جديدًا",
+  "Your live challenge expired. Begin a new live camera check.": "انتهت صلاحية التحدي المباشر. ابدأ فحص كاميرا مباشرًا جديدًا.",
   "Submit live check": "إرسال الفحص المباشر",
   "Your live video is being checked.": "جارٍ التحقق من مقطعك المباشر.",
   "Uploading and checking your live video…": "جارٍ رفع مقطعك المباشر والتحقق منه…",

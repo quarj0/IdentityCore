@@ -883,6 +883,16 @@ Response:
 
 ---
 
+## POST /sessions/{session_id}/liveness/challenge
+
+Issues a single-use active challenge when the verification policy requires active liveness.
+The response contains `challenge_id`, `actions`, server `expires_at`, and
+`expires_in` (remaining lifetime in seconds). Clients count down using a monotonic
+clock and deduct request time so an inaccurate device wall clock cannot invalidate
+a newly issued challenge. The backend independently enforces `expires_at`.
+
+---
+
 ## POST /sessions/{session_id}/liveness
 
 Submits liveness challenge result or media reference.

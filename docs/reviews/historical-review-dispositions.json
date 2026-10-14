@@ -430,23 +430,30 @@
       "thread_id": "PRRT_kwDOTN0BU86TY4rD",
       "comment_id": 3641519073,
       "path": "backend/django/apps/identity_documents/tasks.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "apps.verification_sessions.test_historical_session_recovery:review-flagged documents continue through selfie and active liveness without clearing review flags"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Allow review-flagged documents to proceed**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3641519073",
-      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
+      "disposition_note": "Fixed in merged PR #388 after fresh final-head review, 112 passing targeted tests, the 943-test backend suite (34 skips), real PostgreSQL races, and successful CI/Security and dedicated App evidence.",
+      "remediation_pr": 388,
+      "remediation_commit": "38c62e059e72a0d8046a2e2ededa0d145c566638",
+      "merged_commit": "081da59c021337bbc75a1e5bab65767effa50ff3"
     },
     {
       "pr_number": 4,
       "thread_id": "PRRT_kwDOTN0BU86TY4rF",
       "comment_id": 3641519078,
       "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/verification-portal/e2e/handoff-cookie.spec.ts:actual handler sets both HttpOnly session cookies before response",
+        "frontend/verification-portal/e2e/mobile-handoff.spec.ts:reload resumes without redeeming twice"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Persist redeemed handoff credentials before replacing the URL**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3641519078"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3641519078",
+      "disposition_note": "The handoff BFF writes both HttpOnly session credential cookies before returning a response that exposes only the session ID. The mobile reload regression resumes using those cookies without redeeming the one-time handoff again."
     },
     {
       "pr_number": 4,
@@ -560,10 +567,14 @@
       "thread_id": "PRRT_kwDOTN0BU86R9uK3",
       "comment_id": 3607869938,
       "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/verification-portal/e2e/handoff-cookie.spec.ts:actual handler sets both HttpOnly session cookies before response",
+        "frontend/verification-portal/e2e/mobile-handoff.spec.ts:reload resumes without redeeming twice"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Persist redeemed handoff credentials before replacing URL**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3607869938"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3607869938",
+      "disposition_note": "The handoff BFF persists both HttpOnly credentials before the client replaces the handoff URL. The actual-handler cookie assertions and mobile reload regression verify that the redeemed session survives reload without another redemption."
     },
     {
       "pr_number": 6,
@@ -715,13 +726,16 @@
       "thread_id": "PRRT_kwDOTN0BU86R-b5i",
       "comment_id": 3608129821,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "apps.verification_sessions.test_historical_session_recovery:test_unknown_configured_country_is_not_replaced_with_ghana"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject unsupported countries instead of defaulting**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3608129821",
-      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
+      "disposition_note": "Fixed in merged PR #388 after fresh final-head review, 112 passing targeted tests, the 943-test backend suite (34 skips), real PostgreSQL races, and successful CI/Security and dedicated App evidence.",
+      "remediation_pr": 388,
+      "remediation_commit": "38c62e059e72a0d8046a2e2ededa0d145c566638",
+      "merged_commit": "081da59c021337bbc75a1e5bab65767effa50ff3"
     },
     {
       "pr_number": 6,
@@ -839,10 +853,14 @@
       "thread_id": "PRRT_kwDOTN0BU86R-N70",
       "comment_id": 3608052736,
       "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/verification-portal/src/components/verification/live-verification-flow.tsx:available_documents fallback",
+        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts:session fixtures without available_documents render"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Guard the new document list before rendering**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/10#discussion_r3608052736"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/10#discussion_r3608052736",
+      "disposition_note": "The document selector checks available_documents with optional chaining and uses its fallback when the list is absent or empty. Historical session fixtures omit the field and still render successfully."
     },
     {
       "pr_number": 10,
@@ -885,13 +903,16 @@
       "thread_id": "PRRT_kwDOTN0BU86R-QjC",
       "comment_id": 3608067346,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "apps.verification_sessions.test_historical_session_recovery:test_missing_metadata_country_uses_organization_registration"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve the onboarding country fallback**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/10#discussion_r3608067346",
-      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
+      "disposition_note": "Fixed in merged PR #388 after fresh final-head review, 112 passing targeted tests, the 943-test backend suite (34 skips), real PostgreSQL races, and successful CI/Security and dedicated App evidence.",
+      "remediation_pr": 388,
+      "remediation_commit": "38c62e059e72a0d8046a2e2ededa0d145c566638",
+      "merged_commit": "081da59c021337bbc75a1e5bab65767effa50ff3"
     },
     {
       "pr_number": 16,
@@ -1217,20 +1238,27 @@
       "thread_id": "PRRT_kwDOTN0BU86ThUzu",
       "comment_id": 3644674535,
       "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts:passive mode submits still evidence without requesting a challenge",
+        "apps.verification_sessions.serializers:workflow liveness mode comes from immutable policy"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Honor the verification policy before forcing active liveness**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/29#discussion_r3644674535"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/29#discussion_r3644674535",
+      "disposition_note": "The hosted flow chooses passive or active liveness from the server workflow context derived from the immutable policy. The passive regression submits still evidence without requesting an active challenge."
     },
     {
       "pr_number": 29,
       "thread_id": "PRRT_kwDOTN0BU86ThUz0",
       "comment_id": 3644674543,
       "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts:automatic expiry and explicit replacement before camera permission"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Let users replace an expired challenge**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/29#discussion_r3644674543"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/29#discussion_r3644674543",
+      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
     },
     {
       "pr_number": 31,
@@ -1261,10 +1289,13 @@
       "thread_id": "PRRT_kwDOTN0BU86Thqhb",
       "comment_id": 3644802547,
       "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts:automatic expiry and explicit replacement before camera permission"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Allow users to replace an expired challenge**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/31#discussion_r3644802547"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/31#discussion_r3644802547",
+      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
     },
     {
       "pr_number": 32,
@@ -1791,60 +1822,82 @@
       "thread_id": "PRRT_kwDOTN0BU86Tmsni",
       "comment_id": 3646656984,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/dashboard/src/components/onboarding/admin-identity-panel.tsx:redirect to the server-issued hosted verification URL",
+        "config.test_graphql:test_create_administrator_onboarding_verification_is_server_linked",
+        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts:hosted passive and active paths remain supported"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Migrate administrator verification to active liveness**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/44#discussion_r3646656984"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/44#discussion_r3646656984",
+      "disposition_note": "Administrator onboarding launches the server-linked verification and redirects to its hosted verification URL instead of the obsolete selfie-only administrator form. The hosted portal follows the selected passive or active workflow policy."
     },
     {
       "pr_number": 44,
       "thread_id": "PRRT_kwDOTN0BU86TmsoJ",
       "comment_id": 3646657046,
       "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/verification-portal/e2e/verification-flow.spec.ts:active camera/challenge journey and transient submission recovery"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Update the portal end-to-end liveness flow**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/44#discussion_r3646657046"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/44#discussion_r3646657046",
+      "disposition_note": "The current portal end-to-end journey requests the active challenge, enables the camera, records and uploads live video, and tests recovery from a transient submission failure. The obsolete selfie-only liveness fixture has been replaced."
     },
     {
       "pr_number": 44,
       "thread_id": "PRRT_kwDOTN0BU86TmspL",
       "comment_id": 3646657136,
       "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts:automatic expiry and explicit replacement before camera permission"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Let users replace expired live challenges**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/44#discussion_r3646657136"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/44#discussion_r3646657136",
+      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
     },
     {
       "pr_number": 44,
       "thread_id": "PRRT_kwDOTN0BU86TmssV",
       "comment_id": 3646657412,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/dashboard/src/components/onboarding/admin-identity-panel.tsx:redirect to the server-issued hosted verification URL",
+        "config.test_graphql:test_create_administrator_onboarding_verification_is_server_linked",
+        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts:hosted passive and active paths remain supported"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Migrate administrator verification to active liveness**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/44#discussion_r3646657412"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/44#discussion_r3646657412",
+      "disposition_note": "Administrator verification is created by the server-linked onboarding mutation and opened through its hosted verification URL. The shared hosted flow supports the policy-selected liveness mode, replacing the obsolete administrator-specific selfie flow."
     },
     {
       "pr_number": 44,
       "thread_id": "PRRT_kwDOTN0BU86TmssZ",
       "comment_id": 3646657418,
       "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/verification-portal/e2e/verification-flow.spec.ts:active camera/challenge journey and transient submission recovery"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Update the portal end-to-end liveness flow**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/44#discussion_r3646657418"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/44#discussion_r3646657418",
+      "disposition_note": "The portal end-to-end fixture exercises the active camera/challenge journey and transient submission recovery, including the recorded video upload MIME type. It no longer models active liveness as an uploaded still selfie."
     },
     {
       "pr_number": 44,
       "thread_id": "PRRT_kwDOTN0BU86Tmsse",
       "comment_id": 3646657424,
       "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts:automatic expiry and explicit replacement before camera permission"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Let users replace expired live challenges**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/44#discussion_r3646657424"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/44#discussion_r3646657424",
+      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
     },
     {
       "pr_number": 44,
@@ -2331,13 +2384,16 @@
       "thread_id": "PRRT_kwDOTN0BU86UXylr",
       "comment_id": 3664891822,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "apps.verification_sessions.test_historical_consent_artifacts:test_generated_english_notice_is_not_labelled_arabic"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Label generated consent with its actual language**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3664891822",
-      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
+      "disposition_note": "Fixed in merged PR #388 after fresh final-head review, 112 passing targeted tests, the 943-test backend suite (34 skips), real PostgreSQL races, and successful CI/Security and dedicated App evidence.",
+      "remediation_pr": 388,
+      "remediation_commit": "38c62e059e72a0d8046a2e2ededa0d145c566638",
+      "merged_commit": "081da59c021337bbc75a1e5bab65767effa50ff3"
     },
     {
       "pr_number": 70,
@@ -2357,24 +2413,32 @@
       "thread_id": "PRRT_kwDOTN0BU86UXyly",
       "comment_id": 3664891833,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "docs/architecture/api-spec.md:session detail and consent fingerprint examples",
         "postman/IdentityCore.postman_collection.json:Session Detail exports all four fields for Accept Consent"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Update the documented consent request contract**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3664891833",
-      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
+      "disposition_note": "Fixed in merged PR #388 after fresh final-head review, 112 passing targeted tests, the 943-test backend suite (34 skips), real PostgreSQL races, and successful CI/Security and dedicated App evidence.",
+      "remediation_pr": 388,
+      "remediation_commit": "38c62e059e72a0d8046a2e2ededa0d145c566638",
+      "merged_commit": "081da59c021337bbc75a1e5bab65767effa50ff3"
     },
     {
       "pr_number": 70,
       "thread_id": "PRRT_kwDOTN0BU86UYNDT",
       "comment_id": 3665042776,
       "path": "backend/django/apps/consent/migrations/0002_consentrecord_locale_and_hash.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/consent/serializers.py:report unavailable legacy default locale as null without inferring current template language",
+        "backend/django/apps/consent/test_legacy_locale_reporting.py:actual history API regression, explicit/fingerprinted locale preservation and signed proof preservation",
+        "backend/django/apps/consent/test_legacy_locale_migration.py:mutable template edits cannot establish historical language"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Backfill locales for existing consent records**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665042776"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665042776",
+      "disposition_note": "The migration default incorrectly reported historical acceptances as English; two baseline assertions reproduce that misreport. This PR reports the unavailable locale explicitly rather than backfilling from mutable templates, and preserves stored records and signed proofs. Remains actionable until the final review, CI and protected merge."
     },
     {
       "pr_number": 70,
@@ -2391,10 +2455,13 @@
       "thread_id": "PRRT_kwDOTN0BU86UYNDY",
       "comment_id": 3665042782,
       "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts:passive instructions do not promise an active recorded challenge"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Render passive-specific liveness instructions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665042782"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665042782",
+      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
     },
     {
       "pr_number": 70,
@@ -2453,13 +2520,16 @@
       "thread_id": "PRRT_kwDOTN0BU86UYWat",
       "comment_id": 3665097050,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "apps.verification_sessions.test_historical_consent_artifacts:test_region_specific_arabic_locale_uses_rtl_direction"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Derive text direction from the locale's base language**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665097050",
-      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
+      "disposition_note": "Fixed in merged PR #388 after fresh final-head review, 112 passing targeted tests, the 943-test backend suite (34 skips), real PostgreSQL races, and successful CI/Security and dedicated App evidence.",
+      "remediation_pr": 388,
+      "remediation_commit": "38c62e059e72a0d8046a2e2ededa0d145c566638",
+      "merged_commit": "081da59c021337bbc75a1e5bab65767effa50ff3"
     },
     {
       "pr_number": 71,
@@ -2506,56 +2576,75 @@
       "thread_id": "PRRT_kwDOTN0BU86UYgp6",
       "comment_id": 3665156294,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "apps.verification_sessions.test_historical_consent_artifacts:explicit template identity, tenant ownership and ambiguity regressions"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Bind consent lookup to the intended template**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156294",
-      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
+      "disposition_note": "Fixed in merged PR #388 after fresh final-head review, 112 passing targeted tests, the 943-test backend suite (34 skips), real PostgreSQL races, and successful CI/Security and dedicated App evidence.",
+      "remediation_pr": 388,
+      "remediation_commit": "38c62e059e72a0d8046a2e2ededa0d145c566638",
+      "merged_commit": "081da59c021337bbc75a1e5bab65767effa50ff3"
     },
     {
       "pr_number": 71,
       "thread_id": "PRRT_kwDOTN0BU86UYgp_",
       "comment_id": 3665156299,
       "path": "backend/django/apps/consent/migrations/0002_consentrecord_locale_and_hash.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/consent/serializers.py:report unavailable legacy default locale as null without inferring current template language",
+        "backend/django/apps/consent/test_legacy_locale_reporting.py:actual history API regression, explicit/fingerprinted locale preservation and signed proof preservation",
+        "backend/django/apps/consent/test_legacy_locale_migration.py:mutable template edits cannot establish historical language"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Backfill locales for existing consent records**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156299"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156299",
+      "disposition_note": "The migration default incorrectly reported historical acceptances as English; two baseline assertions reproduce that misreport. This PR reports the unavailable locale explicitly rather than backfilling from mutable templates, and preserves stored records and signed proofs. Remains actionable until the final review, CI and protected merge."
     },
     {
       "pr_number": 71,
       "thread_id": "PRRT_kwDOTN0BU86UYgqE",
       "comment_id": 3665156306,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "apps.verification_sessions.serializers:_policy_locales defaults to English-only unless explicitly configured",
+        "apps.verification_sessions.tests:test_get_session_returns_portal_context_and_activates_session",
+        "apps.verification_sessions.tests:test_policy_locales_include_only_frozen_consent_artifacts"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Do not advertise Arabic before localizing the full flow**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156306"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156306",
+      "disposition_note": "The default advertised locale is English only; configured locales are filtered to approved immutable consent artifacts. The session-context and frozen-artifact regressions verify that unsupported Arabic is not advertised by default."
     },
     {
       "pr_number": 71,
       "thread_id": "PRRT_kwDOTN0BU86UYgqH",
       "comment_id": 3665156311,
       "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts:passive instructions do not promise an active recorded challenge"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Hide active-challenge instructions in passive mode**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156311"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156311",
+      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
     },
     {
       "pr_number": 72,
       "thread_id": "PRRT_kwDOTN0BU86UZB7M",
       "comment_id": 3665350835,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "apps.verification_sessions.test_historical_consent_artifacts:dynamic fingerprint requirement, rotation rejection and immutable compatibility"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Require the artifact fingerprint for dynamic consent**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/72#discussion_r3665350835",
-      "disposition_note": "Reproduced against current main; isolated fixes and regression coverage prepared, awaiting final-head review, CI and protected merge."
+      "disposition_note": "Fixed in merged PR #388 after fresh final-head review, 112 passing targeted tests, the 943-test backend suite (34 skips), real PostgreSQL races, and successful CI/Security and dedicated App evidence.",
+      "remediation_pr": 388,
+      "remediation_commit": "38c62e059e72a0d8046a2e2ededa0d145c566638",
+      "merged_commit": "081da59c021337bbc75a1e5bab65767effa50ff3"
     },
     {
       "pr_number": 77,
@@ -6638,10 +6727,14 @@
       "thread_id": "PRRT_kwDOTN0BU86Y-P8u",
       "comment_id": 3776374123,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:VerificationSessionConsentRequest required accepted boolean const true and optional fingerprint fields; concrete document/selfie/liveness schemas",
+        "config.test_openapi_contract:request examples and implemented schema validation"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Declare the required consent request fields**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776374123"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776374123",
+      "disposition_note": "The public consent request schema declares accepted as required with boolean const true and exposes the notice fingerprint fields. The OpenAPI contract tests validate request examples against the implemented schemas."
     },
     {
       "pr_number": 298,
@@ -8413,10 +8506,14 @@
       "thread_id": "PRRT_kwDOTN0BU86mYq5i",
       "comment_id": 4114629210,
       "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "apps.verification_sessions.tests:test_video_selfie_retry_reuses_the_committed_capture",
+        "apps.verification_sessions.serializers:video retries resolve consumed uploads only to the existing owned capture"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Handle ambiguous selfie responses before reusing the upload**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/323#discussion_r4114629210"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/323#discussion_r4114629210",
+      "disposition_note": "A video selfie retry resolves a consumed upload only to the existing owned committed capture and reuses that capture. The committed-capture retry regression verifies recovery from an ambiguous successful response without attempting another consumption."
     },
     {
       "pr_number": 324,
@@ -8443,30 +8540,43 @@
       "thread_id": "PRRT_kwDOTN0BU86mY_8h",
       "comment_id": 4114761094,
       "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "apps.verification_policies.models:immutable notice translations keyed by approved locale",
+        "apps.verification_sessions.tests:test_consent_artifact_uses_the_frozen_selected_translation",
+        "frontend/verification-portal/e2e/localization.spec.ts:selected Arabic artifact and locale are submitted"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Back the locale switch with localized consent artifacts**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/326#discussion_r4114761094"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/326#discussion_r4114761094",
+      "disposition_note": "Approved locale translations are frozen into immutable policy notice artifacts. The backend selected-translation regression and Arabic browser acceptance fixture verify that locale switching is backed by the corresponding consent notice."
     },
     {
       "pr_number": 326,
       "thread_id": "PRRT_kwDOTN0BU86mY_8p",
       "comment_id": 4114761102,
       "path": "frontend/verification-portal/src/lib/session-api.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/verification-portal/src/lib/session-api.ts:acceptConsent sends selected locale in Accept-Language and notice fingerprint",
+        "frontend/verification-portal/e2e/localization.spec.ts:Arabic fingerprint acceptance"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Send the selected locale when accepting consent**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/326#discussion_r4114761102"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/326#discussion_r4114761102",
+      "disposition_note": "acceptConsent sends the selected locale in Accept-Language together with the displayed notice fingerprint. The Arabic fingerprint acceptance fixture verifies that the submitted locale matches the displayed artifact."
     },
     {
       "pr_number": 326,
       "thread_id": "PRRT_kwDOTN0BU86mY_8r",
       "comment_id": 4114761105,
       "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/verification-portal/src/components/verification/live-verification-flow.tsx:locale changes reset consent before replacing the notice",
+        "frontend/verification-portal/e2e/localization.spec.ts:checked English notice becomes unchecked with disabled acceptance in Arabic"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Clear consent when replacing the notice**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/326#discussion_r4114761105"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/326#discussion_r4114761105",
+      "disposition_note": "Changing locale resets checked consent before replacing the displayed notice. The localization regression verifies that switching from a checked English notice to Arabic leaves consent unchecked and acceptance disabled."
     },
     {
       "pr_number": 326,
@@ -9107,8 +9217,91 @@
       "remediation_commit": "554772524fb2950a335b90510079c1a2e9970c9c",
       "merged_commit": "1bfedfc8a78b03105be9f89de5f91ac2e85a6544",
       "disposition_note": "Fixed and merged after final-head Codex review, regression evidence, resolved review threads and successful CI/Security."
+    },
+    {
+      "pr_number": 388,
+      "thread_id": "PRRT_kwDOTN0BU86qU3Bm",
+      "comment_id": 4218149171,
+      "path": "backend/django/apps/verification_sessions/serializers.py",
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/verification_sessions/test_historical_consent_artifacts.py",
+        "backend/django/apps/verification_sessions/test_historical_session_recovery.py"
+      ],
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Resolve consent using the submitted locale**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/388#discussion_r4218149171",
+      "disposition_note": "Late feedback fixed and resolved before the fresh final-head review and protected merge.",
+      "remediation_pr": 388,
+      "remediation_commit": "38c62e059e72a0d8046a2e2ededa0d145c566638",
+      "merged_commit": "081da59c021337bbc75a1e5bab65767effa50ff3"
+    },
+    {
+      "pr_number": 388,
+      "thread_id": "PRRT_kwDOTN0BU86qU3Bw",
+      "comment_id": 4218149182,
+      "path": "docs/architecture/api-spec.md",
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/verification_sessions/test_historical_consent_artifacts.py",
+        "backend/django/apps/verification_sessions/test_historical_session_recovery.py"
+      ],
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Copy the response hash into the consent request example**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/388#discussion_r4218149182",
+      "disposition_note": "Late feedback fixed and resolved before the fresh final-head review and protected merge.",
+      "remediation_pr": 388,
+      "remediation_commit": "38c62e059e72a0d8046a2e2ededa0d145c566638",
+      "merged_commit": "081da59c021337bbc75a1e5bab65767effa50ff3"
+    },
+    {
+      "pr_number": 388,
+      "thread_id": "PRRT_kwDOTN0BU86qVNgy",
+      "comment_id": 4218291867,
+      "path": "backend/django/apps/verification_sessions/serializers.py",
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/verification_sessions/test_historical_consent_artifacts.py",
+        "backend/django/apps/verification_sessions/test_historical_session_recovery.py"
+      ],
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve translations for the selected consent template**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/388#discussion_r4218291867",
+      "disposition_note": "Late feedback fixed and resolved before the fresh final-head review and protected merge.",
+      "remediation_pr": 388,
+      "remediation_commit": "38c62e059e72a0d8046a2e2ededa0d145c566638",
+      "merged_commit": "081da59c021337bbc75a1e5bab65767effa50ff3"
+    },
+    {
+      "pr_number": 388,
+      "thread_id": "PRRT_kwDOTN0BU86qVa5D",
+      "comment_id": 4218376797,
+      "path": "backend/django/apps/verification_sessions/serializers.py",
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verification_sessions/test_historical_consent_artifacts.py",
+        "backend/django/apps/verification_sessions/test_historical_session_recovery.py"
+      ],
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Return the selfie step for review-flagged documents**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/388#discussion_r4218376797",
+      "disposition_note": "Final-head configured review verified after canonical disposition evidence; 112 targeted tests passed and full suite ran 943 tests with 34 skips. Existing AWAITING_SELFIE status mapping was independently verified.",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3"
+    },
+    {
+      "pr_number": 388,
+      "thread_id": "PRRT_kwDOTN0BU86qVa5L",
+      "comment_id": 4218376806,
+      "path": "backend/django/apps/verification_sessions/serializers.py",
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/verification_sessions/test_historical_consent_artifacts.py",
+        "backend/django/apps/verification_sessions/test_historical_session_recovery.py"
+      ],
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Enforce the dynamic fingerprint before replaying consent**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/388#discussion_r4218376806",
+      "disposition_note": "Late feedback fixed and resolved before the fresh final-head review and protected merge.",
+      "remediation_pr": 388,
+      "remediation_commit": "38c62e059e72a0d8046a2e2ededa0d145c566638",
+      "merged_commit": "081da59c021337bbc75a1e5bab65767effa50ff3"
     }
   ],
   "verified_main": "e273fd4ba86181e3e75c81c303bfaabcce79e932",
-  "inventory_note": "762 uniquely identified historical threads. Pending findings remain pending; GitHub resolution state is not evidence. The session/consent audit records eight reproduced fixes awaiting merge and twelve independently checked current-code findings."
+  "inventory_note": "767 uniquely identified historical threads: 93 fixed, 176 verified, 8 actionable and 490 pending individual audit. Session/consent fixes are merged in #388 (081da59c021337bbc75a1e5bab65767effa50ff3). Actionable findings remain open until their remediation merges; GitHub resolution state is not implementation evidence."
 }

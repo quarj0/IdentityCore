@@ -703,7 +703,7 @@ components:
           const: processing
     VerificationSessionLivenessChallengeResponse:
       type: object
-      required: [challenge_id, actions, expires_at]
+      required: [challenge_id, actions, expires_at, expires_in]
       properties:
         challenge_id:
           type: string
@@ -715,6 +715,10 @@ components:
         expires_at:
           type: string
           format: date-time
+        expires_in:
+          type: integer
+          minimum: 0
+          description: Remaining server lifetime in seconds; clients should count down with a monotonic clock.
     VerificationSessionStatusResponse:
       type: object
       required: [verification_id, status, current_step, message, evidence]
