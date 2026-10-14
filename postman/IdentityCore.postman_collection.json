@@ -200,7 +200,7 @@
                 "exec": [
                   "const payload = pm.response.json();",
                   "pm.environment.set('document_upload_id', payload.data.upload_id);",
-                  "pm.environment.set('document_upload_key', payload.data.storage_key);"
+                  "pm.environment.set('document_upload_transfer_path', payload.data.upload_transfer_path);"
                 ]
               }
             }
@@ -208,15 +208,118 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
-              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{session_token}}"
+              },
+              {
+                "key": "X-Session-Id",
+                "value": "{{verification_session_id}}"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"verification_id\": \"{{verification_id}}\",\n  \"purpose\": \"document_capture\",\n  \"filename\": \"document-front.jpg\",\n  \"mime_type\": \"image/jpeg\",\n  \"file_size_bytes\": 102400\n}"
+              "raw": "{\n  \"purpose\": \"document_capture\",\n  \"mime_type\": \"image/jpeg\",\n  \"file_size_bytes\": {{document_file_size_bytes}},\n  \"capture_method\": \"file\"\n}"
             },
             "url": "{{baseUrl}}{{restBase}}/uploads/"
+          }
+        },
+        {
+          "name": "Transfer Front Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{session_token}}"
+              },
+              {
+                "key": "X-Session-Id",
+                "value": "{{verification_session_id}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": null
+                }
+              ]
+            },
+            "url": "{{baseUrl}}{{restBase}}{{document_upload_transfer_path}}",
+            "description": "Choose the actual file in the file field. Its MIME type and byte count must match the preceding upload creation request. Transfer validates and completes the upload before session submission."
+          }
+        },
+        {
+          "name": "Create Back Document Upload",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const payload = pm.response.json();",
+                  "pm.environment.set('document_back_upload_id', payload.data.upload_id);",
+                  "pm.environment.set('document_back_upload_transfer_path', payload.data.upload_transfer_path);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{session_token}}"
+              },
+              {
+                "key": "X-Session-Id",
+                "value": "{{verification_session_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"purpose\": \"document_capture\",\n  \"mime_type\": \"image/jpeg\",\n  \"file_size_bytes\": {{document_back_file_size_bytes}},\n  \"capture_method\": \"file\"\n}"
+            },
+            "url": "{{baseUrl}}{{restBase}}/uploads/"
+          }
+        },
+        {
+          "name": "Transfer Back Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{session_token}}"
+              },
+              {
+                "key": "X-Session-Id",
+                "value": "{{verification_session_id}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": null
+                }
+              ]
+            },
+            "url": "{{baseUrl}}{{restBase}}{{document_back_upload_transfer_path}}",
+            "description": "Choose the actual file in the file field. Its MIME type and byte count must match the preceding upload creation request. Transfer validates and completes the upload before session submission."
           }
         },
         {
@@ -229,7 +332,7 @@
                 "exec": [
                   "const payload = pm.response.json();",
                   "pm.environment.set('selfie_upload_id', payload.data.upload_id);",
-                  "pm.environment.set('selfie_upload_key', payload.data.storage_key);"
+                  "pm.environment.set('selfie_upload_transfer_path', payload.data.upload_transfer_path);"
                 ]
               }
             }
@@ -237,15 +340,52 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
-              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{session_token}}"
+              },
+              {
+                "key": "X-Session-Id",
+                "value": "{{verification_session_id}}"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"verification_id\": \"{{verification_id}}\",\n  \"purpose\": \"selfie_capture\",\n  \"filename\": \"selfie.jpg\",\n  \"mime_type\": \"image/jpeg\",\n  \"file_size_bytes\": 76800\n}"
+              "raw": "{\n  \"purpose\": \"selfie_capture\",\n  \"mime_type\": \"image/jpeg\",\n  \"file_size_bytes\": {{selfie_file_size_bytes}},\n  \"capture_method\": \"file\"\n}"
             },
             "url": "{{baseUrl}}{{restBase}}/uploads/"
+          }
+        },
+        {
+          "name": "Transfer Selfie",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{session_token}}"
+              },
+              {
+                "key": "X-Session-Id",
+                "value": "{{verification_session_id}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": null
+                }
+              ]
+            },
+            "url": "{{baseUrl}}{{restBase}}{{selfie_upload_transfer_path}}",
+            "description": "Choose the actual file in the file field. Its MIME type and byte count must match the preceding upload creation request. Transfer validates and completes the upload before session submission."
           }
         },
         {
@@ -258,7 +398,7 @@
                 "exec": [
                   "const payload = pm.response.json();",
                   "pm.environment.set('liveness_upload_id', payload.data.upload_id);",
-                  "pm.environment.set('liveness_upload_key', payload.data.storage_key);"
+                  "pm.environment.set('liveness_upload_transfer_path', payload.data.upload_transfer_path);"
                 ]
               }
             }
@@ -266,15 +406,52 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-Client-Id", "value": "{{api_client_id}}" },
-              { "key": "Authorization", "value": "Bearer {{api_client_secret}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{session_token}}"
+              },
+              {
+                "key": "X-Session-Id",
+                "value": "{{verification_session_id}}"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"verification_id\": \"{{verification_id}}\",\n  \"purpose\": \"liveness_capture\",\n  \"filename\": \"liveness.mp4\",\n  \"mime_type\": \"video/mp4\",\n  \"file_size_bytes\": 512000\n}"
+              "raw": "{\n  \"purpose\": \"liveness_capture\",\n  \"mime_type\": \"video/mp4\",\n  \"file_size_bytes\": {{liveness_file_size_bytes}},\n  \"capture_method\": \"file\"\n}"
             },
             "url": "{{baseUrl}}{{restBase}}/uploads/"
+          }
+        },
+        {
+          "name": "Transfer Liveness Video",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{session_token}}"
+              },
+              {
+                "key": "X-Session-Id",
+                "value": "{{verification_session_id}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": null
+                }
+              ]
+            },
+            "url": "{{baseUrl}}{{restBase}}{{liveness_upload_transfer_path}}",
+            "description": "Choose the actual file in the file field. Its MIME type and byte count must match the preceding upload creation request. Transfer validates and completes the upload before session submission."
           }
         }
       ]
@@ -349,12 +526,18 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{session_token}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{session_token}}"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"document_type\": \"national_id\",\n  \"country_code\": \"GH\",\n  \"captures\": [\n    {\n      \"side\": \"front\",\n      \"upload_id\": \"{{document_upload_id}}\"\n    }\n  ]\n}"
+              "raw": "{\n  \"document_type\": \"national_id\",\n  \"country_code\": \"GH\",\n  \"captures\": [\n    {\n      \"side\": \"front\",\n      \"upload_id\": \"{{document_upload_id}}\"\n    },\n    {\n      \"side\": \"back\",\n      \"upload_id\": \"{{document_back_upload_id}}\"\n    }\n  ]\n}"
             },
             "url": "{{baseUrl}}{{restBase}}/sessions/{{verification_session_id}}/documents"
           }

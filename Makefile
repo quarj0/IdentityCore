@@ -74,7 +74,8 @@ seed-local:
 	$(COMPOSE) run --rm -e DJANGO_SETTINGS_MODULE=config.settings.development django python manage.py seed_local
 
 test:
-	$(COMPOSE) run --rm -e DJANGO_SETTINGS_MODULE=config.settings.testing django python manage.py test
+	$(COMPOSE) -f docker-compose.yml -f docker-compose.test.yml build django
+	$(COMPOSE) -f docker-compose.yml -f docker-compose.test.yml run --rm -e DJANGO_SETTINGS_MODULE=config.settings.testing django python manage.py test
 	$(COMPOSE) run --rm ai-service pytest
 
 # Run every component's unit/integration test suite with locally installed toolchains.
