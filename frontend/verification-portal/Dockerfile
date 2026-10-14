@@ -7,6 +7,7 @@ RUN apk upgrade --no-cache libcrypto3 libssl3 \
 FROM base AS build
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches ./patches
 COPY packages ./packages
 COPY verification-portal ./verification-portal
 RUN pnpm install --frozen-lockfile
