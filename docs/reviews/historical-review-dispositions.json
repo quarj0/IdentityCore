@@ -4300,20 +4300,34 @@
       "thread_id": "PRRT_kwDOTN0BU86V5Fvh",
       "comment_id": 3702062285,
       "path": "backend/ai-service/app/pad.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_pad.py:test_pad_model_converts_bgr_to_rgb",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Convert BGR frames to the model's RGB contract**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062285"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062285",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 222,
       "thread_id": "PRRT_kwDOTN0BU86V5Fvm",
       "comment_id": 3702062290,
       "path": "backend/ai-service/app/settings.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_health.py:test_model_manifest_detects_missing_and_altered_assets",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Require the PAD asset in the checksum manifest**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062290"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062290",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 222,
@@ -4340,40 +4354,68 @@
       "thread_id": "PRRT_kwDOTN0BU86V5Fv4",
       "comment_id": 3702062310,
       "path": "backend/ai-service/app/pad.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_pad.py:test_pad_model_runs_fixed_batch_one_frame_at_a_time",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Respect the ONNX model's fixed batch dimension**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062310"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062310",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 222,
       "thread_id": "PRRT_kwDOTN0BU86V5Fv-",
       "comment_id": 3702062319,
       "path": "backend/ai-service/app/bootstrap_models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_health.py:test_real_requirements_validate_pad_model_contract",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Validate the PAD session during bootstrap and readiness**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062319"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062319",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 222,
       "thread_id": "PRRT_kwDOTN0BU86V5FwD",
       "comment_id": 3702062325,
       "path": "backend/ai-service/app/settings.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_pad.py:test_pad_live_class_defaults_to_genuine_class",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Point the live class at MiniFASNetV2's genuine label**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062325"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062325",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 222,
       "thread_id": "PRRT_kwDOTN0BU86V5FwI",
       "comment_id": 3702062331,
       "path": "backend/ai-service/app/pipeline.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_health.py:test_liveness_pad_only_receives_exactly_one_face_frames",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Exclude frames without a detected face from PAD inference**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062331"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062331",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 240,
@@ -6497,30 +6539,51 @@
       "thread_id": "PRRT_kwDOTN0BU86Yq35I",
       "comment_id": 3768940364,
       "path": "backend/ai-service/app/pipeline.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_health.py:test_liveness_fails_video_without_two_single_face_frames",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Return a failed result for invalid face evidence**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3768940364"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3768940364",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 293,
       "thread_id": "PRRT_kwDOTN0BU86Yq35M",
       "comment_id": 3768940372,
       "path": "backend/ai-service/app/pipeline.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_health.py:test_liveness_requires_two_valid_frames_for_single_frame_video",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Require two valid frames for every video asset**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3768940372"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3768940372",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 293,
       "thread_id": "PRRT_kwDOTN0BU86Yq35S",
       "comment_id": 3768940381,
       "path": "backend/ai-service/app/pad.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_pad.py:test_pad_contract_rejects_non_float_input",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate the PAD input tensor element type**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3768940381"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3768940381",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 293,
@@ -6537,30 +6600,51 @@
       "thread_id": "PRRT_kwDOTN0BU86Yq35h",
       "comment_id": 3768940399,
       "path": "backend/ai-service/app/pad.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_pad.py:test_pad_contract_rejects_rank_one_output",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve logits from rank-one model outputs**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3768940399"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3768940399",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 293,
       "thread_id": "PRRT_kwDOTN0BU86YrLL0",
       "comment_id": 3769051829,
       "path": "backend/ai-service/app/settings.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_pad.py:test_pad_model_contract_cache_is_keyed_by_model_digest",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Avoid rebuilding the ONNX session on every readiness probe**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3769051829"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3769051829",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 293,
       "thread_id": "PRRT_kwDOTN0BU86YrLL2",
       "comment_id": 3769051833,
       "path": "backend/ai-service/app/pad.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_pad.py:test_pad_contract_rejects_non_float_output",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject unsupported PAD output tensor types**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3769051833"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3769051833",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 295,
