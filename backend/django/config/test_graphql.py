@@ -367,6 +367,7 @@ class GraphQLAPITests(APITestCase):
         self.assertEqual(
             verification.metadata_json["workflow"], "administrator_onboarding"
         )
+        self.assertEqual(verification.review_owner, "platform")
         self.assertEqual(verification.created_by, self.user)
         self.assertIn("#token=", launch["verificationUrl"])
         self.assertNotIn("?token=", launch["verificationUrl"])

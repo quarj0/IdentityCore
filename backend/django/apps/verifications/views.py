@@ -37,6 +37,7 @@ from apps.verifications.serializers import (
     ManualReviewDecisionSerializer,
     VerificationCancelSerializer,
     VerificationCreateSerializer,
+    PolicyEnvironmentScopeDenied,
     VerificationResendLinkSerializer,
     ManualReviewApprovalSerializer,
     serialize_manual_review_summary,
@@ -182,8 +183,24 @@ class VerificationListCreateView(VerificationAccessMixin, APIView):
             request=request,
         )
 
-    @transaction.atomic
     def post(self, request):
+        try:
+            return self._post_atomic(request)
+        except PolicyEnvironmentScopeDenied as exc:
+            # The creation transaction has rolled back; persist the denial separately.
+            record_audit_event(
+                tenant=self._get_tenant(request),
+                actor=request.api_client,
+                request=request,
+                action="environment_scope.denied",
+                target_type="verification_policy",
+                target_id=exc.policy_id,
+                metadata={"reason": "environment_mismatch"},
+            )
+            raise
+
+    @transaction.atomic
+    def _post_atomic(self, request):
         self._set_request_tenant(request)
         idempotency_result = None
         if self._is_api_client_request(request):
@@ -212,7 +229,15 @@ class VerificationListCreateView(VerificationAccessMixin, APIView):
         serializer = VerificationCreateSerializer(
             data=request.data, context={"request": request}
         )
-        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except ValidationError as exc:
+            denied_policy_id = getattr(
+                serializer, "environment_scope_denied_policy_id", None
+            )
+            if denied_policy_id is not None:
+                raise PolicyEnvironmentScopeDenied(denied_policy_id) from exc
+            raise
         verification = serializer.save()
         session = verification._initial_session
         record_audit_event(
