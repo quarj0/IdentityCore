@@ -29,12 +29,15 @@ class LegacyConsentLocaleMigrationTests(TransactionTestCase):
             verification_id=self.verification.pk,
             verification_subject_id=self.subject.pk,
             consent_template_id=template.pk if template else None,
-            consent_text_snapshot="Historical notice",
+            consent_text_snapshot=fields.pop(
+                "consent_text_snapshot",
+                template.content if template else "Historical notice",
+            ),
             accepted_at=timezone.now(),
             **fields,
         )
 
-    def test_backfill_derives_linked_languages_without_fabricating_proofs(self):
+    def test_migration_preserves_unsigned_locales_without_fabricating_proofs(self):
         arabic = ConsentTemplate.objects.create(
             tenant=self.tenant, name="Arabic", language="ar-EG", content="إشعار"
         )
@@ -46,13 +49,20 @@ class LegacyConsentLocaleMigrationTests(TransactionTestCase):
         generated = self.legacy_record("generated")
         self.restore_latest()
         records = ConsentRecord._base_manager
-        self.assertEqual(records.get(pk=first.pk).consent_locale, "ar-EG")
-        self.assertEqual(records.get(pk=second.pk).consent_locale, "fr")
+        self.assertEqual(records.get(pk=first.pk).consent_locale, "en")
+        self.assertEqual(records.get(pk=second.pk).consent_locale, "en")
         self.assertEqual(records.get(pk=generated.pk).consent_locale, "en")
         for record in records.filter(pk__in=[first.pk, second.pk, generated.pk]):
             self.assertIsNone(record.proof_json)
             self.assertEqual(record.consent_content_hash, "")
-            self.assertEqual(record.consent_text_snapshot, "Historical notice")
+            self.assertEqual(
+                record.consent_text_snapshot,
+                (
+                    record.consent_template.content
+                    if record.consent_template
+                    else "Historical notice"
+                ),
+            )
 
     def test_backfill_preserves_fingerprinted_and_proven_notice_metadata(self):
         arabic = ConsentTemplate.objects.create(
@@ -74,3 +84,40 @@ class LegacyConsentLocaleMigrationTests(TransactionTestCase):
         self.assertEqual(selected.consent_locale, "fr")
         self.assertEqual(proof.proof_json, original_proof)
         self.assertEqual(proof.consent_locale, "en")
+
+    def test_backfill_leaves_edited_template_locales_untouched(self):
+        template = ConsentTemplate.objects.create(
+            tenant=self.tenant, name="French", language="fr", content="Original notice"
+        )
+        retained = self.legacy_record("edited", template)
+        deleted = self.legacy_record(
+            "edited_deleted", template, deleted_at=timezone.now()
+        )
+        template.content = "Replacement notice"
+        template.language = "ar"
+        template.save(update_fields=["content", "language"])
+        self.restore_latest()
+        for pk in (retained.pk, deleted.pk):
+            record = ConsentRecord._base_manager.get(pk=pk)
+            self.assertEqual(record.consent_locale, "en")
+            self.assertEqual(record.consent_text_snapshot, "Original notice")
+            self.assertEqual(record.consent_content_hash, "")
+            self.assertIsNone(record.proof_json)
+
+    def test_language_only_template_edit_cannot_establish_historical_locale(self):
+        template = ConsentTemplate.objects.create(
+            tenant=self.tenant, name="French", language="fr", content="Unchanged notice"
+        )
+        retained = self.legacy_record("language_only", template)
+        deleted = self.legacy_record(
+            "language_only_deleted", template, deleted_at=timezone.now()
+        )
+        template.language = "ar"
+        template.save(update_fields=["language"])
+        self.restore_latest()
+        for pk in (retained.pk, deleted.pk):
+            record = ConsentRecord._base_manager.get(pk=pk)
+            self.assertEqual(record.consent_locale, "en")
+            self.assertEqual(record.consent_text_snapshot, "Unchanged notice")
+            self.assertEqual(record.consent_content_hash, "")
+            self.assertIsNone(record.proof_json)

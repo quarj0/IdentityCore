@@ -32,6 +32,7 @@ export function LiveLivenessCapture({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const cameraGenerationRef = useRef(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const discardRecordingRef = useRef(false);
@@ -43,6 +44,7 @@ export function LiveLivenessCapture({
   const [error, setError] = useState<string | null>(null);
 
   const stopCamera = useCallback(() => {
+    cameraGenerationRef.current += 1;
     stoppingCameraRef.current = true;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
@@ -108,6 +110,7 @@ export function LiveLivenessCapture({
     }
 
     stopCamera();
+    const generation = cameraGenerationRef.current;
     setStarting(true);
     setError(null);
     try {
@@ -119,6 +122,10 @@ export function LiveLivenessCapture({
           height: { ideal: 720 },
         },
       });
+      if (cameraGenerationRef.current !== generation) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       streamRef.current = stream;
       stream.getVideoTracks()[0]?.addEventListener(
         "ended",
@@ -151,6 +158,7 @@ export function LiveLivenessCapture({
       }
       setActive(true);
     } catch (caught) {
+      if (cameraGenerationRef.current !== generation) return;
       const name = caught instanceof DOMException ? caught.name : "";
       const messages: Record<string, string> = {
         NotAllowedError:
@@ -174,7 +182,7 @@ export function LiveLivenessCapture({
         ),
       );
     } finally {
-      setStarting(false);
+      if (cameraGenerationRef.current === generation) setStarting(false);
     }
   }
 

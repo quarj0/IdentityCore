@@ -1,12 +1,54 @@
 import { expect, test } from "@playwright/test";
 
-for (const mode of ["passive", "active"] as const) {
-  test(`${mode} liveness instructions match the capture and allow challenge replacement`, async ({
+for (const { mode, clockOffset, pendingPermission } of [
+  { mode: "passive", clockOffset: 0, pendingPermission: false },
+  { mode: "active", clockOffset: 600_000, pendingPermission: false },
+  { mode: "active", clockOffset: -600_000, pendingPermission: false },
+  { mode: "active", clockOffset: 0, pendingPermission: true },
+] as const) {
+  test(`${mode} liveness allows challenge replacement with clock offset ${clockOffset}, pending permission ${pendingPermission}`, async ({
     page,
     isMobile,
   }) => {
     test.setTimeout(90_000);
     const sessionId = `ses_historical_${mode}`;
+    await page.addInitScript(
+      ({ offset, pending }) => {
+        const realNow = Date.now;
+        Date.now = () => realNow() + offset;
+        if (pending) {
+          const state = window as unknown as {
+            finishPendingCamera: () => void;
+            stoppedCameraTracks: number;
+          };
+          state.stoppedCameraTracks = 0;
+          Object.defineProperty(window, "MediaRecorder", {
+            configurable: true,
+            value: class {},
+          });
+          Object.defineProperty(navigator, "mediaDevices", {
+            configurable: true,
+            value: {
+              getUserMedia: () =>
+                new Promise((resolve) => {
+                  state.finishPendingCamera = () =>
+                    resolve({
+                      getTracks: () => [
+                        {
+                          stop: () => {
+                            state.stoppedCameraTracks += 1;
+                          },
+                        },
+                      ],
+                      getVideoTracks: () => [],
+                    });
+                }),
+            },
+          });
+        }
+      },
+      { offset: clockOffset, pending: pendingPermission },
+    );
     let issued = 0;
     let submitted: unknown;
     await page.route("**/api/verification/**", async (route) => {
@@ -22,6 +64,7 @@ for (const mode of ["passive", "active"] as const) {
         return reply({
           challenge_id: `lch_${issued}`,
           actions: ["turn_left", "look_up"],
+          expires_in: issued === 1 ? 8 : 60,
           expires_at: new Date(
             Date.now() + (issued === 1 ? 8000 : 60_000),
           ).toISOString(),
@@ -117,7 +160,41 @@ for (const mode of ["passive", "active"] as const) {
         page.getByText(
           "Your live challenge expired. Begin a new live camera check.",
         ),
+      ).toHaveCount(0);
+      if (pendingPermission) {
+        await page.getByRole("button", { name: "Enable camera" }).click();
+        await expect(
+          page.getByRole("button", { name: "Starting camera…" }),
+        ).toBeVisible();
+      }
+      await expect(
+        page.getByText(
+          "Your live challenge expired. Begin a new live camera check.",
+        ),
       ).toBeVisible({ timeout: 15_000 });
+      if (pendingPermission) {
+        await page.evaluate(() =>
+          (
+            window as unknown as { finishPendingCamera: () => void }
+          ).finishPendingCamera(),
+        );
+        await expect
+          .poll(() =>
+            page.evaluate(
+              () =>
+                (window as unknown as { stoppedCameraTracks: number })
+                  .stoppedCameraTracks,
+            ),
+          )
+          .toBe(1);
+        await expect(
+          page.getByRole("button", {
+            name: "Start live challenge",
+            exact: true,
+          }),
+        ).toHaveCount(0);
+      }
+
       await page
         .getByRole("button", { name: "Begin live camera check" })
         .click();

@@ -238,6 +238,7 @@ export interface VerificationSessionLivenessChallengeResponse {
   challenge_id: string;
   actions: Array<"turn_left" | "turn_right" | "look_up" | "look_down">;
   expires_at: string;
+  expires_in: number;
 }
 
 export interface VerificationSessionStatusResponse {

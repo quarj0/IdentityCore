@@ -187,7 +187,7 @@ public final class GeneratedModels {
 
     }
 
-    public record VerificationSessionLivenessChallengeResponse(@JsonProperty("challenge_id") String challenge_id, @JsonProperty("actions") List<String> actions, @JsonProperty("expires_at") String expires_at) {
+    public record VerificationSessionLivenessChallengeResponse(@JsonProperty("challenge_id") String challenge_id, @JsonProperty("actions") List<String> actions, @JsonProperty("expires_at") String expires_at, @JsonProperty("expires_in") Integer expires_in) {
 
     }
 
