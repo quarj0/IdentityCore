@@ -140,7 +140,7 @@ async function mergeReviewedPR({ github, context, number, api, merge, validate =
 }
 
 function ghJson(args, input) {
-  const result = spawnSync('gh', args, {input, encoding: 'utf8', timeout: 60000});
+  const result = spawnSync('gh', args, {input, encoding: 'utf8', timeout: 60000, maxBuffer: 32 * 1024 * 1024});
   if (result.error || result.status !== 0) {
     const error = new Error(result.stderr?.trim() || result.error?.message || 'gh failed');
     const status = result.stderr?.match(/\(HTTP (\d{3})\)/);
