@@ -18,6 +18,7 @@ from apps.verifications.models import (
 )
 from apps.verifications.processing_jobs import (
     ProcessingJobOwnershipLost,
+    acquire_processing_job,
     recover_stale_processing_jobs,
 )
 
@@ -117,6 +118,61 @@ class DocumentFinalizationCommitTests(TestCase):
         self.assertEqual(self.verification.status, original_status)
         self.assertFalse(
             AuditEvent.objects.filter(action="document.processing_failed").exists()
+        )
+
+    def test_missing_captures_cannot_be_failed_by_superseded_worker(self):
+        self.identity_document.captures.all().delete()
+        original_status = self.identity_document.status
+        owner = acquire_processing_job(
+            job_type=ProcessingJobType.IDENTITY_DOCUMENT,
+            resource=self.identity_document,
+        )
+        ProcessingJob.objects.filter(pk=owner.pk).update(
+            lease_generation=owner.lease_generation + 1
+        )
+        with patch(
+            "apps.identity_documents.tasks.acquire_processing_job", return_value=owner
+        ):
+            with self.assertRaises(ProcessingJobOwnershipLost):
+                document_tasks.process_identity_document_task(
+                    self.identity_document.public_id
+                )
+        self.identity_document.refresh_from_db()
+        self.assertEqual(self.identity_document.status, original_status)
+
+    def test_missing_capture_failure_rolls_back_if_completion_is_interrupted(self):
+        self.identity_document.captures.all().delete()
+        original_status = self.identity_document.status
+        with patch(
+            "apps.identity_documents.tasks.complete_processing_job",
+            side_effect=WorkerStopped(),
+        ):
+            with self.assertRaises(WorkerStopped):
+                document_tasks.process_identity_document_task(
+                    self.identity_document.public_id
+                )
+        self.identity_document.refresh_from_db()
+        self.assertEqual(self.identity_document.status, original_status)
+        self.assertEqual(
+            ProcessingJob.objects.get(
+                resource_public_id=self.identity_document.public_id
+            ).status,
+            ProcessingJobStatus.PROCESSING,
+        )
+
+    def test_current_owner_can_commit_missing_capture_failure(self):
+        self.identity_document.captures.all().delete()
+        result = document_tasks.process_identity_document_task(
+            self.identity_document.public_id
+        )
+        self.assertEqual(result, IdentityDocumentStatus.FAILED)
+        self.identity_document.refresh_from_db()
+        self.assertEqual(self.identity_document.status, IdentityDocumentStatus.FAILED)
+        self.assertEqual(
+            ProcessingJob.objects.get(
+                resource_public_id=self.identity_document.public_id
+            ).status,
+            ProcessingJobStatus.COMPLETED,
         )
 
     def test_success_commits_document_marker_and_job_completion(self):

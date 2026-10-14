@@ -171,9 +171,11 @@ def process_identity_document_task(identity_document_id: str) -> str:
         return identity_document.status
     captures = list(identity_document.captures.order_by("created_at"))
     if not captures:
-        identity_document.status = IdentityDocumentStatus.FAILED
-        identity_document.save(update_fields=["status", "updated_at"])
-        complete_processing_job(processing_job)
+        with transaction.atomic():
+            lock_processing_job_for_finalization(processing_job)
+            identity_document.status = IdentityDocumentStatus.FAILED
+            identity_document.save(update_fields=["status", "updated_at"])
+            complete_processing_job(processing_job)
         return identity_document.status
 
     now = timezone.now()
