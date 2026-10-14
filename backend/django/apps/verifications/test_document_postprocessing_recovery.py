@@ -198,6 +198,30 @@ class DocumentFinalizationCommitTests(TestCase):
             ["audit-media"] * 3,
         )
 
+    @override_settings(
+        OBJECT_STORAGE_TEMP_BUCKET="audit-temp",
+        OBJECT_STORAGE_MEDIA_BUCKET="audit-media",
+    )
+    def test_partial_promotion_is_reconciled_before_provider_input(self):
+        from botocore.exceptions import ClientError
+
+        self.expected_document_storage_bucket = "audit-media"
+
+        def head_object(**kwargs):
+            if kwargs["Bucket"] == "audit-temp":
+                raise ClientError({"Error": {"Code": "NoSuchKey"}}, "HeadObject")
+            return {}
+
+        with patch("common.storage.get_object_storage_client") as client:
+            client.return_value.head_object.side_effect = head_object
+            document_fixtures.IdentityDocumentTaskTests.test_process_identity_document_task_marks_document_processed(
+                self
+            )
+        self.upload.refresh_from_db()
+        self.assertEqual(self.upload.status, "promoted")
+        client.return_value.copy_object.assert_not_called()
+        client.return_value.delete_object.assert_not_called()
+
     def test_success_commits_document_marker_and_job_completion(self):
         document_fixtures.IdentityDocumentTaskTests.test_process_identity_document_task_marks_document_processed(
             self

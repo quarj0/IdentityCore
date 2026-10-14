@@ -52,6 +52,7 @@ from common.authorization import ServicePrincipal, require_service_access
 from common.storage import (
     get_object_storage_media_bucket_name,
     get_object_storage_temp_bucket_name,
+    object_exists,
 )
 
 logger = logging.getLogger(__name__)
@@ -223,23 +224,49 @@ def process_identity_document_task(identity_document_id: str) -> str:
     capture_quality_results: list[dict] = []
     temp_bucket = get_object_storage_temp_bucket_name()
     media_bucket = get_object_storage_media_bucket_name() or temp_bucket
-    promoted_keys = set(
-        Upload.objects.filter(
+    uploads_by_key = {
+        upload.storage_key: upload
+        for upload in Upload.objects.filter(
             tenant=verification.tenant,
             verification=verification,
             storage_key__in=[capture.storage_key for capture in captures],
-            status=UploadStatus.PROMOTED,
             deleted_at__isnull=True,
-        ).values_list("storage_key", flat=True)
-    )
+        )
+    }
+    input_buckets = {}
 
     def input_bucket(storage_key):
-        return resolve_reference(
-            storage_key,
-            media_bucket if storage_key in promoted_keys else temp_bucket,
-            tenant_scope=verification.tenant.public_id,
-            environment=environment_for_instance(verification),
-        )["bucket"]
+        if storage_key in input_buckets:
+            return input_buckets[storage_key]
+        scope = {
+            "tenant_scope": verification.tenant.public_id,
+            "environment": environment_for_instance(verification),
+        }
+        source_bucket = resolve_reference(storage_key, temp_bucket, **scope)["bucket"]
+        destination_bucket = resolve_reference(storage_key, media_bucket, **scope)[
+            "bucket"
+        ]
+        upload = uploads_by_key.get(storage_key)
+        if (
+            upload is not None
+            and upload.status != UploadStatus.PROMOTED
+            and source_bucket
+            and destination_bucket
+            and source_bucket != destination_bucket
+            and not object_exists(bucket_name=source_bucket, key=storage_key)
+            and object_exists(bucket_name=destination_bucket, key=storage_key)
+        ):
+            # A worker may stop between deleting the source and saving promotion.
+            # Both scoped references were validated before storage I/O.
+            upload.status = UploadStatus.PROMOTED
+            upload.save(update_fields=["status", "updated_at"])
+        bucket = (
+            destination_bucket
+            if upload is not None and upload.status == UploadStatus.PROMOTED
+            else source_bucket
+        )
+        input_buckets[storage_key] = bucket
+        return bucket
 
     try:
         for capture in captures:
