@@ -84,6 +84,8 @@ class VerificationPolicy(PublicIdModel, BaseModel):
         "accounts.PlatformUser",
         on_delete=models.PROTECT,
         related_name="created_verification_policies",
+        null=True,
+        blank=True,
     )
 
     class Meta:

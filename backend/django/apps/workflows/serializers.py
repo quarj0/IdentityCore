@@ -6,6 +6,10 @@ from apps.verification_policies.models import (
 )
 from apps.workflows.models import Workflow, WorkflowStatus, WorkflowVersion
 from apps.organizations.models import OrganizationStatus
+from apps.verification_policies.serializers import (
+    VALID_DOCUMENT_TYPES,
+    VerificationPolicyCreateSerializer,
+)
 
 SUPPORTED_STEPS = {
     "consent",
@@ -68,6 +72,19 @@ class WorkflowSerializer(serializers.Serializer):
             )
         return steps
 
+    def validate_settings(self, value):
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Workflow settings must be an object.")
+        existing = self.instance.settings_json if self.instance is not None else {}
+        if not isinstance(existing, dict):
+            existing = {}
+        tenant = (
+            self.instance.tenant
+            if self.instance is not None
+            else self.context["request"].user.tenant
+        )
+        return validated_workflow_settings({**existing, **value}, tenant=tenant)
+
     def validate(self, attrs):
         request = self.context["request"]
         if (
@@ -117,51 +134,127 @@ class WorkflowSerializer(serializers.Serializer):
                 setattr(
                     instance,
                     dest,
-                    (
-                        data[src]
-                        if src != "settings"
-                        else {**instance.settings_json, **data[src]}
-                    ),
+                    data[src],
                 )
         instance.status = WorkflowStatus.DRAFT
         instance.save()
         return instance
 
 
+class WorkflowPolicySettingsSerializer(VerificationPolicyCreateSerializer):
+    required_document_types = serializers.ListField(
+        child=serializers.ChoiceField(choices=sorted(VALID_DOCUMENT_TYPES)),
+        allow_empty=True,
+    )
+    required_liveness_level = serializers.ChoiceField(choices=["passive", "active"])
+    face_match_threshold = serializers.DecimalField(
+        max_digits=5, decimal_places=4, min_value=0, max_value=1
+    )
+    manual_review_threshold = serializers.DecimalField(
+        max_digits=5, decimal_places=4, min_value=0, max_value=1
+    )
+    verification_expiry_minutes = serializers.IntegerField(min_value=1)
+    media_retention_days = serializers.IntegerField(min_value=1)
+    metadata_retention_days = serializers.IntegerField(min_value=1)
+    maker_checker_required = serializers.BooleanField(required=False, default=False)
+
+    def get_fields(self):
+        fields = super().get_fields()
+        for field in ["name", "description", "project_id"]:
+            fields.pop(field)
+        return fields
+
+
+def validated_workflow_settings(settings, *, tenant):
+    if not isinstance(settings, dict):
+        raise serializers.ValidationError("Workflow settings must be an object.")
+    combined = {**DEFAULT_SETTINGS, **settings}
+    serializer = WorkflowPolicySettingsSerializer(
+        data=combined, context={"tenant": tenant}
+    )
+    serializer.is_valid(raise_exception=True)
+    normalized = dict(serializer.validated_data)
+    normalized.pop("consent_template", None)
+    for field in [
+        "face_match_threshold",
+        "manual_review_threshold",
+        "document_authenticity_min_confidence",
+        "external_risk_review_threshold",
+    ]:
+        normalized[field] = float(normalized[field])
+    return {**combined, **normalized}
+
+
 @transaction.atomic
 def publish_workflow(workflow, user):
+    caller_workflow = workflow
+    workflow = (
+        Workflow.objects.select_for_update(of=("self",))
+        .select_related("tenant__organization", "project", "created_by")
+        .get(pk=workflow.pk)
+    )
+    if workflow.status == WorkflowStatus.ARCHIVED:
+        raise serializers.ValidationError("Archived workflows cannot be published.")
     if workflow.tenant.organization.status != OrganizationStatus.ACTIVE:
         raise serializers.ValidationError(
             "Workflow publishing is available after platform approval. You can continue editing the sandbox draft."
         )
+    steps = WorkflowSerializer().fields["steps"].run_validation(workflow.steps_json)
+    WorkflowSerializer().validate_steps(steps)
+    settings = validated_workflow_settings(
+        workflow.settings_json, tenant=workflow.tenant
+    )
     version = workflow.current_version + 1
-    s = {**DEFAULT_SETTINGS, **workflow.settings_json}
+    creator = user if user.tenant_id == workflow.tenant_id else workflow.created_by
+    if creator is not None and creator.tenant_id != workflow.tenant_id:
+        creator = None
     policy = VerificationPolicy.objects.create(
         tenant=workflow.tenant,
         project=workflow.project,
-        name=workflow.name,
+        name=f"{workflow.name[:180]} [{workflow.public_id}] workflow policy",
         description=workflow.description,
         version=version,
         status=VerificationPolicyStatus.ACTIVE,
-        required_document_types_json=s["required_document_types"],
-        required_liveness_level=s["required_liveness_level"],
-        face_match_threshold=s["face_match_threshold"],
-        manual_review_threshold=s["manual_review_threshold"],
-        verification_expiry_minutes=s["verification_expiry_minutes"],
-        media_retention_days=s["media_retention_days"],
-        metadata_retention_days=s["metadata_retention_days"],
-        created_by=user,
+        required_document_types_json=settings["required_document_types"],
+        required_liveness_level=settings["required_liveness_level"],
+        face_match_threshold=settings["face_match_threshold"],
+        manual_review_threshold=settings["manual_review_threshold"],
+        verification_expiry_minutes=settings["verification_expiry_minutes"],
+        media_retention_days=settings["media_retention_days"],
+        metadata_retention_days=settings["metadata_retention_days"],
+        maker_checker_required=settings["maker_checker_required"],
+        document_authenticity_required=settings["document_authenticity_required"],
+        document_authenticity_min_confidence=settings[
+            "document_authenticity_min_confidence"
+        ],
+        document_consistency_rules_json=settings["document_consistency_rules"],
+        external_risk_enabled=settings["external_risk_enabled"],
+        external_risk_failure_action=settings["external_risk_failure_action"],
+        external_risk_review_threshold=settings["external_risk_review_threshold"],
+        review_reason_rules_json=settings["review_reason_rules"],
+        reuse_rules_json=settings["reuse_rules"],
+        default_locale=settings["default_locale"],
+        supported_locales_json=settings["supported_locales"],
+        consent_template=(
+            workflow.tenant.consent_templates.get(
+                public_id=settings["consent_template_id"]
+            )
+            if settings.get("consent_template_id")
+            else None
+        ),
+        created_by=creator,
     )
     result = WorkflowVersion.objects.create(
         workflow=workflow,
         workflow_name=workflow.name,
         version=version,
-        steps_json=workflow.steps_json,
-        settings_json=s,
+        steps_json=steps,
+        settings_json=settings,
         policy=policy,
         published_by=user,
     )
     workflow.current_version = version
     workflow.status = WorkflowStatus.PUBLISHED
     workflow.save(update_fields=["current_version", "status", "updated_at"])
+    caller_workflow.refresh_from_db(fields=["current_version", "status"])
     return result
