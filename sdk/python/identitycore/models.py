@@ -360,6 +360,7 @@ class _VerificationSessionLivenessChallengeResponseRequired(TypedDict):
     challenge_id: str
     actions: list[Literal['turn_left', 'turn_right', 'look_up', 'look_down']]
     expires_at: str
+    expires_in: int
 
 
 class VerificationSessionLivenessChallengeResponse(

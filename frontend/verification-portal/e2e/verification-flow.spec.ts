@@ -314,6 +314,7 @@ test("subject completes consent, document, selfie, liveness, and review routing"
       return json(route, {
         challenge_id: "lch_1",
         actions: ["turn_left", "look_up"],
+        expires_in: 60,
         expires_at: new Date(Date.now() + 60_000).toISOString(),
       });
     }

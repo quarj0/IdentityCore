@@ -25,3 +25,19 @@ Withdrawal atomically marks all accepted proofs for the verification, revokes it
 Provider dispatch and result commit both recheck current consent while holding the same tenant/case locks used by withdrawal. An already transferred external request cannot be recalled; its late result cannot become a new persisted processing result or decision after withdrawal. Pending retries cannot dispatch again. Withdrawal also excludes the verification from future reuse candidate comparisons.
 
 Missing or unreadable acceptance proofs block processing. Recording the withdrawal timestamp does not require decrypting the proof, so customer-key unavailability does not prevent revocation. Key retention, legal retention and erasure policies still govern held evidence; withdrawal itself does not erase historical acceptance or retained evidence.
+
+## Historical locale reporting
+
+The consent history API returns `consent_locale: null` with
+`consent_locale_status: "unavailable_legacy"` for the unsigned, unhashed English
+default introduced for old rows by migration 0002. That default does not establish
+the language shown to the subject. Current template language and content are
+mutable and must not be used to reconstruct an old acceptance.
+
+An explicitly stored non-default locale, a retained notice fingerprint, or an
+available acceptance proof preserves the recorded locale with status `recorded`.
+This status describes retained locale metadata; it does not validate the proof or
+authorize processing. The normal consent-proof checks still apply. This reporting
+change leaves stored locale defaults, notice snapshots, hashes, proof envelopes,
+withdrawal timestamps and retained deleted records unchanged. Any future repair
+of historical data requires independent evidence of the original notice locale.
