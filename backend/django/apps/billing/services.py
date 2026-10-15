@@ -12,7 +12,7 @@ from django.utils import timezone
 from apps.billing import paystack
 from apps.billing.models import (
     BillingInvoice, BillingInvoiceLine, BillingMeter, BillingPayment,
-    BillingPaymentEvent, BillingPlan, BillingSubscription, BillingUsageEvent,
+    BillingPaymentEvent, BillingRefund, BillingPlan, BillingSubscription, BillingUsageEvent,
 )
 
 
@@ -237,6 +237,88 @@ def confirm_gateway_payment(reference, *, evidence_digest=None):
     return True
 
 
+def _reconcile_gateway_refund(event):
+    """Refund notifications are never trusted without a matching provider lookup."""
+    data = event["data"]
+    reference = data.get("transaction_reference")
+    refund_id = data.get("id")
+    if not isinstance(reference, str) or not paystack.REFERENCE.fullmatch(reference):
+        return False
+    if type(refund_id) is not int or refund_id <= 0:
+        # Some gateway events omit the refund ID. Leave for operator
+        # reconciliation instead of inventing a refund record.
+        return False
+    payment = BillingPayment.objects.select_related("invoice").filter(
+        reference=reference, status__in=("paid", "disputed"), provider="paystack"
+    ).first()
+    if payment is None or not payment.gateway_transaction_id:
+        return False
+    result = paystack.verify_refund(refund_id=refund_id)
+    if (
+        type(result.get("id")) is not int
+        or result["id"] != refund_id
+        or str(result.get("transaction")) != payment.gateway_transaction_id
+        or result.get("currency") != payment.currency
+        or type(result.get("amount")) is not int
+        or not 0 < result["amount"] <= payment.amount_minor
+        or result.get("status") not in ("pending", "processing", "processed", "failed")
+    ):
+        raise BillingError("Refund lookup failed transaction attribution")
+    with transaction.atomic():
+        locked = BillingPayment.objects.select_for_update().get(pk=payment.pk)
+        invoice = BillingInvoice.objects.select_for_update().get(pk=locked.invoice_id)
+        refunded_total = sum(
+            x.amount_minor for x in locked.refunds.exclude(gateway_refund_id=str(refund_id))
+            .filter(status__in=("pending", "completed"))
+        )
+        if refunded_total + result["amount"] > locked.amount_minor:
+            raise BillingError("Refund total exceeds settled charge")
+        refund, created = BillingRefund.objects.get_or_create(
+            gateway_refund_id=str(refund_id),
+            defaults={
+                "payment": locked, "amount_minor": result["amount"],
+                "status": "pending",
+            },
+        )
+        if refund.payment_id != locked.pk or refund.amount_minor != result["amount"]:
+            raise BillingError("Refund changed its payment attribution")
+        new_status = (
+            "completed" if result["status"] == "processed" else
+            "failed" if result["status"] == "failed" else "pending"
+        )
+        if refund.status == "completed" and new_status != "completed":
+            return True  # Ignore old out-of-order notifications.
+        if refund.status != new_status:
+            refund.status = new_status
+            if new_status == "completed":
+                refund.confirmed_at = timezone.now()
+            refund.save(update_fields=["status", "confirmed_at", "updated_at"])
+        if new_status == "completed":
+            invoice.status = "disputed"
+            invoice.save(update_fields=["status", "updated_at"])
+            locked.status = "disputed"
+            locked.save(update_fields=["status", "updated_at"])
+    return True
+
+
+def _record_gateway_dispute(event):
+    reference = event["data"].get("reference")
+    if not isinstance(reference, str) or not paystack.REFERENCE.fullmatch(reference):
+        return False
+    with transaction.atomic():
+        payment = BillingPayment.objects.select_for_update().filter(
+            reference=reference, status="paid"
+        ).first()
+        if payment is None:
+            return False
+        invoice = BillingInvoice.objects.select_for_update().get(pk=payment.invoice_id)
+        payment.status = "disputed"
+        payment.save(update_fields=["status", "updated_at"])
+        invoice.status = "disputed"
+        invoice.save(update_fields=["status", "updated_at"])
+    return True
+
+
 def receive_paystack_webhook(body, signature):
     if not paystack.valid_webhook(body, signature):
         raise BillingError("Invalid gateway webhook signature")
@@ -246,9 +328,12 @@ def receive_paystack_webhook(body, signature):
         raise BillingError("Malformed webhook") from exc
     if not isinstance(event, dict) or not isinstance(event.get("data"), dict):
         raise BillingError("Malformed webhook")
-    if event.get("event") != "charge.success":
-        # Refund and dispute notifications require separate reconciliation
-        # before changing any balance. Unrecognized events cannot grant value.
+    event_type = event.get("event")
+    if event_type in ("refund.pending", "refund.processing", "refund.processed", "refund.failed"):
+        return _reconcile_gateway_refund(event)
+    if event_type == "charge.dispute.create":
+        return _record_gateway_dispute(event)
+    if event_type != "charge.success":
         return False
     reference = event["data"].get("reference")
     if not isinstance(reference, str) or not paystack.REFERENCE.fullmatch(reference):
