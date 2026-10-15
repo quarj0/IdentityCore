@@ -112,3 +112,44 @@ class HistoricalPlatformAdminControlTests(APITestCase):
         self.assertFalse(
             AuditEvent.objects.filter(action="platform_admin.invited").exists()
         )
+
+    def test_tenant_bound_platform_actor_can_invite_and_deactivate_with_valid_audit_scope(
+        self,
+    ):
+        from apps.organizations.models import Organization
+        from apps.tenants.models import Tenant
+        from apps.audit.services import verify_audit_chain
+
+        organization = Organization.objects.create(
+            name="Bound admin", slug="bound-admin", status="active"
+        )
+        tenant = Tenant.objects.create(
+            organization=organization,
+            name="Bound admin",
+            slug="bound-admin",
+            status="active",
+        )
+        self.actor.tenant = tenant
+        self.actor.save(update_fields=["tenant"])
+        operations = [
+            ("invited", lambda: self.invite()),
+            (
+                "deactivated",
+                lambda: self.graphql(
+                    'mutation($id:String!){deactivatePlatformAdmin(userId:$id,reason:"Bound administrator removal"){publicId status}}',
+                    {"id": self.target.public_id},
+                ),
+            ),
+        ]
+        for suffix, operation in operations:
+            with self.subTest(operation=suffix):
+                result = operation()
+                self.assertIsNone(result.errors, result.errors)
+                event = AuditEvent.objects.get(action="platform_admin." + suffix)
+                self.assertEqual(event.tenant_id, tenant.pk)
+                self.assertEqual(event.actor_id, self.actor.public_id)
+                if suffix == "deactivated":
+                    self.assertEqual(
+                        event.metadata_json["reason"], "Bound administrator removal"
+                    )
+        self.assertEqual(verify_audit_chain(tenant_id=tenant.pk), (True, ""))

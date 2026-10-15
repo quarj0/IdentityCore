@@ -659,10 +659,20 @@ class Mutation:
     ) -> PlatformAdminInvitationPayload:
         actor = require_platform_admin(info)
         lock_audit_chain(None)
+        actor_tenant_id = PlatformUser.objects.values_list("tenant_id", flat=True).get(
+            pk=actor.pk
+        )
+        if actor_tenant_id is not None:
+            lock_audit_chain(actor_tenant_id)
         actor = PlatformUser.objects.select_for_update().get(pk=actor.pk)
-        if actor.status != PlatformUserStatus.ACTIVE or not decide_user_access(
-            actor, action=AuthorizationAction.PLATFORM_ACCESS
-        ).allowed:
+        if actor.tenant_id != actor_tenant_id:
+            raise GraphQLError("Administrator scope changed. Retry the request.")
+        if (
+            actor.status != PlatformUserStatus.ACTIVE
+            or not decide_user_access(
+                actor, action=AuthorizationAction.PLATFORM_ACCESS
+            ).allowed
+        ):
             raise GraphQLError("An active platform administrator is required.")
         request = info.context["request"]
         normalized_email = email.strip().lower()
@@ -698,7 +708,7 @@ class Mutation:
             token_hash=PlatformAdminInvitation.digest_token(raw_token),
         )
         record_audit_event(
-            tenant=None,
+            tenant=actor.tenant,
             actor=actor,
             request=request,
             action="platform_admin.invited",
@@ -802,10 +812,20 @@ class Mutation:
         # Serialize the invariant before acquiring user row locks, matching the
         # platform audit/login lock order.
         lock_audit_chain(None)
+        actor_tenant_id = PlatformUser.objects.values_list("tenant_id", flat=True).get(
+            pk=actor.pk
+        )
+        if actor_tenant_id is not None:
+            lock_audit_chain(actor_tenant_id)
         actor = PlatformUser.objects.select_for_update().get(pk=actor.pk)
-        if actor.status != PlatformUserStatus.ACTIVE or not decide_user_access(
-            actor, action=AuthorizationAction.PLATFORM_ACCESS
-        ).allowed:
+        if actor.tenant_id != actor_tenant_id:
+            raise GraphQLError("Administrator scope changed. Retry the request.")
+        if (
+            actor.status != PlatformUserStatus.ACTIVE
+            or not decide_user_access(
+                actor, action=AuthorizationAction.PLATFORM_ACCESS
+            ).allowed
+        ):
             raise GraphQLError("An active platform administrator is required.")
         request = info.context["request"]
         if actor.public_id == user_id:
@@ -831,7 +851,7 @@ class Mutation:
         user.status = PlatformUserStatus.INACTIVE
         user.save(update_fields=["status", "updated_at"])
         record_audit_event(
-            tenant=None,
+            tenant=actor.tenant,
             actor=actor,
             request=request,
             action="platform_admin.deactivated",
