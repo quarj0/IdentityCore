@@ -1495,39 +1495,48 @@
       "thread_id": "PRRT_kwDOTN0BU86Ti6GJ",
       "comment_id": 3645257330,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/workflows/test_historical_publishing.py:test_platform_publication_copies_execution_settings"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Populate the policy from workflow settings**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257330",
-      "disposition_note": "Individually inspected the original finding and reproduced its current behavior through the actual GraphQL schema. Seven regression cases failed on preceding main; the focused workflow/GraphQL suite passes with the prepared fix. This finding remains actionable until independent review, green CI/Security and protected merge."
+      "disposition_note": "Fixed in protected merged PR #396 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 984 tests with 35 skips successfully. Required PostgreSQL CI passed the nullable creator migration and concurrent workflow publication coverage. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba"
     },
     {
       "pr_number": 34,
       "thread_id": "PRRT_kwDOTN0BU86Ti6GP",
       "comment_id": 3645257336,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/workflows/test_historical_publishing.py:test_editing_published_workflow_returns_it_to_draft"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Return edited published workflows to draft**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257336",
-      "disposition_note": "Individually inspected the original finding and reproduced its current behavior through the actual GraphQL schema. Seven regression cases failed on preceding main; the focused workflow/GraphQL suite passes with the prepared fix. This finding remains actionable until independent review, green CI/Security and protected merge."
+      "disposition_note": "Fixed in protected merged PR #396 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 984 tests with 35 skips successfully. Required PostgreSQL CI passed the nullable creator migration and concurrent workflow publication coverage. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba"
     },
     {
       "pr_number": 34,
       "thread_id": "PRRT_kwDOTN0BU86Ti6GQ",
       "comment_id": 3645257338,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/workflows/test_historical_publishing.py:test_publish_rejects_unsupported_or_incomplete_steps"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Validate workflow steps before publishing**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257338",
-      "disposition_note": "Individually inspected the original finding and reproduced its current behavior through the actual GraphQL schema. Seven regression cases failed on preceding main; the focused workflow/GraphQL suite passes with the prepared fix. This finding remains actionable until independent review, green CI/Security and protected merge."
+      "disposition_note": "Fixed in protected merged PR #396 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 984 tests with 35 skips successfully. Required PostgreSQL CI passed the nullable creator migration and concurrent workflow publication coverage. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba"
     },
     {
       "pr_number": 34,
@@ -1554,26 +1563,32 @@
       "thread_id": "PRRT_kwDOTN0BU86Ti6GX",
       "comment_id": 3645257346,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/workflows/test_historical_publishing.py:test_publish_rejects_unapproved_organizations"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Require an active organization before publishing**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257346",
-      "disposition_note": "Individually inspected the original finding and reproduced its current behavior through the actual GraphQL schema. Seven regression cases failed on preceding main; the focused workflow/GraphQL suite passes with the prepared fix. This finding remains actionable until independent review, green CI/Security and protected merge."
+      "disposition_note": "Fixed in protected merged PR #396 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 984 tests with 35 skips successfully. Required PostgreSQL CI passed the nullable creator migration and concurrent workflow publication coverage. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba"
     },
     {
       "pr_number": 34,
       "thread_id": "PRRT_kwDOTN0BU86Ti6Gd",
       "comment_id": 3645257352,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/workflows/test_historical_publishing.py:test_platform_actor_does_not_become_cross_tenant_policy_creator"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve the policy creator tenant invariant**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257352",
-      "disposition_note": "Individually inspected the original finding and reproduced its current behavior through the actual GraphQL schema. Seven regression cases failed on preceding main; the focused workflow/GraphQL suite passes with the prepared fix. This finding remains actionable until independent review, green CI/Security and protected merge."
+      "disposition_note": "Fixed in protected merged PR #396 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 984 tests with 35 skips successfully. Required PostgreSQL CI passed the nullable creator migration and concurrent workflow publication coverage. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba"
     },
     {
       "pr_number": 34,
@@ -1590,13 +1605,16 @@
       "thread_id": "PRRT_kwDOTN0BU86TjHUS",
       "comment_id": 3645332173,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/workflows/test_historical_publishing.py:test_same_workflow_name_can_publish_in_distinct_projects"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Namespace workflow policy names by project**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645332173",
-      "disposition_note": "Individually inspected the original finding and reproduced its current behavior through the actual GraphQL schema. Seven regression cases failed on preceding main; the focused workflow/GraphQL suite passes with the prepared fix. This finding remains actionable until independent review, green CI/Security and protected merge."
+      "disposition_note": "Fixed in protected merged PR #396 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 984 tests with 35 skips successfully. Required PostgreSQL CI passed the nullable creator migration and concurrent workflow publication coverage. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba"
     },
     {
       "pr_number": 34,
@@ -1633,13 +1651,16 @@
       "thread_id": "PRRT_kwDOTN0BU86TjLLX",
       "comment_id": 3645354155,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/workflows/test_historical_publishing.py:test_archived_workflow_cannot_be_republished"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Prevent archived workflows from being republished**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645354155",
-      "disposition_note": "Individually inspected the original finding and reproduced its current behavior through the actual GraphQL schema. Seven regression cases failed on preceding main; the focused workflow/GraphQL suite passes with the prepared fix. This finding remains actionable until independent review, green CI/Security and protected merge."
+      "disposition_note": "Fixed in protected merged PR #396 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 984 tests with 35 skips successfully. Required PostgreSQL CI passed the nullable creator migration and concurrent workflow publication coverage. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba"
     },
     {
       "pr_number": 34,
@@ -1666,27 +1687,33 @@
       "thread_id": "PRRT_kwDOTN0BU86TjOR9",
       "comment_id": 3645371548,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/config/graphql_mutations.py:preceding publication read and version allocation have no transaction or row lock",
         "backend/django/apps/workflows/test_publishing_races.py:three real PostgreSQL concurrent publication rounds selected in required CI"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Serialize workflow version allocation**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645371548",
-      "disposition_note": "Original source inspection confirms unguarded concurrent version allocation. The prepared fix shares a locked transactional publishing helper with REST. PostgreSQL race validation is explicitly required before protected merge; local SQLite cannot establish row-lock behavior."
+      "disposition_note": "Fixed in protected merged PR #396 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 984 tests with 35 skips successfully. Required PostgreSQL CI passed the nullable creator migration and concurrent workflow publication coverage. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba"
     },
     {
       "pr_number": 35,
       "thread_id": "PRRT_kwDOTN0BU86TjdvO",
       "comment_id": 3645461281,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/workflows/test_historical_publishing.py:test_same_workflow_name_can_publish_in_distinct_projects"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Namespace generated policies by project**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461281",
-      "disposition_note": "Individually inspected the original finding and reproduced its current behavior through the actual GraphQL schema. Seven regression cases failed on preceding main; the focused workflow/GraphQL suite passes with the prepared fix. This finding remains actionable until independent review, green CI/Security and protected merge."
+      "disposition_note": "Fixed in protected merged PR #396 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 984 tests with 35 skips successfully. Required PostgreSQL CI passed the nullable creator migration and concurrent workflow publication coverage. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba"
     },
     {
       "pr_number": 35,
@@ -1723,26 +1750,32 @@
       "thread_id": "PRRT_kwDOTN0BU86Tjdvc",
       "comment_id": 3645461302,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/workflows/test_historical_publishing.py:test_platform_publication_copies_execution_settings"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Copy workflow settings into its verification policy**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461302",
-      "disposition_note": "Individually inspected the original finding and reproduced its current behavior through the actual GraphQL schema. Seven regression cases failed on preceding main; the focused workflow/GraphQL suite passes with the prepared fix. This finding remains actionable until independent review, green CI/Security and protected merge."
+      "disposition_note": "Fixed in protected merged PR #396 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 984 tests with 35 skips successfully. Required PostgreSQL CI passed the nullable creator migration and concurrent workflow publication coverage. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba"
     },
     {
       "pr_number": 35,
       "thread_id": "PRRT_kwDOTN0BU86Tjdvf",
       "comment_id": 3645461305,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/workflows/test_historical_publishing.py:test_editing_published_workflow_returns_it_to_draft"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep published workflows immutable until versioned**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461305",
-      "disposition_note": "Individually inspected the original finding and reproduced its current behavior through the actual GraphQL schema. Seven regression cases failed on preceding main; the focused workflow/GraphQL suite passes with the prepared fix. This finding remains actionable until independent review, green CI/Security and protected merge."
+      "disposition_note": "Fixed in protected merged PR #396 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 984 tests with 35 skips successfully. Required PostgreSQL CI passed the nullable creator migration and concurrent workflow publication coverage. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba"
     },
     {
       "pr_number": 35,
@@ -3212,10 +3245,15 @@
       "thread_id": "PRRT_kwDOTN0BU86Vru-y",
       "comment_id": 3696930812,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_historical_public_contract.py:test_cursor_and_manual_review_pagination_are_separate"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Split cursor metadata from the shared pagination schema**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/189#discussion_r3696930812"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/189#discussion_r3696930812",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 189,
@@ -4423,20 +4461,34 @@
       "thread_id": "PRRT_kwDOTN0BU86V5Fvh",
       "comment_id": 3702062285,
       "path": "backend/ai-service/app/pad.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_pad.py:test_pad_model_converts_bgr_to_rgb",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Convert BGR frames to the model's RGB contract**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062285"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062285",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 222,
       "thread_id": "PRRT_kwDOTN0BU86V5Fvm",
       "comment_id": 3702062290,
       "path": "backend/ai-service/app/settings.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_health.py:test_model_manifest_detects_missing_and_altered_assets",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Require the PAD asset in the checksum manifest**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062290"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062290",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 222,
@@ -4463,40 +4515,68 @@
       "thread_id": "PRRT_kwDOTN0BU86V5Fv4",
       "comment_id": 3702062310,
       "path": "backend/ai-service/app/pad.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_pad.py:test_pad_model_runs_fixed_batch_one_frame_at_a_time",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Respect the ONNX model's fixed batch dimension**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062310"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062310",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 222,
       "thread_id": "PRRT_kwDOTN0BU86V5Fv-",
       "comment_id": 3702062319,
       "path": "backend/ai-service/app/bootstrap_models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_health.py:test_real_requirements_validate_pad_model_contract",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Validate the PAD session during bootstrap and readiness**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062319"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062319",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 222,
       "thread_id": "PRRT_kwDOTN0BU86V5FwD",
       "comment_id": 3702062325,
       "path": "backend/ai-service/app/settings.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_pad.py:test_pad_live_class_defaults_to_genuine_class",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Point the live class at MiniFASNetV2's genuine label**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062325"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062325",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 222,
       "thread_id": "PRRT_kwDOTN0BU86V5FwI",
       "comment_id": 3702062331,
       "path": "backend/ai-service/app/pipeline.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_health.py:test_liveness_pad_only_receives_exactly_one_face_frames",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Exclude frames without a detected face from PAD inference**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062331"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062331",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 240,
@@ -5634,50 +5714,75 @@
       "thread_id": "PRRT_kwDOTN0BU86XlHRZ",
       "comment_id": 3743102504,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/processing_jobs.py:_resource_processing_finished requires final verification state",
+        "backend/django/apps/verifications/test_historical_processing_invariants.py:test_liveness_result_without_final_decision_is_redispatched"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Require the entire biometric workflow to be complete**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/275#discussion_r3743102504"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/275#discussion_r3743102504",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 275,
       "thread_id": "PRRT_kwDOTN0BU86XlHRa",
       "comment_id": 3743102505,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/identity_documents/tasks.py:commit document state, provider updates, final audit and processing job inside one guarded transaction, after media promotion",
+        "backend/django/apps/verifications/processing_jobs.py:document_processing_committed requires the exact document audit marker",
+        "backend/django/apps/verifications/test_document_postprocessing_recovery.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Wait for document post-processing before declaring success**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/275#discussion_r3743102505"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/275#discussion_r3743102505",
+      "disposition_note": "Reproduced three baseline failures: terminal document status falsely completed jobs before postprocessing. The new atomic finalization and exact-document marker regressions pass, including interrupted-commit retry. Remains actionable until final review, CI and protected merge."
     },
     {
       "pr_number": 275,
       "thread_id": "PRRT_kwDOTN0BU86XlHRc",
       "comment_id": 3743102507,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/processing_jobs.py:exhaust_processing_job skips decision writes for final lifecycle states",
+        "backend/django/apps/verifications/test_historical_processing_invariants.py:test_exhaustion_preserves_cancelled_decision"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve decisions for terminal verifications**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/275#discussion_r3743102507"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/275#discussion_r3743102507",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 275,
       "thread_id": "PRRT_kwDOTN0BU86XlHRe",
       "comment_id": 3743102508,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/processing_jobs.py:_assert_processing_job_owner, heartbeat_processing_job, defer_processing_job",
+        "backend/django/apps/verifications/test_historical_processing_invariants.py:test_superseded_generation_cannot_mutate_replacement_or_completed_job"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Fence lease updates to the attempt that acquired them**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/275#discussion_r3743102508"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/275#discussion_r3743102508",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 275,
       "thread_id": "PRRT_kwDOTN0BU86XlHRg",
       "comment_id": 3743102511,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_processing_job_lifecycle_recovery.py:test_retry_exhaustion_queues_lifecycle_outbox_and_notification_atomically",
+        "backend/django/apps/verifications/test_processing_job_lifecycle_recovery.py:test_retry_exhaustion_rolls_back_when_outbox_insert_fails"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Emit the standard side effects for exhaustion review routing**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/275#discussion_r3743102511"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/275#discussion_r3743102511",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 276,
@@ -6636,30 +6741,51 @@
       "thread_id": "PRRT_kwDOTN0BU86Yq35I",
       "comment_id": 3768940364,
       "path": "backend/ai-service/app/pipeline.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_health.py:test_liveness_fails_video_without_two_single_face_frames",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Return a failed result for invalid face evidence**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3768940364"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3768940364",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 293,
       "thread_id": "PRRT_kwDOTN0BU86Yq35M",
       "comment_id": 3768940372,
       "path": "backend/ai-service/app/pipeline.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_health.py:test_liveness_requires_two_valid_frames_for_single_frame_video",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Require two valid frames for every video asset**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3768940372"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3768940372",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 293,
       "thread_id": "PRRT_kwDOTN0BU86Yq35S",
       "comment_id": 3768940381,
       "path": "backend/ai-service/app/pad.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_pad.py:test_pad_contract_rejects_non_float_input",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate the PAD input tensor element type**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3768940381"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3768940381",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 293,
@@ -6676,30 +6802,51 @@
       "thread_id": "PRRT_kwDOTN0BU86Yq35h",
       "comment_id": 3768940399,
       "path": "backend/ai-service/app/pad.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_pad.py:test_pad_contract_rejects_rank_one_output",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve logits from rank-one model outputs**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3768940399"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3768940399",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 293,
       "thread_id": "PRRT_kwDOTN0BU86YrLL0",
       "comment_id": 3769051829,
       "path": "backend/ai-service/app/settings.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_pad.py:test_pad_model_contract_cache_is_keyed_by_model_digest",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Avoid rebuilding the ONNX session on every readiness probe**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3769051829"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3769051829",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 293,
       "thread_id": "PRRT_kwDOTN0BU86YrLL2",
       "comment_id": 3769051833,
       "path": "backend/ai-service/app/pad.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/ai-service/tests/test_pad.py:test_pad_contract_rejects_non_float_output",
+        "backend/ai-service/app/pad.py:inspected contract, batching, channel conversion and digest cache",
+        "backend/ai-service/app/pipeline.py:inspected single-face filtering and failed evidence results",
+        "https://github.com/quarj0/IdentityCore/actions/runs/38054015962/job/115227985954"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject unsupported PAD output tensor types**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3769051833"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3769051833",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original PAD/readiness finding against current main implementation and its regression. All 75 AI-service tests passed in immutable successful CI for merged PR #391, including all eight test_pad.py tests and all 27 test_health.py tests. The bootstrap calls the same PAD contract validator before building its manifest; current changes supersede the original finding."
     },
     {
       "pr_number": 295,
@@ -6916,20 +7063,30 @@
       "thread_id": "PRRT_kwDOTN0BU86Y-lwi",
       "comment_id": 3776500943,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_historical_public_contract.py:test_upload_operations_require_bearer_and_session_id_together"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Model the required session ID credential**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776500943"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776500943",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86Y-lws",
       "comment_id": 3776500952,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_historical_public_contract.py:test_refresh_cookie_and_audit_bearer_match_their_authentication"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Do not advertise unsupported cookie authentication**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776500952"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776500952",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
@@ -6956,10 +7113,15 @@
       "thread_id": "PRRT_kwDOTN0BU86Y-lxG",
       "comment_id": 3776500984,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_historical_public_contract.py:test_audit_and_review_page_limits_match_backend"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Publish the audit page-size ceiling**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776500984"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776500984",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
@@ -6986,40 +7148,60 @@
       "thread_id": "PRRT_kwDOTN0BU86Y-79J",
       "comment_id": 3776632839,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_historical_public_contract.py:test_refresh_cookie_and_audit_bearer_match_their_authentication"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Declare the refresh cookie as a credential**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776632839"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776632839",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86Y-79M",
       "comment_id": 3776632844,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_historical_public_contract.py:test_mfa_challenge_response_exposes_followup_credentials"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Define the MFA challenge response schema**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776632844"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776632844",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86Y-79P",
       "comment_id": 3776632847,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_openapi_contract.py:test_session_success_responses_are_typed"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Define response schemas for verification sessions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776632847"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776632847",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86Y_fJ1",
       "comment_id": 3776842015,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_openapi_contract.py:test_policy_document_types_match_the_accepted_catalog"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Constrain policy document types to accepted values**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776842015"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776842015",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
@@ -7036,30 +7218,45 @@
       "thread_id": "PRRT_kwDOTN0BU86Y_5_K",
       "comment_id": 3776998446,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_openapi_contract.py:test_verification_session_request_schemas_match_required_inputs"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Provide a valid document-session request example**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776998446"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776998446",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86Y_5_M",
       "comment_id": 3776998448,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_openapi_contract.py:test_policy_threshold_ordering_constraint_is_documented"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Document the ordering constraint between policy thresholds**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776998448"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776998448",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86Y_5_O",
       "comment_id": 3776998450,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_openapi_contract.py:test_public_mfa_flow_and_refresh_origin_failure_are_documented"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Document the refresh endpoint's origin-rejection response**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776998450"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776998450",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
@@ -7086,50 +7283,75 @@
       "thread_id": "PRRT_kwDOTN0BU86ZARMi",
       "comment_id": 3777138617,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_openapi_contract.py:test_active_liveness_requires_a_challenge_id"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Require the challenge ID for active liveness**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3777138617"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3777138617",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86ZAmYw",
       "comment_id": 3777268256,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_historical_public_contract.py:test_client_scope_responses_can_represent_arbitrary_persisted_values"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Allow creation of clients with the policy-read scope**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3777268256"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3777268256",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86ZAmY0",
       "comment_id": 3777268262,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_historical_public_contract.py:test_audit_and_review_page_limits_match_backend"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Expose the manual-review pagination parameters**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3777268262"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3777268262",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86ZAmY6",
       "comment_id": 3777268269,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_openapi_contract.py:test_verification_detail_and_manual_review_variants_match_views"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Stop requiring summary-only fields in verification details**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3777268269"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3777268269",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86ZA4A4",
       "comment_id": 3777372475,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_historical_public_contract.py:test_client_scope_responses_can_represent_arbitrary_persisted_values"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Align the scope enum with accepted PATCH values**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3777372475"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3777372475",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 300,
@@ -7409,10 +7631,14 @@
       "thread_id": "PRRT_kwDOTN0BU86bZurX",
       "comment_id": 3836412271,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_processing_job_evidence_preservation.py:test_retry_exhaustion_preserves_completed_liveness_evidence"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve successful biometrics when finalization retries exhaust**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836412271"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836412271",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
@@ -7429,10 +7655,14 @@
       "thread_id": "PRRT_kwDOTN0BU86bZ2ek",
       "comment_id": 3836458305,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_processing_job_review_races.py:test_exhausted_job_aborts_surrounding_finalization_transaction"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Abort finalization after job exhaustion**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836458305"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836458305",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
@@ -7449,90 +7679,127 @@
       "thread_id": "PRRT_kwDOTN0BU86bZ2er",
       "comment_id": 3836458312,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_processing_job_review_races.py:test_route_exhaustion_repairs_only_the_originating_biometric_job"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Scope route-exhaustion repair to its originating job**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836458312"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836458312",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
       "thread_id": "PRRT_kwDOTN0BU86bZ2et",
       "comment_id": 3836458314,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_processing_job_review_races.py:test_max_attempt_sweep_grants_one_resume_for_committed_provider_result"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Recover committed results before the exhaustion decision**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836458314"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836458314",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
       "thread_id": "PRRT_kwDOTN0BU86baF6g",
       "comment_id": 3836549732,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_processing_invariants.py:test_failed_broker_preserves_grace_until_successful_worker_acquisition"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Do not consume recovery grace before broker publication**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836549732"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836549732",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
       "thread_id": "PRRT_kwDOTN0BU86baF6h",
       "comment_id": 3836549733,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_processing_invariants.py:test_route_repair_updates_exact_face_instead_of_newer_unrelated_row"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Carry the exact face-match ID into exhaustion repair**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836549733"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836549733",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
       "thread_id": "PRRT_kwDOTN0BU86baF6k",
       "comment_id": 3836549737,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_processing_invariants.py:test_already_resolved_row_retains_one_finalization_grace"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Grant recovery when biometric rows already consumed the result**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836549737"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836549737",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
       "thread_id": "PRRT_kwDOTN0BU86baF6m",
       "comment_id": 3836549739,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_processing_invariants.py:test_superseded_generation_cannot_mutate_replacement_or_completed_job"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reject completion from superseded processing attempts**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836549739"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836549739",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
       "thread_id": "PRRT_kwDOTN0BU86baISD",
       "comment_id": 3836563585,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/test_route_final_action_ownership.py:test_exhausted_job_blocks_route_decision_before_side_effects_commit"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Check ownership before committing route exhaustion**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836563585"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836563585",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
       "thread_id": "PRRT_kwDOTN0BU86baISF",
       "comment_id": 3836563587,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_processing_lock_race.py:test_finalization_and_exhaustion_share_lock_order"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Acquire verification and job locks in one order**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836563587"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836563587",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
       "thread_id": "PRRT_kwDOTN0BU86baMNR",
       "comment_id": 3836586941,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_document_postprocessing_recovery.py:test_lost_owner_escapes_without_provider_failure_writes",
+        "backend/django/apps/biometrics/tasks.py:explicit ProcessingJobOwnershipLost propagation before broad exception handler"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Let lost-ownership signals escape worker error handling**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836586941"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836586941",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
@@ -7554,10 +7821,14 @@
       "thread_id": "PRRT_kwDOTN0BU86bad0m",
       "comment_id": 3836692039,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_processing_invariants.py:test_recovery_requires_every_pending_biometric_stage"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Require every pending biometric stage to be recoverable**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836692039"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836692039",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 303,
@@ -7584,20 +7855,29 @@
       "thread_id": "PRRT_kwDOTN0BU86ba9oi",
       "comment_id": 3836881140,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_processing_invariants.py:test_wrong_capability_or_resource_cannot_grant_grace",
+        "backend/django/apps/verifications/test_historical_processing_invariants.py:test_recovery_requires_every_pending_biometric_stage"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Verify that linked evidence belongs to its biometric stage**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3836881140"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3836881140",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 304,
       "thread_id": "PRRT_kwDOTN0BU86bbENv",
       "comment_id": 3836920422,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_processing_job_review_races.py:test_max_attempt_sweep_grants_one_resume_for_committed_provider_result canonical normalized capability fixture"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Commit the canonical recovery fixture update**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3836920422"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3836920422",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 304,
@@ -8330,10 +8610,15 @@
       "thread_id": "PRRT_kwDOTN0BU86hnTat",
       "comment_id": 3992799294,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_historical_public_contract.py:test_replay_validation_and_metrics_authorization_are_documented"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Document the replay endpoint's validation response**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3992799294"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3992799294",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 312,
@@ -8778,10 +9063,15 @@
       "thread_id": "PRRT_kwDOTN0BU86mZAU9",
       "comment_id": 4114763403,
       "path": "docs/openapi/identitycore-public-api.yaml",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:inspected the original operation, schema or security requirement",
+        "backend/django/config/test_historical_public_contract.py:test_replay_validation_and_metrics_authorization_are_documented"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Document authorization failures for both metrics operations**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/327#discussion_r4114763403"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/327#discussion_r4114763403",
+      "verified_main": "4595e2e6810feeb1bd5498e81f2a0f1876970d2c",
+      "disposition_note": "Individually inspected the original finding against the current public contract and corresponding backend behavior. All 38 schema/parity regressions passed, including seven focused historical invariants; the account, analytics, webhook and contract suite ran 162 tests with six PostgreSQL-only skips and passed using locked Strawberry 0.327.2. Existing corrections supersede this historical finding."
     },
     {
       "pr_number": 328,
@@ -9098,10 +9388,14 @@
       "thread_id": "PRRT_kwDOTN0BU86o3YDc",
       "comment_id": 4179682116,
       "path": "backend/django/apps/verifications/processing_jobs.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_processing_invariants.py:test_failed_broker_preserves_grace_until_successful_worker_acquisition"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve the biometric recovery marker during dispatch**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/350#discussion_r4179682116"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/350#discussion_r4179682116",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3",
+      "disposition_note": "Individually inspected the original finding against current-main implementation. New regressions validate the existing generation fencing, correlated evidence and recovery budget; 14 SQLite regressions and 15 actual PostgreSQL regressions passed, including three concurrent lock-order races. Full backend regression validation accompanies this audit batch."
     },
     {
       "pr_number": 351,
@@ -10529,6 +10823,6 @@
       "disposition_note": "Resolved in protected merged PR #390 after fresh review and successful final-head CI/Security."
     }
   ],
-  "verified_main": "fb58565af0116803a4f6dba873d7808774213576",
-  "inventory_note": "823 threads from closed or merged PRs: 157 fixed, 196 verified, 11 actionable and 459 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
+  "verified_main": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba",
+  "inventory_note": "823 threads from closed or merged PRs: 168 fixed, 245 verified, 1 actionable and 409 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
 }
