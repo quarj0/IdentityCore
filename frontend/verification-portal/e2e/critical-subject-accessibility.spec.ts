@@ -25,7 +25,9 @@ async function activateForBrowser(
   key = "Enter",
 ) {
   if (isMobile) {
-    await locator.click();
+    // Exercise touch input on mobile projects; synthesized mouse clicks can
+    // be swallowed by WebKit while a captured image changes page geometry.
+    await locator.tap();
     return;
   }
   await activateWithKeyboard(locator, key);
