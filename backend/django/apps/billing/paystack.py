@@ -108,3 +108,10 @@ def valid_webhook(body, signature):
         _secret().encode("utf-8"), body, hashlib.sha512
     ).hexdigest()
     return hmac.compare_digest(computed, signature.lower())
+
+
+def verify_refund(*, refund_id):
+    """Independently fetch the refund before recording any credit adjustment."""
+    if type(refund_id) is not int or refund_id <= 0:
+        raise GatewayError("Invalid refund identifier")
+    return _api("GET", "/refund/" + str(refund_id))
