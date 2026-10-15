@@ -262,3 +262,39 @@ class HistoricalTemplateLifecycleTests(APITestCase):
         )
         self.assertIsNotNone(result.errors)
         self.assertEqual(Template.objects.count(), 1)
+
+    def test_equivalent_numeric_version_aliases_cannot_create_two_drafts(self):
+        self.template.status = "published"
+        self.template.save(update_fields=["status"])
+        query = "mutation($id:String!,$version:String!){createPlatformTemplateVersion(templateId:$id,version:$version){id version}}"
+        first = self.graphql(query, {"id": self.template.public_id, "version": "1.1"})
+        self.assertIsNone(first.errors, first.errors)
+        for version in ["1.1.0", "01.1"]:
+            with self.subTest(version=version):
+                result = self.graphql(
+                    query, {"id": self.template.public_id, "version": version}
+                )
+                self.assertIsNotNone(result.errors)
+        self.assertEqual(
+            Template.objects.filter(slug=self.template.slug, status="draft").count(), 1
+        )
+
+    def test_legacy_trailing_zero_version_blocks_equivalent_new_version(self):
+        self.template.status = "published"
+        self.template.save(update_fields=["status"])
+        legacy = Template.objects.create(
+            name=self.template.name,
+            slug=self.template.slug,
+            category=self.template.category,
+            status="published",
+            version="1.1.0",
+            created_by=self.admin,
+        )
+        result = self.graphql(
+            'mutation($id:String!){createPlatformTemplateVersion(templateId:$id,version:"1.1"){id}}',
+            {"id": self.template.public_id},
+        )
+        self.assertIsNotNone(result.errors)
+        self.assertEqual(Template.objects.filter(slug=self.template.slug).count(), 2)
+        legacy.refresh_from_db()
+        self.assertEqual(legacy.version, "1.1.0")

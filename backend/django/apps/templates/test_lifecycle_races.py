@@ -34,7 +34,7 @@ class TemplateLifecycleRaceTests(APITransactionTestCase):
             )
             start = Barrier(2)
 
-            def create_version():
+            def create_version(version):
                 close_old_connections()
                 try:
                     with connection.cursor() as cursor:
@@ -44,8 +44,8 @@ class TemplateLifecycleRaceTests(APITransactionTestCase):
                     request.user = PlatformUser.objects.get(pk=admin.pk)
                     start.wait(timeout=10)
                     result = schema.execute_sync(
-                        'mutation($id:String!){createPlatformTemplateVersion(templateId:$id,version:"1.1"){id}}',
-                        variable_values={"id": source.public_id},
+                        "mutation($id:String!,$version:String!){createPlatformTemplateVersion(templateId:$id,version:$version){id}}",
+                        variable_values={"id": source.public_id, "version": version},
                         context_value={"request": request},
                     )
                     return [error.message for error in result.errors or []]
@@ -53,7 +53,9 @@ class TemplateLifecycleRaceTests(APITransactionTestCase):
                     connection.close()
 
             with ThreadPoolExecutor(max_workers=2) as pool:
-                first, second = pool.submit(create_version), pool.submit(create_version)
+                first, second = pool.submit(create_version, "1.1"), pool.submit(
+                    create_version, "1.1.0"
+                )
                 results = [first.result(timeout=25), second.result(timeout=25)]
             self.assertEqual(sorted(len(errors) for errors in results), [0, 1])
             self.assertIn(

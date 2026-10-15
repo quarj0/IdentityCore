@@ -142,24 +142,48 @@ def instantiate_workflow_template(
     return workflow, True
 
 
+def normalized_template_version(version):
+    if not re.fullmatch(r"[0-9]+(?:\.[0-9]+){1,2}", version) or len(version) > 32:
+        raise GraphQLError("Use a numeric template version such as 1.1 or 1.1.0.")
+    parts = [int(item) for item in version.split(".")]
+    if len(parts) == 3 and parts[2] == 0:
+        parts.pop()
+    return ".".join(str(item) for item in parts)
+
+
 def insert_template(**values):
     if not values.get("name", "").strip() or len(values["name"]) > 255:
         raise GraphQLError("Provide a template name of 1 to 255 characters.")
     slug = values["slug"]
-    version = values["version"]
+    version = normalized_template_version(values["version"])
+    values["version"] = version
     if not slug or len(slug) > 255:
         raise GraphQLError(
             "Provide a name that generates a nonempty slug of at most 255 characters."
         )
-    if not re.fullmatch(r"[0-9]+(?:\.[0-9]+){1,2}", version) or len(version) > 32:
-        raise GraphQLError("Use a numeric template version such as 1.1 or 1.1.0.")
-    if Template.objects.filter(slug=slug, version=version).exists():
+
+    def version_exists():
+        # Retain legacy rows verbatim while rejecting semantic aliases. All new
+        # writers store a canonical value, so the DB uniqueness constraint also
+        # protects concurrent canonical/aliased insertion attempts.
+        for existing in Template.objects.filter(slug=slug).values_list(
+            "version", flat=True
+        ):
+            try:
+                normalized = normalized_template_version(existing)
+            except GraphQLError:
+                continue
+            if normalized == version:
+                return True
+        return False
+
+    if version_exists():
         raise GraphQLError("A template with this slug and version already exists.")
     try:
         with transaction.atomic():
             return Template.objects.create(**values)
     except IntegrityError:
-        if Template.objects.filter(slug=slug, version=version).exists():
+        if version_exists():
             raise GraphQLError(
                 "A template with this slug and version already exists."
             ) from None
@@ -180,11 +204,8 @@ def validate_template_settings(settings):
 
 
 def require_later_template_version(source, proposed):
-    pattern = r"[0-9]+(?:\.[0-9]+){1,2}"
-    if not re.fullmatch(pattern, proposed) or len(proposed) > 32:
-        raise GraphQLError("Use a numeric template version such as 1.1 or 1.1.0.")
-    if not re.fullmatch(pattern, source):
-        raise GraphQLError("The source must have a numeric template version.")
+    source = normalized_template_version(source)
+    proposed = normalized_template_version(proposed)
 
     def parts(value):
         return tuple(int(item) for item in value.split(".")) + (0,) * (
@@ -193,3 +214,4 @@ def require_later_template_version(source, proposed):
 
     if parts(proposed) <= parts(source):
         raise GraphQLError("The new template version must be later than its source.")
+    return proposed

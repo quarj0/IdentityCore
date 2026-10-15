@@ -24,7 +24,7 @@ Protected merged PR #394 fixes five individually reproduced manual review protoc
 
 The idempotency CORS concern is independently verified against current defaults, common middleware and the actual API preflight regression. Template mutations refresh active actor permissions under the platform serialization lock and preserve valid tenant-bound or tenantless audit scope; instantiation acquires its audit scope before template counter locks.
 
-Six additional original template form findings are reproduced and remediated locally: successful dialog closure, required checks and usable workflow steps, persisted description edits, and template/workflow operator rationale in authenticated audit metadata. They remain actionable until protected merge. Full backend ran 998 tests with 36 skips; all twenty corresponding browser cases passed.
+Six additional original template form findings are reproduced and remediated locally: successful dialog closure, required checks and usable workflow steps, persisted description edits, and template/workflow operator rationale in authenticated audit metadata. They remain actionable until protected merge. Full backend ran 1000 tests with 36 skips; all twenty corresponding browser cases passed.
 
 Protected merged PR #396 fixes eleven individually audited workflow publication findings. Its final head passed fresh review after canonical resolver evidence, all PR/push CI and Security and dedicated App validation. Required PostgreSQL CI passed migration and concurrency coverage; the narrow temporary CI-selector approval was removed after trusted merge.
 

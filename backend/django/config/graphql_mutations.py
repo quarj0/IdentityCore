@@ -330,7 +330,7 @@ class Mutation:
         if source.status != TemplateStatus.PUBLISHED:
             raise GraphQLError("Create a new version from a published template.")
         version = version.strip()
-        require_later_template_version(source.version, version)
+        version = require_later_template_version(source.version, version)
         # Stable identity and immutable source; version uniqueness is enforced
         # again at insertion to return a deliberate error for concurrent requests.
         clone = insert_template(

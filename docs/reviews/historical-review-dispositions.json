@@ -1566,7 +1566,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Close the creation dialog after a successful submit**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257344",
-      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 998 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
+      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 1000 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
     },
     {
       "pr_number": 34,
@@ -1614,7 +1614,7 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Include required checks when creating templates**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645332168",
-      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 998 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
+      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 1000 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
     },
     {
       "pr_number": 34,
@@ -1666,7 +1666,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Submit the edited template description**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645354154",
-      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 998 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
+      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 1000 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
     },
     {
       "pr_number": 34,
@@ -1761,7 +1761,7 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Provide required checks for newly created templates**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461291",
-      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 998 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
+      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 1000 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
     },
     {
       "pr_number": 35,
@@ -1777,7 +1777,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Submit the edited template description**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461294",
-      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 998 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
+      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 1000 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
     },
     {
       "pr_number": 35,
@@ -1840,7 +1840,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve publish and archive notes**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461308",
-      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 998 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
+      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 1000 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
     },
     {
       "pr_number": 35,
@@ -2299,7 +2299,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate generated template slugs before inserting**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207292",
-      "disposition_note": "Slug collisions now return deliberate validation errors with insertion savepoint handling. Full backend ran 998 tests with 36 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
+      "disposition_note": "Slug collisions now return deliberate validation errors with insertion savepoint handling. Full backend ran 1000 tests with 36 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
     },
     {
       "pr_number": 49,
@@ -2315,7 +2315,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Hide editing controls for published templates**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207294",
-      "disposition_note": "Draft-only edit/publish controls and published-only archive/new-version controls are verified in Chromium and WebKit. Full backend ran 998 tests with 36 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
+      "disposition_note": "Draft-only edit/publish controls and published-only archive/new-version controls are verified in Chromium and WebKit. Full backend ran 1000 tests with 36 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
     },
     {
       "pr_number": 49,
@@ -2341,7 +2341,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate setting values before publishing templates**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207299",
-      "disposition_note": "Publication validates supported policy types, ranges and cross-field constraints, while excluding tenant consent bindings from global templates. Full backend ran 998 tests with 36 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
+      "disposition_note": "Publication validates supported policy types, ranges and cross-field constraints, while excluding tenant consent bindings from global templates. Full backend ran 1000 tests with 36 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
     },
     {
       "pr_number": 49,
@@ -2357,7 +2357,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Provide a path to create later template versions**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207303",
-      "disposition_note": "Explicit createPlatformTemplateVersion preserves stable slug and source publication while creating an editable later numeric version. Full backend ran 998 tests with 36 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
+      "disposition_note": "Explicit createPlatformTemplateVersion preserves stable slug and source publication while creating an editable later numeric version. Full backend ran 1000 tests with 36 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
     },
     {
       "pr_number": 56,
