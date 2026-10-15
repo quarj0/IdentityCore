@@ -64,6 +64,8 @@ from apps.verifications.models import (
     VERIFICATION_SESSION_ACTIONS,
     VerificationSession,
     VerificationSessionStatus,
+    VerificationReviewOwner,
+    VerificationApprovalStatus,
     VerificationStatus,
 )
 from apps.verifications.review_access import manual_review_queryset_for_user
@@ -621,7 +623,10 @@ class Mutation:
                     "reverification_reason": normalized_reason,
                 },
             },
-            context={"request": request},
+            context={
+                "request": request,
+                "trusted_review_owner": VerificationReviewOwner.PLATFORM,
+            },
         )
         try:
             serializer.is_valid(raise_exception=True)
@@ -1447,6 +1452,25 @@ class Mutation:
         )
         serializer.is_valid(raise_exception=True)
         decision_record = serializer.save(verification=verification, decided_by=user)
+        if getattr(decision_record, "_review_assigned_now", False):
+            record_audit_event(
+                tenant=verification.tenant,
+                actor=user,
+                request=request,
+                action="verification.review_assigned",
+                target_type="verification",
+                target_id=verification.public_id,
+                metadata={"reviewer_id": user.public_id},
+            )
+        if decision_record.approval_status == VerificationApprovalStatus.PENDING:
+            return ManualDecisionPayload(
+                verification_id=verification.public_id,
+                decision=decision_record.decision,
+                decision_type=decision_record.decision_type,
+                decided_at=decision_record.decided_at.isoformat(),
+                approval_status=decision_record.approval_status,
+                approval_required=True,
+            )
         record_audit_event(
             tenant=verification.tenant,
             actor=user,
