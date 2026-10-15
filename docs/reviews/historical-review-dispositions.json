@@ -10634,8 +10634,27 @@
         "docs/reviews/historical-review-dispositions.json:inventory metadata agrees with independently inspected rows"
       ],
       "disposition_note": "Resolved in protected merged PR #390 after fresh review and successful final-head CI/Security."
+    },
+    {
+      "pr_number": 396,
+      "thread_id": "PRRT_kwDOTN0BU86sjV40",
+      "comment_id": 4277158142,
+      "path": "backend/django/config/graphql_mutations.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject no-op workflow updates before drafting**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/396#discussion_r4277158142",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba",
+      "resolver_evidence": "Fixed in 8e2a0776d4e5faa1b39a14f1e2570d80a750fcc8. Validation: 56 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/workflows/test_historical_publishing.py:test_noop_updates_preserve_publication_and_emit_no_update_audit",
+        "backend/django/apps/workflows/serializers.py:detect actual changes before drafting and preserve locked current state",
+        "docs/operations/review-evidence-gate.md:protected merge, standalone canonical evidence and removed exact-head maintenance approval"
+      ],
+      "disposition_note": "Late no-op workflow edit finding fixed in protected merged PR #396 after independent final-head review newer than canonical resolution, green CI/Security, actual PostgreSQL migration/concurrency CI and dedicated App success. Full backend ran 984 with 35 skips successfully; narrow temporary CI-selector approval removed after trusted merge."
     }
   ],
   "verified_main": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba",
-  "inventory_note": "823 threads from closed or merged PRs: 168 fixed, 198 verified, 11 actionable and 446 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
+  "inventory_note": "824 threads from closed or merged PRs: 169 fixed, 198 verified, 11 actionable and 446 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
 }
