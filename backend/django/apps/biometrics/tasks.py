@@ -17,6 +17,7 @@ from apps.biometrics.models import (
 )
 from apps.notifications.services import queue_verification_status_notifications
 from apps.providers.adapters import (
+    PROVIDER_CONTRACT_VERSION,
     ProviderContractError,
     run_face_compare,
     run_liveness_check,
@@ -719,12 +720,27 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                             "Biometric processing was unavailable.",
                         )
                         failed_check.completed_at = now
+                        failed_check.response_metadata_json = {
+                            "outcome": failed_check.status,
+                            "error_code": error_code,
+                        }
+                        failed_check.normalized_result_json = {
+                            "contract_version": PROVIDER_CONTRACT_VERSION,
+                            "capability": failed_check.check_type,
+                            "status": failed_check.status,
+                            "error": {
+                                "code": error_code,
+                                "retryable": bool(getattr(exc, "retryable", False)),
+                            },
+                        }
                         failed_check.save(
                             update_fields=[
                                 "status",
                                 "error_code",
                                 "error_message",
                                 "completed_at",
+                                "response_metadata_json",
+                                "normalized_result_json",
                                 "updated_at",
                             ]
                         )

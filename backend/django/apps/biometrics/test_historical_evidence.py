@@ -261,3 +261,11 @@ class HistoricalBiometricEvidenceTests(TestCase):
         self.assertEqual(
             self.liveness_provider_check.error_code, "provider_invalid_response"
         )
+        self.assertEqual(
+            self.liveness_provider_check.normalized_result_json["status"], "failed"
+        )
+        self.assertEqual(
+            self.liveness_provider_check.normalized_result_json["error"]["code"],
+            "provider_invalid_response",
+        )
+        self.assertNotIn("metrics", self.liveness_provider_check.normalized_result_json)
