@@ -205,6 +205,100 @@ class HistoricalWorkflowPublishingTests(APITestCase):
         self.assertIsNone(event.tenant_id)
         self.assertEqual(event.actor_id, self.admin.public_id)
 
+    def test_stale_edit_cannot_reset_the_published_version_counter(self):
+        from apps.workflows.serializers import WorkflowSerializer
+
+        workflow = self.workflow()
+        stale = Workflow.objects.get(pk=workflow.pk)
+        self.assertIsNone(self.publish(workflow).errors)
+        request = RequestFactory().patch("/api/v1/workflows/")
+        request.user = self.user
+        serializer = WorkflowSerializer(
+            stale,
+            data={"description": "Edited after publication"},
+            partial=True,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        workflow.refresh_from_db()
+        self.assertEqual(workflow.current_version, 1)
+        self.assertEqual(stale.current_version, 1)
+        self.assertEqual(workflow.status, "draft")
+
+    def test_stale_partial_settings_edit_preserves_concurrent_changes(self):
+        from apps.workflows.serializers import WorkflowSerializer
+
+        workflow = self.workflow(settings_json={"face_match_threshold": 0.85})
+        stale = Workflow.objects.get(pk=workflow.pk)
+        workflow.settings_json = {"face_match_threshold": 0.94}
+        workflow.save(update_fields=["settings_json", "updated_at"])
+        request = RequestFactory().patch("/api/v1/workflows/")
+        request.user = self.user
+        serializer = WorkflowSerializer(
+            stale,
+            data={"settings": {"media_retention_days": 7}},
+            partial=True,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        workflow.refresh_from_db()
+        self.assertEqual(workflow.settings_json["face_match_threshold"], 0.94)
+        self.assertEqual(workflow.settings_json["media_retention_days"], 7)
+
+    def test_publication_refreshes_the_callers_current_configuration(self):
+        from apps.workflows.serializers import publish_workflow
+
+        workflow = self.workflow()
+        stale = Workflow.objects.get(pk=workflow.pk)
+        workflow.name = "Updated configuration"
+        workflow.settings_json = {"face_match_threshold": 0.94}
+        workflow.save(update_fields=["name", "settings_json", "updated_at"])
+        version = publish_workflow(stale, self.user)
+        self.assertEqual(version.workflow_name, "Updated configuration")
+        self.assertEqual(stale.name, "Updated configuration")
+        self.assertEqual(stale.settings_json["face_match_threshold"], 0.94)
+
+    def test_noop_updates_preserve_publication_and_emit_no_update_audit(self):
+        from apps.audit.models import AuditEvent
+
+        queries = [
+            (
+                "mutation($id:String!){updatePlatformWorkflow(workflowId:$id){id status}}",
+                {},
+                True,
+            ),
+            (
+                "mutation($id:String!,$settings:JSON!){updatePlatformWorkflow(workflowId:$id,settings:$settings){id status}}",
+                {"settings": {}},
+                False,
+            ),
+            (
+                'mutation($id:String!){updatePlatformWorkflow(workflowId:$id,steps:["consent","document","decision"]){id status}}',
+                {},
+                False,
+            ),
+        ]
+        for index, (query, variables, should_error) in enumerate(queries):
+            with self.subTest(index=index):
+                workflow = self.workflow(
+                    name=f"No-op {index}", status="published", current_version=1
+                )
+                result = self.graphql(query, {"id": workflow.public_id, **variables})
+                if should_error:
+                    self.assertIsNotNone(result.errors)
+                else:
+                    self.assertIsNone(result.errors, result.errors)
+                workflow.refresh_from_db()
+                self.assertEqual(workflow.status, "published")
+                self.assertEqual(workflow.current_version, 1)
+                self.assertFalse(
+                    AuditEvent.objects.filter(
+                        action="workflow.updated", target_id=workflow.public_id
+                    ).exists()
+                )
+
     def test_invalid_settings_cannot_be_published(self):
         for settings in [
             {"media_retention_days": "thirty"},

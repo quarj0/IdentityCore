@@ -414,9 +414,7 @@ class Mutation:
     ) -> WorkflowNode:
         actor = require_platform_admin(info)
         workflow = get_object_or_404(
-            Workflow.objects.select_for_update(of=("self",)).select_related(
-                "tenant", "project", "created_by"
-            ),
+            Workflow.objects.select_related("tenant", "project", "created_by"),
             public_id=workflow_id,
         )
         data = {
@@ -429,6 +427,8 @@ class Mutation:
             }.items()
             if value is not None
         }
+        if not data:
+            raise GraphQLError("Provide at least one workflow field to update.")
         serializer = WorkflowSerializer(
             workflow,
             data=data,
@@ -440,14 +440,15 @@ class Mutation:
             workflow = serializer.save()
         except DRFValidationError as exc:
             raise GraphQLError(str(exc.detail)) from exc
-        record_audit_event(
-            tenant=workflow.tenant,
-            actor=actor,
-            request=info.context["request"],
-            action="workflow.updated",
-            target_type="workflow",
-            target_id=workflow.public_id,
-        )
+        if workflow._workflow_changed:
+            record_audit_event(
+                tenant=workflow.tenant,
+                actor=actor,
+                request=info.context["request"],
+                action="workflow.updated",
+                target_type="workflow",
+                target_id=workflow.public_id,
+            )
         return Mutation._workflow_node(workflow)
 
     @strawberry.mutation

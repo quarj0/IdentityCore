@@ -1,4 +1,5 @@
 from django.db import transaction
+from apps.audit.services import lock_audit_chain
 from rest_framework import serializers
 from apps.verification_policies.models import (
     VerificationPolicy,
@@ -83,7 +84,8 @@ class WorkflowSerializer(serializers.Serializer):
             if self.instance is not None
             else self.context["request"].user.tenant
         )
-        return validated_workflow_settings({**existing, **value}, tenant=tenant)
+        validated = validated_workflow_settings({**existing, **value}, tenant=tenant)
+        return {key: validated[key] for key in value}
 
     def validate(self, attrs):
         request = self.context["request"]
@@ -121,9 +123,14 @@ class WorkflowSerializer(serializers.Serializer):
             settings_json={**DEFAULT_SETTINGS, **data["settings"]},
         )
 
+    @transaction.atomic
     def update(self, instance, data):
+        caller_instance = instance
+        lock_audit_chain(instance.tenant_id)
+        instance = Workflow.objects.select_for_update(of=("self",)).get(pk=instance.pk)
         if instance.status == WorkflowStatus.ARCHIVED:
             raise serializers.ValidationError("Archived workflows cannot be edited.")
+        changed = False
         for src, dest in (
             ("name", "name"),
             ("description", "description"),
@@ -131,14 +138,33 @@ class WorkflowSerializer(serializers.Serializer):
             ("settings", "settings_json"),
         ):
             if src in data:
-                setattr(
-                    instance,
-                    dest,
-                    data[src],
-                )
+                value = data[src]
+                if src == "settings":
+                    existing = (
+                        instance.settings_json
+                        if isinstance(instance.settings_json, dict)
+                        else {}
+                    )
+                    if not value or all(
+                        key in existing and existing[key] == item
+                        for key, item in value.items()
+                    ):
+                        continue
+                    value = validated_workflow_settings(
+                        {**existing, **value}, tenant=instance.tenant
+                    )
+                if getattr(instance, dest) != value:
+                    setattr(instance, dest, value)
+                    changed = True
+        if not changed:
+            caller_instance.refresh_from_db()
+            caller_instance._workflow_changed = False
+            return caller_instance
         instance.status = WorkflowStatus.DRAFT
         instance.save()
-        return instance
+        caller_instance.refresh_from_db()
+        caller_instance._workflow_changed = True
+        return caller_instance
 
 
 class WorkflowPolicySettingsSerializer(VerificationPolicyCreateSerializer):
@@ -188,6 +214,7 @@ def validated_workflow_settings(settings, *, tenant):
 @transaction.atomic
 def publish_workflow(workflow, user):
     caller_workflow = workflow
+    lock_audit_chain(workflow.tenant_id)
     workflow = (
         Workflow.objects.select_for_update(of=("self",))
         .select_related("tenant__organization", "project", "created_by")
@@ -256,5 +283,5 @@ def publish_workflow(workflow, user):
     workflow.current_version = version
     workflow.status = WorkflowStatus.PUBLISHED
     workflow.save(update_fields=["current_version", "status", "updated_at"])
-    caller_workflow.refresh_from_db(fields=["current_version", "status"])
+    caller_workflow.refresh_from_db()
     return result
