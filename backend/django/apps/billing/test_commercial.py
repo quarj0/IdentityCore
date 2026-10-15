@@ -298,3 +298,23 @@ class CommercialBillingTests(TestCase):
         with self.assertRaises(BillingError):
             confirm_gateway_payment(payment.reference)
         self.assertFalse(invoice.payments.filter(status="paid").exists())
+
+    def test_api_key_principal_cannot_read_billing(self):
+        from apps.api_clients.models import APIClient
+        api_key = APIClient(
+            tenant=self.tenant, project=self.project, name="API Machine",
+            created_by=self.user, scopes_json=["verifications:read"],
+        )
+        api_key.set_client_secret("synthetic-api-key")
+        api_key.save()
+        http = HTTPClient()
+        http.force_authenticate(user=api_key)
+        self.assertEqual(http.get("/api/v1/billing/invoices").status_code, 403)
+        self.assertEqual(http.get("/api/v1/billing/plans").status_code, 403)
+
+    def test_inactive_tenant_user_cannot_read_invoices(self):
+        self.user.status = PlatformUserStatus.SUSPENDED
+        self.user.save(update_fields=["status", "updated_at"])
+        http = HTTPClient()
+        http.force_authenticate(self.user)
+        self.assertEqual(http.get("/api/v1/billing/invoices").status_code, 403)
