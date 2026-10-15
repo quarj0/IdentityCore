@@ -151,24 +151,28 @@
         "provider configuration secrets",
         "billing usage",
         "support requester/contact and ticket content",
-        "Unrated, production-only per-provider-check usage facts (tenant, project, outcome, capability, provider ownership, timestamps); no payments or prices."
+        "Unrated, production-only per-provider-check usage facts (tenant, project, outcome, capability, provider ownership, timestamps); no payments or prices.",
+        "Commercial plan prices and capability rates in integer currency subunits, tenant subscription, immutable monthly invoice snapshots, payment transaction references, signed callback digests and refund statuses (no card data)."
       ],
-      "purpose": "Operate customer integrations, provider routing, metering, delivery troubleshooting, and support.",
+      "purpose": "Operate customer integrations, provider routing, metering, delivery troubleshooting, and support. Operate opt-in monthly billing, server-verified payment settlement, disputes and refunds.",
       "locations": [
         "backend/django/apps/api_clients/models.py",
         "backend/django/apps/webhooks/models.py",
         "backend/django/apps/providers/models.py",
         "backend/django/apps/billing/models.py",
-        "backend/django/apps/support/models.py"
+        "backend/django/apps/support/models.py",
+        "backend/django/apps/billing/services.py",
+        "backend/django/apps/billing/paystack.py"
       ],
-      "retention": "Credential material lasts until rotation/revocation; delivery and support metadata follows operational/contractual schedules; ticket attachments must not contain verification media unless explicitly approved. Unrated usage facts require a tenant-approved contractual retention period, access controls and deletion/offboarding schedule before commercial activation.",
+      "retention": "Credential material lasts until rotation/revocation; delivery and support metadata follows operational/contractual schedules; ticket attachments must not contain verification media unless explicitly approved. Unrated usage facts require a tenant-approved contractual retention period, access controls and deletion/offboarding schedule before commercial activation. Billing records and gateway settlement references require an approved jurisdiction-specific accounting/tax retention and access policy; raw gateway webhooks and card data are not persisted.",
       "processors": [
         "IdentityCore Django",
         "PostgreSQL",
         "tenant endpoints",
-        "configured support and provider services"
+        "configured support and provider services",
+        "Paystack merchant account, when explicitly enabled"
       ],
-      "transfers": "Webhook payloads and support/provider disclosures follow tenant configuration, data-minimization rules, and recorded destination safeguards.",
+      "transfers": "Webhook payloads and support/provider disclosures follow tenant configuration, data-minimization rules, and recorded destination safeguards. When enabled, only merchant-approved checkout data (payer email, amount, currency, generated reference) are transmitted to Paystack; payment credentials remain solely with Paystack. Processor region, transfer safeguards and retention require deployment privacy review.",
       "owners": [
         "platform",
         "support",
@@ -1328,6 +1332,361 @@
     },
     {
       "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoice.amount_minor",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoice.created_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoice.currency",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoice.deleted_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoice.due_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoice.id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoice.issued_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoice.paid_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoice.period_end",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoice.period_start",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoice.plan_code",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoice.plan_version",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoice.public_id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoice.status",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoice.subscription",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoice.tenant",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoice.updated_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoiceLine.amount_minor",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoiceLine.created_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoiceLine.deleted_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoiceLine.description",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoiceLine.id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoiceLine.invoice",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoiceLine.public_id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoiceLine.quantity",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoiceLine.unit_price_minor",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoiceLine.updated_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingInvoiceLine.usage_event",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingMeter.capability",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingMeter.created_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingMeter.deleted_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingMeter.id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingMeter.outcome",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingMeter.plan",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingMeter.provider_scope",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingMeter.public_id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingMeter.unit_price_minor",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingMeter.updated_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPayment.amount_minor",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPayment.checkout_url",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPayment.confirmed_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPayment.created_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPayment.currency",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPayment.deleted_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPayment.gateway_transaction_id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPayment.id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPayment.invoice",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPayment.provider",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPayment.public_id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPayment.reference",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPayment.status",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPayment.updated_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPaymentEvent.created_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPaymentEvent.deleted_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPaymentEvent.event_type",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPaymentEvent.id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPaymentEvent.payload_sha256",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPaymentEvent.payment",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPaymentEvent.public_id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPaymentEvent.updated_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPlan.code",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPlan.created_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPlan.currency",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPlan.deleted_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPlan.id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPlan.monthly_price_minor",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPlan.name",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPlan.public_id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPlan.published",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPlan.updated_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPlan.version",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
       "field": "BillingRecord.billing_cycle",
       "activity": "integrations-billing-and-support"
     },
@@ -1409,6 +1768,101 @@
     {
       "source": "backend/django/apps/billing/models.py",
       "field": "BillingRecord.updated_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRefund.amount_minor",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRefund.confirmed_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRefund.created_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRefund.deleted_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRefund.gateway_refund_id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRefund.id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRefund.payment",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRefund.public_id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRefund.status",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingRefund.updated_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingSubscription.created_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingSubscription.deleted_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingSubscription.id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingSubscription.plan",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingSubscription.public_id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingSubscription.started_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingSubscription.status",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingSubscription.tenant",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingSubscription.updated_at",
       "activity": "integrations-billing-and-support"
     },
     {
@@ -3818,66 +4272,6 @@
     },
     {
       "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKeyRotation.conflict_count",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKeyRotation.created_at",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKeyRotation.deleted_at",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKeyRotation.environment",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKeyRotation.id",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKeyRotation.migrated_count",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKeyRotation.positions_json",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKeyRotation.public_id",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKeyRotation.status",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKeyRotation.target_key",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKeyRotation.tenant_scope",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKeyRotation.updated_at",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
       "field": "TenantKMSBinding.active",
       "activity": "account-and-tenant-administration"
     },
@@ -3934,6 +4328,66 @@
     {
       "source": "backend/django/apps/tenants/models.py",
       "field": "TenantKMSBinding.validated_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.conflict_count",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.created_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.deleted_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.environment",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.migrated_count",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.positions_json",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.public_id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.status",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.target_key",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.tenant_scope",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKeyRotation.updated_at",
       "activity": "account-and-tenant-administration"
     },
     {
