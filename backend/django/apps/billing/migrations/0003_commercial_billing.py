@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="BillingPlan",
             fields=common() + [
-                ("code", models.SlugField(max_length=80, unique=True)),
+                ("code", models.SlugField(max_length=80)),
                 ("version", models.PositiveIntegerField(default=1)),
                 ("name", models.CharField(max_length=120)),
                 ("currency", models.CharField(default="GHS", max_length=3)),
