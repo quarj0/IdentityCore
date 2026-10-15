@@ -147,3 +147,41 @@ class HistoricalTemplateLifecycleTests(APITestCase):
         self.assertFalse(
             AuditEvent.objects.filter(action="template.version_created").exists()
         )
+
+    def test_stale_inactive_platform_actor_cannot_publish(self):
+        PlatformUser.objects.filter(pk=self.admin.pk).update(status="inactive")
+        result = self.graphql(
+            "mutation($id:String!){publishPlatformTemplate(templateId:$id){id}}",
+            {"id": self.template.public_id},
+        )
+        self.assertIsNotNone(result.errors)
+        self.template.refresh_from_db()
+        self.assertEqual(self.template.status, "draft")
+        self.assertFalse(
+            AuditEvent.objects.filter(action="template.published").exists()
+        )
+
+    def test_tenant_bound_platform_actor_retains_valid_publication_audit(self):
+        from apps.organizations.models import Organization
+        from apps.tenants.models import Tenant
+        from apps.audit.services import verify_audit_chain
+
+        organization = Organization.objects.create(
+            name="Template admin", slug="template-admin", status="active"
+        )
+        tenant = Tenant.objects.create(
+            organization=organization,
+            name="Template admin",
+            slug="template-admin",
+            status="active",
+        )
+        self.admin.tenant = tenant
+        self.admin.save(update_fields=["tenant"])
+        result = self.graphql(
+            "mutation($id:String!){publishPlatformTemplate(templateId:$id){id status}}",
+            {"id": self.template.public_id},
+        )
+        self.assertIsNone(result.errors, result.errors)
+        event = AuditEvent.objects.get(action="template.published")
+        self.assertEqual(event.tenant_id, tenant.pk)
+        self.assertEqual(verify_audit_chain(tenant_id=tenant.pk), (True, ""))

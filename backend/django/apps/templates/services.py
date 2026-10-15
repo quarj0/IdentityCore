@@ -8,7 +8,7 @@ from django.db.models import F
 from rest_framework import serializers, status
 from rest_framework.exceptions import APIException, ValidationError
 
-from apps.audit.services import record_audit_event
+from apps.audit.services import record_audit_event, lock_audit_chain
 from apps.projects.models import ProjectEnvironment
 from apps.templates.models import Template, TemplateStatus
 from apps.workflows.models import Workflow
@@ -37,6 +37,9 @@ def _request_hash(*, template, project, name):
 def instantiate_workflow_template(
     *, request, project, template, template_version, name, idempotency_key
 ):
+    # Match platform publication's audit-scope-before-template lock order.
+    # Counter updates below acquire the template row lock before audit append.
+    lock_audit_chain(request.user.tenant_id)
     if template.status != TemplateStatus.PUBLISHED:
         raise serializers.ValidationError(
             {"template_id": "Only published workflow templates can be instantiated."}
