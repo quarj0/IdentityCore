@@ -211,11 +211,17 @@ class IdentityDocumentTaskTests(TestCase):
             ],
             "recognized",
         )
-        self.assertEqual(mock_quality.call_args.kwargs["document_storage_bucket"], "")
+        expected_bucket = getattr(self, "expected_document_storage_bucket", "")
         self.assertEqual(
-            mock_classification.call_args.kwargs["document_storage_bucket"], ""
+            mock_quality.call_args.kwargs["document_storage_bucket"], expected_bucket
         )
-        self.assertEqual(mock_ocr.call_args.kwargs["document_storage_bucket"], "")
+        self.assertEqual(
+            mock_classification.call_args.kwargs["document_storage_bucket"],
+            expected_bucket,
+        )
+        self.assertEqual(
+            mock_ocr.call_args.kwargs["document_storage_bucket"], expected_bucket
+        )
 
     @patch("apps.identity_documents.tasks.run_document_classification")
     @patch("apps.identity_documents.tasks.run_document_ocr")
@@ -481,7 +487,9 @@ class IdentityDocumentTaskTests(TestCase):
             self.identity_document.status, IdentityDocumentStatus.PROCESSED
         )
         self.assertEqual(self.verification.status, VerificationStatus.AWAITING_SELFIE)
-        self.assertEqual(self.upload.status, UploadStatus.CONSUMED)
+        # Canonical media is established before provider I/O; a redundant
+        # late promotion warning must not invalidate that durable state.
+        self.assertEqual(self.upload.status, UploadStatus.PROMOTED)
 
     @patch("apps.identity_documents.tasks.run_document_ocr")
     @patch("apps.identity_documents.tasks.run_document_classification")

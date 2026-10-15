@@ -168,6 +168,18 @@ class ProcessingJobRecoveryTests(TestCase):
     ):
         self.identity_document.status = IdentityDocumentStatus.PROCESSED
         self.identity_document.save(update_fields=["status", "updated_at"])
+        from apps.audit.services import record_audit_event
+
+        self.verification.status = VerificationStatus.AWAITING_SELFIE
+        self.verification.save(update_fields=["status", "updated_at"])
+        record_audit_event(
+            tenant=self.tenant,
+            actor=self.subject,
+            action="document.processed",
+            target_type="verification",
+            target_id=self.verification.public_id,
+            metadata={"identity_document_id": self.identity_document.public_id},
+        )
         job = ProcessingJob.objects.create(
             tenant=self.tenant,
             verification=self.verification,
@@ -186,6 +198,6 @@ class ProcessingJobRecoveryTests(TestCase):
         self.verification.refresh_from_db()
         self.assertEqual((recovered, exhausted), (0, 0))
         self.assertEqual(job.status, ProcessingJobStatus.COMPLETED)
-        self.assertEqual(self.verification.status, VerificationStatus.AWAITING_DOCUMENT)
+        self.assertEqual(self.verification.status, VerificationStatus.AWAITING_SELFIE)
         self.assertFalse(hasattr(self.verification, "decision_record"))
         mock_delay.assert_not_called()
