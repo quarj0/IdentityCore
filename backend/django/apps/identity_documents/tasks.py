@@ -29,8 +29,11 @@ from apps.providers.services import (
     invoke_selected_provider_operation,
     preserve_provider_result_envelope,
 )
-from apps.uploads.models import Upload, UploadStatus
-from apps.uploads.services import promote_upload_to_media_by_storage_key
+from apps.uploads.models import Upload
+from apps.uploads.services import (
+    promote_upload_to_media,
+    promote_upload_to_media_by_storage_key,
+)
 from apps.verifications.models import VerificationStatus
 from apps.verifications.models import ProcessingJobType
 from apps.verifications.processing_jobs import (
@@ -52,7 +55,6 @@ from common.authorization import ServicePrincipal, require_service_access
 from common.storage import (
     get_object_storage_media_bucket_name,
     get_object_storage_temp_bucket_name,
-    object_exists,
 )
 
 logger = logging.getLogger(__name__)
@@ -247,32 +249,20 @@ def process_identity_document_task(identity_document_id: str) -> str:
             "bucket"
         ]
         upload = uploads_by_key.get(storage_key)
-        if (
-            upload is not None
-            and upload.status != UploadStatus.PROMOTED
-            and source_bucket
-            and destination_bucket
-            and source_bucket != destination_bucket
-        ):
+        if upload is not None:
+            heartbeat_processing_job(processing_job)
             try:
-                promotion_finished = not object_exists(
-                    bucket_name=source_bucket, key=storage_key
-                ) and object_exists(bucket_name=destination_bucket, key=storage_key)
+                # Providers always read the stable destination. Another worker
+                # can only remove the temporary source while promoting this key.
+                promote_upload_to_media(upload=upload)
             except Exception as exc:
                 raise AIServiceUnavailable(
                     "Document storage was temporarily unavailable.",
                     error_code="document_storage_unavailable",
                 ) from exc
-            if promotion_finished:
-                # A worker may stop between deleting the source and saving promotion.
-                # Both scoped references were validated before storage I/O.
-                upload.status = UploadStatus.PROMOTED
-                upload.save(update_fields=["status", "updated_at"])
-        bucket = (
-            destination_bucket
-            if upload is not None and upload.status == UploadStatus.PROMOTED
-            else source_bucket
-        )
+            bucket = destination_bucket
+        else:
+            bucket = source_bucket
         input_buckets[storage_key] = bucket
         return bucket
 

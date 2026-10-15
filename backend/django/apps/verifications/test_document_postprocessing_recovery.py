@@ -214,24 +214,27 @@ class DocumentFinalizationCommitTests(TestCase):
 
         with patch("common.storage.get_object_storage_client") as client:
             client.return_value.head_object.side_effect = head_object
+            client.return_value.copy_object.side_effect = ClientError(
+                {"Error": {"Code": "NoSuchKey"}}, "CopyObject"
+            )
             document_fixtures.IdentityDocumentTaskTests.test_process_identity_document_task_marks_document_processed(
                 self
             )
         self.upload.refresh_from_db()
         self.assertEqual(self.upload.status, "promoted")
-        client.return_value.copy_object.assert_not_called()
+        client.return_value.copy_object.assert_called_once()
         client.return_value.delete_object.assert_not_called()
 
     @override_settings(
         OBJECT_STORAGE_TEMP_BUCKET="audit-temp",
         OBJECT_STORAGE_MEDIA_BUCKET="audit-media",
     )
-    def test_storage_probe_outage_defers_without_committing_failure(self):
+    def test_storage_promotion_outage_defers_without_committing_failure(self):
         from apps.providers.ai_service import AIServiceUnavailable
 
         original_verification_status = self.verification.status
         with patch(
-            "apps.identity_documents.tasks.object_exists",
+            "apps.identity_documents.tasks.promote_upload_to_media",
             side_effect=TimeoutError("synthetic storage outage"),
         ), patch(
             "apps.identity_documents.tasks.invoke_selected_provider_operation"
@@ -243,6 +246,8 @@ class DocumentFinalizationCommitTests(TestCase):
         provider.assert_not_called()
         self.identity_document.refresh_from_db()
         self.verification.refresh_from_db()
+        self.upload.refresh_from_db()
+        self.assertEqual(self.upload.status, "consumed")
         self.assertEqual(
             self.identity_document.status, IdentityDocumentStatus.PROCESSING
         )
@@ -255,6 +260,58 @@ class DocumentFinalizationCommitTests(TestCase):
         self.assertFalse(
             AuditEvent.objects.filter(action="document.processing_failed").exists()
         )
+
+    @override_settings(
+        OBJECT_STORAGE_TEMP_BUCKET="audit-temp",
+        OBJECT_STORAGE_MEDIA_BUCKET="audit-media",
+    )
+    def test_concurrent_promotion_cannot_remove_provider_input(self):
+        from botocore.exceptions import ClientError
+        from apps.providers.ai_service import AIServiceUnavailable
+
+        self.expected_document_storage_bucket = "audit-media"
+        key = self.upload.storage_key
+        objects = {("audit-temp", key): b"synthetic document"}
+        selected_buckets = []
+        invoke = document_tasks.invoke_selected_provider_operation
+
+        def head_object(**kwargs):
+            if (kwargs["Bucket"], kwargs["Key"]) not in objects:
+                raise ClientError({"Error": {"Code": "NoSuchKey"}}, "HeadObject")
+            return {}
+
+        def copy_object(**kwargs):
+            source = (kwargs["CopySource"]["Bucket"], kwargs["CopySource"]["Key"])
+            if source not in objects:
+                raise ClientError({"Error": {"Code": "NoSuchKey"}}, "CopyObject")
+            objects[(kwargs["Bucket"], kwargs["Key"])] = objects[source]
+
+        def delete_object(**kwargs):
+            objects.pop((kwargs["Bucket"], kwargs["Key"]), None)
+
+        def read_after_other_worker_promotes(**kwargs):
+            document_tasks.promote_upload_to_media_by_storage_key(key)
+            bucket = kwargs["operation_kwargs"]["document_storage_bucket"]
+            selected_buckets.append(bucket)
+            if (bucket, key) not in objects:
+                raise AIServiceUnavailable(
+                    f"Synthetic missing provider input in {bucket}"
+                )
+            return invoke(**kwargs)
+
+        with patch("common.storage.get_object_storage_client") as client, patch(
+            "apps.identity_documents.tasks.invoke_selected_provider_operation",
+            side_effect=read_after_other_worker_promotes,
+        ):
+            client.return_value.head_object.side_effect = head_object
+            client.return_value.copy_object.side_effect = copy_object
+            client.return_value.delete_object.side_effect = delete_object
+            document_fixtures.IdentityDocumentTaskTests.test_process_identity_document_task_marks_document_processed(
+                self
+            )
+        self.assertEqual(selected_buckets, ["audit-media"] * 3)
+        self.assertNotIn(("audit-temp", key), objects)
+        self.assertIn(("audit-media", key), objects)
 
     def test_success_commits_document_marker_and_job_completion(self):
         document_fixtures.IdentityDocumentTaskTests.test_process_identity_document_task_marks_document_processed(

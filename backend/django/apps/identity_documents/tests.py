@@ -487,7 +487,9 @@ class IdentityDocumentTaskTests(TestCase):
             self.identity_document.status, IdentityDocumentStatus.PROCESSED
         )
         self.assertEqual(self.verification.status, VerificationStatus.AWAITING_SELFIE)
-        self.assertEqual(self.upload.status, UploadStatus.CONSUMED)
+        # Canonical media is established before provider I/O; a redundant
+        # late promotion warning must not invalidate that durable state.
+        self.assertEqual(self.upload.status, UploadStatus.PROMOTED)
 
     @patch("apps.identity_documents.tasks.run_document_ocr")
     @patch("apps.identity_documents.tasks.run_document_classification")
