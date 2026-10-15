@@ -1365,10 +1365,18 @@
       "thread_id": "PRRT_kwDOTN0BU86TiDUp",
       "comment_id": 3644944384,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/config/graphql_mutations.py:transactional invitation and deactivation controls with platform audit scope lock and fresh actor authorization",
+        "backend/django/apps/reviewers/test_historical_admin_controls.py:expired invitation replacement, retained platform deactivation reason and stale actor denial",
+        "backend/django/apps/reviewers/test_admin_control_races.py:three PostgreSQL concurrent cross-deactivation rounds selected in required CI"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Handle expired pending invitations before creating a replacement**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/32#discussion_r3644944384"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/32#discussion_r3644944384",
+      "disposition_note": "Fixed in protected merged PR #397 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1020 tests with 38 skips successfully. Required PostgreSQL CI passed 107 tests, including platform invitation acceptance and cross-deactivation races. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 397,
+      "remediation_commit": "5a4bc47b8e7eb2396a0ec2c5352a65ad27ab514d",
+      "merged_commit": "bfc3a7867f897401db5fddddc037865b70577112"
     },
     {
       "pr_number": 32,
@@ -1405,20 +1413,36 @@
       "thread_id": "PRRT_kwDOTN0BU86TihIO",
       "comment_id": 3645114458,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/config/graphql_mutations.py:transactional invitation and deactivation controls with platform audit scope lock and fresh actor authorization",
+        "backend/django/apps/reviewers/test_historical_admin_controls.py:expired invitation replacement, retained platform deactivation reason and stale actor denial",
+        "backend/django/apps/reviewers/test_admin_control_races.py:three PostgreSQL concurrent cross-deactivation rounds selected in required CI"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Persist deactivation reasons for tenantless platform admins**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645114458"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645114458",
+      "disposition_note": "Fixed in protected merged PR #397 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1020 tests with 38 skips successfully. Required PostgreSQL CI passed 107 tests, including platform invitation acceptance and cross-deactivation races. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 397,
+      "remediation_commit": "5a4bc47b8e7eb2396a0ec2c5352a65ad27ab514d",
+      "merged_commit": "bfc3a7867f897401db5fddddc037865b70577112"
     },
     {
       "pr_number": 33,
       "thread_id": "PRRT_kwDOTN0BU86TihIR",
       "comment_id": 3645114464,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/config/graphql_mutations.py:transactional invitation and deactivation controls with platform audit scope lock and fresh actor authorization",
+        "backend/django/apps/reviewers/test_historical_admin_controls.py:expired invitation replacement, retained platform deactivation reason and stale actor denial",
+        "backend/django/apps/reviewers/test_admin_control_races.py:three PostgreSQL concurrent cross-deactivation rounds selected in required CI"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reconcile expired pending invitations before creating another**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645114464"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645114464",
+      "disposition_note": "Fixed in protected merged PR #397 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1020 tests with 38 skips successfully. Required PostgreSQL CI passed 107 tests, including platform invitation acceptance and cross-deactivation races. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 397,
+      "remediation_commit": "5a4bc47b8e7eb2396a0ec2c5352a65ad27ab514d",
+      "merged_commit": "bfc3a7867f897401db5fddddc037865b70577112"
     },
     {
       "pr_number": 33,
@@ -1475,10 +1499,18 @@
       "thread_id": "PRRT_kwDOTN0BU86TixdF",
       "comment_id": 3645208254,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/config/graphql_mutations.py:transactional invitation and deactivation controls with platform audit scope lock and fresh actor authorization",
+        "backend/django/apps/reviewers/test_historical_admin_controls.py:expired invitation replacement, retained platform deactivation reason and stale actor denial",
+        "backend/django/apps/reviewers/test_admin_control_races.py:three PostgreSQL concurrent cross-deactivation rounds selected in required CI"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Serialize the final-admin check**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645208254"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645208254",
+      "disposition_note": "Fixed in protected merged PR #397 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1020 tests with 38 skips successfully. Required PostgreSQL CI passed 107 tests, including platform invitation acceptance and cross-deactivation races. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 397,
+      "remediation_commit": "5a4bc47b8e7eb2396a0ec2c5352a65ad27ab514d",
+      "merged_commit": "bfc3a7867f897401db5fddddc037865b70577112"
     },
     {
       "pr_number": 33,
@@ -10993,8 +11025,65 @@
         "GitHub CI job 116578096918:100 PostgreSQL tests passed on the final head"
       ],
       "disposition_note": "Late processing recovery finding fixed in protected merged PR #393 after final-head review, strict canonical resolver evidence, all PR/push CI and Security and dedicated App success. Full backend ran 1013 with 36 skips successfully. Narrow CI-selector approval removed after trusted merge."
+    },
+    {
+      "pr_number": 397,
+      "thread_id": "PRRT_kwDOTN0BU86sqSpT",
+      "comment_id": 4280094906,
+      "path": "backend/django/config/graphql_mutations.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Check actor status after acquiring the serialization lock**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/397#discussion_r4280094906",
+      "remediation_pr": 397,
+      "remediation_commit": "5a4bc47b8e7eb2396a0ec2c5352a65ad27ab514d",
+      "merged_commit": "bfc3a7867f897401db5fddddc037865b70577112",
+      "resolver_evidence": "Fixed in e43ae608951c01093ecb7e0fbf60aaa1491d1fee. Validation: 29 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/reviewers/test_historical_admin_controls.py",
+        "backend/django/apps/reviewers/test_admin_control_races.py",
+        "GitHub CI job 116594819457:107 PostgreSQL tests passed on final head"
+      ],
+      "disposition_note": "Fixed in protected merged PR #397 after final-head independent review, strict resolver evidence, all PR/push CI and Security and dedicated App success. Full backend ran 1020 with 38 skips successfully. Temporary CI-selector approval removed after trusted merge."
+    },
+    {
+      "pr_number": 397,
+      "thread_id": "PRRT_kwDOTN0BU86sqdFz",
+      "comment_id": 4280163701,
+      "path": "backend/django/config/graphql_mutations.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve controls for tenant-bound platform admins**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/397#discussion_r4280163701",
+      "remediation_pr": 397,
+      "remediation_commit": "5a4bc47b8e7eb2396a0ec2c5352a65ad27ab514d",
+      "merged_commit": "bfc3a7867f897401db5fddddc037865b70577112",
+      "resolver_evidence": "Fixed in c71e9929003dbaf38162afd630fc023245595713. Validation: 30 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/reviewers/test_historical_admin_controls.py",
+        "backend/django/apps/reviewers/test_admin_control_races.py",
+        "GitHub CI job 116594819457:107 PostgreSQL tests passed on final head"
+      ],
+      "disposition_note": "Fixed in protected merged PR #397 after final-head independent review, strict resolver evidence, all PR/push CI and Security and dedicated App success. Full backend ran 1020 with 38 skips successfully. Temporary CI-selector approval removed after trusted merge."
+    },
+    {
+      "pr_number": 397,
+      "thread_id": "PRRT_kwDOTN0BU86srOZf",
+      "comment_id": 4280483980,
+      "path": "backend/django/config/graphql_mutations.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Recheck account existence after expiring the old invite**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/397#discussion_r4280483980",
+      "remediation_pr": 397,
+      "remediation_commit": "5a4bc47b8e7eb2396a0ec2c5352a65ad27ab514d",
+      "merged_commit": "bfc3a7867f897401db5fddddc037865b70577112",
+      "resolver_evidence": "Fixed in 82a3ed3398d621030eae85896db1cee3141fdb3a. Validation: 32 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/reviewers/test_historical_admin_controls.py",
+        "backend/django/apps/reviewers/test_admin_control_races.py",
+        "GitHub CI job 116594819457:107 PostgreSQL tests passed on final head"
+      ],
+      "disposition_note": "Fixed in protected merged PR #397 after final-head independent review, strict resolver evidence, all PR/push CI and Security and dedicated App success. Full backend ran 1020 with 38 skips successfully. Temporary CI-selector approval removed after trusted merge."
     }
   ],
-  "verified_main": "d7916b2c4e38bc2567ba59ca75ca00972d5d702c",
-  "inventory_note": "828 threads from closed or merged PRs: 174 fixed, 247 verified, 11 actionable and 396 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
+  "verified_main": "bfc3a7867f897401db5fddddc037865b70577112",
+  "inventory_note": "831 threads from closed or merged PRs: 181 fixed, 247 verified, 11 actionable and 392 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
 }

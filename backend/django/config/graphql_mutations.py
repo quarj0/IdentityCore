@@ -128,6 +128,7 @@ from apps.templates.services import (
     validate_template_settings,
     require_later_template_version,
 )
+from common.authorization import AuthorizationAction, decide_user_access
 
 logger = logging.getLogger(__name__)
 
@@ -760,6 +761,7 @@ class Mutation:
         )
 
     @strawberry.mutation
+    @transaction.atomic
     def invite_platform_admin(
         self,
         info: Info,
@@ -769,16 +771,42 @@ class Mutation:
         expires_in_days: int = 7,
     ) -> PlatformAdminInvitationPayload:
         actor = require_platform_admin(info)
+        lock_audit_chain(None)
+        actor_tenant_id = PlatformUser.objects.values_list("tenant_id", flat=True).get(
+            pk=actor.pk
+        )
+        if actor_tenant_id is not None:
+            lock_audit_chain(actor_tenant_id)
+        actor = PlatformUser.objects.select_for_update().get(pk=actor.pk)
+        if actor.tenant_id != actor_tenant_id:
+            raise GraphQLError("Administrator scope changed. Retry the request.")
+        if (
+            actor.status != PlatformUserStatus.ACTIVE
+            or not decide_user_access(
+                actor, action=AuthorizationAction.PLATFORM_ACCESS
+            ).allowed
+        ):
+            raise GraphQLError("An active platform administrator is required.")
         request = info.context["request"]
         normalized_email = email.strip().lower()
         if not normalized_email:
             raise GraphQLError("Email is required.")
         if PlatformUser.objects.filter(email=normalized_email).exists():
             raise GraphQLError("An account already exists for this email address.")
+        now = timezone.now()
+        PlatformAdminInvitation.objects.filter(
+            email=normalized_email,
+            status=PlatformAdminInvitationStatus.PENDING,
+            expires_at__lte=now,
+        ).update(status=PlatformAdminInvitationStatus.EXPIRED, updated_at=now)
+        # Reconciliation can wait for an older acceptance transaction. Its
+        # committed account must be checked again before issuing a replacement.
+        if PlatformUser.objects.filter(email=normalized_email).exists():
+            raise GraphQLError("An account already exists for this email address.")
         if PlatformAdminInvitation.objects.filter(
             email=normalized_email,
             status=PlatformAdminInvitationStatus.PENDING,
-            expires_at__gt=timezone.now(),
+            expires_at__gt=now,
         ).exists():
             raise GraphQLError(
                 "A pending invitation already exists for this email address."
@@ -793,20 +821,18 @@ class Mutation:
             email=normalized_email,
             role=role,
             invited_by=actor,
-            expires_at=timezone.now() + timedelta(days=max(expires_in_days, 1)),
+            expires_at=now + timedelta(days=max(expires_in_days, 1)),
+            token_hash=PlatformAdminInvitation.digest_token(raw_token),
         )
-        invitation.set_token(raw_token)
-        invitation.save(update_fields=["token_hash", "updated_at"])
-        if getattr(actor, "tenant_id", None) is not None:
-            record_audit_event(
-                tenant=actor.tenant,
-                actor=actor,
-                request=request,
-                action="platform_admin.invited",
-                target_type="platform_admin_invitation",
-                target_id=invitation.public_id,
-                metadata={"email": normalized_email, "role": role.name},
-            )
+        record_audit_event(
+            tenant=actor.tenant,
+            actor=actor,
+            request=request,
+            action="platform_admin.invited",
+            target_type="platform_admin_invitation",
+            target_id=invitation.public_id,
+            metadata={"email": normalized_email, "role": role.name},
+        )
         return PlatformAdminInvitationPayload(
             invitation=PlatformAdminInvitationNode(
                 **serialize_platform_admin_invitation(invitation)
@@ -827,6 +853,19 @@ class Mutation:
         request = info.context["request"]
         require_trusted_cookie_origin(request)
         digest = PlatformAdminInvitation.digest_token(token.strip())
+        # Reject invalid tokens before serializing platform operations, then
+        # revalidate under the same scope-before-invitation lock as replacement.
+        if not PlatformAdminInvitation.objects.filter(
+            token_hash=digest,
+            status=PlatformAdminInvitationStatus.PENDING,
+            expires_at__gt=timezone.now(),
+        ).exists():
+            logger.info(
+                "Platform invitation acceptance rejected.",
+                extra={"reason": "invitation_not_found"},
+            )
+            raise GraphQLError("Invitation is invalid or cannot be accepted.")
+        lock_audit_chain(None)
         invitation = (
             PlatformAdminInvitation.objects.select_for_update(of=("self",))
             .select_related("role")
@@ -895,17 +934,38 @@ class Mutation:
         )
 
     @strawberry.mutation
+    @transaction.atomic
     def deactivate_platform_admin(
         self, info: Info, user_id: str, reason: str = ""
     ) -> AuthUserNode:
         actor = require_platform_admin(info)
+        # Serialize the invariant before acquiring user row locks, matching the
+        # platform audit/login lock order.
+        lock_audit_chain(None)
+        actor_tenant_id = PlatformUser.objects.values_list("tenant_id", flat=True).get(
+            pk=actor.pk
+        )
+        if actor_tenant_id is not None:
+            lock_audit_chain(actor_tenant_id)
+        actor = PlatformUser.objects.select_for_update().get(pk=actor.pk)
+        if actor.tenant_id != actor_tenant_id:
+            raise GraphQLError("Administrator scope changed. Retry the request.")
+        if (
+            actor.status != PlatformUserStatus.ACTIVE
+            or not decide_user_access(
+                actor, action=AuthorizationAction.PLATFORM_ACCESS
+            ).allowed
+        ):
+            raise GraphQLError("An active platform administrator is required.")
         request = info.context["request"]
         if actor.public_id == user_id:
             raise GraphQLError(
                 "You cannot deactivate your own platform administrator account."
             )
         user = get_object_or_404(
-            PlatformUser, public_id=user_id, is_platform_admin=True
+            PlatformUser.objects.select_for_update(),
+            public_id=user_id,
+            is_platform_admin=True,
         )
         if user.status != PlatformUserStatus.ACTIVE:
             raise GraphQLError("This platform administrator is already inactive.")
@@ -920,16 +980,15 @@ class Mutation:
             )
         user.status = PlatformUserStatus.INACTIVE
         user.save(update_fields=["status", "updated_at"])
-        if getattr(actor, "tenant_id", None) is not None:
-            record_audit_event(
-                tenant=actor.tenant,
-                actor=actor,
-                request=request,
-                action="platform_admin.deactivated",
-                target_type="platform_user",
-                target_id=user.public_id,
-                metadata={"email": user.email, "reason": reason.strip()},
-            )
+        record_audit_event(
+            tenant=actor.tenant,
+            actor=actor,
+            request=request,
+            action="platform_admin.deactivated",
+            target_type="platform_user",
+            target_id=user.public_id,
+            metadata={"email": user.email, "reason": reason.strip()},
+        )
         return AuthUserNode(**serialize_user(user))
 
     @strawberry.mutation
