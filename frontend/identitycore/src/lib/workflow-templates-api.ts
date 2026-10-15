@@ -14,7 +14,6 @@ export type WorkflowTemplate = {
   settings: Record<string, unknown>;
   provider_requirements: string[];
   output_claims: string[];
-  risk_level: string;
 };
 
 export type WorkspaceProject = {
