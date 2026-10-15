@@ -460,10 +460,15 @@
       "thread_id": "PRRT_kwDOTN0BU86TZWg-",
       "comment_id": 3641695392,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_automatic_and_system_review_routing_can_be_resolved_once",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Update the automatic decision when resolving manual review**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3641695392"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3641695392",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 4,
@@ -793,10 +798,15 @@
       "thread_id": "PRRT_kwDOTN0BU86TZW2x",
       "comment_id": 3641697271,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_automatic_and_system_review_routing_can_be_resolved_once",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Update the existing automatic decision during manual review**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3641697271"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3641697271",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 6,
@@ -929,10 +939,15 @@
       "thread_id": "PRRT_kwDOTN0BU86TZmRX",
       "comment_id": 3641787822,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_automatic_and_system_review_routing_can_be_resolved_once",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve finalized manual decisions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3641787822"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3641787822",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 16,
@@ -989,10 +1004,15 @@
       "thread_id": "PRRT_kwDOTN0BU86TZmRj",
       "comment_id": 3641787837,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_graphql_document_and_decision_fields_match_saved_evidence",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Return the actual document check status**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3641787837"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3641787837",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 16,
@@ -1089,20 +1109,28 @@
       "thread_id": "PRRT_kwDOTN0BU86Tc_NW",
       "comment_id": 3643076785,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_automatic_and_system_review_routing_can_be_resolved_once",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Allow review after automatic manual-review routing**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/19#discussion_r3643076785"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/19#discussion_r3643076785",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 19,
       "thread_id": "PRRT_kwDOTN0BU86Tc_Na",
       "comment_id": 3643076789,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_rest_webhook_matches_the_committed_manual_outcome"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve the caller's updated verification state**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/19#discussion_r3643076789"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/19#discussion_r3643076789",
+      "disposition_note": "Reproduced on preceding main with failing real API/GraphQL regressions. A tested fix is prepared; this finding remains actionable until fresh review, successful final-head CI/Security and protected merge."
     },
     {
       "pr_number": 20,
@@ -1154,20 +1182,30 @@
       "thread_id": "PRRT_kwDOTN0BU86Tc7g5",
       "comment_id": 3643055091,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_automatic_and_system_review_routing_can_be_resolved_once",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve the automatic decision when recording review outcomes**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/20#discussion_r3643055091"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/20#discussion_r3643055091",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 21,
       "thread_id": "PRRT_kwDOTN0BU86Tc7s8",
       "comment_id": 3643056263,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_automatic_and_system_review_routing_can_be_resolved_once",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve automatic decisions until manual review**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/21#discussion_r3643056263"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/21#discussion_r3643056263",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 21,
@@ -1204,10 +1242,13 @@
       "thread_id": "PRRT_kwDOTN0BU86Tdy3b",
       "comment_id": 3643382665,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_api_metadata_cannot_request_platform_ownership"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Restrict platform ownership to trusted onboarding requests**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/23#discussion_r3643382665"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/23#discussion_r3643382665",
+      "disposition_note": "Reproduced on preceding main with failing real API/GraphQL regressions. A tested fix is prepared; this finding remains actionable until fresh review, successful final-head CI/Security and protected merge."
     },
     {
       "pr_number": 24,
@@ -2216,14 +2257,17 @@
       "thread_id": "PRRT_kwDOTN0BU86UVQoo",
       "comment_id": 3663952018,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
-        "postman/IdentityCore.postman_collection.json:distinct front/back creation and session-authenticated transfer before submission",
-        "backend/django/apps/verification_sessions/test_postman_document_flow.py:executes actual collection request bodies and response scripts through real session APIs"
+        "postman/IdentityCore.postman_collection.json:session credentials, distinct front/back uploads and multipart transfer before submission",
+        "backend/django/apps/verification_sessions/test_postman_document_flow.py:actual collection payloads and JavaScript response scripts through session APIs"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Add the required back upload to the Postman flow**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/58#discussion_r3663952018",
-      "disposition_note": "The checked-in GH national ID payload omitted the required back capture; upload requests also lacked session credentials and transfers. New contract regressions reproduce the original failures and the actual collection session flow accepts both validated sides and a transferred selfie. Remains actionable until protected merge."
+      "remediation_pr": 390,
+      "disposition_note": "Fixed in protected merged PR #390 after fresh independent review, all latest PR and push CI/Security success, dedicated-App evidence success and trusted merge. All three actual Postman integration tests passed again on its final head.",
+      "remediation_commit": "4cf84664580dd30a985d63bc5db533cac2ef069e",
+      "merged_commit": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 58,
@@ -2815,10 +2859,13 @@
       "thread_id": "PRRT_kwDOTN0BU86Vrhmy",
       "comment_id": 3696851652,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_graphql_clamps_legacy_out_of_range_pages"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve pagination semantics for GraphQL callers**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/179#discussion_r3696851652"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/179#discussion_r3696851652",
+      "disposition_note": "Reproduced on preceding main with failing real API/GraphQL regressions. A tested fix is prepared; this finding remains actionable until fresh review, successful final-head CI/Security and protected merge."
     },
     {
       "pr_number": 179,
@@ -3656,10 +3703,13 @@
       "thread_id": "PRRT_kwDOTN0BU86Vr3CT",
       "comment_id": 3696977656,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_denied_environment_audit_survives_validation_rollback"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Persist denied-scope audits outside the rolled-back transaction**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/198#discussion_r3696977656"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/198#discussion_r3696977656",
+      "disposition_note": "Reproduced on preceding main with failing real API/GraphQL regressions. A tested fix is prepared; this finding remains actionable until fresh review, successful final-head CI/Security and protected merge."
     },
     {
       "pr_number": 198,
@@ -4495,10 +4545,15 @@
       "thread_id": "PRRT_kwDOTN0BU86V517j",
       "comment_id": 3702348148,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/tests.py:test_create_verification_copies_workflow_version_snapshot",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include snapshot versions in the creation audit event**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/242#discussion_r3702348148"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/242#discussion_r3702348148",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 242,
@@ -4857,10 +4912,15 @@
       "thread_id": "PRRT_kwDOTN0BU86V6UL8",
       "comment_id": 3702526025,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/tests.py:test_high_risk_manual_decision_requires_independent_approval",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include risk signals in manual-decision snapshots**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/248#discussion_r3702526025"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/248#discussion_r3702526025",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 248,
@@ -4910,10 +4970,15 @@
       "thread_id": "PRRT_kwDOTN0BU86V6UMR",
       "comment_id": 3702526053,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_graphql_document_and_decision_fields_match_saved_evidence",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Update the GraphQL decision node for the new fields**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/248#discussion_r3702526053"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/248#discussion_r3702526053",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 249,
@@ -5001,10 +5066,15 @@
       "thread_id": "PRRT_kwDOTN0BU86V6c2U",
       "comment_id": 3702576739,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/tests.py:test_policy_snapshot_can_require_approval_for_low_risk_review",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Expose the policy approval setting before reading it**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576739"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576739",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 250,
@@ -5041,10 +5111,15 @@
       "thread_id": "PRRT_kwDOTN0BU86V6c2f",
       "comment_id": 3702576754,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/tests.py:test_manual_review_decision_records_manual_decision",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Return the assignment state to the calling view**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576754"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576754",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 250,
@@ -5061,20 +5136,30 @@
       "thread_id": "PRRT_kwDOTN0BU86V6c2i",
       "comment_id": 3702576759,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/tests.py:test_verification_list_eager_loads_assigned_reviewers",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Eager-load assigned reviewers for verification lists**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576759"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576759",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 250,
       "thread_id": "PRRT_kwDOTN0BU86V6c2m",
       "comment_id": 3702576767,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/tests.py:test_independent_approval_accepts_every_proposable_outcome",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Accept every outcome that can enter approval**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576767"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576767",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 251,
@@ -6085,10 +6170,13 @@
       "thread_id": "PRRT_kwDOTN0BU86Ym9xX",
       "comment_id": 3767443420,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_pending_graphql_proposal_emits_no_final_outcome"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep GraphQL proposals pending until checker approval**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/284#discussion_r3767443420"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/284#discussion_r3767443420",
+      "disposition_note": "Reproduced on preceding main with failing real API/GraphQL regressions. A tested fix is prepared; this finding remains actionable until fresh review, successful final-head CI/Security and protected merge."
     },
     {
       "pr_number": 285,
@@ -9149,6 +9237,899 @@
       "disposition_note": "Resolved with fixing-commit and regression evidence before final-head Codex review and passing CI/Security merge."
     },
     {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pMvg9",
+      "comment_id": 4188358428,
+      "path": ".github/PULL_REQUEST_TEMPLATE.md",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Enforce the review gate rather than relying on checkboxes**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4188358428",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/PULL_REQUEST_TEMPLATE.md:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at bf78e3afe472e58fec63be09c79b9b86c2b035d6. Validation: all 169 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pOyxg",
+      "comment_id": 4189201148,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep change requests blocking until explicitly cleared**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4189201148",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pO-hM",
+      "comment_id": 4189278949,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Bind CI results to trusted workflow identities**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4189278949",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pO-hR",
+      "comment_id": 4189278956,
+      "path": ".github/workflows/review-gate.yml",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Revalidate when a review thread becomes unresolved**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4189278956",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/workflows/review-gate.yml:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pPevx",
+      "comment_id": 4189492295,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Verify trusted workflow content, not only its registration**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4189492295",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pPev2",
+      "comment_id": 4189492304,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Require fresh evidence after later thread feedback**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4189492304",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pS3Jj",
+      "comment_id": 4190892638,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Attest the gate's own trusted implementation**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4190892638",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pS3Jn",
+      "comment_id": 4190892643,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Require new evidence after an earlier finding is edited**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4190892643",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pTRRw",
+      "comment_id": 4191059038,
+      "path": "backend/ai-service/app/document_classification/classifier.py",
+      "status": "verified",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Restore issuer checks for checksum-valid passport MRZs**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4191059038",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        "backend/ai-service/app/document_classification/classifier.py:passport issuer matching",
+        "backend/ai-service/tests/test_document_classification.py:test_passport_mrz_cannot_authorize_a_different_expected_country"
+      ],
+      "disposition_note": "The restored behavior already exists on main and was independently checked against its concrete regression and successful final-head CI. This duplicate feedback is verified while closing #364.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed.",
+      "verified_main": "d9fc774e25de754770638d5d602e736ffd95fe6d"
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pTRR3",
+      "comment_id": 4191059043,
+      "path": "backend/django/apps/biometrics/tasks.py",
+      "status": "verified",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Promote selfie evidence before finalizing provider outages**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4191059043",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        "backend/django/apps/biometrics/tasks.py:_finalize_unavailable_biometrics",
+        "backend/django/apps/biometrics/tests.py:test_provider_failure_preserves_evidence_and_routes_to_manual_review"
+      ],
+      "disposition_note": "The restored behavior already exists on main and was independently checked against its concrete regression and successful final-head CI. This duplicate feedback is verified while closing #364.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed.",
+      "verified_main": "d9fc774e25de754770638d5d602e736ffd95fe6d"
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pTRR6",
+      "comment_id": 4191059048,
+      "path": "backend/django/apps/risk/services.py",
+      "status": "verified",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep OCR outage reason codes blocking automatic approval**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4191059048",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        "backend/django/apps/risk/services.py:_document_requires_manual_review",
+        "backend/django/apps/risk/tests.py:test_ocr_outage_reason_remains_a_review_gate"
+      ],
+      "disposition_note": "The restored behavior already exists on main and was independently checked against its concrete regression and successful final-head CI. This duplicate feedback is verified while closing #364.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed.",
+      "verified_main": "d9fc774e25de754770638d5d602e736ffd95fe6d"
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pTRR9",
+      "comment_id": 4191059049,
+      "path": "backend/django/apps/verifications/tasks.py",
+      "status": "verified",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve cases already submitted for manual review**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4191059049",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        "backend/django/apps/verifications/tasks.py:_expire_pending_verification",
+        "backend/django/apps/verifications/tests.py:test_expiry_preserves_submitted_review_and_rechecks_locked_state"
+      ],
+      "disposition_note": "The restored behavior already exists on main and was independently checked against its concrete regression and successful final-head CI. This duplicate feedback is verified while closing #364.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed.",
+      "verified_main": "d9fc774e25de754770638d5d602e736ffd95fe6d"
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pTRSC",
+      "comment_id": 4191059056,
+      "path": "backend/django/apps/verifications/tasks.py",
+      "status": "verified",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Recheck expiry eligibility while holding the row lock**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4191059056",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        "backend/django/apps/verifications/tasks.py:_expire_pending_verification",
+        "backend/django/apps/verifications/tests.py:test_expiry_preserves_submitted_review_and_rechecks_locked_state"
+      ],
+      "disposition_note": "The restored behavior already exists on main and was independently checked against its concrete regression and successful final-head CI. This duplicate feedback is verified while closing #364.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed.",
+      "verified_main": "d9fc774e25de754770638d5d602e736ffd95fe6d"
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pX6RQ",
+      "comment_id": 4192960529,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Require the final review to follow thread evidence**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4192960529",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pX6RX",
+      "comment_id": 4192960538,
+      "path": ".github/workflows/review-gate.yml",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Serialize gate runs before publishing check results**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4192960538",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/workflows/review-gate.yml:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pYKd7",
+      "comment_id": 4193063381,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Publish review evidence under a dedicated check identity**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4193063381",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at bf78e3afe472e58fec63be09c79b9b86c2b035d6. Validation: all 169 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pYinQ",
+      "comment_id": 4193217558,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Strip the workflow ref suffix before comparing paths**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4193217558",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pg-Jg",
+      "comment_id": 4196646336,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Mark the gate pending before reading mutable evidence**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4196646336",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86phYky",
+      "comment_id": 4196814438,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Revalidate evidence before completing the pending check**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4196814438",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86phz0J",
+      "comment_id": 4196990797,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Revalidate workflow runs before publishing success**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4196990797",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86poWf_",
+      "comment_id": 4199694822,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Order the final review after resolver-evidence edits**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4199694822",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86porI8",
+      "comment_id": 4199831682,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Invalidate superseded resolver evidence**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4199831682",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86porJC",
+      "comment_id": 4199831692,
+      "path": ".github/workflows/review-gate.yml",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Revalidate open PRs after trusted definitions change**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4199831692",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/workflows/review-gate.yml:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86po8QU",
+      "comment_id": 4199942763,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Invalidate every open PR before assessing them serially**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4199942763",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86po8QZ",
+      "comment_id": 4199942771,
+      "path": ".github/workflows/review-gate.yml",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Run bulk revalidation in each PR's concurrency group**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4199942771",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/workflows/review-gate.yml:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pwLMR",
+      "comment_id": 4202979019,
+      "path": ".github/scripts/merge-reviewed-pr.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Ignore obsolete workflow runs in the live merge check**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4202979019",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/merge-reviewed-pr.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pwNVp",
+      "comment_id": 4202992616,
+      "path": ".github/scripts/merge-reviewed-pr.cjs",
+      "status": "verified",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Prevent evidence changes during the final merge window**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4202992616",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        "docs/operations/review-evidence-gate.md:explicit owner acceptance on 2026-10-13",
+        "docs/operations/pull-request-review-gate.md:accepted mutable-review timing limitation and mandatory live merger"
+      ],
+      "disposition_note": "The owner explicitly accepted the residual timing limitation on 2026-10-13. Verification records that accepted policy and deployed live controls. GitHub expected-head merging cannot atomically freeze mutable review evidence; that timing race remains.",
+      "resolver_evidence": "Superseded in a8e464dc01984d429d6bc5a12b1443a524dac46f. Validation: all 169 gate regression tests passed.",
+      "verified_main": "d9fc774e25de754770638d5d602e736ffd95fe6d"
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pwNVu",
+      "comment_id": 4202992624,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Provide a governed path for updating protected definitions**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4202992624",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pwQA0",
+      "comment_id": 4203009738,
+      "path": ".github/scripts/merge-reviewed-pr.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Carry the configured resolver into live validation**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4203009738",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/merge-reviewed-pr.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pwSGx",
+      "comment_id": 4203023000,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Bind approval to the protected definition that will land**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4203023000",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86pwYsm",
+      "comment_id": 4203065537,
+      "path": ".github/scripts/merge-reviewed-pr.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Lease the protected base through the merge**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4203065537",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/merge-reviewed-pr.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86p1Ik0",
+      "comment_id": 4205003941,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject negative validation in separate clauses**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4205003941",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86p2Hdp",
+      "comment_id": 4205401021,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject standalone failure follow-up clauses**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4205401021",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86p3RxO",
+      "comment_id": 4205870504,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Search prior attempts for the fork target proof**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4205870504",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86p3e1G",
+      "comment_id": 4205953099,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Invalidate the triggered PR before scanning its bucket**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4205953099",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86p9dy6",
+      "comment_id": 4208386447,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Break ties between resolver dispositions**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4208386447",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 1fa0b86b34cc974393de8c9c21951cd21cdd5e30. Validation: all 153 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86p-tx3",
+      "comment_id": 4208903944,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include uppercase SHAs in ancestry discovery**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4208903944",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 808a9aa19e74897c5fab4aae9a29a93be86a7cc3. Validation: all 161 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86p_AEt",
+      "comment_id": 4209020424,
+      "path": ".github/scripts/review-gate.cjs",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Invalidate PRs whose bucket initialization fails**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4209020424",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/scripts/review-gate.cjs:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Current fix and preceding implementation evidence confirmed at 808a9aa19e74897c5fab4aae9a29a93be86a7cc3. Validation: all 161 gate regression tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86qM1Bu",
+      "comment_id": 4214811617,
+      "path": "docs/operations/pull-request-review-gate.md",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Describe the deployed dedicated App publisher**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4214811617",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        "docs/operations/pull-request-review-gate.md:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Fixed in bf78e3afe472e58fec63be09c79b9b86c2b035d6. Validation passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86qM1B0",
+      "comment_id": 4214811625,
+      "path": "docs/operations/pull-request-review-gate.md",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve the complete native protection requirements**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4214811625",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        "docs/operations/pull-request-review-gate.md:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Fixed in bf78e3afe472e58fec63be09c79b9b86c2b035d6. Validation passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86qM1B2",
+      "comment_id": 4214811629,
+      "path": "docs/operations/pull-request-review-gate.md",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep the evidence-to-merge race explicit**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4214811629",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        "docs/operations/pull-request-review-gate.md:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Fixed in bf78e3afe472e58fec63be09c79b9b86c2b035d6. Validation passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86qNTK9",
+      "comment_id": 4215018933,
+      "path": ".github/PULL_REQUEST_TEMPLATE.md",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Link the template to a PR-resolvable documentation URL**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4215018933",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        ".github/PULL_REQUEST_TEMPLATE.md:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Fixed in 043dcd0672b97ad2bceca1cb0141f6bd0f562a34. Validation passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86qNTLB",
+      "comment_id": 4215018942,
+      "path": "docs/operations/pull-request-review-gate.md",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Record the verified dedicated-App enforcement state**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4215018942",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        "docs/operations/pull-request-review-gate.md:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Fixed in 043dcd0672b97ad2bceca1cb0141f6bd0f562a34. Validation passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86rzM3g",
+      "comment_id": 4257108112,
+      "path": "docs/operations/review-evidence-gate.md",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Record the completed owner decision consistently**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4257108112",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        "docs/operations/review-evidence-gate.md:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Fixed in 14c66b80c6b89917f3fe1cb235de603bf631071c. Validation: 3 tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86samWl",
+      "comment_id": 4273468629,
+      "path": "docs/operations/review-evidence-gate.md",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Record the October 14 protection restoration**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4273468629",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        "docs/operations/review-evidence-gate.md:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Fixed in 3a1a507467afa519714dc5468c4f2eb6fd31449a. Validation: 169 targeted tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86sazU5",
+      "comment_id": 4273552449,
+      "path": "docs/operations/review-evidence-gate.md",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Make the live merger verify all restored protections**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4273552449",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        "docs/operations/review-evidence-gate.md:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Fixed in 5e561c4e17d66643531512449357b070692e4cb4. Validation: 169 targeted tests passed."
+    },
+    {
+      "pr_number": 364,
+      "thread_id": "PRRT_kwDOTN0BU86sbD_i",
+      "comment_id": 4273660723,
+      "path": "docs/operations/review-evidence-gate.md",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Make the trusted worktree setup repeatable**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/364#discussion_r4273660723",
+      "remediation_pr": 364,
+      "remediation_commit": "4cde544dd93b3528ae6f444234d377ac017d0eae",
+      "merged_commit": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+      "evidence": [
+        "docs/operations/review-evidence-gate.md:individually inspected implementation or operational guidance",
+        ".github/scripts/review-gate.test.cjs:169 gate regressions and subsequent 170-test bounded-buffer suite passed",
+        "docs/operations/review-evidence-gate.md:deployed native and dedicated-App enforcement, live merge and protected maintenance procedure"
+      ],
+      "disposition_note": "Implementation, deployment and canonical resolver evidence were independently revalidated before protected merge #364, with fresh final-head review, all PR/push CI and Security successful, and dedicated-App evidence success.",
+      "resolver_evidence": "Fixed in b8dff4ea15d6f60b9c1b52748149e76ca447bdfe. Validation: 169 targeted tests passed."
+    },
+    {
       "pr_number": 366,
       "thread_id": "PRRT_kwDOTN0BU86pS50f",
       "comment_id": 4190910023,
@@ -9461,8 +10442,44 @@
       "remediation_commit": "95aee834f2223ab7e452a1c92a43d9ffb73a58e7",
       "merged_commit": "02e7b3b2324ded622dd907fedf4ac14e7a9436b7",
       "disposition_note": "Valid late feedback addressed before fresh final-head review and protected merge, including server-relative challenge expiry, pending-camera cancellation, preservation of uncertain legacy locale evidence, and accurate inventory metadata. Final-head backend and browser CI and Security passed."
+    },
+    {
+      "pr_number": 390,
+      "thread_id": "PRRT_kwDOTN0BU86qdMIU",
+      "comment_id": 4221554254,
+      "path": "backend/django/apps/verification_sessions/test_postman_document_flow.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Avoid requiring Node in the Django test container**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/390#discussion_r4221554254",
+      "remediation_pr": 390,
+      "remediation_commit": "4cf84664580dd30a985d63bc5db533cac2ef069e",
+      "merged_commit": "5422bd3157632f1fea910a0114fbb974f380e81d",
+      "evidence": [
+        "backend/django/Dockerfile:test target provides Node and checked-in Postman fixtures without changing production target",
+        "backend/django/apps/verification_sessions/test_postman_document_flow.py:three real session integration tests passed on final head",
+        "docs/reviews/historical-review-dispositions.json:inventory metadata agrees with independently inspected rows"
+      ],
+      "disposition_note": "Resolved in protected merged PR #390 after fresh review and successful final-head CI/Security."
+    },
+    {
+      "pr_number": 390,
+      "thread_id": "PRRT_kwDOTN0BU86qdMIa",
+      "comment_id": 4221554263,
+      "path": "docs/reviews/historical-review-dispositions.json",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Refresh the inventory note after appending audit records**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/390#discussion_r4221554263",
+      "remediation_pr": 390,
+      "remediation_commit": "4cf84664580dd30a985d63bc5db533cac2ef069e",
+      "merged_commit": "5422bd3157632f1fea910a0114fbb974f380e81d",
+      "evidence": [
+        "backend/django/Dockerfile:test target provides Node and checked-in Postman fixtures without changing production target",
+        "backend/django/apps/verification_sessions/test_postman_document_flow.py:three real session integration tests passed on final head",
+        "docs/reviews/historical-review-dispositions.json:inventory metadata agrees with independently inspected rows"
+      ],
+      "disposition_note": "Resolved in protected merged PR #390 after fresh review and successful final-head CI/Security."
     }
   ],
-  "verified_main": "02e7b3b2324ded622dd907fedf4ac14e7a9436b7",
-  "inventory_note": "774 uniquely identified historical threads: 108 fixed, 176 verified, 1 actionable and 489 pending individual audit. Session/consent fixes are merged in #388; portal and legacy reporting fixes are merged in #389. The Postman finding remains actionable until PR #390 merges. GitHub resolution state is not implementation evidence."
+  "verified_main": "d9fc774e25de754770638d5d602e736ffd95fe6d",
+  "inventory_note": "823 threads from closed or merged PRs: 152 fixed, 196 verified, 5 actionable and 470 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
 }
