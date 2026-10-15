@@ -120,7 +120,7 @@ class VerificationPolicyCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError(str(exc)) from exc
 
     def validate(self, attrs):
-        tenant = self.context.get("tenant") or self.context["request"].user.tenant
+        tenant = self.context["tenant"] if "tenant" in self.context else self.context["request"].user.tenant
         unknown = set(attrs["required_document_types"]) - VALID_DOCUMENT_TYPES
         if unknown:
             raise serializers.ValidationError(

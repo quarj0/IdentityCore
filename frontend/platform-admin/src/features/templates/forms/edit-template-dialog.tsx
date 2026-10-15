@@ -24,6 +24,7 @@ export function EditTemplateDialog({
   template: TemplateRecord;
   onComplete?: () => void;
 }) {
+  const [open, setOpen] = useState(false);
   const [name, setName] = useState(template.name);
   const [description, setDescription] = useState(template.description);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +33,8 @@ export function EditTemplateDialog({
     setSubmitting(true);
     setError(null);
     try {
-      await updateTemplate(template.id, { name });
+      await updateTemplate(template.id, { name, description });
+      setOpen(false);
       onComplete?.();
     } catch (cause) {
       setError(
@@ -43,7 +45,7 @@ export function EditTemplateDialog({
     }
   }
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline">Edit draft</Button>
       </DialogTrigger>

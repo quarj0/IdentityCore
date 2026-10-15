@@ -1365,7 +1365,7 @@
       "thread_id": "PRRT_kwDOTN0BU86TiDUp",
       "comment_id": 3644944384,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/config/graphql_mutations.py:transactional invitation and deactivation controls with platform audit scope lock and fresh actor authorization",
         "backend/django/apps/reviewers/test_historical_admin_controls.py:expired invitation replacement, retained platform deactivation reason and stale actor denial",
@@ -1373,7 +1373,10 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Handle expired pending invitations before creating a replacement**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/32#discussion_r3644944384",
-      "disposition_note": "Individually inspected original finding. Expired invitation replacement and missing deactivation reason reproduced before fixes. Final-admin race requires PostgreSQL CI proof. Local expanded suite ran 31 tests with one PostgreSQL-only skip; full backend suite ran 961 with 35 skips successfully. Remains actionable until reviewed protected merge. Subsequent invitation acceptance/replacement race reproduced and fixed; all 32 relevant PostgreSQL tests, including both three-round concurrency cases, passed. Full integrated backend ran 991 with 37 skips successfully."
+      "disposition_note": "Fixed in protected merged PR #397 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1020 tests with 38 skips successfully. Required PostgreSQL CI passed 107 tests, including platform invitation acceptance and cross-deactivation races. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 397,
+      "remediation_commit": "5a4bc47b8e7eb2396a0ec2c5352a65ad27ab514d",
+      "merged_commit": "bfc3a7867f897401db5fddddc037865b70577112"
     },
     {
       "pr_number": 32,
@@ -1410,7 +1413,7 @@
       "thread_id": "PRRT_kwDOTN0BU86TihIO",
       "comment_id": 3645114458,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/config/graphql_mutations.py:transactional invitation and deactivation controls with platform audit scope lock and fresh actor authorization",
         "backend/django/apps/reviewers/test_historical_admin_controls.py:expired invitation replacement, retained platform deactivation reason and stale actor denial",
@@ -1418,14 +1421,17 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Persist deactivation reasons for tenantless platform admins**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645114458",
-      "disposition_note": "Individually inspected original finding. Expired invitation replacement and missing deactivation reason reproduced before fixes. Final-admin race requires PostgreSQL CI proof. Local expanded suite ran 31 tests with one PostgreSQL-only skip; full backend suite ran 961 with 35 skips successfully. Remains actionable until reviewed protected merge. Subsequent invitation acceptance/replacement race reproduced and fixed; all 32 relevant PostgreSQL tests, including both three-round concurrency cases, passed. Full integrated backend ran 991 with 37 skips successfully."
+      "disposition_note": "Fixed in protected merged PR #397 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1020 tests with 38 skips successfully. Required PostgreSQL CI passed 107 tests, including platform invitation acceptance and cross-deactivation races. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 397,
+      "remediation_commit": "5a4bc47b8e7eb2396a0ec2c5352a65ad27ab514d",
+      "merged_commit": "bfc3a7867f897401db5fddddc037865b70577112"
     },
     {
       "pr_number": 33,
       "thread_id": "PRRT_kwDOTN0BU86TihIR",
       "comment_id": 3645114464,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/config/graphql_mutations.py:transactional invitation and deactivation controls with platform audit scope lock and fresh actor authorization",
         "backend/django/apps/reviewers/test_historical_admin_controls.py:expired invitation replacement, retained platform deactivation reason and stale actor denial",
@@ -1433,7 +1439,10 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reconcile expired pending invitations before creating another**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645114464",
-      "disposition_note": "Individually inspected original finding. Expired invitation replacement and missing deactivation reason reproduced before fixes. Final-admin race requires PostgreSQL CI proof. Local expanded suite ran 31 tests with one PostgreSQL-only skip; full backend suite ran 961 with 35 skips successfully. Remains actionable until reviewed protected merge. Subsequent invitation acceptance/replacement race reproduced and fixed; all 32 relevant PostgreSQL tests, including both three-round concurrency cases, passed. Full integrated backend ran 991 with 37 skips successfully."
+      "disposition_note": "Fixed in protected merged PR #397 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1020 tests with 38 skips successfully. Required PostgreSQL CI passed 107 tests, including platform invitation acceptance and cross-deactivation races. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 397,
+      "remediation_commit": "5a4bc47b8e7eb2396a0ec2c5352a65ad27ab514d",
+      "merged_commit": "bfc3a7867f897401db5fddddc037865b70577112"
     },
     {
       "pr_number": 33,
@@ -1490,7 +1499,7 @@
       "thread_id": "PRRT_kwDOTN0BU86TixdF",
       "comment_id": 3645208254,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/config/graphql_mutations.py:transactional invitation and deactivation controls with platform audit scope lock and fresh actor authorization",
         "backend/django/apps/reviewers/test_historical_admin_controls.py:expired invitation replacement, retained platform deactivation reason and stale actor denial",
@@ -1498,7 +1507,10 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Serialize the final-admin check**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645208254",
-      "disposition_note": "Individually inspected original finding. Expired invitation replacement and missing deactivation reason reproduced before fixes. Final-admin race requires PostgreSQL CI proof. Local expanded suite ran 31 tests with one PostgreSQL-only skip; full backend suite ran 961 with 35 skips successfully. Remains actionable until reviewed protected merge. Subsequent invitation acceptance/replacement race reproduced and fixed; all 32 relevant PostgreSQL tests, including both three-round concurrency cases, passed. Full integrated backend ran 991 with 37 skips successfully."
+      "disposition_note": "Fixed in protected merged PR #397 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1020 tests with 38 skips successfully. Required PostgreSQL CI passed 107 tests, including platform invitation acceptance and cross-deactivation races. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 397,
+      "remediation_commit": "5a4bc47b8e7eb2396a0ec2c5352a65ad27ab514d",
+      "merged_commit": "bfc3a7867f897401db5fddddc037865b70577112"
     },
     {
       "pr_number": 33,
@@ -1563,20 +1575,30 @@
       "thread_id": "PRRT_kwDOTN0BU86Ti6GT",
       "comment_id": 3645257342,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/graphql_mutations.py:existing DRAFT-only update and publication guards",
+        "backend/django/apps/templates/test_historical_lifecycle.py:test_archived_template_cannot_be_edited_or_republished passed before changes"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Prevent archived templates from being republished**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257342"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257342",
+      "disposition_note": "The original archived edit/publish concern is already prevented by explicit lifecycle guards. Actual GraphQL regression passed on preceding implementation; no new fix claimed."
     },
     {
       "pr_number": 34,
       "thread_id": "PRRT_kwDOTN0BU86Ti6GV",
       "comment_id": 3645257344,
       "path": "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:actual creation payload, closed successful dialog, submitted description and refreshed paragraph, template/workflow publish/archive rationale",
+        "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx:explicit checks and generated consent/decision workflow steps",
+        "frontend/platform-admin/src/features/templates/live-data.ts:description, required checks/steps and notes/reason mutation variables",
+        "backend/django/apps/templates/test_historical_lifecycle.py:template/workflow rationale in authenticated audit metadata and editable description validation"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Close the creation dialog after a successful submit**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257344"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257344",
+      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 1000 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
     },
     {
       "pr_number": 34,
@@ -1615,10 +1637,16 @@
       "thread_id": "PRRT_kwDOTN0BU86TjHUO",
       "comment_id": 3645332168,
       "path": "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:actual creation payload, closed successful dialog, submitted description and refreshed paragraph, template/workflow publish/archive rationale",
+        "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx:explicit checks and generated consent/decision workflow steps",
+        "frontend/platform-admin/src/features/templates/live-data.ts:description, required checks/steps and notes/reason mutation variables",
+        "backend/django/apps/templates/test_historical_lifecycle.py:template/workflow rationale in authenticated audit metadata and editable description validation"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Include required checks when creating templates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645332168"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645332168",
+      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 1000 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
     },
     {
       "pr_number": 34,
@@ -1661,10 +1689,16 @@
       "thread_id": "PRRT_kwDOTN0BU86TjLLW",
       "comment_id": 3645354154,
       "path": "frontend/platform-admin/src/features/templates/forms/edit-template-dialog.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:actual creation payload, closed successful dialog, submitted description and refreshed paragraph, template/workflow publish/archive rationale",
+        "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx:explicit checks and generated consent/decision workflow steps",
+        "frontend/platform-admin/src/features/templates/live-data.ts:description, required checks/steps and notes/reason mutation variables",
+        "backend/django/apps/templates/test_historical_lifecycle.py:template/workflow rationale in authenticated audit metadata and editable description validation"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Submit the edited template description**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645354154"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645354154",
+      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 1000 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
     },
     {
       "pr_number": 34,
@@ -1750,20 +1784,32 @@
       "thread_id": "PRRT_kwDOTN0BU86TjdvS",
       "comment_id": 3645461291,
       "path": "frontend/platform-admin/src/features/templates/live-data.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:actual creation payload, closed successful dialog, submitted description and refreshed paragraph, template/workflow publish/archive rationale",
+        "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx:explicit checks and generated consent/decision workflow steps",
+        "frontend/platform-admin/src/features/templates/live-data.ts:description, required checks/steps and notes/reason mutation variables",
+        "backend/django/apps/templates/test_historical_lifecycle.py:template/workflow rationale in authenticated audit metadata and editable description validation"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Provide required checks for newly created templates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461291"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461291",
+      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 1000 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
     },
     {
       "pr_number": 35,
       "thread_id": "PRRT_kwDOTN0BU86TjdvV",
       "comment_id": 3645461294,
       "path": "frontend/platform-admin/src/features/templates/forms/edit-template-dialog.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:actual creation payload, closed successful dialog, submitted description and refreshed paragraph, template/workflow publish/archive rationale",
+        "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx:explicit checks and generated consent/decision workflow steps",
+        "frontend/platform-admin/src/features/templates/live-data.ts:description, required checks/steps and notes/reason mutation variables",
+        "backend/django/apps/templates/test_historical_lifecycle.py:template/workflow rationale in authenticated audit metadata and editable description validation"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Submit the edited template description**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461294"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461294",
+      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 1000 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
     },
     {
       "pr_number": 35,
@@ -1802,20 +1848,31 @@
       "thread_id": "PRRT_kwDOTN0BU86Tjdvg",
       "comment_id": 3645461306,
       "path": "frontend/platform-admin/src/features/templates/components/template-header.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/platform-admin/src/features/templates/components/template-header.tsx:Publish only for DRAFT, archive and new version only for PUBLISHED",
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:archived lifecycle action regression passed in Chromium and WebKit",
+        "backend/django/apps/templates/test_historical_lifecycle.py:test_archived_template_cannot_be_edited_or_republished passed on preceding code"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Do not offer publish for archived templates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461306"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461306",
+      "disposition_note": "Original finding individually read. The existing backend DRAFT guard already prevents archived republication; the UI still offered the action. The draft-only UI control is repaired and covered in both browsers. Remains actionable until protected merge."
     },
     {
       "pr_number": 35,
       "thread_id": "PRRT_kwDOTN0BU86Tjdvi",
       "comment_id": 3645461308,
       "path": "frontend/platform-admin/src/features/templates/components/template-publish-dialog.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:actual creation payload, closed successful dialog, submitted description and refreshed paragraph, template/workflow publish/archive rationale",
+        "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx:explicit checks and generated consent/decision workflow steps",
+        "frontend/platform-admin/src/features/templates/live-data.ts:description, required checks/steps and notes/reason mutation variables",
+        "backend/django/apps/templates/test_historical_lifecycle.py:template/workflow rationale in authenticated audit metadata and editable description validation"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve publish and archive notes**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461308"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461308",
+      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 1000 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
     },
     {
       "pr_number": 35,
@@ -2230,10 +2287,15 @@
       "thread_id": "PRRT_kwDOTN0BU86UTTFu",
       "comment_id": 3663207280,
       "path": "frontend/identitycore/src/lib/workflow-templates-api.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/settings/base.py:DEFAULT_CORS_ALLOW_HEADERS includes Idempotency-Key",
+        "backend/django/common/cors.py:API preflight response includes Idempotency-Key",
+        "backend/django/config/tests.py:test_api_client_preflight_allows_authentication_and_idempotency_headers passes in the current full backend suite"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Allow the idempotency header through CORS**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207280"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207280",
+      "disposition_note": "Original finding individually read. Current main already permits the idempotency header through its generic API preflight response. The actual preflight regression passed in the full 993-test backend run with 36 skips; no new CORS fix claimed."
     },
     {
       "pr_number": 49,
@@ -2260,20 +2322,32 @@
       "thread_id": "PRRT_kwDOTN0BU86UTTF5",
       "comment_id": 3663207292,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/templates/test_historical_lifecycle.py:collision errors, invalid settings, immutable source and later versions",
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:eight template lifecycle/version browser cases passed",
+        "backend/django/config/graphql_mutations.py:transactional template lifecycle mutations",
+        "backend/django/apps/templates/test_lifecycle_races.py:three PostgreSQL same-version creation races selected in required CI; local skip is not race proof"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate generated template slugs before inserting**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207292"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207292",
+      "disposition_note": "Slug collisions now return deliberate validation errors with insertion savepoint handling. Full backend ran 1000 tests with 36 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
     },
     {
       "pr_number": 49,
       "thread_id": "PRRT_kwDOTN0BU86UTTF6",
       "comment_id": 3663207294,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/templates/test_historical_lifecycle.py:collision errors, invalid settings, immutable source and later versions",
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:eight template lifecycle/version browser cases passed",
+        "backend/django/config/graphql_mutations.py:transactional template lifecycle mutations",
+        "backend/django/apps/templates/test_lifecycle_races.py:three PostgreSQL same-version creation races selected in required CI; local skip is not race proof"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Hide editing controls for published templates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207294"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207294",
+      "disposition_note": "Draft-only edit/publish controls and published-only archive/new-version controls are verified in Chromium and WebKit. Full backend ran 1000 tests with 36 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
     },
     {
       "pr_number": 49,
@@ -2290,20 +2364,32 @@
       "thread_id": "PRRT_kwDOTN0BU86UTTF_",
       "comment_id": 3663207299,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/templates/test_historical_lifecycle.py:collision errors, invalid settings, immutable source and later versions",
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:eight template lifecycle/version browser cases passed",
+        "backend/django/config/graphql_mutations.py:transactional template lifecycle mutations",
+        "backend/django/apps/templates/test_lifecycle_races.py:three PostgreSQL same-version creation races selected in required CI; local skip is not race proof"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate setting values before publishing templates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207299"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207299",
+      "disposition_note": "Publication validates supported policy types, ranges and cross-field constraints, while excluding tenant consent bindings from global templates. Full backend ran 1000 tests with 36 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
     },
     {
       "pr_number": 49,
       "thread_id": "PRRT_kwDOTN0BU86UTTGB",
       "comment_id": 3663207303,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/templates/test_historical_lifecycle.py:collision errors, invalid settings, immutable source and later versions",
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:eight template lifecycle/version browser cases passed",
+        "backend/django/config/graphql_mutations.py:transactional template lifecycle mutations",
+        "backend/django/apps/templates/test_lifecycle_races.py:three PostgreSQL same-version creation races selected in required CI; local skip is not race proof"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Provide a path to create later template versions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207303"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207303",
+      "disposition_note": "Explicit createPlatformTemplateVersion preserves stable slug and source publication while creating an editable later numeric version. Full backend ran 1000 tests with 36 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
     },
     {
       "pr_number": 56,
@@ -9603,320 +9689,6 @@
       "disposition_note": "Resolved with fixing-commit and regression evidence before final-head Codex review and passing CI/Security merge."
     },
     {
-      "pr_number": 366,
-      "thread_id": "PRRT_kwDOTN0BU86pS50f",
-      "comment_id": 4190910023,
-      "path": "backend/django/apps/providers/services.py",
-      "status": "fixed",
-      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reuse processing biometric bootstrap checks**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/366#discussion_r4190910023",
-      "remediation_pr": 366,
-      "remediation_commit": "7d884a1ad4f7ad88aba9b0587c45d3ff40502a98",
-      "merged_commit": "ef273441cf496876481edb9a8ade63fda84cf858",
-      "evidence": [
-        "Fixed in c286b07d7c44a63a87f49d830df160a643f4fc41. Both pending and processing bootstrap checks can be reused when no execution attempt exists; persisted-attempt lookup still prevents repeated invocation from overwriting earlier history. A new regression starts from an unattempted processing check, verifies the same row completes, and asserts one check/attempt remains. All 95 provider/biometric/result tests and all 813 backend tests pass (28 PostgreSQL-only skips)."
-      ],
-      "disposition_note": "Merged after completed final-head Codex review, resolved evidence threads and successful CI/Security."
-    },
-    {
-      "pr_number": 368,
-      "thread_id": "PRRT_kwDOTN0BU86pTQg-",
-      "comment_id": 4191054574,
-      "path": "backend/ai-service/Dockerfile",
-      "status": "fixed",
-      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Align the replacement with the declared OpenCV requirement**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/368#discussion_r4191054574",
-      "remediation_pr": 368,
-      "remediation_commit": "13e412ca207d51f40212d2523153a5c843bff476",
-      "merged_commit": "60fc042eb208b2876a405bd7559a63f435492d35",
-      "evidence": [
-        "Fixed in 13e412ca207d51f40212d2523153a5c843bff476. The manifest, frozen lock, CI and container now consistently select opencv-contrib-python-headless==5.0.0.93. UV explicitly excludes the three conflicting cv2 distributions, and the complete frozen export is installed without reintroducing their dependencies. uv lock --check passes; the frozen AI export contains exactly that OpenCV distribution. A real isolated OpenCV 5.0.0 import passes the runtime guard, and conflicting package layouts are rejected."
-      ],
-      "disposition_note": "Merged after completed final-head Codex review, resolved evidence threads and successful CI/Security."
-    },
-    {
-      "pr_number": 369,
-      "thread_id": "PRRT_kwDOTN0BU86pYAam",
-      "comment_id": 4192999830,
-      "path": "backend/django/apps/audit/services.py",
-      "status": "fixed",
-      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Handle malformed hashes as verification failures**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/369#discussion_r4192999830",
-      "remediation_pr": 369,
-      "remediation_commit": "464a41d6a6d6646da4ed20cede9f722e7523cb91",
-      "merged_commit": "6d241f3950db77efac1bf79d6743f4cfcdf55d84",
-      "evidence": [
-        "Fixed in 464a41d6a6d6646da4ed20cede9f722e7523cb91. Hash comparison is now inside the guarded verification path, so non-ASCII hashes or authentication tags return (False, event.public_id). A raw database-tampering regression covers both fields. All 822 backend tests pass (29 PostgreSQL-only skips); 14 PostgreSQL audit tests previously passed. The processing inventory now documents all three integrity fields, and its seven validation tests pass."
-      ],
-      "disposition_note": "Merged after completed final-head Codex review, resolved evidence threads and successful CI/Security."
-    },
-    {
-      "pr_number": 370,
-      "thread_id": "PRRT_kwDOTN0BU86pYZO-",
-      "comment_id": 4193157690,
-      "path": "backend/django/apps/webhooks/services.py",
-      "status": "fixed",
-      "evidence": [
-        "backend/django/apps/webhooks/services.py:_event_matches_endpoint_environment",
-        "backend/django/apps/webhooks/tests.py:test_verification_delivery_rejects_missing_ids_but_allows_test_events"
-      ],
-      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reject verification events that omit their verification ID**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/370#discussion_r4193157690",
-      "remediation_pr": 370,
-      "remediation_commit": "b6344fbbdaea1461794a31266d4ceb2d2ca39049",
-      "merged_commit": "8c8c379cce744444073c3094e8336e3819b7c4af",
-      "disposition_note": "Fixed and merged after final-head Codex review, regression evidence, resolved review threads and successful CI/Security."
-    },
-    {
-      "pr_number": 371,
-      "thread_id": "PRRT_kwDOTN0BU86pYhmD",
-      "comment_id": 4193211206,
-      "path": "docs/reviews/historical-review-dispositions.json",
-      "status": "fixed",
-      "evidence": [
-        "docs/reviews/historical-review-dispositions.json"
-      ],
-      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Add evidence before marking audit findings fixed**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/371#discussion_r4193211206",
-      "remediation_pr": 371,
-      "remediation_commit": "579266d97665635063a860e4e2a76713e0ca7bec",
-      "merged_commit": "7cc7bfe76501b478897eeabc3fa794bdefd872a7",
-      "disposition_note": "Fixed and merged after final-head Codex review, regression evidence, resolved review threads and successful CI/Security."
-    },
-    {
-      "pr_number": 372,
-      "thread_id": "PRRT_kwDOTN0BU86pYlhr",
-      "comment_id": 4193236465,
-      "path": "backend/django/apps/providers/health.py",
-      "status": "fixed",
-      "evidence": [
-        "backend/django/apps/providers/health.py:provider_health_scope",
-        "backend/django/config/test_management_apis.py:test_provider_health_retains_provider_with_only_nonmetric_attempts"
-      ],
-      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve providers that only have non-metric checks**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/372#discussion_r4193236465",
-      "remediation_pr": 372,
-      "remediation_commit": "554772524fb2950a335b90510079c1a2e9970c9c",
-      "merged_commit": "1bfedfc8a78b03105be9f89de5f91ac2e85a6544",
-      "disposition_note": "Fixed and merged after final-head Codex review, regression evidence, resolved review threads and successful CI/Security."
-    },
-    {
-      "pr_number": 388,
-      "thread_id": "PRRT_kwDOTN0BU86qU3Bm",
-      "comment_id": 4218149171,
-      "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "fixed",
-      "evidence": [
-        "backend/django/apps/verification_sessions/test_historical_consent_artifacts.py",
-        "backend/django/apps/verification_sessions/test_historical_session_recovery.py"
-      ],
-      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Resolve consent using the submitted locale**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/388#discussion_r4218149171",
-      "disposition_note": "Late feedback fixed and resolved before the fresh final-head review and protected merge.",
-      "remediation_pr": 388,
-      "remediation_commit": "38c62e059e72a0d8046a2e2ededa0d145c566638",
-      "merged_commit": "081da59c021337bbc75a1e5bab65767effa50ff3"
-    },
-    {
-      "pr_number": 388,
-      "thread_id": "PRRT_kwDOTN0BU86qU3Bw",
-      "comment_id": 4218149182,
-      "path": "docs/architecture/api-spec.md",
-      "status": "fixed",
-      "evidence": [
-        "backend/django/apps/verification_sessions/test_historical_consent_artifacts.py",
-        "backend/django/apps/verification_sessions/test_historical_session_recovery.py"
-      ],
-      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Copy the response hash into the consent request example**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/388#discussion_r4218149182",
-      "disposition_note": "Late feedback fixed and resolved before the fresh final-head review and protected merge.",
-      "remediation_pr": 388,
-      "remediation_commit": "38c62e059e72a0d8046a2e2ededa0d145c566638",
-      "merged_commit": "081da59c021337bbc75a1e5bab65767effa50ff3"
-    },
-    {
-      "pr_number": 388,
-      "thread_id": "PRRT_kwDOTN0BU86qVNgy",
-      "comment_id": 4218291867,
-      "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "fixed",
-      "evidence": [
-        "backend/django/apps/verification_sessions/test_historical_consent_artifacts.py",
-        "backend/django/apps/verification_sessions/test_historical_session_recovery.py"
-      ],
-      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve translations for the selected consent template**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/388#discussion_r4218291867",
-      "disposition_note": "Late feedback fixed and resolved before the fresh final-head review and protected merge.",
-      "remediation_pr": 388,
-      "remediation_commit": "38c62e059e72a0d8046a2e2ededa0d145c566638",
-      "merged_commit": "081da59c021337bbc75a1e5bab65767effa50ff3"
-    },
-    {
-      "pr_number": 388,
-      "thread_id": "PRRT_kwDOTN0BU86qVa5D",
-      "comment_id": 4218376797,
-      "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "verified",
-      "evidence": [
-        "backend/django/apps/verification_sessions/test_historical_consent_artifacts.py",
-        "backend/django/apps/verification_sessions/test_historical_session_recovery.py"
-      ],
-      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Return the selfie step for review-flagged documents**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/388#discussion_r4218376797",
-      "disposition_note": "Final-head configured review verified after canonical disposition evidence; 112 targeted tests passed and full suite ran 943 tests with 34 skips. Existing AWAITING_SELFIE status mapping was independently verified.",
-      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3"
-    },
-    {
-      "pr_number": 388,
-      "thread_id": "PRRT_kwDOTN0BU86qVa5L",
-      "comment_id": 4218376806,
-      "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "fixed",
-      "evidence": [
-        "backend/django/apps/verification_sessions/test_historical_consent_artifacts.py",
-        "backend/django/apps/verification_sessions/test_historical_session_recovery.py"
-      ],
-      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Enforce the dynamic fingerprint before replaying consent**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/388#discussion_r4218376806",
-      "disposition_note": "Late feedback fixed and resolved before the fresh final-head review and protected merge.",
-      "remediation_pr": 388,
-      "remediation_commit": "38c62e059e72a0d8046a2e2ededa0d145c566638",
-      "merged_commit": "081da59c021337bbc75a1e5bab65767effa50ff3"
-    },
-    {
-      "pr_number": 389,
-      "thread_id": "PRRT_kwDOTN0BU86qWUGz",
-      "comment_id": 4218742886,
-      "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
-      "status": "fixed",
-      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Base challenge expiry on server-relative time**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/389#discussion_r4218742886",
-      "evidence": [
-        "backend/django/apps/consent/test_legacy_locale_migration.py",
-        "backend/django/apps/consent/test_legacy_locale_reporting.py",
-        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts",
-        "docs/reviews/historical-review-dispositions.json"
-      ],
-      "remediation_pr": 389,
-      "remediation_commit": "95aee834f2223ab7e452a1c92a43d9ffb73a58e7",
-      "merged_commit": "02e7b3b2324ded622dd907fedf4ac14e7a9436b7",
-      "disposition_note": "Valid late feedback addressed before fresh final-head review and protected merge, including server-relative challenge expiry, pending-camera cancellation, preservation of uncertain legacy locale evidence, and accurate inventory metadata. Final-head backend and browser CI and Security passed."
-    },
-    {
-      "pr_number": 389,
-      "thread_id": "PRRT_kwDOTN0BU86qWlUI",
-      "comment_id": 4218852445,
-      "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
-      "status": "fixed",
-      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Cancel pending camera startup before expiring the challenge**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/389#discussion_r4218852445",
-      "evidence": [
-        "backend/django/apps/consent/test_legacy_locale_migration.py",
-        "backend/django/apps/consent/test_legacy_locale_reporting.py",
-        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts",
-        "docs/reviews/historical-review-dispositions.json"
-      ],
-      "remediation_pr": 389,
-      "remediation_commit": "95aee834f2223ab7e452a1c92a43d9ffb73a58e7",
-      "merged_commit": "02e7b3b2324ded622dd907fedf4ac14e7a9436b7",
-      "disposition_note": "Valid late feedback addressed before fresh final-head review and protected merge, including server-relative challenge expiry, pending-camera cancellation, preservation of uncertain legacy locale evidence, and accurate inventory metadata. Final-head backend and browser CI and Security passed."
-    },
-    {
-      "pr_number": 389,
-      "thread_id": "PRRT_kwDOTN0BU86qdQKU",
-      "comment_id": 4221580356,
-      "path": "backend/django/apps/consent/migrations/0004_backfill_legacy_notice_locales.py",
-      "status": "fixed",
-      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Avoid deriving historical locales from mutable templates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/389#discussion_r4221580356",
-      "evidence": [
-        "backend/django/apps/consent/test_legacy_locale_migration.py",
-        "backend/django/apps/consent/test_legacy_locale_reporting.py",
-        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts",
-        "docs/reviews/historical-review-dispositions.json"
-      ],
-      "remediation_pr": 389,
-      "remediation_commit": "95aee834f2223ab7e452a1c92a43d9ffb73a58e7",
-      "merged_commit": "02e7b3b2324ded622dd907fedf4ac14e7a9436b7",
-      "disposition_note": "Valid late feedback addressed before fresh final-head review and protected merge, including server-relative challenge expiry, pending-camera cancellation, preservation of uncertain legacy locale evidence, and accurate inventory metadata. Final-head backend and browser CI and Security passed."
-    },
-    {
-      "pr_number": 389,
-      "thread_id": "PRRT_kwDOTN0BU86qdQKc",
-      "comment_id": 4221580368,
-      "path": "docs/reviews/README.md",
-      "status": "fixed",
-      "summary": "**<sub><sub>![P3 Badge](https://img.shields.io/badge/P3-lightgrey?style=flat)</sub></sub>  Refresh the register metadata with the inventory**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/389#discussion_r4221580368",
-      "evidence": [
-        "backend/django/apps/consent/test_legacy_locale_migration.py",
-        "backend/django/apps/consent/test_legacy_locale_reporting.py",
-        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts",
-        "docs/reviews/historical-review-dispositions.json"
-      ],
-      "remediation_pr": 389,
-      "remediation_commit": "95aee834f2223ab7e452a1c92a43d9ffb73a58e7",
-      "merged_commit": "02e7b3b2324ded622dd907fedf4ac14e7a9436b7",
-      "disposition_note": "Valid late feedback addressed before fresh final-head review and protected merge, including server-relative challenge expiry, pending-camera cancellation, preservation of uncertain legacy locale evidence, and accurate inventory metadata. Final-head backend and browser CI and Security passed."
-    },
-    {
-      "pr_number": 389,
-      "thread_id": "PRRT_kwDOTN0BU86rn4Dy",
-      "comment_id": 4252381514,
-      "path": "backend/django/apps/consent/migrations/0004_backfill_legacy_notice_locales.py",
-      "status": "fixed",
-      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Avoid backfilling from mutable template language**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/389#discussion_r4252381514",
-      "evidence": [
-        "backend/django/apps/consent/test_legacy_locale_migration.py",
-        "backend/django/apps/consent/test_legacy_locale_reporting.py",
-        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts",
-        "docs/reviews/historical-review-dispositions.json"
-      ],
-      "remediation_pr": 389,
-      "remediation_commit": "95aee834f2223ab7e452a1c92a43d9ffb73a58e7",
-      "merged_commit": "02e7b3b2324ded622dd907fedf4ac14e7a9436b7",
-      "disposition_note": "Valid late feedback addressed before fresh final-head review and protected merge, including server-relative challenge expiry, pending-camera cancellation, preservation of uncertain legacy locale evidence, and accurate inventory metadata. Final-head backend and browser CI and Security passed."
-    },
-    {
-      "pr_number": 389,
-      "thread_id": "PRRT_kwDOTN0BU86ryoMR",
-      "comment_id": 4256871920,
-      "path": "docs/reviews/README.md",
-      "status": "fixed",
-      "summary": "**<sub><sub>![P3 Badge](https://img.shields.io/badge/P3-lightgrey?style=flat)</sub></sub>  Correct the actionable-finding total**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/389#discussion_r4256871920",
-      "evidence": [
-        "backend/django/apps/consent/test_legacy_locale_migration.py",
-        "backend/django/apps/consent/test_legacy_locale_reporting.py",
-        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts",
-        "docs/reviews/historical-review-dispositions.json"
-      ],
-      "remediation_pr": 389,
-      "remediation_commit": "95aee834f2223ab7e452a1c92a43d9ffb73a58e7",
-      "merged_commit": "02e7b3b2324ded622dd907fedf4ac14e7a9436b7",
-      "disposition_note": "Valid late feedback addressed before fresh final-head review and protected merge, including server-relative challenge expiry, pending-camera cancellation, preservation of uncertain legacy locale evidence, and accurate inventory metadata. Final-head backend and browser CI and Security passed."
-    },
-    {
-      "pr_number": 389,
-      "thread_id": "PRRT_kwDOTN0BU86ry5HD",
-      "comment_id": 4256981209,
-      "path": "docs/reviews/historical-review-dispositions.json",
-      "status": "fixed",
-      "summary": "**<sub><sub>![P3 Badge](https://img.shields.io/badge/P3-lightgrey?style=flat)</sub></sub>  Replace the unrelated disposition rationale**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/389#discussion_r4256981209",
-      "evidence": [
-        "backend/django/apps/consent/test_legacy_locale_migration.py",
-        "backend/django/apps/consent/test_legacy_locale_reporting.py",
-        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts",
-        "docs/reviews/historical-review-dispositions.json"
-      ],
-      "remediation_pr": 389,
-      "remediation_commit": "95aee834f2223ab7e452a1c92a43d9ffb73a58e7",
-      "merged_commit": "02e7b3b2324ded622dd907fedf4ac14e7a9436b7",
-      "disposition_note": "Valid late feedback addressed before fresh final-head review and protected merge, including server-relative challenge expiry, pending-camera cancellation, preservation of uncertain legacy locale evidence, and accurate inventory metadata. Final-head backend and browser CI and Security passed."
-    },
-    {
       "pr_number": 364,
       "thread_id": "PRRT_kwDOTN0BU86pMvg9",
       "comment_id": 4188358428,
@@ -10810,6 +10582,320 @@
       "resolver_evidence": "Fixed in b8dff4ea15d6f60b9c1b52748149e76ca447bdfe. Validation: 169 targeted tests passed."
     },
     {
+      "pr_number": 366,
+      "thread_id": "PRRT_kwDOTN0BU86pS50f",
+      "comment_id": 4190910023,
+      "path": "backend/django/apps/providers/services.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reuse processing biometric bootstrap checks**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/366#discussion_r4190910023",
+      "remediation_pr": 366,
+      "remediation_commit": "7d884a1ad4f7ad88aba9b0587c45d3ff40502a98",
+      "merged_commit": "ef273441cf496876481edb9a8ade63fda84cf858",
+      "evidence": [
+        "Fixed in c286b07d7c44a63a87f49d830df160a643f4fc41. Both pending and processing bootstrap checks can be reused when no execution attempt exists; persisted-attempt lookup still prevents repeated invocation from overwriting earlier history. A new regression starts from an unattempted processing check, verifies the same row completes, and asserts one check/attempt remains. All 95 provider/biometric/result tests and all 813 backend tests pass (28 PostgreSQL-only skips)."
+      ],
+      "disposition_note": "Merged after completed final-head Codex review, resolved evidence threads and successful CI/Security."
+    },
+    {
+      "pr_number": 368,
+      "thread_id": "PRRT_kwDOTN0BU86pTQg-",
+      "comment_id": 4191054574,
+      "path": "backend/ai-service/Dockerfile",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Align the replacement with the declared OpenCV requirement**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/368#discussion_r4191054574",
+      "remediation_pr": 368,
+      "remediation_commit": "13e412ca207d51f40212d2523153a5c843bff476",
+      "merged_commit": "60fc042eb208b2876a405bd7559a63f435492d35",
+      "evidence": [
+        "Fixed in 13e412ca207d51f40212d2523153a5c843bff476. The manifest, frozen lock, CI and container now consistently select opencv-contrib-python-headless==5.0.0.93. UV explicitly excludes the three conflicting cv2 distributions, and the complete frozen export is installed without reintroducing their dependencies. uv lock --check passes; the frozen AI export contains exactly that OpenCV distribution. A real isolated OpenCV 5.0.0 import passes the runtime guard, and conflicting package layouts are rejected."
+      ],
+      "disposition_note": "Merged after completed final-head Codex review, resolved evidence threads and successful CI/Security."
+    },
+    {
+      "pr_number": 369,
+      "thread_id": "PRRT_kwDOTN0BU86pYAam",
+      "comment_id": 4192999830,
+      "path": "backend/django/apps/audit/services.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Handle malformed hashes as verification failures**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/369#discussion_r4192999830",
+      "remediation_pr": 369,
+      "remediation_commit": "464a41d6a6d6646da4ed20cede9f722e7523cb91",
+      "merged_commit": "6d241f3950db77efac1bf79d6743f4cfcdf55d84",
+      "evidence": [
+        "Fixed in 464a41d6a6d6646da4ed20cede9f722e7523cb91. Hash comparison is now inside the guarded verification path, so non-ASCII hashes or authentication tags return (False, event.public_id). A raw database-tampering regression covers both fields. All 822 backend tests pass (29 PostgreSQL-only skips); 14 PostgreSQL audit tests previously passed. The processing inventory now documents all three integrity fields, and its seven validation tests pass."
+      ],
+      "disposition_note": "Merged after completed final-head Codex review, resolved evidence threads and successful CI/Security."
+    },
+    {
+      "pr_number": 370,
+      "thread_id": "PRRT_kwDOTN0BU86pYZO-",
+      "comment_id": 4193157690,
+      "path": "backend/django/apps/webhooks/services.py",
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/webhooks/services.py:_event_matches_endpoint_environment",
+        "backend/django/apps/webhooks/tests.py:test_verification_delivery_rejects_missing_ids_but_allows_test_events"
+      ],
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reject verification events that omit their verification ID**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/370#discussion_r4193157690",
+      "remediation_pr": 370,
+      "remediation_commit": "b6344fbbdaea1461794a31266d4ceb2d2ca39049",
+      "merged_commit": "8c8c379cce744444073c3094e8336e3819b7c4af",
+      "disposition_note": "Fixed and merged after final-head Codex review, regression evidence, resolved review threads and successful CI/Security."
+    },
+    {
+      "pr_number": 371,
+      "thread_id": "PRRT_kwDOTN0BU86pYhmD",
+      "comment_id": 4193211206,
+      "path": "docs/reviews/historical-review-dispositions.json",
+      "status": "fixed",
+      "evidence": [
+        "docs/reviews/historical-review-dispositions.json"
+      ],
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Add evidence before marking audit findings fixed**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/371#discussion_r4193211206",
+      "remediation_pr": 371,
+      "remediation_commit": "579266d97665635063a860e4e2a76713e0ca7bec",
+      "merged_commit": "7cc7bfe76501b478897eeabc3fa794bdefd872a7",
+      "disposition_note": "Fixed and merged after final-head Codex review, regression evidence, resolved review threads and successful CI/Security."
+    },
+    {
+      "pr_number": 372,
+      "thread_id": "PRRT_kwDOTN0BU86pYlhr",
+      "comment_id": 4193236465,
+      "path": "backend/django/apps/providers/health.py",
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/providers/health.py:provider_health_scope",
+        "backend/django/config/test_management_apis.py:test_provider_health_retains_provider_with_only_nonmetric_attempts"
+      ],
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve providers that only have non-metric checks**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/372#discussion_r4193236465",
+      "remediation_pr": 372,
+      "remediation_commit": "554772524fb2950a335b90510079c1a2e9970c9c",
+      "merged_commit": "1bfedfc8a78b03105be9f89de5f91ac2e85a6544",
+      "disposition_note": "Fixed and merged after final-head Codex review, regression evidence, resolved review threads and successful CI/Security."
+    },
+    {
+      "pr_number": 388,
+      "thread_id": "PRRT_kwDOTN0BU86qU3Bm",
+      "comment_id": 4218149171,
+      "path": "backend/django/apps/verification_sessions/serializers.py",
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/verification_sessions/test_historical_consent_artifacts.py",
+        "backend/django/apps/verification_sessions/test_historical_session_recovery.py"
+      ],
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Resolve consent using the submitted locale**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/388#discussion_r4218149171",
+      "disposition_note": "Late feedback fixed and resolved before the fresh final-head review and protected merge.",
+      "remediation_pr": 388,
+      "remediation_commit": "38c62e059e72a0d8046a2e2ededa0d145c566638",
+      "merged_commit": "081da59c021337bbc75a1e5bab65767effa50ff3"
+    },
+    {
+      "pr_number": 388,
+      "thread_id": "PRRT_kwDOTN0BU86qU3Bw",
+      "comment_id": 4218149182,
+      "path": "docs/architecture/api-spec.md",
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/verification_sessions/test_historical_consent_artifacts.py",
+        "backend/django/apps/verification_sessions/test_historical_session_recovery.py"
+      ],
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Copy the response hash into the consent request example**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/388#discussion_r4218149182",
+      "disposition_note": "Late feedback fixed and resolved before the fresh final-head review and protected merge.",
+      "remediation_pr": 388,
+      "remediation_commit": "38c62e059e72a0d8046a2e2ededa0d145c566638",
+      "merged_commit": "081da59c021337bbc75a1e5bab65767effa50ff3"
+    },
+    {
+      "pr_number": 388,
+      "thread_id": "PRRT_kwDOTN0BU86qVNgy",
+      "comment_id": 4218291867,
+      "path": "backend/django/apps/verification_sessions/serializers.py",
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/verification_sessions/test_historical_consent_artifacts.py",
+        "backend/django/apps/verification_sessions/test_historical_session_recovery.py"
+      ],
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve translations for the selected consent template**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/388#discussion_r4218291867",
+      "disposition_note": "Late feedback fixed and resolved before the fresh final-head review and protected merge.",
+      "remediation_pr": 388,
+      "remediation_commit": "38c62e059e72a0d8046a2e2ededa0d145c566638",
+      "merged_commit": "081da59c021337bbc75a1e5bab65767effa50ff3"
+    },
+    {
+      "pr_number": 388,
+      "thread_id": "PRRT_kwDOTN0BU86qVa5D",
+      "comment_id": 4218376797,
+      "path": "backend/django/apps/verification_sessions/serializers.py",
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verification_sessions/test_historical_consent_artifacts.py",
+        "backend/django/apps/verification_sessions/test_historical_session_recovery.py"
+      ],
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Return the selfie step for review-flagged documents**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/388#discussion_r4218376797",
+      "disposition_note": "Final-head configured review verified after canonical disposition evidence; 112 targeted tests passed and full suite ran 943 tests with 34 skips. Existing AWAITING_SELFIE status mapping was independently verified.",
+      "verified_main": "081da59c021337bbc75a1e5bab65767effa50ff3"
+    },
+    {
+      "pr_number": 388,
+      "thread_id": "PRRT_kwDOTN0BU86qVa5L",
+      "comment_id": 4218376806,
+      "path": "backend/django/apps/verification_sessions/serializers.py",
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/verification_sessions/test_historical_consent_artifacts.py",
+        "backend/django/apps/verification_sessions/test_historical_session_recovery.py"
+      ],
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Enforce the dynamic fingerprint before replaying consent**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/388#discussion_r4218376806",
+      "disposition_note": "Late feedback fixed and resolved before the fresh final-head review and protected merge.",
+      "remediation_pr": 388,
+      "remediation_commit": "38c62e059e72a0d8046a2e2ededa0d145c566638",
+      "merged_commit": "081da59c021337bbc75a1e5bab65767effa50ff3"
+    },
+    {
+      "pr_number": 389,
+      "thread_id": "PRRT_kwDOTN0BU86qWUGz",
+      "comment_id": 4218742886,
+      "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Base challenge expiry on server-relative time**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/389#discussion_r4218742886",
+      "evidence": [
+        "backend/django/apps/consent/test_legacy_locale_migration.py",
+        "backend/django/apps/consent/test_legacy_locale_reporting.py",
+        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts",
+        "docs/reviews/historical-review-dispositions.json"
+      ],
+      "remediation_pr": 389,
+      "remediation_commit": "95aee834f2223ab7e452a1c92a43d9ffb73a58e7",
+      "merged_commit": "02e7b3b2324ded622dd907fedf4ac14e7a9436b7",
+      "disposition_note": "Valid late feedback addressed before fresh final-head review and protected merge, including server-relative challenge expiry, pending-camera cancellation, preservation of uncertain legacy locale evidence, and accurate inventory metadata. Final-head backend and browser CI and Security passed."
+    },
+    {
+      "pr_number": 389,
+      "thread_id": "PRRT_kwDOTN0BU86qWlUI",
+      "comment_id": 4218852445,
+      "path": "frontend/verification-portal/src/components/verification/live-verification-flow.tsx",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Cancel pending camera startup before expiring the challenge**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/389#discussion_r4218852445",
+      "evidence": [
+        "backend/django/apps/consent/test_legacy_locale_migration.py",
+        "backend/django/apps/consent/test_legacy_locale_reporting.py",
+        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts",
+        "docs/reviews/historical-review-dispositions.json"
+      ],
+      "remediation_pr": 389,
+      "remediation_commit": "95aee834f2223ab7e452a1c92a43d9ffb73a58e7",
+      "merged_commit": "02e7b3b2324ded622dd907fedf4ac14e7a9436b7",
+      "disposition_note": "Valid late feedback addressed before fresh final-head review and protected merge, including server-relative challenge expiry, pending-camera cancellation, preservation of uncertain legacy locale evidence, and accurate inventory metadata. Final-head backend and browser CI and Security passed."
+    },
+    {
+      "pr_number": 389,
+      "thread_id": "PRRT_kwDOTN0BU86qdQKU",
+      "comment_id": 4221580356,
+      "path": "backend/django/apps/consent/migrations/0004_backfill_legacy_notice_locales.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Avoid deriving historical locales from mutable templates**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/389#discussion_r4221580356",
+      "evidence": [
+        "backend/django/apps/consent/test_legacy_locale_migration.py",
+        "backend/django/apps/consent/test_legacy_locale_reporting.py",
+        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts",
+        "docs/reviews/historical-review-dispositions.json"
+      ],
+      "remediation_pr": 389,
+      "remediation_commit": "95aee834f2223ab7e452a1c92a43d9ffb73a58e7",
+      "merged_commit": "02e7b3b2324ded622dd907fedf4ac14e7a9436b7",
+      "disposition_note": "Valid late feedback addressed before fresh final-head review and protected merge, including server-relative challenge expiry, pending-camera cancellation, preservation of uncertain legacy locale evidence, and accurate inventory metadata. Final-head backend and browser CI and Security passed."
+    },
+    {
+      "pr_number": 389,
+      "thread_id": "PRRT_kwDOTN0BU86qdQKc",
+      "comment_id": 4221580368,
+      "path": "docs/reviews/README.md",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P3 Badge](https://img.shields.io/badge/P3-lightgrey?style=flat)</sub></sub>  Refresh the register metadata with the inventory**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/389#discussion_r4221580368",
+      "evidence": [
+        "backend/django/apps/consent/test_legacy_locale_migration.py",
+        "backend/django/apps/consent/test_legacy_locale_reporting.py",
+        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts",
+        "docs/reviews/historical-review-dispositions.json"
+      ],
+      "remediation_pr": 389,
+      "remediation_commit": "95aee834f2223ab7e452a1c92a43d9ffb73a58e7",
+      "merged_commit": "02e7b3b2324ded622dd907fedf4ac14e7a9436b7",
+      "disposition_note": "Valid late feedback addressed before fresh final-head review and protected merge, including server-relative challenge expiry, pending-camera cancellation, preservation of uncertain legacy locale evidence, and accurate inventory metadata. Final-head backend and browser CI and Security passed."
+    },
+    {
+      "pr_number": 389,
+      "thread_id": "PRRT_kwDOTN0BU86rn4Dy",
+      "comment_id": 4252381514,
+      "path": "backend/django/apps/consent/migrations/0004_backfill_legacy_notice_locales.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Avoid backfilling from mutable template language**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/389#discussion_r4252381514",
+      "evidence": [
+        "backend/django/apps/consent/test_legacy_locale_migration.py",
+        "backend/django/apps/consent/test_legacy_locale_reporting.py",
+        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts",
+        "docs/reviews/historical-review-dispositions.json"
+      ],
+      "remediation_pr": 389,
+      "remediation_commit": "95aee834f2223ab7e452a1c92a43d9ffb73a58e7",
+      "merged_commit": "02e7b3b2324ded622dd907fedf4ac14e7a9436b7",
+      "disposition_note": "Valid late feedback addressed before fresh final-head review and protected merge, including server-relative challenge expiry, pending-camera cancellation, preservation of uncertain legacy locale evidence, and accurate inventory metadata. Final-head backend and browser CI and Security passed."
+    },
+    {
+      "pr_number": 389,
+      "thread_id": "PRRT_kwDOTN0BU86ryoMR",
+      "comment_id": 4256871920,
+      "path": "docs/reviews/README.md",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P3 Badge](https://img.shields.io/badge/P3-lightgrey?style=flat)</sub></sub>  Correct the actionable-finding total**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/389#discussion_r4256871920",
+      "evidence": [
+        "backend/django/apps/consent/test_legacy_locale_migration.py",
+        "backend/django/apps/consent/test_legacy_locale_reporting.py",
+        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts",
+        "docs/reviews/historical-review-dispositions.json"
+      ],
+      "remediation_pr": 389,
+      "remediation_commit": "95aee834f2223ab7e452a1c92a43d9ffb73a58e7",
+      "merged_commit": "02e7b3b2324ded622dd907fedf4ac14e7a9436b7",
+      "disposition_note": "Valid late feedback addressed before fresh final-head review and protected merge, including server-relative challenge expiry, pending-camera cancellation, preservation of uncertain legacy locale evidence, and accurate inventory metadata. Final-head backend and browser CI and Security passed."
+    },
+    {
+      "pr_number": 389,
+      "thread_id": "PRRT_kwDOTN0BU86ry5HD",
+      "comment_id": 4256981209,
+      "path": "docs/reviews/historical-review-dispositions.json",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P3 Badge](https://img.shields.io/badge/P3-lightgrey?style=flat)</sub></sub>  Replace the unrelated disposition rationale**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/389#discussion_r4256981209",
+      "evidence": [
+        "backend/django/apps/consent/test_legacy_locale_migration.py",
+        "backend/django/apps/consent/test_legacy_locale_reporting.py",
+        "frontend/verification-portal/e2e/historical-liveness-recovery.spec.ts",
+        "docs/reviews/historical-review-dispositions.json"
+      ],
+      "remediation_pr": 389,
+      "remediation_commit": "95aee834f2223ab7e452a1c92a43d9ffb73a58e7",
+      "merged_commit": "02e7b3b2324ded622dd907fedf4ac14e7a9436b7",
+      "disposition_note": "Valid late feedback addressed before fresh final-head review and protected merge, including server-relative challenge expiry, pending-camera cancellation, preservation of uncertain legacy locale evidence, and accurate inventory metadata. Final-head backend and browser CI and Security passed."
+    },
+    {
       "pr_number": 390,
       "thread_id": "PRRT_kwDOTN0BU86qdMIU",
       "comment_id": 4221554254,
@@ -10939,8 +11025,65 @@
         "GitHub CI job 116578096918:100 PostgreSQL tests passed on the final head"
       ],
       "disposition_note": "Late processing recovery finding fixed in protected merged PR #393 after final-head review, strict canonical resolver evidence, all PR/push CI and Security and dedicated App success. Full backend ran 1013 with 36 skips successfully. Narrow CI-selector approval removed after trusted merge."
+    },
+    {
+      "pr_number": 397,
+      "thread_id": "PRRT_kwDOTN0BU86sqSpT",
+      "comment_id": 4280094906,
+      "path": "backend/django/config/graphql_mutations.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Check actor status after acquiring the serialization lock**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/397#discussion_r4280094906",
+      "remediation_pr": 397,
+      "remediation_commit": "5a4bc47b8e7eb2396a0ec2c5352a65ad27ab514d",
+      "merged_commit": "bfc3a7867f897401db5fddddc037865b70577112",
+      "resolver_evidence": "Fixed in e43ae608951c01093ecb7e0fbf60aaa1491d1fee. Validation: 29 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/reviewers/test_historical_admin_controls.py",
+        "backend/django/apps/reviewers/test_admin_control_races.py",
+        "GitHub CI job 116594819457:107 PostgreSQL tests passed on final head"
+      ],
+      "disposition_note": "Fixed in protected merged PR #397 after final-head independent review, strict resolver evidence, all PR/push CI and Security and dedicated App success. Full backend ran 1020 with 38 skips successfully. Temporary CI-selector approval removed after trusted merge."
+    },
+    {
+      "pr_number": 397,
+      "thread_id": "PRRT_kwDOTN0BU86sqdFz",
+      "comment_id": 4280163701,
+      "path": "backend/django/config/graphql_mutations.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve controls for tenant-bound platform admins**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/397#discussion_r4280163701",
+      "remediation_pr": 397,
+      "remediation_commit": "5a4bc47b8e7eb2396a0ec2c5352a65ad27ab514d",
+      "merged_commit": "bfc3a7867f897401db5fddddc037865b70577112",
+      "resolver_evidence": "Fixed in c71e9929003dbaf38162afd630fc023245595713. Validation: 30 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/reviewers/test_historical_admin_controls.py",
+        "backend/django/apps/reviewers/test_admin_control_races.py",
+        "GitHub CI job 116594819457:107 PostgreSQL tests passed on final head"
+      ],
+      "disposition_note": "Fixed in protected merged PR #397 after final-head independent review, strict resolver evidence, all PR/push CI and Security and dedicated App success. Full backend ran 1020 with 38 skips successfully. Temporary CI-selector approval removed after trusted merge."
+    },
+    {
+      "pr_number": 397,
+      "thread_id": "PRRT_kwDOTN0BU86srOZf",
+      "comment_id": 4280483980,
+      "path": "backend/django/config/graphql_mutations.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Recheck account existence after expiring the old invite**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/397#discussion_r4280483980",
+      "remediation_pr": 397,
+      "remediation_commit": "5a4bc47b8e7eb2396a0ec2c5352a65ad27ab514d",
+      "merged_commit": "bfc3a7867f897401db5fddddc037865b70577112",
+      "resolver_evidence": "Fixed in 82a3ed3398d621030eae85896db1cee3141fdb3a. Validation: 32 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/reviewers/test_historical_admin_controls.py",
+        "backend/django/apps/reviewers/test_admin_control_races.py",
+        "GitHub CI job 116594819457:107 PostgreSQL tests passed on final head"
+      ],
+      "disposition_note": "Fixed in protected merged PR #397 after final-head independent review, strict resolver evidence, all PR/push CI and Security and dedicated App success. Full backend ran 1020 with 38 skips successfully. Temporary CI-selector approval removed after trusted merge."
     }
   ],
-  "verified_main": "d7916b2c4e38bc2567ba59ca75ca00972d5d702c",
-  "inventory_note": "828 threads from closed or merged PRs: 174 fixed, 245 verified, 4 actionable and 405 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
+  "verified_main": "bfc3a7867f897401db5fddddc037865b70577112",
+  "inventory_note": "831 threads from closed or merged PRs: 181 fixed, 247 verified, 11 actionable and 392 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
 }

@@ -1,16 +1,18 @@
 import hashlib
 import json
+import re
+from graphql import GraphQLError
 
 from django.db import IntegrityError, transaction
 from django.db.models import F
 from rest_framework import serializers, status
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, ValidationError
 
-from apps.audit.services import record_audit_event
+from apps.audit.services import record_audit_event, lock_audit_chain
 from apps.projects.models import ProjectEnvironment
 from apps.templates.models import Template, TemplateStatus
 from apps.workflows.models import Workflow
-from apps.workflows.serializers import WorkflowSerializer
+from apps.workflows.serializers import WorkflowSerializer, validated_workflow_settings
 
 
 class WorkflowInstantiationConflict(APIException):
@@ -35,6 +37,9 @@ def _request_hash(*, template, project, name):
 def instantiate_workflow_template(
     *, request, project, template, template_version, name, idempotency_key
 ):
+    # Match platform publication's audit-scope-before-template lock order.
+    # Counter updates below acquire the template row lock before audit append.
+    lock_audit_chain(request.user.tenant_id)
     if template.status != TemplateStatus.PUBLISHED:
         raise serializers.ValidationError(
             {"template_id": "Only published workflow templates can be instantiated."}
@@ -135,3 +140,78 @@ def instantiate_workflow_template(
         },
     )
     return workflow, True
+
+
+def normalized_template_version(version):
+    if not re.fullmatch(r"[0-9]+(?:\.[0-9]+){1,2}", version) or len(version) > 32:
+        raise GraphQLError("Use a numeric template version such as 1.1 or 1.1.0.")
+    parts = [int(item) for item in version.split(".")]
+    if len(parts) == 3 and parts[2] == 0:
+        parts.pop()
+    return ".".join(str(item) for item in parts)
+
+
+def insert_template(**values):
+    if not values.get("name", "").strip() or len(values["name"]) > 255:
+        raise GraphQLError("Provide a template name of 1 to 255 characters.")
+    slug = values["slug"]
+    version = normalized_template_version(values["version"])
+    values["version"] = version
+    if not slug or len(slug) > 255:
+        raise GraphQLError(
+            "Provide a name that generates a nonempty slug of at most 255 characters."
+        )
+
+    def version_exists():
+        # Retain legacy rows verbatim while rejecting semantic aliases. All new
+        # writers store a canonical value, so the DB uniqueness constraint also
+        # protects concurrent canonical/aliased insertion attempts.
+        for existing in Template.objects.filter(slug=slug).values_list(
+            "version", flat=True
+        ):
+            try:
+                normalized = normalized_template_version(existing)
+            except GraphQLError:
+                continue
+            if normalized == version:
+                return True
+        return False
+
+    if version_exists():
+        raise GraphQLError("A template with this slug and version already exists.")
+    try:
+        with transaction.atomic():
+            return Template.objects.create(**values)
+    except IntegrityError:
+        if version_exists():
+            raise GraphQLError(
+                "A template with this slug and version already exists."
+            ) from None
+        raise
+
+
+def validate_template_settings(settings):
+    if not isinstance(settings, dict):
+        raise GraphQLError("Template settings must be an object.")
+    if settings.get("consent_template_id"):
+        raise GraphQLError(
+            "Global templates cannot reference a tenant consent template. Select consent after instantiation."
+        )
+    try:
+        return validated_workflow_settings(settings, tenant=None)
+    except ValidationError as exc:
+        raise GraphQLError(str(exc.detail)) from None
+
+
+def require_later_template_version(source, proposed):
+    source = normalized_template_version(source)
+    proposed = normalized_template_version(proposed)
+
+    def parts(value):
+        return tuple(int(item) for item in value.split(".")) + (0,) * (
+            3 - len(value.split("."))
+        )
+
+    if parts(proposed) <= parts(source):
+        raise GraphQLError("The new template version must be later than its source.")
+    return proposed
