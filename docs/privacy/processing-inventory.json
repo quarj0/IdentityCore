@@ -150,7 +150,8 @@
         "webhook URL and delivery metadata",
         "provider configuration secrets",
         "billing usage",
-        "support requester/contact and ticket content"
+        "support requester/contact and ticket content",
+        "Unrated, production-only per-provider-check usage facts (tenant, project, outcome, capability, provider ownership, timestamps); no payments or prices."
       ],
       "purpose": "Operate customer integrations, provider routing, metering, delivery troubleshooting, and support.",
       "locations": [
@@ -160,7 +161,7 @@
         "backend/django/apps/billing/models.py",
         "backend/django/apps/support/models.py"
       ],
-      "retention": "Credential material lasts until rotation/revocation; delivery and support metadata follows operational/contractual schedules; ticket attachments must not contain verification media unless explicitly approved.",
+      "retention": "Credential material lasts until rotation/revocation; delivery and support metadata follows operational/contractual schedules; ticket attachments must not contain verification media unless explicitly approved. Unrated usage facts require a tenant-approved contractual retention period, access controls and deletion/offboarding schedule before commercial activation.",
       "processors": [
         "IdentityCore Django",
         "PostgreSQL",
@@ -1408,6 +1409,81 @@
     {
       "source": "backend/django/apps/billing/models.py",
       "field": "BillingRecord.updated_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingUsageEvent.capability",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingUsageEvent.created_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingUsageEvent.deleted_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingUsageEvent.environment",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingUsageEvent.id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingUsageEvent.occurred_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingUsageEvent.outcome",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingUsageEvent.project",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingUsageEvent.provider_check",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingUsageEvent.provider_scope",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingUsageEvent.public_id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingUsageEvent.quantity",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingUsageEvent.rating_state",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingUsageEvent.tenant",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingUsageEvent.updated_at",
       "activity": "integrations-billing-and-support"
     },
     {
@@ -3742,66 +3818,6 @@
     },
     {
       "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKMSBinding.active",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKMSBinding.created_at",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKMSBinding.deleted_at",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKMSBinding.environment",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKMSBinding.grant_tokens_json",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKMSBinding.id",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKMSBinding.key_arn",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKMSBinding.public_id",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKMSBinding.status",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKMSBinding.tenant",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKMSBinding.updated_at",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
-      "field": "TenantKMSBinding.validated_at",
-      "activity": "account-and-tenant-administration"
-    },
-    {
-      "source": "backend/django/apps/tenants/models.py",
       "field": "TenantKeyRotation.conflict_count",
       "activity": "account-and-tenant-administration"
     },
@@ -3858,6 +3874,66 @@
     {
       "source": "backend/django/apps/tenants/models.py",
       "field": "TenantKeyRotation.updated_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.active",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.created_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.deleted_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.environment",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.grant_tokens_json",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.key_arn",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.public_id",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.status",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.tenant",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.updated_at",
+      "activity": "account-and-tenant-administration"
+    },
+    {
+      "source": "backend/django/apps/tenants/models.py",
+      "field": "TenantKMSBinding.validated_at",
       "activity": "account-and-tenant-administration"
     },
     {
