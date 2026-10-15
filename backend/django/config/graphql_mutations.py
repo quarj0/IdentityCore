@@ -249,11 +249,13 @@ class Mutation:
         )
         if template.status != TemplateStatus.DRAFT:
             raise GraphQLError("Only draft templates can be edited.")
+        if name is not None and (not name.strip() or len(name.strip()) > 255):
+            raise GraphQLError("Provide a template name of 1 to 255 characters.")
         if category is not None and category not in TemplateCategory.values:
             raise GraphQLError("Choose a valid template category.")
         for field, value in {
             "name": name.strip() if name else None,
-            "description": description.strip() if description else None,
+            "description": description.strip() if description is not None else None,
             "category": category,
             "countries_json": countries,
             "required_checks_json": required_checks,
@@ -361,7 +363,9 @@ class Mutation:
 
     @strawberry.mutation
     @transaction.atomic
-    def publish_platform_template(self, info: Info, template_id: str) -> TemplateNode:
+    def publish_platform_template(
+        self, info: Info, template_id: str, notes: str = ""
+    ) -> TemplateNode:
         actor = _locked_template_actor(info)
         template = get_object_or_404(
             Template.objects.select_for_update(), public_id=template_id
@@ -395,12 +399,15 @@ class Mutation:
             action="template.published",
             target_type="template",
             target_id=template.public_id,
+            metadata={"notes": notes.strip()},
         )
         return Mutation._template_node(template)
 
     @strawberry.mutation
     @transaction.atomic
-    def archive_platform_template(self, info: Info, template_id: str) -> TemplateNode:
+    def archive_platform_template(
+        self, info: Info, template_id: str, reason: str = ""
+    ) -> TemplateNode:
         actor = _locked_template_actor(info)
         template = get_object_or_404(
             Template.objects.select_for_update(), public_id=template_id
@@ -414,6 +421,7 @@ class Mutation:
             action="template.archived",
             target_type="template",
             target_id=template.public_id,
+            metadata={"reason": reason.strip()},
         )
         return Mutation._template_node(template)
 
@@ -539,7 +547,7 @@ class Mutation:
     @strawberry.mutation
     @transaction.atomic
     def publish_platform_workflow(
-        self, info: Info, workflow_id: str
+        self, info: Info, workflow_id: str, notes: str = ""
     ) -> WorkflowVersionNode:
         actor = require_platform_admin(info)
         workflow = get_object_or_404(
@@ -559,7 +567,11 @@ class Mutation:
             action="workflow.published",
             target_type="workflow",
             target_id=workflow.public_id,
-            metadata={"version": version, "policy_id": policy.public_id},
+            metadata={
+                "version": version,
+                "policy_id": policy.public_id,
+                "notes": notes.strip(),
+            },
         )
         return WorkflowVersionNode(
             id=workflow_version.public_id,
@@ -576,11 +588,20 @@ class Mutation:
         )
 
     @strawberry.mutation
-    def archive_platform_workflow(self, info: Info, workflow_id: str) -> WorkflowNode:
+    @transaction.atomic
+    def archive_platform_workflow(
+        self, info: Info, workflow_id: str, reason: str = ""
+    ) -> WorkflowNode:
         actor = require_platform_admin(info)
         workflow = get_object_or_404(
             Workflow.objects.select_related("tenant", "project", "created_by"),
             public_id=workflow_id,
+        )
+        lock_audit_chain(workflow.tenant_id)
+        workflow = (
+            Workflow.objects.select_for_update(of=("self",))
+            .select_related("tenant", "project", "created_by")
+            .get(pk=workflow.pk)
         )
         workflow.status = WorkflowStatus.ARCHIVED
         workflow.save(update_fields=["status", "updated_at"])
@@ -591,6 +612,7 @@ class Mutation:
             action="workflow.archived",
             target_type="workflow",
             target_id=workflow.public_id,
+            metadata={"reason": reason.strip()},
         )
         return Mutation._workflow_node(workflow)
 

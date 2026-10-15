@@ -143,6 +143,8 @@ def instantiate_workflow_template(
 
 
 def insert_template(**values):
+    if not values.get("name", "").strip() or len(values["name"]) > 255:
+        raise GraphQLError("Provide a template name of 1 to 255 characters.")
     slug = values["slug"]
     version = values["version"]
     if not slug or len(slug) > 255:

@@ -1548,10 +1548,16 @@
       "thread_id": "PRRT_kwDOTN0BU86Ti6GV",
       "comment_id": 3645257344,
       "path": "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:actual creation payload, closed successful dialog, submitted description and refreshed paragraph, template/workflow publish/archive rationale",
+        "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx:explicit checks and generated consent/decision workflow steps",
+        "frontend/platform-admin/src/features/templates/live-data.ts:description, required checks/steps and notes/reason mutation variables",
+        "backend/django/apps/templates/test_historical_lifecycle.py:template/workflow rationale in authenticated audit metadata and editable description validation"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Close the creation dialog after a successful submit**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257344"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257344",
+      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 998 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
     },
     {
       "pr_number": 34,
@@ -1584,10 +1590,16 @@
       "thread_id": "PRRT_kwDOTN0BU86TjHUO",
       "comment_id": 3645332168,
       "path": "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:actual creation payload, closed successful dialog, submitted description and refreshed paragraph, template/workflow publish/archive rationale",
+        "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx:explicit checks and generated consent/decision workflow steps",
+        "frontend/platform-admin/src/features/templates/live-data.ts:description, required checks/steps and notes/reason mutation variables",
+        "backend/django/apps/templates/test_historical_lifecycle.py:template/workflow rationale in authenticated audit metadata and editable description validation"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Include required checks when creating templates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645332168"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645332168",
+      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 998 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
     },
     {
       "pr_number": 34,
@@ -1627,10 +1639,16 @@
       "thread_id": "PRRT_kwDOTN0BU86TjLLW",
       "comment_id": 3645354154,
       "path": "frontend/platform-admin/src/features/templates/forms/edit-template-dialog.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:actual creation payload, closed successful dialog, submitted description and refreshed paragraph, template/workflow publish/archive rationale",
+        "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx:explicit checks and generated consent/decision workflow steps",
+        "frontend/platform-admin/src/features/templates/live-data.ts:description, required checks/steps and notes/reason mutation variables",
+        "backend/django/apps/templates/test_historical_lifecycle.py:template/workflow rationale in authenticated audit metadata and editable description validation"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Submit the edited template description**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645354154"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645354154",
+      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 998 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
     },
     {
       "pr_number": 34,
@@ -1707,20 +1725,32 @@
       "thread_id": "PRRT_kwDOTN0BU86TjdvS",
       "comment_id": 3645461291,
       "path": "frontend/platform-admin/src/features/templates/live-data.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:actual creation payload, closed successful dialog, submitted description and refreshed paragraph, template/workflow publish/archive rationale",
+        "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx:explicit checks and generated consent/decision workflow steps",
+        "frontend/platform-admin/src/features/templates/live-data.ts:description, required checks/steps and notes/reason mutation variables",
+        "backend/django/apps/templates/test_historical_lifecycle.py:template/workflow rationale in authenticated audit metadata and editable description validation"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Provide required checks for newly created templates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461291"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461291",
+      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 998 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
     },
     {
       "pr_number": 35,
       "thread_id": "PRRT_kwDOTN0BU86TjdvV",
       "comment_id": 3645461294,
       "path": "frontend/platform-admin/src/features/templates/forms/edit-template-dialog.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:actual creation payload, closed successful dialog, submitted description and refreshed paragraph, template/workflow publish/archive rationale",
+        "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx:explicit checks and generated consent/decision workflow steps",
+        "frontend/platform-admin/src/features/templates/live-data.ts:description, required checks/steps and notes/reason mutation variables",
+        "backend/django/apps/templates/test_historical_lifecycle.py:template/workflow rationale in authenticated audit metadata and editable description validation"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Submit the edited template description**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461294"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461294",
+      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 998 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
     },
     {
       "pr_number": 35,
@@ -1768,10 +1798,16 @@
       "thread_id": "PRRT_kwDOTN0BU86Tjdvi",
       "comment_id": 3645461308,
       "path": "frontend/platform-admin/src/features/templates/components/template-publish-dialog.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:actual creation payload, closed successful dialog, submitted description and refreshed paragraph, template/workflow publish/archive rationale",
+        "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx:explicit checks and generated consent/decision workflow steps",
+        "frontend/platform-admin/src/features/templates/live-data.ts:description, required checks/steps and notes/reason mutation variables",
+        "backend/django/apps/templates/test_historical_lifecycle.py:template/workflow rationale in authenticated audit metadata and editable description validation"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve publish and archive notes**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461308"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461308",
+      "disposition_note": "Original finding individually read. Creation checks/steps and dialog closure, persisted description and backend rationale regressions failed before fixes. All twenty browser cases passed in Chromium and WebKit; full backend ran 998 tests with 36 skips successfully. Remains actionable until independent final-head review, required CI/Security and protected merge."
     },
     {
       "pr_number": 35,
@@ -2230,7 +2266,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate generated template slugs before inserting**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207292",
-      "disposition_note": "Slug collisions now return deliberate validation errors with insertion savepoint handling. Full backend ran 993 tests with 36 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
+      "disposition_note": "Slug collisions now return deliberate validation errors with insertion savepoint handling. Full backend ran 998 tests with 36 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
     },
     {
       "pr_number": 49,
@@ -2246,7 +2282,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Hide editing controls for published templates**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207294",
-      "disposition_note": "Draft-only edit/publish controls and published-only archive/new-version controls are verified in Chromium and WebKit. Full backend ran 993 tests with 36 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
+      "disposition_note": "Draft-only edit/publish controls and published-only archive/new-version controls are verified in Chromium and WebKit. Full backend ran 998 tests with 36 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
     },
     {
       "pr_number": 49,
@@ -2272,7 +2308,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate setting values before publishing templates**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207299",
-      "disposition_note": "Publication validates supported policy types, ranges and cross-field constraints, while excluding tenant consent bindings from global templates. Full backend ran 993 tests with 36 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
+      "disposition_note": "Publication validates supported policy types, ranges and cross-field constraints, while excluding tenant consent bindings from global templates. Full backend ran 998 tests with 36 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
     },
     {
       "pr_number": 49,
@@ -2288,7 +2324,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Provide a path to create later template versions**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207303",
-      "disposition_note": "Explicit createPlatformTemplateVersion preserves stable slug and source publication while creating an editable later numeric version. Full backend ran 993 tests with 36 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
+      "disposition_note": "Explicit createPlatformTemplateVersion preserves stable slug and source publication while creating an editable later numeric version. Full backend ran 998 tests with 36 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
     },
     {
       "pr_number": 56,
@@ -10568,5 +10604,5 @@
     }
   ],
   "verified_main": "fb58565af0116803a4f6dba873d7808774213576",
-  "inventory_note": "823 threads from closed or merged PRs: 157 fixed, 198 verified, 16 actionable and 452 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
+  "inventory_note": "823 threads from closed or merged PRs: 157 fixed, 198 verified, 22 actionable and 446 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
 }

@@ -185,3 +185,80 @@ class HistoricalTemplateLifecycleTests(APITestCase):
         event = AuditEvent.objects.get(action="template.published")
         self.assertEqual(event.tenant_id, tenant.pk)
         self.assertEqual(verify_audit_chain(tenant_id=tenant.pk), (True, ""))
+
+    def test_template_publish_and_archive_preserve_operator_notes(self):
+        result = self.graphql(
+            'mutation($id:String!){publishPlatformTemplate(templateId:$id,notes:"Reviewed policy release"){id}}',
+            {"id": self.template.public_id},
+        )
+        self.assertIsNone(result.errors, result.errors)
+        self.assertEqual(
+            AuditEvent.objects.get(action="template.published").metadata_json["notes"],
+            "Reviewed policy release",
+        )
+        result = self.graphql(
+            'mutation($id:String!){archivePlatformTemplate(templateId:$id,reason:"Replaced by a newer policy"){id}}',
+            {"id": self.template.public_id},
+        )
+        self.assertIsNone(result.errors, result.errors)
+        self.assertEqual(
+            AuditEvent.objects.get(action="template.archived").metadata_json["reason"],
+            "Replaced by a newer policy",
+        )
+
+    def test_workflow_publish_and_archive_preserve_operator_notes(self):
+        from apps.workflows.tests import WorkflowAPITests
+        from apps.workflows.models import Workflow
+
+        WorkflowAPITests.setUp(self)
+        workflow = Workflow.objects.create(
+            tenant=self.tenant,
+            project=self.project,
+            created_by=self.user,
+            name="Release notes audit",
+            steps_json=["consent", "decision"],
+        )
+        result = self.graphql(
+            'mutation($id:String!){publishPlatformWorkflow(workflowId:$id,notes:"Approved pilot release"){id}}',
+            {"id": workflow.public_id},
+        )
+        self.assertIsNone(result.errors, result.errors)
+        self.assertEqual(
+            AuditEvent.objects.get(action="workflow.published").metadata_json["notes"],
+            "Approved pilot release",
+        )
+        result = self.graphql(
+            'mutation($id:String!){archivePlatformWorkflow(workflowId:$id,reason:"Pilot superseded"){id}}',
+            {"id": workflow.public_id},
+        )
+        self.assertIsNone(result.errors, result.errors)
+        self.assertEqual(
+            AuditEvent.objects.get(action="workflow.archived").metadata_json["reason"],
+            "Pilot superseded",
+        )
+
+    def test_template_description_can_be_cleared(self):
+        result = self.graphql(
+            'mutation($id:String!){updatePlatformTemplate(templateId:$id,description:""){id description}}',
+            {"id": self.template.public_id},
+        )
+        self.assertIsNone(result.errors, result.errors)
+        self.template.refresh_from_db()
+        self.assertEqual(self.template.description, "")
+
+    def test_template_name_cannot_be_blank(self):
+        result = self.graphql(
+            'mutation($id:String!){updatePlatformTemplate(templateId:$id,name:"  "){id name}}',
+            {"id": self.template.public_id},
+        )
+        self.assertIsNotNone(result.errors)
+        self.template.refresh_from_db()
+        self.assertEqual(self.template.name, "Customer KYC")
+
+    def test_template_name_limit_covers_characters_omitted_from_slug(self):
+        result = self.graphql(
+            'mutation($name:String!){createPlatformTemplate(name:$name,description:"Synthetic",category:"banking_kyc"){id}}',
+            {"name": "x" * 255 + "🙂"},
+        )
+        self.assertIsNotNone(result.errors)
+        self.assertEqual(Template.objects.count(), 1)

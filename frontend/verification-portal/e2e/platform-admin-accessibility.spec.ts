@@ -306,3 +306,184 @@ test("published template creates and opens an editable later version", async ({
     page.getByRole("button", { name: "Edit draft", exact: true }),
   ).toBeVisible();
 });
+
+test("template creation submits publishable checks and closes after success", async ({
+  page,
+}) => {
+  await mockAdminBackend(page);
+  let creation: Record<string, unknown> | undefined;
+  await page.route("**/api/graphql", async (route) => {
+    const payload = route.request().postDataJSON();
+    const headers = {
+      "Access-Control-Allow-Origin": "http://127.0.0.1:3004",
+      "Access-Control-Allow-Credentials": "true",
+    };
+    if (payload.query.includes("mutation CreatePlatformTemplate")) {
+      creation = payload.variables;
+      await route.fulfill({
+        json: {
+          data: {
+            createPlatformTemplate: { ...lifecycleTemplate, status: "draft" },
+          },
+        },
+        headers,
+      });
+    } else
+      await route.fulfill({
+        json: {
+          data: {
+            platformTemplates: [{ ...lifecycleTemplate, status: "draft" }],
+          },
+        },
+        headers,
+      });
+  });
+  await page.goto("/templates");
+  await page
+    .getByRole("button", { name: "Create template", exact: true })
+    .click();
+  await page
+    .getByLabel("Template name", { exact: true })
+    .fill("Publishable draft");
+  await page.getByRole("combobox").click();
+  await page.getByRole("option", { name: "Banking KYC", exact: true }).click();
+  await page
+    .getByLabel("Description", { exact: true })
+    .fill("Synthetic creation");
+  await page.getByRole("button", { name: "Create draft", exact: true }).click();
+  await expect.poll(() => creation).toBeTruthy();
+  expect.soft(creation?.requiredChecks).toEqual(["document"]);
+  expect.soft(creation?.steps).toEqual(["consent", "document", "decision"]);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("template description edits survive the refreshed detail response", async ({
+  page,
+}) => {
+  await mockAdminBackend(page);
+  let template = { ...lifecycleTemplate, status: "draft" };
+  let submittedDescription: string | undefined;
+  await page.route("**/api/graphql", async (route) => {
+    const payload = route.request().postDataJSON();
+    const headers = {
+      "Access-Control-Allow-Origin": "http://127.0.0.1:3004",
+      "Access-Control-Allow-Credentials": "true",
+    };
+    if (payload.query.includes("mutation UpdateTemplate")) {
+      submittedDescription = payload.variables.description;
+      template = {
+        ...template,
+        description: payload.variables.description ?? template.description,
+      };
+      await route.fulfill({ json: { data: { template } }, headers });
+    } else
+      await route.fulfill({
+        json: { data: { platformTemplate: template } },
+        headers,
+      });
+  });
+  await page.goto("/templates/tpl_lifecycle");
+  await page.getByRole("button", { name: "Edit draft", exact: true }).click();
+  await page
+    .getByLabel("Description", { exact: true })
+    .fill("Updated description evidence");
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect
+    .poll(() => submittedDescription)
+    .toBe("Updated description evidence");
+  await expect(
+    page.locator("p").filter({ hasText: /^Updated description evidence$/ }),
+  ).toBeVisible();
+});
+
+for (const entity of ["template", "workflow"]) {
+  for (const action of ["publish", "archive"]) {
+    test(`${entity} ${action} submits operator rationale and closes`, async ({
+      page,
+    }) => {
+      await mockAdminBackend(page);
+      let rationale: string | undefined;
+      let status = action === "publish" ? "draft" : "published";
+      await page.route("**/api/graphql", async (route) => {
+        const payload = route.request().postDataJSON();
+        const headers = {
+          "Access-Control-Allow-Origin": "http://127.0.0.1:3004",
+          "Access-Control-Allow-Credentials": "true",
+        };
+        const template = { ...lifecycleTemplate, status };
+        const workflow = {
+          ...lifecycleTemplate,
+          id: "wfl_notes",
+          status,
+          projectName: "Synthetic project",
+          currentVersion: 1,
+          version: 1,
+          stepCount: 2,
+          steps: ["consent", "decision"],
+          settings: {},
+        };
+        if (
+          payload.query.includes(
+            "mutation " +
+              (action === "publish" ? "Publish" : "Archive") +
+              (entity === "template" ? "Template" : "Workflow"),
+          )
+        ) {
+          rationale =
+            payload.variables[action === "publish" ? "notes" : "reason"];
+          status = action === "publish" ? "published" : "archived";
+          await route.fulfill({
+            json: {
+              data:
+                entity === "template"
+                  ? { template: { ...template, status } }
+                  : action === "publish"
+                    ? {
+                        publishPlatformWorkflow: {
+                          id: "wfv_notes",
+                          version: 1,
+                        },
+                      }
+                    : { workflow: { ...workflow, status } },
+            },
+            headers,
+          });
+        } else
+          await route.fulfill({
+            json: {
+              data: {
+                platformTemplate: template,
+                platformWorkflow: workflow,
+                platformWorkflowVersions: [],
+              },
+            },
+            headers,
+          });
+      });
+      await page.goto(
+        entity === "template"
+          ? "/templates/tpl_lifecycle"
+          : "/workflows/wfl_notes",
+      );
+      await page
+        .getByRole("button", {
+          name: action === "publish" ? "Publish" : "Archive",
+          exact: true,
+        })
+        .click();
+      await page
+        .getByLabel(action === "publish" ? "Release notes" : "Archive reason", {
+          exact: true,
+        })
+        .fill("Recorded operator rationale");
+      await page
+        .getByRole("button", {
+          name: `${action === "publish" ? "Publish" : "Archive"} ${entity}`,
+          exact: true,
+        })
+        .click();
+      await expect.poll(() => rationale).toBe("Recorded operator rationale");
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+    });
+  }
+}

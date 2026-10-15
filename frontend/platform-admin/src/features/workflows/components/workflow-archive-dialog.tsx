@@ -28,13 +28,15 @@ export function WorkflowArchiveDialog({
   onComplete,
 }: WorkflowArchiveDialogProps) {
   const [reason, setReason] = useState("");
+  const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const submit = async () => {
     setSubmitting(true);
     setError(null);
     try {
-      await archiveWorkflow(workflowId);
+      await archiveWorkflow(workflowId, reason);
+      setOpen(false);
       onComplete?.();
     } catch (cause) {
       setError(
@@ -46,7 +48,7 @@ export function WorkflowArchiveDialog({
   };
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline">
           <Archive className="mr-2 size-4" aria-hidden="true" />
@@ -79,7 +81,13 @@ export function WorkflowArchiveDialog({
           </p>
         ) : null}
         <DialogFooter>
-          <Button variant="outline">Cancel</Button>
+          <Button
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={submitting}
+          >
+            Cancel
+          </Button>
           <Button
             variant="destructive"
             onClick={submit}
