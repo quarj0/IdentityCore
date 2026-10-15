@@ -72,6 +72,22 @@ def generate_invoice(tenant, month):
     ).count()
     if count != len(events):
         raise BillingError("Period contains previously rated or disputed usage")
+    # A complete bill requires every eligible terminal provider check to have
+    # passed the independent tenant-attribution usage reconciliation first.
+    from apps.providers.models import ProviderCheck, ProviderCheckStatus
+    eligible = ProviderCheck.objects.filter(
+        tenant=tenant,
+        verification__project__environment="production",
+        completed_at__gte=max(starts_at, subscription.started_at),
+        completed_at__lt=ends_at,
+        status__in=[
+            ProviderCheckStatus.COMPLETED,
+            ProviderCheckStatus.FAILED,
+            ProviderCheckStatus.TIMEOUT,
+        ],
+    ).count()
+    if eligible != count:
+        raise BillingError("Unreconciled provider checks block month close")
     rates = {
         (meter.provider_scope, meter.capability, meter.outcome): meter
         for meter in BillingMeter.objects.filter(plan=plan, deleted_at__isnull=True)
