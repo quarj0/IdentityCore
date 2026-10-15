@@ -29,7 +29,11 @@ from apps.providers.services import (
     invoke_selected_provider_operation,
     preserve_provider_result_envelope,
 )
-from apps.uploads.services import promote_upload_to_media_by_storage_key
+from apps.uploads.models import Upload
+from apps.uploads.services import (
+    promote_upload_to_media,
+    promote_upload_to_media_by_storage_key,
+)
 from apps.verifications.models import VerificationStatus
 from apps.verifications.models import ProcessingJobType
 from apps.verifications.processing_jobs import (
@@ -40,6 +44,7 @@ from apps.verifications.processing_jobs import (
     defer_processing_job,
     heartbeat_processing_job,
     lock_processing_job_for_finalization,
+    document_processing_committed,
 )
 from apps.verifications.transitions import (
     TERMINAL_STATUSES,
@@ -47,7 +52,10 @@ from apps.verifications.transitions import (
     transition_verification,
 )
 from common.authorization import ServicePrincipal, require_service_access
-from common.storage import get_object_storage_temp_bucket_name
+from common.storage import (
+    get_object_storage_media_bucket_name,
+    get_object_storage_temp_bucket_name,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -165,19 +173,16 @@ def process_identity_document_task(identity_document_id: str) -> str:
     )
     if processing_job is None:
         return identity_document.status
-    if identity_document.status in {
-        IdentityDocumentStatus.PROCESSED,
-        IdentityDocumentStatus.MANUAL_REVIEW_REQUIRED,
-        IdentityDocumentStatus.REJECTED,
-        IdentityDocumentStatus.FAILED,
-    }:
+    if document_processing_committed(identity_document):
         complete_processing_job(processing_job)
         return identity_document.status
     captures = list(identity_document.captures.order_by("created_at"))
     if not captures:
-        identity_document.status = IdentityDocumentStatus.FAILED
-        identity_document.save(update_fields=["status", "updated_at"])
-        complete_processing_job(processing_job)
+        with transaction.atomic():
+            lock_processing_job_for_finalization(processing_job)
+            identity_document.status = IdentityDocumentStatus.FAILED
+            identity_document.save(update_fields=["status", "updated_at"])
+            complete_processing_job(processing_job)
         return identity_document.status
 
     now = timezone.now()
@@ -220,18 +225,53 @@ def process_identity_document_task(identity_document_id: str) -> str:
     issues_found: list[str] = []
     capture_quality_results: list[dict] = []
     temp_bucket = get_object_storage_temp_bucket_name()
+    media_bucket = get_object_storage_media_bucket_name() or temp_bucket
+    uploads_by_key = {
+        upload.storage_key: upload
+        for upload in Upload.objects.filter(
+            tenant=verification.tenant,
+            verification=verification,
+            storage_key__in=[capture.storage_key for capture in captures],
+            deleted_at__isnull=True,
+        )
+    }
+    input_buckets = {}
+
+    def input_bucket(storage_key):
+        if storage_key in input_buckets:
+            return input_buckets[storage_key]
+        scope = {
+            "tenant_scope": verification.tenant.public_id,
+            "environment": environment_for_instance(verification),
+        }
+        source_bucket = resolve_reference(storage_key, temp_bucket, **scope)["bucket"]
+        destination_bucket = resolve_reference(storage_key, media_bucket, **scope)[
+            "bucket"
+        ]
+        upload = uploads_by_key.get(storage_key)
+        if upload is not None:
+            heartbeat_processing_job(processing_job)
+            try:
+                # Providers always read the stable destination. Another worker
+                # can only remove the temporary source while promoting this key.
+                promote_upload_to_media(upload=upload)
+            except Exception as exc:
+                raise AIServiceUnavailable(
+                    "Document storage was temporarily unavailable.",
+                    error_code="document_storage_unavailable",
+                ) from exc
+            bucket = destination_bucket
+        else:
+            bucket = source_bucket
+        input_buckets[storage_key] = bucket
+        return bucket
 
     try:
         for capture in captures:
             quality_operation_kwargs = {
                 "verification_id": verification.public_id,
                 "document_storage_key": capture.storage_key,
-                "document_storage_bucket": resolve_reference(
-                    capture.storage_key,
-                    temp_bucket,
-                    tenant_scope=verification.tenant.public_id,
-                    environment=environment_for_instance(verification),
-                )["bucket"],
+                "document_storage_bucket": input_bucket(capture.storage_key),
             }
             quality_execution = execute_provider_route(
                 verification=verification,
@@ -345,12 +385,7 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 "document_storage_key": primary_capture.storage_key,
                 "document_type": identity_document.document_type_id,
                 "country_code": identity_document.country_profile_id,
-                "document_storage_bucket": resolve_reference(
-                    primary_capture.storage_key,
-                    temp_bucket,
-                    tenant_scope=verification.tenant.public_id,
-                    environment=environment_for_instance(verification),
-                )["bucket"],
+                "document_storage_bucket": input_bucket(primary_capture.storage_key),
             }
             classification_execution = execute_provider_route(
                 verification=verification,
@@ -402,12 +437,7 @@ def process_identity_document_task(identity_document_id: str) -> str:
                 "document_storage_key": primary_capture.storage_key,
                 "document_type": identity_document.document_type_id,
                 "country_code": identity_document.country_profile_id,
-                "document_storage_bucket": resolve_reference(
-                    primary_capture.storage_key,
-                    temp_bucket,
-                    tenant_scope=verification.tenant.public_id,
-                    environment=environment_for_instance(verification),
-                )["bucket"],
+                "document_storage_bucket": input_bucket(primary_capture.storage_key),
             }
             ocr_execution = execute_provider_route(
                 verification=verification,
@@ -480,6 +510,33 @@ def process_identity_document_task(identity_document_id: str) -> str:
         if authenticity and authenticity["requires_manual_review"]:
             manual_review_required = True
         heartbeat_processing_job(processing_job)
+
+        # Object-storage I/O precedes the guarded database finalization.
+        for capture in captures:
+            try:
+                promote_upload_to_media_by_storage_key(capture.storage_key)
+            except Exception as exc:
+                logger.warning(
+                    "Failed to promote document upload for verification %s (%s)",
+                    verification.public_id,
+                    type(exc).__name__,
+                    extra={"storage_key": capture.storage_key},
+                )
+                record_audit_event(
+                    tenant=verification.tenant,
+                    actor=verification.verification_subject,
+                    action="document.promotion_failed",
+                    target_type="verification",
+                    target_id=verification.public_id,
+                    metadata={
+                        "identity_document_id": identity_document.public_id,
+                        "storage_key": capture.storage_key,
+                    },
+                    sensitive_metadata={
+                        "error": str(exc),
+                        "error_class": exc.__class__.__name__,
+                    },
+                )
 
         with transaction.atomic():
             lock_processing_job_for_finalization(processing_job)
@@ -607,56 +664,30 @@ def process_identity_document_task(identity_document_id: str) -> str:
                     ]
                 )
 
-        for capture in captures:
-            try:
-                promote_upload_to_media_by_storage_key(capture.storage_key)
-            except Exception as exc:
-                logger.warning(
-                    "Failed to promote document upload for verification %s (%s)",
-                    verification.public_id,
-                    type(exc).__name__,
-                    extra={"storage_key": capture.storage_key},
-                )
-                record_audit_event(
-                    tenant=verification.tenant,
-                    actor=verification.verification_subject,
-                    action="document.promotion_failed",
-                    target_type="verification",
-                    target_id=verification.public_id,
-                    metadata={
-                        "identity_document_id": identity_document.public_id,
-                        "storage_key": capture.storage_key,
-                    },
-                    sensitive_metadata={
-                        "error": str(exc),
-                        "error_class": exc.__class__.__name__,
-                    },
-                )
-
-        record_audit_event(
-            tenant=verification.tenant,
-            actor=verification.verification_subject,
-            action="document.processed",
-            target_type="verification",
-            target_id=verification.public_id,
-            metadata={
-                "identity_document_id": identity_document.public_id,
-                "document_status": identity_document.status,
-            },
-        )
-        if manual_review_required:
             record_audit_event(
                 tenant=verification.tenant,
                 actor=verification.verification_subject,
-                action="document.review_flagged",
+                action="document.processed",
                 target_type="verification",
                 target_id=verification.public_id,
                 metadata={
                     "identity_document_id": identity_document.public_id,
-                    "reason_codes": classification_result.get("issues", []),
+                    "document_status": identity_document.status,
                 },
             )
-        complete_processing_job(processing_job)
+            if manual_review_required:
+                record_audit_event(
+                    tenant=verification.tenant,
+                    actor=verification.verification_subject,
+                    action="document.review_flagged",
+                    target_type="verification",
+                    target_id=verification.public_id,
+                    metadata={
+                        "identity_document_id": identity_document.public_id,
+                        "reason_codes": classification_result.get("issues", []),
+                    },
+                )
+            complete_processing_job(processing_job)
         return identity_document.status
     except ProcessingJobOwnershipLost:
         raise
@@ -671,8 +702,8 @@ def process_identity_document_task(identity_document_id: str) -> str:
             identity_document.save(update_fields=["status", "updated_at"])
             complete_processing_job(processing_job)
             return identity_document.status
-    except AIServiceUnavailable:
-        defer_processing_job(processing_job, error_code="provider_unavailable")
+    except AIServiceUnavailable as exc:
+        defer_processing_job(processing_job, error_code=exc.error_code)
         raise
     except Exception as exc:
         with transaction.atomic():
