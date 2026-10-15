@@ -38,3 +38,45 @@ class BillingRecord(PublicIdModel, BaseModel):
 
     class Meta:
         ordering = ["-updated_at"]
+
+
+class BillingUsageEvent(PublicIdModel, BaseModel):
+    """Unrated usage fact, NOT an invoice or authority to charge a customer.
+
+    Exactly one fact per finished provider check. Keeping rating separate avoids
+    treating BYOP calls as the same product as managed AI processing.
+    """
+
+    public_id_prefix = "bue"
+    tenant = models.ForeignKey(
+        "tenants.Tenant", on_delete=models.PROTECT, related_name="billing_usage_events"
+    )
+    project = models.ForeignKey(
+        "projects.Project", on_delete=models.PROTECT, related_name="billing_usage_events"
+    )
+    provider_check = models.OneToOneField(
+        "providers.ProviderCheck", on_delete=models.PROTECT,
+        related_name="billing_usage_event"
+    )
+    environment = models.CharField(
+        max_length=16,
+        choices=[("sandbox", "Sandbox"), ("production", "Production")],
+    )
+    capability = models.CharField(max_length=32)
+    provider_scope = models.CharField(
+        max_length=16,
+        choices=[("tenant_owned", "Tenant owned"), ("platform", "Platform owned")],
+    )
+    outcome = models.CharField(max_length=16)
+    quantity = models.PositiveSmallIntegerField(default=1)
+    rating_state = models.CharField(max_length=16, default="unrated")
+    occurred_at = models.DateTimeField()
+
+    class Meta:
+        ordering = ["-occurred_at"]
+        indexes = [
+            models.Index(
+                fields=["tenant", "environment", "occurred_at"],
+                name="bill_usage_ten_env_time",
+            )
+        ]
