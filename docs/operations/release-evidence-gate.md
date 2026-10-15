@@ -55,7 +55,7 @@ change system and be verified by human owners.
 
 Run unit tests:
 
-    python -m unittest discover -s scripts -p test_release_evidence.py
+    python -m unittest discover -s tools/evaluation -p test_release_evidence_gate.py
 
 See pilot-readiness-checklist.md, locked-evaluation.md,
 provider-setup.md, deployment-security.md, and backup-restore.md.
