@@ -460,10 +460,15 @@
       "thread_id": "PRRT_kwDOTN0BU86TZWg-",
       "comment_id": 3641695392,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_automatic_and_system_review_routing_can_be_resolved_once",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Update the automatic decision when resolving manual review**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3641695392"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3641695392",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 4,
@@ -793,10 +798,15 @@
       "thread_id": "PRRT_kwDOTN0BU86TZW2x",
       "comment_id": 3641697271,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_automatic_and_system_review_routing_can_be_resolved_once",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Update the existing automatic decision during manual review**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3641697271"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3641697271",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 6,
@@ -929,10 +939,15 @@
       "thread_id": "PRRT_kwDOTN0BU86TZmRX",
       "comment_id": 3641787822,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_automatic_and_system_review_routing_can_be_resolved_once",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve finalized manual decisions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3641787822"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3641787822",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 16,
@@ -989,10 +1004,15 @@
       "thread_id": "PRRT_kwDOTN0BU86TZmRj",
       "comment_id": 3641787837,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_graphql_document_and_decision_fields_match_saved_evidence",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Return the actual document check status**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3641787837"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3641787837",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 16,
@@ -1089,20 +1109,31 @@
       "thread_id": "PRRT_kwDOTN0BU86Tc_NW",
       "comment_id": 3643076785,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_automatic_and_system_review_routing_can_be_resolved_once",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Allow review after automatic manual-review routing**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/19#discussion_r3643076785"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/19#discussion_r3643076785",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 19,
       "thread_id": "PRRT_kwDOTN0BU86Tc_Na",
       "comment_id": 3643076789,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_rest_webhook_matches_the_committed_manual_outcome"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve the caller's updated verification state**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/19#discussion_r3643076789"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/19#discussion_r3643076789",
+      "disposition_note": "Fixed in protected merged PR #394 after final-head independent review, green PR/push CI and Security, dedicated-App success and trusted expected-head merge. Full backend ran 964 tests with 34 skips successfully; nine targeted protocol regressions passed.",
+      "remediation_pr": 394,
+      "remediation_commit": "831404a2fb1eba4020866ff56f345088aef0bb67",
+      "merged_commit": "fb58565af0116803a4f6dba873d7808774213576"
     },
     {
       "pr_number": 20,
@@ -1154,20 +1185,30 @@
       "thread_id": "PRRT_kwDOTN0BU86Tc7g5",
       "comment_id": 3643055091,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_automatic_and_system_review_routing_can_be_resolved_once",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve the automatic decision when recording review outcomes**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/20#discussion_r3643055091"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/20#discussion_r3643055091",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 21,
       "thread_id": "PRRT_kwDOTN0BU86Tc7s8",
       "comment_id": 3643056263,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_automatic_and_system_review_routing_can_be_resolved_once",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve automatic decisions until manual review**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/21#discussion_r3643056263"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/21#discussion_r3643056263",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 21,
@@ -1204,10 +1245,16 @@
       "thread_id": "PRRT_kwDOTN0BU86Tdy3b",
       "comment_id": 3643382665,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_api_metadata_cannot_request_platform_ownership"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Restrict platform ownership to trusted onboarding requests**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/23#discussion_r3643382665"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/23#discussion_r3643382665",
+      "disposition_note": "Fixed in protected merged PR #394 after final-head independent review, green PR/push CI and Security, dedicated-App success and trusted expected-head merge. Full backend ran 964 tests with 34 skips successfully; nine targeted protocol regressions passed.",
+      "remediation_pr": 394,
+      "remediation_commit": "831404a2fb1eba4020866ff56f345088aef0bb67",
+      "merged_commit": "fb58565af0116803a4f6dba873d7808774213576"
     },
     {
       "pr_number": 24,
@@ -2852,10 +2899,16 @@
       "thread_id": "PRRT_kwDOTN0BU86Vrhmy",
       "comment_id": 3696851652,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_graphql_clamps_legacy_out_of_range_pages"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve pagination semantics for GraphQL callers**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/179#discussion_r3696851652"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/179#discussion_r3696851652",
+      "disposition_note": "Fixed in protected merged PR #394 after final-head independent review, green PR/push CI and Security, dedicated-App success and trusted expected-head merge. Full backend ran 964 tests with 34 skips successfully; nine targeted protocol regressions passed.",
+      "remediation_pr": 394,
+      "remediation_commit": "831404a2fb1eba4020866ff56f345088aef0bb67",
+      "merged_commit": "fb58565af0116803a4f6dba873d7808774213576"
     },
     {
       "pr_number": 179,
@@ -3693,10 +3746,16 @@
       "thread_id": "PRRT_kwDOTN0BU86Vr3CT",
       "comment_id": 3696977656,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_denied_environment_audit_survives_validation_rollback"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Persist denied-scope audits outside the rolled-back transaction**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/198#discussion_r3696977656"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/198#discussion_r3696977656",
+      "disposition_note": "Fixed in protected merged PR #394 after final-head independent review, green PR/push CI and Security, dedicated-App success and trusted expected-head merge. Full backend ran 964 tests with 34 skips successfully; nine targeted protocol regressions passed.",
+      "remediation_pr": 394,
+      "remediation_commit": "831404a2fb1eba4020866ff56f345088aef0bb67",
+      "merged_commit": "fb58565af0116803a4f6dba873d7808774213576"
     },
     {
       "pr_number": 198,
@@ -4532,10 +4591,15 @@
       "thread_id": "PRRT_kwDOTN0BU86V517j",
       "comment_id": 3702348148,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/tests.py:test_create_verification_copies_workflow_version_snapshot",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include snapshot versions in the creation audit event**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/242#discussion_r3702348148"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/242#discussion_r3702348148",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 242,
@@ -4894,10 +4958,15 @@
       "thread_id": "PRRT_kwDOTN0BU86V6UL8",
       "comment_id": 3702526025,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/tests.py:test_high_risk_manual_decision_requires_independent_approval",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include risk signals in manual-decision snapshots**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/248#discussion_r3702526025"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/248#discussion_r3702526025",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 248,
@@ -4947,10 +5016,15 @@
       "thread_id": "PRRT_kwDOTN0BU86V6UMR",
       "comment_id": 3702526053,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_graphql_document_and_decision_fields_match_saved_evidence",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Update the GraphQL decision node for the new fields**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/248#discussion_r3702526053"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/248#discussion_r3702526053",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 249,
@@ -5038,10 +5112,15 @@
       "thread_id": "PRRT_kwDOTN0BU86V6c2U",
       "comment_id": 3702576739,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/tests.py:test_policy_snapshot_can_require_approval_for_low_risk_review",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Expose the policy approval setting before reading it**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576739"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576739",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 250,
@@ -5078,10 +5157,15 @@
       "thread_id": "PRRT_kwDOTN0BU86V6c2f",
       "comment_id": 3702576754,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/tests.py:test_manual_review_decision_records_manual_decision",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Return the assignment state to the calling view**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576754"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576754",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 250,
@@ -5098,20 +5182,30 @@
       "thread_id": "PRRT_kwDOTN0BU86V6c2i",
       "comment_id": 3702576759,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/tests.py:test_verification_list_eager_loads_assigned_reviewers",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Eager-load assigned reviewers for verification lists**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576759"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576759",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 250,
       "thread_id": "PRRT_kwDOTN0BU86V6c2m",
       "comment_id": 3702576767,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/tests.py:test_independent_approval_accepts_every_proposable_outcome",
+        "backend/django/apps/verifications/serializers.py:locked terminal-state guard, automatic routing update, snapshot inputs and exact stored document status"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Accept every outcome that can enter approval**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576767"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576767",
+      "disposition_note": "Individually inspected the original finding and current implementation. The associated real API/serializer regression passed in the 83-test verification and policy suite; existing behavior is verified without treating GitHub resolution as evidence.",
+      "verified_main": "5422bd3157632f1fea910a0114fbb974f380e81d"
     },
     {
       "pr_number": 251,
@@ -6122,10 +6216,16 @@
       "thread_id": "PRRT_kwDOTN0BU86Ym9xX",
       "comment_id": 3767443420,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_pending_graphql_proposal_emits_no_final_outcome"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep GraphQL proposals pending until checker approval**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/284#discussion_r3767443420"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/284#discussion_r3767443420",
+      "disposition_note": "Fixed in protected merged PR #394 after final-head independent review, green PR/push CI and Security, dedicated-App success and trusted expected-head merge. Full backend ran 964 tests with 34 skips successfully; nine targeted protocol regressions passed.",
+      "remediation_pr": 394,
+      "remediation_commit": "831404a2fb1eba4020866ff56f345088aef0bb67",
+      "merged_commit": "fb58565af0116803a4f6dba873d7808774213576"
     },
     {
       "pr_number": 285,
@@ -10429,6 +10529,6 @@
       "disposition_note": "Resolved in protected merged PR #390 after fresh review and successful final-head CI/Security."
     }
   ],
-  "verified_main": "d9fc774e25de754770638d5d602e736ffd95fe6d",
-  "inventory_note": "823 threads from closed or merged PRs: 152 fixed, 182 verified, 11 actionable and 478 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
+  "verified_main": "fb58565af0116803a4f6dba873d7808774213576",
+  "inventory_note": "823 threads from closed or merged PRs: 157 fixed, 196 verified, 11 actionable and 459 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
 }
