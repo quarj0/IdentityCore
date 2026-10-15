@@ -59,6 +59,15 @@ class ReleaseEvidenceTests(unittest.TestCase):
         with self.assertRaises(module.EvidenceError):
             self.check()
 
+    def test_every_check_requires_a_bounded_reviewer_identity(self):
+        for name, entry in self.manifest["checks"].items():
+            for value in (None, "", "  ", 42, {}, "r" * 121):
+                with self.subTest(check=name, value=value):
+                    entry["reviewer"] = value
+                    with self.assertRaises(module.EvidenceError):
+                        self.check()
+                entry["reviewer"] = "independent reviewer"
+
     def test_stale_approval(self):
         self.manifest["checks"]["go_live_approval"]["completed_at"] = (
             self.now - timedelta(days=8)).isoformat()

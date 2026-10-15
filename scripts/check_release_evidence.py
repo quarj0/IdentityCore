@@ -88,10 +88,10 @@ def check_evidence(manifest, evidence_root, *, head_sha, mode, now=None):
         owner, reviewer = entry.get("owner"), entry.get("reviewer")
         if not isinstance(owner, str) or not owner.strip() or len(owner) > 120:
             raise EvidenceError(f"{name}: missing owner")
+        if not isinstance(reviewer, str) or not reviewer.strip() or len(reviewer) > 120:
+            raise EvidenceError(f"{name}: missing or invalid reviewer")
         if name in INDEPENDENT and (
-            not isinstance(reviewer, str)
-            or not reviewer.strip()
-            or reviewer.strip().casefold() == owner.strip().casefold()
+            reviewer.strip().casefold() == owner.strip().casefold()
         ):
             raise EvidenceError(f"{name}: distinct reviewer required")
         time = utc(entry.get("completed_at"))
