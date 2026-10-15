@@ -3070,20 +3070,28 @@
       "thread_id": "PRRT_kwDOTN0BU86VrsFG",
       "comment_id": 3696914399,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/biometrics/tasks.py:acquire_processing_job serializes claims and rejects an active lease",
+        "backend/django/apps/verifications/test_processing_jobs.py:test_active_lease_blocks_duplicate_execution_and_completion_is_terminal"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Claim inconclusive checks atomically**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/185#discussion_r3696914399"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/185#discussion_r3696914399",
+      "disposition_note": "Individually read original finding and inspected existing main implementation bfc3a7867f897401db5fddddc037865b70577112. Nineteen focused baseline tests passed on a separate immutable main checkout, including the added ownership and missing-link regression tests; this finding requires no production change."
     },
     {
       "pr_number": 185,
       "thread_id": "PRRT_kwDOTN0BU86VrsFH",
       "comment_id": 3696914400,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/biometrics/tasks.py:durable job completion follows the whole decision; persisted intermediate results resume finalization",
+        "backend/django/apps/biometrics/test_finalization_recovery.py:test_retry_resumes_finalization_without_reinvoking_providers"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Gate retries on completion of the whole task**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/185#discussion_r3696914400"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/185#discussion_r3696914400",
+      "disposition_note": "Individually read original finding and inspected existing main implementation bfc3a7867f897401db5fddddc037865b70577112. Nineteen focused baseline tests passed on a separate immutable main checkout, including the added ownership and missing-link regression tests; this finding requires no production change."
     },
     {
       "pr_number": 186,
@@ -3187,20 +3195,28 @@
       "thread_id": "PRRT_kwDOTN0BU86VruPz",
       "comment_id": 3696926614,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/biometrics/tasks.py:validate finite numeric confidence in [0,1] and bounded nonempty string model attribution at provider boundary and recovered result consumption",
+        "backend/django/apps/biometrics/test_historical_evidence.py:test_negative_detection_confidence_is_contract_failure"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reject malformed confidence and attribution values**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/187#discussion_r3696926614"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/187#discussion_r3696926614",
+      "disposition_note": "Reproduced on baseline: nine failing regression cases among 15 tests. Eighteen expanded regression tests pass after the proposed fix. Remains actionable until independent final-head review, CI/Security and protected merge."
     },
     {
       "pr_number": 187,
       "thread_id": "PRRT_kwDOTN0BU86VruP0",
       "comment_id": 3696926615,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/biometrics/tasks.py:derive nonempty failure reason from final liveness status",
+        "backend/django/apps/biometrics/test_historical_evidence.py:test_rejected_face_count_has_failure_reason"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Populate the failure reason from the derived status**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/187#discussion_r3696926615"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/187#discussion_r3696926615",
+      "disposition_note": "Reproduced on baseline: nine failing regression cases among 15 tests. Eighteen expanded regression tests pass after the proposed fix. Remains actionable until independent final-head review, CI/Security and protected merge."
     },
     {
       "pr_number": 187,
@@ -3217,10 +3233,14 @@
       "thread_id": "PRRT_kwDOTN0BU86VruP3",
       "comment_id": 3696926619,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/biometrics/tasks.py:raise ProviderContractError and preserve provider_invalid_response in scalar and decision evidence",
+        "backend/django/apps/biometrics/test_historical_evidence.py:test_missing_detection_evidence_is_contract_failure"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Classify missing evidence as an invalid provider response**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/187#discussion_r3696926619"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/187#discussion_r3696926619",
+      "disposition_note": "Reproduced on baseline: nine failing regression cases among 15 tests. Eighteen expanded regression tests pass after the proposed fix. Remains actionable until independent final-head review, CI/Security and protected merge."
     },
     {
       "pr_number": 187,
@@ -3454,10 +3474,14 @@
       "thread_id": "PRRT_kwDOTN0BU86VryyX",
       "comment_id": 3696953118,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/biometrics/tasks.py:reload and preserve orchestrated timeout status/code rather than overwrite stale object",
+        "backend/django/apps/biometrics/test_historical_evidence.py:test_timeout_keeps_provider_classification"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve timeout outcomes recorded by the orchestrator**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/194#discussion_r3696953118"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/194#discussion_r3696953118",
+      "disposition_note": "Reproduced on baseline: nine failing regression cases among 15 tests. Eighteen expanded regression tests pass after the proposed fix. Remains actionable until independent final-head review, CI/Security and protected merge."
     },
     {
       "pr_number": 194,
@@ -3521,10 +3545,14 @@
       "thread_id": "PRRT_kwDOTN0BU86Vr1xt",
       "comment_id": 3696970379,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/biometrics/tasks.py:execute_provider_route creates missing checks and task persists both returned links",
+        "backend/django/apps/biometrics/test_historical_evidence.py:test_missing_provider_links_are_created_and_saved"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Backfill missing biometric provider checks before invoking**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/194#discussion_r3696970379"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/194#discussion_r3696970379",
+      "disposition_note": "Individually read original finding and inspected existing main implementation bfc3a7867f897401db5fddddc037865b70577112. Nineteen focused baseline tests passed on a separate immutable main checkout, including the added ownership and missing-link regression tests; this finding requires no production change."
     },
     {
       "pr_number": 196,
@@ -3910,10 +3938,14 @@
       "thread_id": "PRRT_kwDOTN0BU86Vr5LT",
       "comment_id": 3696989634,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/biometrics/tasks.py:preserve liveness and face timeout classification in provider and manual-review evidence",
+        "backend/django/apps/biometrics/test_historical_evidence.py:test_face_timeout_keeps_provider_classification"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve timeout classification in biometric tasks**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/200#discussion_r3696989634"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/200#discussion_r3696989634",
+      "disposition_note": "Reproduced on baseline: nine failing regression cases among 15 tests. Eighteen expanded regression tests pass after the proposed fix. Remains actionable until independent final-head review, CI/Security and protected merge."
     },
     {
       "pr_number": 200,
@@ -3930,10 +3962,14 @@
       "thread_id": "PRRT_kwDOTN0BU86Vr5LW",
       "comment_id": 3696989638,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/biometrics/tasks.py:missing string references do not prevent invocation; route creates replacement telemetry",
+        "backend/django/apps/biometrics/test_historical_evidence.py:test_missing_provider_links_are_created_and_saved"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Create biometric provider checks before invoking**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/200#discussion_r3696989638"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/200#discussion_r3696989638",
+      "disposition_note": "Individually read original finding and inspected existing main implementation bfc3a7867f897401db5fddddc037865b70577112. Nineteen focused baseline tests passed on a separate immutable main checkout, including the added ownership and missing-link regression tests; this finding requires no production change."
     },
     {
       "pr_number": 200,
@@ -3975,10 +4011,14 @@
       "thread_id": "PRRT_kwDOTN0BU86Vr5Ql",
       "comment_id": 3696990110,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/biometrics/tasks.py:retain committed terminal provider classification, including timeout normalized envelope",
+        "backend/django/apps/biometrics/test_historical_evidence.py:test_timeout_keeps_provider_classification"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve orchestrated biometric timeout details**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/201#discussion_r3696990110"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/201#discussion_r3696990110",
+      "disposition_note": "Reproduced on baseline: nine failing regression cases among 15 tests. Eighteen expanded regression tests pass after the proposed fix. Remains actionable until independent final-head review, CI/Security and protected merge."
     },
     {
       "pr_number": 201,
@@ -7575,10 +7615,14 @@
       "thread_id": "PRRT_kwDOTN0BU86bZG3b",
       "comment_id": 3836176862,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/biometrics/tasks.py:_schedule_evidence_report_after_commit defers object storage writes until successful database commit",
+        "backend/django/apps/biometrics/tests.py:test_rolled_back_biometric_decision_does_not_write_evidence"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Defer evidence writes until after the transaction commits**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836176862"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836176862",
+      "disposition_note": "Individually read original finding and inspected existing main implementation bfc3a7867f897401db5fddddc037865b70577112. Nineteen focused baseline tests passed on a separate immutable main checkout, including the added ownership and missing-link regression tests; this finding requires no production change."
     },
     {
       "pr_number": 303,
@@ -7602,10 +7646,14 @@
       "thread_id": "PRRT_kwDOTN0BU86bZTnq",
       "comment_id": 3836252301,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/biometrics/tasks.py:retry resumes decision and outbox finalization from committed liveness/face evidence",
+        "backend/django/apps/biometrics/test_finalization_recovery.py:test_retry_resumes_finalization_without_reinvoking_providers"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Include biometric result writes in the finalization transaction**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836252301"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836252301",
+      "disposition_note": "Individually read original finding and inspected existing main implementation bfc3a7867f897401db5fddddc037865b70577112. Nineteen focused baseline tests passed on a separate immutable main checkout, including the added ownership and missing-link regression tests; this finding requires no production change."
     },
     {
       "pr_number": 303,
@@ -7626,30 +7674,42 @@
       "thread_id": "PRRT_kwDOTN0BU86bZk2f",
       "comment_id": 3836354476,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/biometrics/tasks.py:upload promotion persists independently; retry does not move deleted temporary input again",
+        "backend/django/apps/biometrics/test_finalization_recovery.py:test_unavailable_retry_preserves_durable_selfie_promotion"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Skip re-moving an already-promoted upload during recovery**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836354476"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836354476",
+      "disposition_note": "Individually read original finding and inspected existing main implementation bfc3a7867f897401db5fddddc037865b70577112. Nineteen focused baseline tests passed on a separate immutable main checkout, including the added ownership and missing-link regression tests; this finding requires no production change."
     },
     {
       "pr_number": 303,
       "thread_id": "PRRT_kwDOTN0BU86bZk2h",
       "comment_id": 3836354479,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/biometrics/tasks.py:acquire_processing_job relinks committed resource-correlated fallback evidence before task reads provider checks",
+        "backend/django/apps/verifications/test_biometric_provider_link_recovery.py:test_acquire_repairs_fallback_provider_links_before_worker_continues"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Recover completed fallback checks before invoking providers again**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836354479"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836354479",
+      "disposition_note": "Individually read original finding and inspected existing main implementation bfc3a7867f897401db5fddddc037865b70577112. Nineteen focused baseline tests passed on a separate immutable main checkout, including the added ownership and missing-link regression tests; this finding requires no production change."
     },
     {
       "pr_number": 303,
       "thread_id": "PRRT_kwDOTN0BU86bZk2i",
       "comment_id": 3836354481,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/biometrics/tasks.py:complete_processing_job repairs exact originating route exhaustion state before completing; stale recovery preserves its decision",
+        "backend/django/apps/verifications/test_processing_job_lifecycle_recovery.py:test_stale_route_exhaustion_repairs_biometric_state_without_overwriting_decision"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Finish biometric route-exhaustion state before returning**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836354481"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836354481",
+      "disposition_note": "Individually read original finding and inspected existing main implementation bfc3a7867f897401db5fddddc037865b70577112. Nineteen focused baseline tests passed on a separate immutable main checkout, including the added ownership and missing-link regression tests; this finding requires no production change."
     },
     {
       "pr_number": 303,
@@ -7870,20 +7930,28 @@
       "thread_id": "PRRT_kwDOTN0BU86bad0n",
       "comment_id": 3836692040,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/biometrics/tasks.py:success persistence holds lock_processing_job_for_finalization before domain writes; provider boundary rejects replaced ownership",
+        "backend/django/apps/biometrics/test_historical_evidence.py:test_success_after_lost_ownership_cannot_write_result"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Validate ownership before saving successful results**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836692040"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836692040",
+      "disposition_note": "Individually read original finding and inspected existing main implementation bfc3a7867f897401db5fddddc037865b70577112. Nineteen focused baseline tests passed on a separate immutable main checkout, including the added ownership and missing-link regression tests; this finding requires no production change."
     },
     {
       "pr_number": 304,
       "thread_id": "PRRT_kwDOTN0BU86ba9oh",
       "comment_id": 3836881139,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/biometrics/tasks.py:failure persistence holds lock_processing_job_for_finalization; provider boundary also rejects replaced ownership",
+        "backend/django/apps/biometrics/test_historical_evidence.py:test_failure_after_lost_ownership_cannot_write_error"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Validate ownership before writing failure evidence**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3836881139"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3836881139",
+      "disposition_note": "Individually read original finding and inspected existing main implementation bfc3a7867f897401db5fddddc037865b70577112. Nineteen focused baseline tests passed on a separate immutable main checkout, including the added ownership and missing-link regression tests; this finding requires no production change."
     },
     {
       "pr_number": 304,
@@ -11011,5 +11079,5 @@
     }
   ],
   "verified_main": "bfc3a7867f897401db5fddddc037865b70577112",
-  "inventory_note": "831 threads from closed or merged PRs: 181 fixed, 245 verified, 0 actionable and 405 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
+  "inventory_note": "831 threads from closed or merged PRs: 181 fixed, 256 verified, 6 actionable and 388 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
 }

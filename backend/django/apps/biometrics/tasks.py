@@ -16,7 +16,12 @@ from apps.biometrics.models import (
     SelfieCaptureStatus,
 )
 from apps.notifications.services import queue_verification_status_notifications
-from apps.providers.adapters import run_face_compare, run_liveness_check
+from apps.providers.adapters import (
+    ProviderContractError,
+    run_face_compare,
+    run_liveness_check,
+    validate_liveness_evidence,
+)
 from apps.providers.models import ProviderCheckStatus, ProviderCheckType
 from apps.providers.services import (
     ProviderRouteExhausted,
@@ -265,7 +270,19 @@ def _persist_unavailable_biometric_decision(
                 "requires human review."
             ),
             "evidence_summary_json": {
-                "provider_error": "provider_unavailable",
+                "provider_error": getattr(error, "error_code", None)
+                or liveness_check.failure_reason
+                or (
+                    verification.provider_checks.filter(
+                        public_id=face_match.provider_check_id
+                    )
+                    .values_list("error_code", flat=True)
+                    .first()
+                    if face_match is not None
+                    and face_match.status == FaceMatchStatus.ERROR
+                    else None
+                )
+                or "provider_unavailable",
                 "liveness_status": liveness_check.status,
                 "face_match_status": (
                     face_match.status if face_match is not None else "missing"
@@ -431,22 +448,12 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                 liveness_provider_check = liveness_execution.provider_check
                 liveness_check.provider_check_id = liveness_provider_check.public_id
 
-            metrics = liveness_result.get("metrics") or {}
-            face_count = metrics.get("face_count")
-            detection_confidence = metrics.get("avg_detection_confidence")
-            model_name = liveness_result.get("model_name")
-            model_version = liveness_result.get("model_version")
-            if (
-                isinstance(face_count, bool)
-                or not isinstance(face_count, int)
-                or face_count < 0
-                or detection_confidence is None
-                or not model_name
-                or not model_version
-            ):
-                raise ValueError(
-                    "Liveness provider omitted required face detection evidence."
-                )
+            validate_liveness_evidence(liveness_result)
+            metrics = liveness_result["metrics"]
+            face_count = metrics["face_count"]
+            detection_confidence = metrics["avg_detection_confidence"]
+            model_name = liveness_result["model_name"]
+            model_version = liveness_result["model_version"]
 
             with transaction.atomic():
                 lock_processing_job_for_finalization(processing_job)
@@ -477,7 +484,9 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
                 liveness_check.model_name = liveness_result.get("model_name", "")
                 liveness_check.model_version = liveness_result.get("model_version", "")
                 liveness_check.failure_reason = (
-                    "" if liveness_result.get("passed") else "ai_liveness_failed"
+                    ""
+                    if liveness_check.status == LivenessCheckStatus.PASSED
+                    else "ai_liveness_failed"
                 )
                 liveness_check.checked_at = timezone.now()
                 liveness_check.save(
@@ -673,41 +682,55 @@ def process_verification_biometrics_task(liveness_check_id: str) -> str:
         with transaction.atomic():
             lock_processing_job_for_finalization(processing_job)
             now = timezone.now()
-            if processing_stage == "liveness" and liveness_provider_check is not None:
-                liveness_provider_check.status = ProviderCheckStatus.FAILED
-                liveness_provider_check.error_code = "provider_unavailable"
-                liveness_provider_check.error_message = (
-                    "Biometric processing was unavailable."
-                )
-                liveness_provider_check.completed_at = now
-                liveness_provider_check.save(
-                    update_fields=[
-                        "status",
-                        "error_code",
-                        "error_message",
-                        "completed_at",
-                        "updated_at",
-                    ]
-                )
-            if processing_stage == "face_match" and face_provider_check is not None:
-                face_provider_check.status = ProviderCheckStatus.FAILED
-                face_provider_check.error_code = "provider_unavailable"
-                face_provider_check.error_message = (
-                    "Biometric processing was unavailable."
-                )
-                face_provider_check.completed_at = now
-                face_provider_check.save(
-                    update_fields=[
-                        "status",
-                        "error_code",
-                        "error_message",
-                        "completed_at",
-                        "updated_at",
-                    ]
-                )
+            failed_check = (
+                liveness_provider_check
+                if processing_stage == "liveness"
+                else face_provider_check
+            )
+            error_code = getattr(exc, "error_code", "provider_unavailable")
+            if failed_check is not None:
+                # The provider boundary commits classified attempt evidence before
+                # raising. Reload it rather than overwriting it with a stale model.
+                failed_check.refresh_from_db()
+                if (
+                    failed_check.status != ProviderCheckStatus.COMPLETED
+                    or isinstance(exc, ProviderContractError)
+                ):
+                    if (
+                        failed_check.status
+                        in {ProviderCheckStatus.FAILED, ProviderCheckStatus.TIMEOUT}
+                        and failed_check.error_code
+                    ):
+                        error_code = failed_check.error_code
+                    else:
+                        status = getattr(
+                            exc, "provider_check_status", ProviderCheckStatus.FAILED
+                        )
+                        failed_check.status = (
+                            status
+                            if status
+                            in {ProviderCheckStatus.FAILED, ProviderCheckStatus.TIMEOUT}
+                            else ProviderCheckStatus.FAILED
+                        )
+                        failed_check.error_code = error_code
+                        failed_check.error_message = getattr(
+                            exc,
+                            "public_message",
+                            "Biometric processing was unavailable.",
+                        )
+                        failed_check.completed_at = now
+                        failed_check.save(
+                            update_fields=[
+                                "status",
+                                "error_code",
+                                "error_message",
+                                "completed_at",
+                                "updated_at",
+                            ]
+                        )
             if processing_stage == "liveness":
                 liveness_check.status = LivenessCheckStatus.ERROR
-                liveness_check.failure_reason = "provider_unavailable"
+                liveness_check.failure_reason = error_code
                 liveness_check.checked_at = now
                 liveness_check.save(
                     update_fields=[
