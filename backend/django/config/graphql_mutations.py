@@ -695,6 +695,10 @@ class Mutation:
             status=PlatformAdminInvitationStatus.PENDING,
             expires_at__lte=now,
         ).update(status=PlatformAdminInvitationStatus.EXPIRED, updated_at=now)
+        # Reconciliation can wait for an older acceptance transaction. Its
+        # committed account must be checked again before issuing a replacement.
+        if PlatformUser.objects.filter(email=normalized_email).exists():
+            raise GraphQLError("An account already exists for this email address.")
         if PlatformAdminInvitation.objects.filter(
             email=normalized_email,
             status=PlatformAdminInvitationStatus.PENDING,
@@ -745,6 +749,19 @@ class Mutation:
         request = info.context["request"]
         require_trusted_cookie_origin(request)
         digest = PlatformAdminInvitation.digest_token(token.strip())
+        # Reject invalid tokens before serializing platform operations, then
+        # revalidate under the same scope-before-invitation lock as replacement.
+        if not PlatformAdminInvitation.objects.filter(
+            token_hash=digest,
+            status=PlatformAdminInvitationStatus.PENDING,
+            expires_at__gt=timezone.now(),
+        ).exists():
+            logger.info(
+                "Platform invitation acceptance rejected.",
+                extra={"reason": "invitation_not_found"},
+            )
+            raise GraphQLError("Invitation is invalid or cannot be accepted.")
+        lock_audit_chain(None)
         invitation = (
             PlatformAdminInvitation.objects.select_for_update(of=("self",))
             .select_related("role")

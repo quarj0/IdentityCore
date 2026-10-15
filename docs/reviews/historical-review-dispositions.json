@@ -1373,7 +1373,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Handle expired pending invitations before creating a replacement**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/32#discussion_r3644944384",
-      "disposition_note": "Individually inspected original finding. Expired invitation replacement and missing deactivation reason reproduced before fixes. Final-admin race requires PostgreSQL CI proof. Local expanded suite ran 31 tests with one PostgreSQL-only skip; full backend suite ran 961 with 35 skips successfully. Remains actionable until reviewed protected merge."
+      "disposition_note": "Individually inspected original finding. Expired invitation replacement and missing deactivation reason reproduced before fixes. Final-admin race requires PostgreSQL CI proof. Local expanded suite ran 31 tests with one PostgreSQL-only skip; full backend suite ran 961 with 35 skips successfully. Remains actionable until reviewed protected merge. Subsequent invitation acceptance/replacement race reproduced and fixed; all 32 relevant PostgreSQL tests, including both three-round concurrency cases, passed. Full integrated backend ran 991 with 37 skips successfully."
     },
     {
       "pr_number": 32,
@@ -1418,7 +1418,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Persist deactivation reasons for tenantless platform admins**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645114458",
-      "disposition_note": "Individually inspected original finding. Expired invitation replacement and missing deactivation reason reproduced before fixes. Final-admin race requires PostgreSQL CI proof. Local expanded suite ran 31 tests with one PostgreSQL-only skip; full backend suite ran 961 with 35 skips successfully. Remains actionable until reviewed protected merge."
+      "disposition_note": "Individually inspected original finding. Expired invitation replacement and missing deactivation reason reproduced before fixes. Final-admin race requires PostgreSQL CI proof. Local expanded suite ran 31 tests with one PostgreSQL-only skip; full backend suite ran 961 with 35 skips successfully. Remains actionable until reviewed protected merge. Subsequent invitation acceptance/replacement race reproduced and fixed; all 32 relevant PostgreSQL tests, including both three-round concurrency cases, passed. Full integrated backend ran 991 with 37 skips successfully."
     },
     {
       "pr_number": 33,
@@ -1433,7 +1433,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reconcile expired pending invitations before creating another**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645114464",
-      "disposition_note": "Individually inspected original finding. Expired invitation replacement and missing deactivation reason reproduced before fixes. Final-admin race requires PostgreSQL CI proof. Local expanded suite ran 31 tests with one PostgreSQL-only skip; full backend suite ran 961 with 35 skips successfully. Remains actionable until reviewed protected merge."
+      "disposition_note": "Individually inspected original finding. Expired invitation replacement and missing deactivation reason reproduced before fixes. Final-admin race requires PostgreSQL CI proof. Local expanded suite ran 31 tests with one PostgreSQL-only skip; full backend suite ran 961 with 35 skips successfully. Remains actionable until reviewed protected merge. Subsequent invitation acceptance/replacement race reproduced and fixed; all 32 relevant PostgreSQL tests, including both three-round concurrency cases, passed. Full integrated backend ran 991 with 37 skips successfully."
     },
     {
       "pr_number": 33,
@@ -1498,7 +1498,7 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Serialize the final-admin check**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645208254",
-      "disposition_note": "Individually inspected original finding. Expired invitation replacement and missing deactivation reason reproduced before fixes. Final-admin race requires PostgreSQL CI proof. Local expanded suite ran 31 tests with one PostgreSQL-only skip; full backend suite ran 961 with 35 skips successfully. Remains actionable until reviewed protected merge."
+      "disposition_note": "Individually inspected original finding. Expired invitation replacement and missing deactivation reason reproduced before fixes. Final-admin race requires PostgreSQL CI proof. Local expanded suite ran 31 tests with one PostgreSQL-only skip; full backend suite ran 961 with 35 skips successfully. Remains actionable until reviewed protected merge. Subsequent invitation acceptance/replacement race reproduced and fixed; all 32 relevant PostgreSQL tests, including both three-round concurrency cases, passed. Full integrated backend ran 991 with 37 skips successfully."
     },
     {
       "pr_number": 33,
@@ -10580,8 +10580,27 @@
         "docs/reviews/historical-review-dispositions.json:inventory metadata agrees with independently inspected rows"
       ],
       "disposition_note": "Resolved in protected merged PR #390 after fresh review and successful final-head CI/Security."
+    },
+    {
+      "pr_number": 396,
+      "thread_id": "PRRT_kwDOTN0BU86sjV40",
+      "comment_id": 4277158142,
+      "path": "backend/django/config/graphql_mutations.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject no-op workflow updates before drafting**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/396#discussion_r4277158142",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba",
+      "resolver_evidence": "Fixed in 8e2a0776d4e5faa1b39a14f1e2570d80a750fcc8. Validation: 56 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/workflows/test_historical_publishing.py:test_noop_updates_preserve_publication_and_emit_no_update_audit",
+        "backend/django/apps/workflows/serializers.py:detect actual changes before drafting and preserve locked current state",
+        "docs/operations/review-evidence-gate.md:protected merge, standalone canonical evidence and removed exact-head maintenance approval"
+      ],
+      "disposition_note": "Late no-op workflow edit finding fixed in protected merged PR #396 after independent final-head review newer than canonical resolution, green CI/Security, actual PostgreSQL migration/concurrency CI and dedicated App success. Full backend ran 984 with 35 skips successfully; narrow temporary CI-selector approval removed after trusted merge."
     }
   ],
   "verified_main": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba",
-  "inventory_note": "823 threads from closed or merged PRs: 168 fixed, 196 verified, 4 actionable and 455 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
+  "inventory_note": "824 threads from closed or merged PRs: 169 fixed, 196 verified, 4 actionable and 455 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
 }
