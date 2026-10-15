@@ -121,6 +121,12 @@ from config.graphql_types import (
     WorkflowVersionNode,
 )
 
+from apps.templates.services import (
+    insert_template,
+    validate_template_settings,
+    require_later_template_version,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -151,6 +157,7 @@ class Mutation:
         )
 
     @strawberry.mutation
+    @transaction.atomic
     def create_platform_template(
         self,
         info: Info,
@@ -167,13 +174,14 @@ class Mutation:
         risk_level: str = "",
     ) -> TemplateNode:
         actor = require_platform_admin(info)
+        lock_audit_chain(None)
         if (
             category not in TemplateCategory.values
             or not name.strip()
             or not description.strip()
         ):
             raise GraphQLError("A name, description, and valid category are required.")
-        template = Template.objects.create(
+        template = insert_template(
             name=name.strip(),
             slug=slugify(name),
             description=description.strip(),
@@ -200,6 +208,7 @@ class Mutation:
         return Mutation._template_node(template)
 
     @strawberry.mutation
+    @transaction.atomic
     def update_platform_template(
         self,
         info: Info,
@@ -217,7 +226,10 @@ class Mutation:
         risk_level: str | None = None,
     ) -> TemplateNode:
         actor = require_platform_admin(info)
-        template = get_object_or_404(Template, public_id=template_id)
+        lock_audit_chain(None)
+        template = get_object_or_404(
+            Template.objects.select_for_update(), public_id=template_id
+        )
         if template.status != TemplateStatus.DRAFT:
             raise GraphQLError("Only draft templates can be edited.")
         if category is not None and category not in TemplateCategory.values:
@@ -248,14 +260,18 @@ class Mutation:
         return Mutation._template_node(template)
 
     @strawberry.mutation
+    @transaction.atomic
     def clone_platform_template(
         self, info: Info, template_id: str, name: str
     ) -> TemplateNode:
         actor = require_platform_admin(info)
-        source = get_object_or_404(Template, public_id=template_id)
+        lock_audit_chain(None)
+        source = get_object_or_404(
+            Template.objects.select_for_update(), public_id=template_id
+        )
         if not name.strip():
             raise GraphQLError("A clone name is required.")
-        clone = Template.objects.create(
+        clone = insert_template(
             name=name.strip(),
             slug=slugify(name),
             description=source.description,
@@ -283,9 +299,56 @@ class Mutation:
         return Mutation._template_node(clone)
 
     @strawberry.mutation
+    @transaction.atomic
+    def create_platform_template_version(
+        self, info: Info, template_id: str, version: str
+    ) -> TemplateNode:
+        actor = require_platform_admin(info)
+        lock_audit_chain(None)
+        source = get_object_or_404(
+            Template.objects.select_for_update(), public_id=template_id
+        )
+        if source.status != TemplateStatus.PUBLISHED:
+            raise GraphQLError("Create a new version from a published template.")
+        version = version.strip()
+        require_later_template_version(source.version, version)
+        # Stable identity and immutable source; version uniqueness is enforced
+        # again at insertion to return a deliberate error for concurrent requests.
+        clone = insert_template(
+            name=source.name,
+            slug=source.slug,
+            description=source.description,
+            category=source.category,
+            status=TemplateStatus.DRAFT,
+            version=version,
+            countries_json=source.countries_json,
+            required_checks_json=source.required_checks_json,
+            steps_json=source.steps_json,
+            settings_json=source.settings_json,
+            provider_requirements_json=source.provider_requirements_json,
+            output_claims_json=source.output_claims_json,
+            owner_team=source.owner_team,
+            risk_level=source.risk_level,
+            created_by=actor,
+        )
+        record_audit_event(
+            actor=actor,
+            request=info.context["request"],
+            action="template.version_created",
+            target_type="template",
+            target_id=clone.public_id,
+            metadata={"source_id": source.public_id, "version": version},
+        )
+        return Mutation._template_node(clone)
+
+    @strawberry.mutation
+    @transaction.atomic
     def publish_platform_template(self, info: Info, template_id: str) -> TemplateNode:
         actor = require_platform_admin(info)
-        template = get_object_or_404(Template, public_id=template_id)
+        lock_audit_chain(None)
+        template = get_object_or_404(
+            Template.objects.select_for_update(), public_id=template_id
+        )
         if template.status != TemplateStatus.DRAFT:
             raise GraphQLError("Only draft templates can be published.")
         if not template.slug:
@@ -304,10 +367,10 @@ class Mutation:
             raise GraphQLError(
                 "Consent and decision steps are required before publishing."
             )
-        if not isinstance(template.settings_json, dict):
-            raise GraphQLError("Template settings must be an object.")
+        normalized_settings = validate_template_settings(template.settings_json)
+        template.settings_json = normalized_settings
         template.status = TemplateStatus.PUBLISHED
-        template.save(update_fields=["status", "updated_at"])
+        template.save(update_fields=["status", "settings_json", "updated_at"])
         record_audit_event(
             actor=actor,
             request=info.context["request"],
@@ -318,9 +381,13 @@ class Mutation:
         return Mutation._template_node(template)
 
     @strawberry.mutation
+    @transaction.atomic
     def archive_platform_template(self, info: Info, template_id: str) -> TemplateNode:
         actor = require_platform_admin(info)
-        template = get_object_or_404(Template, public_id=template_id)
+        lock_audit_chain(None)
+        template = get_object_or_404(
+            Template.objects.select_for_update(), public_id=template_id
+        )
         template.status = TemplateStatus.ARCHIVED
         template.save(update_fields=["status", "updated_at"])
         record_audit_event(

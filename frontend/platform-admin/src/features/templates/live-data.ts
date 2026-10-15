@@ -211,3 +211,9 @@ export const archiveTemplate = (templateId: string) =>
     `mutation ArchiveTemplate($templateId: String!) { template: archivePlatformTemplate(templateId: $templateId) { ${templateFields} } }`,
     { templateId },
   );
+
+export const createTemplateVersion = (templateId: string, version: string) =>
+  runTemplateMutation(
+    `mutation CreateTemplateVersion($templateId: String!, $version: String!) { template: createPlatformTemplateVersion(templateId: $templateId, version: $version) { ${templateFields} } }`,
+    { templateId, version },
+  );

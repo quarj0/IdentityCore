@@ -1487,10 +1487,14 @@
       "thread_id": "PRRT_kwDOTN0BU86Ti6GT",
       "comment_id": 3645257342,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/graphql_mutations.py:existing DRAFT-only update and publication guards",
+        "backend/django/apps/templates/test_historical_lifecycle.py:test_archived_template_cannot_be_edited_or_republished passed before changes"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Prevent archived templates from being republished**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257342"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257342",
+      "disposition_note": "The original archived edit/publish concern is already prevented by explicit lifecycle guards. Actual GraphQL regression passed on preceding implementation; no new fix claimed."
     },
     {
       "pr_number": 34,
@@ -2160,20 +2164,30 @@
       "thread_id": "PRRT_kwDOTN0BU86UTTF5",
       "comment_id": 3663207292,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/templates/test_historical_lifecycle.py:collision errors, invalid settings, immutable source and later versions",
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:eight template lifecycle/version browser cases passed",
+        "backend/django/config/graphql_mutations.py:transactional template lifecycle mutations"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate generated template slugs before inserting**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207292"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207292",
+      "disposition_note": "Slug collisions now return deliberate validation errors with insertion savepoint handling. Full backend ran 981 tests with 35 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
     },
     {
       "pr_number": 49,
       "thread_id": "PRRT_kwDOTN0BU86UTTF6",
       "comment_id": 3663207294,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/templates/test_historical_lifecycle.py:collision errors, invalid settings, immutable source and later versions",
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:eight template lifecycle/version browser cases passed",
+        "backend/django/config/graphql_mutations.py:transactional template lifecycle mutations"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Hide editing controls for published templates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207294"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207294",
+      "disposition_note": "Draft-only edit/publish controls and published-only archive/new-version controls are verified in Chromium and WebKit. Full backend ran 981 tests with 35 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
     },
     {
       "pr_number": 49,
@@ -2190,20 +2204,30 @@
       "thread_id": "PRRT_kwDOTN0BU86UTTF_",
       "comment_id": 3663207299,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/templates/test_historical_lifecycle.py:collision errors, invalid settings, immutable source and later versions",
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:eight template lifecycle/version browser cases passed",
+        "backend/django/config/graphql_mutations.py:transactional template lifecycle mutations"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate setting values before publishing templates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207299"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207299",
+      "disposition_note": "Publication validates supported policy types, ranges and cross-field constraints, while excluding tenant consent bindings from global templates. Full backend ran 981 tests with 35 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
     },
     {
       "pr_number": 49,
       "thread_id": "PRRT_kwDOTN0BU86UTTGB",
       "comment_id": 3663207303,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/templates/test_historical_lifecycle.py:collision errors, invalid settings, immutable source and later versions",
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:eight template lifecycle/version browser cases passed",
+        "backend/django/config/graphql_mutations.py:transactional template lifecycle mutations"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Provide a path to create later template versions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207303"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207303",
+      "disposition_note": "Explicit createPlatformTemplateVersion preserves stable slug and source publication while creating an editable later numeric version. Full backend ran 981 tests with 35 skips successfully. Remains actionable until independent review, required CI/Security and protected merge."
     },
     {
       "pr_number": 56,
@@ -10430,5 +10454,5 @@
     }
   ],
   "verified_main": "d9fc774e25de754770638d5d602e736ffd95fe6d",
-  "inventory_note": "823 threads from closed or merged PRs: 152 fixed, 182 verified, 11 actionable and 478 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
+  "inventory_note": "823 threads from closed or merged PRs: 152 fixed, 183 verified, 15 actionable and 473 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
 }

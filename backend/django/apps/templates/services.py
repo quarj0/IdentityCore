@@ -1,16 +1,18 @@
 import hashlib
 import json
+import re
+from graphql import GraphQLError
 
 from django.db import IntegrityError, transaction
 from django.db.models import F
 from rest_framework import serializers, status
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, ValidationError
 
 from apps.audit.services import record_audit_event
 from apps.projects.models import ProjectEnvironment
 from apps.templates.models import Template, TemplateStatus
 from apps.workflows.models import Workflow
-from apps.workflows.serializers import WorkflowSerializer
+from apps.workflows.serializers import WorkflowSerializer, validated_workflow_settings
 
 
 class WorkflowInstantiationConflict(APIException):
@@ -135,3 +137,54 @@ def instantiate_workflow_template(
         },
     )
     return workflow, True
+
+
+def insert_template(**values):
+    slug = values["slug"]
+    version = values["version"]
+    if not slug or len(slug) > 255:
+        raise GraphQLError(
+            "Provide a name that generates a nonempty slug of at most 255 characters."
+        )
+    if not re.fullmatch(r"[0-9]+(?:\.[0-9]+){1,2}", version) or len(version) > 32:
+        raise GraphQLError("Use a numeric template version such as 1.1 or 1.1.0.")
+    if Template.objects.filter(slug=slug, version=version).exists():
+        raise GraphQLError("A template with this slug and version already exists.")
+    try:
+        with transaction.atomic():
+            return Template.objects.create(**values)
+    except IntegrityError:
+        if Template.objects.filter(slug=slug, version=version).exists():
+            raise GraphQLError(
+                "A template with this slug and version already exists."
+            ) from None
+        raise
+
+
+def validate_template_settings(settings):
+    if not isinstance(settings, dict):
+        raise GraphQLError("Template settings must be an object.")
+    if settings.get("consent_template_id"):
+        raise GraphQLError(
+            "Global templates cannot reference a tenant consent template. Select consent after instantiation."
+        )
+    try:
+        return validated_workflow_settings(settings, tenant=None)
+    except ValidationError as exc:
+        raise GraphQLError(str(exc.detail)) from None
+
+
+def require_later_template_version(source, proposed):
+    pattern = r"[0-9]+(?:\.[0-9]+){1,2}"
+    if not re.fullmatch(pattern, proposed) or len(proposed) > 32:
+        raise GraphQLError("Use a numeric template version such as 1.1 or 1.1.0.")
+    if not re.fullmatch(pattern, source):
+        raise GraphQLError("The source must have a numeric template version.")
+
+    def parts(value):
+        return tuple(int(item) for item in value.split(".")) + (0,) * (
+            3 - len(value.split("."))
+        )
+
+    if parts(proposed) <= parts(source):
+        raise GraphQLError("The new template version must be later than its source.")
