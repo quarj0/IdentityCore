@@ -1,3 +1,4 @@
+import { CreateTemplateVersionDialog } from "@/features/templates/forms/create-template-version-dialog";
 import { EditTemplateDialog } from "@/features/templates/forms/edit-template-dialog";
 import { CloneTemplateDialog } from "@/features/templates/forms/clone-template-dialog";
 import { TemplateArchiveDialog } from "@/features/templates/components/template-archive-dialog";
@@ -63,25 +64,34 @@ export function TemplateHeader({ template, onChanged }: TemplateHeaderProps) {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <EditTemplateDialog template={template} onComplete={onChanged} />
+          {template.status === "draft" ? (
+            <EditTemplateDialog template={template} onComplete={onChanged} />
+          ) : null}
+          {template.status === "published" ? (
+            <CreateTemplateVersionDialog
+              templateId={template.id}
+              templateName={template.name}
+              sourceVersion={template.version}
+            />
+          ) : null}
           <CloneTemplateDialog
             templateName={template.name}
             templateId={template.id}
             onComplete={onChanged}
           />
-          {template.status !== "published" ? (
+          {template.status === "draft" ? (
             <TemplatePublishDialog
               templateName={template.name}
               templateId={template.id}
               onComplete={onChanged}
             />
-          ) : (
+          ) : template.status === "published" ? (
             <TemplateArchiveDialog
               templateName={template.name}
               templateId={template.id}
               onComplete={onChanged}
             />
-          )}
+          ) : null}
         </div>
       </div>
     </section>

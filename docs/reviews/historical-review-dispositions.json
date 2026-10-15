@@ -1575,20 +1575,33 @@
       "thread_id": "PRRT_kwDOTN0BU86Ti6GT",
       "comment_id": 3645257342,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/graphql_mutations.py:existing DRAFT-only update and publication guards",
+        "backend/django/apps/templates/test_historical_lifecycle.py:test_archived_template_cannot_be_edited_or_republished passed before changes"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Prevent archived templates from being republished**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257342"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257342",
+      "disposition_note": "The original archived edit/publish concern is already prevented by explicit lifecycle guards. Actual GraphQL regression passed on preceding implementation; no new fix claimed."
     },
     {
       "pr_number": 34,
       "thread_id": "PRRT_kwDOTN0BU86Ti6GV",
       "comment_id": 3645257344,
       "path": "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:actual creation payload, closed successful dialog, submitted description and refreshed paragraph, template/workflow publish/archive rationale",
+        "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx:explicit checks and generated consent/decision workflow steps",
+        "frontend/platform-admin/src/features/templates/live-data.ts:description, required checks/steps and notes/reason mutation variables",
+        "backend/django/apps/templates/test_historical_lifecycle.py:template/workflow rationale in authenticated audit metadata and editable description validation"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Close the creation dialog after a successful submit**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257344"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257344",
+      "disposition_note": "Fixed in protected merged PR #398 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1036 tests with 39 skips successfully. Required PostgreSQL CI passed 123 tests, including numeric template version alias and workflow publication races; twenty browser cases cover the forms. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 398,
+      "remediation_commit": "d26d24ad429506a73ae3b1f68355ab0bb325d794",
+      "merged_commit": "060a5f2beec4075a786e07028c74e70e8ea75d1c"
     },
     {
       "pr_number": 34,
@@ -1627,10 +1640,19 @@
       "thread_id": "PRRT_kwDOTN0BU86TjHUO",
       "comment_id": 3645332168,
       "path": "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:actual creation payload, closed successful dialog, submitted description and refreshed paragraph, template/workflow publish/archive rationale",
+        "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx:explicit checks and generated consent/decision workflow steps",
+        "frontend/platform-admin/src/features/templates/live-data.ts:description, required checks/steps and notes/reason mutation variables",
+        "backend/django/apps/templates/test_historical_lifecycle.py:template/workflow rationale in authenticated audit metadata and editable description validation"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Include required checks when creating templates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645332168"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645332168",
+      "disposition_note": "Fixed in protected merged PR #398 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1036 tests with 39 skips successfully. Required PostgreSQL CI passed 123 tests, including numeric template version alias and workflow publication races; twenty browser cases cover the forms. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 398,
+      "remediation_commit": "d26d24ad429506a73ae3b1f68355ab0bb325d794",
+      "merged_commit": "060a5f2beec4075a786e07028c74e70e8ea75d1c"
     },
     {
       "pr_number": 34,
@@ -1673,10 +1695,19 @@
       "thread_id": "PRRT_kwDOTN0BU86TjLLW",
       "comment_id": 3645354154,
       "path": "frontend/platform-admin/src/features/templates/forms/edit-template-dialog.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:actual creation payload, closed successful dialog, submitted description and refreshed paragraph, template/workflow publish/archive rationale",
+        "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx:explicit checks and generated consent/decision workflow steps",
+        "frontend/platform-admin/src/features/templates/live-data.ts:description, required checks/steps and notes/reason mutation variables",
+        "backend/django/apps/templates/test_historical_lifecycle.py:template/workflow rationale in authenticated audit metadata and editable description validation"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Submit the edited template description**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645354154"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645354154",
+      "disposition_note": "Fixed in protected merged PR #398 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1036 tests with 39 skips successfully. Required PostgreSQL CI passed 123 tests, including numeric template version alias and workflow publication races; twenty browser cases cover the forms. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 398,
+      "remediation_commit": "d26d24ad429506a73ae3b1f68355ab0bb325d794",
+      "merged_commit": "060a5f2beec4075a786e07028c74e70e8ea75d1c"
     },
     {
       "pr_number": 34,
@@ -1762,20 +1793,38 @@
       "thread_id": "PRRT_kwDOTN0BU86TjdvS",
       "comment_id": 3645461291,
       "path": "frontend/platform-admin/src/features/templates/live-data.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:actual creation payload, closed successful dialog, submitted description and refreshed paragraph, template/workflow publish/archive rationale",
+        "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx:explicit checks and generated consent/decision workflow steps",
+        "frontend/platform-admin/src/features/templates/live-data.ts:description, required checks/steps and notes/reason mutation variables",
+        "backend/django/apps/templates/test_historical_lifecycle.py:template/workflow rationale in authenticated audit metadata and editable description validation"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Provide required checks for newly created templates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461291"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461291",
+      "disposition_note": "Fixed in protected merged PR #398 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1036 tests with 39 skips successfully. Required PostgreSQL CI passed 123 tests, including numeric template version alias and workflow publication races; twenty browser cases cover the forms. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 398,
+      "remediation_commit": "d26d24ad429506a73ae3b1f68355ab0bb325d794",
+      "merged_commit": "060a5f2beec4075a786e07028c74e70e8ea75d1c"
     },
     {
       "pr_number": 35,
       "thread_id": "PRRT_kwDOTN0BU86TjdvV",
       "comment_id": 3645461294,
       "path": "frontend/platform-admin/src/features/templates/forms/edit-template-dialog.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:actual creation payload, closed successful dialog, submitted description and refreshed paragraph, template/workflow publish/archive rationale",
+        "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx:explicit checks and generated consent/decision workflow steps",
+        "frontend/platform-admin/src/features/templates/live-data.ts:description, required checks/steps and notes/reason mutation variables",
+        "backend/django/apps/templates/test_historical_lifecycle.py:template/workflow rationale in authenticated audit metadata and editable description validation"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Submit the edited template description**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461294"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461294",
+      "disposition_note": "Fixed in protected merged PR #398 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1036 tests with 39 skips successfully. Required PostgreSQL CI passed 123 tests, including numeric template version alias and workflow publication races; twenty browser cases cover the forms. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 398,
+      "remediation_commit": "d26d24ad429506a73ae3b1f68355ab0bb325d794",
+      "merged_commit": "060a5f2beec4075a786e07028c74e70e8ea75d1c"
     },
     {
       "pr_number": 35,
@@ -1814,20 +1863,37 @@
       "thread_id": "PRRT_kwDOTN0BU86Tjdvg",
       "comment_id": 3645461306,
       "path": "frontend/platform-admin/src/features/templates/components/template-header.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "frontend/platform-admin/src/features/templates/components/template-header.tsx:Publish only for DRAFT, archive and new version only for PUBLISHED",
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:archived lifecycle action regression passed in Chromium and WebKit",
+        "backend/django/apps/templates/test_historical_lifecycle.py:test_archived_template_cannot_be_edited_or_republished passed on preceding code"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Do not offer publish for archived templates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461306"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461306",
+      "disposition_note": "Fixed in protected merged PR #398 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1036 tests with 39 skips successfully. Required PostgreSQL CI passed 123 tests, including numeric template version alias and workflow publication races; twenty browser cases cover the forms. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 398,
+      "remediation_commit": "d26d24ad429506a73ae3b1f68355ab0bb325d794",
+      "merged_commit": "060a5f2beec4075a786e07028c74e70e8ea75d1c"
     },
     {
       "pr_number": 35,
       "thread_id": "PRRT_kwDOTN0BU86Tjdvi",
       "comment_id": 3645461308,
       "path": "frontend/platform-admin/src/features/templates/components/template-publish-dialog.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:actual creation payload, closed successful dialog, submitted description and refreshed paragraph, template/workflow publish/archive rationale",
+        "frontend/platform-admin/src/features/templates/forms/create-template-dialog.tsx:explicit checks and generated consent/decision workflow steps",
+        "frontend/platform-admin/src/features/templates/live-data.ts:description, required checks/steps and notes/reason mutation variables",
+        "backend/django/apps/templates/test_historical_lifecycle.py:template/workflow rationale in authenticated audit metadata and editable description validation"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve publish and archive notes**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461308"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461308",
+      "disposition_note": "Fixed in protected merged PR #398 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1036 tests with 39 skips successfully. Required PostgreSQL CI passed 123 tests, including numeric template version alias and workflow publication races; twenty browser cases cover the forms. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 398,
+      "remediation_commit": "d26d24ad429506a73ae3b1f68355ab0bb325d794",
+      "merged_commit": "060a5f2beec4075a786e07028c74e70e8ea75d1c"
     },
     {
       "pr_number": 35,
@@ -2242,10 +2308,15 @@
       "thread_id": "PRRT_kwDOTN0BU86UTTFu",
       "comment_id": 3663207280,
       "path": "frontend/identitycore/src/lib/workflow-templates-api.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/settings/base.py:DEFAULT_CORS_ALLOW_HEADERS includes Idempotency-Key",
+        "backend/django/common/cors.py:API preflight response includes Idempotency-Key",
+        "backend/django/config/tests.py:test_api_client_preflight_allows_authentication_and_idempotency_headers passes in the current full backend suite"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Allow the idempotency header through CORS**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207280"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207280",
+      "disposition_note": "Original finding individually read. Current main already permits the idempotency header through its generic API preflight response. The actual preflight regression passed in the full 993-test backend run with 36 skips; no new CORS fix claimed."
     },
     {
       "pr_number": 49,
@@ -2272,20 +2343,38 @@
       "thread_id": "PRRT_kwDOTN0BU86UTTF5",
       "comment_id": 3663207292,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/templates/test_historical_lifecycle.py:collision errors, invalid settings, immutable source and later versions",
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:eight template lifecycle/version browser cases passed",
+        "backend/django/config/graphql_mutations.py:transactional template lifecycle mutations",
+        "backend/django/apps/templates/test_lifecycle_races.py:three PostgreSQL same-version creation races selected in required CI; local skip is not race proof"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate generated template slugs before inserting**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207292"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207292",
+      "disposition_note": "Fixed in protected merged PR #398 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1036 tests with 39 skips successfully. Required PostgreSQL CI passed 123 tests, including numeric template version alias and workflow publication races; twenty browser cases cover the forms. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 398,
+      "remediation_commit": "d26d24ad429506a73ae3b1f68355ab0bb325d794",
+      "merged_commit": "060a5f2beec4075a786e07028c74e70e8ea75d1c"
     },
     {
       "pr_number": 49,
       "thread_id": "PRRT_kwDOTN0BU86UTTF6",
       "comment_id": 3663207294,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/templates/test_historical_lifecycle.py:collision errors, invalid settings, immutable source and later versions",
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:eight template lifecycle/version browser cases passed",
+        "backend/django/config/graphql_mutations.py:transactional template lifecycle mutations",
+        "backend/django/apps/templates/test_lifecycle_races.py:three PostgreSQL same-version creation races selected in required CI; local skip is not race proof"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Hide editing controls for published templates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207294"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207294",
+      "disposition_note": "Fixed in protected merged PR #398 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1036 tests with 39 skips successfully. Required PostgreSQL CI passed 123 tests, including numeric template version alias and workflow publication races; twenty browser cases cover the forms. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 398,
+      "remediation_commit": "d26d24ad429506a73ae3b1f68355ab0bb325d794",
+      "merged_commit": "060a5f2beec4075a786e07028c74e70e8ea75d1c"
     },
     {
       "pr_number": 49,
@@ -2302,20 +2391,38 @@
       "thread_id": "PRRT_kwDOTN0BU86UTTF_",
       "comment_id": 3663207299,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/templates/test_historical_lifecycle.py:collision errors, invalid settings, immutable source and later versions",
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:eight template lifecycle/version browser cases passed",
+        "backend/django/config/graphql_mutations.py:transactional template lifecycle mutations",
+        "backend/django/apps/templates/test_lifecycle_races.py:three PostgreSQL same-version creation races selected in required CI; local skip is not race proof"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate setting values before publishing templates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207299"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207299",
+      "disposition_note": "Fixed in protected merged PR #398 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1036 tests with 39 skips successfully. Required PostgreSQL CI passed 123 tests, including numeric template version alias and workflow publication races; twenty browser cases cover the forms. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 398,
+      "remediation_commit": "d26d24ad429506a73ae3b1f68355ab0bb325d794",
+      "merged_commit": "060a5f2beec4075a786e07028c74e70e8ea75d1c"
     },
     {
       "pr_number": 49,
       "thread_id": "PRRT_kwDOTN0BU86UTTGB",
       "comment_id": 3663207303,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/templates/test_historical_lifecycle.py:collision errors, invalid settings, immutable source and later versions",
+        "frontend/verification-portal/e2e/platform-admin-accessibility.spec.ts:eight template lifecycle/version browser cases passed",
+        "backend/django/config/graphql_mutations.py:transactional template lifecycle mutations",
+        "backend/django/apps/templates/test_lifecycle_races.py:three PostgreSQL same-version creation races selected in required CI; local skip is not race proof"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Provide a path to create later template versions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207303"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207303",
+      "disposition_note": "Fixed in protected merged PR #398 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1036 tests with 39 skips successfully. Required PostgreSQL CI passed 123 tests, including numeric template version alias and workflow publication races; twenty browser cases cover the forms. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 398,
+      "remediation_commit": "d26d24ad429506a73ae3b1f68355ab0bb325d794",
+      "merged_commit": "060a5f2beec4075a786e07028c74e70e8ea75d1c"
     },
     {
       "pr_number": 56,
@@ -11076,8 +11183,27 @@
         "GitHub CI job 116594819457:107 PostgreSQL tests passed on final head"
       ],
       "disposition_note": "Fixed in protected merged PR #397 after final-head independent review, strict resolver evidence, all PR/push CI and Security and dedicated App success. Full backend ran 1020 with 38 skips successfully. Temporary CI-selector approval removed after trusted merge."
+    },
+    {
+      "pr_number": 398,
+      "thread_id": "PRRT_kwDOTN0BU86s5o_s",
+      "comment_id": 4286483991,
+      "path": "backend/django/apps/templates/services.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject equivalent numeric version aliases**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/398#discussion_r4286483991",
+      "remediation_pr": 398,
+      "remediation_commit": "d26d24ad429506a73ae3b1f68355ab0bb325d794",
+      "merged_commit": "060a5f2beec4075a786e07028c74e70e8ea75d1c",
+      "resolver_evidence": "Fixed in c196239ead4087004958801ebe5c7a6f7c850c01. Validation: 46 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/templates/test_historical_lifecycle.py",
+        "backend/django/apps/templates/test_lifecycle_races.py",
+        "GitHub CI job 116604294470:123 PostgreSQL tests passed on final head"
+      ],
+      "disposition_note": "Fixed in protected merged PR #398 after final-head independent review, strict resolver evidence, all PR/push CI and Security and dedicated App success. Full backend ran 1036 with 39 skips successfully. Temporary CI-selector approval removed after trusted merge."
     }
   ],
-  "verified_main": "bfc3a7867f897401db5fddddc037865b70577112",
-  "inventory_note": "831 threads from closed or merged PRs: 181 fixed, 256 verified, 6 actionable and 388 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
+  "verified_main": "060a5f2beec4075a786e07028c74e70e8ea75d1c",
+  "inventory_note": "832 threads from closed or merged PRs: 193 fixed, 258 verified, 6 actionable and 375 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
 }

@@ -28,13 +28,15 @@ export function TemplatePublishDialog({
   onComplete,
 }: TemplatePublishDialogProps) {
   const [notes, setNotes] = useState("");
+  const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const submit = async () => {
     setSubmitting(true);
     setError(null);
     try {
-      await publishTemplate(templateId);
+      await publishTemplate(templateId, notes);
+      setOpen(false);
       onComplete?.();
     } catch (cause) {
       setError(
@@ -46,7 +48,7 @@ export function TemplatePublishDialog({
   };
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
           <UploadCloud className="mr-2 size-4" aria-hidden="true" />
@@ -79,7 +81,13 @@ export function TemplatePublishDialog({
           </p>
         ) : null}
         <DialogFooter>
-          <Button variant="outline">Cancel</Button>
+          <Button
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={submitting}
+          >
+            Cancel
+          </Button>
           <Button onClick={submit} disabled={submitting || !notes.trim()}>
             {submitting ? "Publishing…" : "Publish template"}
           </Button>
