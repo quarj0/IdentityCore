@@ -1515,30 +1515,48 @@
       "thread_id": "PRRT_kwDOTN0BU86Ti6GJ",
       "comment_id": 3645257330,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/workflows/test_historical_publishing.py:test_platform_publication_copies_execution_settings"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Populate the policy from workflow settings**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257330"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257330",
+      "disposition_note": "Fixed in protected merged PR #396 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 984 tests with 35 skips successfully. Required PostgreSQL CI passed the nullable creator migration and concurrent workflow publication coverage. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba"
     },
     {
       "pr_number": 34,
       "thread_id": "PRRT_kwDOTN0BU86Ti6GP",
       "comment_id": 3645257336,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/workflows/test_historical_publishing.py:test_editing_published_workflow_returns_it_to_draft"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Return edited published workflows to draft**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257336"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257336",
+      "disposition_note": "Fixed in protected merged PR #396 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 984 tests with 35 skips successfully. Required PostgreSQL CI passed the nullable creator migration and concurrent workflow publication coverage. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba"
     },
     {
       "pr_number": 34,
       "thread_id": "PRRT_kwDOTN0BU86Ti6GQ",
       "comment_id": 3645257338,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/workflows/test_historical_publishing.py:test_publish_rejects_unsupported_or_incomplete_steps"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Validate workflow steps before publishing**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257338"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257338",
+      "disposition_note": "Fixed in protected merged PR #396 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 984 tests with 35 skips successfully. Required PostgreSQL CI passed the nullable creator migration and concurrent workflow publication coverage. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba"
     },
     {
       "pr_number": 34,
@@ -1565,20 +1583,32 @@
       "thread_id": "PRRT_kwDOTN0BU86Ti6GX",
       "comment_id": 3645257346,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/workflows/test_historical_publishing.py:test_publish_rejects_unapproved_organizations"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Require an active organization before publishing**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257346"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257346",
+      "disposition_note": "Fixed in protected merged PR #396 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 984 tests with 35 skips successfully. Required PostgreSQL CI passed the nullable creator migration and concurrent workflow publication coverage. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba"
     },
     {
       "pr_number": 34,
       "thread_id": "PRRT_kwDOTN0BU86Ti6Gd",
       "comment_id": 3645257352,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/workflows/test_historical_publishing.py:test_platform_actor_does_not_become_cross_tenant_policy_creator"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve the policy creator tenant invariant**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257352"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257352",
+      "disposition_note": "Fixed in protected merged PR #396 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 984 tests with 35 skips successfully. Required PostgreSQL CI passed the nullable creator migration and concurrent workflow publication coverage. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba"
     },
     {
       "pr_number": 34,
@@ -1595,10 +1625,16 @@
       "thread_id": "PRRT_kwDOTN0BU86TjHUS",
       "comment_id": 3645332173,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/workflows/test_historical_publishing.py:test_same_workflow_name_can_publish_in_distinct_projects"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Namespace workflow policy names by project**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645332173"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645332173",
+      "disposition_note": "Fixed in protected merged PR #396 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 984 tests with 35 skips successfully. Required PostgreSQL CI passed the nullable creator migration and concurrent workflow publication coverage. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba"
     },
     {
       "pr_number": 34,
@@ -1635,10 +1671,16 @@
       "thread_id": "PRRT_kwDOTN0BU86TjLLX",
       "comment_id": 3645354155,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/workflows/test_historical_publishing.py:test_archived_workflow_cannot_be_republished"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Prevent archived workflows from being republished**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645354155"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645354155",
+      "disposition_note": "Fixed in protected merged PR #396 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 984 tests with 35 skips successfully. Required PostgreSQL CI passed the nullable creator migration and concurrent workflow publication coverage. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba"
     },
     {
       "pr_number": 34,
@@ -1665,20 +1707,33 @@
       "thread_id": "PRRT_kwDOTN0BU86TjOR9",
       "comment_id": 3645371548,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/config/graphql_mutations.py:preceding publication read and version allocation have no transaction or row lock",
+        "backend/django/apps/workflows/test_publishing_races.py:three real PostgreSQL concurrent publication rounds selected in required CI"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Serialize workflow version allocation**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645371548"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645371548",
+      "disposition_note": "Fixed in protected merged PR #396 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 984 tests with 35 skips successfully. Required PostgreSQL CI passed the nullable creator migration and concurrent workflow publication coverage. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba"
     },
     {
       "pr_number": 35,
       "thread_id": "PRRT_kwDOTN0BU86TjdvO",
       "comment_id": 3645461281,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/workflows/test_historical_publishing.py:test_same_workflow_name_can_publish_in_distinct_projects"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Namespace generated policies by project**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461281"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461281",
+      "disposition_note": "Fixed in protected merged PR #396 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 984 tests with 35 skips successfully. Required PostgreSQL CI passed the nullable creator migration and concurrent workflow publication coverage. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba"
     },
     {
       "pr_number": 35,
@@ -1715,20 +1770,32 @@
       "thread_id": "PRRT_kwDOTN0BU86Tjdvc",
       "comment_id": 3645461302,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/workflows/test_historical_publishing.py:test_platform_publication_copies_execution_settings"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Copy workflow settings into its verification policy**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461302"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461302",
+      "disposition_note": "Fixed in protected merged PR #396 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 984 tests with 35 skips successfully. Required PostgreSQL CI passed the nullable creator migration and concurrent workflow publication coverage. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba"
     },
     {
       "pr_number": 35,
       "thread_id": "PRRT_kwDOTN0BU86Tjdvf",
       "comment_id": 3645461305,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/workflows/test_historical_publishing.py:test_editing_published_workflow_returns_it_to_draft"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep published workflows immutable until versioned**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461305"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461305",
+      "disposition_note": "Fixed in protected merged PR #396 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 984 tests with 35 skips successfully. Required PostgreSQL CI passed the nullable creator migration and concurrent workflow publication coverage. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 396,
+      "remediation_commit": "727c6fc3c25566671a02d65fc40bb28b886d06fd",
+      "merged_commit": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba"
     },
     {
       "pr_number": 35,
@@ -10515,6 +10582,6 @@
       "disposition_note": "Resolved in protected merged PR #390 after fresh review and successful final-head CI/Security."
     }
   ],
-  "verified_main": "fb58565af0116803a4f6dba873d7808774213576",
-  "inventory_note": "823 threads from closed or merged PRs: 157 fixed, 196 verified, 4 actionable and 466 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
+  "verified_main": "5a10b9dad504bae619bc2fbcf04fdd968ae94fba",
+  "inventory_note": "823 threads from closed or merged PRs: 168 fixed, 196 verified, 4 actionable and 455 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
 }
