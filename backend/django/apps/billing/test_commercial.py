@@ -226,3 +226,47 @@ class CommercialBillingTests(TestCase):
         http.force_authenticate(self.user)
         response = http.post("/api/v1/billing/invoices/" + invoice.public_id + "/checkout")
         self.assertEqual(response.status_code, 403)
+
+    def test_published_plan_terms_cannot_be_rewritten(self):
+        from django.core.exceptions import ValidationError
+        self.plan.monthly_price_minor = 1
+        with self.assertRaises(ValidationError):
+            self.plan.save()
+        self.plan.refresh_from_db()
+        self.assertEqual(self.plan.monthly_price_minor, 10000)
+
+    def test_published_plan_meters_cannot_be_added(self):
+        from django.core.exceptions import ValidationError
+        with self.assertRaises(ValidationError):
+            BillingMeter.objects.create(
+                plan=self.plan, provider_scope="platform",
+                capability="document_ocr", outcome="completed", unit_price_minor=5,
+            )
+
+    @override_settings(PAYSTACK_SECRET_KEY="synthetic-secret")
+    @patch("apps.billing.paystack.verify_refund")
+    @patch("apps.billing.paystack.verify")
+    def test_authenticated_refund_is_reconciled_without_overcredit(self, gateway, refund_gateway):
+        invoice = self.invoice()
+        payment = BillingPayment.objects.create(
+            invoice=invoice, reference="ic-test-refund-safe",
+            amount_minor=invoice.amount_minor, currency=invoice.currency,
+        )
+        gateway.return_value = self.verified(payment)
+        self.assertTrue(confirm_gateway_payment(payment.reference))
+        refund_gateway.return_value = {
+            "id": 345, "transaction": 42424242, "amount": 500,
+            "currency": "GHS", "status": "processed",
+        }
+        body = json.dumps({
+            "event": "refund.processed",
+            "data": {"id": 345, "transaction_reference": payment.reference},
+        }).encode("utf-8")
+        signature = hmac.new(b"synthetic-secret", body, hashlib.sha512).hexdigest()
+        self.assertTrue(receive_paystack_webhook(body, signature))
+        self.assertTrue(receive_paystack_webhook(body, signature))
+        payment.refresh_from_db()
+        invoice.refresh_from_db()
+        self.assertEqual(payment.refunds.count(), 1)
+        self.assertEqual(payment.refunds.first().status, "completed")
+        self.assertEqual(invoice.status, "disputed")
