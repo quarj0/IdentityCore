@@ -74,7 +74,11 @@ from apps.projects.models import Project
 from apps.templates.models import Template, TemplateStatus, TemplateCategory
 from apps.templates.serializers import serialize_template
 from apps.workflows.models import Workflow, WorkflowStatus, WorkflowVersion
-from apps.workflows.serializers import SUPPORTED_STEPS
+from apps.workflows.serializers import (
+    SUPPORTED_STEPS,
+    WorkflowSerializer,
+    publish_workflow,
+)
 from apps.verification_policies.models import (
     VerificationPolicy,
     VerificationPolicyStatus,
@@ -125,10 +129,12 @@ logger = logging.getLogger(__name__)
 @strawberry.type
 class Mutation:
 
-    def _template_node(self, template: Template) -> TemplateNode:
+    @staticmethod
+    def _template_node(template: Template) -> TemplateNode:
         return TemplateNode(**serialize_template(template))
 
-    def _workflow_node(self, workflow: Workflow) -> WorkflowNode:
+    @staticmethod
+    def _workflow_node(workflow: Workflow) -> WorkflowNode:
         return WorkflowNode(
             id=workflow.public_id,
             tenant_id=workflow.tenant.public_id,
@@ -193,7 +199,7 @@ class Mutation:
             target_type="template",
             target_id=template.public_id,
         )
-        return self._template_node(template)
+        return Mutation._template_node(template)
 
     @strawberry.mutation
     def update_platform_template(
@@ -241,7 +247,7 @@ class Mutation:
             target_type="template",
             target_id=template.public_id,
         )
-        return self._template_node(template)
+        return Mutation._template_node(template)
 
     @strawberry.mutation
     def clone_platform_template(
@@ -276,7 +282,7 @@ class Mutation:
             target_id=clone.public_id,
             metadata={"source_id": source.public_id},
         )
-        return self._template_node(clone)
+        return Mutation._template_node(clone)
 
     @strawberry.mutation
     def publish_platform_template(self, info: Info, template_id: str) -> TemplateNode:
@@ -311,7 +317,7 @@ class Mutation:
             target_type="template",
             target_id=template.public_id,
         )
-        return self._template_node(template)
+        return Mutation._template_node(template)
 
     @strawberry.mutation
     def archive_platform_template(self, info: Info, template_id: str) -> TemplateNode:
@@ -326,7 +332,7 @@ class Mutation:
             target_type="template",
             target_id=template.public_id,
         )
-        return self._template_node(template)
+        return Mutation._template_node(template)
 
     @strawberry.mutation
     def create_platform_workflow(
@@ -363,7 +369,7 @@ class Mutation:
             target_type="workflow",
             target_id=workflow.public_id,
         )
-        return self._workflow_node(workflow)
+        return Mutation._workflow_node(workflow)
 
     @strawberry.mutation
     def clone_platform_workflow(
@@ -395,9 +401,10 @@ class Mutation:
             target_id=clone.public_id,
             metadata={"source_id": source.public_id},
         )
-        return self._workflow_node(clone)
+        return Mutation._workflow_node(clone)
 
     @strawberry.mutation
+    @transaction.atomic
     def update_platform_workflow(
         self,
         info: Info,
@@ -412,28 +419,42 @@ class Mutation:
             Workflow.objects.select_related("tenant", "project", "created_by"),
             public_id=workflow_id,
         )
-        if workflow.status == WorkflowStatus.ARCHIVED:
-            raise GraphQLError("Archived workflows cannot be edited.")
-        if name is not None:
-            workflow.name = name.strip()
-        if description is not None:
-            workflow.description = description.strip()
-        if steps is not None:
-            workflow.steps_json = steps
-        if settings is not None:
-            workflow.settings_json = settings
-        workflow.save()
-        record_audit_event(
-            tenant=workflow.tenant,
-            actor=actor,
-            request=info.context["request"],
-            action="workflow.updated",
-            target_type="workflow",
-            target_id=workflow.public_id,
+        data = {
+            key: value
+            for key, value in {
+                "name": name,
+                "description": description,
+                "steps": steps,
+                "settings": settings,
+            }.items()
+            if value is not None
+        }
+        if not data:
+            raise GraphQLError("Provide at least one workflow field to update.")
+        serializer = WorkflowSerializer(
+            workflow,
+            data=data,
+            partial=True,
+            context={"request": info.context["request"]},
         )
-        return self._workflow_node(workflow)
+        try:
+            serializer.is_valid(raise_exception=True)
+            workflow = serializer.save()
+        except DRFValidationError as exc:
+            raise GraphQLError(str(exc.detail)) from exc
+        if workflow._workflow_changed:
+            record_audit_event(
+                tenant=workflow.tenant,
+                actor=actor,
+                request=info.context["request"],
+                action="workflow.updated",
+                target_type="workflow",
+                target_id=workflow.public_id,
+            )
+        return Mutation._workflow_node(workflow)
 
     @strawberry.mutation
+    @transaction.atomic
     def publish_platform_workflow(
         self, info: Info, workflow_id: str
     ) -> WorkflowVersionNode:
@@ -442,29 +463,12 @@ class Mutation:
             Workflow.objects.select_related("tenant", "project", "created_by"),
             public_id=workflow_id,
         )
-        if not workflow.steps_json:
-            raise GraphQLError("Add at least one workflow step before publishing.")
-        version = workflow.current_version + 1
-        policy = VerificationPolicy.objects.create(
-            tenant=workflow.tenant,
-            project=workflow.project,
-            name=f"{workflow.name} workflow policy",
-            version=version,
-            status=VerificationPolicyStatus.ACTIVE,
-            created_by=actor,
-        )
-        workflow_version = WorkflowVersion.objects.create(
-            workflow=workflow,
-            workflow_name=workflow.name,
-            version=version,
-            steps_json=workflow.steps_json,
-            settings_json=workflow.settings_json,
-            policy=policy,
-            published_by=actor,
-        )
-        workflow.current_version = version
-        workflow.status = WorkflowStatus.PUBLISHED
-        workflow.save(update_fields=["current_version", "status", "updated_at"])
+        try:
+            workflow_version = publish_workflow(workflow, actor)
+        except DRFValidationError as exc:
+            raise GraphQLError(str(exc.detail)) from exc
+        policy = workflow_version.policy
+        version = workflow_version.version
         record_audit_event(
             tenant=workflow.tenant,
             actor=actor,
@@ -479,8 +483,8 @@ class Mutation:
             workflow_id=workflow.public_id,
             workflow_name=workflow_version.workflow_name,
             version=version,
-            steps=workflow.steps_json,
-            settings=workflow.settings_json,
+            steps=workflow_version.steps_json,
+            settings=workflow_version.settings_json,
             policy_id=policy.public_id,
             policy_name=policy.name,
             published_by_id=actor.public_id,
@@ -505,7 +509,7 @@ class Mutation:
             target_type="workflow",
             target_id=workflow.public_id,
         )
-        return self._workflow_node(workflow)
+        return Mutation._workflow_node(workflow)
 
     @strawberry.mutation
     def create_administrator_onboarding_verification(
