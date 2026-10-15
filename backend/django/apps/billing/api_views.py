@@ -6,6 +6,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 
 from apps.audit.services import record_audit_event
+from apps.accounts.models import PlatformUser
 from apps.billing import paystack
 from apps.billing.models import (
     BillingInvoice, BillingPayment, BillingPlan, BillingSubscription,
@@ -15,6 +16,17 @@ from apps.billing.services import (
 )
 from common.permissions import IsTenantUser
 from common.responses import error_response, success_response
+
+
+class IsBillingTenantUser(IsTenantUser):
+    """Payment administration is never available to machine API credentials."""
+
+    def has_permission(self, request, view):
+        return (
+            isinstance(request.user, PlatformUser)
+            and request.user.is_active
+            and super().has_permission(request, view)
+        )
 
 
 def serialize_invoice(invoice, *, include_lines=False):
@@ -39,7 +51,7 @@ def serialize_invoice(invoice, *, include_lines=False):
 
 
 class BillingPlansView(APIView):
-    permission_classes = [IsAuthenticated, IsTenantUser]
+    permission_classes = [IsAuthenticated, IsBillingTenantUser]
 
     def get(self, request):
         plans = BillingPlan.objects.filter(published=True, deleted_at__isnull=True).order_by("name")
@@ -55,7 +67,7 @@ class BillingPlansView(APIView):
 
 
 class BillingAccountView(APIView):
-    permission_classes = [IsAuthenticated, IsTenantUser]
+    permission_classes = [IsAuthenticated, IsBillingTenantUser]
 
     def get(self, request):
         subscription = BillingSubscription.objects.filter(tenant=request.user.tenant).select_related("plan").first()
@@ -69,7 +81,7 @@ class BillingAccountView(APIView):
 
 
 class BillingSubscribeView(APIView):
-    permission_classes = [IsAuthenticated, IsTenantUser]
+    permission_classes = [IsAuthenticated, IsBillingTenantUser]
     required_permission_code = "manage_billing"
 
     def post(self, request):
@@ -79,6 +91,11 @@ class BillingSubscribeView(APIView):
             BillingPlan, public_id=request.data["plan_id"],
             published=True, deleted_at__isnull=True,
         )
+        if (
+            request.user.tenant.status != "active"
+            or request.user.tenant.organization.status != "active"
+        ):
+            return error_response("organization_not_approved", "Active organization approval is required.", request=request, status=403)
         from django.utils import timezone
         try:
             with transaction.atomic():
@@ -100,7 +117,7 @@ class BillingSubscribeView(APIView):
 
 
 class BillingInvoiceListView(APIView):
-    permission_classes = [IsAuthenticated, IsTenantUser]
+    permission_classes = [IsAuthenticated, IsBillingTenantUser]
 
     def get(self, request):
         items = BillingInvoice.objects.filter(tenant=request.user.tenant).order_by("-period_start")[:50]
@@ -108,7 +125,7 @@ class BillingInvoiceListView(APIView):
 
 
 class BillingInvoiceDetailView(APIView):
-    permission_classes = [IsAuthenticated, IsTenantUser]
+    permission_classes = [IsAuthenticated, IsBillingTenantUser]
 
     def get(self, request, invoice_id):
         invoice = get_object_or_404(BillingInvoice, tenant=request.user.tenant, public_id=invoice_id)
@@ -116,7 +133,7 @@ class BillingInvoiceDetailView(APIView):
 
 
 class BillingCheckoutView(APIView):
-    permission_classes = [IsAuthenticated, IsTenantUser]
+    permission_classes = [IsAuthenticated, IsBillingTenantUser]
     required_permission_code = "manage_billing"
 
     def post(self, request, invoice_id):
@@ -142,7 +159,7 @@ class BillingCheckoutView(APIView):
 
 
 class BillingPaymentStatusView(APIView):
-    permission_classes = [IsAuthenticated, IsTenantUser]
+    permission_classes = [IsAuthenticated, IsBillingTenantUser]
 
     def get(self, request, payment_id):
         payment = get_object_or_404(
@@ -155,7 +172,7 @@ class BillingPaymentStatusView(APIView):
         }, request=request)
 
     def post(self, request, payment_id):
-        if not IsTenantUser().has_permission(request, type("_", (), {"required_permission_code": "manage_billing"})()):
+        if not IsBillingTenantUser().has_permission(request, type("_", (), {"required_permission_code": "manage_billing"})()):
             return error_response("permission_denied", "Billing permission required.", request=request, status=403)
         payment = get_object_or_404(
             BillingPayment.objects.select_related("invoice"),
