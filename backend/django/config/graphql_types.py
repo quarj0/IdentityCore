@@ -254,6 +254,8 @@ class ManualDecisionPayload:
     decision: str
     decision_type: str
     decided_at: str
+    approval_status: str = "not_required"
+    approval_required: bool = False
 
 
 @strawberry.type

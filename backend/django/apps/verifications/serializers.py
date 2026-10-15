@@ -1,6 +1,8 @@
 from datetime import timedelta
 
 from django.conf import settings
+from django.core.paginator import Paginator
+from graphql import GraphQLError
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -20,6 +22,7 @@ from apps.verifications.models import (
     VerificationDecision,
     VerificationDecisionType,
     VerificationApprovalStatus,
+    VerificationReviewOwner,
     VerificationSession,
     VerificationStatus,
 )
@@ -28,13 +31,22 @@ from apps.verifications.decision_contract import (
     DECISION_CONTRACT_VERSION,
     build_decision_input_snapshot,
 )
-from apps.verifications.review_access import review_owner_for_metadata
-from common.pagination import paginate_results as _paginate_results
+from apps.verifications.review_access import PLATFORM_REVIEW_WORKFLOWS
+from common.pagination import MAX_PAGE_SIZE
 
 
 def paginate_results(queryset, page: int, page_size: int):
-    """Compatibility wrapper for GraphQL callers using the former location."""
-    return _paginate_results(queryset, page, page_size)
+    """Preserve GraphQL page clamping while bounding the result size."""
+    if not 1 <= page_size <= MAX_PAGE_SIZE:
+        raise GraphQLError(f"pageSize must be between 1 and {MAX_PAGE_SIZE}.")
+    paginator = Paginator(queryset, page_size)
+    page_obj = paginator.get_page(page)
+    return page_obj, {
+        "page": page_obj.number,
+        "page_size": page_size,
+        "total": paginator.count,
+        "total_pages": paginator.num_pages,
+    }
 
 
 def get_request_tenant(request):
@@ -237,6 +249,12 @@ class VerificationSubjectInputSerializer(serializers.Serializer):
     metadata = serializers.DictField(required=False, default=dict)
 
 
+class PolicyEnvironmentScopeDenied(serializers.ValidationError):
+    def __init__(self, policy_id):
+        self.policy_id = policy_id
+        super().__init__({"policy_id": "Choose an active verification template."})
+
+
 class VerificationCreateSerializer(serializers.Serializer):
     project_id = serializers.CharField(max_length=64, required=False, allow_blank=True)
     external_reference = serializers.CharField(
@@ -252,6 +270,16 @@ class VerificationCreateSerializer(serializers.Serializer):
         request = self.context["request"]
         tenant = get_request_tenant(request)
         is_api_client_request = getattr(request, "api_client", None) is not None
+        workflow = attrs.get("metadata", {}).get("workflow")
+        if (
+            isinstance(workflow, str)
+            and workflow in PLATFORM_REVIEW_WORKFLOWS
+            and self.context.get("trusted_review_owner")
+            != VerificationReviewOwner.PLATFORM
+        ):
+            raise serializers.ValidationError(
+                {"metadata": "This workflow is reserved for platform onboarding."}
+            )
         policy_id = attrs.get("policy_id", "").strip()
         if is_api_client_request and not policy_id:
             raise serializers.ValidationError(
@@ -280,15 +308,8 @@ class VerificationCreateSerializer(serializers.Serializer):
                         public_id=policy_id, status="active"
                     ).exists()
                 ):
-                    record_audit_event(
-                        tenant=tenant,
-                        actor=request.api_client,
-                        request=request,
-                        action="environment_scope.denied",
-                        target_type="verification_policy",
-                        target_id=policy_id,
-                        metadata={"reason": "environment_mismatch"},
-                    )
+                    self.environment_scope_denied_policy_id = policy_id
+                    raise PolicyEnvironmentScopeDenied(policy_id)
                 raise serializers.ValidationError(
                     {"policy_id": "Choose an active verification template."}
                 )
@@ -382,7 +403,9 @@ class VerificationCreateSerializer(serializers.Serializer):
             purpose=validated_data["purpose"],
             external_reference=external_reference,
             metadata_json=validated_data.get("metadata", {}),
-            review_owner=review_owner_for_metadata(validated_data.get("metadata")),
+            review_owner=self.context.get(
+                "trusted_review_owner", VerificationReviewOwner.TENANT
+            ),
             redirect_url=validated_data.get("redirect_url", ""),
             status=VerificationStatus.PENDING_CONSENT,
             expires_at=expires_at,
@@ -471,6 +494,7 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
     def save(self, *, verification: Verification, decided_by):
         from apps.audit.services import lock_audit_chain
 
+        caller_verification = verification
         lock_audit_chain(verification.tenant_id)
         verification = (
             Verification.objects.select_for_update(of=("self",), no_key=True)
@@ -643,6 +667,15 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
         from apps.verifications.review_quality import sample_final_decision
 
         sample_final_decision(verification, decision_record)
+        caller_verification.refresh_from_db(
+            fields=[
+                "status",
+                "completed_at",
+                "decision_revision",
+                "assigned_reviewer",
+                "assigned_at",
+            ]
+        )
         decision_record._review_assigned_now = assigned_now
         return decision_record
 
