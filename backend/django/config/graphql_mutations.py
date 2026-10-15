@@ -660,7 +660,7 @@ class Mutation:
         actor = require_platform_admin(info)
         lock_audit_chain(None)
         actor = PlatformUser.objects.select_for_update().get(pk=actor.pk)
-        if not decide_user_access(
+        if actor.status != PlatformUserStatus.ACTIVE or not decide_user_access(
             actor, action=AuthorizationAction.PLATFORM_ACCESS
         ).allowed:
             raise GraphQLError("An active platform administrator is required.")
@@ -803,7 +803,7 @@ class Mutation:
         # platform audit/login lock order.
         lock_audit_chain(None)
         actor = PlatformUser.objects.select_for_update().get(pk=actor.pk)
-        if not decide_user_access(
+        if actor.status != PlatformUserStatus.ACTIVE or not decide_user_access(
             actor, action=AuthorizationAction.PLATFORM_ACCESS
         ).allowed:
             raise GraphQLError("An active platform administrator is required.")

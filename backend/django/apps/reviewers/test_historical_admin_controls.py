@@ -103,3 +103,12 @@ class HistoricalPlatformAdminControlTests(APITestCase):
         self.assertFalse(
             AuditEvent.objects.filter(action="platform_admin.invited").exists()
         )
+
+    def test_stale_inactive_actor_cannot_invite(self):
+        PlatformUser.objects.filter(pk=self.actor.pk).update(status="inactive")
+        result = self.invite()
+        self.assertIsNotNone(result.errors)
+        self.assertFalse(PlatformAdminInvitation.objects.exists())
+        self.assertFalse(
+            AuditEvent.objects.filter(action="platform_admin.invited").exists()
+        )

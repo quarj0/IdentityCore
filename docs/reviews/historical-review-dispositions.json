@@ -1326,7 +1326,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Handle expired pending invitations before creating a replacement**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/32#discussion_r3644944384",
-      "disposition_note": "Individually inspected original finding. Expired invitation replacement and missing deactivation reason reproduced before fixes. Final-admin race requires PostgreSQL CI proof. Local expanded suite ran 31 tests with one PostgreSQL-only skip; full backend suite ran 959 with 35 skips successfully. Remains actionable until reviewed protected merge."
+      "disposition_note": "Individually inspected original finding. Expired invitation replacement and missing deactivation reason reproduced before fixes. Final-admin race requires PostgreSQL CI proof. Local expanded suite ran 32 tests with one PostgreSQL-only skip; full backend suite ran 960 with 35 skips successfully. Remains actionable until reviewed protected merge."
     },
     {
       "pr_number": 32,
@@ -1371,7 +1371,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Persist deactivation reasons for tenantless platform admins**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645114458",
-      "disposition_note": "Individually inspected original finding. Expired invitation replacement and missing deactivation reason reproduced before fixes. Final-admin race requires PostgreSQL CI proof. Local expanded suite ran 31 tests with one PostgreSQL-only skip; full backend suite ran 959 with 35 skips successfully. Remains actionable until reviewed protected merge."
+      "disposition_note": "Individually inspected original finding. Expired invitation replacement and missing deactivation reason reproduced before fixes. Final-admin race requires PostgreSQL CI proof. Local expanded suite ran 32 tests with one PostgreSQL-only skip; full backend suite ran 960 with 35 skips successfully. Remains actionable until reviewed protected merge."
     },
     {
       "pr_number": 33,
@@ -1386,7 +1386,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reconcile expired pending invitations before creating another**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645114464",
-      "disposition_note": "Individually inspected original finding. Expired invitation replacement and missing deactivation reason reproduced before fixes. Final-admin race requires PostgreSQL CI proof. Local expanded suite ran 31 tests with one PostgreSQL-only skip; full backend suite ran 959 with 35 skips successfully. Remains actionable until reviewed protected merge."
+      "disposition_note": "Individually inspected original finding. Expired invitation replacement and missing deactivation reason reproduced before fixes. Final-admin race requires PostgreSQL CI proof. Local expanded suite ran 32 tests with one PostgreSQL-only skip; full backend suite ran 960 with 35 skips successfully. Remains actionable until reviewed protected merge."
     },
     {
       "pr_number": 33,
@@ -1451,7 +1451,7 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Serialize the final-admin check**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645208254",
-      "disposition_note": "Individually inspected original finding. Expired invitation replacement and missing deactivation reason reproduced before fixes. Final-admin race requires PostgreSQL CI proof. Local expanded suite ran 31 tests with one PostgreSQL-only skip; full backend suite ran 959 with 35 skips successfully. Remains actionable until reviewed protected merge."
+      "disposition_note": "Individually inspected original finding. Expired invitation replacement and missing deactivation reason reproduced before fixes. Final-admin race requires PostgreSQL CI proof. Local expanded suite ran 32 tests with one PostgreSQL-only skip; full backend suite ran 960 with 35 skips successfully. Remains actionable until reviewed protected merge."
     },
     {
       "pr_number": 33,
