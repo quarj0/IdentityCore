@@ -196,6 +196,21 @@ def confirm_gateway_payment(reference, *, evidence_digest=None):
     if payment is None:
         raise BillingError("Unknown payment")
     verified = paystack.verify(reference=reference)
+    if verified.get("reference") != payment.reference:
+        raise BillingError("Gateway reference mismatch")
+    if verified.get("status") in ("failed", "abandoned"):
+        if (
+            type(verified.get("amount")) is not int
+            or verified["amount"] != payment.amount_minor
+            or verified.get("currency") != payment.currency
+        ):
+            raise BillingError("Gateway terminal failure changed payment attribution")
+        with transaction.atomic():
+            locked = BillingPayment.objects.select_for_update().get(pk=payment.pk)
+            if locked.status == "pending":
+                locked.status = "failed"
+                locked.save(update_fields=["status", "updated_at"])
+        return False
     if verified.get("status") != "success":
         return False
     if (
