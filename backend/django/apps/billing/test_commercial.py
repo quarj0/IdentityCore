@@ -51,7 +51,7 @@ class CommercialBillingTests(TestCase):
         )
         self.plan = BillingPlan.objects.create(
             code="commercial-test", version=1, name="Test Plan",
-            currency="GHS", monthly_price_minor=10000, published=True
+            currency="GHS", monthly_price_minor=10000, published=False
         )
         self.subscription = BillingSubscription.objects.create(
             tenant=self.tenant, plan=self.plan, status="active",
@@ -72,6 +72,8 @@ class CommercialBillingTests(TestCase):
                 capability="liveness", outcome="completed",
                 unit_price_minor=price,
             )
+        self.plan.published = True
+        self.plan.save(update_fields=["published"])
 
     def usage(self, provider):
         verification = Verification.objects.create(
