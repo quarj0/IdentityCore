@@ -85,7 +85,7 @@ class BillingUsageEvent(PublicIdModel, BaseModel):
 class BillingPlan(PublicIdModel, BaseModel):
     """Versioned commercial plan: never change a published plan's price in place."""
     public_id_prefix = "bpl"
-    code = models.SlugField(max_length=80, unique=True)
+    code = models.SlugField(max_length=80)
     version = models.PositiveIntegerField(default=1)
     name = models.CharField(max_length=120)
     currency = models.CharField(max_length=3, default="GHS")
@@ -96,6 +96,17 @@ class BillingPlan(PublicIdModel, BaseModel):
         constraints = [
             models.UniqueConstraint(fields=["code", "version"], name="billing_plan_code_version")
         ]
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            previous = type(self).objects.get(pk=self.pk)
+            if previous.published and any(
+                getattr(previous, field) != getattr(self, field)
+                for field in ("code", "version", "name", "currency", "monthly_price_minor", "published")
+            ):
+                from django.core.exceptions import ValidationError
+                raise ValidationError("Published plan terms are immutable; create a new version.")
+        return super().save(*args, **kwargs)
 
 
 class BillingMeter(PublicIdModel, BaseModel):
@@ -114,6 +125,17 @@ class BillingMeter(PublicIdModel, BaseModel):
                 name="billing_meter_unique",
             )
         ]
+
+    def save(self, *args, **kwargs):
+        from django.core.exceptions import ValidationError
+        if self.plan.published:
+            previous = type(self).objects.filter(pk=self.pk).first() if self.pk else None
+            if previous is None or any(
+                getattr(previous, name) != getattr(self, name)
+                for name in ("plan_id", "provider_scope", "capability", "outcome", "unit_price_minor")
+            ):
+                raise ValidationError("Published rates are immutable; create a new plan version.")
+        return super().save(*args, **kwargs)
 
 
 class BillingSubscription(PublicIdModel, BaseModel):
