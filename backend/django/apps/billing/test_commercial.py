@@ -270,3 +270,31 @@ class CommercialBillingTests(TestCase):
         self.assertEqual(payment.refunds.count(), 1)
         self.assertEqual(payment.refunds.first().status, "completed")
         self.assertEqual(invoice.status, "disputed")
+
+    @patch("apps.billing.paystack.verify")
+    def test_abandoned_payment_reconciles_to_failed_for_retry(self, gateway):
+        invoice = self.invoice()
+        payment = BillingPayment.objects.create(
+            invoice=invoice, reference="ic-abandoned-test",
+            amount_minor=invoice.amount_minor, currency=invoice.currency,
+        )
+        gateway.return_value = {
+            **self.verified(payment), "status": "abandoned",
+        }
+        self.assertFalse(confirm_gateway_payment(payment.reference))
+        payment.refresh_from_db()
+        invoice.refresh_from_db()
+        self.assertEqual(payment.status, "failed")
+        self.assertEqual(invoice.status, "issued")
+
+    @patch("apps.billing.paystack.verify")
+    def test_gateway_currency_mismatch_cannot_issue_receipt(self, gateway):
+        invoice = self.invoice()
+        payment = BillingPayment.objects.create(
+            invoice=invoice, reference="ic-currency-test",
+            amount_minor=invoice.amount_minor, currency=invoice.currency,
+        )
+        gateway.return_value = {**self.verified(payment), "currency": "NGN"}
+        with self.assertRaises(BillingError):
+            confirm_gateway_payment(payment.reference)
+        self.assertFalse(invoice.payments.filter(status="paid").exists())
