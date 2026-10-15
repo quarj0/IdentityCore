@@ -104,6 +104,23 @@ API_CLIENT_ROTATION_OVERLAP_SECONDS = int(
 )
 IDEMPOTENCY_RECORD_TTL_HOURS = int(os.getenv("IDEMPOTENCY_RECORD_TTL_HOURS", "24"))
 
+# Billing is opt-in: no real payment attempts without explicit merchant setup.
+BILLING_PAYMENTS_ENABLED = env_bool("BILLING_PAYMENTS_ENABLED", False)
+PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "")
+BILLING_RETURN_URL = os.getenv("BILLING_RETURN_URL", "")
+if BILLING_PAYMENTS_ENABLED:
+    from urllib.parse import urlsplit
+    if (
+        not PAYSTACK_SECRET_KEY
+        or not BILLING_RETURN_URL
+        or urlsplit(BILLING_RETURN_URL).scheme != "https"
+        or not urlsplit(BILLING_RETURN_URL).netloc
+        or urlsplit(BILLING_RETURN_URL).username
+        or urlsplit(BILLING_RETURN_URL).password
+    ):
+        raise ValueError("Payment activation requires secret and HTTPS return URL")
+
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
