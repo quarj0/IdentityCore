@@ -1124,13 +1124,16 @@
       "thread_id": "PRRT_kwDOTN0BU86Tc_Na",
       "comment_id": 3643076789,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/verifications/test_historical_review_protocols.py:test_rest_webhook_matches_the_committed_manual_outcome"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve the caller's updated verification state**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/19#discussion_r3643076789",
-      "disposition_note": "Reproduced on preceding main with failing real API/GraphQL regressions. A tested fix is prepared; this finding remains actionable until fresh review, successful final-head CI/Security and protected merge."
+      "disposition_note": "Fixed in protected merged PR #394 after final-head independent review, green PR/push CI and Security, dedicated-App success and trusted expected-head merge. Full backend ran 964 tests with 34 skips successfully; nine targeted protocol regressions passed.",
+      "remediation_pr": 394,
+      "remediation_commit": "831404a2fb1eba4020866ff56f345088aef0bb67",
+      "merged_commit": "fb58565af0116803a4f6dba873d7808774213576"
     },
     {
       "pr_number": 20,
@@ -1242,13 +1245,16 @@
       "thread_id": "PRRT_kwDOTN0BU86Tdy3b",
       "comment_id": 3643382665,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/verifications/test_historical_review_protocols.py:test_api_metadata_cannot_request_platform_ownership"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Restrict platform ownership to trusted onboarding requests**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/23#discussion_r3643382665",
-      "disposition_note": "Reproduced on preceding main with failing real API/GraphQL regressions. A tested fix is prepared; this finding remains actionable until fresh review, successful final-head CI/Security and protected merge."
+      "disposition_note": "Fixed in protected merged PR #394 after final-head independent review, green PR/push CI and Security, dedicated-App success and trusted expected-head merge. Full backend ran 964 tests with 34 skips successfully; nine targeted protocol regressions passed.",
+      "remediation_pr": 394,
+      "remediation_commit": "831404a2fb1eba4020866ff56f345088aef0bb67",
+      "merged_commit": "fb58565af0116803a4f6dba873d7808774213576"
     },
     {
       "pr_number": 24,
@@ -1489,30 +1495,39 @@
       "thread_id": "PRRT_kwDOTN0BU86Ti6GJ",
       "comment_id": 3645257330,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/workflows/test_historical_publishing.py:test_platform_publication_copies_execution_settings"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Populate the policy from workflow settings**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257330"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257330",
+      "disposition_note": "Individually inspected the original finding and reproduced its current behavior through the actual GraphQL schema. Seven regression cases failed on preceding main; the focused workflow/GraphQL suite passes with the prepared fix. This finding remains actionable until independent review, green CI/Security and protected merge."
     },
     {
       "pr_number": 34,
       "thread_id": "PRRT_kwDOTN0BU86Ti6GP",
       "comment_id": 3645257336,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/workflows/test_historical_publishing.py:test_editing_published_workflow_returns_it_to_draft"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Return edited published workflows to draft**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257336"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257336",
+      "disposition_note": "Individually inspected the original finding and reproduced its current behavior through the actual GraphQL schema. Seven regression cases failed on preceding main; the focused workflow/GraphQL suite passes with the prepared fix. This finding remains actionable until independent review, green CI/Security and protected merge."
     },
     {
       "pr_number": 34,
       "thread_id": "PRRT_kwDOTN0BU86Ti6GQ",
       "comment_id": 3645257338,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/workflows/test_historical_publishing.py:test_publish_rejects_unsupported_or_incomplete_steps"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Validate workflow steps before publishing**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257338"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257338",
+      "disposition_note": "Individually inspected the original finding and reproduced its current behavior through the actual GraphQL schema. Seven regression cases failed on preceding main; the focused workflow/GraphQL suite passes with the prepared fix. This finding remains actionable until independent review, green CI/Security and protected merge."
     },
     {
       "pr_number": 34,
@@ -1539,20 +1554,26 @@
       "thread_id": "PRRT_kwDOTN0BU86Ti6GX",
       "comment_id": 3645257346,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/workflows/test_historical_publishing.py:test_publish_rejects_unapproved_organizations"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Require an active organization before publishing**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257346"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257346",
+      "disposition_note": "Individually inspected the original finding and reproduced its current behavior through the actual GraphQL schema. Seven regression cases failed on preceding main; the focused workflow/GraphQL suite passes with the prepared fix. This finding remains actionable until independent review, green CI/Security and protected merge."
     },
     {
       "pr_number": 34,
       "thread_id": "PRRT_kwDOTN0BU86Ti6Gd",
       "comment_id": 3645257352,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/workflows/test_historical_publishing.py:test_platform_actor_does_not_become_cross_tenant_policy_creator"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve the policy creator tenant invariant**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257352"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645257352",
+      "disposition_note": "Individually inspected the original finding and reproduced its current behavior through the actual GraphQL schema. Seven regression cases failed on preceding main; the focused workflow/GraphQL suite passes with the prepared fix. This finding remains actionable until independent review, green CI/Security and protected merge."
     },
     {
       "pr_number": 34,
@@ -1569,10 +1590,13 @@
       "thread_id": "PRRT_kwDOTN0BU86TjHUS",
       "comment_id": 3645332173,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/workflows/test_historical_publishing.py:test_same_workflow_name_can_publish_in_distinct_projects"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Namespace workflow policy names by project**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645332173"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645332173",
+      "disposition_note": "Individually inspected the original finding and reproduced its current behavior through the actual GraphQL schema. Seven regression cases failed on preceding main; the focused workflow/GraphQL suite passes with the prepared fix. This finding remains actionable until independent review, green CI/Security and protected merge."
     },
     {
       "pr_number": 34,
@@ -1609,10 +1633,13 @@
       "thread_id": "PRRT_kwDOTN0BU86TjLLX",
       "comment_id": 3645354155,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/workflows/test_historical_publishing.py:test_archived_workflow_cannot_be_republished"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Prevent archived workflows from being republished**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645354155"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645354155",
+      "disposition_note": "Individually inspected the original finding and reproduced its current behavior through the actual GraphQL schema. Seven regression cases failed on preceding main; the focused workflow/GraphQL suite passes with the prepared fix. This finding remains actionable until independent review, green CI/Security and protected merge."
     },
     {
       "pr_number": 34,
@@ -1639,20 +1666,27 @@
       "thread_id": "PRRT_kwDOTN0BU86TjOR9",
       "comment_id": 3645371548,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/config/graphql_mutations.py:preceding publication read and version allocation have no transaction or row lock",
+        "backend/django/apps/workflows/test_publishing_races.py:three real PostgreSQL concurrent publication rounds selected in required CI"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Serialize workflow version allocation**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645371548"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645371548",
+      "disposition_note": "Original source inspection confirms unguarded concurrent version allocation. The prepared fix shares a locked transactional publishing helper with REST. PostgreSQL race validation is explicitly required before protected merge; local SQLite cannot establish row-lock behavior."
     },
     {
       "pr_number": 35,
       "thread_id": "PRRT_kwDOTN0BU86TjdvO",
       "comment_id": 3645461281,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/workflows/test_historical_publishing.py:test_same_workflow_name_can_publish_in_distinct_projects"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Namespace generated policies by project**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461281"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461281",
+      "disposition_note": "Individually inspected the original finding and reproduced its current behavior through the actual GraphQL schema. Seven regression cases failed on preceding main; the focused workflow/GraphQL suite passes with the prepared fix. This finding remains actionable until independent review, green CI/Security and protected merge."
     },
     {
       "pr_number": 35,
@@ -1689,20 +1723,26 @@
       "thread_id": "PRRT_kwDOTN0BU86Tjdvc",
       "comment_id": 3645461302,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/workflows/test_historical_publishing.py:test_platform_publication_copies_execution_settings"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Copy workflow settings into its verification policy**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461302"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461302",
+      "disposition_note": "Individually inspected the original finding and reproduced its current behavior through the actual GraphQL schema. Seven regression cases failed on preceding main; the focused workflow/GraphQL suite passes with the prepared fix. This finding remains actionable until independent review, green CI/Security and protected merge."
     },
     {
       "pr_number": 35,
       "thread_id": "PRRT_kwDOTN0BU86Tjdvf",
       "comment_id": 3645461305,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/workflows/test_historical_publishing.py:test_editing_published_workflow_returns_it_to_draft"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep published workflows immutable until versioned**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461305"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461305",
+      "disposition_note": "Individually inspected the original finding and reproduced its current behavior through the actual GraphQL schema. Seven regression cases failed on preceding main; the focused workflow/GraphQL suite passes with the prepared fix. This finding remains actionable until independent review, green CI/Security and protected merge."
     },
     {
       "pr_number": 35,
@@ -2859,13 +2899,16 @@
       "thread_id": "PRRT_kwDOTN0BU86Vrhmy",
       "comment_id": 3696851652,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/verifications/test_historical_review_protocols.py:test_graphql_clamps_legacy_out_of_range_pages"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve pagination semantics for GraphQL callers**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/179#discussion_r3696851652",
-      "disposition_note": "Reproduced on preceding main with failing real API/GraphQL regressions. A tested fix is prepared; this finding remains actionable until fresh review, successful final-head CI/Security and protected merge."
+      "disposition_note": "Fixed in protected merged PR #394 after final-head independent review, green PR/push CI and Security, dedicated-App success and trusted expected-head merge. Full backend ran 964 tests with 34 skips successfully; nine targeted protocol regressions passed.",
+      "remediation_pr": 394,
+      "remediation_commit": "831404a2fb1eba4020866ff56f345088aef0bb67",
+      "merged_commit": "fb58565af0116803a4f6dba873d7808774213576"
     },
     {
       "pr_number": 179,
@@ -3703,13 +3746,16 @@
       "thread_id": "PRRT_kwDOTN0BU86Vr3CT",
       "comment_id": 3696977656,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/verifications/test_historical_review_protocols.py:test_denied_environment_audit_survives_validation_rollback"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Persist denied-scope audits outside the rolled-back transaction**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/198#discussion_r3696977656",
-      "disposition_note": "Reproduced on preceding main with failing real API/GraphQL regressions. A tested fix is prepared; this finding remains actionable until fresh review, successful final-head CI/Security and protected merge."
+      "disposition_note": "Fixed in protected merged PR #394 after final-head independent review, green PR/push CI and Security, dedicated-App success and trusted expected-head merge. Full backend ran 964 tests with 34 skips successfully; nine targeted protocol regressions passed.",
+      "remediation_pr": 394,
+      "remediation_commit": "831404a2fb1eba4020866ff56f345088aef0bb67",
+      "merged_commit": "fb58565af0116803a4f6dba873d7808774213576"
     },
     {
       "pr_number": 198,
@@ -6170,13 +6216,16 @@
       "thread_id": "PRRT_kwDOTN0BU86Ym9xX",
       "comment_id": 3767443420,
       "path": "backend/django/apps/verifications/serializers.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/verifications/test_historical_review_protocols.py:test_pending_graphql_proposal_emits_no_final_outcome"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep GraphQL proposals pending until checker approval**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/284#discussion_r3767443420",
-      "disposition_note": "Reproduced on preceding main with failing real API/GraphQL regressions. A tested fix is prepared; this finding remains actionable until fresh review, successful final-head CI/Security and protected merge."
+      "disposition_note": "Fixed in protected merged PR #394 after final-head independent review, green PR/push CI and Security, dedicated-App success and trusted expected-head merge. Full backend ran 964 tests with 34 skips successfully; nine targeted protocol regressions passed.",
+      "remediation_pr": 394,
+      "remediation_commit": "831404a2fb1eba4020866ff56f345088aef0bb67",
+      "merged_commit": "fb58565af0116803a4f6dba873d7808774213576"
     },
     {
       "pr_number": 285,
@@ -10480,6 +10529,6 @@
       "disposition_note": "Resolved in protected merged PR #390 after fresh review and successful final-head CI/Security."
     }
   ],
-  "verified_main": "d9fc774e25de754770638d5d602e736ffd95fe6d",
-  "inventory_note": "823 threads from closed or merged PRs: 152 fixed, 196 verified, 5 actionable and 470 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
+  "verified_main": "fb58565af0116803a4f6dba873d7808774213576",
+  "inventory_note": "823 threads from closed or merged PRs: 157 fixed, 196 verified, 11 actionable and 459 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
 }
