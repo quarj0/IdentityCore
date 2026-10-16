@@ -11260,7 +11260,7 @@
       "resolver_evidence": "Fixed in 41b231797b80dfc9887aefbb97a4d6c39799b223. Validation: 51 targeted tests passed.",
       "evidence": [
         "backend/django/apps/biometrics/test_historical_evidence.py",
-        "backend/django/apps/biometrics/test_historical_recovery.py",
+        "backend/django/apps/biometrics/test_finalization_recovery.py",
         "GitHub CI job 116726226393:123 PostgreSQL tests passed on final head"
       ],
       "disposition_note": "Fixed in protected merged PR #399 after final-head independent review, strict resolver evidence, all PR/push CI and Security and dedicated App success. Full backend ran 1054 with 39 skips successfully. Trusted merge required no temporary approval."
