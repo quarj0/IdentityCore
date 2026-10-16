@@ -53,6 +53,7 @@ def _api(method, path, *, payload=None, list_response=False):
             "Authorization": "Bearer " + _secret(),
             "Accept": "application/json",
             "Content-Type": "application/json",
+            "User-Agent": "IdentityCore/1.0",
         },
     )
     try:

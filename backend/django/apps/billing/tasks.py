@@ -1,13 +1,13 @@
 """Bounded billing reconciliation and gated month-close Celery tasks."""
 
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone as dt_timezone
 import logging
 
 from celery import shared_task
 from django.conf import settings
 from django.utils import timezone
 from django.db import transaction
-from django.db.models import Exists, OuterRef, F
+from django.db.models import Exists, OuterRef, F, Q
 
 from apps.billing.models import BillingInvoice, BillingSubscription
 from apps.billing.services import BillingError, generate_invoice, issue_invoice
@@ -64,11 +64,34 @@ def generate_closed_month_invoices_task(limit=100):
     # subscriptions cannot permanently starve later tenants.
     subscriptions = (
         BillingSubscription.objects.filter(
-            status="active",
             plan__published=True,
             deleted_at__isnull=True,
             started_at__date__lt=today.replace(day=1),
         )
+        .filter(
+            Q(
+                periods__started_at__lt=datetime.combine(
+                    today.replace(day=1), datetime.min.time(), dt_timezone.utc
+                )
+            )
+            & (
+                Q(periods__ended_at__isnull=True)
+                | Q(
+                    periods__ended_at__gt=datetime.combine(
+                        period_start, datetime.min.time(), dt_timezone.utc
+                    )
+                )
+            )
+            | (
+                Q(history_recorded_from__gt=F("started_at"))
+                & Q(
+                    history_recorded_from__gt=datetime.combine(
+                        period_start, datetime.min.time(), dt_timezone.utc
+                    )
+                )
+            )
+        )
+        .distinct()
         .annotate(period_complete=Exists(completed_period))
         .filter(
             period_complete=False,
@@ -88,11 +111,7 @@ def generate_closed_month_invoices_task(limit=100):
                     .select_related("tenant", "plan")
                     .get(pk=subscription_id)
                 )
-                if (
-                    subscription.status != "active"
-                    or subscription.deleted_at
-                    or not subscription.plan.published
-                ):
+                if subscription.deleted_at or not subscription.plan.published:
                     continue
                 invoice = (
                     BillingInvoice.objects.select_for_update()

@@ -482,4 +482,24 @@ class BillingReviewRecoveryTests(TestCase):
             "https://api.paystack.co/refund?transaction=42424242&perPage=50&page=1",
         )
         self.assertEqual(outbound.get_method(), "GET")
+        self.assertEqual(outbound.get_header("User-agent"), "IdentityCore/1.0")
         self.assertEqual(build.return_value.open.call_args.kwargs, {"timeout": 8})
+
+    @override_settings(BILLING_PAYMENTS_ENABLED=True)
+    def test_interrupted_paystack_initialization_rotates_expired_reference(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from apps.billing.models import BillingPayment
+        from apps.billing.exceptions import GatewayError
+        invoice = self.invoice()
+        with patch("apps.billing.paystack.initialize", side_effect=[GatewayError("Synthetic timeout after acceptance"), "https://checkout.paystack.com/pay/recovered"]) as gateway:
+            with self.assertRaises(GatewayError):
+                begin_checkout(invoice, billing_email=self.user.email)
+            orphan = BillingPayment.objects.get(invoice=invoice)
+            BillingPayment.objects.filter(pk=orphan.pk).update(created_at=timezone.now()-timedelta(minutes=3))
+            recovered = begin_checkout(invoice, billing_email=self.user.email)
+        self.assertNotEqual(recovered.reference, orphan.reference)
+        self.assertEqual(gateway.call_count, 2)
+        orphan.refresh_from_db()
+        self.assertEqual(orphan.status, "failed")
+        self.assertEqual(recovered.status, "pending")

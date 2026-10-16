@@ -8,6 +8,7 @@ async function billingFixture(
     canManage = true,
     invalidUrl = false,
     gatewayUnavailable = false,
+    verificationUnavailable = false,
     verified = true,
   }: {
     provider?: "paystack" | "paystack";
@@ -15,6 +16,7 @@ async function billingFixture(
     canManage?: boolean;
     invalidUrl?: boolean;
     gatewayUnavailable?: boolean;
+    verificationUnavailable?: boolean;
     verified?: boolean;
   } = {},
 ) {
@@ -77,7 +79,7 @@ async function billingFixture(
       data = {
         payment_id: "bpa_Synthetic1",
         reference: "icSynthetic1",
-        currency: provider === "paystack" ? "GHS" : "USD",
+        currency: "GHS",
         amount_minor: 10750,
         provider,
         status: "pending",
@@ -87,6 +89,10 @@ async function billingFixture(
       };
     } else if (path.endsWith("/payments/bpa_Synthetic1")) {
       calls.verification++;
+      if (verificationUnavailable && calls.verification === 1) {
+        await route.fulfill({status:503, headers, json:{success:false,error:{code:"gateway_unavailable",message:"Payment verification unavailable.",details:{}},request_id:"req_synthetic"}});
+        return;
+      }
       paid = verified;
       data = { verified };
     } else if (path.includes("/billing/invoices")) {
@@ -97,7 +103,7 @@ async function billingFixture(
         period_start: "2026-09-01",
         period_end: "2026-10-01",
         amount_minor: 10750,
-        currency: provider === "paystack" ? "GHS" : "USD",
+        currency: "GHS",
         status: paid ? "paid" : "issued",
         due_at: null,
         paid_at: paid ? "2026-10-15T12:00:00Z" : null,
@@ -234,4 +240,15 @@ test("a pending payment can be independently checked without another checkout", 
   await expect(page.locator("article")).toContainText("paid · test-plan");
   expect(calls.checkout).toEqual([]);
   expect(calls.verification).toBe(1);
+});
+
+
+test("return verification outage preserves invoices and supports a deliberate retry", async ({page}) => {
+  const calls = await billingFixture(page, {pending:true, verificationUnavailable:true});
+  await page.goto("/billing/return?payment_id=bpa_Synthetic1");
+  await expect(page.locator("main").getByRole("alert")).toContainText("The service is temporarily unavailable");
+  await expect(page.locator("article")).toContainText("issued · test-plan");
+  await page.getByRole("button", {name:"Check payment"}).click();
+  await expect(page.locator("article")).toContainText("paid · test-plan");
+  expect(calls.verification).toBe(2);
 });

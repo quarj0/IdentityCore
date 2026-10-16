@@ -1,6 +1,7 @@
 """Reconcile a bounded production batch without touching prices or payments."""
 
 from django.core.management.base import BaseCommand, CommandError
+from django.db.models import F
 
 from apps.billing.usage import reconcile_provider_usage_checks
 from apps.providers.models import ProviderCheck, ProviderCheckStatus
@@ -13,6 +14,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--tenant", required=True, help="Tenant public ID")
         parser.add_argument("--limit", type=int, default=100)
+        parser.add_argument("--check", help="Retry one provider check public ID")
 
     def handle(self, *args, **opts):
         if not 1 <= opts["limit"] <= 1000:
@@ -20,20 +22,24 @@ class Command(BaseCommand):
         tenant = Tenant.objects.filter(public_id=opts["tenant"]).first()
         if tenant is None:
             raise CommandError("Unknown tenant")
+        checks = ProviderCheck.objects.filter(
+            tenant=tenant,
+            verification__project__environment="production",
+            status__in=(
+                ProviderCheckStatus.COMPLETED,
+                ProviderCheckStatus.FAILED,
+                ProviderCheckStatus.TIMEOUT,
+            ),
+            completed_at__isnull=False,
+            billing_usage_event__isnull=True,
+        )
+        if opts.get("check"):
+            checks = checks.filter(public_id=opts["check"])
         ids = list(
-            ProviderCheck.objects.filter(
-                tenant=tenant,
-                verification__project__environment="production",
-                status__in=(
-                    ProviderCheckStatus.COMPLETED,
-                    ProviderCheckStatus.FAILED,
-                    ProviderCheckStatus.TIMEOUT,
-                ),
-                completed_at__isnull=False,
-                billing_usage_event__isnull=True,
-            )
-            .order_by("pk")
-            .values_list("pk", flat=True)[: opts["limit"]]
+            checks.order_by(
+                F("billing_reconciliation_issue__last_failed_at").asc(nulls_first=True),
+                "pk",
+            ).values_list("pk", flat=True)[: opts["limit"]]
         )
         created, failed = reconcile_provider_usage_checks(ids)
         self.stdout.write(

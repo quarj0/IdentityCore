@@ -9,6 +9,7 @@ from datetime import date, datetime, timedelta, timezone as dt_timezone
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.audit.services import lock_audit_chain, record_audit_event
@@ -52,7 +53,7 @@ def generate_invoice(tenant, month):
     subscription = (
         BillingSubscription.objects.select_for_update(of=("self",))
         .select_related("plan")
-        .filter(tenant=tenant, status="active", deleted_at__isnull=True)
+        .filter(tenant=tenant, deleted_at__isnull=True)
         .first()
     )
     if not subscription or not subscription.plan.published:
@@ -64,42 +65,68 @@ def generate_invoice(tenant, month):
     plan = subscription.plan
     starts_at = datetime.combine(start, datetime.min.time(), dt_timezone.utc)
     ends_at = datetime.combine(end, datetime.min.time(), dt_timezone.utc)
+    if max(starts_at, subscription.started_at) < subscription.history_recorded_from:
+        raise BillingError("Subscription activity history requires operator review")
+    windows = [
+        (max(starts_at, period.started_at), min(ends_at, period.ended_at or ends_at))
+        for period in subscription.periods.filter(started_at__lt=ends_at)
+        .filter(Q(ended_at__isnull=True) | Q(ended_at__gt=starts_at))
+        .order_by("started_at")
+    ]
+    windows = [(left, right) for left, right in windows if left < right]
+    if not windows:
+        raise BillingError("Subscription was not active during the period")
+
+    def within(field):
+        query = Q(pk__in=[])
+        for left, right in windows:
+            query |= Q(**{field + "__gte": left, field + "__lt": right})
+        return query
+
+    covered_until = starts_at
+    for left, right in windows:
+        if left > covered_until:
+            break
+        covered_until = max(covered_until, right)
     events = list(
         BillingUsageEvent.objects.select_for_update(of=("self",))
         .filter(
             tenant=tenant,
             environment="production",
-            occurred_at__gte=max(starts_at, subscription.started_at),
-            occurred_at__lt=ends_at,
             rating_state="unrated",
         )
+        .filter(within("occurred_at"))
         .select_related("provider_check__provider")
         .order_by("pk")
     )
     # Prevent silently skipping a previously rated event in this period.
-    count = BillingUsageEvent.objects.filter(
-        tenant=tenant,
-        environment="production",
-        occurred_at__gte=max(starts_at, subscription.started_at),
-        occurred_at__lt=ends_at,
-    ).count()
+    count = (
+        BillingUsageEvent.objects.filter(
+            tenant=tenant,
+            environment="production",
+        )
+        .filter(within("occurred_at"))
+        .count()
+    )
     if count != len(events):
         raise BillingError("Period contains previously rated or disputed usage")
     # A complete bill requires every eligible terminal provider check to have
     # passed the independent tenant-attribution usage reconciliation first.
     from apps.providers.models import ProviderCheck, ProviderCheckStatus
 
-    eligible = ProviderCheck.objects.filter(
-        tenant=tenant,
-        verification__project__environment="production",
-        completed_at__gte=max(starts_at, subscription.started_at),
-        completed_at__lt=ends_at,
-        status__in=[
-            ProviderCheckStatus.COMPLETED,
-            ProviderCheckStatus.FAILED,
-            ProviderCheckStatus.TIMEOUT,
-        ],
-    ).count()
+    eligible = (
+        ProviderCheck.objects.filter(
+            tenant=tenant,
+            verification__project__environment="production",
+            status__in=[
+                ProviderCheckStatus.COMPLETED,
+                ProviderCheckStatus.FAILED,
+                ProviderCheckStatus.TIMEOUT,
+            ],
+        )
+        .filter(within("completed_at"))
+        .count()
+    )
     if eligible != count:
         raise BillingError("Unreconciled provider checks block month close")
     from apps.billing.usage import BillingIntegrityError, record_provider_usage
@@ -123,7 +150,7 @@ def generate_invoice(tenant, month):
     if missing:
         raise BillingError("Unpriced provider usage; plan needs explicit meters")
     # First partial month has no base charge; regular monthly cycles begin next month.
-    base_minor = plan.monthly_price_minor if subscription.started_at <= starts_at else 0
+    base_minor = plan.monthly_price_minor if covered_until >= ends_at else 0
     invoice = BillingInvoice.objects.create(
         tenant=tenant,
         subscription=subscription,
@@ -275,7 +302,10 @@ def begin_checkout(invoice, *, billing_email, provider=None):
             minutes=2
         ):
             raise BillingError("Checkout initialization is in progress")
-        payment = existing or BillingPayment.objects.create(
+        if existing is not None:
+            existing.status = "failed"
+            existing.save(update_fields=["status", "updated_at"])
+        payment = BillingPayment.objects.create(
             invoice=locked,
             provider=provider,
             reference="ic" + secrets.token_hex(18),

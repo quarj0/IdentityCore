@@ -6038,6 +6038,31 @@
       "source": "backend/django/apps/billing/models.py",
       "field": "BillingUsageReconciliationIssue.last_failed_at",
       "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingSubscription.history_recorded_from",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingSubscriptionPeriod.id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingSubscriptionPeriod.subscription",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingSubscriptionPeriod.started_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingSubscriptionPeriod.ended_at",
+      "activity": "integrations-billing-and-support"
     }
   ]
 }

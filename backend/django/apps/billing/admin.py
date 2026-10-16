@@ -7,6 +7,7 @@ from apps.billing.models import (
     BillingPlan,
     BillingMeter,
     BillingSubscription,
+    BillingSubscriptionPeriod,
     BillingInvoice,
     BillingInvoiceLine,
     BillingPayment,
@@ -71,7 +72,9 @@ class SubscriptionAdmin(admin.ModelAdmin):
     list_display = ("tenant", "plan", "status", "started_at")
 
     def get_readonly_fields(self, request, obj=None):
-        return ("tenant", "plan", "started_at") if obj else ()
+        return ("history_recorded_from",) + (
+            ("tenant", "plan", "started_at") if obj else ()
+        )
 
 
 for model in (
@@ -83,6 +86,7 @@ for model in (
     BillingDispute,
     BillingUsageEvent,
     BillingUsageReconciliationIssue,
+    BillingSubscriptionPeriod,
     BillingMeter,
 ):
     admin.site.register(model, ReadOnlyFinancialAdmin)

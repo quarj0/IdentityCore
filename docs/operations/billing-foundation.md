@@ -6,7 +6,17 @@ Monthly postpaid invoices combine a published plan's base fee with immutable,
 tenant-scoped production usage and rate snapshots. Platform and BYOP usage have
 separate meters; sandbox work is excluded. Explicit rates, including zero rates,
 determine chargeability. The first partial month has no base fee, including
-subscriptions started after midnight UTC on day one.
+subscriptions started after midnight UTC on day one. Recorded active intervals
+control usage eligibility. A pause or cancellation after month close preserves
+the completed month's charges. Partial active months and pause/resume gaps have
+no base fee; only usage within active intervals is rated. Pausing billing does
+not suspend verification processing.
+
+The activity-history migration records a conservative deployment cutover for
+existing subscriptions. Earlier unknown activity blocks invoicing pending
+operator review; current status is insufficient evidence of past activity.
+Restore earlier intervals only from independently verified subscription records
+through an approved data repair. Do not backdate the cutoff based on assumptions.
 
 Month close rejects missing usage, changed provider facts, unpriced meters and
 line-total mismatches. Interrupted drafts resume through the operator command
@@ -21,7 +31,9 @@ creating accounting facts. Valid checks in the same batch still complete;
 scheduled runs skip quarantined rows so a full page of bad data cannot starve
 other tenants. Review BillingUsageReconciliationIssue in the read-only finance
 admin, repair the source through an authorized operations workflow, then rerun
-reconcile_provider_usage for that tenant. Successful independent reconciliation
+reconcile_provider_usage for that tenant. Unquarantined checks run first, then
+the oldest failed checks. Use `--check PROVIDER_CHECK_PUBLIC_ID` to retry a
+specific repaired check without waiting behind other quarantined checks. Successful independent reconciliation
 clears the marker. The affected tenant's month close remains blocked until its
 missing usage is resolved. Logs expose only check IDs and controlled codes.
 
@@ -36,7 +48,10 @@ A return redirect is not payment evidence. Settlement requires an independent
 Paystack transaction lookup matching the server reference, amount, currency
 and transaction ID. Confirmation and audit are idempotent. Reversed, failed or
 abandoned pending attempts become terminal so the customer can retry. A late
-failure cannot undo an already settled payment.
+failure cannot undo an already settled payment. Initialization interrupted
+before saving a checkout URL expires after two minutes; retry creates a fresh
+reference rather than resubmitting a reference already accepted by Paystack.
+A failed return verification still loads invoices and offers an explicit retry.
 
 Webhooks authenticate exact raw bytes using HMAC-SHA512 before parsing. Refund
 webhooks correlate through `transaction_reference`, including a null

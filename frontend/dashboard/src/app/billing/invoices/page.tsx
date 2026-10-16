@@ -66,11 +66,15 @@ export default function InvoicesPage() {
     const paymentId = new URLSearchParams(window.location.search).get("payment_id");
     const verification = paymentId && /^bpa_[A-Za-z0-9]{1,64}$/.test(paymentId)
       ? billingApi.verifyPayment(paymentId) : Promise.resolve(null);
-    verification.then(async (result) => {
+    let verificationError = "";
+    verification.catch((reason) => {
+      verificationError = getErrorMessage(reason);
+      return null;
+    }).then(async (result) => {
       const data = await billingApi.invoices();
       if (!active) return;
       setInvoices(data.results);
-      setError("");
+      setError(verificationError);
       if (result) setNotice(result.verified
         ? "Payment transaction verified. The invoice shows its current status."
         : "Payment has not been confirmed yet. You can check again shortly.");

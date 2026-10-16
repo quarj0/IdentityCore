@@ -1,4 +1,5 @@
-from django.db import models
+from django.db import models, transaction
+from django.utils import timezone
 
 from apps.core.models import BaseModel, PublicIdModel
 
@@ -189,6 +190,132 @@ class BillingSubscription(PublicIdModel, BaseModel):
     )
     started_at = models.DateTimeField()
     invoice_last_attempt_at = models.DateTimeField(null=True, blank=True)
+    history_recorded_from = models.DateTimeField(default=timezone.now)
+
+    def save(self, *args, **kwargs):
+        from django.core.exceptions import ValidationError
+
+        with transaction.atomic():
+            previous = (
+                type(self).objects.select_for_update().filter(pk=self.pk).first()
+                if self.pk
+                else None
+            )
+            fields = kwargs.get("update_fields")
+            status_changed = (
+                previous
+                and previous.status != self.status
+                and (fields is None or "status" in fields)
+            )
+            start_changed = (
+                previous
+                and previous.started_at != self.started_at
+                and (fields is None or "started_at" in fields)
+            )
+            if not previous:
+                self.history_recorded_from = self.started_at
+            elif start_changed:
+                periods = list(previous.periods.all())
+                if (
+                    previous.invoices.exists()
+                    or len(periods) != 1
+                    or periods[0].ended_at is not None
+                    or previous.history_recorded_from != previous.started_at
+                ):
+                    raise ValidationError(
+                        "Recorded subscription history cannot be rewritten"
+                    )
+                periods[0].started_at = self.started_at
+                periods[0].save(update_fields=["started_at"])
+                self.history_recorded_from = self.started_at
+                if fields is not None:
+                    kwargs["update_fields"] = set(fields) | {"history_recorded_from"}
+            result = super().save(*args, **kwargs)
+            if not previous and self.status == "active":
+                BillingSubscriptionPeriod.objects.create(
+                    subscription=self, started_at=self.started_at
+                )
+            elif status_changed:
+                now = timezone.now()
+                for period in self.periods.filter(ended_at__isnull=True):
+                    period.ended_at = max(now, period.started_at)
+                    period.save(update_fields=["ended_at"])
+                if self.status == "active":
+                    BillingSubscriptionPeriod.objects.create(
+                        subscription=self, started_at=max(now, self.started_at)
+                    )
+            return result
+
+
+class BillingSubscriptionPeriod(models.Model):
+    """Recorded active interval; paused gaps never acquire a usage charge."""
+
+    subscription = models.ForeignKey(
+        BillingSubscription, on_delete=models.PROTECT, related_name="periods"
+    )
+    started_at = models.DateTimeField()
+    ended_at = models.DateTimeField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        from django.core.exceptions import ValidationError
+
+        with transaction.atomic():
+            BillingSubscription.objects.select_for_update().get(pk=self.subscription_id)
+            previous = (
+                type(self).objects.filter(pk=self.pk).first() if self.pk else None
+            )
+            if timezone.is_naive(self.started_at) or (
+                self.ended_at is not None and timezone.is_naive(self.ended_at)
+            ):
+                raise ValidationError("Subscription periods require aware timestamps")
+            if self.ended_at is not None and self.ended_at < self.started_at:
+                raise ValidationError("Subscription period ends before it starts")
+            if previous and (
+                previous.subscription_id != self.subscription_id
+                or (
+                    previous.ended_at is not None
+                    and (
+                        previous.started_at != self.started_at
+                        or previous.ended_at != self.ended_at
+                    )
+                )
+            ):
+                raise ValidationError("Closed subscription periods are immutable")
+            if (
+                previous
+                and previous.started_at != self.started_at
+                and self.subscription.invoices.exists()
+            ):
+                raise ValidationError("Invoiced subscription history is immutable")
+            if self.ended_at is None or self.ended_at > self.started_at:
+                overlapping = (
+                    type(self)
+                    .objects.filter(subscription_id=self.subscription_id)
+                    .exclude(pk=self.pk)
+                    .filter(
+                        models.Q(ended_at__isnull=True)
+                        | models.Q(ended_at__gt=self.started_at)
+                    )
+                )
+                if self.ended_at is not None:
+                    overlapping = overlapping.filter(started_at__lt=self.ended_at)
+                if overlapping.exists():
+                    raise ValidationError("Subscription periods cannot overlap")
+            return super().save(*args, **kwargs)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["subscription"],
+                condition=models.Q(ended_at__isnull=True),
+                name="billing_subscription_open_period",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(ended_at__isnull=True)
+                | models.Q(ended_at__gte=models.F("started_at")),
+                name="billing_subscription_period_order",
+            ),
+        ]
 
 
 class BillingInvoice(PublicIdModel, BaseModel):

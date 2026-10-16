@@ -201,3 +201,20 @@ class ScheduledUsageRecoveryTests(TestCase):
                 stdout=StringIO(),
             )
         self.assertTrue(BillingUsageEvent.objects.filter(provider_check=good).exists())
+
+    def test_operator_prioritizes_valid_checks_and_can_retry_a_repaired_check(self):
+        from io import StringIO
+        from django.core.management import call_command
+        from apps.billing.tasks import reconcile_billing_usage_task
+        from apps.billing.usage import BillingIntegrityError
+        from apps.billing.models import BillingUsageEvent
+        bad = self.invalid_check()
+        with self.assertRaises(BillingIntegrityError):
+            reconcile_billing_usage_task(limit=1)
+        good = self.make_check(self.production, self.byop_provider)
+        call_command("reconcile_provider_usage", tenant=self.tenant.public_id, limit=1, stdout=StringIO())
+        self.assertTrue(BillingUsageEvent.objects.filter(provider_check=good).exists())
+        bad.provider = self.platform_provider
+        bad.save(update_fields=["provider"])
+        call_command("reconcile_provider_usage", tenant=self.tenant.public_id, check=bad.public_id, stdout=StringIO())
+        self.assertTrue(BillingUsageEvent.objects.filter(provider_check=bad).exists())
