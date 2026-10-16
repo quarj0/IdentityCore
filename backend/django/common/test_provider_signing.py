@@ -87,3 +87,65 @@ class ProviderSigningTests(TestCase):
             ).signature,
             item["signature"],
         )
+
+    def test_malformed_ascii_fields_fail_without_claiming_a_nonce(self):
+        from unittest.mock import Mock
+
+        for header, value in (
+            ("X-IC-Nonce", "nonce-é"),
+            ("X-IC-Nonce", "nonce\nother"),
+            ("X-IC-Nonce", "x" * 257),
+            ("X-IC-Signature", "é" * 64),
+            ("X-IC-Signature", "f" * 63),
+            ("X-IC-Key-Id", "key\nother"),
+            ("X-IC-Timestamp", "١٧٠٠٠٠٠٠٠٠"),
+        ):
+            with self.subTest(header=header, value=value):
+                headers = {**self.signed.headers(), header: value}
+                claim = Mock(return_value=True)
+                with self.assertRaises(ProviderSignatureError):
+                    self.verify(headers=headers, claim_nonce=claim)
+                claim.assert_not_called()
+
+    def test_non_ascii_expected_nonce_is_a_controlled_error(self):
+        with self.assertRaises(ProviderSignatureError):
+            self.verify(expected_nonce="nonce-é")
+
+    def test_rotating_key_id_does_not_allow_reusing_a_claimed_nonce(self):
+        claimed = set()
+
+        def claim(key, _ttl):
+            if key in claimed:
+                return False
+            claimed.add(key)
+            return True
+
+        self.verify(claim_nonce=claim, replay_namespace="provider-one")
+        rotated = sign_message(
+            method="POST",
+            path="/v1/check",
+            body=self.body,
+            key_id="current",
+            secret="old-secret",
+            timestamp=1_700_000_000,
+            nonce="request-nonce",
+        )
+        with self.assertRaisesRegex(ProviderSignatureError, "already been used"):
+            self.verify(
+                headers=rotated.headers(),
+                claim_nonce=claim,
+                replay_namespace="provider-one",
+            )
+
+    def test_independent_provider_namespaces_can_claim_the_same_nonce(self):
+        claimed = set()
+
+        def claim(key, _ttl):
+            if key in claimed:
+                return False
+            claimed.add(key)
+            return True
+
+        self.verify(claim_nonce=claim, replay_namespace="provider-one")
+        self.verify(claim_nonce=claim, replay_namespace="provider-two")
+        self.assertEqual(len(claimed), 2)
