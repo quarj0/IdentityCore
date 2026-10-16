@@ -3,6 +3,7 @@
 import hashlib
 import hmac
 import json
+import re
 import secrets
 import time
 from dataclasses import dataclass
@@ -35,7 +36,11 @@ class SignedMessage:
 
 
 def canonical_json(value: object) -> bytes:
-    """Serialize JSON identically across runtimes (UTF-8, sorted, no whitespace)."""
+    """Serialize Python JSON deterministically; sign and verify the exact wire bytes.
+
+    This is not RFC 8785/JCS: another runtime must not reserialize a received
+    body before checking its signature (notably floats and Unicode key order).
+    """
     return json.dumps(
         value,
         ensure_ascii=False,
@@ -98,6 +103,24 @@ def verify_message(
         raise ProviderSignatureError(
             "Missing or malformed provider signature headers."
         ) from exc
+    # Validate attacker-controlled strings before compare_digest: its string
+    # form only accepts ASCII, and must not surface TypeError as an HTTP 500.
+    fields = (
+        (key_id, r"[A-Za-z0-9_.-]{1,128}"),
+        (normalized["x-ic-timestamp"], r"[0-9]{1,12}"),
+        (nonce, r"[A-Za-z0-9_-]{1,256}"),
+        (signature, r"[0-9a-f]{64}"),
+    )
+    if any(
+        not isinstance(value, str) or re.fullmatch(pattern, value) is None
+        for value, pattern in fields
+    ):
+        raise ProviderSignatureError("Malformed provider signature headers.")
+    if expected_nonce is not None and (
+        not isinstance(expected_nonce, str)
+        or re.fullmatch(r"[A-Za-z0-9_-]{1,256}", expected_nonce) is None
+    ):
+        raise ProviderSignatureError("Malformed expected provider nonce.")
     if version != SIGNATURE_VERSION:
         raise ProviderSignatureError("Unsupported provider signature version.")
     secret = keys.get(key_id)
@@ -122,7 +145,9 @@ def verify_message(
     if not hmac.compare_digest(signature, expected):
         raise ProviderSignatureError("Provider signature is invalid.")
     replay_key = hashlib.sha256(
-        f"{replay_namespace}:{key_id}:{nonce}".encode()
+        json.dumps(
+            [SIGNATURE_VERSION, replay_namespace, nonce], separators=(",", ":")
+        ).encode()
     ).hexdigest()
     claim = claim_nonce or (lambda key, ttl: cache.add(key, True, timeout=ttl))
     if not claim(replay_key, max_age_seconds * 2):
