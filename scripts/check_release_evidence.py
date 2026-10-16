@@ -66,7 +66,9 @@ def check_evidence(manifest, evidence_root, *, head_sha, mode, now=None):
     now = now or datetime.now(timezone.utc)
     if mode not in ("pilot", "commercial"):
         raise EvidenceError("Unknown release mode")
-    if not isinstance(manifest, dict) or manifest.get("schema_version") != 1:
+    if (not isinstance(manifest, dict)
+            or type(manifest.get("schema_version")) is not int
+            or manifest["schema_version"] != 1):
         raise EvidenceError("Unsupported manifest version")
     if manifest.get("environment") != "production":
         raise EvidenceError("Not production evidence")
@@ -119,6 +121,15 @@ def check_evidence(manifest, evidence_root, *, head_sha, mode, now=None):
     return {"ready": True, "mode": mode, "checks_verified": sorted(required)}
 
 
+def unique_fields(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise EvidenceError("Duplicate manifest field")
+        result[key] = value
+    return result
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", required=True, type=Path)
@@ -127,7 +138,7 @@ def main(argv=None):
     parser.add_argument("--mode", required=True, choices=["pilot", "commercial"])
     args = parser.parse_args(argv)
     try:
-        data = json.loads(args.manifest.read_text(encoding="utf-8"))
+        data = json.loads(args.manifest.read_text(encoding="utf-8"), object_pairs_hook=unique_fields)
         result = check_evidence(data, args.evidence_root, head_sha=args.head_sha, mode=args.mode)
     except (OSError, ValueError) as exc:
         print(json.dumps({"ready": False, "reason": str(exc)}))

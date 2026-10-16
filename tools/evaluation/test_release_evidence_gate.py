@@ -1,3 +1,6 @@
+import contextlib
+import io
+import json
 import hashlib
 import importlib.util
 import tempfile
@@ -38,6 +41,36 @@ class ReleaseEvidenceTests(unittest.TestCase):
     def test_complete_structure(self):
         # Synthetic structural test does not certify that an approval occurred.
         self.assertTrue(self.check()["ready"])
+
+    def test_version_requires_exact_integer(self):
+        for version in (True, False, 1.0, "1", None):
+            with self.subTest(version=version):
+                self.manifest["schema_version"] = version
+                with self.assertRaises(module.EvidenceError):
+                    self.check()
+
+    def test_cli_rejects_duplicate_fields_at_every_depth(self):
+        manifest_path = self.root / "manifest.json"
+        plain = json.dumps(self.manifest)
+        for original, duplicate in (
+            ('"schema_version": 1', '"schema_version": 2, "schema_version": 1'),
+            ('"reviewer": "independent reviewer"',
+             '"reviewer": "operator", "reviewer": "independent reviewer"'),
+            ('"path": "synthetic.txt"',
+             '"path": "outside.txt", "path": "synthetic.txt"'),
+        ):
+            with self.subTest(field=original):
+                manifest_path.write_text(plain.replace(original, duplicate, 1))
+                output = io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    result = module.main([
+                        "--manifest", str(manifest_path),
+                        "--evidence-root", str(self.root),
+                        "--head-sha", SHA, "--mode", "pilot",
+                    ])
+                self.assertEqual(result, 1)
+                self.assertFalse(json.loads(output.getvalue())["ready"])
+                self.assertIn("Duplicate", output.getvalue())
 
     def test_missing_checks_rejected(self):
         del self.manifest["checks"]["managed_model_evaluation"]
