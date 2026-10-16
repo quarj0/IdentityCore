@@ -122,34 +122,49 @@ try {
   await cp(join(portal, "public"), join(standalone, "public"), {
     recursive: true,
   });
-  child = spawn(process.execPath, [join(standalone, "server.js")], {
-    cwd: portal,
-    env: {
-      ...process.env,
-      PORT: String(frontendPort),
-      HOSTNAME: "127.0.0.1",
-      API_ORIGIN: `https://127.0.0.1:${upstreamPort}`,
-      DEPLOYMENT_VERSION: "bff-transport-test",
-      NODE_EXTRA_CA_CERTS: certificatePath,
-    },
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  child.stdout.on("data", appendLog);
-  child.stderr.on("data", appendLog);
+  const startPortal = (extraEnvironment = {}) => {
+    const processChild = spawn(
+      process.execPath,
+      [join(standalone, "server.js")],
+      {
+        cwd: portal,
+        env: {
+          ...process.env,
+          VERIFICATION_PUBLIC_ORIGIN: "",
+          ...extraEnvironment,
+          PORT: String(frontendPort),
+          HOSTNAME: "127.0.0.1",
+          API_ORIGIN: `https://127.0.0.1:${upstreamPort}`,
+          DEPLOYMENT_VERSION: "bff-transport-test",
+          NODE_EXTRA_CA_CERTS: certificatePath,
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+    processChild.stdout.on("data", appendLog);
+    processChild.stderr.on("data", appendLog);
+    return processChild;
+  };
   const origin = `http://127.0.0.1:${frontendPort}`;
-  let ready = false;
-  for (let attempt = 0; attempt < 100; attempt++) {
-    if (child.exitCode !== null)
-      throw new Error("Standalone verification portal exited before readiness");
-    try {
-      if ((await fetch(`${origin}/api/health`)).status === 200) {
-        ready = true;
-        break;
-      }
-    } catch {}
-    await delay(100);
-  }
-  assert(ready, "Standalone verification portal did not become ready");
+  const waitForPortal = async () => {
+    let ready = false;
+    for (let attempt = 0; attempt < 100; attempt++) {
+      if (child.exitCode !== null)
+        throw new Error(
+          "Standalone verification portal exited before readiness",
+        );
+      try {
+        if ((await fetch(`${origin}/api/health`)).status === 200) {
+          ready = true;
+          break;
+        }
+      } catch {}
+      await delay(100);
+    }
+    assert(ready, "Standalone verification portal did not become ready");
+  };
+  child = startPortal();
+  await waitForPortal();
   const headers = {
     Cookie: `__Host-identitycore_verify=${token}; __Host-identitycore_verify_id=${sessionId}`,
     Origin: origin,
@@ -348,7 +363,8 @@ try {
             port: frontendPort,
             path: request.url,
             method: request.method,
-            headers: { ...request.headers, "x-forwarded-proto": "https" },
+            // The ingress intentionally supplies no forwarding scheme.
+            headers: request.headers,
           },
           (incoming) => {
             response.writeHead(incoming.statusCode, incoming.headers);
@@ -363,6 +379,10 @@ try {
     browserServer.listen(0, "127.0.0.1");
     await once(browserServer, "listening");
     const browserOrigin = `https://127.0.0.1:${browserServer.address().port}`;
+    child.kill("SIGTERM");
+    await once(child, "exit");
+    child = startPortal({ VERIFICATION_PUBLIC_ORIGIN: browserOrigin });
+    await waitForPortal();
     for (const engine of [chromium, webkit]) {
       const browser = await engine.launch();
       try {

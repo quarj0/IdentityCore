@@ -110,6 +110,24 @@ export function requestIsSameOrigin(request: Request): boolean {
       )
         return false;
       incoming.host = authority.host;
+      incoming.port = authority.port;
+    }
+    const configured = process.env.VERIFICATION_PUBLIC_ORIGIN;
+    if (configured) {
+      // A fixed deployment origin supports TLS termination without granting
+      // arbitrary forwarding headers authority over this CSRF boundary.
+      const publicOrigin = new URL(configured);
+      if (
+        !["https:", "http:"].includes(publicOrigin.protocol) ||
+        publicOrigin.username ||
+        publicOrigin.password ||
+        publicOrigin.pathname !== "/" ||
+        publicOrigin.search ||
+        publicOrigin.hash ||
+        publicOrigin.host !== incoming.host
+      )
+        return false;
+      return origin === publicOrigin.origin;
     }
     return origin === incoming.origin;
   } catch {

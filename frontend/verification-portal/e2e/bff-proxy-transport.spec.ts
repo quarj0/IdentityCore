@@ -149,3 +149,45 @@ test("same-origin validation uses the incoming Host without trusting forwarded h
     ),
   ).toBe(false);
 });
+
+test("configured HTTPS origin supports an HTTP ingress hop without forwarding headers", () => {
+  const previous = process.env.VERIFICATION_PUBLIC_ORIGIN;
+  process.env.VERIFICATION_PUBLIC_ORIGIN = "https://verify.example.test";
+  try {
+    const request = (host: string, origin: string) =>
+      new Request("http://localhost:3002/api/verification/session", {
+        headers: { Host: host, Origin: origin, "X-Forwarded-Proto": "http" },
+      });
+    expect(
+      requestIsSameOrigin(
+        request("verify.example.test", "https://verify.example.test"),
+      ),
+    ).toBe(true);
+    expect(
+      requestIsSameOrigin(
+        request("verify.example.test", "http://verify.example.test"),
+      ),
+    ).toBe(false);
+    expect(
+      requestIsSameOrigin(
+        request("evil.example.test", "https://verify.example.test"),
+      ),
+    ).toBe(false);
+    for (const invalid of [
+      "https://verify.example.test/path",
+      "https://user@verify.example.test",
+      "https://verify.example.test?query=1",
+      "not-an-origin",
+    ]) {
+      process.env.VERIFICATION_PUBLIC_ORIGIN = invalid;
+      expect(
+        requestIsSameOrigin(
+          request("verify.example.test", "https://verify.example.test"),
+        ),
+      ).toBe(false);
+    }
+  } finally {
+    if (previous === undefined) delete process.env.VERIFICATION_PUBLIC_ORIGIN;
+    else process.env.VERIFICATION_PUBLIC_ORIGIN = previous;
+  }
+});
