@@ -92,3 +92,38 @@ class InvoiceTaskRecoveryTests(TestCase):
                 tenant=tenant, period_start=self.period_start, status="issued"
             ).exists()
         )
+
+
+@override_settings(BILLING_USAGE_CAPTURE_ENABLED=True)
+class ScheduledUsageRecoveryTests(TestCase):
+    setUp = usage_fixtures.UsageLedgerTests.setUp
+    make_check = usage_fixtures.UsageLedgerTests.make_check
+
+    def test_bounded_usage_reconciliation_recovers_platform_and_byop_once(self):
+        from apps.billing.tasks import reconcile_billing_usage_task
+        from apps.billing.models import BillingUsageEvent
+
+        self.make_check(self.production, self.platform_provider)
+        self.make_check(self.production, self.byop_provider)
+        self.make_check(self.sandbox, self.platform_provider)
+        self.assertEqual(reconcile_billing_usage_task(limit=1), 1)
+        self.assertEqual(reconcile_billing_usage_task(limit=1), 1)
+        self.assertEqual(reconcile_billing_usage_task(limit=1), 0)
+        self.assertEqual(
+            set(BillingUsageEvent.objects.values_list("provider_scope", flat=True)),
+            {"platform", "tenant_owned"},
+        )
+        self.assertEqual(
+            set(BillingUsageEvent.objects.values_list("rating_state", flat=True)),
+            {"unrated"},
+        )
+        self.assertFalse(BillingInvoice.objects.exists())
+
+    @override_settings(BILLING_USAGE_CAPTURE_ENABLED=False)
+    def test_disabled_scheduled_usage_capture_records_nothing(self):
+        from apps.billing.tasks import reconcile_billing_usage_task
+        from apps.billing.models import BillingUsageEvent
+
+        self.make_check(self.production, self.platform_provider)
+        self.assertEqual(reconcile_billing_usage_task(), 0)
+        self.assertFalse(BillingUsageEvent.objects.exists())

@@ -34,7 +34,7 @@ def reconcile_billing_usage_task(limit=200):
             ],
             billing_usage_event__isnull=True,
         )
-        .order_by(F("invoice_last_attempt_at").asc(nulls_first=True), "pk")
+        .order_by("pk")
         .values_list("pk", flat=True)[:limit]
     )
     recorded = 0
