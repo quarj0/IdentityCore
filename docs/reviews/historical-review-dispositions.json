@@ -12232,8 +12232,26 @@
         "backend/django/apps/billing/paystack.py"
       ],
       "disposition_note": "Fixed in protected merged PR #401 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; narrow exact-head CI selector approval was removed after merge. Immutable final-head CI backend job 117096845626 ran 1162 tests with 45 skips successfully (1117 passed); PostgreSQL migration/concurrency job 117096845563 also succeeded."
+    },
+    {
+      "pr_number": 403,
+      "thread_id": "PRRT_kwDOTN0BU86tXf3g",
+      "comment_id": 4299043672,
+      "path": "docs/reviews/historical-review-dispositions.json",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep the BFF-mock finding actionable**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/403#discussion_r4299043672",
+      "remediation_pr": 403,
+      "remediation_commit": "89bb6e24e34085e2b281e96cfd20f99cb1b7084a",
+      "merged_commit": "2c83813c0d47ca52a2bea05e2ae41417540e9b35",
+      "resolver_evidence": "Fixed in 89bb6e24e34085e2b281e96cfd20f99cb1b7084a. Validation: 42 targeted tests passed.",
+      "evidence": [
+        "docs/reviews/historical-review-dispositions.json",
+        "backend/django/config/test_public_contract_boundaries.py"
+      ],
+      "disposition_note": "Fixed in protected merged PR #403 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; no temporary protected-path approval was required."
     }
   ],
   "verified_main": "69dd242c46f62594e9e7fba1af5f66601e63c539",
-  "inventory_note": "858 threads from closed or merged PRs: 230 fixed, 288 verified, 6 actionable and 334 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
+  "inventory_note": "859 threads from closed or merged PRs: 231 fixed, 288 verified, 6 actionable and 334 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
 }
