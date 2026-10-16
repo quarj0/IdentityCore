@@ -2258,30 +2258,54 @@
       "thread_id": "PRRT_kwDOTN0BU86UTTFZ",
       "comment_id": 3663207255,
       "path": "backend/django/apps/templates/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/templates/services.py:verified key collisions compare the immutable hash; project/name collisions return validation errors and unrelated integrity errors propagate",
+        "backend/django/apps/templates/test_historical_instantiation.py:test_name_collision_returns_validation_error",
+        "backend/django/apps/templates/test_instantiation_races.py:three rounds of replay/conflicting key/name and organization adoption races"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Distinguish name collisions from idempotency races**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207255"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207255",
+      "disposition_note": "Fixed in protected merged PR #402 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1066 tests with 41 skips successfully. Required PostgreSQL CI passed 135 tests, including repeated concurrent instantiation and organization adoption races. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 402,
+      "remediation_commit": "948f8106a2cef20584219c522ea1180a47579dbe",
+      "merged_commit": "a52eccd632b16a20748db0f75d62dc374e2132db"
     },
     {
       "pr_number": 49,
       "thread_id": "PRRT_kwDOTN0BU86UTTFd",
       "comment_id": 3663207260,
       "path": "backend/django/apps/templates/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/templates/services.py:creation stores immutable request digest rather than reconstructing replay evidence from editable workflow state",
+        "backend/django/apps/templates/test_historical_instantiation.py:test_exact_replay_survives_workflow_rename",
+        "backend/django/apps/templates/test_instantiation_races.py:three rounds of replay/conflicting key/name and organization adoption races"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Compare replays against the original request**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207260"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207260",
+      "disposition_note": "Fixed in protected merged PR #402 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1066 tests with 41 skips successfully. Required PostgreSQL CI passed 135 tests, including repeated concurrent instantiation and organization adoption races. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 402,
+      "remediation_commit": "948f8106a2cef20584219c522ea1180a47579dbe",
+      "merged_commit": "a52eccd632b16a20748db0f75d62dc374e2132db"
     },
     {
       "pr_number": 49,
       "thread_id": "PRRT_kwDOTN0BU86UTTFh",
       "comment_id": 3663207265,
       "path": "backend/django/apps/templates/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/templates/services.py:matching replay occurs before current source publication checks",
+        "backend/django/apps/templates/test_historical_instantiation.py:test_exact_replay_survives_source_archive",
+        "backend/django/apps/templates/test_instantiation_races.py:three rounds of replay/conflicting key/name and organization adoption races"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Replay idempotent requests before checking template state**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207265"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207265",
+      "disposition_note": "Fixed in protected merged PR #402 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1066 tests with 41 skips successfully. Required PostgreSQL CI passed 135 tests, including repeated concurrent instantiation and organization adoption races. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 402,
+      "remediation_commit": "948f8106a2cef20584219c522ea1180a47579dbe",
+      "merged_commit": "a52eccd632b16a20748db0f75d62dc374e2132db"
     },
     {
       "pr_number": 49,
@@ -2298,10 +2322,18 @@
       "thread_id": "PRRT_kwDOTN0BU86UTTFr",
       "comment_id": 3663207276,
       "path": "backend/django/apps/templates/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/templates/services.py:source row lock serializes distinct-organization adoption checks and migration reconciles existing inflated values",
+        "backend/django/apps/templates/test_historical_instantiation.py:test_migration_reconciles_existing_inflated_adoption",
+        "backend/django/apps/templates/test_instantiation_races.py:three rounds of replay/conflicting key/name and organization adoption races"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Count each adopting organization only once**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207276"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207276",
+      "disposition_note": "Fixed in protected merged PR #402 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1066 tests with 41 skips successfully. Required PostgreSQL CI passed 135 tests, including repeated concurrent instantiation and organization adoption races. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 402,
+      "remediation_commit": "948f8106a2cef20584219c522ea1180a47579dbe",
+      "merged_commit": "a52eccd632b16a20748db0f75d62dc374e2132db"
     },
     {
       "pr_number": 49,
@@ -2333,10 +2365,18 @@
       "thread_id": "PRRT_kwDOTN0BU86UTTF1",
       "comment_id": 3663207289,
       "path": "backend/django/apps/templates/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/templates/serializers.py:serialize_catalog_template explicitly excludes administrator identities and operational fields",
+        "backend/django/apps/templates/test_historical_instantiation.py:test_catalog_omits_internal_identity_and_operational_fields",
+        "backend/django/apps/templates/test_instantiation_races.py:three rounds of replay/conflicting key/name and organization adoption races"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Restrict tenant catalog responses to public metadata**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207289"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207289",
+      "disposition_note": "Fixed in protected merged PR #402 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1066 tests with 41 skips successfully. Required PostgreSQL CI passed 135 tests, including repeated concurrent instantiation and organization adoption races. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 402,
+      "remediation_commit": "948f8106a2cef20584219c522ea1180a47579dbe",
+      "merged_commit": "a52eccd632b16a20748db0f75d62dc374e2132db"
     },
     {
       "pr_number": 49,
@@ -2536,10 +2576,18 @@
       "thread_id": "PRRT_kwDOTN0BU86UXGpg",
       "comment_id": 3664639072,
       "path": "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
+        "frontend/verification-portal/e2e/verification-flow.spec.ts",
+        "backend/django/apps/verification_sessions/urls.py",
+        "backend/django/apps/uploads/urls.py",
+        "backend/django/apps/verification_sessions/views.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Move the browser API mocks behind the BFF**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/67#discussion_r3664639072"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/67#discussion_r3664639072",
+      "verified_main": "a52eccd632b16a20748db0f75d62dc374e2132db",
+      "disposition_note": "Flow and expiry browser mocks intercept same-origin **/api/verification/** requests rather than upstream requests made by the Next server. Individually inspected current verification-flow.spec.ts and successful final-head frontend CI."
     },
     {
       "pr_number": 67,
@@ -2566,10 +2614,18 @@
       "thread_id": "PRRT_kwDOTN0BU86UXGpq",
       "comment_id": 3664639086,
       "path": "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
+        "frontend/verification-portal/e2e/verification-flow.spec.ts",
+        "backend/django/apps/verification_sessions/urls.py",
+        "backend/django/apps/uploads/urls.py",
+        "backend/django/apps/verification_sessions/views.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Forward subject metadata instead of recording the BFF**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/67#discussion_r3664639086"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/67#discussion_r3664639086",
+      "verified_main": "a52eccd632b16a20748db0f75d62dc374e2132db",
+      "disposition_note": "The BFF still omits the subject User-Agent and trusted address metadata; Django persists the proxy request metadata. A trusted propagation mechanism and explicit audit attribution are required."
     },
     {
       "pr_number": 67,
@@ -2596,20 +2652,36 @@
       "thread_id": "PRRT_kwDOTN0BU86UXGp5",
       "comment_id": 3664639104,
       "path": "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
+        "frontend/verification-portal/e2e/verification-flow.spec.ts",
+        "backend/django/apps/verification_sessions/urls.py",
+        "backend/django/apps/uploads/urls.py",
+        "backend/django/apps/verification_sessions/views.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve the upload collection's trailing slash**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/67#discussion_r3664639104"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/67#discussion_r3664639104",
+      "verified_main": "a52eccd632b16a20748db0f75d62dc374e2132db",
+      "disposition_note": "The upload collection is forwarded with its required trailing slash. Current Django resolver confirms /api/v1/uploads/ resolves, matching the BFF path."
     },
     {
       "pr_number": 70,
       "thread_id": "PRRT_kwDOTN0BU86UXylf",
       "comment_id": 3664891799,
       "path": "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
+        "frontend/verification-portal/e2e/verification-flow.spec.ts",
+        "backend/django/apps/verification_sessions/urls.py",
+        "backend/django/apps/uploads/urls.py",
+        "backend/django/apps/verification_sessions/views.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve trailing slashes when constructing upstream URLs**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3664891799"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3664891799",
+      "verified_main": "a52eccd632b16a20748db0f75d62dc374e2132db",
+      "disposition_note": "The duplicate upload collection finding is individually confirmed by the current BFF URL construction and actual Django router resolution for /api/v1/uploads/."
     },
     {
       "pr_number": 70,
@@ -2626,10 +2698,18 @@
       "thread_id": "PRRT_kwDOTN0BU86UXyll",
       "comment_id": 3664891811,
       "path": "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
+        "frontend/verification-portal/e2e/verification-flow.spec.ts",
+        "backend/django/apps/verification_sessions/urls.py",
+        "backend/django/apps/uploads/urls.py",
+        "backend/django/apps/verification_sessions/views.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Forward trusted subject metadata through the BFF**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3664891811"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3664891811",
+      "verified_main": "a52eccd632b16a20748db0f75d62dc374e2132db",
+      "disposition_note": "Individually inspected this repeated trusted-subject-metadata finding: current selectively constructed BFF headers omit User-Agent and client address while Django records REMOTE_ADDR."
     },
     {
       "pr_number": 70,
@@ -2814,10 +2894,18 @@
       "thread_id": "PRRT_kwDOTN0BU86UYgpt",
       "comment_id": 3665156279,
       "path": "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
+        "frontend/verification-portal/e2e/verification-flow.spec.ts",
+        "backend/django/apps/verification_sessions/urls.py",
+        "backend/django/apps/uploads/urls.py",
+        "backend/django/apps/verification_sessions/views.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve subject metadata across the BFF**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156279"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/71#discussion_r3665156279",
+      "verified_main": "a52eccd632b16a20748db0f75d62dc374e2132db",
+      "disposition_note": "Individually inspected the later metadata finding: session and consent records still identify the BFF runtime rather than reliably attributed subject metadata."
     },
     {
       "pr_number": 71,
@@ -2945,10 +3033,18 @@
       "thread_id": "PRRT_kwDOTN0BU86VqaEo",
       "comment_id": 3696429049,
       "path": "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
+        "frontend/verification-portal/e2e/verification-flow.spec.ts",
+        "backend/django/apps/verification_sessions/urls.py",
+        "backend/django/apps/uploads/urls.py",
+        "backend/django/apps/verification_sessions/views.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Stop reading proxy requests once they exceed the limit**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/77#discussion_r3696429049"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/77#discussion_r3696429049",
+      "verified_main": "a52eccd632b16a20748db0f75d62dc374e2132db",
+      "disposition_note": "Current BFF still calls request.arrayBuffer() before checking actual size. Chunked or missing-length requests can allocate beyond the 26 MiB limit; bounded stream consumption is required."
     },
     {
       "pr_number": 77,
@@ -2985,10 +3081,18 @@
       "thread_id": "PRRT_kwDOTN0BU86Vqf3U",
       "comment_id": 3696463118,
       "path": "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
+        "frontend/verification-portal/e2e/verification-flow.spec.ts",
+        "backend/django/apps/verification_sessions/urls.py",
+        "backend/django/apps/uploads/urls.py",
+        "backend/django/apps/verification_sessions/views.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve slashless session and transfer endpoints**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/81#discussion_r3696463118"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/81#discussion_r3696463118",
+      "verified_main": "a52eccd632b16a20748db0f75d62dc374e2132db",
+      "disposition_note": "Actual Django router reproduction confirms current BFF appends a slash to session detail, status, consent and upload transfer paths, and all four forwarded paths fail to resolve. Only the upload collection should receive a trailing slash."
     },
     {
       "pr_number": 82,
@@ -5997,50 +6101,95 @@
       "thread_id": "PRRT_kwDOTN0BU86XlO0p",
       "comment_id": 3743141466,
       "path": "backend/django/apps/verifications/result_contract.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/result_contract.py",
+        "backend/django/apps/verifications/views.py",
+        "backend/django/apps/verifications/review_reasons.py",
+        "backend/django/apps/verifications/test_result_contract.py",
+        "backend/django/apps/verifications/test_review_reasons.py",
+        "backend/django/apps/verifications/test_simulator.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Replace token-shape filtering with semantic allowlists**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/276#discussion_r3743141466"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/276#discussion_r3743141466",
+      "verified_main": "a52eccd632b16a20748db0f75d62dc374e2132db",
+      "disposition_note": "Provider issues and decision reasons use semantic code allowlists, with snapshot-bound organization-facing manual reason catalogs; applicant identifiers, storage URIs and uncontrolled tokens are excluded. Regression test_result_drops_token_shaped_uncontrolled_codes passes. Individually inspected original finding and immutable main implementation; 21 related tests passed on real PostgreSQL."
     },
     {
       "pr_number": 276,
       "thread_id": "PRRT_kwDOTN0BU86XlO0s",
       "comment_id": 3743141468,
       "path": "backend/django/apps/verifications/result_contract.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/result_contract.py",
+        "backend/django/apps/verifications/views.py",
+        "backend/django/apps/verifications/review_reasons.py",
+        "backend/django/apps/verifications/test_result_contract.py",
+        "backend/django/apps/verifications/test_review_reasons.py",
+        "backend/django/apps/verifications/test_simulator.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve capability contract versions from provider results**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/276#discussion_r3743141468"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/276#discussion_r3743141468",
+      "verified_main": "a52eccd632b16a20748db0f75d62dc374e2132db",
+      "disposition_note": "Capability contract version falls back from the reduced normalized summary to response_metadata_json. Regression test_result_falls_back_to_response_contract_and_maps_risk_score passes. Individually inspected original finding and immutable main implementation; 21 related tests passed on real PostgreSQL."
     },
     {
       "pr_number": 276,
       "thread_id": "PRRT_kwDOTN0BU86XlO0u",
       "comment_id": 3743141471,
       "path": "backend/django/apps/verifications/result_contract.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/result_contract.py",
+        "backend/django/apps/verifications/views.py",
+        "backend/django/apps/verifications/review_reasons.py",
+        "backend/django/apps/verifications/test_result_contract.py",
+        "backend/django/apps/verifications/test_review_reasons.py",
+        "backend/django/apps/verifications/test_simulator.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Return normalized check outcomes as provenance status**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/276#discussion_r3743141471"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/276#discussion_r3743141471",
+      "verified_main": "a52eccd632b16a20748db0f75d62dc374e2132db",
+      "disposition_note": "Provenance uses the recorded workflow_result status or normalized outcome when it belongs to the public outcome set, with execution-state fallback only when absent/invalid. Result-contract and simulator regressions assert actual normalized outcomes. Individually inspected original finding and immutable main implementation; 21 related tests passed on real PostgreSQL."
     },
     {
       "pr_number": 276,
       "thread_id": "PRRT_kwDOTN0BU86XlO0v",
       "comment_id": 3743141472,
       "path": "backend/django/apps/verifications/result_contract.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/result_contract.py",
+        "backend/django/apps/verifications/views.py",
+        "backend/django/apps/verifications/review_reasons.py",
+        "backend/django/apps/verifications/test_result_contract.py",
+        "backend/django/apps/verifications/test_review_reasons.py",
+        "backend/django/apps/verifications/test_simulator.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include the persisted risk score in check evidence**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/276#discussion_r3743141472"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/276#discussion_r3743141472",
+      "verified_main": "a52eccd632b16a20748db0f75d62dc374e2132db",
+      "disposition_note": "Persisted risk_score maps to the public score evidence field, preserving an explicitly supplied generic score. Regression test_result_falls_back_to_response_contract_and_maps_risk_score asserts 82.5. Individually inspected original finding and immutable main implementation; 21 related tests passed on real PostgreSQL."
     },
     {
       "pr_number": 276,
       "thread_id": "PRRT_kwDOTN0BU86XlO0x",
       "comment_id": 3743141473,
       "path": "backend/django/apps/verifications/result_contract.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/result_contract.py",
+        "backend/django/apps/verifications/views.py",
+        "backend/django/apps/verifications/review_reasons.py",
+        "backend/django/apps/verifications/test_result_contract.py",
+        "backend/django/apps/verifications/test_review_reasons.py",
+        "backend/django/apps/verifications/test_simulator.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Recompute reasons when approval changes the outcome**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/276#discussion_r3743141473"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/276#discussion_r3743141473",
+      "verified_main": "a52eccd632b16a20748db0f75d62dc374e2132db",
+      "disposition_note": "Checker approval validates the final outcome catalog and stores checker-specific reason_code, reason_codes_json and notes separately from maker proposal fields. Regression test_checker_uses_final_outcome_catalog_and_own_notes passes. Individually inspected original finding and immutable main implementation; 21 related tests passed on real PostgreSQL."
     },
     {
       "pr_number": 277,
@@ -7740,10 +7889,16 @@
       "thread_id": "PRRT_kwDOTN0BU86bYwFW",
       "comment_id": 3836042734,
       "path": "backend/django/apps/webhooks/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/views.py",
+        "backend/django/apps/webhooks/services.py",
+        "backend/django/apps/webhooks/tests.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Lock the endpoint before rotating its secret**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836042734"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836042734",
+      "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "disposition_note": "Rotation holds the endpoint row lock and tenant audit lock before deriving a new secret/version. Individually inspected original body and current implementation. All 50 webhook tests passed on real PostgreSQL against immutable main."
     },
     {
       "pr_number": 302,
@@ -7790,10 +7945,16 @@
       "thread_id": "PRRT_kwDOTN0BU86bY5sO",
       "comment_id": 3836099302,
       "path": "backend/django/apps/webhooks/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/views.py",
+        "backend/django/apps/webhooks/services.py",
+        "backend/django/apps/webhooks/tests.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Prevent PATCH from overwriting a completed rotation**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836099302"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836099302",
+      "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "disposition_note": "PATCH saves only editable URL, description, events and updated_at fields, preserving rotation fields. Individually inspected original body and current implementation. All 50 webhook tests passed on real PostgreSQL against immutable main."
     },
     {
       "pr_number": 302,
@@ -7832,10 +7993,16 @@
       "thread_id": "PRRT_kwDOTN0BU86bY-o4",
       "comment_id": 3836127972,
       "path": "backend/django/apps/webhooks/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/views.py",
+        "backend/django/apps/webhooks/services.py",
+        "backend/django/apps/webhooks/tests.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate replayed rotations against the endpoint's current version**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836127972"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836127972",
+      "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "disposition_note": "Idempotent rotation replays lock the endpoint and reject stored versions that differ from the current signing-secret version. Individually inspected original body and current implementation. All 50 webhook tests passed on real PostgreSQL against immutable main."
     },
     {
       "pr_number": 302,
@@ -9108,20 +9275,32 @@
       "thread_id": "PRRT_kwDOTN0BU86h1VJa",
       "comment_id": 3998277305,
       "path": "backend/django/apps/webhooks/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/views.py",
+        "backend/django/apps/webhooks/services.py",
+        "backend/django/apps/webhooks/tests.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Prevent in-flight retries from reviving cancelled events**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3998277305"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3998277305",
+      "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "disposition_note": "Delivery completion locks and reloads the endpoint/event, checks the claim and persisted status, and preserves cancellation after a retryable failure. Individually inspected original body and current implementation. All 50 webhook tests passed on real PostgreSQL against immutable main."
     },
     {
       "pr_number": 312,
       "thread_id": "PRRT_kwDOTN0BU86h1VJe",
       "comment_id": 3998277310,
       "path": "backend/django/apps/webhooks/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/views.py",
+        "backend/django/apps/webhooks/services.py",
+        "backend/django/apps/webhooks/tests.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Require a webhook-management permission for replay**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3998277310"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3998277310",
+      "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "disposition_note": "Replay explicitly requires manage_webhooks and its membership-only denial regression passes. Individually inspected original body and current implementation. All 50 webhook tests passed on real PostgreSQL against immutable main."
     },
     {
       "pr_number": 312,
@@ -9233,10 +9412,16 @@
       "thread_id": "PRRT_kwDOTN0BU86h8Od_",
       "comment_id": 4000973129,
       "path": "backend/django/apps/webhooks/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/webhooks/views.py",
+        "backend/django/apps/webhooks/services.py",
+        "backend/django/apps/webhooks/tests.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Require webhook-management permission for reactivation**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r4000973129"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r4000973129",
+      "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "disposition_note": "All endpoint recovery actions explicitly require manage_webhooks, including reactivation. Individually inspected original body and current implementation. All 50 webhook tests passed on real PostgreSQL against immutable main."
     },
     {
       "pr_number": 312,
@@ -11375,8 +11560,681 @@
         "GitHub CI job 116726226393:123 PostgreSQL tests passed on final head"
       ],
       "disposition_note": "Fixed in protected merged PR #399 after final-head independent review, strict resolver evidence, all PR/push CI and Security and dedicated App success. Full backend ran 1054 with 39 skips successfully. Trusted merge required no temporary approval."
+    },
+    {
+      "pr_number": 400,
+      "thread_id": "PRRT_kwDOTN0BU86tAfrv",
+      "comment_id": 4289398410,
+      "path": "scripts/check_release_evidence.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Require a reviewer on every release check**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/400#discussion_r4289398410",
+      "remediation_pr": 400,
+      "remediation_commit": "d9ef4623f23ed900e9cefc8d6880879a1e1b51b9",
+      "merged_commit": "8d317d31589e828407cc920c1f06b2f82307210a",
+      "resolver_evidence": "Fixed in 52bb84ed2596159fb168fe786e86aedb63c6e084. Validation: 11 targeted tests passed.",
+      "evidence": [
+        "scripts/check_release_evidence.py",
+        "tools/evaluation/test_release_evidence_gate.py",
+        "13 release evidence tests passed after five ambiguity regressions were reproduced"
+      ],
+      "disposition_note": "Fixed in protected merged PR #400 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; no temporary approval remained."
+    },
+    {
+      "pr_number": 400,
+      "thread_id": "PRRT_kwDOTN0BU86tBAnc",
+      "comment_id": 4289617856,
+      "path": "scripts/check_release_evidence.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject duplicate keys in evidence manifests**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/400#discussion_r4289617856",
+      "remediation_pr": 400,
+      "remediation_commit": "d9ef4623f23ed900e9cefc8d6880879a1e1b51b9",
+      "merged_commit": "8d317d31589e828407cc920c1f06b2f82307210a",
+      "resolver_evidence": "Fixed in d9ef4623f23ed900e9cefc8d6880879a1e1b51b9. Validation: 13 targeted tests passed.",
+      "evidence": [
+        "scripts/check_release_evidence.py",
+        "tools/evaluation/test_release_evidence_gate.py",
+        "13 release evidence tests passed after five ambiguity regressions were reproduced"
+      ],
+      "disposition_note": "Fixed in protected merged PR #400 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; no temporary approval remained."
+    },
+    {
+      "pr_number": 400,
+      "thread_id": "PRRT_kwDOTN0BU86tBAnl",
+      "comment_id": 4289617868,
+      "path": "scripts/check_release_evidence.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Require an integer schema version**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/400#discussion_r4289617868",
+      "remediation_pr": 400,
+      "remediation_commit": "d9ef4623f23ed900e9cefc8d6880879a1e1b51b9",
+      "merged_commit": "8d317d31589e828407cc920c1f06b2f82307210a",
+      "resolver_evidence": "Fixed in d9ef4623f23ed900e9cefc8d6880879a1e1b51b9. Validation: 13 targeted tests passed.",
+      "evidence": [
+        "scripts/check_release_evidence.py",
+        "tools/evaluation/test_release_evidence_gate.py",
+        "13 release evidence tests passed after five ambiguity regressions were reproduced"
+      ],
+      "disposition_note": "Fixed in protected merged PR #400 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; no temporary approval remained."
+    },
+    {
+      "pr_number": 401,
+      "thread_id": "PRRT_kwDOTN0BU86tBDOr",
+      "comment_id": 4289635532,
+      "path": "backend/django/apps/billing/services.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Exclude first-day partial subscriptions from the base fee**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/401#discussion_r4289635532",
+      "remediation_pr": 401,
+      "remediation_commit": "87ea071a0a2e73a2313db8c3f401a97c3efa7b8e",
+      "merged_commit": "69dd242c46f62594e9e7fba1af5f66601e63c539",
+      "resolver_evidence": "Fixed in 51bbc9921f66e0ada365ee005206a8dfa6002725. Validation: 65 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/billing/services.py",
+        "backend/django/apps/billing/tasks.py",
+        "backend/django/apps/billing/models.py",
+        "backend/django/apps/billing/test_review_recovery.py",
+        "backend/django/apps/billing/test_subscription_periods.py",
+        "frontend/verification-portal/e2e/dashboard-billing.spec.ts",
+        "backend/django/apps/billing/webhook_tasks.py",
+        "backend/django/apps/billing/test_webhook_inbox.py",
+        "backend/django/apps/billing/api_views.py",
+        "backend/django/apps/billing/test_paystack_api.py",
+        "backend/django/apps/billing/test_reconciliation.py",
+        "backend/django/apps/billing/paystack.py"
+      ],
+      "disposition_note": "Fixed in protected merged PR #401 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; narrow exact-head CI selector approval was removed after merge. Immutable final-head CI backend job 117096845626 ran 1162 tests with 45 skips successfully (1117 passed); PostgreSQL migration/concurrency job 117096845563 also succeeded."
+    },
+    {
+      "pr_number": 401,
+      "thread_id": "PRRT_kwDOTN0BU86tBDOu",
+      "comment_id": 4289635539,
+      "path": "backend/django/apps/billing/services.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Mark reversed Paystack attempts terminal**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/401#discussion_r4289635539",
+      "remediation_pr": 401,
+      "remediation_commit": "87ea071a0a2e73a2313db8c3f401a97c3efa7b8e",
+      "merged_commit": "69dd242c46f62594e9e7fba1af5f66601e63c539",
+      "resolver_evidence": "Fixed in 51bbc9921f66e0ada365ee005206a8dfa6002725. Validation: 65 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/billing/services.py",
+        "backend/django/apps/billing/tasks.py",
+        "backend/django/apps/billing/models.py",
+        "backend/django/apps/billing/test_review_recovery.py",
+        "backend/django/apps/billing/test_subscription_periods.py",
+        "frontend/verification-portal/e2e/dashboard-billing.spec.ts",
+        "backend/django/apps/billing/webhook_tasks.py",
+        "backend/django/apps/billing/test_webhook_inbox.py",
+        "backend/django/apps/billing/api_views.py",
+        "backend/django/apps/billing/test_paystack_api.py",
+        "backend/django/apps/billing/test_reconciliation.py",
+        "backend/django/apps/billing/paystack.py"
+      ],
+      "disposition_note": "Fixed in protected merged PR #401 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; narrow exact-head CI selector approval was removed after merge. Immutable final-head CI backend job 117096845626 ran 1162 tests with 45 skips successfully (1117 passed); PostgreSQL migration/concurrency job 117096845563 also succeeded."
+    },
+    {
+      "pr_number": 401,
+      "thread_id": "PRRT_kwDOTN0BU86tBDOz",
+      "comment_id": 4289635545,
+      "path": "backend/django/apps/billing/management/commands/issue_billing_invoices.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Resume existing drafts in the invoice command**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/401#discussion_r4289635545",
+      "remediation_pr": 401,
+      "remediation_commit": "87ea071a0a2e73a2313db8c3f401a97c3efa7b8e",
+      "merged_commit": "69dd242c46f62594e9e7fba1af5f66601e63c539",
+      "resolver_evidence": "Fixed in 51bbc9921f66e0ada365ee005206a8dfa6002725. Validation: 65 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/billing/services.py",
+        "backend/django/apps/billing/tasks.py",
+        "backend/django/apps/billing/models.py",
+        "backend/django/apps/billing/test_review_recovery.py",
+        "backend/django/apps/billing/test_subscription_periods.py",
+        "frontend/verification-portal/e2e/dashboard-billing.spec.ts",
+        "backend/django/apps/billing/webhook_tasks.py",
+        "backend/django/apps/billing/test_webhook_inbox.py",
+        "backend/django/apps/billing/api_views.py",
+        "backend/django/apps/billing/test_paystack_api.py",
+        "backend/django/apps/billing/test_reconciliation.py",
+        "backend/django/apps/billing/paystack.py"
+      ],
+      "disposition_note": "Fixed in protected merged PR #401 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; narrow exact-head CI selector approval was removed after merge. Immutable final-head CI backend job 117096845626 ran 1162 tests with 45 skips successfully (1117 passed); PostgreSQL migration/concurrency job 117096845563 also succeeded."
+    },
+    {
+      "pr_number": 401,
+      "thread_id": "PRRT_kwDOTN0BU86tBJd1",
+      "comment_id": 4289677193,
+      "path": "backend/django/apps/billing/tasks.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Isolate failures within the scheduled invoice batch**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/401#discussion_r4289677193",
+      "remediation_pr": 401,
+      "remediation_commit": "87ea071a0a2e73a2313db8c3f401a97c3efa7b8e",
+      "merged_commit": "69dd242c46f62594e9e7fba1af5f66601e63c539",
+      "resolver_evidence": "Fixed in 7bc46770b2d8678f7f520ce66682d20b2af3d922. Validation: 70 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/billing/services.py",
+        "backend/django/apps/billing/tasks.py",
+        "backend/django/apps/billing/models.py",
+        "backend/django/apps/billing/test_review_recovery.py",
+        "backend/django/apps/billing/test_subscription_periods.py",
+        "frontend/verification-portal/e2e/dashboard-billing.spec.ts",
+        "backend/django/apps/billing/webhook_tasks.py",
+        "backend/django/apps/billing/test_webhook_inbox.py",
+        "backend/django/apps/billing/api_views.py",
+        "backend/django/apps/billing/test_paystack_api.py",
+        "backend/django/apps/billing/test_reconciliation.py",
+        "backend/django/apps/billing/paystack.py"
+      ],
+      "disposition_note": "Fixed in protected merged PR #401 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; narrow exact-head CI selector approval was removed after merge. Immutable final-head CI backend job 117096845626 ran 1162 tests with 45 skips successfully (1117 passed); PostgreSQL migration/concurrency job 117096845563 also succeeded."
+    },
+    {
+      "pr_number": 401,
+      "thread_id": "PRRT_kwDOTN0BU86tBJd9",
+      "comment_id": 4289677199,
+      "path": "backend/django/apps/billing/services.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Store the actual Paystack dispute amount**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/401#discussion_r4289677199",
+      "remediation_pr": 401,
+      "remediation_commit": "87ea071a0a2e73a2313db8c3f401a97c3efa7b8e",
+      "merged_commit": "69dd242c46f62594e9e7fba1af5f66601e63c539",
+      "resolver_evidence": "Fixed in 7bc46770b2d8678f7f520ce66682d20b2af3d922. Validation: 70 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/billing/services.py",
+        "backend/django/apps/billing/tasks.py",
+        "backend/django/apps/billing/models.py",
+        "backend/django/apps/billing/test_review_recovery.py",
+        "backend/django/apps/billing/test_subscription_periods.py",
+        "frontend/verification-portal/e2e/dashboard-billing.spec.ts",
+        "backend/django/apps/billing/webhook_tasks.py",
+        "backend/django/apps/billing/test_webhook_inbox.py",
+        "backend/django/apps/billing/api_views.py",
+        "backend/django/apps/billing/test_paystack_api.py",
+        "backend/django/apps/billing/test_reconciliation.py",
+        "backend/django/apps/billing/paystack.py"
+      ],
+      "disposition_note": "Fixed in protected merged PR #401 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; narrow exact-head CI selector approval was removed after merge. Immutable final-head CI backend job 117096845626 ran 1162 tests with 45 skips successfully (1117 passed); PostgreSQL migration/concurrency job 117096845563 also succeeded."
+    },
+    {
+      "pr_number": 401,
+      "thread_id": "PRRT_kwDOTN0BU86tBJeC",
+      "comment_id": 4289677208,
+      "path": "backend/django/apps/billing/services.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Close resolved Paystack disputes that were declined**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/401#discussion_r4289677208",
+      "remediation_pr": 401,
+      "remediation_commit": "87ea071a0a2e73a2313db8c3f401a97c3efa7b8e",
+      "merged_commit": "69dd242c46f62594e9e7fba1af5f66601e63c539",
+      "resolver_evidence": "Fixed in 7bc46770b2d8678f7f520ce66682d20b2af3d922. Validation: 70 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/billing/services.py",
+        "backend/django/apps/billing/tasks.py",
+        "backend/django/apps/billing/models.py",
+        "backend/django/apps/billing/test_review_recovery.py",
+        "backend/django/apps/billing/test_subscription_periods.py",
+        "frontend/verification-portal/e2e/dashboard-billing.spec.ts",
+        "backend/django/apps/billing/webhook_tasks.py",
+        "backend/django/apps/billing/test_webhook_inbox.py",
+        "backend/django/apps/billing/api_views.py",
+        "backend/django/apps/billing/test_paystack_api.py",
+        "backend/django/apps/billing/test_reconciliation.py",
+        "backend/django/apps/billing/paystack.py"
+      ],
+      "disposition_note": "Fixed in protected merged PR #401 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; narrow exact-head CI selector approval was removed after merge. Immutable final-head CI backend job 117096845626 ran 1162 tests with 45 skips successfully (1117 passed); PostgreSQL migration/concurrency job 117096845563 also succeeded."
+    },
+    {
+      "pr_number": 401,
+      "thread_id": "PRRT_kwDOTN0BU86tBROh",
+      "comment_id": 4289729722,
+      "path": "backend/django/apps/billing/services.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Use Paystack's documented refund correlation fields**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/401#discussion_r4289729722",
+      "remediation_pr": 401,
+      "remediation_commit": "87ea071a0a2e73a2313db8c3f401a97c3efa7b8e",
+      "merged_commit": "69dd242c46f62594e9e7fba1af5f66601e63c539",
+      "resolver_evidence": "Fixed in cac6280828ff0c4191fba0dbaa14d9d687bb3528. Validation: 78 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/billing/services.py",
+        "backend/django/apps/billing/tasks.py",
+        "backend/django/apps/billing/models.py",
+        "backend/django/apps/billing/test_review_recovery.py",
+        "backend/django/apps/billing/test_subscription_periods.py",
+        "frontend/verification-portal/e2e/dashboard-billing.spec.ts",
+        "backend/django/apps/billing/webhook_tasks.py",
+        "backend/django/apps/billing/test_webhook_inbox.py",
+        "backend/django/apps/billing/api_views.py",
+        "backend/django/apps/billing/test_paystack_api.py",
+        "backend/django/apps/billing/test_reconciliation.py",
+        "backend/django/apps/billing/paystack.py"
+      ],
+      "disposition_note": "Fixed in protected merged PR #401 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; narrow exact-head CI selector approval was removed after merge. Immutable final-head CI backend job 117096845626 ran 1162 tests with 45 skips successfully (1117 passed); PostgreSQL migration/concurrency job 117096845563 also succeeded."
+    },
+    {
+      "pr_number": 401,
+      "thread_id": "PRRT_kwDOTN0BU86tBROq",
+      "comment_id": 4289729731,
+      "path": "backend/django/apps/billing/services.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Accept Paystack refunds that need attention**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/401#discussion_r4289729731",
+      "remediation_pr": 401,
+      "remediation_commit": "87ea071a0a2e73a2313db8c3f401a97c3efa7b8e",
+      "merged_commit": "69dd242c46f62594e9e7fba1af5f66601e63c539",
+      "resolver_evidence": "Fixed in cac6280828ff0c4191fba0dbaa14d9d687bb3528. Validation: 78 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/billing/services.py",
+        "backend/django/apps/billing/tasks.py",
+        "backend/django/apps/billing/models.py",
+        "backend/django/apps/billing/test_review_recovery.py",
+        "backend/django/apps/billing/test_subscription_periods.py",
+        "frontend/verification-portal/e2e/dashboard-billing.spec.ts",
+        "backend/django/apps/billing/webhook_tasks.py",
+        "backend/django/apps/billing/test_webhook_inbox.py",
+        "backend/django/apps/billing/api_views.py",
+        "backend/django/apps/billing/test_paystack_api.py",
+        "backend/django/apps/billing/test_reconciliation.py",
+        "backend/django/apps/billing/paystack.py"
+      ],
+      "disposition_note": "Fixed in protected merged PR #401 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; narrow exact-head CI selector approval was removed after merge. Immutable final-head CI backend job 117096845626 ran 1162 tests with 45 skips successfully (1117 passed); PostgreSQL migration/concurrency job 117096845563 also succeeded."
+    },
+    {
+      "pr_number": 401,
+      "thread_id": "PRRT_kwDOTN0BU86tBROv",
+      "comment_id": 4289729737,
+      "path": "backend/django/apps/billing/tasks.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Advance invoice batches past a full page of failures**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/401#discussion_r4289729737",
+      "remediation_pr": 401,
+      "remediation_commit": "87ea071a0a2e73a2313db8c3f401a97c3efa7b8e",
+      "merged_commit": "69dd242c46f62594e9e7fba1af5f66601e63c539",
+      "resolver_evidence": "Fixed in cac6280828ff0c4191fba0dbaa14d9d687bb3528. Validation: 78 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/billing/services.py",
+        "backend/django/apps/billing/tasks.py",
+        "backend/django/apps/billing/models.py",
+        "backend/django/apps/billing/test_review_recovery.py",
+        "backend/django/apps/billing/test_subscription_periods.py",
+        "frontend/verification-portal/e2e/dashboard-billing.spec.ts",
+        "backend/django/apps/billing/webhook_tasks.py",
+        "backend/django/apps/billing/test_webhook_inbox.py",
+        "backend/django/apps/billing/api_views.py",
+        "backend/django/apps/billing/test_paystack_api.py",
+        "backend/django/apps/billing/test_reconciliation.py",
+        "backend/django/apps/billing/paystack.py"
+      ],
+      "disposition_note": "Fixed in protected merged PR #401 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; narrow exact-head CI selector approval was removed after merge. Immutable final-head CI backend job 117096845626 ran 1162 tests with 45 skips successfully (1117 passed); PostgreSQL migration/concurrency job 117096845563 also succeeded."
+    },
+    {
+      "pr_number": 401,
+      "thread_id": "PRRT_kwDOTN0BU86tHkrq",
+      "comment_id": 4292368960,
+      "path": "backend/django/apps/billing/tasks.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Order usage checks by a ProviderCheck field**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/401#discussion_r4292368960",
+      "remediation_pr": 401,
+      "remediation_commit": "87ea071a0a2e73a2313db8c3f401a97c3efa7b8e",
+      "merged_commit": "69dd242c46f62594e9e7fba1af5f66601e63c539",
+      "resolver_evidence": "Fixed in 1af32b7f7f8b49296d7971296a89894abcbee139. Validation: 80 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/billing/services.py",
+        "backend/django/apps/billing/tasks.py",
+        "backend/django/apps/billing/models.py",
+        "backend/django/apps/billing/test_review_recovery.py",
+        "backend/django/apps/billing/test_subscription_periods.py",
+        "frontend/verification-portal/e2e/dashboard-billing.spec.ts",
+        "backend/django/apps/billing/webhook_tasks.py",
+        "backend/django/apps/billing/test_webhook_inbox.py",
+        "backend/django/apps/billing/api_views.py",
+        "backend/django/apps/billing/test_paystack_api.py",
+        "backend/django/apps/billing/test_reconciliation.py",
+        "backend/django/apps/billing/paystack.py"
+      ],
+      "disposition_note": "Fixed in protected merged PR #401 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; narrow exact-head CI selector approval was removed after merge. Immutable final-head CI backend job 117096845626 ran 1162 tests with 45 skips successfully (1117 passed); PostgreSQL migration/concurrency job 117096845563 also succeeded."
+    },
+    {
+      "pr_number": 401,
+      "thread_id": "PRRT_kwDOTN0BU86tHwjl",
+      "comment_id": 4292448609,
+      "path": "backend/django/apps/billing/tasks.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Isolate invalid checks within usage reconciliation**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/401#discussion_r4292448609",
+      "remediation_pr": 401,
+      "remediation_commit": "87ea071a0a2e73a2313db8c3f401a97c3efa7b8e",
+      "merged_commit": "69dd242c46f62594e9e7fba1af5f66601e63c539",
+      "resolver_evidence": "Fixed in 4695b905a5a403a41f795e3e9a4a40c8f7baf003. Validation: 60 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/billing/services.py",
+        "backend/django/apps/billing/tasks.py",
+        "backend/django/apps/billing/models.py",
+        "backend/django/apps/billing/test_review_recovery.py",
+        "backend/django/apps/billing/test_subscription_periods.py",
+        "frontend/verification-portal/e2e/dashboard-billing.spec.ts",
+        "backend/django/apps/billing/webhook_tasks.py",
+        "backend/django/apps/billing/test_webhook_inbox.py",
+        "backend/django/apps/billing/api_views.py",
+        "backend/django/apps/billing/test_paystack_api.py",
+        "backend/django/apps/billing/test_reconciliation.py",
+        "backend/django/apps/billing/paystack.py"
+      ],
+      "disposition_note": "Fixed in protected merged PR #401 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; narrow exact-head CI selector approval was removed after merge. Immutable final-head CI backend job 117096845626 ran 1162 tests with 45 skips successfully (1117 passed); PostgreSQL migration/concurrency job 117096845563 also succeeded."
+    },
+    {
+      "pr_number": 401,
+      "thread_id": "PRRT_kwDOTN0BU86tH4lv",
+      "comment_id": 4292504119,
+      "path": "backend/django/apps/billing/services.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Rotate interrupted Paystack checkout references**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/401#discussion_r4292504119",
+      "remediation_pr": 401,
+      "remediation_commit": "87ea071a0a2e73a2313db8c3f401a97c3efa7b8e",
+      "merged_commit": "69dd242c46f62594e9e7fba1af5f66601e63c539",
+      "resolver_evidence": "Fixed in 6aa1b99a2d34d206e7da49131adb8af644cc4841. Validation: 71 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/billing/services.py",
+        "backend/django/apps/billing/tasks.py",
+        "backend/django/apps/billing/models.py",
+        "backend/django/apps/billing/test_review_recovery.py",
+        "backend/django/apps/billing/test_subscription_periods.py",
+        "frontend/verification-portal/e2e/dashboard-billing.spec.ts",
+        "backend/django/apps/billing/webhook_tasks.py",
+        "backend/django/apps/billing/test_webhook_inbox.py",
+        "backend/django/apps/billing/api_views.py",
+        "backend/django/apps/billing/test_paystack_api.py",
+        "backend/django/apps/billing/test_reconciliation.py",
+        "backend/django/apps/billing/paystack.py"
+      ],
+      "disposition_note": "Fixed in protected merged PR #401 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; narrow exact-head CI selector approval was removed after merge. Immutable final-head CI backend job 117096845626 ran 1162 tests with 45 skips successfully (1117 passed); PostgreSQL migration/concurrency job 117096845563 also succeeded."
+    },
+    {
+      "pr_number": 401,
+      "thread_id": "PRRT_kwDOTN0BU86tH4l0",
+      "comment_id": 4292504126,
+      "path": "frontend/dashboard/src/app/billing/invoices/page.tsx",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Load invoices when return verification fails**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/401#discussion_r4292504126",
+      "remediation_pr": 401,
+      "remediation_commit": "87ea071a0a2e73a2313db8c3f401a97c3efa7b8e",
+      "merged_commit": "69dd242c46f62594e9e7fba1af5f66601e63c539",
+      "resolver_evidence": "Fixed in 6aa1b99a2d34d206e7da49131adb8af644cc4841. Validation: 71 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/billing/services.py",
+        "backend/django/apps/billing/tasks.py",
+        "backend/django/apps/billing/models.py",
+        "backend/django/apps/billing/test_review_recovery.py",
+        "backend/django/apps/billing/test_subscription_periods.py",
+        "frontend/verification-portal/e2e/dashboard-billing.spec.ts",
+        "backend/django/apps/billing/webhook_tasks.py",
+        "backend/django/apps/billing/test_webhook_inbox.py",
+        "backend/django/apps/billing/api_views.py",
+        "backend/django/apps/billing/test_paystack_api.py",
+        "backend/django/apps/billing/test_reconciliation.py",
+        "backend/django/apps/billing/paystack.py"
+      ],
+      "disposition_note": "Fixed in protected merged PR #401 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; narrow exact-head CI selector approval was removed after merge. Immutable final-head CI backend job 117096845626 ran 1162 tests with 45 skips successfully (1117 passed); PostgreSQL migration/concurrency job 117096845563 also succeeded."
+    },
+    {
+      "pr_number": 401,
+      "thread_id": "PRRT_kwDOTN0BU86tL1lx",
+      "comment_id": 4294177503,
+      "path": "backend/django/apps/billing/services.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Invoice closed periods after subscription deactivation**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/401#discussion_r4294177503",
+      "remediation_pr": 401,
+      "remediation_commit": "87ea071a0a2e73a2313db8c3f401a97c3efa7b8e",
+      "merged_commit": "69dd242c46f62594e9e7fba1af5f66601e63c539",
+      "resolver_evidence": "Fixed in 6aa1b99a2d34d206e7da49131adb8af644cc4841. Validation: 71 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/billing/services.py",
+        "backend/django/apps/billing/tasks.py",
+        "backend/django/apps/billing/models.py",
+        "backend/django/apps/billing/test_review_recovery.py",
+        "backend/django/apps/billing/test_subscription_periods.py",
+        "frontend/verification-portal/e2e/dashboard-billing.spec.ts",
+        "backend/django/apps/billing/webhook_tasks.py",
+        "backend/django/apps/billing/test_webhook_inbox.py",
+        "backend/django/apps/billing/api_views.py",
+        "backend/django/apps/billing/test_paystack_api.py",
+        "backend/django/apps/billing/test_reconciliation.py",
+        "backend/django/apps/billing/paystack.py"
+      ],
+      "disposition_note": "Fixed in protected merged PR #401 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; narrow exact-head CI selector approval was removed after merge. Immutable final-head CI backend job 117096845626 ran 1162 tests with 45 skips successfully (1117 passed); PostgreSQL migration/concurrency job 117096845563 also succeeded."
+    },
+    {
+      "pr_number": 401,
+      "thread_id": "PRRT_kwDOTN0BU86tL1lz",
+      "comment_id": 4294177506,
+      "path": "backend/django/apps/billing/management/commands/reconcile_provider_usage.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Advance the operator command past quarantined checks**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/401#discussion_r4294177506",
+      "remediation_pr": 401,
+      "remediation_commit": "87ea071a0a2e73a2313db8c3f401a97c3efa7b8e",
+      "merged_commit": "69dd242c46f62594e9e7fba1af5f66601e63c539",
+      "resolver_evidence": "Fixed in 6aa1b99a2d34d206e7da49131adb8af644cc4841. Validation: 71 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/billing/services.py",
+        "backend/django/apps/billing/tasks.py",
+        "backend/django/apps/billing/models.py",
+        "backend/django/apps/billing/test_review_recovery.py",
+        "backend/django/apps/billing/test_subscription_periods.py",
+        "frontend/verification-portal/e2e/dashboard-billing.spec.ts",
+        "backend/django/apps/billing/webhook_tasks.py",
+        "backend/django/apps/billing/test_webhook_inbox.py",
+        "backend/django/apps/billing/api_views.py",
+        "backend/django/apps/billing/test_paystack_api.py",
+        "backend/django/apps/billing/test_reconciliation.py",
+        "backend/django/apps/billing/paystack.py"
+      ],
+      "disposition_note": "Fixed in protected merged PR #401 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; narrow exact-head CI selector approval was removed after merge. Immutable final-head CI backend job 117096845626 ran 1162 tests with 45 skips successfully (1117 passed); PostgreSQL migration/concurrency job 117096845563 also succeeded."
+    },
+    {
+      "pr_number": 401,
+      "thread_id": "PRRT_kwDOTN0BU86tMk-s",
+      "comment_id": 4294483845,
+      "path": "backend/django/apps/billing/management/commands/reconcile_billing_payments.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Advance reconciliation past nonterminal payments**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/401#discussion_r4294483845",
+      "remediation_pr": 401,
+      "remediation_commit": "87ea071a0a2e73a2313db8c3f401a97c3efa7b8e",
+      "merged_commit": "69dd242c46f62594e9e7fba1af5f66601e63c539",
+      "resolver_evidence": "Fixed in 23f1ef30681b1256d58b4fcd09709bf0fa42bfb8. Validation: 74 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/billing/services.py",
+        "backend/django/apps/billing/tasks.py",
+        "backend/django/apps/billing/models.py",
+        "backend/django/apps/billing/test_review_recovery.py",
+        "backend/django/apps/billing/test_subscription_periods.py",
+        "frontend/verification-portal/e2e/dashboard-billing.spec.ts",
+        "backend/django/apps/billing/webhook_tasks.py",
+        "backend/django/apps/billing/test_webhook_inbox.py",
+        "backend/django/apps/billing/api_views.py",
+        "backend/django/apps/billing/test_paystack_api.py",
+        "backend/django/apps/billing/test_reconciliation.py",
+        "backend/django/apps/billing/paystack.py"
+      ],
+      "disposition_note": "Fixed in protected merged PR #401 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; narrow exact-head CI selector approval was removed after merge. Immutable final-head CI backend job 117096845626 ran 1162 tests with 45 skips successfully (1117 passed); PostgreSQL migration/concurrency job 117096845563 also succeeded."
+    },
+    {
+      "pr_number": 401,
+      "thread_id": "PRRT_kwDOTN0BU86tMviq",
+      "comment_id": 4294552506,
+      "path": "backend/django/apps/billing/management/commands/reconcile_billing_payments.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Advance reconciliation past nonterminal adjustments**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/401#discussion_r4294552506",
+      "remediation_pr": 401,
+      "remediation_commit": "87ea071a0a2e73a2313db8c3f401a97c3efa7b8e",
+      "merged_commit": "69dd242c46f62594e9e7fba1af5f66601e63c539",
+      "resolver_evidence": "Fixed in 23f1ef30681b1256d58b4fcd09709bf0fa42bfb8. Validation: 74 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/billing/services.py",
+        "backend/django/apps/billing/tasks.py",
+        "backend/django/apps/billing/models.py",
+        "backend/django/apps/billing/test_review_recovery.py",
+        "backend/django/apps/billing/test_subscription_periods.py",
+        "frontend/verification-portal/e2e/dashboard-billing.spec.ts",
+        "backend/django/apps/billing/webhook_tasks.py",
+        "backend/django/apps/billing/test_webhook_inbox.py",
+        "backend/django/apps/billing/api_views.py",
+        "backend/django/apps/billing/test_paystack_api.py",
+        "backend/django/apps/billing/test_reconciliation.py",
+        "backend/django/apps/billing/paystack.py"
+      ],
+      "disposition_note": "Fixed in protected merged PR #401 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; narrow exact-head CI selector approval was removed after merge. Immutable final-head CI backend job 117096845626 ran 1162 tests with 45 skips successfully (1117 passed); PostgreSQL migration/concurrency job 117096845563 also succeeded."
+    },
+    {
+      "pr_number": 401,
+      "thread_id": "PRRT_kwDOTN0BU86tQnx4",
+      "comment_id": 4296165345,
+      "path": "backend/django/apps/billing/services.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Move paginated refund lookup out of the webhook request**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/401#discussion_r4296165345",
+      "remediation_pr": 401,
+      "remediation_commit": "87ea071a0a2e73a2313db8c3f401a97c3efa7b8e",
+      "merged_commit": "69dd242c46f62594e9e7fba1af5f66601e63c539",
+      "resolver_evidence": "Fixed in 343e075666e9d73fb0b6a8c6182527ac10984a8a. Validation: 95 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/billing/services.py",
+        "backend/django/apps/billing/tasks.py",
+        "backend/django/apps/billing/models.py",
+        "backend/django/apps/billing/test_review_recovery.py",
+        "backend/django/apps/billing/test_subscription_periods.py",
+        "frontend/verification-portal/e2e/dashboard-billing.spec.ts",
+        "backend/django/apps/billing/webhook_tasks.py",
+        "backend/django/apps/billing/test_webhook_inbox.py",
+        "backend/django/apps/billing/api_views.py",
+        "backend/django/apps/billing/test_paystack_api.py",
+        "backend/django/apps/billing/test_reconciliation.py",
+        "backend/django/apps/billing/paystack.py"
+      ],
+      "disposition_note": "Fixed in protected merged PR #401 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; narrow exact-head CI selector approval was removed after merge. Immutable final-head CI backend job 117096845626 ran 1162 tests with 45 skips successfully (1117 passed); PostgreSQL migration/concurrency job 117096845563 also succeeded."
+    },
+    {
+      "pr_number": 401,
+      "thread_id": "PRRT_kwDOTN0BU86tRYJ-",
+      "comment_id": 4296480107,
+      "path": "backend/django/apps/billing/webhook_tasks.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Complete receipts after terminal payment verification**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/401#discussion_r4296480107",
+      "remediation_pr": 401,
+      "remediation_commit": "87ea071a0a2e73a2313db8c3f401a97c3efa7b8e",
+      "merged_commit": "69dd242c46f62594e9e7fba1af5f66601e63c539",
+      "resolver_evidence": "Fixed in 06a883c86ddd6f7e301db52b93f4b637131a63fb. Validation: 98 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/billing/services.py",
+        "backend/django/apps/billing/tasks.py",
+        "backend/django/apps/billing/models.py",
+        "backend/django/apps/billing/test_review_recovery.py",
+        "backend/django/apps/billing/test_subscription_periods.py",
+        "frontend/verification-portal/e2e/dashboard-billing.spec.ts",
+        "backend/django/apps/billing/webhook_tasks.py",
+        "backend/django/apps/billing/test_webhook_inbox.py",
+        "backend/django/apps/billing/api_views.py",
+        "backend/django/apps/billing/test_paystack_api.py",
+        "backend/django/apps/billing/test_reconciliation.py",
+        "backend/django/apps/billing/paystack.py"
+      ],
+      "disposition_note": "Fixed in protected merged PR #401 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; narrow exact-head CI selector approval was removed after merge. Immutable final-head CI backend job 117096845626 ran 1162 tests with 45 skips successfully (1117 passed); PostgreSQL migration/concurrency job 117096845563 also succeeded."
+    },
+    {
+      "pr_number": 401,
+      "thread_id": "PRRT_kwDOTN0BU86tRYKD",
+      "comment_id": 4296480115,
+      "path": "backend/django/apps/billing/api_views.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Hide draft invoices until issuance**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/401#discussion_r4296480115",
+      "remediation_pr": 401,
+      "remediation_commit": "87ea071a0a2e73a2313db8c3f401a97c3efa7b8e",
+      "merged_commit": "69dd242c46f62594e9e7fba1af5f66601e63c539",
+      "resolver_evidence": "Fixed in 06a883c86ddd6f7e301db52b93f4b637131a63fb. Validation: 98 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/billing/services.py",
+        "backend/django/apps/billing/tasks.py",
+        "backend/django/apps/billing/models.py",
+        "backend/django/apps/billing/test_review_recovery.py",
+        "backend/django/apps/billing/test_subscription_periods.py",
+        "frontend/verification-portal/e2e/dashboard-billing.spec.ts",
+        "backend/django/apps/billing/webhook_tasks.py",
+        "backend/django/apps/billing/test_webhook_inbox.py",
+        "backend/django/apps/billing/api_views.py",
+        "backend/django/apps/billing/test_paystack_api.py",
+        "backend/django/apps/billing/test_reconciliation.py",
+        "backend/django/apps/billing/paystack.py"
+      ],
+      "disposition_note": "Fixed in protected merged PR #401 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; narrow exact-head CI selector approval was removed after merge. Immutable final-head CI backend job 117096845626 ran 1162 tests with 45 skips successfully (1117 passed); PostgreSQL migration/concurrency job 117096845563 also succeeded."
+    },
+    {
+      "pr_number": 401,
+      "thread_id": "PRRT_kwDOTN0BU86tRtSt",
+      "comment_id": 4296619475,
+      "path": "backend/django/apps/billing/models.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Protect rates moved off published plans**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/401#discussion_r4296619475",
+      "remediation_pr": 401,
+      "remediation_commit": "87ea071a0a2e73a2313db8c3f401a97c3efa7b8e",
+      "merged_commit": "69dd242c46f62594e9e7fba1af5f66601e63c539",
+      "resolver_evidence": "Fixed in a0142b4b67996f377f55ec9d11672dfcbf286134. Validation: 104 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/billing/services.py",
+        "backend/django/apps/billing/tasks.py",
+        "backend/django/apps/billing/models.py",
+        "backend/django/apps/billing/test_review_recovery.py",
+        "backend/django/apps/billing/test_subscription_periods.py",
+        "frontend/verification-portal/e2e/dashboard-billing.spec.ts",
+        "backend/django/apps/billing/webhook_tasks.py",
+        "backend/django/apps/billing/test_webhook_inbox.py",
+        "backend/django/apps/billing/api_views.py",
+        "backend/django/apps/billing/test_paystack_api.py",
+        "backend/django/apps/billing/test_reconciliation.py",
+        "backend/django/apps/billing/paystack.py"
+      ],
+      "disposition_note": "Fixed in protected merged PR #401 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; narrow exact-head CI selector approval was removed after merge. Immutable final-head CI backend job 117096845626 ran 1162 tests with 45 skips successfully (1117 passed); PostgreSQL migration/concurrency job 117096845563 also succeeded."
+    },
+    {
+      "pr_number": 401,
+      "thread_id": "PRRT_kwDOTN0BU86tS1QB",
+      "comment_id": 4297091084,
+      "path": "backend/django/apps/billing/services.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Exclude failed refunds from the allocation cap**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/401#discussion_r4297091084",
+      "remediation_pr": 401,
+      "remediation_commit": "87ea071a0a2e73a2313db8c3f401a97c3efa7b8e",
+      "merged_commit": "69dd242c46f62594e9e7fba1af5f66601e63c539",
+      "resolver_evidence": "Fixed in 87ea071a0a2e73a2313db8c3f401a97c3efa7b8e. Validation: 105 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/billing/services.py",
+        "backend/django/apps/billing/tasks.py",
+        "backend/django/apps/billing/models.py",
+        "backend/django/apps/billing/test_review_recovery.py",
+        "backend/django/apps/billing/test_subscription_periods.py",
+        "frontend/verification-portal/e2e/dashboard-billing.spec.ts",
+        "backend/django/apps/billing/webhook_tasks.py",
+        "backend/django/apps/billing/test_webhook_inbox.py",
+        "backend/django/apps/billing/api_views.py",
+        "backend/django/apps/billing/test_paystack_api.py",
+        "backend/django/apps/billing/test_reconciliation.py",
+        "backend/django/apps/billing/paystack.py"
+      ],
+      "disposition_note": "Fixed in protected merged PR #401 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; narrow exact-head CI selector approval was removed after merge. Immutable final-head CI backend job 117096845626 ran 1162 tests with 45 skips successfully (1117 passed); PostgreSQL migration/concurrency job 117096845563 also succeeded."
     }
   ],
-  "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
-  "inventory_note": "833 threads from closed or merged PRs: 200 fixed, 275 verified, 0 actionable and 358 pending individual audit. Resolution state is not implementation evidence."
+  "verified_main": "69dd242c46f62594e9e7fba1af5f66601e63c539",
+  "inventory_note": "858 threads from closed or merged PRs: 230 fixed, 289 verified, 5 actionable and 334 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
 }

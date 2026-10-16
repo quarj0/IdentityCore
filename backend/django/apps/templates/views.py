@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 
 from apps.templates.models import Template, TemplateStatus
-from apps.templates.serializers import serialize_template
+from apps.templates.serializers import serialize_catalog_template
 from common.permissions import IsTenantUser
 from common.responses import success_response
 
@@ -29,7 +29,7 @@ class WorkflowTemplateListView(APIView):
                 if country in {code.upper() for code in item.countries_json}
             ]
         return success_response(
-            {"results": [serialize_template(item) for item in templates]},
+            {"results": [serialize_catalog_template(item) for item in templates]},
             request=request,
         )
 
@@ -43,4 +43,4 @@ class WorkflowTemplateDetailView(APIView):
             public_id=template_id,
             status=TemplateStatus.PUBLISHED,
         )
-        return success_response(serialize_template(template), request=request)
+        return success_response(serialize_catalog_template(template), request=request)

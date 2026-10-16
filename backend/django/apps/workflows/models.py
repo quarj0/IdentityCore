@@ -41,6 +41,9 @@ class Workflow(PublicIdModel, BaseModel):
     )
     source_template_version = models.CharField(max_length=32, blank=True)
     instantiation_key = models.CharField(max_length=255, blank=True)
+    instantiation_request_hash = models.CharField(
+        max_length=64, blank=True, editable=False
+    )
 
     class Meta:
         ordering = ["name"]
