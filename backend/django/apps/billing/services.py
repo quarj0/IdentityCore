@@ -123,9 +123,7 @@ def generate_invoice(tenant, month):
     if missing:
         raise BillingError("Unpriced provider usage; plan needs explicit meters")
     # First partial month has no base charge; regular monthly cycles begin next month.
-    base_minor = (
-        plan.monthly_price_minor if subscription.started_at.date() <= start else 0
-    )
+    base_minor = plan.monthly_price_minor if subscription.started_at <= starts_at else 0
     invoice = BillingInvoice.objects.create(
         tenant=tenant,
         subscription=subscription,
@@ -164,6 +162,27 @@ def generate_invoice(tenant, month):
     invoice.amount_minor = total
     invoice.save(update_fields=["amount_minor", "updated_at"])
     return invoice
+
+
+@transaction.atomic
+def generate_or_resume_draft_invoice(tenant, month):
+    """Serialize month close with generation and resume an unissued invoice."""
+    start, _ = _period(month)
+    # Match the subscription-first lock order used by generation and the worker.
+    BillingSubscription.objects.select_for_update().filter(tenant=tenant).first()
+    existing = (
+        BillingInvoice.objects.select_for_update()
+        .filter(
+            tenant=tenant,
+            period_start=start,
+        )
+        .first()
+    )
+    if existing is not None:
+        if existing.status != "draft":
+            raise BillingError("Invoice for period is already issued")
+        return existing
+    return generate_invoice(tenant, month)
 
 
 @transaction.atomic
@@ -360,7 +379,7 @@ def confirm_gateway_payment(
             if not locked.gateway_checkout_id:
                 locked.gateway_checkout_id = verified_checkout
                 locked.save(update_fields=["gateway_checkout_id", "updated_at"])
-        if state in ("failed", "abandoned"):
+        if state in ("failed", "abandoned", "reversed"):
             if locked.status == "pending":
                 locked.status = "failed"
                 locked.save(update_fields=["status", "updated_at"])

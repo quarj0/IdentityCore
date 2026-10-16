@@ -1,8 +1,13 @@
 """Invoice a CLOSED calendar month for a single tenant, operator initiated only."""
-from django.core.management.base import BaseCommand, CommandError
 
-from apps.billing.models import BillingInvoice
-from apps.billing.services import BillingError, generate_invoice, issue_invoice
+from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
+
+from apps.billing.services import (
+    BillingError,
+    generate_or_resume_draft_invoice,
+    issue_invoice,
+)
 from apps.tenants.models import Tenant
 
 
@@ -19,9 +24,10 @@ class Command(BaseCommand):
         if tenant is None:
             raise CommandError("Unknown tenant")
         try:
-            invoice = generate_invoice(tenant, options["month"])
-            if options["issue"]:
-                invoice = issue_invoice(invoice.pk)
+            with transaction.atomic():
+                invoice = generate_or_resume_draft_invoice(tenant, options["month"])
+                if options["issue"]:
+                    invoice = issue_invoice(invoice.pk)
         except BillingError as exc:
             raise CommandError(str(exc)) from exc
         self.stdout.write(
