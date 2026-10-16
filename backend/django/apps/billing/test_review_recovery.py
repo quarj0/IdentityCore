@@ -491,15 +491,139 @@ class BillingReviewRecoveryTests(TestCase):
         from django.utils import timezone
         from apps.billing.models import BillingPayment
         from apps.billing.exceptions import GatewayError
+
         invoice = self.invoice()
-        with patch("apps.billing.paystack.initialize", side_effect=[GatewayError("Synthetic timeout after acceptance"), "https://checkout.paystack.com/pay/recovered"]) as gateway:
+        with patch(
+            "apps.billing.paystack.initialize",
+            side_effect=[
+                GatewayError("Synthetic timeout after acceptance"),
+                "https://checkout.paystack.com/pay/recovered",
+            ],
+        ) as gateway:
             with self.assertRaises(GatewayError):
                 begin_checkout(invoice, billing_email=self.user.email)
             orphan = BillingPayment.objects.get(invoice=invoice)
-            BillingPayment.objects.filter(pk=orphan.pk).update(created_at=timezone.now()-timedelta(minutes=3))
+            BillingPayment.objects.filter(pk=orphan.pk).update(
+                created_at=timezone.now() - timedelta(minutes=3)
+            )
             recovered = begin_checkout(invoice, billing_email=self.user.email)
         self.assertNotEqual(recovered.reference, orphan.reference)
         self.assertEqual(gateway.call_count, 2)
         orphan.refresh_from_db()
         self.assertEqual(orphan.status, "failed")
         self.assertEqual(recovered.status, "pending")
+
+    def payment_recovery_rotation(self, *, unavailable=False):
+        from django.core.management.base import CommandError
+        from apps.billing.exceptions import GatewayError
+        from apps.billing.models import BillingPayment
+
+        invoice = self.invoice()
+        later_invoice = BillingInvoice.objects.create(
+            tenant=self.tenant,
+            subscription=self.subscription,
+            plan_code=invoice.plan_code,
+            plan_version=invoice.plan_version,
+            currency=invoice.currency,
+            period_start=(self.period_start - timedelta(days=1)).replace(day=1),
+            period_end=self.period_start,
+            amount_minor=invoice.amount_minor,
+            status="issued",
+        )
+        first, later = [
+            BillingPayment.objects.create(
+                invoice=current,
+                provider="paystack",
+                reference=f"icRotation{number}",
+                amount_minor=current.amount_minor,
+                currency=current.currency,
+            )
+            for number, current in enumerate((invoice, later_invoice), start=1)
+        ]
+
+        def verify(*, reference):
+            if reference == first.reference:
+                if unavailable:
+                    raise GatewayError("Synthetic provider outage")
+                result = self.verified(first)
+                result["status"] = "ongoing"
+                return result
+            return self.verified(later)
+
+        with patch("apps.billing.paystack.verify", side_effect=verify):
+            if unavailable:
+                with self.assertRaises(CommandError):
+                    call_command(
+                        "reconcile_billing_payments",
+                        tenant=self.tenant.public_id,
+                        limit=1,
+                        stdout=StringIO(),
+                    )
+            else:
+                call_command(
+                    "reconcile_billing_payments",
+                    tenant=self.tenant.public_id,
+                    limit=1,
+                    stdout=StringIO(),
+                )
+            call_command(
+                "reconcile_billing_payments",
+                tenant=self.tenant.public_id,
+                limit=1,
+                stdout=StringIO(),
+            )
+        first.refresh_from_db()
+        later.refresh_from_db()
+        self.assertEqual(first.status, "pending")
+        self.assertEqual(later.status, "paid")
+
+    def test_payment_recovery_advances_past_full_nonterminal_page(self):
+        self.payment_recovery_rotation()
+
+    def test_payment_recovery_advances_past_full_unavailable_page(self):
+        self.payment_recovery_rotation(unavailable=True)
+
+    def test_adjustment_recovery_rotates_pending_refunds_and_open_disputes(self):
+        from apps.billing.models import BillingPayment, BillingRefund, BillingDispute
+
+        invoice = self.invoice()
+        payment = BillingPayment.objects.create(
+            invoice=invoice,
+            provider="paystack",
+            reference="icAdjustmentRotation",
+            amount_minor=invoice.amount_minor,
+            currency=invoice.currency,
+            status="paid",
+            gateway_transaction_id="42424242",
+        )
+        for model, field, status, service in [
+            (BillingRefund, "gateway_refund_id", "pending", "reconcile_gateway_refund"),
+            (BillingDispute, "gateway_dispute_id", "open", "reconcile_gateway_dispute"),
+        ]:
+            for identifier in (101, 102):
+                model.objects.create(
+                    payment=payment,
+                    amount_minor=50,
+                    status=status,
+                    **{field: f"paystack:{identifier}"},
+                )
+        with patch(
+            "apps.billing.management.commands.reconcile_billing_payments.reconcile_gateway_refund",
+            return_value=True,
+        ) as refunds, patch(
+            "apps.billing.management.commands.reconcile_billing_payments.reconcile_gateway_dispute",
+            return_value=True,
+        ) as disputes:
+            for _ in range(2):
+                call_command(
+                    "reconcile_billing_payments",
+                    tenant=self.tenant.public_id,
+                    limit=1,
+                    include_adjustments=True,
+                    stdout=StringIO(),
+                )
+        for reconciler in (refunds, disputes):
+            self.assertEqual(
+                [call.args for call in reconciler.call_args_list],
+                [("paystack", 101), ("paystack", 102)],
+            )

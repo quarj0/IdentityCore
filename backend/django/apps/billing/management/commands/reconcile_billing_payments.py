@@ -1,6 +1,7 @@
 """Reconcile gateway transactions and optional financial adjustments for one tenant."""
 
 from django.core.management.base import BaseCommand, CommandError
+from django.utils import timezone
 
 from apps.billing.exceptions import GatewayError
 from apps.billing.models import BillingDispute, BillingPayment, BillingRefund
@@ -34,7 +35,7 @@ class Command(BaseCommand):
         if options["provider"]:
             payments = payments.filter(provider=options["provider"])
         references = list(
-            payments.order_by("pk").values_list("reference", flat=True)[
+            payments.order_by("updated_at", "pk").values_list("reference", flat=True)[
                 : options["limit"]
             ]
         )
@@ -44,6 +45,10 @@ class Command(BaseCommand):
                 settled += int(confirm_gateway_payment(reference))
             except (BillingError, GatewayError):
                 errors += 1
+            finally:
+                # Persist scheduling progress even for a valid nonterminal
+                # response or an outage; later references must get a turn.
+                payments.filter(reference=reference).update(updated_at=timezone.now())
         if options["include_adjustments"]:
             for model, reconciler in (
                 (BillingRefund, reconcile_gateway_refund),
@@ -60,7 +65,7 @@ class Command(BaseCommand):
                     if model is BillingRefund
                     else "gateway_dispute_id"
                 )
-                for row in rows.select_related("payment").order_by("pk")[
+                for row in rows.select_related("payment").order_by("updated_at", "pk")[
                     : options["limit"]
                 ]:
                     try:
@@ -74,6 +79,10 @@ class Command(BaseCommand):
                         adjustments += int(reconciler(prefix, identifier))
                     except (BillingError, GatewayError, ValueError):
                         errors += 1
+                    finally:
+                        model.objects.filter(pk=row.pk).update(
+                            updated_at=timezone.now()
+                        )
         self.stdout.write(
             f"Payments checked={len(references)}, settled={settled}, adjustments={adjustments}, requires_attention={errors}"
         )

@@ -52,6 +52,11 @@ failure cannot undo an already settled payment. Initialization interrupted
 before saving a checkout URL expires after two minutes; retry creates a fresh
 reference rather than resubmitting a reference already accepted by Paystack.
 A failed return verification still loads invoices and offers an explicit retry.
+The bounded payment recovery command orders by oldest update and records attempt
+progress after each lookup, including nonterminal responses and errors. Pending
+payments, pending refunds and open disputes cannot repeatedly occupy the first
+page while later rows wait. Attempt timestamps never authorize settlement;
+independent gateway evidence and financial locks remain required.
 
 Webhooks authenticate exact raw bytes using HMAC-SHA512 before parsing. Refund
 webhooks correlate through `transaction_reference`, including a null
