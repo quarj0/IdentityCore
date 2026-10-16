@@ -1,10 +1,18 @@
 """Operator financial records: money-state changes go through services only."""
+
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied
 
 from apps.billing.models import (
-    BillingPlan, BillingMeter, BillingSubscription, BillingInvoice,
-    BillingInvoiceLine, BillingPayment, BillingPaymentEvent, BillingRefund,
+    BillingPlan,
+    BillingMeter,
+    BillingSubscription,
+    BillingInvoice,
+    BillingInvoiceLine,
+    BillingPayment,
+    BillingPaymentEvent,
+    BillingRefund,
+    BillingDispute,
     BillingUsageEvent,
 )
 
@@ -36,11 +44,22 @@ class MeterInline(admin.TabularInline):
 
 @admin.register(BillingPlan)
 class PlanAdmin(admin.ModelAdmin):
-    list_display = ("code", "version", "name", "currency", "monthly_price_minor", "published")
+    list_display = (
+        "code",
+        "version",
+        "name",
+        "currency",
+        "monthly_price_minor",
+        "published",
+    )
     inlines = [MeterInline]
 
     def get_readonly_fields(self, request, obj=None):
-        return ("code", "version", "name", "currency", "monthly_price_minor", "published") if obj and obj.published else ()
+        return (
+            ("code", "version", "name", "currency", "monthly_price_minor", "published")
+            if obj and obj.published
+            else ()
+        )
 
     def has_delete_permission(self, request, obj=None):
         return bool(obj is not None and not obj.published)
@@ -55,7 +74,13 @@ class SubscriptionAdmin(admin.ModelAdmin):
 
 
 for model in (
-    BillingInvoice, BillingInvoiceLine, BillingPayment, BillingPaymentEvent,
-    BillingRefund, BillingUsageEvent, BillingMeter,
+    BillingInvoice,
+    BillingInvoiceLine,
+    BillingPayment,
+    BillingPaymentEvent,
+    BillingRefund,
+    BillingDispute,
+    BillingUsageEvent,
+    BillingMeter,
 ):
     admin.site.register(model, ReadOnlyFinancialAdmin)

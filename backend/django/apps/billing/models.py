@@ -52,11 +52,14 @@ class BillingUsageEvent(PublicIdModel, BaseModel):
         "tenants.Tenant", on_delete=models.PROTECT, related_name="billing_usage_events"
     )
     project = models.ForeignKey(
-        "projects.Project", on_delete=models.PROTECT, related_name="billing_usage_events"
+        "projects.Project",
+        on_delete=models.PROTECT,
+        related_name="billing_usage_events",
     )
     provider_check = models.OneToOneField(
-        "providers.ProviderCheck", on_delete=models.PROTECT,
-        related_name="billing_usage_event"
+        "providers.ProviderCheck",
+        on_delete=models.PROTECT,
+        related_name="billing_usage_event",
     )
     environment = models.CharField(
         max_length=16,
@@ -84,6 +87,7 @@ class BillingUsageEvent(PublicIdModel, BaseModel):
 
 class BillingPlan(PublicIdModel, BaseModel):
     """Versioned commercial plan: never change a published plan's price in place."""
+
     public_id_prefix = "bpl"
     code = models.SlugField(max_length=80)
     version = models.PositiveIntegerField(default=1)
@@ -94,7 +98,9 @@ class BillingPlan(PublicIdModel, BaseModel):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["code", "version"], name="billing_plan_code_version")
+            models.UniqueConstraint(
+                fields=["code", "version"], name="billing_plan_code_version"
+            )
         ]
 
     def save(self, *args, **kwargs):
@@ -102,18 +108,33 @@ class BillingPlan(PublicIdModel, BaseModel):
             previous = type(self).objects.get(pk=self.pk)
             if previous.published and any(
                 getattr(previous, field) != getattr(self, field)
-                for field in ("code", "version", "name", "currency", "monthly_price_minor", "published")
+                for field in (
+                    "code",
+                    "version",
+                    "name",
+                    "currency",
+                    "monthly_price_minor",
+                    "published",
+                )
             ):
                 from django.core.exceptions import ValidationError
-                raise ValidationError("Published plan terms are immutable; create a new version.")
+
+                raise ValidationError(
+                    "Published plan terms are immutable; create a new version."
+                )
         return super().save(*args, **kwargs)
 
 
 class BillingMeter(PublicIdModel, BaseModel):
     """Explicit unit price for one provider scope, capability and outcome."""
+
     public_id_prefix = "bmt"
-    plan = models.ForeignKey(BillingPlan, on_delete=models.PROTECT, related_name="meters")
-    provider_scope = models.CharField(max_length=16, choices=[("platform", "Platform"), ("tenant_owned", "BYOP")])
+    plan = models.ForeignKey(
+        BillingPlan, on_delete=models.PROTECT, related_name="meters"
+    )
+    provider_scope = models.CharField(
+        max_length=16, choices=[("platform", "Platform"), ("tenant_owned", "BYOP")]
+    )
     capability = models.CharField(max_length=32)
     outcome = models.CharField(max_length=16, default="completed")
     unit_price_minor = models.PositiveBigIntegerField()
@@ -128,13 +149,24 @@ class BillingMeter(PublicIdModel, BaseModel):
 
     def save(self, *args, **kwargs):
         from django.core.exceptions import ValidationError
+
         if self.plan.published:
-            previous = type(self).objects.filter(pk=self.pk).first() if self.pk else None
+            previous = (
+                type(self).objects.filter(pk=self.pk).first() if self.pk else None
+            )
             if previous is None or any(
                 getattr(previous, name) != getattr(self, name)
-                for name in ("plan_id", "provider_scope", "capability", "outcome", "unit_price_minor")
+                for name in (
+                    "plan_id",
+                    "provider_scope",
+                    "capability",
+                    "outcome",
+                    "unit_price_minor",
+                )
             ):
-                raise ValidationError("Published rates are immutable; create a new plan version.")
+                raise ValidationError(
+                    "Published rates are immutable; create a new plan version."
+                )
         return super().save(*args, **kwargs)
 
 
@@ -143,16 +175,26 @@ class BillingSubscription(PublicIdModel, BaseModel):
     tenant = models.OneToOneField(
         "tenants.Tenant", on_delete=models.PROTECT, related_name="billing_subscription"
     )
-    plan = models.ForeignKey(BillingPlan, on_delete=models.PROTECT, related_name="subscriptions")
-    status = models.CharField(max_length=16, default="active", choices=[
-        ("active", "Active"), ("paused", "Paused"), ("cancelled", "Cancelled")
-    ])
+    plan = models.ForeignKey(
+        BillingPlan, on_delete=models.PROTECT, related_name="subscriptions"
+    )
+    status = models.CharField(
+        max_length=16,
+        default="active",
+        choices=[
+            ("active", "Active"),
+            ("paused", "Paused"),
+            ("cancelled", "Cancelled"),
+        ],
+    )
     started_at = models.DateTimeField()
 
 
 class BillingInvoice(PublicIdModel, BaseModel):
     public_id_prefix = "bin"
-    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.PROTECT, related_name="invoices")
+    tenant = models.ForeignKey(
+        "tenants.Tenant", on_delete=models.PROTECT, related_name="invoices"
+    )
     subscription = models.ForeignKey(
         BillingSubscription, on_delete=models.PROTECT, related_name="invoices"
     )
@@ -162,26 +204,42 @@ class BillingInvoice(PublicIdModel, BaseModel):
     period_start = models.DateField()
     period_end = models.DateField()
     amount_minor = models.PositiveBigIntegerField(default=0)
-    status = models.CharField(max_length=16, default="draft", choices=[
-        ("draft", "Draft"), ("issued", "Issued"),
-        ("paid", "Paid"), ("void", "Void"), ("disputed", "Disputed"),
-    ])
+    status = models.CharField(
+        max_length=20,
+        default="draft",
+        choices=[
+            ("draft", "Draft"),
+            ("issued", "Issued"),
+            ("paid", "Paid"),
+            ("void", "Void"),
+            ("disputed", "Disputed"),
+            ("partially_refunded", "Partially refunded"),
+            ("refunded", "Refunded"),
+        ],
+    )
     issued_at = models.DateTimeField(null=True, blank=True)
     due_at = models.DateTimeField(null=True, blank=True)
     paid_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["tenant", "period_start"], name="billing_invoice_tenant_period")
+            models.UniqueConstraint(
+                fields=["tenant", "period_start"], name="billing_invoice_tenant_period"
+            )
         ]
         ordering = ["-period_start"]
 
 
 class BillingInvoiceLine(PublicIdModel, BaseModel):
     public_id_prefix = "bil"
-    invoice = models.ForeignKey(BillingInvoice, on_delete=models.PROTECT, related_name="lines")
+    invoice = models.ForeignKey(
+        BillingInvoice, on_delete=models.PROTECT, related_name="lines"
+    )
     usage_event = models.OneToOneField(
-        BillingUsageEvent, null=True, blank=True, on_delete=models.PROTECT,
+        BillingUsageEvent,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
         related_name="invoice_line",
     )
     description = models.CharField(max_length=200)
@@ -192,38 +250,97 @@ class BillingInvoiceLine(PublicIdModel, BaseModel):
 
 class BillingPayment(PublicIdModel, BaseModel):
     public_id_prefix = "bpa"
-    invoice = models.ForeignKey(BillingInvoice, on_delete=models.PROTECT, related_name="payments")
+    invoice = models.ForeignKey(
+        BillingInvoice, on_delete=models.PROTECT, related_name="payments"
+    )
     provider = models.CharField(max_length=32, default="paystack")
     reference = models.CharField(max_length=64, unique=True)
     amount_minor = models.PositiveBigIntegerField()
     currency = models.CharField(max_length=3)
-    status = models.CharField(max_length=16, default="pending", choices=[
-        ("pending", "Pending"), ("paid", "Paid"),
-        ("failed", "Failed"), ("disputed", "Disputed")
-    ])
-    checkout_url = models.URLField(blank=True, max_length=512)
+    status = models.CharField(
+        max_length=20,
+        default="pending",
+        choices=[
+            ("pending", "Pending"),
+            ("paid", "Paid"),
+            ("failed", "Failed"),
+            ("disputed", "Disputed"),
+            ("partially_refunded", "Partially refunded"),
+            ("refunded", "Refunded"),
+        ],
+    )
+    checkout_url = models.URLField(blank=True, max_length=2048)
+    gateway_checkout_id = models.CharField(max_length=120, blank=True)
     gateway_transaction_id = models.CharField(max_length=80, blank=True)
     confirmed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["provider", "gateway_transaction_id"],
+                condition=~models.Q(gateway_transaction_id=""),
+                name="billing_gateway_transaction_unique",
+            ),
+            models.UniqueConstraint(
+                fields=["invoice"],
+                condition=models.Q(status="pending"),
+                name="billing_pending_invoice_unique",
+            ),
+        ]
 
 
 class BillingPaymentEvent(PublicIdModel, BaseModel):
     """Only digest, event name and reference; no PII-rich gateway payloads."""
+
     public_id_prefix = "bpe"
-    payment = models.ForeignKey(BillingPayment, on_delete=models.PROTECT, related_name="events")
+    payment = models.ForeignKey(
+        BillingPayment, on_delete=models.PROTECT, related_name="events"
+    )
     payload_sha256 = models.CharField(max_length=64, unique=True)
     event_type = models.CharField(max_length=80)
+    gateway_event_id = models.CharField(max_length=120, blank=True)
+    provider = models.CharField(max_length=32, default="paystack")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["provider", "gateway_event_id"],
+                condition=~models.Q(gateway_event_id=""),
+                name="billing_gateway_event_unique",
+            ),
+        ]
 
 
 class BillingRefund(PublicIdModel, BaseModel):
     """Reconciled refund record. Initiation requires separate operator authorization."""
+
     public_id_prefix = "brf"
-    payment = models.ForeignKey(BillingPayment, on_delete=models.PROTECT, related_name="refunds")
-    gateway_refund_id = models.CharField(max_length=80, unique=True)
+    payment = models.ForeignKey(
+        BillingPayment, on_delete=models.PROTECT, related_name="refunds"
+    )
+    gateway_refund_id = models.CharField(max_length=120, unique=True)
     amount_minor = models.PositiveBigIntegerField()
-    status = models.CharField(max_length=16, choices=[
-        ("pending", "Pending"), ("completed", "Completed"), ("failed", "Failed")
-    ], default="pending")
+    status = models.CharField(
+        max_length=16,
+        choices=[
+            ("pending", "Pending"),
+            ("completed", "Completed"),
+            ("failed", "Failed"),
+        ],
+        default="pending",
+    )
     confirmed_at = models.DateTimeField(null=True, blank=True)
+
+
+class BillingDispute(PublicIdModel, BaseModel):
+    public_id_prefix = "bdi"
+    payment = models.ForeignKey(
+        BillingPayment, on_delete=models.PROTECT, related_name="disputes"
+    )
+    gateway_dispute_id = models.CharField(max_length=120, unique=True)
+    amount_minor = models.PositiveBigIntegerField()
+    status = models.CharField(
+        max_length=16, choices=[("open", "Open"), ("won", "Won"), ("lost", "Lost")]
+    )
+    gateway_status = models.CharField(max_length=40)

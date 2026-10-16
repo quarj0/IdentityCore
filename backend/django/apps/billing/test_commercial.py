@@ -269,7 +269,7 @@ class CommercialBillingTests(TestCase):
         invoice.refresh_from_db()
         self.assertEqual(payment.refunds.count(), 1)
         self.assertEqual(payment.refunds.first().status, "completed")
-        self.assertEqual(invoice.status, "disputed")
+        self.assertEqual(invoice.status, "partially_refunded")
 
     @patch("apps.billing.paystack.verify")
     def test_abandoned_payment_reconciles_to_failed_for_retry(self, gateway):

@@ -4,6 +4,7 @@ This is an operator-controlled accounting primitive, not a payment processor.
 Recorded events cannot charge or suspend organizations. Provider scope refers
 to ownership, not a price: platform-owned != necessarily built-in/managed AI.
 """
+
 from django.db import transaction
 
 from apps.billing.models import BillingUsageEvent
@@ -28,7 +29,7 @@ def record_provider_usage(provider_check_id):
     processing/reconciliation cannot silently duplicate a usage fact.
     """
     check = (
-        ProviderCheck.objects.select_for_update()
+        ProviderCheck.objects.select_for_update(of=("self",))
         .select_related("verification__project", "verification__tenant", "provider")
         .get(pk=provider_check_id)
     )
@@ -64,8 +65,14 @@ def record_provider_usage(provider_check_id):
     event, created = BillingUsageEvent.objects.get_or_create(
         provider_check=check, defaults=defaults
     )
-    if not created and any(getattr(event, key) != value for key, value in defaults.items()):
+    if not created and any(
+        getattr(event, key) != value
+        for key, value in defaults.items()
+        if key != "rating_state"
+    ):
         # A late correction must be reconciled explicitly, not silently
         # rewritten as a different chargeable observation.
-        raise BillingIntegrityError("Recorded usage has changed; manual correction required")
+        raise BillingIntegrityError(
+            "Recorded usage has changed; manual correction required"
+        )
     return event, created

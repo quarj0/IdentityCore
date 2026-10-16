@@ -1,18 +1,30 @@
 """Financially conservative, tenant-scoped invoice and payment state transitions."""
+
 import calendar
 import hashlib
 import json
 import secrets
+from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone as dt_timezone
 
 from django.conf import settings
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from apps.billing import paystack
+from apps.audit.services import lock_audit_chain, record_audit_event
+from apps.billing import paystack, stripe
+from apps.billing.gateways import enabled_providers, gateway_for
 from apps.billing.models import (
-    BillingInvoice, BillingInvoiceLine, BillingMeter, BillingPayment,
-    BillingPaymentEvent, BillingRefund, BillingPlan, BillingSubscription, BillingUsageEvent,
+    BillingInvoice,
+    BillingInvoiceLine,
+    BillingMeter,
+    BillingPayment,
+    BillingPaymentEvent,
+    BillingRefund,
+    BillingDispute,
+    BillingPlan,
+    BillingSubscription,
+    BillingUsageEvent,
 )
 
 
@@ -38,9 +50,10 @@ def generate_invoice(tenant, month):
     """An invoice for an already-closed calendar month; never silently default rates."""
     start, end = _period(month)
     subscription = (
-        BillingSubscription.objects.select_for_update()
+        BillingSubscription.objects.select_for_update(of=("self",))
         .select_related("plan")
-        .filter(tenant=tenant, status="active", deleted_at__isnull=True).first()
+        .filter(tenant=tenant, status="active", deleted_at__isnull=True)
+        .first()
     )
     if not subscription or not subscription.plan.published:
         raise BillingError("Active published billing plan required")
@@ -52,7 +65,7 @@ def generate_invoice(tenant, month):
     starts_at = datetime.combine(start, datetime.min.time(), dt_timezone.utc)
     ends_at = datetime.combine(end, datetime.min.time(), dt_timezone.utc)
     events = list(
-        BillingUsageEvent.objects.select_for_update()
+        BillingUsageEvent.objects.select_for_update(of=("self",))
         .filter(
             tenant=tenant,
             environment="production",
@@ -75,6 +88,7 @@ def generate_invoice(tenant, month):
     # A complete bill requires every eligible terminal provider check to have
     # passed the independent tenant-attribution usage reconciliation first.
     from apps.providers.models import ProviderCheck, ProviderCheckStatus
+
     eligible = ProviderCheck.objects.filter(
         tenant=tenant,
         verification__project__environment="production",
@@ -88,36 +102,58 @@ def generate_invoice(tenant, month):
     ).count()
     if eligible != count:
         raise BillingError("Unreconciled provider checks block month close")
+    from apps.billing.usage import BillingIntegrityError, record_provider_usage
+
+    for event in events:
+        try:
+            current, _ = record_provider_usage(event.provider_check_id)
+        except BillingIntegrityError as exc:
+            raise BillingError("Usage facts no longer match provider evidence") from exc
+        if current is None or current.pk != event.pk:
+            raise BillingError("Usage facts no longer match provider evidence")
     rates = {
         (meter.provider_scope, meter.capability, meter.outcome): meter
         for meter in BillingMeter.objects.filter(plan=plan, deleted_at__isnull=True)
     }
     missing = [
-        event for event in events
+        event
+        for event in events
         if (event.provider_scope, event.capability, event.outcome) not in rates
     ]
     if missing:
         raise BillingError("Unpriced provider usage; plan needs explicit meters")
     # First partial month has no base charge; regular monthly cycles begin next month.
-    base_minor = plan.monthly_price_minor if subscription.started_at.date() <= start else 0
+    base_minor = (
+        plan.monthly_price_minor if subscription.started_at.date() <= start else 0
+    )
     invoice = BillingInvoice.objects.create(
-        tenant=tenant, subscription=subscription, plan_code=plan.code,
-        plan_version=plan.version, currency=plan.currency,
-        period_start=start, period_end=end, amount_minor=0,
+        tenant=tenant,
+        subscription=subscription,
+        plan_code=plan.code,
+        plan_version=plan.version,
+        currency=plan.currency,
+        period_start=start,
+        period_end=end,
+        amount_minor=0,
     )
     total = base_minor
     if base_minor:
         BillingInvoiceLine.objects.create(
-            invoice=invoice, description="Monthly infrastructure subscription",
-            quantity=1, unit_price_minor=base_minor, amount_minor=base_minor,
+            invoice=invoice,
+            description="Monthly infrastructure subscription",
+            quantity=1,
+            unit_price_minor=base_minor,
+            amount_minor=base_minor,
         )
     for event in events:
         rate = rates[event.provider_scope, event.capability, event.outcome]
         cost = rate.unit_price_minor * event.quantity
         BillingInvoiceLine.objects.create(
-            invoice=invoice, usage_event=event,
+            invoice=invoice,
+            usage_event=event,
             description=f"{event.provider_scope} / {event.capability} / {event.outcome}",
-            quantity=event.quantity, unit_price_minor=rate.unit_price_minor,
+            quantity=event.quantity,
+            unit_price_minor=rate.unit_price_minor,
             amount_minor=cost,
         )
         event.rating_state = "rated"
@@ -143,7 +179,9 @@ def issue_invoice(invoice_id):
     invoice.due_at = now + timedelta(days=14)
     if invoice.amount_minor == 0:
         invoice.paid_at = now
-    invoice.save(update_fields=["status", "issued_at", "due_at", "paid_at", "updated_at"])
+    invoice.save(
+        update_fields=["status", "issued_at", "due_at", "paid_at", "updated_at"]
+    )
     return invoice
 
 
@@ -151,186 +189,401 @@ def payments_enabled():
     return getattr(settings, "BILLING_PAYMENTS_ENABLED", False) is True
 
 
-def begin_checkout(invoice, *, billing_email):
-    if not payments_enabled():
-        raise BillingError("Payment collection is not enabled")
+@contextmanager
+def _payment_transaction(payment):
     with transaction.atomic():
+        lock_audit_chain(payment.invoice.tenant_id)
+        invoice = BillingInvoice.objects.select_for_update().get(pk=payment.invoice_id)
+        locked = BillingPayment.objects.select_for_update().get(pk=payment.pk)
+        yield locked, invoice
+
+
+def _record_payment_event(payment, digest, event_type, event_id=""):
+    if digest is None:
+        return
+    existing = BillingPaymentEvent.objects.filter(payload_sha256=digest).first()
+    if existing is None and event_id:
+        existing = BillingPaymentEvent.objects.filter(
+            provider=payment.provider, gateway_event_id=event_id
+        ).first()
+    if existing is not None:
+        if (
+            existing.payment_id != payment.pk
+            or existing.provider != payment.provider
+            or existing.event_type != event_type
+        ):
+            raise BillingError("Gateway event changed its payment attribution")
+        return
+    try:
+        with transaction.atomic():
+            BillingPaymentEvent.objects.create(
+                payment=payment,
+                provider=payment.provider,
+                payload_sha256=digest,
+                event_type=event_type,
+                gateway_event_id=event_id,
+            )
+    except IntegrityError as exc:
+        raise BillingError("Gateway event is already attributed") from exc
+
+
+def begin_checkout(invoice, *, billing_email, provider=None):
+    provider = provider or getattr(settings, "BILLING_DEFAULT_PROVIDER", "paystack")
+    if not isinstance(provider, str) or provider not in enabled_providers(
+        invoice.currency
+    ):
+        raise BillingError(
+            "This payment provider is not enabled for the invoice currency"
+        )
+    adapter = gateway_for(provider)
+    with transaction.atomic():
+        lock_audit_chain(invoice.tenant_id)
         locked = BillingInvoice.objects.select_for_update().get(pk=invoice.pk)
         if locked.status != "issued" or locked.amount_minor <= 0:
             raise BillingError("Only unpaid issued invoices can be paid")
-        if locked.currency != "GHS":
-            raise BillingError("Paystack checkout is configured for GHS")
-        existing = locked.payments.filter(status="pending").order_by("-created_at").first()
-        if existing and existing.checkout_url:
-            return existing
-        if existing and timezone.now() - existing.created_at < timedelta(minutes=2):
-            raise BillingError("Checkout initialization is in progress")
-        # Reuse the same reference after a timeout rather than silently producing
-        # multiple potentially chargeable gateway payment attempts.
-        if existing:
-            payment = existing
-        else:
-            payment = BillingPayment.objects.create(
-                invoice=locked, provider="paystack",
-                reference="ic" + secrets.token_hex(18),
-                amount_minor=locked.amount_minor, currency=locked.currency,
+        if provider not in enabled_providers(locked.currency):
+            raise BillingError("This provider does not support the invoice currency")
+        existing = (
+            locked.payments.filter(status="pending").order_by("-created_at").first()
+        )
+        if existing is not None and existing.provider != provider:
+            raise BillingError(
+                "Continue or reconcile the existing checkout before changing payment provider"
             )
-    url = paystack.initialize(
-        reference=payment.reference, email=billing_email,
-        amount_minor=payment.amount_minor, currency=payment.currency,
-    )
-    with transaction.atomic():
-        payment = BillingPayment.objects.select_for_update().get(pk=payment.pk)
-        if payment.status != "pending":
-            raise BillingError("Payment status changed during checkout")
-        payment.checkout_url = url
-        payment.save(update_fields=["checkout_url", "updated_at"])
-    return payment
-
-
-def confirm_gateway_payment(reference, *, evidence_digest=None):
-    """Only a server-verified Paystack transaction may settle an invoice."""
-    payment = BillingPayment.objects.select_related("invoice").filter(
-        reference=reference, provider="paystack"
-    ).first()
-    if payment is None:
-        raise BillingError("Unknown payment")
-    verified = paystack.verify(reference=reference)
-    if verified.get("reference") != payment.reference:
-        raise BillingError("Gateway reference mismatch")
-    if verified.get("status") in ("failed", "abandoned"):
-        if (
-            type(verified.get("amount")) is not int
-            or verified["amount"] != payment.amount_minor
-            or verified.get("currency") != payment.currency
+        if existing is not None and existing.checkout_url:
+            return existing
+        if existing is not None and timezone.now() - existing.created_at < timedelta(
+            minutes=2
         ):
-            raise BillingError("Gateway terminal failure changed payment attribution")
-        with transaction.atomic():
-            locked = BillingPayment.objects.select_for_update().get(pk=payment.pk)
-            if locked.status == "pending":
-                locked.status = "failed"
-                locked.save(update_fields=["status", "updated_at"])
-        return False
-    if verified.get("status") != "success":
-        return False
+            raise BillingError("Checkout initialization is in progress")
+        payment = existing or BillingPayment.objects.create(
+            invoice=locked,
+            provider=provider,
+            reference="ic" + secrets.token_hex(18),
+            amount_minor=locked.amount_minor,
+            currency=locked.currency,
+        )
+    initialized = adapter.initialize(
+        reference=payment.reference,
+        email=billing_email,
+        amount_minor=payment.amount_minor,
+        currency=payment.currency,
+        payment_id=payment.public_id,
+    )
+    checkout_id = initialized["id"] if provider == "stripe" else ""
+    url = initialized["url"] if provider == "stripe" else initialized
+    with _payment_transaction(payment) as (locked, current_invoice):
+        if locked.status not in ("pending", "paid"):
+            raise BillingError("Payment status changed during checkout")
+        if locked.gateway_checkout_id and locked.gateway_checkout_id != checkout_id:
+            raise BillingError("Checkout initialization returned a different session")
+        if (
+            locked.amount_minor != current_invoice.amount_minor
+            or locked.currency != current_invoice.currency
+        ):
+            raise BillingError("Invoice changed during checkout")
+        locked.checkout_url = url
+        locked.gateway_checkout_id = checkout_id
+        locked.save(update_fields=["checkout_url", "gateway_checkout_id", "updated_at"])
+        return locked
+
+
+def confirm_gateway_payment(
+    reference,
+    *,
+    provider=None,
+    checkout_id=None,
+    evidence_digest=None,
+    event_type="charge.success",
+    event_id="",
+):
+    """Settle only an independently fetched transaction matching the invoice."""
+    payment = (
+        BillingPayment.objects.select_related("invoice")
+        .filter(reference=reference)
+        .first()
+    )
+    if payment is None or (provider is not None and payment.provider != provider):
+        raise BillingError("Unknown payment")
+    adapter = gateway_for(payment.provider)
+    if payment.provider == "stripe":
+        if (
+            checkout_id
+            and payment.gateway_checkout_id
+            and checkout_id != payment.gateway_checkout_id
+        ):
+            raise BillingError("Stripe session does not match checkout")
+        verified = adapter.verify(
+            reference=reference, checkout_id=checkout_id or payment.gateway_checkout_id
+        )
+    else:
+        verified = adapter.verify(reference=reference)
     if (
         verified.get("reference") != payment.reference
         or type(verified.get("amount")) is not int
         or verified["amount"] != payment.amount_minor
         or verified.get("currency") != payment.currency
-        or not isinstance(verified.get("id"), int)
     ):
         raise BillingError("Gateway transaction does not match the invoice")
-    transaction_id = str(verified["id"])
-    with transaction.atomic():
-        locked = BillingPayment.objects.select_for_update().get(pk=payment.pk)
-        invoice = BillingInvoice.objects.select_for_update().get(pk=locked.invoice_id)
-        if evidence_digest is not None and BillingPaymentEvent.objects.filter(
-            payload_sha256=evidence_digest
-        ).exclude(payment=locked).exists():
-            raise BillingError("Webhook digest attributed to another payment")
-        if locked.status == "paid":
+    state = verified.get("status")
+    if state not in (
+        "success",
+        "failed",
+        "abandoned",
+        "pending",
+        "ongoing",
+        "processing",
+        "queued",
+        "reversed",
+    ):
+        raise BillingError("Unknown gateway payment state")
+    transaction_id = verified.get("id")
+    if state == "success":
+        if payment.provider == "stripe":
+            if (
+                not isinstance(transaction_id, str)
+                or not transaction_id.startswith("pi_")
+                or not stripe.IDENTIFIER.fullmatch(transaction_id)
+            ):
+                raise BillingError("Stripe transaction ID is invalid")
+        elif type(transaction_id) is not int or transaction_id <= 0:
+            raise BillingError("Paystack transaction ID is invalid")
+        transaction_id = str(transaction_id)
+    with _payment_transaction(payment) as (locked, invoice):
+        if payment.provider == "stripe":
+            verified_checkout = verified.get("checkout_id")
+            if (
+                locked.gateway_checkout_id
+                and verified_checkout != locked.gateway_checkout_id
+            ):
+                raise BillingError("Stripe session changed during confirmation")
+            if not locked.gateway_checkout_id:
+                locked.gateway_checkout_id = verified_checkout
+                locked.save(update_fields=["gateway_checkout_id", "updated_at"])
+        if state in ("failed", "abandoned"):
+            if locked.status == "pending":
+                locked.status = "failed"
+                locked.save(update_fields=["status", "updated_at"])
+            _record_payment_event(locked, evidence_digest, event_type, event_id)
+            return False
+        if state != "success":
+            return False
+        if locked.status in ("paid", "disputed", "partially_refunded", "refunded"):
             if locked.gateway_transaction_id != transaction_id:
                 raise BillingError("Duplicate payment has different transaction ID")
+            _record_payment_event(locked, evidence_digest, event_type, event_id)
             return True
         if invoice.status != "issued" or locked.status not in ("pending", "failed"):
-            raise BillingError("Unexpected paid transaction: manual financial review required")
-        if invoice.amount_minor != locked.amount_minor or invoice.currency != locked.currency:
+            raise BillingError(
+                "Unexpected paid transaction requires financial reconciliation"
+            )
+        if (
+            invoice.amount_minor != locked.amount_minor
+            or invoice.currency != locked.currency
+        ):
             raise BillingError("Invoice changed since checkout")
         locked.status = "paid"
         locked.gateway_transaction_id = transaction_id
         locked.confirmed_at = timezone.now()
-        locked.save(update_fields=["status", "gateway_transaction_id", "confirmed_at", "updated_at"])
+        try:
+            with transaction.atomic():
+                locked.save(
+                    update_fields=[
+                        "status",
+                        "gateway_transaction_id",
+                        "confirmed_at",
+                        "updated_at",
+                    ]
+                )
+        except IntegrityError as exc:
+            raise BillingError(
+                "Gateway transaction already settled another payment"
+            ) from exc
         invoice.status = "paid"
         invoice.paid_at = locked.confirmed_at
         invoice.save(update_fields=["status", "paid_at", "updated_at"])
-        if evidence_digest is not None:
-            BillingPaymentEvent.objects.get_or_create(
-                payload_sha256=evidence_digest,
-                defaults={"payment": locked, "event_type": "charge.success"},
-            )
+        _record_payment_event(locked, evidence_digest, event_type, event_id)
+        record_audit_event(
+            tenant=invoice.tenant,
+            actor=None,
+            action="billing.payment.confirmed",
+            target_type="billing_payment",
+            target_id=locked.public_id,
+            metadata={"invoice_id": invoice.public_id, "provider": locked.provider},
+        )
     return True
 
 
-def _reconcile_gateway_refund(event):
-    """Refund notifications are never trusted without a matching provider lookup."""
-    data = event["data"]
-    reference = data.get("transaction_reference")
-    refund_id = data.get("id")
-    if not isinstance(reference, str) or not paystack.REFERENCE.fullmatch(reference):
-        return False
-    if type(refund_id) is not int or refund_id <= 0:
-        # Some gateway events omit the refund ID. Leave for operator
-        # reconciliation instead of inventing a refund record.
-        return False
-    payment = BillingPayment.objects.select_related("invoice").filter(
-        reference=reference, status__in=("paid", "disputed"), provider="paystack"
-    ).first()
-    if payment is None or not payment.gateway_transaction_id:
-        return False
-    result = paystack.verify_refund(refund_id=refund_id)
+def _refresh_adjustment_state(payment, invoice):
+    if payment.disputes.filter(status__in=("open", "lost")).exists():
+        state = "disputed"
+    else:
+        total = sum(
+            payment.refunds.filter(status="completed").values_list(
+                "amount_minor", flat=True
+            )
+        )
+        state = (
+            "refunded"
+            if total == payment.amount_minor
+            else "partially_refunded" if total else "paid"
+        )
+    payment.status = invoice.status = state
+    payment.save(update_fields=["status", "updated_at"])
+    invoice.save(update_fields=["status", "updated_at"])
+
+
+def reconcile_gateway_refund(provider, refund_id):
+    result = gateway_for(provider).verify_refund(refund_id=refund_id)
+    if provider == "stripe":
+        if result.get("id") != refund_id:
+            raise BillingError("Stripe refund ID mismatch")
+        transaction_id = result.get("payment_intent")
+        statuses = {
+            "pending": "pending",
+            "requires_action": "pending",
+            "succeeded": "completed",
+            "failed": "failed",
+            "canceled": "failed",
+        }
+    else:
+        if type(result.get("id")) is not int or result["id"] != refund_id:
+            raise BillingError("Paystack refund ID mismatch")
+        transaction_id = result.get("transaction")
+        if isinstance(transaction_id, dict):
+            transaction_id = transaction_id.get("id")
+        statuses = {
+            "pending": "pending",
+            "processing": "pending",
+            "processed": "completed",
+            "failed": "failed",
+        }
+    if not isinstance(transaction_id, (str, int)) or isinstance(transaction_id, bool):
+        raise BillingError("Refund transaction attribution is missing")
+    payment = (
+        BillingPayment.objects.select_related("invoice")
+        .filter(
+            provider=provider,
+            gateway_transaction_id=str(transaction_id),
+            status__in=("paid", "disputed", "partially_refunded", "refunded"),
+        )
+        .first()
+    )
+    if payment is None:
+        raise BillingError("Refund has no settled payment")
+    new_status = statuses.get(result.get("status"))
     if (
-        type(result.get("id")) is not int
-        or result["id"] != refund_id
-        or str(result.get("transaction")) != payment.gateway_transaction_id
-        or result.get("currency") != payment.currency
+        new_status is None
         or type(result.get("amount")) is not int
         or not 0 < result["amount"] <= payment.amount_minor
-        or result.get("status") not in ("pending", "processing", "processed", "failed")
+        or not isinstance(result.get("currency"), str)
+        or result["currency"].upper() != payment.currency
     ):
-        raise BillingError("Refund lookup failed transaction attribution")
-    with transaction.atomic():
-        locked = BillingPayment.objects.select_for_update().get(pk=payment.pk)
-        invoice = BillingInvoice.objects.select_for_update().get(pk=locked.invoice_id)
-        refunded_total = sum(
-            x.amount_minor for x in locked.refunds.exclude(gateway_refund_id=str(refund_id))
+        raise BillingError("Refund lookup failed amount or currency attribution")
+    stored_id = provider + ":" + str(refund_id)
+    with _payment_transaction(payment) as (locked, invoice):
+        allocated = sum(
+            locked.refunds.exclude(gateway_refund_id=stored_id)
             .filter(status__in=("pending", "completed"))
+            .values_list("amount_minor", flat=True)
         )
-        if refunded_total + result["amount"] > locked.amount_minor:
+        if allocated + result["amount"] > locked.amount_minor:
             raise BillingError("Refund total exceeds settled charge")
-        refund, created = BillingRefund.objects.get_or_create(
-            gateway_refund_id=str(refund_id),
+        refund, _ = BillingRefund.objects.get_or_create(
+            gateway_refund_id=stored_id,
             defaults={
-                "payment": locked, "amount_minor": result["amount"],
+                "payment": locked,
+                "amount_minor": result["amount"],
                 "status": "pending",
             },
         )
         if refund.payment_id != locked.pk or refund.amount_minor != result["amount"]:
             raise BillingError("Refund changed its payment attribution")
-        new_status = (
-            "completed" if result["status"] == "processed" else
-            "failed" if result["status"] == "failed" else "pending"
-        )
-        if refund.status == "completed" and new_status != "completed":
-            return True  # Ignore old out-of-order notifications.
-        if refund.status != new_status:
+        if refund.status != "completed":
             refund.status = new_status
             if new_status == "completed":
                 refund.confirmed_at = timezone.now()
             refund.save(update_fields=["status", "confirmed_at", "updated_at"])
-        if new_status == "completed":
-            invoice.status = "disputed"
-            invoice.save(update_fields=["status", "updated_at"])
-            locked.status = "disputed"
-            locked.save(update_fields=["status", "updated_at"])
+        _refresh_adjustment_state(locked, invoice)
     return True
 
 
-def _record_gateway_dispute(event):
-    reference = event["data"].get("reference")
-    if not isinstance(reference, str) or not paystack.REFERENCE.fullmatch(reference):
-        return False
-    with transaction.atomic():
-        payment = BillingPayment.objects.select_for_update().filter(
-            reference=reference, status="paid"
-        ).first()
-        if payment is None:
-            return False
-        invoice = BillingInvoice.objects.select_for_update().get(pk=payment.invoice_id)
-        payment.status = "disputed"
-        payment.save(update_fields=["status", "updated_at"])
-        invoice.status = "disputed"
-        invoice.save(update_fields=["status", "updated_at"])
+def reconcile_gateway_dispute(provider, dispute_id):
+    result = gateway_for(provider).verify_dispute(dispute_id=dispute_id)
+    if result.get("id") != dispute_id:
+        raise BillingError("Gateway dispute ID mismatch")
+    if provider == "stripe":
+        transaction_id = result.get("payment_intent")
+        amount = result.get("amount")
+        currency = result.get("currency")
+        states = {
+            "needs_response": "open",
+            "under_review": "open",
+            "warning_needs_response": "open",
+            "warning_under_review": "open",
+            "warning_closed": "won",
+            "won": "won",
+            "lost": "lost",
+        }
+        state = states.get(result.get("status"))
+    else:
+        transaction_data = result.get("transaction")
+        if not isinstance(transaction_data, dict):
+            raise BillingError("Paystack dispute transaction is missing")
+        transaction_id = transaction_data.get("id")
+        amount, currency = transaction_data.get("amount"), transaction_data.get(
+            "currency"
+        )
+        if result.get("status") not in (
+            "awaiting-merchant-feedback",
+            "awaiting-bank-feedback",
+            "pending",
+            "resolved",
+            "archived",
+        ):
+            raise BillingError("Unknown Paystack dispute state")
+        state = (
+            "lost"
+            if result.get("resolution") in ("merchant-accepted", "auto-accepted")
+            else "open"
+        )
+    if not isinstance(transaction_id, (str, int)) or isinstance(transaction_id, bool):
+        raise BillingError("Dispute transaction attribution is missing")
+    payment = (
+        BillingPayment.objects.select_related("invoice")
+        .filter(
+            provider=provider,
+            gateway_transaction_id=str(transaction_id),
+            status__in=("paid", "disputed", "partially_refunded", "refunded"),
+        )
+        .first()
+    )
+    if (
+        payment is None
+        or state is None
+        or type(amount) is not int
+        or not 0 < amount <= payment.amount_minor
+        or not isinstance(currency, str)
+        or currency.upper() != payment.currency
+    ):
+        raise BillingError("Dispute lookup failed payment attribution")
+    with _payment_transaction(payment) as (locked, invoice):
+        dispute, _ = BillingDispute.objects.get_or_create(
+            gateway_dispute_id=provider + ":" + str(dispute_id),
+            defaults={
+                "payment": locked,
+                "amount_minor": amount,
+                "status": state,
+                "gateway_status": result["status"],
+            },
+        )
+        if dispute.payment_id != locked.pk or dispute.amount_minor != amount:
+            raise BillingError("Dispute changed its payment attribution")
+        if dispute.status not in ("won", "lost"):
+            dispute.status = state
+            dispute.gateway_status = result["status"]
+            dispute.save(update_fields=["status", "gateway_status", "updated_at"])
+        _refresh_adjustment_state(locked, invoice)
     return True
 
 
@@ -344,15 +597,71 @@ def receive_paystack_webhook(body, signature):
     if not isinstance(event, dict) or not isinstance(event.get("data"), dict):
         raise BillingError("Malformed webhook")
     event_type = event.get("event")
-    if event_type in ("refund.pending", "refund.processing", "refund.processed", "refund.failed"):
-        return _reconcile_gateway_refund(event)
-    if event_type == "charge.dispute.create":
-        return _record_gateway_dispute(event)
+    if event_type in (
+        "refund.pending",
+        "refund.processing",
+        "refund.processed",
+        "refund.failed",
+    ):
+        return reconcile_gateway_refund("paystack", event["data"].get("id"))
+    if event_type in (
+        "charge.dispute.create",
+        "charge.dispute.remind",
+        "charge.dispute.resolve",
+    ):
+        return reconcile_gateway_dispute("paystack", event["data"].get("id"))
     if event_type != "charge.success":
         return False
     reference = event["data"].get("reference")
     if not isinstance(reference, str) or not paystack.REFERENCE.fullmatch(reference):
         raise BillingError("Invalid payment reference")
     return confirm_gateway_payment(
-        reference, evidence_digest=hashlib.sha256(body).hexdigest()
+        reference, provider="paystack", evidence_digest=hashlib.sha256(body).hexdigest()
+    )
+
+
+def receive_stripe_webhook(body, signature):
+    if not stripe.valid_webhook(body, signature):
+        raise BillingError("Invalid Stripe webhook signature")
+    try:
+        event = json.loads(body)
+    except ValueError as exc:
+        raise BillingError("Malformed Stripe webhook") from exc
+    data = event.get("data") if isinstance(event, dict) else None
+    obj = data.get("object") if isinstance(data, dict) else None
+    if not isinstance(obj, dict):
+        raise BillingError("Malformed Stripe webhook object")
+    event_id = event.get("id")
+    if (
+        not isinstance(event_id, str)
+        or not event_id.startswith("evt_")
+        or not stripe.IDENTIFIER.fullmatch(event_id)
+    ):
+        raise BillingError("Invalid Stripe event ID")
+    event_type = event.get("type")
+    if event_type in ("refund.created", "refund.updated", "refund.failed"):
+        return reconcile_gateway_refund("stripe", obj.get("id"))
+    if event_type in (
+        "charge.dispute.created",
+        "charge.dispute.updated",
+        "charge.dispute.closed",
+    ):
+        return reconcile_gateway_dispute("stripe", obj.get("id"))
+    if event_type not in (
+        "checkout.session.completed",
+        "checkout.session.async_payment_succeeded",
+        "checkout.session.async_payment_failed",
+        "checkout.session.expired",
+    ):
+        return False
+    reference = obj.get("client_reference_id")
+    if not isinstance(reference, str) or not stripe.REFERENCE.fullmatch(reference):
+        raise BillingError("Invalid Stripe payment reference")
+    return confirm_gateway_payment(
+        reference,
+        provider="stripe",
+        checkout_id=obj.get("id"),
+        evidence_digest=hashlib.sha256(body).hexdigest(),
+        event_type=event_type,
+        event_id=event_id,
     )

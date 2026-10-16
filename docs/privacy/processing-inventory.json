@@ -152,7 +152,8 @@
         "billing usage",
         "support requester/contact and ticket content",
         "Unrated, production-only per-provider-check usage facts (tenant, project, outcome, capability, provider ownership, timestamps); no payments or prices.",
-        "Commercial plan prices and capability rates in integer currency subunits, tenant subscription, immutable monthly invoice snapshots, payment transaction references, signed callback digests and refund statuses (no card data)."
+        "Commercial plan prices and capability rates in integer currency subunits, tenant subscription, immutable monthly invoice snapshots, payment transaction references, signed callback digests and refund statuses (no card data).",
+        "Billing contact email sent to the selected hosted checkout provider; opaque checkout/session/payment transaction and event identifiers, checkout capability URLs, verified refund amounts and statuses, and dispute identifiers and outcomes. No card number, security code or bank credentials are collected or persisted by IdentityCore."
       ],
       "purpose": "Operate customer integrations, provider routing, metering, delivery troubleshooting, and support. Operate opt-in monthly billing, server-verified payment settlement, disputes and refunds.",
       "locations": [
@@ -170,9 +171,10 @@
         "PostgreSQL",
         "tenant endpoints",
         "configured support and provider services",
-        "Paystack merchant account, when explicitly enabled"
+        "Paystack merchant account, when explicitly enabled",
+        "Stripe merchant account, when explicitly enabled"
       ],
-      "transfers": "Webhook payloads and support/provider disclosures follow tenant configuration, data-minimization rules, and recorded destination safeguards. When enabled, only merchant-approved checkout data (payer email, amount, currency, generated reference) are transmitted to Paystack; payment credentials remain solely with Paystack. Processor region, transfer safeguards and retention require deployment privacy review.",
+      "transfers": "Webhook payloads and support/provider disclosures follow tenant configuration, data-minimization rules, and recorded destination safeguards. When enabled, only merchant-approved checkout data (payer email, amount, currency, generated reference) are transmitted to Paystack; payment credentials remain solely with Paystack. Processor region, transfer safeguards and retention require deployment privacy review. Paystack and Stripe merchant API requests transmit billing contact email, invoice currency/amount and opaque payment correlation references. Merchant account eligibility, processing regions, retention and applicable processor contracts require deployment-specific approval; enabling Stripe does not authorize currency conversion.",
       "owners": [
         "platform",
         "support",
@@ -1332,6 +1334,56 @@
     },
     {
       "source": "backend/django/apps/billing/models.py",
+      "field": "BillingDispute.amount_minor",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingDispute.created_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingDispute.deleted_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingDispute.gateway_dispute_id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingDispute.gateway_status",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingDispute.id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingDispute.payment",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingDispute.public_id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingDispute.status",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingDispute.updated_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
       "field": "BillingInvoice.amount_minor",
       "activity": "integrations-billing-and-support"
     },
@@ -1552,6 +1604,11 @@
     },
     {
       "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPayment.gateway_checkout_id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
       "field": "BillingPayment.gateway_transaction_id",
       "activity": "integrations-billing-and-support"
     },
@@ -1607,6 +1664,11 @@
     },
     {
       "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPaymentEvent.gateway_event_id",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
       "field": "BillingPaymentEvent.id",
       "activity": "integrations-billing-and-support"
     },
@@ -1618,6 +1680,11 @@
     {
       "source": "backend/django/apps/billing/models.py",
       "field": "BillingPaymentEvent.payment",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingPaymentEvent.provider",
       "activity": "integrations-billing-and-support"
     },
     {

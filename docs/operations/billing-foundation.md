@@ -1,123 +1,142 @@
 # IdentityCore commercial billing and payments
 
-**Scope:** GHS monthly postpaid billing with rate-card snapshots, BYOP/platform
-metering, invoices, hosted Paystack checkout, authenticated webhook and
-server-side payment verification. The core accounting records are provider
-neutral; Paystack is currently the only payment adapter. This is not an
-approval to take live payments before staging, commercial and legal checks.
+## Accounting and checkout
 
-## What the implementation does
+Monthly postpaid invoices combine a published plan's base fee with immutable,
+tenant-scoped production usage and rate snapshots. Platform and BYOP usage
+have separate meters. Sandbox work is excluded. Explicit rates, including
+zero rates, determine chargeability; failures are never automatically billable.
+Month close rejects missing usage, changed provider facts, unpriced meters and
+line-total mismatches. Interrupted drafts resume; generation and automatic
+issuance commit together. Completed tenants do not consume the next batch.
 
-- Every completed, failed or timed-out production ProviderCheck is eligible
-  for an idempotent, **unrated** tenant/project-scoped usage fact. Sandbox
-  and unprojected work never enters the ledger. Terminal failures are never
-  presumed chargeable; explicit plan rates decide whether they carry a charge.
-- Platform-owned and tenant-owned (BYOP) providers use **separate meters**.
-  This categorizes infrastructure usage, not the provider's direct bill.
-  Customers remain responsible for separate BYOP vendor contracts.
-- Published plans have frozen terms. Pricing revisions create a new plan
-  version; each monthly invoice records the applicable plan and unit amounts.
-- Calendar-month invoices include subscription base fee plus metered events.
-  The first partial month has usage-only billing (no prorated base fee).
-  A month will not close if eligible provider checks lack reconciled usage or
-  some usage has no explicit rate. Invoice issuance requires line total parity.
-- Published plans may be selected by authorized organization admins.
-  Billing permissions use the tenant-scoped manage_billing role permission.
-- Invoices are read-only to customers. Only **issued**, nonzero invoices can
-  start hosted checkout. The server calculates amount and currency and creates
-  unique references; checkout URLs must point to checkout.paystack.com.
-- Signed Paystack webhooks use the secret-key HMAC-SHA512 of exact raw request
-  bytes, size caps and replay-resistant state transitions. Successful charges
-  MUST pass a separate Paystack transaction verification for reference,
-  amount, currency and transaction ID before settling an invoice.
-- An authenticated customer can verify payment status. Operator
-  reconciliation covers missed callbacks/webhooks and pending references.
-- Authenticated refund notifications are independently verified via the
-  Paystack refund API using the settled transaction ID and bounded amount.
-  Completed refunds and signed charge disputes put the invoice in disputed
-  state for finance review. **Refund creation is manual through Paystack's
-  dashboard** to avoid unaudited duplicate payout requests.
-- Billing endpoints are dashboard-internal, not part of public SDK/OpenAPI.
-  No application stores customer card numbers or card security codes.
+Both **Paystack and Stripe** support customer-paid hosted invoices. Paystack is
+restricted to GHS. Stripe defaults to USD, EUR and GBP; configure another
+supported two-decimal currency only after confirming merchant eligibility.
+Checkout never converts currency. Available providers are filtered against the
+invoice currency and deployment configuration. Plan changes after enrollment
+require an operations workflow; there are no saved cards or automatic debits.
 
-## Merchant setup
+Only tenant users with `manage_billing` can subscribe, create checkout or
+request gateway verification. Invoices remain readable according to dashboard
+permissions. The backend owns amounts, currency and unique references. A single
+pending attempt is shared across concurrent checkout requests, including requests
+for different providers. Hosted redirects accept only the exact HTTPS checkout
+host for the selected provider. Card numbers and security codes never enter
+IdentityCore.
 
-Use a Paystack merchant account legally entitled to collect **GHS**. Do not
-reuse an account for a different legal entity without authorization. Set the
-following in a secret manager for the Django/worker deployment:
+A return redirect is not proof of payment. Paystack settlement requires a separate
+transaction lookup matching reference, amount, currency and transaction ID.
+Stripe settlement requires independent Checkout Session and PaymentIntent
+lookups, matching the server reference, amount and currency, a complete paid
+session and a succeeded intent with the exact amount received. Pending and
+asynchronous payments remain pending. Repeated confirmations settle and audit
+once. Late failures cannot undo settled payments.
 
-    BILLING_USAGE_CAPTURE_ENABLED=true
-    BILLING_AUTO_INVOICE_ENABLED=false
-    BILLING_PAYMENTS_ENABLED=false
-    PAYSTACK_SECRET_KEY=<test merchant secret>
-    BILLING_RETURN_URL=https://your-approved-dashboard.example/billing/invoices
+Webhooks authenticate exact raw request bytes before parsing: Paystack uses
+HMAC-SHA512; Stripe uses its endpoint secret, SHA256 signature and a five-minute
+timestamp tolerance. Event and transaction attribution includes the gateway.
+Refunds and disputes require independent gateway lookups against the settled
+transaction. Partial and full refunds produce `partially_refunded` and
+`refunded` states. Open or lost disputes produce `disputed`; a verified won
+Stripe dispute restores the appropriate paid/refund state. Refund totals cannot
+exceed the original payment. Refund creation remains an authorized operator
+action in the relevant gateway dashboard.
 
-1. Apply migrations, run protected CI, and review production access controls.
-2. Create a draft billing plan in the platform Django admin and add a
-   platform/BYOP meter for **every eligible check type and outcome**; zero
-   rates are explicit and allowed. Publish only after reviewing currency,
-   base fee, rates and contract terms. Plan codes can repeat across versions.
-3. Select a plan as a tenant admin from the Billing dashboard. Changing a
-   subscribed plan currently needs a controlled operations workflow.
-4. Enable usage capture and reconcile previously finished provider checks.
-   The background task runs every 10 minutes when enabled; the manual command
-   can process individual tenant history:
+## Deployment configuration
 
-       python backend/django/manage.py reconcile_provider_usage --tenant TENANT_ID --limit 100
+Apply migrations before enabling capture or checkout. Keep secrets in the
+Django and worker secret manager, never in frontend configuration:
 
-5. For an already-closed UTC month, issue a sample invoice in staging:
+```dotenv
+BILLING_USAGE_CAPTURE_ENABLED=true
+BILLING_AUTO_INVOICE_ENABLED=false
+BILLING_PAYMENTS_ENABLED=false
+BILLING_PAYMENT_PROVIDERS=paystack,stripe
+BILLING_DEFAULT_PROVIDER=paystack
+PAYSTACK_SECRET_KEY=<Paystack test secret>
+STRIPE_SECRET_KEY=<Stripe test secret>
+STRIPE_WEBHOOK_SECRET=<Stripe endpoint signing secret>
+STRIPE_PAYMENT_CURRENCIES=USD,EUR,GBP
+BILLING_RETURN_URL=https://YOUR-DASHBOARD-HOST/billing/return
+```
 
-       python backend/django/manage.py issue_billing_invoices --tenant TENANT_ID --month YYYY-MM --issue
+The return URL must be HTTPS without credentials or a fragment. The backend
+adds an opaque payment ID; the dashboard requests authenticated verification.
+Enable only providers provisioned for the collecting legal entity. Enabling
+payments validates their required secrets at startup. Stripe requests pin API
+version `2025-06-30.basil`.
 
-   This command is operator-only; it refuses incomplete accounting. For
-   production, after approved rate/legal setup and month-close checks,
-   enable BILLING_AUTO_INVOICE_ENABLED=true.
-6. With **Paystack test key**, turn on BILLING_PAYMENTS_ENABLED=true and test
-   a checkout on an issued invoice, verified callback/webhook, duplicate
-   callbacks, wrong amounts, gateway outages and refund/dispute reconciliation.
-7. Configure Paystack dashboard webhook URL:
+1. Create a draft plan in the platform admin. Add explicit rates for every
+   eligible capability, provider scope and outcome, then publish a reviewed
+   currency, base fee and rate version. Published terms are frozen.
+2. Enroll a tenant through the Billing dashboard using `manage_billing`.
+3. Reconcile historical production usage before closing a month:
 
-       https://YOUR-API-HOST/api/v1/billing/paystack/webhook
+   ```sh
+   python backend/django/manage.py reconcile_provider_usage --tenant TENANT_ID --limit 100
+   python backend/django/manage.py issue_billing_invoices --tenant TENANT_ID --month YYYY-MM --issue
+   ```
 
-   Route exact raw bytes through HTTPS without JSON reserialization.
-   Keep gateway secret solely server-side. Confirm origin and amount/currency
-   according to Paystack's current docs.
-8. Switch to live credentials **only after** approved merchant onboarding,
-   penetration testing, tax/VAT and invoice requirements, terms, jurisdiction
-   and data-processing review, production monitoring and separate finance
-   signoff. PAYSTACK_SECRET_KEY must never be committed or exposed to clients.
+   Usage capture runs every ten minutes when enabled. Enable
+   `BILLING_AUTO_INVOICE_ENABLED=true` only after validating month close.
+4. Configure exact HTTPS POST webhook destinations, preserving raw bytes:
 
-## API (authenticated organization dashboard)
+   ```text
+   https://YOUR-API-HOST/api/v1/billing/paystack/webhook
+   https://YOUR-API-HOST/api/v1/billing/stripe/webhook
+   ```
 
-- GET billing/plans, billing/account, billing/invoices,
-  billing/invoices/{id}
-- POST billing/subscribe (manage_billing permission; JSON plan_id)
-- POST billing/invoices/{id}/checkout (manage_billing permission)
-- GET billing/payments/{id}
-- POST billing/payments/{id} (manage_billing permission; Paystack verification)
-- POST billing/paystack/webhook (no dashboard credentials; **signed HMAC**)
+   Stripe event subscriptions: `checkout.session.completed`,
+   `checkout.session.async_payment_succeeded`,
+   `checkout.session.async_payment_failed`, `checkout.session.expired`,
+   `refund.created`, `refund.updated`, `charge.dispute.created`,
+   `charge.dispute.updated`, and `charge.dispute.closed`.
+5. Enable payments with test credentials. Exercise both providers' hosted
+   checkout, return verification, signed delivery, duplicates, wrong amounts,
+   timeouts, missed webhooks, refunds and disputes with eligible invoice currency.
+6. Reconcile missed payments and known pending adjustments regularly, and after
+   webhook outages:
 
-All paths are under /api/v1/. Amounts are **integer minor units**, no
-floating-point currency calculations. NEVER infer payment from a redirect.
-Receipts, failed gateway responses, merchant disputes and refunds require
-reconciliation by finance before changing contractual entitlements.
+   ```sh
+   python backend/django/manage.py reconcile_billing_payments --tenant TENANT_ID --limit 50 --include-adjustments
+   ```
 
-## Deliberate boundaries / work outside the first GHS release
+   Optional `--provider paystack` or `--provider stripe` restricts a run.
+   Nonzero exits require operator review. Recover entirely missed adjustment
+   notifications through the gateway's event replay tools; this command only
+   refreshes adjustments already recorded locally. Reconciliation does not
+   initiate refunds.
 
-- No auto-debit subscriptions, saved payment methods or customer card storage.
-  Recurring bills are customer-paid hosted invoices.
-- No automatic taxes/VAT or multi-jurisdiction invoice compliance, no foreign
-  gateway enabled and no automated FX.
-- No automatic production suspension on overdue payments.
-- No unreviewed self-service plan switch/proration after enrollment.
-- Refunds are initiated by authorized operators through Paystack Dashboard;
-  application mirrors independently verified refund statuses.
-- No production approval based on synthetic gateway mocks: run live Paystack
-  **test-mode** end-to-end and obtain authorized merchant launch signoff.
+## Dashboard API
+
+All paths are under `/api/v1/`; these are dashboard endpoints, outside the public
+SDK contract. Amounts are integer minor units.
+
+- `GET billing/plans`, `billing/account`, `billing/invoices`, `billing/invoices/{id}`
+- `POST billing/subscribe` with `plan_id`
+- `POST billing/invoices/{id}/checkout` with optional `provider` (`paystack` or `stripe`)
+- `GET billing/payments/{id}`; `POST billing/payments/{id}` independently verifies it
+- `POST billing/paystack/webhook`, `billing/stripe/webhook` with gateway signatures
+
+## Launch evidence and boundaries
+
+Automated coverage includes gateway HTTP/signature validation, independent
+settlement checks, refunds/disputes, PostgreSQL payment races, invoice recovery,
+and Chromium/WebKit billing UI flows. Gateway network calls in these tests are
+mocked; they do not prove merchant onboarding or actual test-mode settlement.
+Record real merchant test-mode results for **both providers** before live keys.
+
+Live collection requires authorized merchant onboarding, finance signoff,
+applicable invoice/tax requirements and privacy processor/transfer review.
+Automatic tax, FX, automatic overdue suspension, self-service plan switching
+and refund initiation are outside this implementation. Recurring invoices are
+customer-paid; this does not create gateway-managed subscription debits.
 
 References:
-- https://paystack.com/docs/payments/accept-payments/
-- https://paystack.com/docs/payments/verify-payments/
-- https://paystack.com/docs/payments/webhooks/
-- https://paystack.com/docs/payments/refunds/
-- docs/operations/release-evidence-gate.md
+
+- [Stripe Checkout fulfillment](https://docs.stripe.com/checkout/fulfillment)
+- [Stripe webhook verification and recovery](https://docs.stripe.com/events/manage-webhook-endpoints)
+- [Paystack payment verification](https://paystack.com/docs/payments/verify-payments/)
+- [Paystack webhooks](https://paystack.com/docs/payments/webhooks/)
+- [Release evidence gate](release-evidence-gate.md)

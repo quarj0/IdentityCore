@@ -27,7 +27,20 @@ export default function BillingPage() {
     }
   }, []);
 
-  useEffect(() => { void reload(); }, [reload]);
+  useEffect(() => {
+    let active = true;
+    Promise.all([billingApi.plans(), billingApi.account()]).then(([available, account]) => {
+      if (!active) return;
+      setPlans(available.results);
+      setSubscription(account.subscription);
+      setError("");
+    }).catch((reason) => {
+      if (active) setError(getErrorMessage(reason));
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, []);
 
   async function enroll(plan: BillingPlan) {
     setBusy(plan.id);

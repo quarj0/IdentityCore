@@ -43,21 +43,47 @@ export type BillingInvoice = {
   issued_at: string | null;
   paid_at: string | null;
   lines?: InvoiceLine[];
+  payment_providers: PaymentProvider[];
+  payment: { id: string; provider: PaymentProvider; status: string } | null;
+  can_manage_billing: boolean;
 };
+
+export type PaymentProvider = "paystack" | "stripe";
 
 export const billingApi = {
   plans: () => restRequest<{ results: BillingPlan[] }>("/billing/plans"),
-  account: () => restRequest<{ subscription: BillingSubscription | null }>("/billing/account"),
+  account: () =>
+    restRequest<{ subscription: BillingSubscription | null }>(
+      "/billing/account",
+    ),
   subscribe: (plan_id: string) =>
-    restRequest<{ id: string; plan: string; status: string }>("/billing/subscribe", {
+    restRequest<{ id: string; plan: string; status: string }>(
+      "/billing/subscribe",
+      {
+        method: "POST",
+        body: JSON.stringify({ plan_id }),
+      },
+    ),
+  invoices: () =>
+    restRequest<{ results: BillingInvoice[] }>("/billing/invoices"),
+  invoice: (id: string) =>
+    restRequest<BillingInvoice>("/billing/invoices/" + encodeURIComponent(id)),
+  checkout: (id: string, provider: PaymentProvider) =>
+    restRequest<{
+      payment_id: string;
+      reference: string;
+      currency: string;
+      amount_minor: number;
+      checkout_url: string;
+      provider: PaymentProvider;
+      status: string;
+    }>("/billing/invoices/" + encodeURIComponent(id) + "/checkout", {
       method: "POST",
-      body: JSON.stringify({ plan_id }),
+      body: JSON.stringify({ provider }),
     }),
-  invoices: () => restRequest<{ results: BillingInvoice[] }>("/billing/invoices"),
-  invoice: (id: string) => restRequest<BillingInvoice>("/billing/invoices/" + encodeURIComponent(id)),
-  checkout: (id: string) =>
-    restRequest<{ payment_id: string; reference: string; currency: string; amount_minor: number; checkout_url: string }>(
-      "/billing/invoices/" + encodeURIComponent(id) + "/checkout",
+  verifyPayment: (id: string) =>
+    restRequest<{ verified: boolean }>(
+      "/billing/payments/" + encodeURIComponent(id),
       { method: "POST" },
     ),
 };
@@ -65,6 +91,7 @@ export const billingApi = {
 export function formatMinor(amount_minor: number, currency: string) {
   const supported = /^[A-Z]{3}$/.test(currency) ? currency : "GHS";
   return new Intl.NumberFormat("en-GH", {
-    style: "currency", currency: supported,
+    style: "currency",
+    currency: supported,
   }).format(amount_minor / 100);
 }

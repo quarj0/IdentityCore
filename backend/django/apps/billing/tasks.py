@@ -1,12 +1,15 @@
 """Bounded billing reconciliation and gated month-close Celery tasks."""
+
 from datetime import timedelta
 
 from celery import shared_task
 from django.conf import settings
 from django.utils import timezone
+from django.db import transaction
+from django.db.models import Exists, OuterRef
 
-from apps.billing.models import BillingSubscription
-from apps.billing.services import BillingError, generate_invoice, issue_invoice
+from apps.billing.models import BillingInvoice, BillingSubscription
+from apps.billing.services import generate_invoice, issue_invoice
 from apps.billing.usage import BillingIntegrityError, record_provider_usage
 from apps.providers.models import ProviderCheck, ProviderCheckStatus
 
@@ -27,7 +30,9 @@ def reconcile_billing_usage_task(limit=200):
                 ProviderCheckStatus.TIMEOUT,
             ],
             billing_usage_event__isnull=True,
-        ).order_by("pk").values_list("pk", flat=True)[:limit]
+        )
+        .order_by("pk")
+        .values_list("pk", flat=True)[:limit]
     )
     recorded = 0
     for pk in checks:
@@ -45,25 +50,55 @@ def generate_closed_month_invoices_task(limit=100):
         raise ValueError("Invalid billing batch limit")
     today = timezone.now().date()
     previous_month = (today.replace(day=1) - timedelta(days=1)).strftime("%Y-%m")
-    # Subscription is unique by tenant. Missing eligible meter or provider
-    # reconciliation is a hard failure for that tenant, not a silent zero bill.
-    subscriptions = BillingSubscription.objects.filter(
-        status="active", plan__published=True, deleted_at__isnull=True,
-    ).select_related("tenant").order_by("pk")[:limit]
+    period_start = (today.replace(day=1) - timedelta(days=1)).replace(day=1)
+    completed_period = BillingInvoice.objects.filter(
+        tenant_id=OuterRef("tenant_id"),
+        period_start=period_start,
+    ).exclude(status="draft")
+    # Exclude completed periods before applying the batch limit so early
+    # subscriptions cannot permanently starve later tenants.
+    subscriptions = (
+        BillingSubscription.objects.filter(
+            status="active",
+            plan__published=True,
+            deleted_at__isnull=True,
+            started_at__date__lt=today.replace(day=1),
+        )
+        .annotate(period_complete=Exists(completed_period))
+        .filter(
+            period_complete=False,
+        )
+        .order_by("pk")
+        .values_list("pk", flat=True)[:limit]
+    )
     completed = 0
-    for subscription in subscriptions:
-        from apps.billing.models import BillingInvoice
-        if BillingInvoice.objects.filter(
-            tenant=subscription.tenant,
-            period_start=(today.replace(day=1) - timedelta(days=1)).replace(day=1),
-        ).exists():
-            continue
-        try:
-            invoice = generate_invoice(subscription.tenant, previous_month)
+    for subscription_id in list(subscriptions):
+        # Match generate_invoice's subscription-first lock order. Generation
+        # and issuance commit together; existing drafts can resume safely.
+        with transaction.atomic():
+            subscription = (
+                BillingSubscription.objects.select_for_update(of=("self",))
+                .select_related("tenant", "plan")
+                .get(pk=subscription_id)
+            )
+            if (
+                subscription.status != "active"
+                or subscription.deleted_at
+                or not subscription.plan.published
+            ):
+                continue
+            invoice = (
+                BillingInvoice.objects.select_for_update()
+                .filter(
+                    tenant=subscription.tenant,
+                    period_start=period_start,
+                )
+                .first()
+            )
+            if invoice is not None and invoice.status != "draft":
+                continue
+            if invoice is None:
+                invoice = generate_invoice(subscription.tenant, previous_month)
             issue_invoice(invoice.pk)
             completed += 1
-        except BillingError:
-            # Unpriced, missing, or disputed usage must be escalated to
-            # operators before issue; never suppress it as a paid zero bill.
-            raise
     return completed
