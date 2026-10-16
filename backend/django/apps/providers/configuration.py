@@ -60,15 +60,23 @@ def _audit(config, user, action, **metadata):
 
 
 def validate_public_configuration(value):
-    if not isinstance(value, dict) or set(value) != PUBLIC_FIELDS:
+    if (
+        not isinstance(value, dict)
+        or not PUBLIC_FIELDS <= set(value)
+        or set(value) - PUBLIC_FIELDS - {"signing_mode"}
+    ):
         raise ValidationError(
-            "Supply endpoint_url, allowed_hosts and timeout_seconds only."
+            "Supply endpoint_url, allowed_hosts, timeout_seconds and optional signing_mode."
         )
     if (
         type(value["timeout_seconds"]) is not int
         or not 1 <= value["timeout_seconds"] <= 30
     ):
         raise ValidationError("Connection timeout must be 1–30 seconds.")
+    if not isinstance(value.get("signing_mode", "bearer"), str) or value.get(
+        "signing_mode", "bearer"
+    ) not in {"bearer", "hmac_v1"}:
+        raise ValidationError("Signing mode must be bearer or hmac_v1.")
     hosts = value["allowed_hosts"]
     if (
         not isinstance(hosts, list)
@@ -177,6 +185,21 @@ def create_configuration(
     return config
 
 
+def _signing_context(config):
+    if config.public_configuration_json.get("signing_mode", "bearer") != "hmac_v1":
+        return None
+    from common.provider_signing import (
+        ProviderSigningContext,
+        derive_provider_signing_secret,
+    )
+
+    return ProviderSigningContext(
+        key_id=config.public_id,
+        secret=derive_provider_signing_secret(config.credentials_json["api_key"]),
+        replay_namespace=f"provider-response:{config.provider.public_id}:{config.environment}",
+    )
+
+
 def test_configuration(*, config, user):
     _require(user, config.provider)
     if config.status != "draft":
@@ -197,6 +220,7 @@ def test_configuration(*, config, user):
                 "capabilities": sorted(config.manifest_snapshot_json["capabilities"]),
             },
             headers={"Authorization": "Bearer " + config.credentials_json["api_key"]},
+            signing=_signing_context(config),
         )
         passed = (
             isinstance(response, dict)
@@ -398,6 +422,7 @@ def invoke_configured_provider(
             "inputs": transfer_references(inputs),
         },
         headers={"Authorization": "Bearer " + config.credentials_json["api_key"]},
+        signing=_signing_context(config),
     )
     if (
         not isinstance(result, dict)

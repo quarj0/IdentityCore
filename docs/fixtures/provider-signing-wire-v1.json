@@ -1,0 +1,27 @@
+{
+  "description": "Synthetic exact-wire provider signing interoperability fixtures; raw bodies must not be reserialized.",
+  "api_credential": "fixture-provider-api-key-for-interoperability",
+  "derived_signing_secret": "b9cfb63309924d35b9d292a854a5b10faa5abed76055a0f27da044690e3dd650",
+  "cases": [
+    {
+      "name": "python-json",
+      "method": "POST",
+      "path": "/invoke",
+      "timestamp": 1700000000,
+      "nonce": "wire-python-json",
+      "key_id": "configuration-wire-fixture",
+      "raw_body": "{\"values\":[1e-06,1e+20,-0.0],\"\":\"private-use\",\"𐀀\":\"supplementary\"}",
+      "signature": "b04d712a14bda62caaa0c02789635850d2942e46c4ea2d7b2b6e4c92a27eb156"
+    },
+    {
+      "name": "ecmascript-json",
+      "method": "POST",
+      "path": "/invoke",
+      "timestamp": 1700000000,
+      "nonce": "wire-ecmascript-json",
+      "key_id": "configuration-wire-fixture",
+      "raw_body": "{\"values\":[0.000001,100000000000000000000,0],\"𐀀\":\"supplementary\",\"\":\"private-use\"}",
+      "signature": "0aecef24a112461e9ca6fddf5f35ba52369c36229d27451185e376a6303905ef"
+    }
+  ]
+}

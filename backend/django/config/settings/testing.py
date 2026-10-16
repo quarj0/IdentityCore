@@ -23,3 +23,9 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["sensitive_public"] = "10000/min"  # no
 UPLOAD_URL_BASE = "http://testserver/uploads"
 MEDIA_DOWNLOAD_URL_BASE = "http://testserver/media"
 PUBLIC_ASSET_URL_BASE = "http://testserver/assets"
+
+# Unit tests use an explicit isolated store; production uses shared Redis.
+CACHES["provider_signatures"] = {  # noqa: F405
+    "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    "LOCATION": "provider-signature-tests",
+}

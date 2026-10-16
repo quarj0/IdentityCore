@@ -40,8 +40,10 @@ test("provider setup keeps credentials private and requires a new production pro
   await page.getByRole("button", { name: "Add provider", exact: true }).click();
   await page.getByLabel("HTTPS endpoint").fill("https://provider.example.test/sandbox");
   await page.getByLabel("New environment credential").fill("browser-sandbox-credential");
+  await expect(page.getByLabel("Provider authentication")).toHaveValue("hmac_v1");
   await page.getByRole("button", { name: "Request configuration" }).click();
   await expect(page.getByLabel("New environment credential")).toHaveValue("");
+  expect(submissions[0]).toMatchObject({ configuration: { signing_mode: "hmac_v1" } });
   await page.getByRole("button", { name: "Test connection" }).click();
   await expect(page.getByRole("status")).toContainText("passed");
   await page.getByRole("button", { name: "Activate sandbox" }).click();
@@ -50,9 +52,10 @@ test("provider setup keeps credentials private and requires a new production pro
   await page.getByRole("combobox", { name: "Environment", exact: true }).selectOption("production");
   await page.getByLabel("HTTPS endpoint").fill("https://provider.example.test/production");
   await page.getByLabel("New environment credential").fill("browser-production-credential");
+  await page.getByLabel("Provider authentication").selectOption("bearer");
   await page.getByRole("button", { name: "Request configuration" }).click();
   await expect(page.getByLabel("New environment credential")).toHaveValue("");
-  expect(submissions[1]).toMatchObject({ environment: "production", source_id: "pec_1", credentials: { api_key: "browser-production-credential" } });
+  expect(submissions[1]).toMatchObject({ configuration: { signing_mode: "bearer" }, environment: "production", source_id: "pec_1", credentials: { api_key: "browser-production-credential" } });
   await expect(page.getByRole("button", { name: "Approve production" })).toBeVisible();
   await expect(page.locator("body")).not.toContainText("browser-sandbox-credential");
   await expect(page.locator("body")).not.toContainText("browser-production-credential");

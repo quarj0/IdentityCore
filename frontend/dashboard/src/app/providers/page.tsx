@@ -92,11 +92,12 @@ export default function ProvidersPage() {
         <form className="grid gap-3 sm:grid-cols-2" onSubmit={(event) => {
           event.preventDefault(); const data = new FormData(event.currentTarget); const environment = String(data.get("environment"));
           void perform(async () => {
-            const endpoint = String(data.get("endpoint")); const result = await restRequest<Configuration>(`/providers/${providerId}/configurations/`, { method: "POST", body: JSON.stringify({ environment, configuration: { endpoint_url: endpoint, allowed_hosts: [new URL(endpoint).hostname], timeout_seconds: 15 }, credentials: { api_key: secret }, ...(environment === "production" ? { source_id: selected?.id } : {}) }) });
+            const endpoint = String(data.get("endpoint")); const result = await restRequest<Configuration>(`/providers/${providerId}/configurations/`, { method: "POST", body: JSON.stringify({ environment, configuration: { endpoint_url: endpoint, allowed_hosts: [new URL(endpoint).hostname], timeout_seconds: 15, signing_mode: String(data.get("signing_mode")) }, credentials: { api_key: secret }, ...(environment === "production" ? { source_id: selected?.id } : {}) }) });
             setSecret(""); await reload(providerId); setConfigId(result.id); setMessage("Configuration requested. Test this exact version before activation.");
           });
         }}>
           <label>Environment<select className={inputClass} name="environment"><option value="sandbox">Sandbox</option><option value="production">Production promotion</option></select></label>
+          <label>Provider authentication<select className={inputClass} name="signing_mode" defaultValue="hmac_v1"><option value="hmac_v1">Signed requests and responses (HMAC v1)</option><option value="bearer">Bearer only (legacy provider)</option></select></label>
           <label>HTTPS endpoint<input className={inputClass} name="endpoint" type="url" required /></label>
           <label>New environment credential<input className={inputClass} type="password" autoComplete="new-password" minLength={16} required value={secret} onChange={(event) => setSecret(event.target.value)} /></label>
           <p>For production, select an active sandbox source above. Supply a separate production credential. A different user with promotion approval permission must approve.</p>

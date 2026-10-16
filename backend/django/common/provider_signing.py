@@ -6,16 +6,30 @@ import json
 import re
 import secrets
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable, Mapping
 
-from django.core.cache import cache
+from django.core.cache import caches
 
 SIGNATURE_VERSION = "ic-provider-v1"
 
 
 class ProviderSignatureError(ValueError):
     """Raised when a provider message cannot be authenticated."""
+
+
+@dataclass(frozen=True)
+class ProviderSigningContext:
+    key_id: str
+    secret: str = field(repr=False)
+    replay_namespace: str
+
+
+def derive_provider_signing_secret(api_key: str) -> str:
+    """Derive a purpose-specific signing key from the environment credential."""
+    return hmac.new(
+        api_key.encode("ascii"), b"identitycore-provider-hmac-v1", hashlib.sha256
+    ).hexdigest()
 
 
 @dataclass(frozen=True)
@@ -149,7 +163,9 @@ def verify_message(
             [SIGNATURE_VERSION, replay_namespace, nonce], separators=(",", ":")
         ).encode()
     ).hexdigest()
-    claim = claim_nonce or (lambda key, ttl: cache.add(key, True, timeout=ttl))
+    claim = claim_nonce or (
+        lambda key, ttl: caches["provider_signatures"].add(key, True, timeout=ttl)
+    )
     if not claim(replay_key, max_age_seconds * 2):
         raise ProviderSignatureError("Provider message nonce has already been used.")
     return SignedMessage(key_id, timestamp, nonce, signature)

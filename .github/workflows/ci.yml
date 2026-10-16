@@ -112,6 +112,15 @@ jobs:
   backend-migrations:
     runs-on: ubuntu-latest
     services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
       postgres:
         image: postgres:17-alpine
         env:
@@ -138,6 +147,10 @@ jobs:
       - run: uv sync --project backend --group django --frozen
       - name: Reject model changes without migrations
         run: uv run --project backend python backend/django/manage.py makemigrations --check --dry-run
+      - name: Verify provider replay claims across processes and key rotation
+        env:
+          PROVIDER_SIGNING_REDIS_TEST_URL: redis://127.0.0.1:6379/15
+        run: uv run --project backend python backend/django/manage.py test common.test_provider_signing_redis
       - name: Apply migrations to an empty PostgreSQL database
         run: uv run --project backend python backend/django/manage.py migrate --noinput
       - name: Test concurrent idempotency, human decisions and audit chains on PostgreSQL
@@ -176,6 +189,9 @@ jobs:
       - run: pnpm --recursive build
         working-directory: frontend
       - run: pnpm --filter @identitycore/api-client test
+        working-directory: frontend
+      - name: Verify provider signing interoperability fixtures
+        run: node --test ../provider-sdk/conformance/provider-signing-wire.test.cjs
         working-directory: frontend
       - run: pnpm --filter @identitycore/api-client exec tsc -p tsconfig.json
         working-directory: frontend
