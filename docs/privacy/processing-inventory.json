@@ -185,7 +185,8 @@
         "notification and operational state",
         "persisted identifiers and lifecycle timestamps",
         "Environment-scoped review queue configuration, reviewer skills and availability, frozen priorities and SLA deadlines, and fair assignment timestamps.",
-        "Independent quality sampling percentage, frozen original decision and revision, maker/checker exclusions, reviewer assignments, encrypted assessment notes and disagreement outcomes."
+        "Independent quality sampling percentage, frozen original decision and revision, maker/checker exclusions, reviewer assignments, encrypted assessment notes and disagreement outcomes.",
+        "Immutable SHA-256 digest of the original workflow template instantiation request, retained with its tenant-scoped replay key for the workflow configuration lifetime. The digest is a correlation value, not anonymized product telemetry."
       ],
       "purpose": "Configure tenant/environment-owned verification purposes, policies, catalogs and workflows; operate authorized processing and delivery.",
       "locations": [
@@ -5318,6 +5319,11 @@
     {
       "source": "backend/django/apps/workflows/models.py",
       "field": "Workflow.instantiation_key",
+      "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/workflows/models.py",
+      "field": "Workflow.instantiation_request_hash",
       "activity": "workflow-configuration-and-operations"
     },
     {
