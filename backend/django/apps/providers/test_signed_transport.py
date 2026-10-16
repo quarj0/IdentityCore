@@ -14,6 +14,7 @@ from common.provider_signing import (
 )
 from apps.providers.configuration import (
     activate_configuration,
+    create_configuration,
     invoke_configured_provider,
     test_configuration,
     validate_public_configuration,
@@ -218,3 +219,44 @@ class SignedConfigurationTests(TestCase):
                 validate_public_configuration(
                     {**self.fixture.public, "signing_mode": mode}
                 )
+
+    def _promote_modes(self, source_mode, target_mode):
+        fixture = self.fixture
+        if source_mode is not None:
+            fixture.public = {**fixture.public, "signing_mode": source_mode}
+        source = fixture.sandbox()
+        configuration = {**fixture.public}
+        if target_mode is None:
+            configuration.pop("signing_mode", None)
+        else:
+            configuration["signing_mode"] = target_mode
+        return create_configuration(
+            provider=fixture.provider,
+            user=fixture.requester,
+            environment="production",
+            public_configuration=configuration,
+            credentials={"api_key": "independent-production-credential"},
+            source=source,
+        )
+
+    def test_promotion_diff_shows_explicit_authentication_downgrade(self):
+        config = self._promote_modes("hmac_v1", "bearer")
+        self.assertEqual(
+            config.diff_json["signing_mode"], {"before": "hmac_v1", "after": "bearer"}
+        )
+
+    def test_promotion_diff_shows_omitted_legacy_mode_upgrade(self):
+        config = self._promote_modes(None, "hmac_v1")
+        self.assertEqual(
+            config.diff_json["signing_mode"], {"before": "bearer", "after": "hmac_v1"}
+        )
+
+    def test_promotion_diff_shows_omitted_target_authentication_downgrade(self):
+        config = self._promote_modes("hmac_v1", None)
+        self.assertEqual(
+            config.diff_json["signing_mode"], {"before": "hmac_v1", "after": "bearer"}
+        )
+
+    def test_equivalent_legacy_modes_do_not_create_a_false_diff(self):
+        config = self._promote_modes(None, "bearer")
+        self.assertNotIn("signing_mode", config.diff_json)

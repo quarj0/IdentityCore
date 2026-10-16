@@ -159,11 +159,15 @@ def create_configuration(
         )["value"]
         or 0
     ) + 1
-    previous = source.public_configuration_json if source else {}
+    previous = {
+        "signing_mode": "bearer",
+        **(source.public_configuration_json if source else {}),
+    }
+    current = {"signing_mode": "bearer", **public_configuration}
     diff = {
-        key: {"before": previous.get(key), "after": public_configuration[key]}
-        for key in sorted(PUBLIC_FIELDS)
-        if previous.get(key) != public_configuration[key]
+        key: {"before": previous.get(key), "after": current[key]}
+        for key in sorted(PUBLIC_FIELDS | {"signing_mode"})
+        if previous.get(key) != current[key]
     }
     config = ProviderEnvironmentConfiguration.objects.create(
         provider=locked,
