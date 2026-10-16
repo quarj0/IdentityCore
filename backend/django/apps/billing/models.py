@@ -484,3 +484,18 @@ class BillingUsageReconciliationIssue(models.Model):
     )
     error_code = models.CharField(max_length=64, default="usage_integrity_error")
     last_failed_at = models.DateTimeField(auto_now=True)
+
+
+class BillingWebhookEvent(models.Model):
+    """Durable, minimal signed-event inbox; never stores the gateway payload."""
+
+    evidence_digest = models.CharField(max_length=64, unique=True)
+    event_type = models.CharField(max_length=48)
+    reference = models.CharField(max_length=64, blank=True)
+    resource_id = models.PositiveBigIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+    last_attempt_at = models.DateTimeField(null=True, blank=True)
+    processed_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    lease_until = models.DateTimeField(null=True, blank=True)
+    claim_token = models.CharField(max_length=32, blank=True)
+    error_code = models.CharField(max_length=48, blank=True)

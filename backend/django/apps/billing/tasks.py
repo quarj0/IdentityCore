@@ -14,6 +14,10 @@ from apps.billing.services import BillingError, generate_invoice, issue_invoice
 from apps.billing.usage import BillingIntegrityError, reconcile_provider_usage_checks
 from apps.providers.models import ProviderCheck, ProviderCheckStatus
 
+# Celery discovers apps.billing.tasks; import the inbox task so workers also
+# register its module-qualified name used by beat and queue routing.
+from apps.billing.webhook_tasks import reconcile_billing_webhooks_task  # noqa: F401
+
 logger = logging.getLogger(__name__)
 
 

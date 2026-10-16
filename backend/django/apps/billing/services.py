@@ -628,7 +628,7 @@ def _reconcile_paystack_refund_event(data):
     return True
 
 
-def receive_paystack_webhook(body, signature):
+def _parse_paystack_webhook(body, signature):
     if not paystack.valid_webhook(body, signature):
         raise BillingError("Invalid gateway webhook signature")
     try:
@@ -637,7 +637,13 @@ def receive_paystack_webhook(body, signature):
         raise BillingError("Malformed webhook") from exc
     if not isinstance(event, dict) or not isinstance(event.get("data"), dict):
         raise BillingError("Malformed webhook")
-    event_type = event.get("event")
+    if not isinstance(event.get("event"), str):
+        raise BillingError("Malformed webhook event type")
+    return event["event"], event["data"]
+
+
+def process_paystack_webhook_event(event_type, data, evidence_digest):
+    """Worker-only reconciliation using independently fetched gateway facts."""
     if event_type in (
         "refund.pending",
         "refund.processing",
@@ -645,18 +651,80 @@ def receive_paystack_webhook(body, signature):
         "refund.processed",
         "refund.failed",
     ):
-        return _reconcile_paystack_refund_event(event["data"])
+        return _reconcile_paystack_refund_event(data)
     if event_type in (
         "charge.dispute.create",
         "charge.dispute.remind",
         "charge.dispute.resolve",
     ):
-        return reconcile_gateway_dispute("paystack", event["data"].get("id"))
+        return reconcile_gateway_dispute("paystack", data.get("id"))
     if event_type != "charge.success":
         return False
-    reference = event["data"].get("reference")
+    reference = data.get("reference")
     if not isinstance(reference, str) or not paystack.REFERENCE.fullmatch(reference):
         raise BillingError("Invalid payment reference")
     return confirm_gateway_payment(
-        reference, provider="paystack", evidence_digest=hashlib.sha256(body).hexdigest()
+        reference, provider="paystack", evidence_digest=evidence_digest
     )
+
+
+REFUND_WEBHOOK_EVENTS = frozenset(
+    {
+        "refund.pending",
+        "refund.processing",
+        "refund.needs-attention",
+        "refund.processed",
+        "refund.failed",
+    }
+)
+DISPUTE_WEBHOOK_EVENTS = frozenset(
+    {"charge.dispute.create", "charge.dispute.remind", "charge.dispute.resolve"}
+)
+
+
+def receive_paystack_webhook(body, signature):
+    """Internal synchronous entry for callers outside the HTTP acknowledgement path."""
+    event_type, data = _parse_paystack_webhook(body, signature)
+    return process_paystack_webhook_event(
+        event_type, data, hashlib.sha256(body).hexdigest()
+    )
+
+
+def enqueue_paystack_webhook(body, signature):
+    """Acknowledge only after signature validation and a durable minimal receipt.
+
+    No gateway or broker calls occur here. The periodic worker drains the inbox,
+    including receipts accepted during a broker outage.
+    """
+    from apps.billing.models import BillingWebhookEvent
+
+    event_type, data = _parse_paystack_webhook(body, signature)
+    reference = ""
+    resource_id = None
+    if event_type == "charge.success":
+        reference = data.get("reference")
+    elif event_type in REFUND_WEBHOOK_EVENTS:
+        reference = data.get("transaction_reference")
+        if reference is None:
+            reference = ""
+            resource_id = data.get("id")
+    elif event_type in DISPUTE_WEBHOOK_EVENTS:
+        resource_id = data.get("id")
+    else:
+        return False
+    if reference:
+        if not isinstance(reference, str) or not paystack.REFERENCE.fullmatch(
+            reference
+        ):
+            raise BillingError("Invalid webhook transaction reference")
+    elif type(resource_id) is not int or not 0 < resource_id < 2**63:
+        raise BillingError("Invalid webhook resource identifier")
+    BillingWebhookEvent.objects.get_or_create(
+        evidence_digest=hashlib.sha256(body).hexdigest(),
+        defaults={
+            "event_type": event_type,
+            "reference": reference,
+            "resource_id": resource_id,
+        },
+    )
+    return True

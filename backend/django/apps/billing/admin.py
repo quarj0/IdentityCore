@@ -8,6 +8,7 @@ from apps.billing.models import (
     BillingMeter,
     BillingSubscription,
     BillingSubscriptionPeriod,
+    BillingWebhookEvent,
     BillingInvoice,
     BillingInvoiceLine,
     BillingPayment,
@@ -88,5 +89,6 @@ for model in (
     BillingUsageReconciliationIssue,
     BillingSubscriptionPeriod,
     BillingMeter,
+    BillingWebhookEvent,
 ):
     admin.site.register(model, ReadOnlyFinancialAdmin)

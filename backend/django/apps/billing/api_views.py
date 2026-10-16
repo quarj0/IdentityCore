@@ -21,7 +21,7 @@ from apps.billing.services import (
     BillingError,
     begin_checkout,
     confirm_gateway_payment,
-    receive_paystack_webhook,
+    enqueue_paystack_webhook,
 )
 from common.permissions import IsTenantUser
 from common.authorization import AuthorizationAction, decide_user_access
@@ -356,7 +356,7 @@ class PaystackWebhookView(APIView):
             return HttpResponse(status=413)
         signature = request.headers.get("X-Paystack-Signature", "")
         try:
-            receive_paystack_webhook(body, signature)
+            enqueue_paystack_webhook(body, signature)
         except paystack.GatewayError:
             return HttpResponse(status=503)
         except BillingError:

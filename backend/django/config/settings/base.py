@@ -276,6 +276,7 @@ CELERY_TASK_DEFAULT_ROUTING_KEY = "default"
 PROCESSING_JOB_LEASE_SECONDS = int(os.getenv("PROCESSING_JOB_LEASE_SECONDS", "300"))
 PROCESSING_JOB_MAX_ATTEMPTS = int(os.getenv("PROCESSING_JOB_MAX_ATTEMPTS", "3"))
 CELERY_TASK_ROUTES = {
+    "apps.billing.webhook_tasks.reconcile_billing_webhooks_task": {"queue": "retention"},
     "apps.billing.tasks.reconcile_billing_usage_task": {"queue": "retention"},
     "apps.billing.tasks.generate_closed_month_invoices_task": {"queue": "retention"},
     "apps.api_clients.tasks.cleanup_expired_idempotency_records_task": {
@@ -306,6 +307,10 @@ CELERY_TASK_ROUTES = {
     "apps.notifications.tasks.deliver_notification_task": {"queue": "notifications"},
 }
 CELERY_BEAT_SCHEDULE = {
+    "reconcile-billing-webhooks": {
+        "task": "apps.billing.webhook_tasks.reconcile_billing_webhooks_task",
+        "schedule": 60.0,
+    },
     "reconcile-billing-usage": {
         "task": "apps.billing.tasks.reconcile_billing_usage_task",
         "schedule": 600.0,

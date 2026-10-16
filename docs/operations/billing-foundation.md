@@ -58,7 +58,23 @@ payments, pending refunds and open disputes cannot repeatedly occupy the first
 page while later rows wait. Attempt timestamps never authorize settlement;
 independent gateway evidence and financial locks remain required.
 
-Webhooks authenticate exact raw bytes using HMAC-SHA512 before parsing. Refund
+Webhooks authenticate exact raw bytes using HMAC-SHA512 before parsing. The
+HTTP handler persists a unique minimal receipt before returning 200; it performs
+no gateway or broker requests. Receipts contain only event type, opaque
+reference/resource ID, a body digest and recovery metadata, never full payloads
+or customer/card fields. The retention worker checks the durable inbox every
+minute, so broker outages cannot lose acknowledged callbacks. Monitor pending
+receipt age, leases and controlled error codes in the read-only finance admin.
+Keep Paystack verification credentials and the retention worker available after
+disabling new checkouts so existing payments and refunds can still reconcile.
+
+Each worker claims a five-minute lease and releases the inbox row lock before
+network work. The task's 270-second hard limit is shorter than that lease;
+crashed work becomes eligible again after expiry. Independent reconciliation is
+idempotent if a process stops after financial commit but before receipt completion.
+Failures rotate behind unattempted receipts and do not block valid rows in the
+same batch. Paginated gateway work runs only in the worker, outside the webhook
+response deadline. Refund
 webhooks correlate through `transaction_reference`, including a null
 `refund_reference`; independently authenticated, paginated refund listings
 supply the numeric refund IDs and accounting facts. `needs-attention` remains

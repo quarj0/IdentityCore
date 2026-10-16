@@ -82,6 +82,12 @@ class PaystackAPITests(TestCase):
                 200,
             )
         invoice.refresh_from_db()
+        self.assertEqual(invoice.status, "issued")
+        from apps.billing.webhook_tasks import reconcile_billing_webhooks_task
+
+        with patch("apps.billing.paystack.verify", return_value=self.verified(payment)):
+            self.assertEqual(reconcile_billing_webhooks_task(), 1)
+        invoice.refresh_from_db()
         self.assertEqual(invoice.status, "paid")
 
     def test_unsupported_payment_provider_cannot_initialize_checkout(self):
@@ -103,3 +109,32 @@ class PaystackAPITests(TestCase):
         ):
             begin_checkout(invoice, billing_email=self.user.email)
         gateway.assert_not_called()
+
+    def test_callback_acknowledges_before_independent_gateway_work(self):
+        from apps.billing.models import BillingPayment
+
+        invoice = self.invoice()
+        payment = BillingPayment.objects.create(
+            invoice=invoice,
+            provider="paystack",
+            reference="icAsyncAcceptance",
+            amount_minor=invoice.amount_minor,
+            currency=invoice.currency,
+        )
+        body = json.dumps(
+            {"event": "charge.success", "data": {"reference": payment.reference}}
+        ).encode()
+        signature = hmac.new(b"synthetic-test-secret", body, hashlib.sha512).hexdigest()
+        with patch(
+            "apps.billing.paystack.verify", return_value=self.verified(payment)
+        ) as gateway:
+            response = APIClient().post(
+                "/api/v1/billing/paystack/webhook",
+                data=body,
+                content_type="application/json",
+                HTTP_X_PAYSTACK_SIGNATURE=signature,
+            )
+        self.assertEqual(response.status_code, 200)
+        gateway.assert_not_called()
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, "issued")
