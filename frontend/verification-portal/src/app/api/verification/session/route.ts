@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ProxyBodyLimitError, readBoundedRequestText } from "@/lib/bff-proxy";
 import {
   SESSION_COOKIE,
   SESSION_ID_COOKIE,
@@ -17,15 +18,27 @@ export async function POST(request: Request) {
       { status: 403, headers: responseHeaders(id) },
     );
   }
-  const body = (await request.json().catch(() => null)) as {
-    sessionId?: string;
-    sessionToken?: string;
-  } | null;
+  let body: { sessionId?: unknown; sessionToken?: unknown } | null;
+  try {
+    body = JSON.parse(await readBoundedRequestText(request, 8192));
+  } catch (error) {
+    const status =
+      error instanceof ProxyBodyLimitError
+        ? 413
+        : error instanceof DOMException && error.name === "AbortError"
+          ? 408
+          : 400;
+    return NextResponse.json(
+      { error: "Invalid verification request." },
+      { status, headers: responseHeaders(id) },
+    );
+  }
   if (
-    !body?.sessionId ||
+    typeof body?.sessionId !== "string" ||
     !/^[A-Za-z0-9_-]{1,128}$/.test(body.sessionId) ||
+    typeof body.sessionToken !== "string" ||
     !body.sessionToken ||
-    body.sessionToken.length > 4096
+    !/^[\x21-\x7e]{1,4096}$/.test(body.sessionToken)
   ) {
     return NextResponse.json(
       { error: "Invalid verification credential." },
@@ -47,6 +60,7 @@ export async function POST(request: Request) {
           "X-Request-Id": id,
         },
         cache: "no-store",
+        redirect: "manual",
         signal: controller.signal,
       },
     );
