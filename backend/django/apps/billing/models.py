@@ -104,9 +104,10 @@ class BillingPlan(PublicIdModel, BaseModel):
             )
         ]
 
+    @transaction.atomic
     def save(self, *args, **kwargs):
         if self.pk:
-            previous = type(self).objects.get(pk=self.pk)
+            previous = type(self).objects.select_for_update().get(pk=self.pk)
             if previous.published and any(
                 getattr(previous, field) != getattr(self, field)
                 for field in (
@@ -148,14 +149,38 @@ class BillingMeter(PublicIdModel, BaseModel):
             )
         ]
 
+    @transaction.atomic
     def save(self, *args, **kwargs):
         from django.core.exceptions import ValidationError
 
-        if self.plan.published:
-            previous = (
-                type(self).objects.filter(pk=self.pk).first() if self.pk else None
-            )
-            if previous is None or any(
+        original_plan_id = (
+            type(self)
+            .objects.filter(pk=self.pk)
+            .values_list("plan_id", flat=True)
+            .first()
+            if self.pk
+            else None
+        )
+        plan_ids = {self.plan_id}
+        if original_plan_id is not None:
+            plan_ids.add(original_plan_id)
+        # Use the publication lock for both plans, in a stable order. Cached
+        # relation objects cannot authorize edits to newly published terms.
+        plans = {
+            plan.pk: plan
+            for plan in BillingPlan.objects.select_for_update()
+            .filter(pk__in=plan_ids)
+            .order_by("pk")
+        }
+        previous = type(self).objects.filter(pk=self.pk).first() if self.pk else None
+        if self.plan_id not in plans or (previous and previous.plan_id not in plans):
+            raise ValidationError("Billing meter changed; reload before editing.")
+        published = plans[self.plan_id].published or (
+            previous and plans[previous.plan_id].published
+        )
+        if published and (
+            previous is None
+            or any(
                 getattr(previous, name) != getattr(self, name)
                 for name in (
                     "plan_id",
@@ -163,12 +188,30 @@ class BillingMeter(PublicIdModel, BaseModel):
                     "capability",
                     "outcome",
                     "unit_price_minor",
+                    "deleted_at",
                 )
-            ):
-                raise ValidationError(
-                    "Published rates are immutable; create a new plan version."
-                )
+            )
+        ):
+            raise ValidationError(
+                "Published rates are immutable; create a new plan version."
+            )
         return super().save(*args, **kwargs)
+
+    @transaction.atomic
+    def delete(self, *args, **kwargs):
+        from django.core.exceptions import ValidationError
+
+        previous = type(self).objects.filter(pk=self.pk).first()
+        if previous is not None:
+            plan = BillingPlan.objects.select_for_update().get(pk=previous.plan_id)
+            current = type(self).objects.filter(pk=self.pk).first()
+            if current is not None and current.plan_id != plan.pk:
+                raise ValidationError("Billing meter changed; reload before deleting.")
+            if plan.published:
+                raise ValidationError(
+                    "Published rates cannot be deleted; create a new plan version."
+                )
+        return super().delete(*args, **kwargs)
 
 
 class BillingSubscription(PublicIdModel, BaseModel):

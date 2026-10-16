@@ -627,3 +627,79 @@ class BillingReviewRecoveryTests(TestCase):
                 [call.args for call in reconciler.call_args_list],
                 [("paystack", 101), ("paystack", 102)],
             )
+
+    def test_published_rate_cannot_be_moved_to_a_draft_plan(self):
+        from django.core.exceptions import ValidationError
+        from apps.billing.models import BillingPlan, BillingMeter
+
+        meter = BillingMeter.objects.filter(plan=self.plan).first()
+        draft = BillingPlan.objects.create(code="other-draft", name="Other draft")
+        meter.plan = draft
+        with self.assertRaises(ValidationError):
+            meter.save()
+        meter.refresh_from_db()
+        self.assertEqual(meter.plan_id, self.plan.pk)
+
+    def test_cached_draft_plan_does_not_allow_mutating_published_rates(self):
+        from django.core.exceptions import ValidationError
+        from apps.billing.models import BillingPlan, BillingMeter
+
+        plan = BillingPlan.objects.create(code="cached-draft", name="Cached draft")
+        meter = BillingMeter.objects.create(
+            plan=plan,
+            provider_scope="platform",
+            capability="liveness",
+            unit_price_minor=100,
+        )
+        published = BillingPlan.objects.get(pk=plan.pk)
+        published.published = True
+        published.save()
+        meter.unit_price_minor = 200
+        with self.assertRaises(ValidationError):
+            meter.save()
+        meter.refresh_from_db()
+        self.assertEqual(meter.unit_price_minor, 100)
+
+    def test_cached_draft_destination_cannot_receive_a_rate_after_publication(self):
+        from django.core.exceptions import ValidationError
+        from apps.billing.models import BillingPlan, BillingMeter
+
+        original = BillingPlan.objects.create(code="source-draft", name="Source draft")
+        destination = BillingPlan.objects.create(
+            code="destination-draft", name="Destination draft"
+        )
+        meter = BillingMeter.objects.create(
+            plan=original,
+            provider_scope="platform",
+            capability="liveness",
+            unit_price_minor=100,
+        )
+        meter.plan = destination
+        published = BillingPlan.objects.get(pk=destination.pk)
+        published.published = True
+        published.save()
+        with self.assertRaises(ValidationError):
+            meter.save()
+        meter.refresh_from_db()
+        self.assertEqual(meter.plan_id, original.pk)
+
+    def test_published_rate_cannot_be_soft_deleted(self):
+        from django.core.exceptions import ValidationError
+        from django.utils import timezone as clock
+        from apps.billing.models import BillingMeter
+
+        meter = BillingMeter.objects.filter(plan=self.plan).first()
+        meter.deleted_at = clock.now()
+        with self.assertRaises(ValidationError):
+            meter.save()
+        meter.refresh_from_db()
+        self.assertIsNone(meter.deleted_at)
+
+    def test_published_rate_cannot_be_deleted(self):
+        from django.core.exceptions import ValidationError
+        from apps.billing.models import BillingMeter
+
+        meter = BillingMeter.objects.filter(plan=self.plan).first()
+        with self.assertRaises(ValidationError):
+            meter.delete()
+        self.assertTrue(BillingMeter.objects.filter(pk=meter.pk).exists())

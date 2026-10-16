@@ -10,7 +10,8 @@ subscriptions started after midnight UTC on day one. Recorded active intervals
 control usage eligibility. A pause or cancellation after month close preserves
 the completed month's charges. Partial active months and pause/resume gaps have
 no base fee; only usage within active intervals is rated. Pausing billing does
-not suspend verification processing.
+not suspend verification processing. Subscriptions cancelled before their
+future start have no active interval and are skipped by scheduled invoicing.
 
 The activity-history migration records a conservative deployment cutover for
 existing subscriptions. Earlier unknown activity blocks invoicing pending

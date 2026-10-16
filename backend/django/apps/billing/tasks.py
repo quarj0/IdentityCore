@@ -86,6 +86,10 @@ def generate_closed_month_invoices_task(limit=100):
                     )
                 )
             )
+            & (
+                Q(periods__ended_at__isnull=True)
+                | Q(periods__ended_at__gt=F("periods__started_at"))
+            )
             | (
                 Q(history_recorded_from__gt=F("started_at"))
                 & Q(

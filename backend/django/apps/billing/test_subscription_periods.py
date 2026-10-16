@@ -113,3 +113,11 @@ class SubscriptionPeriodTests(TestCase):
         self.subscription.started_at = self.moment(4)
         with self.assertRaises(ValidationError):
             self.subscription.save(update_fields=["started_at"])
+
+    @override_settings(BILLING_AUTO_INVOICE_ENABLED=True)
+    def test_scheduled_close_skips_subscription_cancelled_before_it_started(self):
+        self.subscription.started_at = self.moment(10)
+        self.subscription.save(update_fields=["started_at"])
+        self.change_status("cancelled", 5)
+        self.assertEqual(generate_closed_month_invoices_task(), 0)
+        self.assertFalse(BillingInvoice.objects.exists())
