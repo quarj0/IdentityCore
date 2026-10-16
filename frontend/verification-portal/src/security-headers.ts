@@ -25,3 +25,16 @@ export function securityHeaders(nonce: string): Record<string, string> {
     "X-Frame-Options": "DENY",
   };
 }
+
+/** API responses keep strict headers without buffering request bodies in Proxy. */
+export function verificationApiSecurityHeaders(): Record<string, string> {
+  return {
+    "Cache-Control": "no-store, max-age=0",
+    "Content-Security-Policy":
+      "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Referrer-Policy": "no-referrer",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+  };
+}

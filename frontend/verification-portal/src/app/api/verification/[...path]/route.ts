@@ -7,31 +7,12 @@ import {
   responseHeaders,
 } from "@/lib/bff-session";
 
-const MAX_PROXY_BODY_BYTES = 26 * 1024 * 1024;
-const SAFE_SEGMENT = /^[A-Za-z0-9_-]{1,128}$/;
-
-function pathIsAllowed(path: string[]) {
-  if (!path.length || path.some((segment) => !SAFE_SEGMENT.test(segment))) {
-    return false;
-  }
-  if (path[0] === "uploads") {
-    return path.length === 1 || (path.length === 3 && path[2] === "transfer");
-  }
-  if (path[0] !== "sessions" || !path[1] || path.length > 4) return false;
-  if (path.length === 2) return true;
-  const action = path[2];
-  if (action === "consent" && path.length === 4) return path[3] === "withdraw";
-  if (
-    ["status", "consent", "mobile-handoff", "documents", "selfies"].includes(
-      action,
-    )
-  ) {
-    return path.length === 3;
-  }
-  return (
-    action === "liveness" && (path.length === 3 || path[3] === "challenge")
-  );
-}
+import {
+  MAX_PROXY_BODY_BYTES,
+  ProxyBodyLimitError,
+  readBoundedProxyBody,
+  verificationProxyPath,
+} from "@/lib/bff-proxy";
 
 async function proxy(
   request: Request,
@@ -51,7 +32,8 @@ async function proxy(
     );
   }
   const { path } = await context.params;
-  if (!pathIsAllowed(path)) {
+  const upstreamPath = verificationProxyPath(path);
+  if (!upstreamPath) {
     return NextResponse.json(
       { error: { message: "Verification route is not allowed." } },
       { status: 404, headers: responseHeaders(id) },
@@ -86,17 +68,8 @@ async function proxy(
   let upstream: Response;
   try {
     const query = new URL(request.url).search;
-    const body =
-      request.method === "GET" || request.method === "HEAD"
-        ? undefined
-        : await request.arrayBuffer();
-    if (body && body.byteLength > MAX_PROXY_BODY_BYTES) {
-      return NextResponse.json(
-        { error: { message: "Verification request is too large." } },
-        { status: 413, headers: responseHeaders(id) },
-      );
-    }
-    upstream = await fetch(`${apiUrl(`${path.join("/")}/`)}${query}`, {
+    const body = await readBoundedProxyBody(request, controller.signal);
+    upstream = await fetch(`${apiUrl(upstreamPath)}${query}`, {
       method: request.method,
       headers,
       body,
@@ -104,7 +77,13 @@ async function proxy(
       redirect: "manual",
       signal: controller.signal,
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof ProxyBodyLimitError) {
+      return NextResponse.json(
+        { error: { message: "Verification request is too large." } },
+        { status: 413, headers: responseHeaders(id) },
+      );
+    }
     return NextResponse.json(
       { error: { message: "Verification service unavailable." } },
       { status: 502, headers: responseHeaders(id) },

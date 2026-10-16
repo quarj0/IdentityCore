@@ -28,6 +28,7 @@ the portal BFF.
 | `API_ORIGIN`                         | Required server-only Django API origin used by the BFF.   |
 | `DEPLOYMENT_VERSION`                 | Release identifier returned by the readiness endpoint.    |
 | `NEXT_PUBLIC_ONBOARDING_RETURN_URL`  | Optional safe fallback after completion.                  |
+| `VERIFICATION_PUBLIC_ORIGIN` | Canonical browser origin, e.g. `https://verify.example.com`. Set this when ingress terminates TLS; it must match the preserved Host header. Paths, credentials and query strings are rejected. |
 | `NEXT_PUBLIC_ALLOWED_RETURN_ORIGINS` | Comma-separated allowlist of organization return origins. |
 
 Production return URLs must use HTTPS and must match the portal origin or an

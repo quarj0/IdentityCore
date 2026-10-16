@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server.js";
+import { ProxyBodyLimitError, readBoundedRequestText } from "@/lib/bff-proxy";
 import {
   apiUrl,
   requestId,
@@ -17,11 +18,26 @@ export async function POST(request: Request) {
       { status: 403, headers: responseHeaders(id) },
     );
   }
-  const body = await request.text();
-  if (body.length > 8192) {
+  let body: string;
+  try {
+    body = await readBoundedRequestText(request, 8192);
+  } catch (error) {
+    const status =
+      error instanceof ProxyBodyLimitError
+        ? 413
+        : error instanceof DOMException && error.name === "AbortError"
+          ? 408
+          : 400;
     return NextResponse.json(
-      { error: { message: "Mobile handoff request is too large." } },
-      { status: 413, headers: responseHeaders(id) },
+      {
+        error: {
+          message:
+            status === 413
+              ? "Mobile handoff request is too large."
+              : "Invalid mobile handoff request.",
+        },
+      },
+      { status, headers: responseHeaders(id) },
     );
   }
   const controller = new AbortController();
