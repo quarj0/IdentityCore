@@ -2576,7 +2576,7 @@
       "thread_id": "PRRT_kwDOTN0BU86UXGpg",
       "comment_id": 3664639072,
       "path": "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
-      "status": "verified",
+      "status": "actionable",
       "evidence": [
         "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
         "frontend/verification-portal/e2e/verification-flow.spec.ts",
@@ -2586,8 +2586,7 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Move the browser API mocks behind the BFF**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/67#discussion_r3664639072",
-      "verified_main": "a52eccd632b16a20748db0f75d62dc374e2132db",
-      "disposition_note": "Flow and expiry browser mocks intercept same-origin **/api/verification/** requests rather than upstream requests made by the Next server. Individually inspected current verification-flow.spec.ts and successful final-head frontend CI."
+      "disposition_note": "Browser page.route mocks fulfill same-origin BFF requests before the server handler and upstream fetch execute. Existing browser cases therefore do not establish BFF integration coverage. Keep actionable until a browser reaches the real BFF with its upstream mocked behind it."
     },
     {
       "pr_number": 67,
@@ -12236,5 +12235,5 @@
     }
   ],
   "verified_main": "69dd242c46f62594e9e7fba1af5f66601e63c539",
-  "inventory_note": "858 threads from closed or merged PRs: 230 fixed, 289 verified, 5 actionable and 334 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
+  "inventory_note": "858 threads from closed or merged PRs: 230 fixed, 288 verified, 6 actionable and 334 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
 }
