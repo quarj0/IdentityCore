@@ -1,0 +1,106 @@
+"""Production-only provider usage reconciliation; deliberately unrated.
+
+This is an operator-controlled accounting primitive, not a payment processor.
+Recorded events cannot charge or suspend organizations. Provider scope refers
+to ownership, not a price: platform-owned != necessarily built-in/managed AI.
+"""
+
+import logging
+
+from django.db import transaction
+
+from apps.billing.models import BillingUsageEvent, BillingUsageReconciliationIssue
+from apps.providers.models import ProviderCheck, ProviderCheckStatus
+
+logger = logging.getLogger(__name__)
+
+METERABLE_RESULTS = {
+    ProviderCheckStatus.COMPLETED,
+    ProviderCheckStatus.FAILED,
+    ProviderCheckStatus.TIMEOUT,
+}
+
+
+class BillingIntegrityError(ValueError):
+    pass
+
+
+@transaction.atomic
+def record_provider_usage(provider_check_id):
+    """Return (event, created), or (None, False) for incomplete/sandbox work.
+
+    Uses a locked source row and a unique provider_check foreign key so repeated
+    processing/reconciliation cannot silently duplicate a usage fact.
+    """
+    check = (
+        ProviderCheck.objects.select_for_update(of=("self",))
+        .select_related("verification__project", "verification__tenant", "provider")
+        .get(pk=provider_check_id)
+    )
+    verification = check.verification
+    project = verification.project
+    if check.status not in METERABLE_RESULTS or not check.completed_at:
+        return None, False
+
+    if (
+        check.tenant_id != verification.tenant_id
+        or verification.tenant.organization_id != verification.organization_id
+        or (project is not None and project.tenant_id != check.tenant_id)
+        or check.provider.tenant_id not in (None, check.tenant_id)
+    ):
+        raise BillingIntegrityError("Tenant/provider attribution mismatch")
+
+    # Never create a ledger fact for sandbox, unprojected or unknown work.
+    if project is None or project.environment != "production":
+        return None, False
+
+    scope = "tenant_owned" if check.provider.tenant_id else "platform"
+    defaults = {
+        "tenant_id": check.tenant_id,
+        "project_id": project.pk,
+        "environment": "production",
+        "capability": check.check_type,
+        "provider_scope": scope,
+        "outcome": check.status,
+        "occurred_at": check.completed_at,
+        "quantity": 1,
+        "rating_state": "unrated",
+    }
+    event, created = BillingUsageEvent.objects.get_or_create(
+        provider_check=check, defaults=defaults
+    )
+    if not created and any(
+        getattr(event, key) != value
+        for key, value in defaults.items()
+        if key != "rating_state"
+    ):
+        # A late correction must be reconciled explicitly, not silently
+        # rewritten as a different chargeable observation.
+        raise BillingIntegrityError(
+            "Recorded usage has changed; manual correction required"
+        )
+    BillingUsageReconciliationIssue.objects.filter(provider_check_id=check.pk).delete()
+    return event, created
+
+
+def reconcile_provider_usage_checks(check_ids):
+    """Capture valid facts and quarantine integrity failures independently."""
+    recorded = failed = 0
+    for pk in check_ids:
+        with transaction.atomic():
+            # Retain this lock across the nested recorder rollback and issue
+            # write, so another successful reconciliation cannot leave a stale
+            # quarantine behind. No gateway calls occur in this transaction.
+            ProviderCheck.objects.select_for_update().get(pk=pk)
+            try:
+                _, added = record_provider_usage(pk)
+            except BillingIntegrityError:
+                BillingUsageReconciliationIssue.objects.update_or_create(
+                    provider_check_id=pk,
+                    defaults={"error_code": "usage_integrity_error"},
+                )
+                failed += 1
+                logger.error("Usage reconciliation requires review for check %s", pk)
+            else:
+                recorded += int(added)
+    return recorded, failed

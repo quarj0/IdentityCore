@@ -350,6 +350,7 @@ def ensure_tenant_administrator_role(*, tenant: Tenant, user: PlatformUser) -> N
     for code, name in (
         ("manage_providers", "Manage providers"),
         ("manage_team", "Manage team invitations"),
+        ("manage_billing", "Manage organization billing"),
         ("approve_provider_promotion", "Approve provider promotion"),
     ):
         permission, _ = Permission.objects.get_or_create(

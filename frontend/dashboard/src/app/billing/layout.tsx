@@ -1,4 +1,5 @@
-import { notFound } from "next/navigation";
-export default function BillingLayout() {
-  notFound();
+import type { ReactNode } from "react";
+
+export default function BillingLayout({ children }: { children: ReactNode }) {
+  return children;
 }
