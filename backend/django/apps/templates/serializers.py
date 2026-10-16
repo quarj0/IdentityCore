@@ -1,6 +1,24 @@
 from apps.templates.models import Template
 
 
+def serialize_catalog_template(template: Template) -> dict:
+    return {
+        "id": template.public_id,
+        "name": template.name,
+        "description": template.description,
+        "category": template.category,
+        "status": template.status,
+        "version": template.version,
+        "slug": template.slug,
+        "countries": template.countries_json,
+        "required_checks": template.required_checks_json,
+        "steps": template.steps_json,
+        "settings": template.settings_json,
+        "provider_requirements": template.provider_requirements_json,
+        "output_claims": template.output_claims_json,
+    }
+
+
 def serialize_template(template: Template) -> dict:
     return {
         "id": template.public_id,

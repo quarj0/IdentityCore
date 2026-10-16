@@ -2258,30 +2258,54 @@
       "thread_id": "PRRT_kwDOTN0BU86UTTFZ",
       "comment_id": 3663207255,
       "path": "backend/django/apps/templates/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/templates/services.py:verified key collisions compare the immutable hash; project/name collisions return validation errors and unrelated integrity errors propagate",
+        "backend/django/apps/templates/test_historical_instantiation.py:test_name_collision_returns_validation_error",
+        "backend/django/apps/templates/test_instantiation_races.py:three rounds of replay/conflicting key/name and organization adoption races"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Distinguish name collisions from idempotency races**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207255"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207255",
+      "disposition_note": "Fixed in protected merged PR #402 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1066 tests with 41 skips successfully. Required PostgreSQL CI passed 135 tests, including repeated concurrent instantiation and organization adoption races. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 402,
+      "remediation_commit": "948f8106a2cef20584219c522ea1180a47579dbe",
+      "merged_commit": "a52eccd632b16a20748db0f75d62dc374e2132db"
     },
     {
       "pr_number": 49,
       "thread_id": "PRRT_kwDOTN0BU86UTTFd",
       "comment_id": 3663207260,
       "path": "backend/django/apps/templates/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/templates/services.py:creation stores immutable request digest rather than reconstructing replay evidence from editable workflow state",
+        "backend/django/apps/templates/test_historical_instantiation.py:test_exact_replay_survives_workflow_rename",
+        "backend/django/apps/templates/test_instantiation_races.py:three rounds of replay/conflicting key/name and organization adoption races"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Compare replays against the original request**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207260"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207260",
+      "disposition_note": "Fixed in protected merged PR #402 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1066 tests with 41 skips successfully. Required PostgreSQL CI passed 135 tests, including repeated concurrent instantiation and organization adoption races. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 402,
+      "remediation_commit": "948f8106a2cef20584219c522ea1180a47579dbe",
+      "merged_commit": "a52eccd632b16a20748db0f75d62dc374e2132db"
     },
     {
       "pr_number": 49,
       "thread_id": "PRRT_kwDOTN0BU86UTTFh",
       "comment_id": 3663207265,
       "path": "backend/django/apps/templates/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/templates/services.py:matching replay occurs before current source publication checks",
+        "backend/django/apps/templates/test_historical_instantiation.py:test_exact_replay_survives_source_archive",
+        "backend/django/apps/templates/test_instantiation_races.py:three rounds of replay/conflicting key/name and organization adoption races"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Replay idempotent requests before checking template state**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207265"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207265",
+      "disposition_note": "Fixed in protected merged PR #402 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1066 tests with 41 skips successfully. Required PostgreSQL CI passed 135 tests, including repeated concurrent instantiation and organization adoption races. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 402,
+      "remediation_commit": "948f8106a2cef20584219c522ea1180a47579dbe",
+      "merged_commit": "a52eccd632b16a20748db0f75d62dc374e2132db"
     },
     {
       "pr_number": 49,
@@ -2298,10 +2322,18 @@
       "thread_id": "PRRT_kwDOTN0BU86UTTFr",
       "comment_id": 3663207276,
       "path": "backend/django/apps/templates/services.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/templates/services.py:source row lock serializes distinct-organization adoption checks and migration reconciles existing inflated values",
+        "backend/django/apps/templates/test_historical_instantiation.py:test_migration_reconciles_existing_inflated_adoption",
+        "backend/django/apps/templates/test_instantiation_races.py:three rounds of replay/conflicting key/name and organization adoption races"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Count each adopting organization only once**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207276"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207276",
+      "disposition_note": "Fixed in protected merged PR #402 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1066 tests with 41 skips successfully. Required PostgreSQL CI passed 135 tests, including repeated concurrent instantiation and organization adoption races. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 402,
+      "remediation_commit": "948f8106a2cef20584219c522ea1180a47579dbe",
+      "merged_commit": "a52eccd632b16a20748db0f75d62dc374e2132db"
     },
     {
       "pr_number": 49,
@@ -2333,10 +2365,18 @@
       "thread_id": "PRRT_kwDOTN0BU86UTTF1",
       "comment_id": 3663207289,
       "path": "backend/django/apps/templates/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/apps/templates/serializers.py:serialize_catalog_template explicitly excludes administrator identities and operational fields",
+        "backend/django/apps/templates/test_historical_instantiation.py:test_catalog_omits_internal_identity_and_operational_fields",
+        "backend/django/apps/templates/test_instantiation_races.py:three rounds of replay/conflicting key/name and organization adoption races"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Restrict tenant catalog responses to public metadata**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207289"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207289",
+      "disposition_note": "Fixed in protected merged PR #402 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1066 tests with 41 skips successfully. Required PostgreSQL CI passed 135 tests, including repeated concurrent instantiation and organization adoption races. Temporary narrow CI-selector approval was removed after merge.",
+      "remediation_pr": 402,
+      "remediation_commit": "948f8106a2cef20584219c522ea1180a47579dbe",
+      "merged_commit": "a52eccd632b16a20748db0f75d62dc374e2132db"
     },
     {
       "pr_number": 49,
@@ -3302,28 +3342,34 @@
       "thread_id": "PRRT_kwDOTN0BU86VruPz",
       "comment_id": 3696926614,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/biometrics/tasks.py:validate finite numeric confidence in [0,1] and bounded nonempty string model attribution at provider boundary and recovered result consumption",
         "backend/django/apps/biometrics/test_historical_evidence.py:test_negative_detection_confidence_is_contract_failure"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reject malformed confidence and attribution values**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/187#discussion_r3696926614",
-      "disposition_note": "Reproduced on baseline: nine failing regression cases among 15 tests. Eighteen expanded regression tests pass after the proposed fix. Remains actionable until independent final-head review, CI/Security and protected merge."
+      "disposition_note": "Fixed in protected merged PR #399 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1054 tests with 39 skips successfully. Required PostgreSQL CI passed 123 tests, including provider and workflow races; 60 local PostgreSQL biometric/provider tests passed. No temporary approval was needed.",
+      "remediation_pr": 399,
+      "remediation_commit": "46586d6c49aeaa617595132c91e9107f789f0137",
+      "merged_commit": "18d1de549c616de1559be80fb1273dbc1ab1a6e9"
     },
     {
       "pr_number": 187,
       "thread_id": "PRRT_kwDOTN0BU86VruP0",
       "comment_id": 3696926615,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/biometrics/tasks.py:derive nonempty failure reason from final liveness status",
         "backend/django/apps/biometrics/test_historical_evidence.py:test_rejected_face_count_has_failure_reason"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Populate the failure reason from the derived status**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/187#discussion_r3696926615",
-      "disposition_note": "Reproduced on baseline: nine failing regression cases among 15 tests. Eighteen expanded regression tests pass after the proposed fix. Remains actionable until independent final-head review, CI/Security and protected merge."
+      "disposition_note": "Fixed in protected merged PR #399 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1054 tests with 39 skips successfully. Required PostgreSQL CI passed 123 tests, including provider and workflow races; 60 local PostgreSQL biometric/provider tests passed. No temporary approval was needed.",
+      "remediation_pr": 399,
+      "remediation_commit": "46586d6c49aeaa617595132c91e9107f789f0137",
+      "merged_commit": "18d1de549c616de1559be80fb1273dbc1ab1a6e9"
     },
     {
       "pr_number": 187,
@@ -3340,14 +3386,17 @@
       "thread_id": "PRRT_kwDOTN0BU86VruP3",
       "comment_id": 3696926619,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/biometrics/tasks.py:raise ProviderContractError and preserve provider_invalid_response in scalar and decision evidence",
         "backend/django/apps/biometrics/test_historical_evidence.py:test_missing_detection_evidence_is_contract_failure"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Classify missing evidence as an invalid provider response**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/187#discussion_r3696926619",
-      "disposition_note": "Reproduced on baseline: nine failing regression cases among 15 tests. Eighteen expanded regression tests pass after the proposed fix. Remains actionable until independent final-head review, CI/Security and protected merge."
+      "disposition_note": "Fixed in protected merged PR #399 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1054 tests with 39 skips successfully. Required PostgreSQL CI passed 123 tests, including provider and workflow races; 60 local PostgreSQL biometric/provider tests passed. No temporary approval was needed.",
+      "remediation_pr": 399,
+      "remediation_commit": "46586d6c49aeaa617595132c91e9107f789f0137",
+      "merged_commit": "18d1de549c616de1559be80fb1273dbc1ab1a6e9"
     },
     {
       "pr_number": 187,
@@ -3581,14 +3630,17 @@
       "thread_id": "PRRT_kwDOTN0BU86VryyX",
       "comment_id": 3696953118,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/biometrics/tasks.py:reload and preserve orchestrated timeout status/code rather than overwrite stale object",
         "backend/django/apps/biometrics/test_historical_evidence.py:test_timeout_keeps_provider_classification"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve timeout outcomes recorded by the orchestrator**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/194#discussion_r3696953118",
-      "disposition_note": "Reproduced on baseline: nine failing regression cases among 15 tests. Eighteen expanded regression tests pass after the proposed fix. Remains actionable until independent final-head review, CI/Security and protected merge."
+      "disposition_note": "Fixed in protected merged PR #399 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1054 tests with 39 skips successfully. Required PostgreSQL CI passed 123 tests, including provider and workflow races; 60 local PostgreSQL biometric/provider tests passed. No temporary approval was needed.",
+      "remediation_pr": 399,
+      "remediation_commit": "46586d6c49aeaa617595132c91e9107f789f0137",
+      "merged_commit": "18d1de549c616de1559be80fb1273dbc1ab1a6e9"
     },
     {
       "pr_number": 194,
@@ -4045,14 +4097,17 @@
       "thread_id": "PRRT_kwDOTN0BU86Vr5LT",
       "comment_id": 3696989634,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/biometrics/tasks.py:preserve liveness and face timeout classification in provider and manual-review evidence",
         "backend/django/apps/biometrics/test_historical_evidence.py:test_face_timeout_keeps_provider_classification"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve timeout classification in biometric tasks**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/200#discussion_r3696989634",
-      "disposition_note": "Reproduced on baseline: nine failing regression cases among 15 tests. Eighteen expanded regression tests pass after the proposed fix. Remains actionable until independent final-head review, CI/Security and protected merge."
+      "disposition_note": "Fixed in protected merged PR #399 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1054 tests with 39 skips successfully. Required PostgreSQL CI passed 123 tests, including provider and workflow races; 60 local PostgreSQL biometric/provider tests passed. No temporary approval was needed.",
+      "remediation_pr": 399,
+      "remediation_commit": "46586d6c49aeaa617595132c91e9107f789f0137",
+      "merged_commit": "18d1de549c616de1559be80fb1273dbc1ab1a6e9"
     },
     {
       "pr_number": 200,
@@ -4118,14 +4173,17 @@
       "thread_id": "PRRT_kwDOTN0BU86Vr5Ql",
       "comment_id": 3696990110,
       "path": "backend/django/apps/biometrics/tasks.py",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
         "backend/django/apps/biometrics/tasks.py:retain committed terminal provider classification, including timeout normalized envelope",
         "backend/django/apps/biometrics/test_historical_evidence.py:test_timeout_keeps_provider_classification"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve orchestrated biometric timeout details**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/201#discussion_r3696990110",
-      "disposition_note": "Reproduced on baseline: nine failing regression cases among 15 tests. Eighteen expanded regression tests pass after the proposed fix. Remains actionable until independent final-head review, CI/Security and protected merge."
+      "disposition_note": "Fixed in protected merged PR #399 after fresh exact-head review newer than standalone canonical evidence, all PR/push CI and Security successful, dedicated App success and trusted expected-head merge. Full backend ran 1054 tests with 39 skips successfully. Required PostgreSQL CI passed 123 tests, including provider and workflow races; 60 local PostgreSQL biometric/provider tests passed. No temporary approval was needed.",
+      "remediation_pr": 399,
+      "remediation_commit": "46586d6c49aeaa617595132c91e9107f789f0137",
+      "merged_commit": "18d1de549c616de1559be80fb1273dbc1ab1a6e9"
     },
     {
       "pr_number": 201,
@@ -11202,8 +11260,84 @@
         "GitHub CI job 116604294470:123 PostgreSQL tests passed on final head"
       ],
       "disposition_note": "Fixed in protected merged PR #398 after final-head independent review, strict resolver evidence, all PR/push CI and Security and dedicated App success. Full backend ran 1036 with 39 skips successfully. Temporary CI-selector approval removed after trusted merge."
+    },
+    {
+      "pr_number": 399,
+      "thread_id": "PRRT_kwDOTN0BU86s612l",
+      "comment_id": 4286990410,
+      "path": "backend/django/apps/biometrics/tasks.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Replace the stale success envelope when rejecting evidence**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/399#discussion_r4286990410",
+      "remediation_pr": 399,
+      "remediation_commit": "46586d6c49aeaa617595132c91e9107f789f0137",
+      "merged_commit": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "resolver_evidence": "Fixed in 41b231797b80dfc9887aefbb97a4d6c39799b223. Validation: 51 targeted tests passed.",
+      "evidence": [
+        "backend/django/apps/biometrics/test_historical_evidence.py",
+        "backend/django/apps/biometrics/test_finalization_recovery.py",
+        "GitHub CI job 116726226393:123 PostgreSQL tests passed on final head"
+      ],
+      "disposition_note": "Fixed in protected merged PR #399 after final-head independent review, strict resolver evidence, all PR/push CI and Security and dedicated App success. Full backend ran 1054 with 39 skips successfully. Trusted merge required no temporary approval."
+    },
+    {
+      "pr_number": 400,
+      "thread_id": "PRRT_kwDOTN0BU86tAfrv",
+      "comment_id": 4289398410,
+      "path": "scripts/check_release_evidence.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Require a reviewer on every release check**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/400#discussion_r4289398410",
+      "remediation_pr": 400,
+      "remediation_commit": "d9ef4623f23ed900e9cefc8d6880879a1e1b51b9",
+      "merged_commit": "8d317d31589e828407cc920c1f06b2f82307210a",
+      "resolver_evidence": "Fixed in 52bb84ed2596159fb168fe786e86aedb63c6e084. Validation: 11 targeted tests passed.",
+      "evidence": [
+        "scripts/check_release_evidence.py",
+        "tools/evaluation/test_release_evidence_gate.py",
+        "13 release evidence tests passed after five ambiguity regressions were reproduced"
+      ],
+      "disposition_note": "Fixed in protected merged PR #400 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; no temporary approval remained."
+    },
+    {
+      "pr_number": 400,
+      "thread_id": "PRRT_kwDOTN0BU86tBAnc",
+      "comment_id": 4289617856,
+      "path": "scripts/check_release_evidence.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject duplicate keys in evidence manifests**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/400#discussion_r4289617856",
+      "remediation_pr": 400,
+      "remediation_commit": "d9ef4623f23ed900e9cefc8d6880879a1e1b51b9",
+      "merged_commit": "8d317d31589e828407cc920c1f06b2f82307210a",
+      "resolver_evidence": "Fixed in d9ef4623f23ed900e9cefc8d6880879a1e1b51b9. Validation: 13 targeted tests passed.",
+      "evidence": [
+        "scripts/check_release_evidence.py",
+        "tools/evaluation/test_release_evidence_gate.py",
+        "13 release evidence tests passed after five ambiguity regressions were reproduced"
+      ],
+      "disposition_note": "Fixed in protected merged PR #400 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; no temporary approval remained."
+    },
+    {
+      "pr_number": 400,
+      "thread_id": "PRRT_kwDOTN0BU86tBAnl",
+      "comment_id": 4289617868,
+      "path": "scripts/check_release_evidence.py",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Require an integer schema version**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/400#discussion_r4289617868",
+      "remediation_pr": 400,
+      "remediation_commit": "d9ef4623f23ed900e9cefc8d6880879a1e1b51b9",
+      "merged_commit": "8d317d31589e828407cc920c1f06b2f82307210a",
+      "resolver_evidence": "Fixed in d9ef4623f23ed900e9cefc8d6880879a1e1b51b9. Validation: 13 targeted tests passed.",
+      "evidence": [
+        "scripts/check_release_evidence.py",
+        "tools/evaluation/test_release_evidence_gate.py",
+        "13 release evidence tests passed after five ambiguity regressions were reproduced"
+      ],
+      "disposition_note": "Fixed in protected merged PR #400 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; no temporary approval remained."
     }
   ],
-  "verified_main": "060a5f2beec4075a786e07028c74e70e8ea75d1c",
-  "inventory_note": "832 threads from closed or merged PRs: 193 fixed, 258 verified, 6 actionable and 375 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
+  "verified_main": "a52eccd632b16a20748db0f75d62dc374e2132db",
+  "inventory_note": "836 threads from closed or merged PRs: 208 fixed, 258 verified, 0 actionable and 370 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
 }

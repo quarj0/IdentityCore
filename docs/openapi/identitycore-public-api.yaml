@@ -3497,7 +3497,7 @@ paths:
   /projects/{project_id}/workflows:instantiate:
     post:
       summary: Instantiate a workflow template in a project.
-      description: Creates an idempotent workflow from a published template. Production projects require an approved organization.
+      description: Creates an idempotent workflow from a published template. Production projects require an approved organization. Matching retries return the existing workflow after source archival or workflow renaming. Legacy keys created before immutable request evidence was recorded return 409; retrieve the existing workflow instead.
       security:
         - platformUserBearer: []
       parameters:
