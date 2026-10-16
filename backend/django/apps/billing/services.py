@@ -454,6 +454,13 @@ def _refresh_adjustment_state(payment, invoice):
 
 def reconcile_gateway_refund(provider, refund_id):
     result = gateway_for(provider).verify_refund(refund_id=refund_id)
+    return _record_verified_refund(provider, refund_id, result)
+
+
+def _record_verified_refund(provider, refund_id, result, *, expected_payment_id=None):
+    """Consume only facts fetched through authenticated gateway adapters."""
+    if not isinstance(result, dict):
+        raise BillingError("Malformed verified refund")
     if provider == "stripe":
         if result.get("id") != refund_id:
             raise BillingError("Stripe refund ID mismatch")
@@ -474,6 +481,7 @@ def reconcile_gateway_refund(provider, refund_id):
         statuses = {
             "pending": "pending",
             "processing": "pending",
+            "needs-attention": "pending",
             "processed": "completed",
             "failed": "failed",
         }
@@ -488,8 +496,10 @@ def reconcile_gateway_refund(provider, refund_id):
         )
         .first()
     )
-    if payment is None:
-        raise BillingError("Refund has no settled payment")
+    if payment is None or (
+        expected_payment_id is not None and payment.pk != expected_payment_id
+    ):
+        raise BillingError("Refund has no matching settled payment")
     new_status = statuses.get(result.get("status"))
     if (
         new_status is None
@@ -611,6 +621,43 @@ def reconcile_gateway_dispute(provider, dispute_id):
     return True
 
 
+def _reconcile_paystack_refund_event(data):
+    reference = data.get("transaction_reference")
+    if reference is None and type(data.get("id")) is int:
+        # Older integrations may still provide the numeric refund identifier.
+        return reconcile_gateway_refund("paystack", data["id"])
+    if not isinstance(reference, str) or not paystack.REFERENCE.fullmatch(reference):
+        raise BillingError("Invalid refund transaction reference")
+    payment = BillingPayment.objects.filter(
+        provider="paystack",
+        reference=reference,
+        status__in=("paid", "disputed", "partially_refunded", "refunded"),
+    ).first()
+    if payment is None or not payment.gateway_transaction_id.isdecimal():
+        raise BillingError("Refund event has no settled Paystack transaction")
+    rows = paystack.list_refunds(transaction_id=int(payment.gateway_transaction_id))
+    if not rows:
+        raise BillingError("Refund evidence is not yet available")
+    # Null refund_reference is documented. Reconcile independently fetched
+    # facts for this transaction, without guessing an ID from webhook amounts.
+    with transaction.atomic():
+        # Release failed reservations before crediting any newer refunds.
+        rows = sorted(
+            rows,
+            key=lambda row: (
+                0 if isinstance(row, dict) and row.get("status") == "failed" else 1
+            ),
+        )
+        for result in rows:
+            _record_verified_refund(
+                "paystack",
+                result.get("id") if isinstance(result, dict) else None,
+                result,
+                expected_payment_id=payment.pk,
+            )
+    return True
+
+
 def receive_paystack_webhook(body, signature):
     if not paystack.valid_webhook(body, signature):
         raise BillingError("Invalid gateway webhook signature")
@@ -624,10 +671,11 @@ def receive_paystack_webhook(body, signature):
     if event_type in (
         "refund.pending",
         "refund.processing",
+        "refund.needs-attention",
         "refund.processed",
         "refund.failed",
     ):
-        return reconcile_gateway_refund("paystack", event["data"].get("id"))
+        return _reconcile_paystack_refund_event(event["data"])
     if event_type in (
         "charge.dispute.create",
         "charge.dispute.remind",

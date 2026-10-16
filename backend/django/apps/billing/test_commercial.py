@@ -244,7 +244,7 @@ class CommercialBillingTests(TestCase):
             )
 
     @override_settings(PAYSTACK_SECRET_KEY="synthetic-secret")
-    @patch("apps.billing.paystack.verify_refund")
+    @patch("apps.billing.paystack.list_refunds")
     @patch("apps.billing.paystack.verify")
     def test_authenticated_refund_is_reconciled_without_overcredit(self, gateway, refund_gateway):
         invoice = self.invoice()
@@ -254,10 +254,10 @@ class CommercialBillingTests(TestCase):
         )
         gateway.return_value = self.verified(payment)
         self.assertTrue(confirm_gateway_payment(payment.reference))
-        refund_gateway.return_value = {
+        refund_gateway.return_value = [{
             "id": 345, "transaction": 42424242, "amount": 500,
             "currency": "GHS", "status": "processed",
-        }
+        }]
         body = json.dumps({
             "event": "refund.processed",
             "data": {"id": 345, "transaction_reference": payment.reference},

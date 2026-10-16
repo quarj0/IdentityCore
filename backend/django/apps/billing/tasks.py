@@ -7,7 +7,7 @@ from celery import shared_task
 from django.conf import settings
 from django.utils import timezone
 from django.db import transaction
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, F
 
 from apps.billing.models import BillingInvoice, BillingSubscription
 from apps.billing.services import BillingError, generate_invoice, issue_invoice
@@ -34,7 +34,7 @@ def reconcile_billing_usage_task(limit=200):
             ],
             billing_usage_event__isnull=True,
         )
-        .order_by("pk")
+        .order_by(F("invoice_last_attempt_at").asc(nulls_first=True), "pk")
         .values_list("pk", flat=True)[:limit]
     )
     recorded = 0
@@ -71,7 +71,7 @@ def generate_closed_month_invoices_task(limit=100):
         .filter(
             period_complete=False,
         )
-        .order_by("pk")
+        .order_by(F("invoice_last_attempt_at").asc(nulls_first=True), "pk")
         .values_list("pk", flat=True)[:limit]
     )
     completed = 0
@@ -107,6 +107,11 @@ def generate_closed_month_invoices_task(limit=100):
                 issue_invoice(invoice.pk)
                 completed += 1
         except BillingError:
+            # Persist scheduling progress after rolling back this tenant's
+            # accounting. Unattempted/older tenants move ahead next run.
+            BillingSubscription.objects.filter(pk=subscription_id).update(
+                invoice_last_attempt_at=timezone.now()
+            )
             failed += 1
             logger.error(
                 "Monthly invoice requires review for subscription %s",

@@ -188,6 +188,7 @@ class BillingSubscription(PublicIdModel, BaseModel):
         ],
     )
     started_at = models.DateTimeField()
+    invoice_last_attempt_at = models.DateTimeField(null=True, blank=True)
 
 
 class BillingInvoice(PublicIdModel, BaseModel):

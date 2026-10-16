@@ -33,11 +33,11 @@ def _secret():
     return value
 
 
-def _api(method, path, *, payload=None):
+def _api(method, path, *, payload=None, list_response=False):
     if (
         not path.startswith("/")
         or "?" in path
-        and not path.startswith("/transaction/verify/")
+        and not path.startswith(("/transaction/verify/", "/refund?"))
     ):
         raise GatewayError("Invalid gateway endpoint")
     body = (
@@ -69,7 +69,7 @@ def _api(method, path, *, payload=None):
     if (
         not isinstance(result, dict)
         or result.get("status") is not True
-        or not isinstance(result.get("data"), dict)
+        or not isinstance(result.get("data"), list if list_response else dict)
     ):
         raise GatewayError("Gateway rejected the request")
     return result["data"]
@@ -126,3 +126,25 @@ def verify_dispute(*, dispute_id):
     if type(dispute_id) is not int or dispute_id <= 0:
         raise GatewayError("Invalid dispute identifier")
     return _api("GET", "/dispute/" + str(dispute_id))
+
+
+def list_refunds(*, transaction_id):
+    """Read authenticated refund facts for one already settled transaction."""
+    if type(transaction_id) is not int or transaction_id <= 0:
+        raise GatewayError("Invalid refund transaction identifier")
+    refunds = []
+    for page in range(1, 21):
+        query = urllib.parse.urlencode(
+            {
+                "transaction": transaction_id,
+                "perPage": 50,
+                "page": page,
+            }
+        )
+        rows = _api("GET", "/refund?" + query, list_response=True)
+        if not isinstance(rows, list) or len(rows) > 50:
+            raise GatewayError("Invalid refund listing")
+        refunds.extend(rows)
+        if len(rows) < 50:
+            return refunds
+    raise GatewayError("Refund history exceeds automatic reconciliation bounds")

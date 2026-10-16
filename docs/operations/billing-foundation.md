@@ -8,7 +8,7 @@ have separate meters. Sandbox work is excluded. Explicit rates, including
 zero rates, determine chargeability; failures are never automatically billable.
 Month close rejects missing usage, changed provider facts, unpriced meters and
 line-total mismatches. Interrupted drafts resume; generation and automatic
-issuance commit together, including the operator command. Completed tenants do not consume the next batch. A tenant accounting error rolls back that tenant, allows the rest of the selected batch to finish, and then fails the task with a review summary; logs identify the affected subscriptions.
+issuance commit together, including the operator command. Completed tenants do not consume the next batch. A tenant accounting error rolls back that tenant, allows the rest of the selected batch to finish, and then fails the task with a review summary; logs identify the affected subscriptions. A durable last-attempt timestamp moves failed subscriptions behind unattempted or older tenants on subsequent bounded runs, even when a whole page fails.
 
 Both **Paystack and Stripe** support customer-paid hosted invoices. Paystack is
 restricted to GHS. Stripe defaults to USD, EUR and GBP; configure another
@@ -37,7 +37,11 @@ Webhooks authenticate exact raw request bytes before parsing: Paystack uses
 HMAC-SHA512; Stripe uses its endpoint secret, SHA256 signature and a five-minute
 timestamp tolerance. Event and transaction attribution includes the gateway.
 Refunds and disputes require independent gateway lookups against the settled
-transaction. Partial and full refunds produce `partially_refunded` and
+transaction. Paystack refund webhooks correlate through transaction_reference,
+including a null refund_reference: authenticated, paginated refund listings
+supply the numeric IDs and current accounting facts. The needs-attention
+state remains pending; operators supply bank details through Paystack, with
+no bank account details stored by IdentityCore. Partial and full refunds produce `partially_refunded` and
 `refunded` states. Open or lost disputes produce `disputed`; a verified won Stripe dispute or a
 resolved declined Paystack dispute restores the appropriate paid/refund state.
 Paystack partial dispute amounts use its verified `refund_amount` in minor units. Refund totals cannot

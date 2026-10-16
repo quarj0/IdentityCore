@@ -153,7 +153,8 @@
         "support requester/contact and ticket content",
         "Unrated, production-only per-provider-check usage facts (tenant, project, outcome, capability, provider ownership, timestamps); no payments or prices.",
         "Commercial plan prices and capability rates in integer currency subunits, tenant subscription, immutable monthly invoice snapshots, payment transaction references, signed callback digests and refund statuses (no card data).",
-        "Billing contact email sent to the selected hosted checkout provider; opaque checkout/session/payment transaction and event identifiers, checkout capability URLs, verified refund amounts and statuses, and dispute identifiers and outcomes. No card number, security code or bank credentials are collected or persisted by IdentityCore."
+        "Billing contact email sent to the selected hosted checkout provider; opaque checkout/session/payment transaction and event identifiers, checkout capability URLs, verified refund amounts and statuses, and dispute identifiers and outcomes. No card number, security code or bank credentials are collected or persisted by IdentityCore.",
+        "Subscription invoice attempt timestamps for fair, bounded retry scheduling"
       ],
       "purpose": "Operate customer integrations, provider routing, metering, delivery troubleshooting, and support. Operate opt-in monthly billing, server-verified payment settlement, disputes and refunds.",
       "locations": [
@@ -6016,6 +6017,11 @@
       "source": "backend/django/apps/workflows/models.py",
       "field": "WorkflowVersion.workflow_name",
       "activity": "workflow-configuration-and-operations"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingSubscription.invoice_last_attempt_at",
+      "activity": "integrations-billing-and-support"
     }
   ]
 }
