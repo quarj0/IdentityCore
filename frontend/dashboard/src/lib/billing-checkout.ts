@@ -3,7 +3,6 @@ import type { PaymentProvider } from "./billing-api";
 export function checkedCheckoutUrl(value: string, provider: PaymentProvider) {
   const hosts = {
     paystack: "checkout.paystack.com",
-    stripe: "checkout.stripe.com",
   };
   const url = new URL(value);
   if (

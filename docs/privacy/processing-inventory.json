@@ -154,7 +154,8 @@
         "Unrated, production-only per-provider-check usage facts (tenant, project, outcome, capability, provider ownership, timestamps); no payments or prices.",
         "Commercial plan prices and capability rates in integer currency subunits, tenant subscription, immutable monthly invoice snapshots, payment transaction references, signed callback digests and refund statuses (no card data).",
         "Billing contact email sent to the selected hosted checkout provider; opaque checkout/session/payment transaction and event identifiers, checkout capability URLs, verified refund amounts and statuses, and dispute identifiers and outcomes. No card number, security code or bank credentials are collected or persisted by IdentityCore.",
-        "Subscription invoice attempt timestamps for fair, bounded retry scheduling"
+        "Subscription invoice attempt timestamps for fair, bounded retry scheduling",
+        "Usage reconciliation exception pointers, controlled error codes and failure timestamps"
       ],
       "purpose": "Operate customer integrations, provider routing, metering, delivery troubleshooting, and support. Operate opt-in monthly billing, server-verified payment settlement, disputes and refunds.",
       "locations": [
@@ -172,10 +173,9 @@
         "PostgreSQL",
         "tenant endpoints",
         "configured support and provider services",
-        "Paystack merchant account, when explicitly enabled",
-        "Stripe merchant account, when explicitly enabled"
+        "Paystack merchant account, when explicitly enabled"
       ],
-      "transfers": "Webhook payloads and support/provider disclosures follow tenant configuration, data-minimization rules, and recorded destination safeguards. When enabled, only merchant-approved checkout data (payer email, amount, currency, generated reference) are transmitted to Paystack; payment credentials remain solely with Paystack. Processor region, transfer safeguards and retention require deployment privacy review. Paystack and Stripe merchant API requests transmit billing contact email, invoice currency/amount and opaque payment correlation references. Merchant account eligibility, processing regions, retention and applicable processor contracts require deployment-specific approval; enabling Stripe does not authorize currency conversion.",
+      "transfers": "Webhook payloads and support/provider disclosures follow tenant configuration and recorded destination safeguards. Paystack merchant API requests transmit billing email, GHS invoice amounts and opaque payment references. Card and bank account credentials remain solely with Paystack. Merchant eligibility, processing regions, retention and processor contracts require deployment-specific privacy approval.",
       "owners": [
         "platform",
         "support",
@@ -1602,11 +1602,6 @@
     {
       "source": "backend/django/apps/billing/models.py",
       "field": "BillingPayment.deleted_at",
-      "activity": "integrations-billing-and-support"
-    },
-    {
-      "source": "backend/django/apps/billing/models.py",
-      "field": "BillingPayment.gateway_checkout_id",
       "activity": "integrations-billing-and-support"
     },
     {
@@ -6027,6 +6022,21 @@
     {
       "source": "backend/django/apps/billing/models.py",
       "field": "BillingSubscription.invoice_last_attempt_at",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingUsageReconciliationIssue.provider_check",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingUsageReconciliationIssue.error_code",
+      "activity": "integrations-billing-and-support"
+    },
+    {
+      "source": "backend/django/apps/billing/models.py",
+      "field": "BillingUsageReconciliationIssue.last_failed_at",
       "activity": "integrations-billing-and-support"
     }
   ]

@@ -10,7 +10,6 @@ from apps.billing.api_views import (
     BillingCheckoutView,
     BillingPaymentStatusView,
     PaystackWebhookView,
-    StripeWebhookView,
 )
 
 urlpatterns = [
@@ -41,8 +40,5 @@ urlpatterns = [
         "paystack/webhook",
         PaystackWebhookView.as_view(),
         name="billing-paystack-webhook",
-    ),
-    internal_api_path(
-        "stripe/webhook", StripeWebhookView.as_view(), name="billing-stripe-webhook"
     ),
 ]

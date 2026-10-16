@@ -32,8 +32,6 @@ from apps.billing.services import (
 @skipUnless(connection.vendor == "postgresql", "Requires real PostgreSQL row locks")
 @override_settings(
     BILLING_PAYMENTS_ENABLED=True,
-    BILLING_PAYMENT_PROVIDERS=("paystack", "stripe"),
-    STRIPE_PAYMENT_CURRENCIES=("GHS",),
 )
 class PaymentRaceTests(TransactionTestCase):
     def setUp(self):
@@ -79,33 +77,25 @@ class PaymentRaceTests(TransactionTestCase):
             futures = [pool.submit(worker, function) for function in functions]
             return [future.result(timeout=25) for future in futures]
 
-    def test_two_gateway_choices_create_only_one_payable_checkout(self):
+    def test_overlapping_checkout_requests_initialize_one_payment(self):
         for round_number in range(3):
             invoice = self.new_invoice()
 
-            def checkout(provider):
+            def checkout():
                 try:
                     return begin_checkout(
-                        invoice, billing_email=self.user.email, provider=provider
-                    ).provider
+                        invoice, billing_email=self.user.email
+                    ).public_id
                 except BillingError:
                     return "blocked"
 
             with patch(
                 "apps.billing.paystack.initialize",
                 return_value="https://checkout.paystack.com/pay/synthetic",
-            ) as paystack, patch(
-                "apps.billing.stripe.initialize",
-                return_value={
-                    "id": f"cs_test_Synthetic{round_number}",
-                    "url": "https://checkout.stripe.com/pay/synthetic",
-                },
-            ) as stripe:
-                results = self.race(
-                    [lambda: checkout("paystack"), lambda: checkout("stripe")]
-                )
-            self.assertEqual(results.count("blocked"), 1)
-            self.assertEqual(paystack.call_count + stripe.call_count, 1)
+            ) as gateway:
+                results = self.race([checkout, checkout])
+            self.assertEqual(gateway.call_count, 1)
+            self.assertEqual(len(set(results) - {"blocked"}), 1)
             self.assertEqual(
                 BillingPayment.objects.filter(
                     invoice=invoice, status="pending"
@@ -113,105 +103,91 @@ class PaymentRaceTests(TransactionTestCase):
                 1,
             )
 
-    def test_overlapping_confirmation_settles_once_for_each_gateway(self):
-        for provider in ("paystack", "stripe"):
-            for round_number in range(3):
-                invoice = self.new_invoice()
-                payment = BillingPayment.objects.create(
-                    invoice=invoice,
-                    provider=provider,
-                    reference=f"ic{provider}{round_number}",
-                    amount_minor=invoice.amount_minor,
-                    currency="GHS",
-                    gateway_checkout_id=(
-                        f"cs_test_Synthetic{round_number}"
-                        if provider == "stripe"
-                        else ""
-                    ),
-                )
-                receipt = {
-                    "reference": payment.reference,
-                    "amount": payment.amount_minor,
-                    "currency": "GHS",
-                    "status": "success",
-                    "id": (
-                        f"pi_Synthetic{round_number}"
-                        if provider == "stripe"
-                        else 424200 + round_number
-                    ),
-                    "checkout_id": payment.gateway_checkout_id,
-                }
-                digest = hashlib.sha256(payment.reference.encode()).hexdigest()
+    def test_overlapping_confirmation_settles_and_audits_once(self):
+        for round_number in range(3):
+            invoice = self.new_invoice()
+            payment = BillingPayment.objects.create(
+                invoice=invoice,
+                provider="paystack",
+                reference=f"icPaystack{round_number}",
+                amount_minor=invoice.amount_minor,
+                currency="GHS",
+            )
+            receipt = {
+                "reference": payment.reference,
+                "amount": payment.amount_minor,
+                "currency": "GHS",
+                "status": "success",
+                "id": 424200 + round_number,
+            }
+            digest = hashlib.sha256(payment.reference.encode()).hexdigest()
 
-                def confirm():
-                    return confirm_gateway_payment(
-                        payment.reference,
-                        evidence_digest=digest,
-                        event_id=(
-                            f"evt_Synthetic{round_number}"
-                            if provider == "stripe"
-                            else ""
-                        ),
-                    )
+            def confirm():
+                return confirm_gateway_payment(
+                    payment.reference, evidence_digest=digest
+                )
 
-                with patch(f"apps.billing.{provider}.verify", return_value=receipt):
-                    self.assertEqual(self.race([confirm, confirm]), [True, True])
-                invoice.refresh_from_db()
-                self.assertEqual(invoice.status, "paid")
-                self.assertEqual(
-                    AuditEvent.objects.filter(
-                        action="billing.payment.confirmed", target_id=payment.public_id
-                    ).count(),
-                    1,
-                )
-                self.assertEqual(
-                    BillingPaymentEvent.objects.filter(payment=payment).count(), 1
-                )
+            with patch("apps.billing.paystack.verify", return_value=receipt):
+                self.assertEqual(self.race([confirm, confirm]), [True, True])
+            invoice.refresh_from_db()
+            self.assertEqual(invoice.status, "paid")
+            self.assertEqual(
+                AuditEvent.objects.filter(
+                    action="billing.payment.confirmed", target_id=payment.public_id
+                ).count(),
+                1,
+            )
+            self.assertEqual(
+                BillingPaymentEvent.objects.filter(payment=payment).count(), 1
+            )
 
     def test_refund_and_dispute_share_lock_order_and_preserve_both_records(self):
         for round_number in range(3):
             invoice = self.new_invoice()
             payment = BillingPayment.objects.create(
                 invoice=invoice,
-                provider="stripe",
+                provider="paystack",
                 reference=f"icAdjust{round_number}",
                 amount_minor=invoice.amount_minor,
                 currency="GHS",
                 status="paid",
-                gateway_transaction_id=f"pi_Adjust{round_number}",
+                gateway_transaction_id=str(424500 + round_number),
                 confirmed_at=timezone.now(),
             )
             invoice.status = "paid"
             invoice.paid_at = timezone.now()
             invoice.save(update_fields=["status", "paid_at"])
             refund_id, dispute_id = (
-                f"re_Adjust{round_number}",
-                f"dp_Adjust{round_number}",
+                800 + round_number,
+                900 + round_number,
             )
             with patch(
-                "apps.billing.stripe.verify_refund",
+                "apps.billing.paystack.verify_refund",
                 return_value={
                     "id": refund_id,
-                    "payment_intent": payment.gateway_transaction_id,
+                    "transaction": int(payment.gateway_transaction_id),
                     "currency": "ghs",
                     "amount": 500,
-                    "status": "succeeded",
+                    "status": "processed",
                 },
             ), patch(
-                "apps.billing.stripe.verify_dispute",
+                "apps.billing.paystack.verify_dispute",
                 return_value={
                     "id": dispute_id,
-                    "payment_intent": payment.gateway_transaction_id,
-                    "currency": "ghs",
-                    "amount": payment.amount_minor,
-                    "status": "needs_response",
+                    "transaction": {
+                        "id": int(payment.gateway_transaction_id),
+                        "currency": "GHS",
+                        "amount": payment.amount_minor,
+                    },
+                    "refund_amount": None,
+                    "status": "pending",
                 },
             ):
                 self.assertEqual(
                     self.race(
                         [
-                            lambda: reconcile_gateway_refund("stripe", refund_id),
-                            lambda: reconcile_gateway_dispute("stripe", dispute_id),
+                            lambda: reconcile_gateway_refund("paystack", refund_id),
+                            lambda: reconcile_gateway_dispute("paystack", dispute_id),
                         ]
                     ),
                     [True, True],

@@ -127,3 +127,77 @@ class ScheduledUsageRecoveryTests(TestCase):
         self.make_check(self.production, self.platform_provider)
         self.assertEqual(reconcile_billing_usage_task(), 0)
         self.assertFalse(BillingUsageEvent.objects.exists())
+
+    def invalid_check(self):
+        from apps.organizations.models import Organization
+        from apps.tenants.models import Tenant
+        from apps.providers.models import Provider
+
+        org = Organization.objects.create(
+            name="Other usage owner", slug="other-usage-owner"
+        )
+        tenant = Tenant.objects.create(
+            organization=org, name="Other", slug="other-usage-owner", status="active"
+        )
+        provider = Provider.objects.create(
+            tenant=tenant,
+            name="Foreign provider",
+            code="foreign-usage-provider",
+            provider_type="liveness",
+        )
+        return self.make_check(self.production, provider)
+
+    def test_invalid_check_is_quarantined_without_blocking_valid_usage(self):
+        from io import StringIO
+        from django.core.management import call_command
+        from apps.billing.tasks import reconcile_billing_usage_task
+        from apps.billing.usage import BillingIntegrityError
+        from apps.billing.models import BillingUsageEvent
+
+        bad = self.invalid_check()
+        good = self.make_check(self.production, self.byop_provider)
+        with self.assertRaises(BillingIntegrityError):
+            reconcile_billing_usage_task()
+        self.assertTrue(BillingUsageEvent.objects.filter(provider_check=good).exists())
+        self.assertFalse(BillingUsageEvent.objects.filter(provider_check=bad).exists())
+        from apps.billing.models import BillingUsageReconciliationIssue
+
+        self.assertTrue(
+            BillingUsageReconciliationIssue.objects.filter(provider_check=bad).exists()
+        )
+        bad.provider = self.platform_provider
+        bad.save(update_fields=["provider"])
+        call_command(
+            "reconcile_provider_usage", tenant=self.tenant.public_id, stdout=StringIO()
+        )
+        self.assertTrue(BillingUsageEvent.objects.filter(provider_check=bad).exists())
+        self.assertFalse(
+            BillingUsageReconciliationIssue.objects.filter(provider_check=bad).exists()
+        )
+
+    def test_full_invalid_usage_page_cannot_starve_later_checks(self):
+        from apps.billing.tasks import reconcile_billing_usage_task
+        from apps.billing.usage import BillingIntegrityError
+        from apps.billing.models import BillingUsageEvent
+
+        self.invalid_check()
+        good = self.make_check(self.production, self.platform_provider)
+        with self.assertRaises(BillingIntegrityError):
+            reconcile_billing_usage_task(limit=1)
+        self.assertEqual(reconcile_billing_usage_task(limit=1), 1)
+        self.assertTrue(BillingUsageEvent.objects.filter(provider_check=good).exists())
+
+    def test_operator_usage_command_finishes_valid_checks_before_reporting_errors(self):
+        from io import StringIO
+        from django.core.management import call_command, CommandError
+        from apps.billing.models import BillingUsageEvent
+
+        self.invalid_check()
+        good = self.make_check(self.production, self.platform_provider)
+        with self.assertRaises(CommandError):
+            call_command(
+                "reconcile_provider_usage",
+                tenant=self.tenant.public_id,
+                stdout=StringIO(),
+            )
+        self.assertTrue(BillingUsageEvent.objects.filter(provider_check=good).exists())

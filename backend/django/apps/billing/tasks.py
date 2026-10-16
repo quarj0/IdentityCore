@@ -11,7 +11,7 @@ from django.db.models import Exists, OuterRef, F
 
 from apps.billing.models import BillingInvoice, BillingSubscription
 from apps.billing.services import BillingError, generate_invoice, issue_invoice
-from apps.billing.usage import BillingIntegrityError, record_provider_usage
+from apps.billing.usage import BillingIntegrityError, reconcile_provider_usage_checks
 from apps.providers.models import ProviderCheck, ProviderCheckStatus
 
 logger = logging.getLogger(__name__)
@@ -33,14 +33,16 @@ def reconcile_billing_usage_task(limit=200):
                 ProviderCheckStatus.TIMEOUT,
             ],
             billing_usage_event__isnull=True,
+            billing_reconciliation_issue__isnull=True,
         )
         .order_by("pk")
         .values_list("pk", flat=True)[:limit]
     )
-    recorded = 0
-    for pk in checks:
-        _, created = record_provider_usage(pk)
-        recorded += int(created)
+    recorded, failed = reconcile_provider_usage_checks(checks)
+    if failed:
+        raise BillingIntegrityError(
+            f"{failed} usage checks require review; {recorded} recorded"
+        )
     return recorded
 
 

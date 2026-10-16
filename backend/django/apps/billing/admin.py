@@ -14,6 +14,7 @@ from apps.billing.models import (
     BillingRefund,
     BillingDispute,
     BillingUsageEvent,
+    BillingUsageReconciliationIssue,
 )
 
 
@@ -81,6 +82,7 @@ for model in (
     BillingRefund,
     BillingDispute,
     BillingUsageEvent,
+    BillingUsageReconciliationIssue,
     BillingMeter,
 ):
     admin.site.register(model, ReadOnlyFinancialAdmin)

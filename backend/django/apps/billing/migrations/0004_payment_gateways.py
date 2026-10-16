@@ -56,11 +56,6 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.AddField(
-            model_name="billingpayment",
-            name="gateway_checkout_id",
-            field=models.CharField(blank=True, max_length=120),
-        ),
-        migrations.AddField(
             model_name="billingpaymentevent",
             name="gateway_event_id",
             field=models.CharField(blank=True, max_length=120),

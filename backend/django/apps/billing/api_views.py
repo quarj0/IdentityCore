@@ -22,7 +22,6 @@ from apps.billing.services import (
     begin_checkout,
     confirm_gateway_payment,
     receive_paystack_webhook,
-    receive_stripe_webhook,
 )
 from common.permissions import IsTenantUser
 from common.authorization import AuthorizationAction, decide_user_access
@@ -248,12 +247,12 @@ class BillingCheckoutView(APIView):
             or set(request.data) - {"provider"}
             or (
                 "provider" in request.data
-                and request.data["provider"] not in ("paystack", "stripe")
+                and request.data["provider"] not in ("paystack",)
             )
         ):
             return error_response(
                 "invalid_checkout",
-                "Choose an available payment provider.",
+                "Invalid Paystack checkout request.",
                 request=request,
             )
         try:
@@ -359,24 +358,6 @@ class PaystackWebhookView(APIView):
         try:
             receive_paystack_webhook(body, signature)
         except paystack.GatewayError:
-            return HttpResponse(status=503)
-        except BillingError:
-            return HttpResponse(status=400)
-        return HttpResponse(status=200)
-
-
-class StripeWebhookView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
-    throttle_classes = []
-
-    def post(self, request):
-        body = request.body
-        if not body or len(body) > 65536:
-            return HttpResponse(status=413)
-        try:
-            receive_stripe_webhook(body, request.headers.get("Stripe-Signature", ""))
-        except GatewayError:
             return HttpResponse(status=503)
         except BillingError:
             return HttpResponse(status=400)

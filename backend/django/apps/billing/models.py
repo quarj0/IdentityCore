@@ -271,7 +271,6 @@ class BillingPayment(PublicIdModel, BaseModel):
         ],
     )
     checkout_url = models.URLField(blank=True, max_length=2048)
-    gateway_checkout_id = models.CharField(max_length=120, blank=True)
     gateway_transaction_id = models.CharField(max_length=80, blank=True)
     confirmed_at = models.DateTimeField(null=True, blank=True)
 
@@ -345,3 +344,16 @@ class BillingDispute(PublicIdModel, BaseModel):
         max_length=16, choices=[("open", "Open"), ("won", "Won"), ("lost", "Lost")]
     )
     gateway_status = models.CharField(max_length=40)
+
+
+class BillingUsageReconciliationIssue(models.Model):
+    """Operator-visible quarantine for source facts that cannot be billed safely."""
+
+    provider_check = models.OneToOneField(
+        "providers.ProviderCheck",
+        primary_key=True,
+        on_delete=models.CASCADE,
+        related_name="billing_reconciliation_issue",
+    )
+    error_code = models.CharField(max_length=64, default="usage_integrity_error")
+    last_failed_at = models.DateTimeField(auto_now=True)

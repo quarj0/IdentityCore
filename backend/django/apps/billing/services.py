@@ -12,7 +12,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from apps.audit.services import lock_audit_chain, record_audit_event
-from apps.billing import paystack, stripe
+from apps.billing import paystack
 from apps.billing.gateways import enabled_providers, gateway_for
 from apps.billing.models import (
     BillingInvoice,
@@ -247,7 +247,7 @@ def _record_payment_event(payment, digest, event_type, event_id=""):
 
 
 def begin_checkout(invoice, *, billing_email, provider=None):
-    provider = provider or getattr(settings, "BILLING_DEFAULT_PROVIDER", "paystack")
+    provider = provider or "paystack"
     if not isinstance(provider, str) or provider not in enabled_providers(
         invoice.currency
     ):
@@ -289,21 +289,17 @@ def begin_checkout(invoice, *, billing_email, provider=None):
         currency=payment.currency,
         payment_id=payment.public_id,
     )
-    checkout_id = initialized["id"] if provider == "stripe" else ""
-    url = initialized["url"] if provider == "stripe" else initialized
+    url = initialized
     with _payment_transaction(payment) as (locked, current_invoice):
         if locked.status not in ("pending", "paid"):
             raise BillingError("Payment status changed during checkout")
-        if locked.gateway_checkout_id and locked.gateway_checkout_id != checkout_id:
-            raise BillingError("Checkout initialization returned a different session")
         if (
             locked.amount_minor != current_invoice.amount_minor
             or locked.currency != current_invoice.currency
         ):
             raise BillingError("Invoice changed during checkout")
         locked.checkout_url = url
-        locked.gateway_checkout_id = checkout_id
-        locked.save(update_fields=["checkout_url", "gateway_checkout_id", "updated_at"])
+        locked.save(update_fields=["checkout_url", "updated_at"])
         return locked
 
 
@@ -311,7 +307,6 @@ def confirm_gateway_payment(
     reference,
     *,
     provider=None,
-    checkout_id=None,
     evidence_digest=None,
     event_type="charge.success",
     event_id="",
@@ -325,18 +320,7 @@ def confirm_gateway_payment(
     if payment is None or (provider is not None and payment.provider != provider):
         raise BillingError("Unknown payment")
     adapter = gateway_for(payment.provider)
-    if payment.provider == "stripe":
-        if (
-            checkout_id
-            and payment.gateway_checkout_id
-            and checkout_id != payment.gateway_checkout_id
-        ):
-            raise BillingError("Stripe session does not match checkout")
-        verified = adapter.verify(
-            reference=reference, checkout_id=checkout_id or payment.gateway_checkout_id
-        )
-    else:
-        verified = adapter.verify(reference=reference)
+    verified = adapter.verify(reference=reference)
     if (
         verified.get("reference") != payment.reference
         or type(verified.get("amount")) is not int
@@ -358,27 +342,10 @@ def confirm_gateway_payment(
         raise BillingError("Unknown gateway payment state")
     transaction_id = verified.get("id")
     if state == "success":
-        if payment.provider == "stripe":
-            if (
-                not isinstance(transaction_id, str)
-                or not transaction_id.startswith("pi_")
-                or not stripe.IDENTIFIER.fullmatch(transaction_id)
-            ):
-                raise BillingError("Stripe transaction ID is invalid")
-        elif type(transaction_id) is not int or transaction_id <= 0:
+        if type(transaction_id) is not int or transaction_id <= 0:
             raise BillingError("Paystack transaction ID is invalid")
         transaction_id = str(transaction_id)
     with _payment_transaction(payment) as (locked, invoice):
-        if payment.provider == "stripe":
-            verified_checkout = verified.get("checkout_id")
-            if (
-                locked.gateway_checkout_id
-                and verified_checkout != locked.gateway_checkout_id
-            ):
-                raise BillingError("Stripe session changed during confirmation")
-            if not locked.gateway_checkout_id:
-                locked.gateway_checkout_id = verified_checkout
-                locked.save(update_fields=["gateway_checkout_id", "updated_at"])
         if state in ("failed", "abandoned", "reversed"):
             if locked.status == "pending":
                 locked.status = "failed"
@@ -461,30 +428,18 @@ def _record_verified_refund(provider, refund_id, result, *, expected_payment_id=
     """Consume only facts fetched through authenticated gateway adapters."""
     if not isinstance(result, dict):
         raise BillingError("Malformed verified refund")
-    if provider == "stripe":
-        if result.get("id") != refund_id:
-            raise BillingError("Stripe refund ID mismatch")
-        transaction_id = result.get("payment_intent")
-        statuses = {
-            "pending": "pending",
-            "requires_action": "pending",
-            "succeeded": "completed",
-            "failed": "failed",
-            "canceled": "failed",
-        }
-    else:
-        if type(result.get("id")) is not int or result["id"] != refund_id:
-            raise BillingError("Paystack refund ID mismatch")
-        transaction_id = result.get("transaction")
-        if isinstance(transaction_id, dict):
-            transaction_id = transaction_id.get("id")
-        statuses = {
-            "pending": "pending",
-            "processing": "pending",
-            "needs-attention": "pending",
-            "processed": "completed",
-            "failed": "failed",
-        }
+    if type(result.get("id")) is not int or result["id"] != refund_id:
+        raise BillingError("Paystack refund ID mismatch")
+    transaction_id = result.get("transaction")
+    if isinstance(transaction_id, dict):
+        transaction_id = transaction_id.get("id")
+    statuses = {
+        "pending": "pending",
+        "processing": "pending",
+        "needs-attention": "pending",
+        "processed": "completed",
+        "failed": "failed",
+    }
     if not isinstance(transaction_id, (str, int)) or isinstance(transaction_id, bool):
         raise BillingError("Refund transaction attribution is missing")
     payment = (
@@ -541,43 +496,28 @@ def reconcile_gateway_dispute(provider, dispute_id):
     result = gateway_for(provider).verify_dispute(dispute_id=dispute_id)
     if result.get("id") != dispute_id:
         raise BillingError("Gateway dispute ID mismatch")
-    if provider == "stripe":
-        transaction_id = result.get("payment_intent")
-        amount = result.get("amount")
-        currency = result.get("currency")
-        states = {
-            "needs_response": "open",
-            "under_review": "open",
-            "warning_needs_response": "open",
-            "warning_under_review": "open",
-            "warning_closed": "won",
-            "won": "won",
-            "lost": "lost",
-        }
-        state = states.get(result.get("status"))
-    else:
-        transaction_data = result.get("transaction")
-        if not isinstance(transaction_data, dict):
-            raise BillingError("Paystack dispute transaction is missing")
-        transaction_id = transaction_data.get("id")
-        amount = result.get("refund_amount")
-        if amount is None:
-            amount = transaction_data.get("amount")
-        currency = transaction_data.get("currency")
-        if result.get("status") not in (
-            "awaiting-merchant-feedback",
-            "awaiting-bank-feedback",
-            "pending",
-            "resolved",
-            "archived",
-        ):
-            raise BillingError("Unknown Paystack dispute state")
-        state = "open"
-        if result.get("status") in ("resolved", "archived"):
-            if result.get("resolution") in ("merchant-accepted", "auto-accepted"):
-                state = "lost"
-            elif result.get("resolution") == "declined":
-                state = "won"
+    transaction_data = result.get("transaction")
+    if not isinstance(transaction_data, dict):
+        raise BillingError("Paystack dispute transaction is missing")
+    transaction_id = transaction_data.get("id")
+    amount = result.get("refund_amount")
+    if amount is None:
+        amount = transaction_data.get("amount")
+    currency = transaction_data.get("currency")
+    if result.get("status") not in (
+        "awaiting-merchant-feedback",
+        "awaiting-bank-feedback",
+        "pending",
+        "resolved",
+        "archived",
+    ):
+        raise BillingError("Unknown Paystack dispute state")
+    state = "open"
+    if result.get("status") in ("resolved", "archived"):
+        if result.get("resolution") in ("merchant-accepted", "auto-accepted"):
+            state = "lost"
+        elif result.get("resolution") == "declined":
+            state = "won"
     if not isinstance(transaction_id, (str, int)) or isinstance(transaction_id, bool):
         raise BillingError("Dispute transaction attribution is missing")
     payment = (
@@ -689,51 +629,4 @@ def receive_paystack_webhook(body, signature):
         raise BillingError("Invalid payment reference")
     return confirm_gateway_payment(
         reference, provider="paystack", evidence_digest=hashlib.sha256(body).hexdigest()
-    )
-
-
-def receive_stripe_webhook(body, signature):
-    if not stripe.valid_webhook(body, signature):
-        raise BillingError("Invalid Stripe webhook signature")
-    try:
-        event = json.loads(body)
-    except ValueError as exc:
-        raise BillingError("Malformed Stripe webhook") from exc
-    data = event.get("data") if isinstance(event, dict) else None
-    obj = data.get("object") if isinstance(data, dict) else None
-    if not isinstance(obj, dict):
-        raise BillingError("Malformed Stripe webhook object")
-    event_id = event.get("id")
-    if (
-        not isinstance(event_id, str)
-        or not event_id.startswith("evt_")
-        or not stripe.IDENTIFIER.fullmatch(event_id)
-    ):
-        raise BillingError("Invalid Stripe event ID")
-    event_type = event.get("type")
-    if event_type in ("refund.created", "refund.updated", "refund.failed"):
-        return reconcile_gateway_refund("stripe", obj.get("id"))
-    if event_type in (
-        "charge.dispute.created",
-        "charge.dispute.updated",
-        "charge.dispute.closed",
-    ):
-        return reconcile_gateway_dispute("stripe", obj.get("id"))
-    if event_type not in (
-        "checkout.session.completed",
-        "checkout.session.async_payment_succeeded",
-        "checkout.session.async_payment_failed",
-        "checkout.session.expired",
-    ):
-        return False
-    reference = obj.get("client_reference_id")
-    if not isinstance(reference, str) or not stripe.REFERENCE.fullmatch(reference):
-        raise BillingError("Invalid Stripe payment reference")
-    return confirm_gateway_payment(
-        reference,
-        provider="stripe",
-        checkout_id=obj.get("id"),
-        evidence_digest=hashlib.sha256(body).hexdigest(),
-        event_type=event_type,
-        event_id=event_id,
     )

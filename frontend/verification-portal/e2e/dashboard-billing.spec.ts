@@ -3,14 +3,14 @@ import { expect, test, type Page } from "@playwright/test";
 async function billingFixture(
   page: Page,
   {
-    provider = "stripe",
+    provider = "paystack",
     pending = false,
     canManage = true,
     invalidUrl = false,
     gatewayUnavailable = false,
     verified = true,
   }: {
-    provider?: "paystack" | "stripe";
+    provider?: "paystack" | "paystack";
     pending?: boolean;
     canManage?: boolean;
     invalidUrl?: boolean;
@@ -23,12 +23,6 @@ async function billingFixture(
     verification: 0,
   };
   let paid = false;
-  await page.route("https://checkout.stripe.com/**", (route) =>
-    route.fulfill({
-      contentType: "text/html",
-      body: "<h1>Synthetic Stripe checkout</h1>",
-    }),
-  );
   await page.route("https://checkout.paystack.com/**", (route) =>
     route.fulfill({
       contentType: "text/html",
@@ -144,7 +138,7 @@ async function billingFixture(
   return calls;
 }
 
-for (const provider of ["paystack", "stripe"] as const) {
+for (const provider of ["paystack"] as const) {
   test(`opens ${provider} hosted checkout with only the provider choice`, async ({
     page,
   }) => {
@@ -152,7 +146,7 @@ for (const provider of ["paystack", "stripe"] as const) {
     await page.goto("/billing/invoices");
     await page
       .getByRole("button", {
-        name: provider === "paystack" ? "Pay with Paystack" : "Pay with Stripe",
+        name: "Pay with Paystack",
       })
       .click();
     await expect(page).toHaveURL(
@@ -193,28 +187,28 @@ test("refuses an unexpected checkout host and leaves the invoice retryable", asy
 }) => {
   await billingFixture(page, { invalidUrl: true });
   await page.goto("/billing/invoices");
-  await page.getByRole("button", { name: "Pay with Stripe" }).click();
+  await page.getByRole("button", { name: "Pay with Paystack" }).click();
   await expect(page.locator("main").getByRole("alert")).toContainText(
     "Unexpected payment checkout URL",
   );
   await expect(page).toHaveURL(/\/billing\/invoices$/);
   await expect(
-    page.getByRole("button", { name: "Pay with Stripe" }),
+    page.getByRole("button", { name: "Pay with Paystack" }),
   ).toBeEnabled();
 });
 
 test("a gateway outage permits a deliberate retry", async ({ page }) => {
   const calls = await billingFixture(page, { gatewayUnavailable: true });
   await page.goto("/billing/invoices");
-  await page.getByRole("button", { name: "Pay with Stripe" }).click();
+  await page.getByRole("button", { name: "Pay with Paystack" }).click();
   await expect(page.locator("main").getByRole("alert")).toBeVisible();
-  await page.getByRole("button", { name: "Pay with Stripe" }).click();
+  await page.getByRole("button", { name: "Pay with Paystack" }).click();
   await expect(
-    page.getByRole("button", { name: "Pay with Stripe" }),
+    page.getByRole("button", { name: "Pay with Paystack" }),
   ).toBeEnabled();
   expect(calls.checkout).toEqual([
-    { provider: "stripe" },
-    { provider: "stripe" },
+    { provider: "paystack" },
+    { provider: "paystack" },
   ]);
 });
 

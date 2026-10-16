@@ -1,7 +1,8 @@
 """Reconcile a bounded production batch without touching prices or payments."""
+
 from django.core.management.base import BaseCommand, CommandError
 
-from apps.billing.usage import record_provider_usage
+from apps.billing.usage import reconcile_provider_usage_checks
 from apps.providers.models import ProviderCheck, ProviderCheckStatus
 from apps.tenants.models import Tenant
 
@@ -34,10 +35,9 @@ class Command(BaseCommand):
             .order_by("pk")
             .values_list("pk", flat=True)[: opts["limit"]]
         )
-        created = 0
-        for pk in ids:
-            _, added = record_provider_usage(pk)
-            created += int(added)
+        created, failed = reconcile_provider_usage_checks(ids)
         self.stdout.write(
-            f"Production unrated usage reconciled: scanned={len(ids)} recorded={created}"
+            f"Production unrated usage reconciled: scanned={len(ids)} recorded={created} requires_review={failed}"
         )
+        if failed:
+            raise CommandError("Usage reconciliation requires operator review")

@@ -48,7 +48,7 @@ export type BillingInvoice = {
   can_manage_billing: boolean;
 };
 
-export type PaymentProvider = "paystack" | "stripe";
+export type PaymentProvider = "paystack";
 
 export const billingApi = {
   plans: () => restRequest<{ results: BillingPlan[] }>("/billing/plans"),

@@ -6,29 +6,17 @@ from apps.billing.exceptions import GatewayError
 
 
 def gateway_for(provider):
-    from apps.billing import paystack, stripe
+    from apps.billing import paystack
 
-    adapters = {"paystack": paystack, "stripe": stripe}
-    if provider not in adapters:
+    if provider != "paystack":
         raise GatewayError("Unsupported payment provider")
-    return adapters[provider]
+    return paystack
 
 
 def enabled_providers(currency=None):
     if getattr(settings, "BILLING_PAYMENTS_ENABLED", False) is not True:
         return []
-    configured = getattr(settings, "BILLING_PAYMENT_PROVIDERS", ("paystack",))
-    currencies = getattr(settings, "STRIPE_PAYMENT_CURRENCIES", ("USD", "EUR", "GBP"))
-    return [
-        provider
-        for provider in ("paystack", "stripe")
-        if provider in configured
-        and (
-            currency is None
-            or (provider == "paystack" and currency == "GHS")
-            or (provider == "stripe" and currency in currencies)
-        )
-    ]
+    return ["paystack"] if currency in (None, "GHS") else []
 
 
 def payment_return_url(payment_id):
@@ -51,7 +39,7 @@ def payment_return_url(payment_id):
 
 
 def checked_checkout_url(value, provider):
-    hosts = {"paystack": "checkout.paystack.com", "stripe": "checkout.stripe.com"}
+    hosts = {"paystack": "checkout.paystack.com"}
     try:
         parsed = urlsplit(value) if isinstance(value, str) else None
         valid = (

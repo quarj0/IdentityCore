@@ -14,12 +14,12 @@ from apps.tenants.models import Tenant
 
 
 class Command(BaseCommand):
-    help = "Independently verify Paystack/Stripe payments for a single tenant."
+    help = "Independently verify Paystack payments for a single tenant."
 
     def add_arguments(self, parser):
         parser.add_argument("--tenant", required=True)
         parser.add_argument("--limit", default=50, type=int)
-        parser.add_argument("--provider", choices=("paystack", "stripe"))
+        parser.add_argument("--provider", choices=("paystack",))
         parser.add_argument("--include-adjustments", action="store_true")
 
     def handle(self, **options):

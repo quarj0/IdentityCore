@@ -108,31 +108,12 @@ IDEMPOTENCY_RECORD_TTL_HOURS = int(os.getenv("IDEMPOTENCY_RECORD_TTL_HOURS", "24
 BILLING_PAYMENTS_ENABLED = env_bool("BILLING_PAYMENTS_ENABLED", False)
 BILLING_USAGE_CAPTURE_ENABLED = env_bool("BILLING_USAGE_CAPTURE_ENABLED", False)
 BILLING_AUTO_INVOICE_ENABLED = env_bool("BILLING_AUTO_INVOICE_ENABLED", False)
-BILLING_PAYMENT_PROVIDERS = tuple(
-    value.strip() for value in os.getenv("BILLING_PAYMENT_PROVIDERS", "paystack").split(",")
-    if value.strip()
-)
-BILLING_DEFAULT_PROVIDER = os.getenv("BILLING_DEFAULT_PROVIDER", "paystack")
-STRIPE_PAYMENT_CURRENCIES = tuple(
-    value.strip().upper() for value in os.getenv("STRIPE_PAYMENT_CURRENCIES", "USD,EUR,GBP").split(",")
-    if value.strip()
-)
 PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "")
-STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
-STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 BILLING_RETURN_URL = os.getenv("BILLING_RETURN_URL", "")
 if BILLING_PAYMENTS_ENABLED:
     from urllib.parse import urlsplit
     if (
-        not BILLING_PAYMENT_PROVIDERS
-        or set(BILLING_PAYMENT_PROVIDERS) - {"paystack", "stripe"}
-        or BILLING_DEFAULT_PROVIDER not in BILLING_PAYMENT_PROVIDERS
-        or ("paystack" in BILLING_PAYMENT_PROVIDERS and not PAYSTACK_SECRET_KEY)
-        or ("stripe" in BILLING_PAYMENT_PROVIDERS and (
-            not STRIPE_SECRET_KEY or not STRIPE_WEBHOOK_SECRET
-            or not STRIPE_PAYMENT_CURRENCIES
-            or set(STRIPE_PAYMENT_CURRENCIES) - {"GHS", "USD", "EUR", "GBP"}
-        ))
+        not PAYSTACK_SECRET_KEY
         or not BILLING_RETURN_URL
         or urlsplit(BILLING_RETURN_URL).scheme != "https"
         or not urlsplit(BILLING_RETURN_URL).hostname

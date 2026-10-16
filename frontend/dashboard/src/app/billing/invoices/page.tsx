@@ -18,10 +18,6 @@ export default function InvoicesPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [providers, setProviders] = useState<Record<string, PaymentProvider>>(
-    {},
-  );
-
   const refresh = useCallback(async () => {
     try {
       const result = await billingApi.invoices();
@@ -164,7 +160,7 @@ export default function InvoicesPage() {
           const selected =
             invoice.payment?.status === "pending"
               ? invoice.payment.provider
-              : (providers[invoice.id] ?? available[0]);
+              : available[0];
           return (
             <article key={invoice.id} className="rounded-xl border p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -195,33 +191,6 @@ export default function InvoicesPage() {
                   invoice.status === "issued" &&
                   invoice.amount_minor > 0 ? (
                     <>
-                      {available.length > 1 &&
-                      invoice.payment?.status !== "pending" ? (
-                        <label className="text-sm">
-                          Payment provider
-                          <select
-                            aria-label="Payment provider"
-                            disabled={busy !== null}
-                            value={selected}
-                            onChange={(event) =>
-                              setProviders((current) => ({
-                                ...current,
-                                [invoice.id]: event.target
-                                  .value as PaymentProvider,
-                              }))
-                            }
-                            className="ml-2 rounded-md border px-2 py-2"
-                          >
-                            {available.map((provider) => (
-                              <option key={provider} value={provider}>
-                                {provider === "paystack"
-                                  ? "Paystack"
-                                  : "Stripe"}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      ) : null}
                       {selected && available.includes(selected) ? (
                         <button
                           type="button"
@@ -231,7 +200,7 @@ export default function InvoicesPage() {
                         >
                           {busy === invoice.id
                             ? "Opening…"
-                            : `Pay with ${selected === "paystack" ? "Paystack" : "Stripe"}`}
+                            : "Pay with Paystack"}
                         </button>
                       ) : (
                         <p className="text-sm text-muted-foreground">
