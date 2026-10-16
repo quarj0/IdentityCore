@@ -1,4 +1,4 @@
-"""Durable webhook reconciliation with leases shorter than a bounded retry cycle."""
+"""Durable webhook reconciliation with expiring claims and bounded worker runtime."""
 
 from datetime import timedelta
 import logging
