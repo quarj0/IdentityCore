@@ -90,7 +90,9 @@ Refunds and disputes require independent gateway evidence against the settled
 transaction. Partial/full refunds produce `partially_refunded`/`refunded`.
 Open or lost disputes produce `disputed`; resolved declined disputes restore
 the appropriate paid/refund state. Partial dispute amounts use the verified
-`refund_amount`. Refund totals cannot exceed the charge. Operators initiate
+`refund_amount`. Pending and completed refunds cannot exceed the charge. Failed refunds release
+their reservations and do not consume the cap, including repeated listings
+after a successful full retry. Operators initiate
 refunds in Paystack Dashboard; this application only reconciles their outcomes.
 
 ## Deployment

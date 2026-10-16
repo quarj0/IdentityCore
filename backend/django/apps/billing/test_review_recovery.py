@@ -452,6 +452,7 @@ class BillingReviewRecoveryTests(TestCase):
         ]
         with patch("apps.billing.paystack.list_refunds", return_value=rows):
             self.assertTrue(receive_paystack_webhook(body, signature))
+            self.assertTrue(receive_paystack_webhook(body, signature))
         invoice.refresh_from_db()
         self.assertEqual(invoice.status, "refunded")
 
@@ -703,3 +704,34 @@ class BillingReviewRecoveryTests(TestCase):
         with self.assertRaises(ValidationError):
             meter.delete()
         self.assertTrue(BillingMeter.objects.filter(pk=meter.pk).exists())
+
+    def test_failed_refund_releases_reservation_when_retry_is_already_completed(self):
+        from apps.billing.models import BillingRefund
+        from apps.billing.services import reconcile_gateway_refund
+
+        invoice, payment = self.settled_paystack_payment()
+        failed = BillingRefund.objects.create(
+            payment=payment,
+            gateway_refund_id="paystack:901",
+            amount_minor=payment.amount_minor,
+            status="pending",
+        )
+        BillingRefund.objects.create(
+            payment=payment,
+            gateway_refund_id="paystack:902",
+            amount_minor=payment.amount_minor,
+            status="completed",
+        )
+        result = {
+            "id": 901,
+            "transaction": 42424242,
+            "amount": payment.amount_minor,
+            "currency": "GHS",
+            "status": "failed",
+        }
+        with patch("apps.billing.paystack.verify_refund", return_value=result):
+            self.assertTrue(reconcile_gateway_refund("paystack", 901))
+        failed.refresh_from_db()
+        invoice.refresh_from_db()
+        self.assertEqual(failed.status, "failed")
+        self.assertEqual(invoice.status, "refunded")

@@ -529,7 +529,10 @@ def _record_verified_refund(provider, refund_id, result, *, expected_payment_id=
             .filter(status__in=("pending", "completed"))
             .values_list("amount_minor", flat=True)
         )
-        if allocated + result["amount"] > locked.amount_minor:
+        if (
+            new_status in ("pending", "completed")
+            and allocated + result["amount"] > locked.amount_minor
+        ):
             raise BillingError("Refund total exceeds settled charge")
         refund, _ = BillingRefund.objects.get_or_create(
             gateway_refund_id=stored_id,
