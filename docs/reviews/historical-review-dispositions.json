@@ -4638,10 +4638,18 @@
       "thread_id": "PRRT_kwDOTN0BU86VvIYi",
       "comment_id": 3698320538,
       "path": "frontend/developer-portal/src/app/openapi/page.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/openapi_contract.py",
+        "backend/django/config/test_openapi_contract.py",
+        "backend/django/config/test_historical_public_contract.py",
+        "backend/django/config/test_public_contract_boundaries.py",
+        "frontend/developer-portal/src/lib/request-template.test.js"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Persist the client ID alongside bearer authorization**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/220#discussion_r3698320538"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/220#discussion_r3698320538",
+      "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "disposition_note": "The apiClientId API-key security scheme requires X-Client-Id alongside apiClient bearer authentication for every client operation; the authorizer can store both values for the session. Individually inspected original finding and implementation. 42 contract/backend tests and two Node 24 request-template tests passed against current main implementation; this audit adds boundary regressions without production-code changes."
     },
     {
       "pr_number": 220,
@@ -7079,20 +7087,36 @@
       "thread_id": "PRRT_kwDOTN0BU86Y9ObO",
       "comment_id": 3775981153,
       "path": "backend/django/config/openapi_contract.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/openapi_contract.py",
+        "backend/django/config/test_openapi_contract.py",
+        "backend/django/config/test_historical_public_contract.py",
+        "backend/django/config/test_public_contract_boundaries.py",
+        "frontend/developer-portal/src/lib/request-template.test.js"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve stable slugs for curated endpoint pages**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3775981153"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3775981153",
+      "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "disposition_note": "Actual docs overview preserves curated health, list-policies and create-verification slugs. Individually inspected original finding and implementation. 42 contract/backend tests and two Node 24 request-template tests passed against current main implementation; this audit adds boundary regressions without production-code changes."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86Y9ObR",
       "comment_id": 3775981157,
       "path": "backend/django/config/openapi_contract.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/openapi_contract.py",
+        "backend/django/config/test_openapi_contract.py",
+        "backend/django/config/test_historical_public_contract.py",
+        "backend/django/config/test_public_contract_boundaries.py",
+        "frontend/developer-portal/src/lib/request-template.test.js"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include the public catalog routes in parity checks**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3775981157"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3775981157",
+      "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "disposition_note": "Catalog routes countries, country-profiles and document-types are explicitly managed and included in registered operations. Individually inspected original finding and implementation. 42 contract/backend tests and two Node 24 request-template tests passed against current main implementation; this audit adds boundary regressions without production-code changes."
     },
     {
       "pr_number": 298,
@@ -7109,20 +7133,36 @@
       "thread_id": "PRRT_kwDOTN0BU86Y9ObZ",
       "comment_id": 3775981167,
       "path": "backend/django/config/openapi_contract.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/openapi_contract.py",
+        "backend/django/config/test_openapi_contract.py",
+        "backend/django/config/test_historical_public_contract.py",
+        "backend/django/config/test_public_contract_boundaries.py",
+        "frontend/developer-portal/src/lib/request-template.test.js"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Resolve referenced path parameters before comparing names**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3775981167"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3775981167",
+      "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "disposition_note": "Local parameter references are resolved before required path parameter comparison; the reusable PolicyId regression passes. Individually inspected original finding and implementation. 42 contract/backend tests and two Node 24 request-template tests passed against current main implementation; this audit adds boundary regressions without production-code changes."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86Y9dvq",
       "comment_id": 3776071324,
       "path": "backend/django/config/openapi_contract.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/openapi_contract.py",
+        "backend/django/config/test_openapi_contract.py",
+        "backend/django/config/test_historical_public_contract.py",
+        "backend/django/config/test_public_contract_boundaries.py",
+        "frontend/developer-portal/src/lib/request-template.test.js"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Enforce all schema constraints on examples**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776071324"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776071324",
+      "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "disposition_note": "Draft202012Validator enforces full JSON Schema constraints on examples, including the rejected three-character country code. Individually inspected original finding and implementation. 42 contract/backend tests and two Node 24 request-template tests passed against current main implementation; this audit adds boundary regressions without production-code changes."
     },
     {
       "pr_number": 298,
@@ -7149,10 +7189,18 @@
       "thread_id": "PRRT_kwDOTN0BU86Y9dvz",
       "comment_id": 3776071339,
       "path": "backend/django/config/openapi_contract.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/openapi_contract.py",
+        "backend/django/config/test_openapi_contract.py",
+        "backend/django/config/test_historical_public_contract.py",
+        "backend/django/config/test_public_contract_boundaries.py",
+        "frontend/developer-portal/src/lib/request-template.test.js"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Resolve Path Item references before collecting operations**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776071339"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776071339",
+      "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "disposition_note": "Referenced Path Items are resolved before operation collection; reusable Health Path Item parity passes. Individually inspected original finding and implementation. 42 contract/backend tests and two Node 24 request-template tests passed against current main implementation; this audit adds boundary regressions without production-code changes."
     },
     {
       "pr_number": 298,
@@ -7179,60 +7227,108 @@
       "thread_id": "PRRT_kwDOTN0BU86Y94jk",
       "comment_id": 3776232110,
       "path": "backend/django/config/openapi_contract.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/openapi_contract.py",
+        "backend/django/config/test_openapi_contract.py",
+        "backend/django/config/test_historical_public_contract.py",
+        "backend/django/config/test_public_contract_boundaries.py",
+        "frontend/developer-portal/src/lib/request-template.test.js"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate the document against OpenAPI semantics**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776232110"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776232110",
+      "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "disposition_note": "Document validation rejects undefined security schemes; the current upload session authentication schemes are declared. Individually inspected original finding and implementation. 42 contract/backend tests and two Node 24 request-template tests passed against current main implementation; this audit adds boundary regressions without production-code changes."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86Y94jp",
       "comment_id": 3776232118,
       "path": "backend/django/config/openapi_contract.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/openapi_contract.py",
+        "backend/django/config/test_openapi_contract.py",
+        "backend/django/config/test_historical_public_contract.py",
+        "backend/django/config/test_public_contract_boundaries.py",
+        "frontend/developer-portal/src/lib/request-template.test.js"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include TRACE in OpenAPI operation parity**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776232118"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776232118",
+      "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "disposition_note": "TRACE is in HTTP_METHODS; an undocumented backend TRACE mismatch is rejected by stale-operation coverage. Individually inspected original finding and implementation. 42 contract/backend tests and two Node 24 request-template tests passed against current main implementation; this audit adds boundary regressions without production-code changes."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86Y94js",
       "comment_id": 3776232124,
       "path": "backend/django/config/openapi_contract.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/openapi_contract.py",
+        "backend/django/config/test_openapi_contract.py",
+        "backend/django/config/test_historical_public_contract.py",
+        "backend/django/config/test_public_contract_boundaries.py",
+        "frontend/developer-portal/src/lib/request-template.test.js"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Fall back when an operation has an empty tags array**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776232124"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776232124",
+      "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "disposition_note": "Empty tags arrays use a path-derived category fallback and the regression returns resources without IndexError. Individually inspected original finding and implementation. 42 contract/backend tests and two Node 24 request-template tests passed against current main implementation; this audit adds boundary regressions without production-code changes."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86Y94ju",
       "comment_id": 3776232127,
       "path": "backend/django/config/openapi_contract.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/openapi_contract.py",
+        "backend/django/config/test_openapi_contract.py",
+        "backend/django/config/test_historical_public_contract.py",
+        "backend/django/config/test_public_contract_boundaries.py",
+        "frontend/developer-portal/src/lib/request-template.test.js"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include verification-session routes in contract parity**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776232127"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776232127",
+      "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "disposition_note": "The sessions prefix is managed and session operations are included in bidirectional contract parity. Individually inspected original finding and implementation. 42 contract/backend tests and two Node 24 request-template tests passed against current main implementation; this audit adds boundary regressions without production-code changes."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86Y-P8m",
       "comment_id": 3776374113,
       "path": "backend/django/config/openapi_contract.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/openapi_contract.py",
+        "backend/django/config/test_openapi_contract.py",
+        "backend/django/config/test_historical_public_contract.py",
+        "backend/django/config/test_public_contract_boundaries.py",
+        "frontend/developer-portal/src/lib/request-template.test.js"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Add the audit API to the managed contract boundary**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776374113"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776374113",
+      "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "disposition_note": "The audit-events prefix is managed and GET /audit-events/ is a registered public operation. Individually inspected original finding and implementation. 42 contract/backend tests and two Node 24 request-template tests passed against current main implementation; this audit adds boundary regressions without production-code changes."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86Y-P8r",
       "comment_id": 3776374120,
       "path": "backend/django/config/openapi_contract.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/openapi_contract.py",
+        "backend/django/config/test_openapi_contract.py",
+        "backend/django/config/test_historical_public_contract.py",
+        "backend/django/config/test_public_contract_boundaries.py",
+        "frontend/developer-portal/src/lib/request-template.test.js"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Distinguish schema example arrays from media examples**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776374120"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776374120",
+      "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "disposition_note": "Schema examples arrays are validated as values; valid arrays pass and invalid values fail without AttributeError. Individually inspected original finding and implementation. 42 contract/backend tests and two Node 24 request-template tests passed against current main implementation; this audit adds boundary regressions without production-code changes."
     },
     {
       "pr_number": 298,
@@ -7253,10 +7349,18 @@
       "thread_id": "PRRT_kwDOTN0BU86Y-P8z",
       "comment_id": 3776374128,
       "path": "backend/django/config/openapi_contract.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/openapi_contract.py",
+        "backend/django/config/test_openapi_contract.py",
+        "backend/django/config/test_historical_public_contract.py",
+        "backend/django/config/test_public_contract_boundaries.py",
+        "frontend/developer-portal/src/lib/request-template.test.js"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject duplicate YAML mapping keys**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776374128"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776374128",
+      "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "disposition_note": "The custom YAML mapping constructor rejects duplicate mapping keys before validation. Individually inspected original finding and implementation. 42 contract/backend tests and two Node 24 request-template tests passed against current main implementation; this audit adds boundary regressions without production-code changes."
     },
     {
       "pr_number": 298,
@@ -7293,20 +7397,36 @@
       "thread_id": "PRRT_kwDOTN0BU86Y-lwz",
       "comment_id": 3776500962,
       "path": "backend/django/config/openapi_contract.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/openapi_contract.py",
+        "backend/django/config/test_openapi_contract.py",
+        "backend/django/config/test_historical_public_contract.py",
+        "backend/django/config/test_public_contract_boundaries.py",
+        "frontend/developer-portal/src/lib/request-template.test.js"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Resolve referenced examples before validating them**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776500962"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776500962",
+      "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "disposition_note": "Media example references are resolved before surrounding-schema validation; an invalid referenced country example is rejected. Individually inspected original finding and implementation. 42 contract/backend tests and two Node 24 request-template tests passed against current main implementation; this audit adds boundary regressions without production-code changes."
     },
     {
       "pr_number": 298,
       "thread_id": "PRRT_kwDOTN0BU86Y-lw8",
       "comment_id": 3776500972,
       "path": "backend/django/config/openapi_contract.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/openapi_contract.py",
+        "backend/django/config/test_openapi_contract.py",
+        "backend/django/config/test_historical_public_contract.py",
+        "backend/django/config/test_public_contract_boundaries.py",
+        "frontend/developer-portal/src/lib/request-template.test.js"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include the authentication API in the managed boundary**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776500972"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776500972",
+      "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "disposition_note": "The auth prefix is managed; login, refresh and me are registered public operations. Individually inspected original finding and implementation. 42 contract/backend tests and two Node 24 request-template tests passed against current main implementation; this audit adds boundary regressions without production-code changes."
     },
     {
       "pr_number": 298,
@@ -7408,10 +7528,18 @@
       "thread_id": "PRRT_kwDOTN0BU86Y_fKD",
       "comment_id": 3776842032,
       "path": "backend/django/config/openapi_contract.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/openapi_contract.py",
+        "backend/django/config/test_openapi_contract.py",
+        "backend/django/config/test_historical_public_contract.py",
+        "backend/django/config/test_public_contract_boundaries.py",
+        "frontend/developer-portal/src/lib/request-template.test.js"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve required operation headers in generated resources**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776842032"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776842032",
+      "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "disposition_note": "Actual docs overview retains Idempotency-Key, and both request-template unit tests pass with caller-provided required headers. Individually inspected original finding and implementation. 42 contract/backend tests and two Node 24 request-template tests passed against current main implementation; this audit adds boundary regressions without production-code changes."
     },
     {
       "pr_number": 298,
@@ -7473,10 +7601,18 @@
       "thread_id": "PRRT_kwDOTN0BU86ZARMd",
       "comment_id": 3777138610,
       "path": "backend/django/config/openapi_contract.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/openapi_contract.py",
+        "backend/django/config/test_openapi_contract.py",
+        "backend/django/config/test_historical_public_contract.py",
+        "backend/django/config/test_public_contract_boundaries.py",
+        "frontend/developer-portal/src/lib/request-template.test.js"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Stop publishing invalid synthesized request bodies**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3777138610"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3777138610",
+      "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
+      "disposition_note": "Generated closed-set request examples use accepted MIME types and webhook events; current synthesis regressions pass. Individually inspected original finding and implementation. 42 contract/backend tests and two Node 24 request-template tests passed against current main implementation; this audit adds boundary regressions without production-code changes."
     },
     {
       "pr_number": 298,
@@ -11242,5 +11378,5 @@
     }
   ],
   "verified_main": "18d1de549c616de1559be80fb1273dbc1ab1a6e9",
-  "inventory_note": "833 threads from closed or merged PRs: 200 fixed, 258 verified, 0 actionable and 375 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
+  "inventory_note": "833 threads from closed or merged PRs: 200 fixed, 275 verified, 0 actionable and 358 pending individual audit. Resolution state is not implementation evidence."
 }
