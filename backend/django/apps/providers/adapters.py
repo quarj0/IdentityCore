@@ -6,6 +6,7 @@ allows a later provider integration to replace one capability at a time.
 """
 
 from collections.abc import Callable
+from decimal import Decimal, InvalidOperation
 from typing import NotRequired, Protocol, TypedDict
 
 from apps.providers import ai_service
@@ -25,6 +26,41 @@ class ProviderResult(TypedDict):
     capability: str
     status: str
     error: NotRequired[dict]
+
+
+def validate_liveness_evidence(result: dict) -> None:
+    """Validate detection evidence before persistence, including recovered results."""
+    metrics = result.get("metrics")
+    if not isinstance(metrics, dict):
+        raise ProviderContractError("Liveness detection metrics are required.")
+    face_count = metrics.get("face_count")
+    if (
+        isinstance(face_count, bool)
+        or not isinstance(face_count, int)
+        or face_count < 0
+    ):
+        raise ProviderContractError(
+            "Liveness face count must be a nonnegative integer."
+        )
+    confidence = metrics.get("avg_detection_confidence")
+    if isinstance(confidence, bool) or not isinstance(
+        confidence, (int, float, Decimal)
+    ):
+        raise ProviderContractError("Liveness detection confidence must be numeric.")
+    try:
+        confidence = Decimal(str(confidence))
+    except InvalidOperation as exc:
+        raise ProviderContractError(
+            "Liveness detection confidence is invalid."
+        ) from exc
+    if not confidence.is_finite() or not 0 <= confidence <= 1:
+        raise ProviderContractError(
+            "Liveness detection confidence must be between zero and one."
+        )
+    for field, maximum in (("model_name", 120), ("model_version", 64)):
+        value = result.get(field)
+        if not isinstance(value, str) or not value.strip() or len(value) > maximum:
+            raise ProviderContractError(f"Liveness {field} is missing or invalid.")
 
 
 def normalize_provider_result(capability: str, result: dict) -> dict:

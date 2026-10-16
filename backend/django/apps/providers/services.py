@@ -13,6 +13,7 @@ from apps.providers.adapters import (
     PROVIDER_CONTRACT_VERSION,
     ProviderContractError,
     normalize_provider_result,
+    validate_liveness_evidence,
     provider_adapter_registry,
 )
 
@@ -391,22 +392,7 @@ def invoke_provider_check(
         normalized = normalize(result) if normalize else result
         normalized = normalize_provider_result(provider_check.check_type, normalized)
         if provider_check.check_type == ProviderCheckType.LIVENESS:
-            # These fields are required by the consuming biometric workflow.
-            # Reject them before a completed provider envelope is persisted.
-            metrics = normalized.get("metrics")
-            metrics = metrics if isinstance(metrics, dict) else {}
-            face_count = metrics.get("face_count")
-            if (
-                isinstance(face_count, bool)
-                or not isinstance(face_count, int)
-                or face_count < 0
-                or metrics.get("avg_detection_confidence") is None
-                or not normalized.get("model_name")
-                or not normalized.get("model_version")
-            ):
-                raise ProviderContractError(
-                    "Liveness provider omitted required detection evidence."
-                )
+            validate_liveness_evidence(normalized)
     except Exception as exc:
         completed_at = timezone.now()
         error_code = getattr(exc, "error_code", "provider_error")
