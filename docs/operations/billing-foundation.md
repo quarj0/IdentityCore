@@ -20,7 +20,8 @@ through an approved data repair. Do not backdate the cutoff based on assumptions
 
 Month close rejects missing usage, changed provider facts, unpriced meters and
 line-total mismatches. Interrupted drafts resume through the operator command
-or scheduled task. Generation and issuance commit together. Completed tenants
+or scheduled task. Customer list, detail and checkout routes exclude drafts;
+operator work remains private until issuance succeeds. Generation and issuance commit together. Completed tenants
 are excluded before applying the batch limit. Tenant accounting errors roll
 back independently, allow the selected batch to finish, and fail the task with
 a bounded review summary. Durable subscription attempt timestamps move failures
@@ -74,7 +75,10 @@ crashed work becomes eligible again after expiry. Independent reconciliation is
 idempotent if a process stops after financial commit but before receipt completion.
 Failures rotate behind unattempted receipts and do not block valid rows in the
 same batch. Paginated gateway work runs only in the worker, outside the webhook
-response deadline. Refund
+response deadline. Independently verified failed, abandoned or reversed
+transactions complete their receipts without claiming a successful payment or
+undoing an already paid invoice. Nonterminal lookup results remain retryable.
+Refund
 webhooks correlate through `transaction_reference`, including a null
 `refund_reference`; independently authenticated, paginated refund listings
 supply the numeric refund IDs and accounting facts. `needs-attention` remains

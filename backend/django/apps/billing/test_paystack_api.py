@@ -138,3 +138,26 @@ class PaystackAPITests(TestCase):
         gateway.assert_not_called()
         invoice.refresh_from_db()
         self.assertEqual(invoice.status, "issued")
+
+    def test_customer_invoice_list_and_detail_hide_drafts_until_issuance(self):
+        from apps.billing.services import generate_invoice, issue_invoice
+
+        self.usage(self.provider)
+        invoice = generate_invoice(self.tenant, self.month)
+        client = APIClient()
+        client.force_authenticate(self.user)
+        list_path = "/api/v1/billing/invoices"
+        detail_path = list_path + "/" + invoice.public_id
+        response = client.get(list_path)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["data"]["results"], [])
+        self.assertEqual(client.get(detail_path).status_code, 404)
+        issue_invoice(invoice.pk)
+        response = client.get(list_path)
+        self.assertEqual(
+            [item["id"] for item in response.data["data"]["results"]],
+            [invoice.public_id],
+        )
+        response = client.get(detail_path)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["data"]["status"], "issued")

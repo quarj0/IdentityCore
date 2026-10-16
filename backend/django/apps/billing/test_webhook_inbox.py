@@ -196,6 +196,52 @@ class WebhookInboxTests(TestCase):
         with patch("apps.billing.paystack.verify", return_value=self.verified(payment)):
             self.assertEqual(reconcile_billing_webhooks_task(), 1)
 
+    def test_terminal_gateway_failures_complete_receipts_without_confirming_payment(
+        self,
+    ):
+        from apps.billing.services import confirm_gateway_payment
+
+        payment = self.payment()
+        for state in ("failed", "abandoned", "reversed"):
+            enqueue_paystack_webhook(
+                *self.callback(data={"reference": payment.reference, "marker": state})
+            )
+            result = self.verified(payment)
+            result["status"] = state
+            with patch("apps.billing.paystack.verify", return_value=result):
+                self.assertEqual(reconcile_billing_webhooks_task(), 1)
+                self.assertFalse(confirm_gateway_payment(payment.reference))
+            payment.refresh_from_db()
+            payment.invoice.refresh_from_db()
+            self.assertEqual(payment.status, "failed")
+            self.assertEqual(payment.invoice.status, "issued")
+        self.assertEqual(
+            BillingWebhookEvent.objects.filter(processed_at__isnull=False).count(), 3
+        )
+
+    def test_delayed_terminal_failure_preserves_an_already_paid_invoice(self):
+        from apps.billing.services import confirm_gateway_payment
+        from apps.audit.models import AuditEvent
+
+        payment = self.payment()
+        with patch("apps.billing.paystack.verify", return_value=self.verified(payment)):
+            self.assertTrue(confirm_gateway_payment(payment.reference))
+        enqueue_paystack_webhook(*self.callback())
+        result = self.verified(payment)
+        result["status"] = "reversed"
+        with patch("apps.billing.paystack.verify", return_value=result):
+            self.assertEqual(reconcile_billing_webhooks_task(), 1)
+        payment.refresh_from_db()
+        payment.invoice.refresh_from_db()
+        self.assertEqual(payment.status, "paid")
+        self.assertEqual(payment.invoice.status, "paid")
+        self.assertEqual(
+            AuditEvent.objects.filter(
+                tenant=self.tenant, action="billing.payment.confirmed"
+            ).count(),
+            1,
+        )
+
     def test_worker_is_registered_through_default_task_discovery(self):
         from apps.billing import tasks
 

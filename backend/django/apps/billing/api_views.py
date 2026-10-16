@@ -212,9 +212,11 @@ class BillingInvoiceListView(APIView):
     permission_classes = [IsAuthenticated, IsBillingTenantUser]
 
     def get(self, request):
-        items = BillingInvoice.objects.filter(tenant=request.user.tenant).order_by(
-            "-period_start"
-        )[:50]
+        items = (
+            BillingInvoice.objects.filter(tenant=request.user.tenant)
+            .exclude(status="draft")
+            .order_by("-period_start")[:50]
+        )
         return success_response(
             {"results": [serialize_invoice(x, request=request) for x in items]},
             request=request,
@@ -226,7 +228,9 @@ class BillingInvoiceDetailView(APIView):
 
     def get(self, request, invoice_id):
         invoice = get_object_or_404(
-            BillingInvoice, tenant=request.user.tenant, public_id=invoice_id
+            BillingInvoice.objects.exclude(status="draft"),
+            tenant=request.user.tenant,
+            public_id=invoice_id,
         )
         return success_response(
             serialize_invoice(invoice, include_lines=True, request=request),
@@ -240,7 +244,9 @@ class BillingCheckoutView(APIView):
 
     def post(self, request, invoice_id):
         invoice = get_object_or_404(
-            BillingInvoice, tenant=request.user.tenant, public_id=invoice_id
+            BillingInvoice.objects.exclude(status="draft"),
+            tenant=request.user.tenant,
+            public_id=invoice_id,
         )
         if (
             not isinstance(request.data, dict)

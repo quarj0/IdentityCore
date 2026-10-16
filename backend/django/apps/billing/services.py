@@ -6,6 +6,7 @@ import json
 import secrets
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone as dt_timezone
+from enum import Enum
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
@@ -333,7 +334,13 @@ def begin_checkout(invoice, *, billing_email, provider=None):
         return locked
 
 
-def confirm_gateway_payment(
+class _PaymentReconciliation(Enum):
+    CONFIRMED = "confirmed"
+    TERMINAL = "terminal"
+    PENDING = "pending"
+
+
+def _reconcile_gateway_payment(
     reference,
     *,
     provider=None,
@@ -341,7 +348,7 @@ def confirm_gateway_payment(
     event_type="charge.success",
     event_id="",
 ):
-    """Settle only an independently fetched transaction matching the invoice."""
+    """Reconcile verified gateway facts while preserving terminality."""
     payment = (
         BillingPayment.objects.select_related("invoice")
         .filter(reference=reference)
@@ -381,14 +388,14 @@ def confirm_gateway_payment(
                 locked.status = "failed"
                 locked.save(update_fields=["status", "updated_at"])
             _record_payment_event(locked, evidence_digest, event_type, event_id)
-            return False
+            return _PaymentReconciliation.TERMINAL
         if state != "success":
-            return False
+            return _PaymentReconciliation.PENDING
         if locked.status in ("paid", "disputed", "partially_refunded", "refunded"):
             if locked.gateway_transaction_id != transaction_id:
                 raise BillingError("Duplicate payment has different transaction ID")
             _record_payment_event(locked, evidence_digest, event_type, event_id)
-            return True
+            return _PaymentReconciliation.CONFIRMED
         if invoice.status != "issued" or locked.status not in ("pending", "failed"):
             raise BillingError(
                 "Unexpected paid transaction requires financial reconciliation"
@@ -427,7 +434,28 @@ def confirm_gateway_payment(
             target_id=locked.public_id,
             metadata={"invoice_id": invoice.public_id, "provider": locked.provider},
         )
-    return True
+    return _PaymentReconciliation.CONFIRMED
+
+
+def confirm_gateway_payment(
+    reference,
+    *,
+    provider=None,
+    evidence_digest=None,
+    event_type="charge.success",
+    event_id="",
+):
+    """Return true only for independently confirmed paid transactions."""
+    return (
+        _reconcile_gateway_payment(
+            reference,
+            provider=provider,
+            evidence_digest=evidence_digest,
+            event_type=event_type,
+            event_id=event_id,
+        )
+        is _PaymentReconciliation.CONFIRMED
+    )
 
 
 def _refresh_adjustment_state(payment, invoice):
@@ -663,9 +691,11 @@ def process_paystack_webhook_event(event_type, data, evidence_digest):
     reference = data.get("reference")
     if not isinstance(reference, str) or not paystack.REFERENCE.fullmatch(reference):
         raise BillingError("Invalid payment reference")
-    return confirm_gateway_payment(
+    result = _reconcile_gateway_payment(
         reference, provider="paystack", evidence_digest=evidence_digest
     )
+    # A terminal failure is a completed reconciliation, never a paid result.
+    return result is not _PaymentReconciliation.PENDING
 
 
 REFUND_WEBHOOK_EVENTS = frozenset(
