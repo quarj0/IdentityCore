@@ -104,6 +104,26 @@ API_CLIENT_ROTATION_OVERLAP_SECONDS = int(
 )
 IDEMPOTENCY_RECORD_TTL_HOURS = int(os.getenv("IDEMPOTENCY_RECORD_TTL_HOURS", "24"))
 
+# Billing is opt-in: no payment attempts without explicit merchant setup.
+BILLING_PAYMENTS_ENABLED = env_bool("BILLING_PAYMENTS_ENABLED", False)
+BILLING_USAGE_CAPTURE_ENABLED = env_bool("BILLING_USAGE_CAPTURE_ENABLED", False)
+BILLING_AUTO_INVOICE_ENABLED = env_bool("BILLING_AUTO_INVOICE_ENABLED", False)
+PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "")
+BILLING_RETURN_URL = os.getenv("BILLING_RETURN_URL", "")
+if BILLING_PAYMENTS_ENABLED:
+    from urllib.parse import urlsplit
+    if (
+        not PAYSTACK_SECRET_KEY
+        or not BILLING_RETURN_URL
+        or urlsplit(BILLING_RETURN_URL).scheme != "https"
+        or not urlsplit(BILLING_RETURN_URL).hostname
+        or urlsplit(BILLING_RETURN_URL).username
+        or urlsplit(BILLING_RETURN_URL).password
+        or urlsplit(BILLING_RETURN_URL).fragment
+    ):
+        raise ValueError("Payment activation requires supported providers, merchant secrets and an HTTPS return URL")
+
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -256,6 +276,9 @@ CELERY_TASK_DEFAULT_ROUTING_KEY = "default"
 PROCESSING_JOB_LEASE_SECONDS = int(os.getenv("PROCESSING_JOB_LEASE_SECONDS", "300"))
 PROCESSING_JOB_MAX_ATTEMPTS = int(os.getenv("PROCESSING_JOB_MAX_ATTEMPTS", "3"))
 CELERY_TASK_ROUTES = {
+    "apps.billing.webhook_tasks.reconcile_billing_webhooks_task": {"queue": "retention"},
+    "apps.billing.tasks.reconcile_billing_usage_task": {"queue": "retention"},
+    "apps.billing.tasks.generate_closed_month_invoices_task": {"queue": "retention"},
     "apps.api_clients.tasks.cleanup_expired_idempotency_records_task": {
         "queue": "retention"
     },
@@ -284,6 +307,20 @@ CELERY_TASK_ROUTES = {
     "apps.notifications.tasks.deliver_notification_task": {"queue": "notifications"},
 }
 CELERY_BEAT_SCHEDULE = {
+    "reconcile-billing-webhooks": {
+        "task": "apps.billing.webhook_tasks.reconcile_billing_webhooks_task",
+        "schedule": 60.0,
+    },
+    "reconcile-billing-usage": {
+        "task": "apps.billing.tasks.reconcile_billing_usage_task",
+        "schedule": 600.0,
+        "options": {"queue": "retention"},
+    },
+    "generate-closed-month-invoices": {
+        "task": "apps.billing.tasks.generate_closed_month_invoices_task",
+        "schedule": 86400.0,
+        "options": {"queue": "retention"},
+    },
     "cleanup-reuse-fingerprints": {
         "task": "apps.risk.tasks.cleanup_reuse_fingerprints_task",
         "schedule": 60.0,

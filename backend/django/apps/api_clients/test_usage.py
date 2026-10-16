@@ -166,9 +166,16 @@ class UsageTests(TestCase):
         client = self.create_api_client(limit=3)
         http = HTTPClient()
         rates = {"dashboard_user": "1/min", "verification_session": "1/min"}
-        with patch.object(
+        # These requests must share one calendar minute. A real clock crossing
+        # the minute boundary legitimately resets the API quota mid-assertion.
+        with patch(
+            "apps.api_clients.usage.timezone", wraps=timezone
+        ) as quota_clock, patch.object(
             DashboardUserRateThrottle, "THROTTLE_RATES", rates
-        ), patch.object(VerificationSessionRateThrottle, "THROTTLE_RATES", rates):
+        ), patch.object(
+            VerificationSessionRateThrottle, "THROTTLE_RATES", rates
+        ):
+            quota_clock.now.return_value = timezone.now()
             for _ in range(3):
                 response = http.get(
                     "/api/v1/verifications/",
