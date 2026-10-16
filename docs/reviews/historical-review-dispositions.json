@@ -2576,17 +2576,20 @@
       "thread_id": "PRRT_kwDOTN0BU86UXGpg",
       "comment_id": 3664639072,
       "path": "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
+        "frontend/verification-portal/src/lib/bff-proxy.ts",
         "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
-        "frontend/verification-portal/e2e/verification-flow.spec.ts",
-        "backend/django/apps/verification_sessions/urls.py",
-        "backend/django/apps/uploads/urls.py",
-        "backend/django/apps/verification_sessions/views.py"
+        "frontend/verification-portal/e2e/bff-proxy-transport.spec.ts",
+        "frontend/verification-portal/test/test-bff-transport.mjs"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Move the browser API mocks behind the BFF**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/67#discussion_r3664639072",
-      "disposition_note": "Browser page.route mocks fulfill same-origin BFF requests before the server handler and upstream fetch execute. Existing browser cases therefore do not establish BFF integration coverage. Keep actionable until a browser reaches the real BFF with its upstream mocked behind it."
+      "disposition_note": "Individually reproduced and fixed by protected merged PR #404. Six transport regressions, seventeen standalone HTTP checks and eight real Chromium/WebKit operations passed, including actual HTTPS-to-HTTP ingress without a forwarding scheme. Final CI frontend job 117196447110 exercised both the HTTP driver and real browser-to-BFF requests with only the upstream mocked. Fresh final-head review, PR/push CI, Security and dedicated App checks passed; temporary CI approval was removed.",
+      "remediation_pr": 404,
+      "remediation_commit": "7fcab92afe18055e52bd1cc12d2586cb2d6a8a24",
+      "merged_commit": "07a683f1447a186cd7a021b762d658ece602165f",
+      "resolver_evidence": "Fixed in 7fcab92afe18055e52bd1cc12d2586cb2d6a8a24. Validation: 6 targeted tests passed."
     },
     {
       "pr_number": 67,
@@ -3032,18 +3035,20 @@
       "thread_id": "PRRT_kwDOTN0BU86VqaEo",
       "comment_id": 3696429049,
       "path": "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
+        "frontend/verification-portal/src/lib/bff-proxy.ts",
         "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
-        "frontend/verification-portal/e2e/verification-flow.spec.ts",
-        "backend/django/apps/verification_sessions/urls.py",
-        "backend/django/apps/uploads/urls.py",
-        "backend/django/apps/verification_sessions/views.py"
+        "frontend/verification-portal/e2e/bff-proxy-transport.spec.ts",
+        "frontend/verification-portal/test/test-bff-transport.mjs"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Stop reading proxy requests once they exceed the limit**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/77#discussion_r3696429049",
-      "verified_main": "a52eccd632b16a20748db0f75d62dc374e2132db",
-      "disposition_note": "Current BFF still calls request.arrayBuffer() before checking actual size. Chunked or missing-length requests can allocate beyond the 26 MiB limit; bounded stream consumption is required."
+      "disposition_note": "Individually reproduced and fixed by protected merged PR #404. Six transport regressions, seventeen standalone HTTP checks and eight real Chromium/WebKit operations passed, including actual HTTPS-to-HTTP ingress without a forwarding scheme. Final CI frontend job 117196447110 exercised both the HTTP driver and real browser-to-BFF requests with only the upstream mocked. Fresh final-head review, PR/push CI, Security and dedicated App checks passed; temporary CI approval was removed.",
+      "remediation_pr": 404,
+      "remediation_commit": "7fcab92afe18055e52bd1cc12d2586cb2d6a8a24",
+      "merged_commit": "07a683f1447a186cd7a021b762d658ece602165f",
+      "resolver_evidence": "Fixed in 7fcab92afe18055e52bd1cc12d2586cb2d6a8a24. Validation: 6 targeted tests passed."
     },
     {
       "pr_number": 77,
@@ -3080,18 +3085,20 @@
       "thread_id": "PRRT_kwDOTN0BU86Vqf3U",
       "comment_id": 3696463118,
       "path": "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
-      "status": "actionable",
+      "status": "fixed",
       "evidence": [
+        "frontend/verification-portal/src/lib/bff-proxy.ts",
         "frontend/verification-portal/src/app/api/verification/[...path]/route.ts",
-        "frontend/verification-portal/e2e/verification-flow.spec.ts",
-        "backend/django/apps/verification_sessions/urls.py",
-        "backend/django/apps/uploads/urls.py",
-        "backend/django/apps/verification_sessions/views.py"
+        "frontend/verification-portal/e2e/bff-proxy-transport.spec.ts",
+        "frontend/verification-portal/test/test-bff-transport.mjs"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve slashless session and transfer endpoints**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/81#discussion_r3696463118",
-      "verified_main": "a52eccd632b16a20748db0f75d62dc374e2132db",
-      "disposition_note": "Actual Django router reproduction confirms current BFF appends a slash to session detail, status, consent and upload transfer paths, and all four forwarded paths fail to resolve. Only the upload collection should receive a trailing slash."
+      "disposition_note": "Individually reproduced and fixed by protected merged PR #404. Six transport regressions, seventeen standalone HTTP checks and eight real Chromium/WebKit operations passed, including actual HTTPS-to-HTTP ingress without a forwarding scheme. Final CI frontend job 117196447110 exercised both the HTTP driver and real browser-to-BFF requests with only the upstream mocked. Fresh final-head review, PR/push CI, Security and dedicated App checks passed; temporary CI approval was removed.",
+      "remediation_pr": 404,
+      "remediation_commit": "7fcab92afe18055e52bd1cc12d2586cb2d6a8a24",
+      "merged_commit": "07a683f1447a186cd7a021b762d658ece602165f",
+      "resolver_evidence": "Fixed in 7fcab92afe18055e52bd1cc12d2586cb2d6a8a24. Validation: 6 targeted tests passed."
     },
     {
       "pr_number": 82,
@@ -3617,50 +3624,87 @@
       "thread_id": "PRRT_kwDOTN0BU86VryHY",
       "comment_id": 3696949286,
       "path": "backend/django/common/provider_signing.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/common/provider_signing.py",
+        "backend/django/apps/providers/configuration.py",
+        "backend/django/apps/providers/http_adapter.py",
+        "docs/architecture/provider-signing.md"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Use a shared atomic backend for replay claims**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/192#discussion_r3696949286"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/192#discussion_r3696949286",
+      "verified_main": "dc91a51404301abb33cf7cef786b9743f2d86b5b",
+      "disposition_note": "Individually inspected on immutable main after #405. Shared replay claims, actual BYOP transport signing and exact-wire cross-runtime interoperability still require protected integration merge. Local integration work does not establish deployed or merged coverage."
     },
     {
       "pr_number": 192,
       "thread_id": "PRRT_kwDOTN0BU86VryHa",
       "comment_id": 3696949288,
       "path": "backend/django/common/provider_signing.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/common/provider_signing.py",
+        "backend/django/common/test_provider_signing.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Claim request nonces independently of the rotating key**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/192#discussion_r3696949288"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/192#discussion_r3696949288",
+      "remediation_pr": 405,
+      "remediation_commit": "702a8512559635ff11503c80dadafc149b2bf73a",
+      "merged_commit": "dc91a51404301abb33cf7cef786b9743f2d86b5b",
+      "resolver_evidence": "Fixed in 702a8512559635ff11503c80dadafc149b2bf73a. Validation: 10 targeted tests passed.",
+      "disposition_note": "Individually reproduced and fixed in protected merged PR #405; final-head review, PR/push CI, Security and dedicated App checks passed. Ten signing tests passed; 210 broader common/provider regressions passed with five skips."
     },
     {
       "pr_number": 192,
       "thread_id": "PRRT_kwDOTN0BU86VryHc",
       "comment_id": 3696949290,
       "path": "backend/django/common/provider_signing.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "fixed",
+      "evidence": [
+        "backend/django/common/provider_signing.py",
+        "backend/django/common/test_provider_signing.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject non-ASCII signatures without raising TypeError**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/192#discussion_r3696949290"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/192#discussion_r3696949290",
+      "remediation_pr": 405,
+      "remediation_commit": "702a8512559635ff11503c80dadafc149b2bf73a",
+      "merged_commit": "dc91a51404301abb33cf7cef786b9743f2d86b5b",
+      "resolver_evidence": "Fixed in 702a8512559635ff11503c80dadafc149b2bf73a. Validation: 10 targeted tests passed.",
+      "disposition_note": "Individually reproduced and fixed in protected merged PR #405; final-head review, PR/push CI, Security and dedicated App checks passed. Ten signing tests passed; 210 broader common/provider regressions passed with five skips."
     },
     {
       "pr_number": 192,
       "thread_id": "PRRT_kwDOTN0BU86VryHe",
       "comment_id": 3696949293,
       "path": "backend/django/common/provider_signing.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/common/provider_signing.py",
+        "backend/django/apps/providers/configuration.py",
+        "backend/django/apps/providers/http_adapter.py",
+        "docs/architecture/provider-signing.md"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Wire signing into the provider transport**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/192#discussion_r3696949293"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/192#discussion_r3696949293",
+      "verified_main": "dc91a51404301abb33cf7cef786b9743f2d86b5b",
+      "disposition_note": "Individually inspected on immutable main after #405. Shared replay claims, actual BYOP transport signing and exact-wire cross-runtime interoperability still require protected integration merge. Local integration work does not establish deployed or merged coverage."
     },
     {
       "pr_number": 192,
       "thread_id": "PRRT_kwDOTN0BU86VryHg",
       "comment_id": 3696949296,
       "path": "backend/django/common/provider_signing.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/common/provider_signing.py",
+        "backend/django/apps/providers/configuration.py",
+        "backend/django/apps/providers/http_adapter.py",
+        "docs/architecture/provider-signing.md"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Use a genuinely cross-runtime JSON canonicalization**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/192#discussion_r3696949296"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/192#discussion_r3696949296",
+      "verified_main": "dc91a51404301abb33cf7cef786b9743f2d86b5b",
+      "disposition_note": "Individually inspected on immutable main after #405. Shared replay claims, actual BYOP transport signing and exact-wire cross-runtime interoperability still require protected integration merge. Local integration work does not establish deployed or merged coverage."
     },
     {
       "pr_number": 194,
@@ -12250,8 +12294,27 @@
         "backend/django/config/test_public_contract_boundaries.py"
       ],
       "disposition_note": "Fixed in protected merged PR #403 after fresh independent review newer than standalone canonical evidence, final-head PR/push CI and Security and dedicated App success. Trusted expected-head merge preserved native protection; no temporary protected-path approval was required."
+    },
+    {
+      "pr_number": 404,
+      "thread_id": "PRRT_kwDOTN0BU86tYCuZ",
+      "comment_id": 4299264357,
+      "path": "frontend/verification-portal/src/lib/bff-proxy.ts",
+      "status": "fixed",
+      "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve the public HTTPS scheme in the origin check**",
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/404#discussion_r4299264357",
+      "remediation_pr": 404,
+      "remediation_commit": "7fcab92afe18055e52bd1cc12d2586cb2d6a8a24",
+      "merged_commit": "07a683f1447a186cd7a021b762d658ece602165f",
+      "resolver_evidence": "Fixed in 6be0c883d73f29da4f1d56748c45e22770bcaaf7. Validation: 6 targeted tests passed.",
+      "evidence": [
+        "frontend/verification-portal/src/lib/bff-proxy.ts",
+        "frontend/verification-portal/e2e/bff-proxy-transport.spec.ts",
+        "frontend/verification-portal/test/test-bff-transport.mjs"
+      ],
+      "disposition_note": "Fixed in protected merged PR #404 after fresh final-head review newer than canonical evidence, successful PR/push CI and Security, and dedicated App validation. Trusted expected-head merge preserved native protection. Narrow approval for the two added CI transport steps was removed and verified after merge."
     }
   ],
-  "verified_main": "69dd242c46f62594e9e7fba1af5f66601e63c539",
-  "inventory_note": "859 threads from closed or merged PRs: 231 fixed, 288 verified, 6 actionable and 334 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
+  "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+  "inventory_note": "860 threads from closed or merged PRs: 237 fixed, 288 verified, 6 actionable and 329 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
 }

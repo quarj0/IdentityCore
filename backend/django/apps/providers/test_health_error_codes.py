@@ -7,6 +7,8 @@ class ProviderHealthErrorCodeTests(SimpleTestCase):
     def test_only_controlled_codes_and_three_ascii_error_status_digits_are_public(self):
         for code in (
             "provider_timeout",
+            "provider_signature_invalid",
+            "provider_replay_store_unavailable",
             "provider_http_301",
             "provider_http_401",
             "provider_http_503",

@@ -11,6 +11,14 @@ import urllib.request
 from dataclasses import dataclass
 from urllib.parse import unquote, urlsplit
 
+from redis.exceptions import RedisError
+from common.provider_signing import (
+    ProviderSignatureError,
+    ProviderSigningContext,
+    sign_message,
+    verify_message,
+)
+
 DEFAULT_MAX_RESPONSE_BYTES = 1 * 1024 * 1024
 DEFAULT_TIMEOUT_SECONDS = 10
 MAX_TIMEOUT_SECONDS = 30
@@ -430,7 +438,12 @@ class SecureHTTPProviderAdapter:
         return hostname, port, request_target
 
     def post_json(
-        self, *, url: str, payload: dict, headers: dict | None = None
+        self,
+        *,
+        url: str,
+        payload: dict,
+        headers: dict | None = None,
+        signing: ProviderSigningContext | None = None,
     ) -> dict:
         deadline = time.monotonic() + self.timeout_seconds
         hostname, port, request_target = self._validate_destination(url)
@@ -446,6 +459,16 @@ class SecureHTTPProviderAdapter:
             "Content-Type": "application/json",
         }
         request_headers.update(headers or {})
+        signed = None
+        if signing is not None:
+            signed = sign_message(
+                method="POST",
+                path=request_target,
+                body=body,
+                key_id=signing.key_id,
+                secret=signing.secret,
+            )
+            request_headers.update(signed.headers())
         connection = _PinnedHTTPSConnection(
             hostname,
             port,
@@ -536,6 +559,28 @@ class SecureHTTPProviderAdapter:
                 "Provider response is too large.",
                 error_code="provider_response_too_large",
             )
+        if signing is not None:
+            try:
+                verify_message(
+                    method="POST",
+                    path=request_target,
+                    body=response_body,
+                    headers=dict(response.headers.items()),
+                    keys={signing.key_id: signing.secret},
+                    expected_nonce=signed.nonce,
+                    replay_namespace=signing.replay_namespace,
+                )
+            except ProviderSignatureError as exc:
+                raise SecureHTTPAdapterError(
+                    "Provider response authentication failed.",
+                    error_code="provider_signature_invalid",
+                ) from exc
+            except RedisError as exc:
+                raise SecureHTTPAdapterError(
+                    "Provider replay protection is unavailable.",
+                    error_code="provider_replay_store_unavailable",
+                    retryable=True,
+                ) from exc
         try:
             parsed = json.loads(response_body.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:

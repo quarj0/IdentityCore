@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from threading import Barrier
 from unittest import skipUnless
+from unittest.mock import patch
 
 from django.db import close_old_connections, connection
 from django.test import TestCase, TransactionTestCase
@@ -15,7 +16,14 @@ from apps.projects.models import Project
 
 
 class UsageTests(TestCase):
-    setUp = client_tests.APIClientModelTests.setUp
+    def setUp(self):
+        client_tests.APIClientModelTests.setUp(self)
+        # Sequential assertions exercise one calendar window. Explicit `now`
+        # arguments in rollover tests still exercise real boundary behavior.
+        clock_patch = patch("apps.api_clients.usage.timezone", wraps=timezone)
+        quota_clock = clock_patch.start()
+        self.addCleanup(clock_patch.stop)
+        quota_clock.now.return_value = timezone.now()
 
     def create_api_client(self, environment="sandbox", limit=100):
         project = Project.objects.create(
@@ -157,7 +165,6 @@ class UsageTests(TestCase):
         )
 
     def test_api_clients_do_not_consume_dashboard_or_session_throttles(self):
-        from unittest.mock import patch
         from common.throttling import (
             DashboardUserRateThrottle,
             VerificationSessionRateThrottle,
