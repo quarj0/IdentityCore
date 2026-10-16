@@ -95,3 +95,127 @@ class BillingReviewRecoveryTests(TestCase):
                     stdout=StringIO(),
                 )
         self.assertFalse(BillingInvoice.objects.filter(tenant=self.tenant).exists())
+
+    def settled_paystack_payment(self):
+        from apps.billing.models import BillingPayment
+
+        invoice = self.invoice()
+        invoice.status = "paid"
+        invoice.save(update_fields=["status"])
+        payment = BillingPayment.objects.create(
+            invoice=invoice,
+            reference="ic-reviewed-dispute",
+            provider="paystack",
+            status="paid",
+            amount_minor=invoice.amount_minor,
+            currency="GHS",
+            gateway_transaction_id="42424242",
+        )
+        return invoice, payment
+
+    def dispute_result(self, payment, **changes):
+        result = {
+            "id": 731,
+            "status": "pending",
+            "resolution": None,
+            "refund_amount": None,
+            "transaction": {
+                "id": 42424242,
+                "amount": payment.amount_minor,
+                "currency": "GHS",
+            },
+        }
+        result.update(changes)
+        return result
+
+    def test_partial_paystack_dispute_stores_verified_refund_amount(self):
+        from apps.billing.services import reconcile_gateway_dispute
+        from apps.billing.models import BillingDispute
+
+        invoice, payment = self.settled_paystack_payment()
+        result = self.dispute_result(
+            payment,
+            status="resolved",
+            resolution="merchant-accepted",
+            refund_amount=500,
+        )
+        with patch("apps.billing.paystack.verify_dispute", return_value=result):
+            reconcile_gateway_dispute("paystack", 731)
+        dispute = BillingDispute.objects.get(payment=payment)
+        self.assertEqual(dispute.amount_minor, 500)
+        self.assertEqual(dispute.status, "lost")
+
+    def test_paystack_pending_dispute_can_resolve_for_partial_amount(self):
+        from apps.billing.services import reconcile_gateway_dispute
+        from apps.billing.models import BillingDispute
+
+        invoice, payment = self.settled_paystack_payment()
+        result = self.dispute_result(payment)
+        with patch("apps.billing.paystack.verify_dispute", return_value=result):
+            reconcile_gateway_dispute("paystack", 731)
+        result.update(
+            status="resolved", resolution="merchant-accepted", refund_amount=500
+        )
+        with patch("apps.billing.paystack.verify_dispute", return_value=result):
+            reconcile_gateway_dispute("paystack", 731)
+        dispute = BillingDispute.objects.get(payment=payment)
+        self.assertEqual((dispute.status, dispute.amount_minor), ("lost", 500))
+
+    def test_declined_paystack_dispute_closes_and_restores_paid_invoice(self):
+        from apps.billing.services import reconcile_gateway_dispute
+        from apps.billing.models import BillingDispute
+
+        invoice, payment = self.settled_paystack_payment()
+        result = self.dispute_result(payment)
+        with patch("apps.billing.paystack.verify_dispute", return_value=result):
+            reconcile_gateway_dispute("paystack", 731)
+        result.update(status="resolved", resolution="declined")
+        with patch("apps.billing.paystack.verify_dispute", return_value=result):
+            reconcile_gateway_dispute("paystack", 731)
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, "paid")
+        self.assertEqual(BillingDispute.objects.get(payment=payment).status, "won")
+
+    def test_declined_paystack_dispute_accepts_verified_zero_refund(self):
+        from apps.billing.services import reconcile_gateway_dispute
+        from apps.billing.models import BillingDispute
+
+        invoice, payment = self.settled_paystack_payment()
+        result = self.dispute_result(
+            payment, status="resolved", resolution="declined", refund_amount=0
+        )
+        with patch("apps.billing.paystack.verify_dispute", return_value=result):
+            reconcile_gateway_dispute("paystack", 731)
+        self.assertEqual(BillingDispute.objects.get(payment=payment).status, "won")
+
+    @override_settings(BILLING_AUTO_INVOICE_ENABLED=True)
+    def test_bad_subscription_does_not_abort_later_tenant_invoices(self):
+        from apps.billing.models import BillingSubscription, BillingMeter
+        from apps.billing.services import BillingError
+        from apps.billing.tasks import generate_closed_month_invoices_task
+        from apps.tenants.models import Tenant
+        from apps.organizations.models import Organization
+
+        self.usage(self.provider)
+        BillingMeter.objects.filter(plan=self.plan).delete()
+        organization = Organization.objects.create(
+            name="Healthy billing", slug="healthy-billing"
+        )
+        tenant = Tenant.objects.create(
+            organization=organization,
+            name="Healthy",
+            slug="healthy-billing",
+            status="active",
+        )
+        BillingSubscription.objects.create(
+            tenant=tenant,
+            plan=self.plan,
+            status="active",
+            started_at=self.subscription.started_at,
+        )
+        with self.assertRaises(BillingError):
+            generate_closed_month_invoices_task()
+        self.assertTrue(
+            BillingInvoice.objects.filter(tenant=tenant, status="issued").exists()
+        )
+        self.assertFalse(BillingInvoice.objects.filter(tenant=self.tenant).exists())

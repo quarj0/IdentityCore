@@ -1,6 +1,7 @@
 """Bounded billing reconciliation and gated month-close Celery tasks."""
 
 from datetime import timedelta
+import logging
 
 from celery import shared_task
 from django.conf import settings
@@ -9,9 +10,11 @@ from django.db import transaction
 from django.db.models import Exists, OuterRef
 
 from apps.billing.models import BillingInvoice, BillingSubscription
-from apps.billing.services import generate_invoice, issue_invoice
+from apps.billing.services import BillingError, generate_invoice, issue_invoice
 from apps.billing.usage import BillingIntegrityError, record_provider_usage
 from apps.providers.models import ProviderCheck, ProviderCheckStatus
+
+logger = logging.getLogger(__name__)
 
 
 @shared_task(ignore_result=True)
@@ -72,33 +75,45 @@ def generate_closed_month_invoices_task(limit=100):
         .values_list("pk", flat=True)[:limit]
     )
     completed = 0
+    failed = 0
     for subscription_id in list(subscriptions):
         # Match generate_invoice's subscription-first lock order. Generation
         # and issuance commit together; existing drafts can resume safely.
-        with transaction.atomic():
-            subscription = (
-                BillingSubscription.objects.select_for_update(of=("self",))
-                .select_related("tenant", "plan")
-                .get(pk=subscription_id)
-            )
-            if (
-                subscription.status != "active"
-                or subscription.deleted_at
-                or not subscription.plan.published
-            ):
-                continue
-            invoice = (
-                BillingInvoice.objects.select_for_update()
-                .filter(
-                    tenant=subscription.tenant,
-                    period_start=period_start,
+        try:
+            with transaction.atomic():
+                subscription = (
+                    BillingSubscription.objects.select_for_update(of=("self",))
+                    .select_related("tenant", "plan")
+                    .get(pk=subscription_id)
                 )
-                .first()
+                if (
+                    subscription.status != "active"
+                    or subscription.deleted_at
+                    or not subscription.plan.published
+                ):
+                    continue
+                invoice = (
+                    BillingInvoice.objects.select_for_update()
+                    .filter(
+                        tenant=subscription.tenant,
+                        period_start=period_start,
+                    )
+                    .first()
+                )
+                if invoice is not None and invoice.status != "draft":
+                    continue
+                if invoice is None:
+                    invoice = generate_invoice(subscription.tenant, previous_month)
+                issue_invoice(invoice.pk)
+                completed += 1
+        except BillingError:
+            failed += 1
+            logger.error(
+                "Monthly invoice requires review for subscription %s",
+                subscription_id,
             )
-            if invoice is not None and invoice.status != "draft":
-                continue
-            if invoice is None:
-                invoice = generate_invoice(subscription.tenant, previous_month)
-            issue_invoice(invoice.pk)
-            completed += 1
+    if failed:
+        raise BillingError(
+            f"{failed} monthly invoices require review; {completed} completed"
+        )
     return completed

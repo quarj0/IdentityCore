@@ -550,9 +550,10 @@ def reconcile_gateway_dispute(provider, dispute_id):
         if not isinstance(transaction_data, dict):
             raise BillingError("Paystack dispute transaction is missing")
         transaction_id = transaction_data.get("id")
-        amount, currency = transaction_data.get("amount"), transaction_data.get(
-            "currency"
-        )
+        amount = result.get("refund_amount")
+        if amount is None:
+            amount = transaction_data.get("amount")
+        currency = transaction_data.get("currency")
         if result.get("status") not in (
             "awaiting-merchant-feedback",
             "awaiting-bank-feedback",
@@ -561,11 +562,12 @@ def reconcile_gateway_dispute(provider, dispute_id):
             "archived",
         ):
             raise BillingError("Unknown Paystack dispute state")
-        state = (
-            "lost"
-            if result.get("resolution") in ("merchant-accepted", "auto-accepted")
-            else "open"
-        )
+        state = "open"
+        if result.get("status") in ("resolved", "archived"):
+            if result.get("resolution") in ("merchant-accepted", "auto-accepted"):
+                state = "lost"
+            elif result.get("resolution") == "declined":
+                state = "won"
     if not isinstance(transaction_id, (str, int)) or isinstance(transaction_id, bool):
         raise BillingError("Dispute transaction attribution is missing")
     payment = (
@@ -581,7 +583,7 @@ def reconcile_gateway_dispute(provider, dispute_id):
         payment is None
         or state is None
         or type(amount) is not int
-        or not 0 < amount <= payment.amount_minor
+        or not (0 <= amount <= payment.amount_minor and (amount > 0 or state == "won"))
         or not isinstance(currency, str)
         or currency.upper() != payment.currency
     ):
@@ -596,12 +598,15 @@ def reconcile_gateway_dispute(provider, dispute_id):
                 "gateway_status": result["status"],
             },
         )
-        if dispute.payment_id != locked.pk or dispute.amount_minor != amount:
+        if dispute.payment_id != locked.pk:
             raise BillingError("Dispute changed its payment attribution")
         if dispute.status not in ("won", "lost"):
+            dispute.amount_minor = amount
             dispute.status = state
             dispute.gateway_status = result["status"]
-            dispute.save(update_fields=["status", "gateway_status", "updated_at"])
+            dispute.save(
+                update_fields=["amount_minor", "status", "gateway_status", "updated_at"]
+            )
         _refresh_adjustment_state(locked, invoice)
     return True
 
