@@ -151,7 +151,7 @@ Possible mechanisms include:
 - private network identity;
 - cloud workload identity.
 
-IdentityCore's current signing foundation uses versioned canonicalization, key identifiers, timestamps, nonces, request binding, and replay detection. See `docs/architecture/provider-signing.md`.
+Configured `hmac_v1` integrations sign exact request body bytes and verify response signatures, timestamps, request nonces and shared Redis replay claims. The provider setup form selects signed mode for new configurations; existing configurations may explicitly retain legacy bearer-only authentication. See `docs/architecture/provider-signing.md` for credential derivation, wire fixtures and deployment requirements.
 
 A provider response must be bound to the initiating invocation and should include:
 

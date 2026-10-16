@@ -242,6 +242,23 @@ class ProviderConformanceRunnerTests(unittest.TestCase):
             )
         self.assertNotIn("GHA-PRIVATE", str(caught.exception))
 
+    def test_malformed_signature_headers_are_controlled_conformance_failures(self):
+        body = b'{"private_document_number":"GHA-PRIVATE"}'
+        headers = runner.signing_headers(
+            path="/identitycore/conformance", body=body, key_id="test-key",
+            secret="test-secret", timestamp=int(time.time()), nonce="test-nonce",
+        )
+        normalized = {key.lower(): value for key, value in headers.items()}
+        for supplied in ("é" * 64, "f" * 63, "f" * 65, "F" * 64):
+            with self.subTest(signature=supplied):
+                result = runner.HTTPResult(status=200,
+                    headers={**normalized, "x-ic-signature": supplied}, body=body)
+                with self.assertRaisesRegex(runner.ConformanceError, "signature is invalid") as caught:
+                    runner._verify_response_signature(result=result,
+                        path="/identitycore/conformance", nonce="test-nonce",
+                        key_id="test-key", secret="test-secret", case_id="success")
+                self.assertNotIn("GHA-PRIVATE", str(caught.exception))
+
 
 if __name__ == "__main__":
     unittest.main()
