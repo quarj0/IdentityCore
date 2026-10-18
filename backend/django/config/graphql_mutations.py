@@ -427,6 +427,7 @@ class Mutation:
         return Mutation._template_node(template)
 
     @strawberry.mutation
+    @transaction.atomic
     def create_platform_workflow(
         self,
         info: Info,
@@ -444,12 +445,24 @@ class Mutation:
             raise GraphQLError(
                 "Choose a project in the selected tenant and provide a name."
             )
+        serializer = WorkflowSerializer()
+        try:
+            validated_name = serializer.fields["name"].run_validation(name)
+            validated_steps = serializer.fields["steps"].run_validation(steps)
+            serializer.validate_steps(validated_steps)
+            from apps.workflows.serializers import validated_workflow_settings
+
+            validated_workflow_settings(
+                settings if settings is not None else {}, tenant=tenant
+            )
+        except DRFValidationError as exc:
+            raise GraphQLError(str(exc.detail)) from exc
         workflow = Workflow.objects.create(
             tenant=tenant,
             project=project,
-            name=name.strip(),
+            name=validated_name,
             description=description.strip(),
-            steps_json=steps or [],
+            steps_json=validated_steps,
             settings_json=settings or {},
             created_by=actor,
         )

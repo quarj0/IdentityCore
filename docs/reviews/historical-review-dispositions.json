@@ -1899,11 +1899,14 @@
       "comment_id": 3645354158,
       "path": "frontend/platform-admin/src/features/workflows/forms/create-workflow-dialog.tsx",
       "status": "actionable",
-      "evidence": [],
+      "evidence": [
+        "frontend/platform-admin/src/features/workflows/forms/workflow-steps-editor.tsx",
+        "backend/django/apps/workflows/test_historical_publishing.py:test_platform_create_with_steps_can_publish_and_edit_without_mutating_version"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Provide workflow steps before allowing creation**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645354158",
       "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
-      "disposition_note": "Individually confirmed createWorkflow sends no steps and createPlatformWorkflow stores an empty list; publication rejects it. A usable creation/editing contract remains required."
+      "disposition_note": "Confirmed omitted workflow creation steps and unusable draft authoring. Remediation implements a typed ordered step editor for create/update, server-side creation validation and create/publish/edit/republish immutable-version regressions. Remains actionable until protected review and merge."
     },
     {
       "pr_number": 34,
@@ -1960,11 +1963,14 @@
       "comment_id": 3645461288,
       "path": "frontend/platform-admin/src/features/workflows/forms/create-workflow-dialog.tsx",
       "status": "actionable",
-      "evidence": [],
+      "evidence": [
+        "frontend/platform-admin/src/features/workflows/forms/workflow-steps-editor.tsx",
+        "backend/django/apps/workflows/test_historical_publishing.py:test_platform_create_with_steps_can_publish_and_edit_without_mutating_version"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Include steps when creating workflows**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461288",
       "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
-      "disposition_note": "Individually confirmed this repeated creation finding: current platform-admin creation provides no steps. A publishable creation path and browser regression remain required."
+      "disposition_note": "Confirmed omitted workflow creation steps and unusable draft authoring. Remediation implements a typed ordered step editor for create/update, server-side creation validation and create/publish/edit/republish immutable-version regressions. Remains actionable until protected review and merge."
     },
     {
       "pr_number": 35,

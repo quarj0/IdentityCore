@@ -2,6 +2,7 @@
 
 import { graphqlRequest } from "@/lib/admin-api";
 import { formatDateTime } from "@/lib/admin-format";
+import type { WorkflowStep } from "./forms/workflow-steps-editor";
 
 export type WorkflowRecord = {
   id: string;
@@ -240,10 +241,11 @@ export async function createWorkflow(input: {
   projectId: string;
   name: string;
   description: string;
+  steps: WorkflowStep[];
 }) {
   const data = await graphqlRequest<{ workflow: WorkflowRecord }>(
-    `mutation CreateWorkflow($tenantId: String!, $projectId: String!, $name: String!, $description: String!) {
-      workflow: createPlatformWorkflow(tenantId: $tenantId, projectId: $projectId, name: $name, description: $description) { ${workflowFields} }
+    `mutation CreateWorkflow($tenantId: String!, $projectId: String!, $name: String!, $description: String!, $steps: [JSON!]!) {
+      workflow: createPlatformWorkflow(tenantId: $tenantId, projectId: $projectId, name: $name, description: $description, steps: $steps) { ${workflowFields} }
     }`,
     input,
   );
@@ -252,9 +254,9 @@ export async function createWorkflow(input: {
 
 export const updateWorkflow = (
   workflowId: string,
-  input: { name: string; description: string },
+  input: { name: string; description: string; steps: WorkflowStep[] },
 ) =>
   runWorkflowMutation(
-    `mutation UpdateWorkflow($workflowId: String!, $name: String!, $description: String!) { workflow: updatePlatformWorkflow(workflowId: $workflowId, name: $name, description: $description) { ${workflowFields} } }`,
+    `mutation UpdateWorkflow($workflowId: String!, $name: String!, $description: String!, $steps: [JSON!]!) { workflow: updatePlatformWorkflow(workflowId: $workflowId, name: $name, description: $description, steps: $steps) { ${workflowFields} } }`,
     { workflowId, ...input },
   );

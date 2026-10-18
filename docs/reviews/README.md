@@ -58,3 +58,8 @@ Reviewer-permission remediation adds a mandatory `review_verification` boundary,
 a narrowly scoped built-in-role migration and REST/GraphQL/service negative tests.
 It remains actionable until protected review and merge; membership and queue skills
 never substitute for the role grant. See [rollout](../operations/reviewer-permissions.md).
+
+Workflow authoring remediation now submits an explicit supported step sequence,
+provides a working draft editor, and rejects invalid creation payloads before
+persistence. Backend tests cover create/publish/edit/republish with immutable prior
+versions. Findings remain actionable until protected review and merge.

@@ -9,3 +9,21 @@ Existing workflows created before the request digest was introduced retain an em
 The schema migration adds the private request digest without exposing it in workflow responses. The adoption migration reconciles existing `cloned_by_organizations` values from distinct organizations with retained workflows sourced from each template. New instantiations increment usage per workflow and adoption only for the organization's first workflow from that source. The model currently permits one tenant per organization.
 
 Tenant catalog responses contain the published template contract. Administrator identity, ownership, risk classification and usage/adoption counters are excluded. Platform administration retains its separate template representation.
+
+## Platform workflow authoring
+
+Platform administrators create project-scoped drafts with an explicit ordered list
+of supported step names: `consent`, `document`, `selfie`, `liveness`, `face_match`,
+`decision`, `manual_review`, `webhook`. Consent and decision are required; empty,
+duplicate, unknown and object-shaped steps are rejected before saving a draft.
+The platform dialog defaults to consent, document and decision and lets the operator
+add, remove or reorder checks. The tenant and project must match.
+
+Edit draft sends the full step sequence along with name and description. Unsupported
+legacy step data blocks this editor instead of silently dropping data; repair it
+through the workflow API. Existing empty drafts can add consent and decision using
+the editor. Archived workflows cannot be edited. Edits to a published workflow reset
+its status to draft; retained workflow versions and policies keep their original
+contents. Publishing creates a new immutable version and policy, subject to current
+organization approval and policy validation. These workflows are tenant/project
+records; global template publication is a separate lifecycle.

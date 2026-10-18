@@ -94,9 +94,9 @@ export function WorkflowsListPage() {
   return (
     <div className="space-y-6 bg-white text-slate-950">
       <PageHeader
-        eyebrow="Official workflow library"
-        title="Global Workflows"
-        description="Manage official IdentityCore workflow blueprints that combine templates, provider routing, policies, risk checks and manual review."
+        eyebrow="Tenant workflows"
+        title="Workflows"
+        description="Manage project-scoped workflow drafts and their published versions."
         actions={
           <>
             <Button
@@ -142,7 +142,7 @@ export function WorkflowsListPage() {
         <EmptyState title="Unable to load workflows" description={error} />
       ) : loading && workflows.length === 0 ? (
         <PageHeader
-          eyebrow="Official workflow library"
+          eyebrow="Tenant workflows"
           title="Loading workflows"
           description="Fetching live workflow data from the backend."
         />

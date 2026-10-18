@@ -12,7 +12,7 @@ export function WorkflowBuilderPreview({
   return (
     <SectionCard
       title="Builder preview"
-      description="Visual preview of this official workflow blueprint."
+      description="Ordered steps for this project-scoped workflow draft."
     >
       <div className="space-y-3">
         {workflow.steps.map((step, index) => (
@@ -30,8 +30,7 @@ export function WorkflowBuilderPreview({
                 {typeof step === "string" ? step : JSON.stringify(step)}
               </p>
               <p className="mt-1 text-sm text-slate-600">
-                This step is included when an organization uses or clones the
-                workflow.
+                Publishing freezes this step in the new workflow version.
               </p>
             </div>
           </div>

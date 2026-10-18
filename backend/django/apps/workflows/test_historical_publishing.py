@@ -47,6 +47,57 @@ class HistoricalWorkflowPublishingTests(APITestCase):
             {"id": workflow.public_id},
         )
 
+    def test_platform_create_with_steps_can_publish_and_edit_without_mutating_version(
+        self,
+    ):
+        result = self.graphql(
+            'mutation($tenant:String!,$project:String!){createPlatformWorkflow(tenantId:$tenant,projectId:$project,name:"Authored workflow",steps:["consent","document","decision"]){id steps}}',
+            {"tenant": self.tenant.public_id, "project": self.project.public_id},
+        )
+        self.assertIsNone(result.errors, result.errors)
+        workflow = Workflow.objects.get(
+            public_id=result.data["createPlatformWorkflow"]["id"]
+        )
+        self.assertIsNone(self.publish(workflow).errors)
+        version = WorkflowVersion.objects.get(workflow=workflow)
+        result = self.graphql(
+            'mutation($id:String!){updatePlatformWorkflow(workflowId:$id,steps:["consent","selfie","liveness","decision"]){id status steps}}',
+            {"id": workflow.public_id},
+        )
+        self.assertIsNone(result.errors, result.errors)
+        self.assertEqual(result.data["updatePlatformWorkflow"]["status"], "draft")
+        version.refresh_from_db()
+        self.assertEqual(version.steps_json, ["consent", "document", "decision"])
+        self.assertIsNone(self.publish(workflow).errors)
+        self.assertEqual(WorkflowVersion.objects.filter(workflow=workflow).count(), 2)
+
+    def test_platform_create_rejects_missing_empty_unknown_or_duplicate_steps(self):
+        query = 'mutation($tenant:String!,$project:String!,$steps:[JSON!]){createPlatformWorkflow(tenantId:$tenant,projectId:$project,name:"Invalid draft",steps:$steps){id}}'
+        count = Workflow.objects.count()
+        from apps.audit.models import AuditEvent
+
+        audit_count = AuditEvent.objects.count()
+        for steps in (
+            None,
+            [],
+            ["consent"],
+            ["consent", "magic", "decision"],
+            ["consent", "decision", "decision"],
+            [{"type": "consent"}, "decision"],
+        ):
+            with self.subTest(steps=steps):
+                result = self.graphql(
+                    query,
+                    {
+                        "tenant": self.tenant.public_id,
+                        "project": self.project.public_id,
+                        "steps": steps,
+                    },
+                )
+                self.assertTrue(result.errors)
+        self.assertEqual(Workflow.objects.count(), count)
+        self.assertEqual(AuditEvent.objects.count(), audit_count)
+
     def test_platform_publication_copies_execution_settings(self):
         workflow = self.workflow(
             settings_json={

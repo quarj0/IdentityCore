@@ -275,6 +275,116 @@ async function mockTemplateLifecycle(page: Page, status: string) {
   });
 }
 
+test("workflow author can create steps, edit their order and publish the draft", async ({
+  page,
+}) => {
+  await mockAdminBackend(page);
+  let workflow = {
+    ...lifecycleTemplate,
+    id: "wfl_authored",
+    name: "Authored workflow",
+    status: "draft",
+    projectName: "Synthetic project",
+    currentVersion: 0,
+    steps: ["consent", "document", "decision"],
+    settings: {},
+  };
+  let created = false;
+  let published = false;
+  await page.route("**/api/graphql", async (route) => {
+    const payload = route.request().postDataJSON();
+    const headers = {
+      "Access-Control-Allow-Origin": "http://127.0.0.1:3004",
+      "Access-Control-Allow-Credentials": "true",
+    };
+    if (payload.query.includes("mutation CreateWorkflow")) {
+      expect(payload.query).toContain("steps: $steps");
+      expect(payload.variables.steps).toEqual([
+        "consent",
+        "document",
+        "selfie",
+        "liveness",
+        "decision",
+      ]);
+      expect(payload.variables.tenantId).toBe("ten_synthetic");
+      expect(payload.variables.projectId).toBe("prj_synthetic");
+      workflow = { ...workflow, ...payload.variables };
+      created = true;
+      await route.fulfill({ headers, json: { data: { workflow } } });
+    } else if (payload.query.includes("mutation UpdateWorkflow")) {
+      expect(payload.query).toContain("steps: $steps");
+      expect(payload.variables.steps).toEqual([
+        "consent",
+        "selfie",
+        "document",
+        "liveness",
+        "decision",
+      ]);
+      workflow = { ...workflow, ...payload.variables };
+      await route.fulfill({ headers, json: { data: { workflow } } });
+    } else if (payload.query.includes("mutation PublishWorkflow")) {
+      expect(payload.variables.workflowId).toBe(workflow.id);
+      published = true;
+      workflow = { ...workflow, status: "published", currentVersion: 1 };
+      await route.fulfill({
+        headers,
+        json: {
+          data: { publishPlatformWorkflow: { id: "wfv_authored", version: 1 } },
+        },
+      });
+    } else {
+      await route.fulfill({
+        headers,
+        json: {
+          data: {
+            platformWorkflows: created ? [workflow] : [],
+            platformWorkflow: workflow,
+            platformWorkflowVersions: [],
+          },
+        },
+      });
+    }
+  });
+  await page.goto("/workflows");
+  await page
+    .getByRole("button", { name: "Create workflow", exact: true })
+    .click();
+  await page.getByLabel("Tenant ID", { exact: true }).fill("ten_synthetic");
+  await page.getByLabel("Project ID", { exact: true }).fill("prj_synthetic");
+  await page
+    .getByLabel("Workflow name", { exact: true })
+    .fill("Authored workflow");
+  await page.getByRole("button", { name: "Add Selfie", exact: true }).click();
+  await page.getByRole("button", { name: "Add Liveness", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Remove Consent", exact: true }),
+  ).toBeDisabled();
+  await page.getByRole("button", { name: "Create draft", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page
+    .getByRole("link", { name: "Authored workflow", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Edit draft", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Move Selfie up", exact: true })
+    .click();
+  await assertNoSeriousViolations(page);
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.getByRole("button", { name: "Publish", exact: true }).click();
+  await page
+    .getByLabel("Release notes", { exact: true })
+    .fill("Reviewed ordered verification steps.");
+  await page
+    .getByRole("button", { name: "Publish workflow", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Archive", exact: true }),
+  ).toBeVisible();
+  expect(created).toBe(true);
+  expect(published).toBe(true);
+});
+
 for (const status of ["draft", "published", "archived"]) {
   test(`template ${status} exposes only valid lifecycle actions`, async ({
     page,
@@ -619,16 +729,43 @@ test("CSV exports neutralize formula and control prefixes", () => {
   expect(csvCell(null)).toBe('""');
 });
 
-test("generic admin lists retain a functional safe export of loaded results", async ({page}) => {
+test("generic admin lists retain a functional safe export of loaded results", async ({
+  page,
+}) => {
   await mockAdminBackend(page);
-  await page.route("**/api/graphql", async route => {
-    const headers = {"Access-Control-Allow-Origin": "http://127.0.0.1:3004", "Access-Control-Allow-Credentials": "true", "Access-Control-Allow-Headers": "Content-Type, Authorization, X-IdentityCore-Session-Scope"};
-    if (route.request().method() === "OPTIONS") return route.fulfill({status: 204, headers});
-    return route.fulfill({headers, json: {data: {platformProviders: [{id: "prv_synthetic", name: "=SUM(1)", code: "synthetic", providerType: "document", status: "active", configuration: {configured: true}, updatedAt: "2026-10-18T00:00:00Z"}]}}});
+  await page.route("**/api/graphql", async (route) => {
+    const headers = {
+      "Access-Control-Allow-Origin": "http://127.0.0.1:3004",
+      "Access-Control-Allow-Credentials": "true",
+      "Access-Control-Allow-Headers":
+        "Content-Type, Authorization, X-IdentityCore-Session-Scope",
+    };
+    if (route.request().method() === "OPTIONS")
+      return route.fulfill({ status: 204, headers });
+    return route.fulfill({
+      headers,
+      json: {
+        data: {
+          platformProviders: [
+            {
+              id: "prv_synthetic",
+              name: "=SUM(1)",
+              code: "synthetic",
+              providerType: "document",
+              status: "active",
+              configuration: { configured: true },
+              updatedAt: "2026-10-18T00:00:00Z",
+            },
+          ],
+        },
+      },
+    });
   });
   await page.goto("/providers");
   const pending = page.waitForEvent("download");
-  await page.getByRole("button", {name: "Export loaded results", exact: true}).click();
+  await page
+    .getByRole("button", { name: "Export loaded results", exact: true })
+    .click();
   const stream = await (await pending).createReadStream();
   const chunks: Buffer[] = [];
   for await (const chunk of stream!) chunks.push(chunk);

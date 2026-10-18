@@ -22,3 +22,10 @@ Configure the HTTPS acceptance URL and deployment email settings as described in
 [platform invitation operations](../../docs/operations/platform-invitations.md).
 The public `/accept-invitation` page clears fragment credentials and returns recipients
 to normal MFA-aware sign-in. Unsupported limited invitation roles are rejected.
+
+Workflow drafts belong to a tenant and project. Create workflow includes an ordered
+step editor; consent and decision are mandatory. Edit draft changes the sequence,
+name and description. Changes to published workflows produce a draft while earlier
+versions and their policies remain immutable. Archived workflows cannot be edited.
+Publishing still requires platform approval of the organization and valid policy
+settings; the editor does not bypass those checks. See [workflow operations](../../docs/operations/workflow-template-instantiation.md).

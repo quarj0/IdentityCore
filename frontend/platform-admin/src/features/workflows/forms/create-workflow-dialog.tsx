@@ -16,12 +16,19 @@ import {
   Textarea,
 } from "@identitycore/ui";
 import { createWorkflow } from "@/features/workflows/live-data";
+import {
+  defaultWorkflowSteps,
+  WorkflowStepsEditor,
+  type WorkflowStep,
+} from "./workflow-steps-editor";
 
 export function CreateWorkflowDialog({
   onCreated,
 }: {
   onCreated?: () => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const [steps, setSteps] = useState<WorkflowStep[]>(defaultWorkflowSteps);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [tenantId, setTenantId] = useState("");
@@ -32,7 +39,11 @@ export function CreateWorkflowDialog({
     setSubmitting(true);
     setError(null);
     try {
-      await createWorkflow({ tenantId, projectId, name, description });
+      await createWorkflow({ tenantId, projectId, name, description, steps });
+      setOpen(false);
+      setName("");
+      setDescription("");
+      setSteps(defaultWorkflowSteps);
       onCreated?.();
     } catch (cause) {
       setError(
@@ -43,14 +54,14 @@ export function CreateWorkflowDialog({
     }
   }
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 size-4" aria-hidden="true" />
           Create workflow
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create workflow</DialogTitle>
           <DialogDescription>
@@ -90,6 +101,7 @@ export function CreateWorkflowDialog({
               onChange={(event) => setDescription(event.target.value)}
             />
           </div>
+          <WorkflowStepsEditor steps={steps} onChange={setSteps} />
         </div>
         {error ? (
           <p role="alert" className="text-sm text-red-700">
