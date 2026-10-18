@@ -234,7 +234,7 @@ The current repository presents a working implementation foundation for vendor-n
 - audit events, retention, deletion, and export controls;
 - REST API, GraphQL surface, SDKs, CLI, and hosted applications.
 
-It does not claim complete production readiness for all provider types, country coverage, or regulatory regimes. Cost-, residency-, and health-aware routing, provider marketplace functionality, broader conformance certification, reusable claims lifecycle, tenant-owned storage routing, and complete production assurance remain ongoing work.
+It does not claim complete production readiness for all provider types, country coverage, or regulatory regimes. Conditional country/document/workflow routing, ordered fallback, circuit recovery, health inspection, tenant/environment bucket routing and AWS KMS customer keys are implemented foundations. Cost/tier optimization, a provider marketplace, broader certification, reusable claims and deployment assurance remain incomplete.
 
 - Notification defaults
 - Feature flags and operational toggles
@@ -372,7 +372,7 @@ Responsibilities:
 - Consent acceptance
 - Consent metadata
 - Consent auditability
-- Consent withdrawal handling in future versions
+- Purpose-bound consent and withdrawal with processing enforcement
 
 ---
 
@@ -502,7 +502,7 @@ Responsibilities:
 
 ## Billing Module
 
-Responsible for future monetization.
+Responsible for metered subscriptions, invoice issuance and GHS Paystack payment/recovery.
 
 Responsibilities:
 
@@ -511,7 +511,7 @@ Responsibilities:
 - Plan limits
 - Invoice metadata
 
-Payment processing is outside Version 1.0.
+Paystack test-mode acceptance and invoice reconciliation are implemented. Live collection and commercial release require separately approved deployment/payment evidence. See [billing operations](../operations/billing-foundation.md).
 
 ---
 

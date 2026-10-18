@@ -19,3 +19,8 @@ The public IdentityCore frontend sends all account actions to this application. 
 `pnpm --filter dashboard lint`, `pnpm --filter dashboard test`, and
 `pnpm --filter dashboard build` for validation. Development servers are started only
 when explicitly requested.
+
+Evidence report downloads use the authenticated API client, including scoped refresh,
+and download exact response bytes. Organization PDF transfers allow a 60-second deadline,
+normalize a missing browser MIME to `application/pdf`, and retain server content validation.
+Replacing submitted documents is detected by storage-key changes rather than file count.

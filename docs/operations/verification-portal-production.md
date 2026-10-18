@@ -1,9 +1,9 @@
 # Verification portal production operations
 
-Last reviewed: 2026-08-09
+Last reviewed: 2026-10-18
 
-The repository-owned portal is a working vertical slice with acceptance work tracked in
-IC-081 through IC-086 and summarized in
+The repository-owned portal has a working vertical slice and closed IC-081 through
+IC-086 acceptance issues. Later historical review findings remain tracked in #281; see
 `frontend/verification-portal/COMPLETION.md`. The gates in this document are additional
 deployment- and human-owned release evidence; completing repository issues does not satisfy
 them automatically.

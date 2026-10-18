@@ -2,7 +2,7 @@
 
 The disposition register tracks findings by original PR, comment and thread identifier. A resolved GitHub thread does not establish that its finding was implemented. Completed dispositions cite inspected implementation and regression evidence.
 
-The register includes 860 threads from closed or merged PRs: 237 fixed, 288 verified, 6 actionable and 329 pending individual audit. It extends the original 484-thread scope with subsequent closed-PR feedback. The original issue remains open.
+860 threads from closed or merged PRs: 237 fixed, 332 verified, 37 actionable and 254 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence. It extends the original 484-thread scope with subsequent closed-PR feedback. The original issue remains open.
 
 Merged remediation covers OCR outage gates, biometric evidence promotion, submitted-review expiry, MRZ issuer matching, provider attempt/evidence invariants, single-variant OpenCV runtime and authenticated immutable audit records. Current-main validation also covers redaction, secure HTTP adapters and webhook outbox/claim/disable/replay behavior. Delivery-time webhook isolation and controlled provider-health codes are merged in #370 and #372. Additional validation covers decision locks, external-risk I/O, authenticity redaction, retention holds and deferred evidence generation. System fallback contract fixes are merged in #373. Parser fixes are merged in #365. The independent SDK/idempotency audit verifies existing signing, replay, profile, retry and compiler behavior, and tracks live project/example, completion/type and conformance fixes in #375–#377. Conformance fixes are merged in #377; completion fixes are merged in #376. Reproduced adapter-test and partial-decision-contract findings are merged in #380, and generated SDK contract fixes in #381. Platform MFA auditing and public sample-token rejection are merged in #382, including independent AI service startup enforcement.
 
@@ -41,3 +41,15 @@ Protected merges #400, #401 and #402 preserve release evidence, Paystack billing
 Protected merged PR #403 verifies seventeen historical public contract findings, preserves prior contract tests and records the valid review correction: browser-facing mocks do not establish BFF integration coverage. Final-head review, PR/push CI, Security and the dedicated App gate passed before merge. Its regression suite passed 42 backend contract tests and two Node request-template tests.
 
 Protected merged PR #405 fixes malformed BYOP signing headers and key-rotation replay claims, with ten signing and 210 broader common/provider regressions passing (five skips). Protected merged PR #404 fixes actual BFF path routing, bounded streamed bodies and browser integration coverage. Its final CI runs passed the standalone HTTP and real Chromium/WebKit BFF checks, final-head independent review, Security and dedicated App validation; its temporary workflow approval was removed. Subject network metadata and the remaining shared-store/signed-transport integration findings remain actionable until protected remediation merges.
+
+On 2026-10-18, 45 additional historical comments were individually inspected against
+immutable main `07a683f`: 23 existing-code findings were verified with 108 focused
+baseline backend tests and the fresh frozen frontend install; 22 reproduced defects
+remain actionable until protected remediation merges. The proposed frontend and
+platform invitation/review fixes do not close the unordered active-liveness finding.
+
+A second immutable-main inspection verified 21 additional existing implementations
+and identified four additional actionable UI/documentation findings. Three baseline
+suites now total 174 passing backend tests; no pending finding is classified by
+thread resolution state alone. Reviewer RBAC, workflow creation steps and ordered
+active liveness remain explicit engineering work after this batch.

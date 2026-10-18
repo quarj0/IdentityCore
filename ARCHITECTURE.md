@@ -127,7 +127,7 @@ It is responsible for:
 - exposing deterministic failure semantics to workflows;
 - supporting retry, fallback, and Manual Review policies.
 
-The repository now includes adapter-backed managed AI execution, centralized provider invocation, secure HTTP provider calls, provider message signing and replay resistance, redacted telemetry, duration tracking, versioned capability results, immutable environment-scoped provider routes, tenant/environment-scoped health views, and an executable Provider Contract v1 conformance baseline. Routes can match capability, country, document type, and workflow; enforce per-attempt timeouts and bounded retries; execute ordered fallback; recover open circuits through a single half-open probe; and finish with Manual Review or a failed verification. Operators can inspect availability, error rate, latency, and route circuit state without access to provider secrets or payloads. Broader capability certification, manifests, and organization self-service provider onboarding remain areas of continued development.
+The repository now includes adapter-backed managed AI execution, centralized provider invocation, secure HTTP provider calls, provider message signing and replay resistance, redacted telemetry, duration tracking, versioned capability results, immutable environment-scoped provider routes, tenant/environment-scoped health views, and an executable Provider Contract v1 conformance baseline. Routes can match capability, country, document type, and workflow; enforce per-attempt timeouts and bounded retries; execute ordered fallback; recover open circuits through a single half-open probe; and finish with Manual Review or a failed verification. Operators can inspect availability, error rate, latency, and route circuit state without access to provider secrets or payloads. Versioned manifests, organization self-service connection setup and independently approved production activation are implemented. Broader capability certification and general asynchronous provider contracts remain incomplete.
 
 See [Provider Runtime](docs/architecture/provider-runtime.md).
 
@@ -223,6 +223,11 @@ It includes:
 - immutable decision history and audit events;
 - protection against state-transition races and repeated actions.
 
+Verification case assignment, queues and maker-checker controls are implemented. General
+verification-case escalation is not complete; organization onboarding has a separate
+escalation workflow. Dedicated reviewer RBAC remains an explicit historical audit
+remediation until its protected implementation merges.
+
 Human review does not bypass policy, privacy, or audit controls.
 
 ## 14. Multi-tenancy and environments
@@ -259,7 +264,7 @@ Storage, KMS/HSM, messaging, and risk infrastructure can participate through cap
 
 IdentityCore treats privacy operations as platform execution, not policy text alone.
 
-The repository includes foundations for encrypted sensitive data, retention cleanup, subject export, subject deletion, evidence access control, tamper-evident audit events, signed webhook delivery, MFA for privileged accounts, and API credential rotation.
+The repository includes tenant data envelopes and resumable rotation, environment-scoped customer-managed AWS KMS bindings, operator-approved tenant storage routes, purpose-bound consent and withdrawal, retention cleanup, subject export/deletion, evidence access control, authenticated audit chains, signed webhook delivery, MFA, API credential rotation, review queues and independent quality sampling.
 
 Production assurance additionally requires deployment-specific key management, backups, monitoring, incident response, legal configuration, model evaluation, provider agreements, residency controls, and independent security testing.
 

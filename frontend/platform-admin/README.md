@@ -16,3 +16,9 @@ never store credentials or provider secrets in them. Validate with
 
 See the [frontend workspace guide](../README.md) for ports, shared packages, and
 lockfile rules.
+
+Platform invitations grant full administration and queue encrypted single-use email links.
+Configure the HTTPS acceptance URL and deployment email settings as described in
+[platform invitation operations](../../docs/operations/platform-invitations.md).
+The public `/accept-invitation` page clears fragment credentials and returns recipients
+to normal MFA-aware sign-in. Unsupported limited invitation roles are rejected.

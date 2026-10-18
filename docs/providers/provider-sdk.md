@@ -45,30 +45,37 @@ Example:
 
 ```json
 {
-  "provider_id": "example-document-provider",
-  "display_name": "Example Document Provider",
-  "version": "1.4.0",
-  "deployment_mode": "remote_http",
-  "capabilities": [
-    {
-      "id": "document.ocr",
-      "versions": ["1.0"],
-      "countries": ["GH", "NG", "KE"],
-      "document_types": ["passport", "national_id"]
-    }
+  "manifest_version": "1",
+  "contract_version": "1",
+  "processor": "Example document processor",
+  "transfer_notes": "Approved processing region and safeguards are recorded by the deployment owner.",
+  "retention_days": 0,
+  "residency": [
+    "africa-west"
   ],
-  "residency": {
-    "regions": ["africa-west"],
-    "cross_border_processing": false
-  },
-  "retention": {
-    "stores_input_media": false,
-    "maximum_retention_hours": 0
+  "environments": [
+    "sandbox",
+    "production"
+  ],
+  "capabilities": {
+    "document_ocr": {
+      "countries": [
+        "GH",
+        "NG",
+        "KE"
+      ],
+      "document_types": [
+        "passport",
+        "national_id"
+      ],
+      "input_schema": "document_ocr.input/v1",
+      "output_schema": "document_ocr.output/v1"
+    }
   }
 }
 ```
 
-A future machine-readable manifest format should be versioned independently of provider implementation versions.
+The implemented [manifest v1](../architecture/provider-manifests.md) is versioned independently of provider implementation versions. The example uses the implemented wire capability ID `document_ocr`; dotted capability names elsewhere describe architectural namespaces. Use the linked runtime schema for actual setup.
 
 ## 4. Capability declaration
 
@@ -374,4 +381,4 @@ Before production activation, a provider author should be able to answer:
 
 The repository already contains important Provider SDK foundations: adapter registration, centralized invocation, secure custom HTTP execution, message signing, replay prevention, redacted telemetry, versioned capability results, provider-check persistence, and an executable Contract v1 conformance baseline.
 
-A packaged multi-language Provider SDK, machine-readable manifest, organization self-service onboarding flow, and broader capability/evidence/retention certification remain work to complete before arbitrary providers should be advertised as plug-and-play production integrations.
+Machine-readable manifest v1 and organization self-service setup/promotion are implemented; see [provider setup](../operations/provider-setup.md). A packaged multi-language Provider SDK and broader capability/evidence/retention certification remain incomplete. Passing setup or baseline protocol fixtures does not establish arbitrary plug-and-play production integration.

@@ -420,10 +420,15 @@
       "thread_id": "PRRT_kwDOTN0BU86TXsuY",
       "comment_id": 3641071915,
       "path": "backend/django/apps/identity_documents/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/identity_documents/tasks.py:AIServiceUnavailable handler",
+        "backend/django/apps/verifications/test_processing_jobs.py:test_terminal_exhaustion_routes_to_manual_review_with_safe_audit"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Resolve the document after retry exhaustion**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3641071915"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3641071915",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Durable document jobs defer failures and the recovery worker finalizes exhausted jobs into Manual Review instead of indefinite polling. Validation: 108 focused baseline backend tests passed in a detached immutable-main worktree; frontend frozen installation passed where relevant."
     },
     {
       "pr_number": 4,
@@ -490,10 +495,15 @@
       "thread_id": "PRRT_kwDOTN0BU86TZfPO",
       "comment_id": 3641746749,
       "path": "frontend/identitycore/src/lib/onboarding-api.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/organizations/serializers.py:OrganizationDocumentUploadSerializer.create",
+        "frontend/dashboard/src/lib/onboarding-api.ts:createOrganizationDocumentUpload"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve the organization upload-transfer fallback**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3641746749"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/4#discussion_r3641746749",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Organization document creation now always returns an authenticated relative content-transfer URL. The frontend uses its REST client rather than requiring a presigned storage URL. Validation: 108 focused baseline backend tests passed in a detached immutable-main worktree; frontend frozen installation passed where relevant."
     },
     {
       "pr_number": 5,
@@ -586,20 +596,31 @@
       "thread_id": "PRRT_kwDOTN0BU86R9uK4",
       "comment_id": 3607869939,
       "path": "backend/django/apps/verification_sessions/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verification_sessions/views.py:VerificationSessionLivenessView",
+        "backend/django/apps/verifications/processing_jobs.py:queue_biometrics_processing",
+        "backend/django/apps/verifications/test_processing_jobs.py:test_stale_lease_is_redispatched_without_incrementing_attempt"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Requeue liveness when the existing check never reached Celery**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3607869939"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3607869939",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Liveness submissions use durable biometric processing jobs; a saved pending job survives broker publication failure and the recovery worker redispatches stale work. Validation: 108 focused baseline backend tests passed in a detached immutable-main worktree; frontend frozen installation passed where relevant."
     },
     {
       "pr_number": 6,
       "thread_id": "PRRT_kwDOTN0BU86R9uK7",
       "comment_id": 3607869943,
       "path": "backend/django/apps/identity_documents/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/risk/services.py:_document_requires_manual_review",
+        "backend/django/apps/risk/tests.py:test_ocr_outage_reason_remains_a_review_gate"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve OCR review signals for the risk decision**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3607869943"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3607869943",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "OCR outage and requires-review reasons persist into risk gates and cannot be overridden by positive biometric evidence. Validation: 108 focused baseline backend tests passed in a detached immutable-main worktree; frontend frozen installation passed where relevant."
     },
     {
       "pr_number": 6,
@@ -768,30 +789,45 @@
       "thread_id": "PRRT_kwDOTN0BU86TY5IB",
       "comment_id": 3641521898,
       "path": "backend/django/apps/identity_documents/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verification_sessions/serializers.py:VerificationSessionSelfieSerializer",
+        "backend/django/apps/verification_sessions/serializers.py:VerificationSessionLivenessSerializer"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Allow review-flagged documents to proceed to selfie**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3641521898"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3641521898",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Both selfie and liveness validation explicitly accept PROCESSED and MANUAL_REVIEW_REQUIRED documents while retaining ownership and consent checks. Validation: 108 focused baseline backend tests passed in a detached immutable-main worktree; frontend frozen installation passed where relevant."
     },
     {
       "pr_number": 6,
       "thread_id": "PRRT_kwDOTN0BU86TY5IF",
       "comment_id": 3641521902,
       "path": "backend/django/apps/identity_documents/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/identity_documents/tasks.py:process_identity_document_task",
+        "backend/django/apps/verifications/test_processing_jobs.py:test_terminal_exhaustion_routes_to_manual_review_with_safe_audit"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Finalize document status after retry exhaustion**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3641521902"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3641521902",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "The legacy Celery-only exhaustion problem is superseded by durable processing leases, deferral and bounded recovery finalization. Validation: 108 focused baseline backend tests passed in a detached immutable-main worktree; frontend frozen installation passed where relevant."
     },
     {
       "pr_number": 6,
       "thread_id": "PRRT_kwDOTN0BU86TY5IL",
       "comment_id": 3641521908,
       "path": "backend/django/config/graphql_queries.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/review_access.py:manual_review_queryset_for_user",
+        "backend/django/apps/verifications/tests.py:ManualReviewOwnershipTests"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Apply the onboarding exclusion to the REST review queue**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3641521908"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3641521908",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "REST and GraphQL scope manual review using the queryable review_owner discriminator and shared authorization rather than encrypted metadata filtering. Validation: 108 focused baseline backend tests passed in a detached immutable-main worktree; frontend frozen installation passed where relevant."
     },
     {
       "pr_number": 6,
@@ -813,50 +849,67 @@
       "thread_id": "PRRT_kwDOTN0BU86TZW20",
       "comment_id": 3641697274,
       "path": "backend/django/apps/verifications/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/review_access.py:manual_review_queryset_for_user",
+        "backend/django/apps/verifications/tests.py:ManualReviewOwnershipTests"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Exclude onboarding cases without querying encrypted metadata**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3641697274"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3641697274",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Platform-owned onboarding reviews are excluded through the explicit review_owner database field, not an encrypted JSON path. Validation: 108 focused baseline backend tests passed in a detached immutable-main worktree; frontend frozen installation passed where relevant."
     },
     {
       "pr_number": 6,
       "thread_id": "PRRT_kwDOTN0BU86TZW24",
       "comment_id": 3641697278,
       "path": "frontend/dashboard/src/lib/backend.ts",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Refresh the dashboard token before downloading evidence**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3641697278"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3641697278",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Reproduced current dashboard evidence anchors bypassing authentication/refresh. Proposed fix uses the shared authenticated binary response path; keep actionable until protected merge."
     },
     {
       "pr_number": 6,
       "thread_id": "PRRT_kwDOTN0BU86TZe2P",
       "comment_id": 3641744400,
       "path": "frontend/identitycore/src/lib/onboarding-api.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/organizations/serializers.py:OrganizationDocumentUploadSerializer.create",
+        "backend/django/apps/organizations/views.py:OrganizationDocumentContentUploadView",
+        "backend/django/common/storage.py:put_object_bytes"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Send the signed storage encryption header**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3641744400"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/6#discussion_r3641744400",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "The current organization upload is server-proxied. Storage encryption headers are applied by the server object writer; the browser no longer performs an SSE-constrained presigned PUT. Validation: 108 focused baseline backend tests passed in a detached immutable-main worktree; frontend frozen installation passed where relevant."
     },
     {
       "pr_number": 7,
       "thread_id": "PRRT_kwDOTN0BU86R97sw",
       "comment_id": 3607949655,
       "path": "frontend/identitycore/src/components/onboarding/organization-verification-form.tsx",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Allow submitting read-only document replacements**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/7#discussion_r3607949655"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/7#discussion_r3607949655",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Current dashboard component still compared document counts, so replacing one submitted document with another hid the submit action. Proposed storage-key-set comparison and browser regression await protected merge."
     },
     {
       "pr_number": 7,
       "thread_id": "PRRT_kwDOTN0BU86R97sx",
       "comment_id": 3607949657,
       "path": "frontend/identitycore/src/components/onboarding/organization-verification-form.tsx",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Accept PDFs even when MIME is blank**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/7#discussion_r3607949657"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/7#discussion_r3607949657",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Both current onboarding clients rejected a PDF with blank browser MIME. Proposed explicit MIME normalization preserves server PDF validation; browser regression awaits protected merge."
     },
     {
       "pr_number": 10,
@@ -890,10 +943,15 @@
       "thread_id": "PRRT_kwDOTN0BU86R-N73",
       "comment_id": 3608052740,
       "path": ".env.example",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        ".env.example:DJANGO_CORS_ALLOWED_ORIGINS",
+        "backend/django/config/test_local_frontend_origins.py:test_sample_cors_allows_every_local_frontend"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve existing local CORS origins**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/10#discussion_r3608052740"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/10#discussion_r3608052740",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "The sample CORS configuration retains every local first-party origin, with a direct regression covering the example. Validation: 108 focused baseline backend tests passed in a detached immutable-main worktree; frontend frozen installation passed where relevant."
     },
     {
       "pr_number": 10,
@@ -929,10 +987,15 @@
       "thread_id": "PRRT_kwDOTN0BU86TZmRU",
       "comment_id": 3641787818,
       "path": "backend/django/apps/verifications/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/serializers.py:ManualReviewDecisionSerializer.save",
+        "backend/django/apps/verifications/test_historical_review_protocols.py:test_automatic_and_system_review_routing_can_be_resolved_once"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Restrict decisions to manual-review cases**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3641787818"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3641787818",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "The shared manual decision serializer locks the case and rejects any status other than manual_review_required. Final manual outcomes cannot be overwritten. Validation: 108 focused baseline backend tests passed in a detached immutable-main worktree; frontend frozen installation passed where relevant."
     },
     {
       "pr_number": 16,
@@ -954,50 +1017,69 @@
       "thread_id": "PRRT_kwDOTN0BU86TZmRZ",
       "comment_id": 3641787824,
       "path": "backend/django/apps/verifications/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/review_access.py",
+        "backend/django/apps/verifications/tests.py:ManualReviewOwnershipTests"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep onboarding identity reviews tenant-inaccessible**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3641787824"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3641787824",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Explicit platform review ownership excludes administrator onboarding from tenant review queues and tenant decisions. Validation: 108 focused baseline backend tests passed in a detached immutable-main worktree; frontend frozen installation passed where relevant."
     },
     {
       "pr_number": 16,
       "thread_id": "PRRT_kwDOTN0BU86TZmRb",
       "comment_id": 3641787826,
       "path": "backend/django/apps/verifications/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/views.py:VerificationCancelView",
+        "backend/django/apps/verifications/tests.py:test_cancel_terminal_verification_returns_conflict"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reject cancellation after a final verification status**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3641787826"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3641787826",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "The cancellation transition rejects terminal outcomes before audit/outbox mutation and the regression asserts conflict. Validation: 108 focused baseline backend tests passed in a detached immutable-main worktree; frontend frozen installation passed where relevant."
     },
     {
       "pr_number": 16,
       "thread_id": "PRRT_kwDOTN0BU86TZmRd",
       "comment_id": 3641787828,
       "path": "frontend/platform-admin/src/features/review/pages/review-case-detail-page.tsx",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep closed organization reviews non-actionable**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3641787828"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3641787828",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Current organization review backend has no pending-state guard and the UI enables closed decisions. Proposed locked finalization guard, browser disabling and concurrency regression await protected merge."
     },
     {
       "pr_number": 16,
       "thread_id": "PRRT_kwDOTN0BU86TZmRe",
       "comment_id": 3641787829,
       "path": "frontend/dashboard/src/features/verifications/components/live-verification-detail.tsx",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Download evidence through the authenticated client**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3641787829"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3641787829",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Current evidence anchors do not attach the dashboard bearer. Proposed authenticated blob download uses fixed API paths and scoped token refresh; keep actionable until protected merge."
     },
     {
       "pr_number": 16,
       "thread_id": "PRRT_kwDOTN0BU86TZmRg",
       "comment_id": 3641787833,
       "path": "backend/django/apps/verifications/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/views.py:VerificationResendLinkView.post",
+        "backend/django/apps/verifications/tests.py:VerificationWorkflowTests"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reject resending links for terminal verifications**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3641787833"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3641787833",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Resend rejects terminal and simulated cases under the verification lock before revoking sessions or creating another credential. Validation: 108 focused baseline backend tests passed in a detached immutable-main worktree; frontend frozen installation passed where relevant."
     },
     {
       "pr_number": 16,
@@ -1019,10 +1101,14 @@
       "thread_id": "PRRT_kwDOTN0BU86Tc9ah",
       "comment_id": 3643066173,
       "path": "backend/django/config/settings/base.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/settings/base.py:env_one_of storage assignments"
+      ],
       "summary": "**<sub><sub>![P0 Badge](https://img.shields.io/badge/P0-red?style=flat)</sub></sub>  Supply fallback names when calling env_one_of**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3643066173"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3643066173",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "All storage aliases now supply fallback-name lists; the baseline starts and the targeted backend suite imports these settings successfully. Validation: 108 focused baseline backend tests passed in a detached immutable-main worktree; frontend frozen installation passed where relevant."
     },
     {
       "pr_number": 16,
@@ -1044,30 +1130,44 @@
       "thread_id": "PRRT_kwDOTN0BU86Tc9ak",
       "comment_id": 3643066176,
       "path": "backend/django/apps/identity_documents/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/identity_documents/tasks.py:_latest_provider_check_for_document",
+        "backend/django/apps/identity_documents/tests.py:IdentityDocumentTaskTests"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Restore the provider-check lookup helper**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3643066176"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3643066176",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "The document-scoped provider-check helper exists and is exercised by successful document task tests. Validation: 108 focused baseline backend tests passed in a detached immutable-main worktree; frontend frozen installation passed where relevant."
     },
     {
       "pr_number": 16,
       "thread_id": "PRRT_kwDOTN0BU86Tc9am",
       "comment_id": 3643066179,
       "path": "backend/django/apps/identity_documents/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/identity_documents/tasks.py:process_identity_document_task decorator",
+        "backend/django/apps/verifications/test_processing_jobs.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Restore retries for document AI outages**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3643066179"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/16#discussion_r3643066179",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "AIServiceUnavailable remains an autoretry exception and defers the durable job; bounded worker recovery owns final exhaustion. Validation: 108 focused baseline backend tests passed in a detached immutable-main worktree; frontend frozen installation passed where relevant."
     },
     {
       "pr_number": 17,
       "thread_id": "PRRT_kwDOTN0BU86Tc_4O",
       "comment_id": 3643080711,
       "path": "backend/django/config/settings/base.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/settings/base.py:OBJECT_STORAGE_PROVIDER and storage aliases"
+      ],
       "summary": "**<sub><sub>![P0 Badge](https://img.shields.io/badge/P0-red?style=flat)</sub></sub>  Pass fallback lists to env_one_of**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/17#discussion_r3643080711"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/17#discussion_r3643080711",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Storage env_one_of assignments provide the required fallback lists; baseline settings import and execution pass. Validation: 108 focused baseline backend tests passed in a detached immutable-main worktree; frontend frozen installation passed where relevant."
     },
     {
       "pr_number": 17,
@@ -1089,20 +1189,30 @@
       "thread_id": "PRRT_kwDOTN0BU86Tc_4d",
       "comment_id": 3643080726,
       "path": "backend/django/apps/verification_sessions/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verification_sessions/urls.py",
+        "backend/django/apps/verifications/tests.py:test_cancel_terminal_verification_returns_conflict"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Avoid cancellation events for terminal sessions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/17#discussion_r3643080726"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/17#discussion_r3643080726",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "The session cancellation endpoint is retired; current session URLs and views have no cancellation action. Organization/API cancellation uses the guarded terminal transition. Validation: source was individually inspected against immutable main; 174 focused baseline backend tests and the frozen frontend installation passed across the audited batches."
     },
     {
       "pr_number": 17,
       "thread_id": "PRRT_kwDOTN0BU86Tc_4j",
       "comment_id": 3643080734,
       "path": "frontend/identitycore/src/components/login/login-form.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/identitycore/next.config.ts:redirects",
+        "frontend/dashboard/src/components/login/login-form.tsx:complete"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep the platform bearer token out of the redirect query**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/17#discussion_r3643080734"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/17#discussion_r3643080734",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "The public site no longer authenticates or redirects bearer tokens to platform admin. Account paths redirect to the dashboard; its login stores its own credential and navigates without a token query. Validation: source was individually inspected against immutable main; 174 focused baseline backend tests and the frozen frontend installation passed across the audited batches."
     },
     {
       "pr_number": 19,
@@ -1140,20 +1250,29 @@
       "thread_id": "PRRT_kwDOTN0BU86Tc7gz",
       "comment_id": 3643055082,
       "path": "backend/django/config/settings/base.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/settings/base.py:env_one_of storage assignments"
+      ],
       "summary": "**<sub><sub>![P0 Badge](https://img.shields.io/badge/P0-red?style=flat)</sub></sub>  Supply the required `env_one_of` fallback arguments**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/20#discussion_r3643055082"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/20#discussion_r3643055082",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Storage env_one_of assignments provide fallback lists; the previously fatal settings import is absent on immutable baseline. Validation: 108 focused baseline backend tests passed in a detached immutable-main worktree; frontend frozen installation passed where relevant."
     },
     {
       "pr_number": 20,
       "thread_id": "PRRT_kwDOTN0BU86Tc7g1",
       "comment_id": 3643055086,
       "path": "backend/django/apps/identity_documents/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/identity_documents/tasks.py:_latest_provider_check_for_document",
+        "backend/django/apps/identity_documents/tests.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Restore the document provider-check lookup helper**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/20#discussion_r3643055086"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/20#discussion_r3643055086",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "The task lookup helper is defined before its uses, and document quality/classification/OCR execution tests pass. Validation: 108 focused baseline backend tests passed in a detached immutable-main worktree; frontend frozen installation passed where relevant."
     },
     {
       "pr_number": 20,
@@ -1175,10 +1294,15 @@
       "thread_id": "PRRT_kwDOTN0BU86Tc7g4",
       "comment_id": 3643055089,
       "path": "backend/django/apps/verification_sessions/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verification_sessions/urls.py",
+        "backend/django/apps/verifications/views.py:VerificationCancelView"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Avoid emitting cancellation events for terminal cases**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/20#discussion_r3643055089"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/20#discussion_r3643055089",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "This repeated session-cancellation finding is superseded by removal of that route. The remaining verification cancellation rejects terminal outcomes before outbox/audit mutation. Validation: source was individually inspected against immutable main; 174 focused baseline backend tests and the frozen frontend installation passed across the audited batches."
     },
     {
       "pr_number": 20,
@@ -1215,30 +1339,39 @@
       "thread_id": "PRRT_kwDOTN0BU86Tc7s-",
       "comment_id": 3643056266,
       "path": "backend/django/apps/verifications/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/review_access.py",
+        "backend/django/apps/verifications/tests.py:ManualReviewOwnershipTests"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Do not filter encrypted metadata in database queries**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/21#discussion_r3643056266"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/21#discussion_r3643056266",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Review ownership is persisted in a queryable field and used by the shared queryset/authorization boundary rather than encrypted metadata JSON filters. Validation: 108 focused baseline backend tests passed in a detached immutable-main worktree; frontend frozen installation passed where relevant."
     },
     {
       "pr_number": 21,
       "thread_id": "PRRT_kwDOTN0BU86Tc7tC",
       "comment_id": 3643056270,
       "path": "frontend/dashboard/src/lib/backend.ts",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reuse token-refresh handling for evidence downloads**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/21#discussion_r3643056270"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/21#discussion_r3643056270",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "The current evidence download bypasses the authenticated client. Proposed shared binary download/refresh and regression await protected merge."
     },
     {
       "pr_number": 21,
       "thread_id": "PRRT_kwDOTN0BU86Tc7tG",
       "comment_id": 3643056276,
       "path": "frontend/dashboard/src/features/verifications/components/live-verification-detail.tsx",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep manual-review actions available for automated cases**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/21#discussion_r3643056276"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/21#discussion_r3643056276",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Current review controls hide the normal automatic/system review-routing decision. Proposed status/type-aware controls and browser regression await protected merge."
     },
     {
       "pr_number": 23,
@@ -1261,10 +1394,15 @@
       "thread_id": "PRRT_kwDOTN0BU86TeEmr",
       "comment_id": 3643485024,
       "path": "frontend/developer-portal/package.json",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/pnpm-lock.yaml:developer-portal importer",
+        "frontend/developer-portal/package.json"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Synchronize the root lockfile with developer-portal pins**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/24#discussion_r3643485024"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/24#discussion_r3643485024",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "The root lockfile matches the developer-portal importer. A fresh frozen workspace install succeeded in this environment without manifest/lockfile changes. Validation: 108 focused baseline backend tests passed in a detached immutable-main worktree; frontend frozen installation passed where relevant."
     },
     {
       "pr_number": 29,
@@ -1329,10 +1467,12 @@
       "thread_id": "PRRT_kwDOTN0BU86ThqhZ",
       "comment_id": 3644802544,
       "path": "backend/django/apps/verification_sessions/serializers.py",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Bind the challenge to an unrecorded action sequence**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/31#discussion_r3644802544"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/31#discussion_r3644802544",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Confirmed that managed active-liveness scoring uses unordered membership of two sampled actions. This is still actionable; a replay-resistant ordered challenge contract and regression are required."
     },
     {
       "pr_number": 31,
@@ -1355,10 +1495,12 @@
       "thread_id": "PRRT_kwDOTN0BU86TiDUh",
       "comment_id": 3644944376,
       "path": "frontend/platform-admin/src/features/users/components/invite-admin-dialog.tsx",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Deliver an acceptance token with each invitation**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/32#discussion_r3644944376"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/32#discussion_r3644944376",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Confirmed platform invitations have no production notification delivery. Proposed encrypted platform outbox and public fragment acceptance page await protected merge."
     },
     {
       "pr_number": 32,
@@ -1383,30 +1525,36 @@
       "thread_id": "PRRT_kwDOTN0BU86TiDUv",
       "comment_id": 3644944390,
       "path": "frontend/platform-admin/src/components/admin-module/admin-list-page.tsx",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve default header actions when no override is supplied**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/32#discussion_r3644944390"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/32#discussion_r3644944390",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Confirmed generic lists lose export when no custom headerActions is supplied. Proposed functional loaded-results CSV fallback awaits protected merge. Generic Create labels have no implemented module mutation and must not be restored as inert controls."
     },
     {
       "pr_number": 32,
       "thread_id": "PRRT_kwDOTN0BU86TiDUy",
       "comment_id": 3644944394,
       "path": "frontend/platform-admin/src/features/users/components/invite-admin-dialog.tsx",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Enforce the selected role before granting platform access**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/32#discussion_r3644944394"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/32#discussion_r3644944394",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Confirmed limited role labels grant the same boolean platform authority. Proposed explicit full-admin-only invitation contract rejects unsupported roles and awaits protected merge."
     },
     {
       "pr_number": 32,
       "thread_id": "PRRT_kwDOTN0BU86TiDU4",
       "comment_id": 3644944400,
       "path": "frontend/platform-admin/src/features/users/components/invite-admin-dialog.tsx",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate email addresses before creating invitations**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/32#discussion_r3644944400"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/32#discussion_r3644944400",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Confirmed server invitation mutation only rejected blank email. Proposed email validation and no-write regression await protected merge."
     },
     {
       "pr_number": 33,
@@ -1449,50 +1597,60 @@
       "thread_id": "PRRT_kwDOTN0BU86TihIb",
       "comment_id": 3645114475,
       "path": "frontend/platform-admin/src/features/review/pages/manual-review-queue-page.tsx",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Neutralize spreadsheet formulas in exported queue data**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645114475"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645114475",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Confirmed queue CSV quoting does not neutralize spreadsheet formulas. Proposed shared cell neutralization and regression await protected merge."
     },
     {
       "pr_number": 33,
       "thread_id": "PRRT_kwDOTN0BU86TihIh",
       "comment_id": 3645114483,
       "path": "frontend/platform-admin/src/features/review/pages/manual-review-queue-page.tsx",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Export every page of the review queue**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645114483"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645114483",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Confirmed queue export loads only the first 50 rows. Proposed UI explicitly names the export as loaded results; keep actionable until protected merge."
     },
     {
       "pr_number": 33,
       "thread_id": "PRRT_kwDOTN0BU86Tior-",
       "comment_id": 3645157816,
       "path": "frontend/platform-admin/src/components/layout/platform-topbar.tsx",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Clear local credentials when sign-out fails**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645157816"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645157816",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Confirmed shared logout leaves local credentials when server revocation fails. Proposed finally cleanup plus visible unconfirmed-server-sign-out state await protected merge."
     },
     {
       "pr_number": 33,
       "thread_id": "PRRT_kwDOTN0BU86TiosB",
       "comment_id": 3645157820,
       "path": "frontend/platform-admin/src/features/users/components/invite-admin-dialog.tsx",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate invitation addresses before creating them**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645157820"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645157820",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Confirmed malformed email can reach platform invitation creation. Proposed server validation and UI checks await protected merge."
     },
     {
       "pr_number": 33,
       "thread_id": "PRRT_kwDOTN0BU86Tixc-",
       "comment_id": 3645208246,
       "path": "frontend/platform-admin/src/features/users/components/invite-admin-dialog.tsx",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Deliver an acceptance link before confirming the invitation**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645208246"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645208246",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Confirmed no platform invitation email/link delivery. Proposed durable encrypted outbox and acceptance page await protected merge."
     },
     {
       "pr_number": 33,
@@ -1517,10 +1675,12 @@
       "thread_id": "PRRT_kwDOTN0BU86Ti0uF",
       "comment_id": 3645226825,
       "path": "frontend/platform-admin/src/features/users/components/disable-admin-dialog.tsx",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Make Cancel close the dialog**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645226825"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/33#discussion_r3645226825",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Confirmed disable-admin Cancel is a plain inert button. Proposed DialogClose wrapper awaits protected merge."
     },
     {
       "pr_number": 34,
@@ -1675,20 +1835,28 @@
       "thread_id": "PRRT_kwDOTN0BU86TjHUU",
       "comment_id": 3645332176,
       "path": "backend/django/config/graphql_mutations.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/audit/models.py:AuditEvent.tenant",
+        "backend/django/apps/workflows/test_historical_publishing.py:test_http_template_creation_uses_real_schema_root_and_platform_audit",
+        "backend/django/apps/templates/test_historical_lifecycle.py:test_tenant_bound_platform_actor_retains_valid_publication_audit"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Supply a tenant for template audit events**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645332176"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645332176",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Platform audit rows support null tenant scope and template lifecycle operations preserve platform audit evidence. Immutable baseline template/workflow audit regressions pass. Validation: source was individually inspected against immutable main; 174 focused baseline backend tests and the frozen frontend installation passed across the audited batches."
     },
     {
       "pr_number": 34,
       "thread_id": "PRRT_kwDOTN0BU86TjLLU",
       "comment_id": 3645354152,
       "path": "frontend/platform-admin/src/lib/export-csv.ts",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Escape spreadsheet formulas in CSV exports**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645354152"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645354152",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Confirmed generic CSV exporter preserves formula-leading values. Proposed shared CSV cell neutralization awaits protected merge."
     },
     {
       "pr_number": 34,
@@ -1730,20 +1898,28 @@
       "thread_id": "PRRT_kwDOTN0BU86TjLLa",
       "comment_id": 3645354158,
       "path": "frontend/platform-admin/src/features/workflows/forms/create-workflow-dialog.tsx",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Provide workflow steps before allowing creation**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645354158"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645354158",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Individually confirmed createWorkflow sends no steps and createPlatformWorkflow stores an empty list; publication rejects it. A usable creation/editing contract remains required."
     },
     {
       "pr_number": 34,
       "thread_id": "PRRT_kwDOTN0BU86TjLLe",
       "comment_id": 3645354164,
       "path": "frontend/platform-admin/src/features/workflows/components/workflow-publish-dialog.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/platform-admin/src/features/workflows/components/workflow-publish-dialog.tsx",
+        "frontend/platform-admin/src/features/workflows/live-data.ts:publishWorkflow",
+        "backend/django/apps/templates/test_historical_lifecycle.py:test_workflow_publish_and_archive_preserve_operator_notes"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Persist the required workflow release notes**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645354164"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/34#discussion_r3645354164",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "The publish dialog forwards notes; the GraphQL mutation retains the operator rationale in audit metadata. The baseline regression checks workflow publish/archive notes. Validation: source was individually inspected against immutable main; 174 focused baseline backend tests and the frozen frontend installation passed across the audited batches."
     },
     {
       "pr_number": 34,
@@ -1783,10 +1959,12 @@
       "thread_id": "PRRT_kwDOTN0BU86TjdvR",
       "comment_id": 3645461288,
       "path": "frontend/platform-admin/src/features/workflows/forms/create-workflow-dialog.tsx",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Include steps when creating workflows**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461288"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461288",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Individually confirmed this repeated creation finding: current platform-admin creation provides no steps. A publishable creation path and browser regression remain required."
     },
     {
       "pr_number": 35,
@@ -1900,140 +2078,198 @@
       "thread_id": "PRRT_kwDOTN0BU86Tjdvm",
       "comment_id": 3645461314,
       "path": "frontend/platform-admin/src/lib/export-csv.ts",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Neutralize spreadsheet formulas in CSV exports**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461314"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/35#discussion_r3645461314",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Confirmed duplicate CSV formula-injection finding against the current exporter. Proposed escaping and regression await protected merge."
     },
     {
       "pr_number": 37,
       "thread_id": "PRRT_kwDOTN0BU86Tj8jo",
       "comment_id": 3645637166,
       "path": "backend/django/config/settings/base.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/config/settings/base.py:merge_cors_allow_headers"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve the session-scope header under CORS overrides**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/37#discussion_r3645637166"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/37#discussion_r3645637166",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Required CORS headers are merged into configured additions, including the first-party session-scope header, instead of being replaced by environment overrides. Validation: source was individually inspected against immutable main; 174 focused baseline backend tests and the frozen frontend installation passed across the audited batches."
     },
     {
       "pr_number": 37,
       "thread_id": "PRRT_kwDOTN0BU86Tj8jr",
       "comment_id": 3645637170,
       "path": "backend/django/apps/accounts/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/accounts/test_sessions.py:test_legacy_refresh_migrates_once_after_signature_validation",
+        "backend/django/apps/accounts/test_sessions.py:test_scoped_cookie_cannot_fall_back_to_legacy_when_invalid",
+        "docs/operations/dashboard-sessions.md"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Migrate existing refresh cookies before requiring a scope**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/37#discussion_r3645637170"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/37#discussion_r3645637170",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Scoped refresh migrates a valid legacy shared cookie once; an invalid scoped cookie never falls back. Immutable baseline session migration/replay tests pass. Validation: source was individually inspected against immutable main; 174 focused baseline backend tests and the frozen frontend installation passed across the audited batches."
     },
     {
       "pr_number": 38,
       "thread_id": "PRRT_kwDOTN0BU86Tj_sd",
       "comment_id": 3645655683,
       "path": "backend/django/apps/organizations/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/organizations/serializers.py:OrganizationDocumentUploadSerializer.create",
+        "backend/django/apps/organizations/views.py:OrganizationDocumentContentUploadView",
+        "backend/django/common/storage.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Include the signed KMS key header**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/38#discussion_r3645655683"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/38#discussion_r3645655683",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Organization supporting PDFs use authenticated backend transfer, so configured SSE-KMS parameters are supplied by server storage writes rather than browser headers. Validation: 108 focused baseline backend tests passed in a detached immutable-main worktree; frontend frozen installation passed where relevant."
     },
     {
       "pr_number": 39,
       "thread_id": "PRRT_kwDOTN0BU86TkQI9",
       "comment_id": 3645748730,
       "path": "frontend/identitycore/src/components/navigation/marketing-nav.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/identitycore/src/components/navigation/marketing-nav.tsx",
+        "frontend/dashboard/src/components/navigation/user-menu.tsx",
+        "frontend/dashboard/src/components/auth/dashboard-session.tsx"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Revoke the refresh cookie when signing out**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/39#discussion_r3645748730"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/39#discussion_r3645748730",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "The public marketing navigation no longer owns a session or sign-out action. The actual dashboard UserMenu calls DashboardSession.logout and the shared client invokes /auth/logout. Validation: source was individually inspected against immutable main; 174 focused baseline backend tests and the frozen frontend installation passed across the audited batches."
     },
     {
       "pr_number": 39,
       "thread_id": "PRRT_kwDOTN0BU86TkQJD",
       "comment_id": 3645748736,
       "path": "frontend/identitycore/src/components/navigation/marketing-nav.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/identitycore/src/components/navigation/marketing-nav.tsx",
+        "frontend/dashboard/src/components/auth/dashboard-session.tsx"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Synchronize the header after a token refresh**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/39#discussion_r3645748736"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/39#discussion_r3645748736",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Authenticated marketing navigation is retired. Public sign-in/workspace links target the dashboard, whose session context restores credentials then reads the actual current user before displaying protected navigation. Validation: source was individually inspected against immutable main; 174 focused baseline backend tests and the frozen frontend installation passed across the audited batches."
     },
     {
       "pr_number": 39,
       "thread_id": "PRRT_kwDOTN0BU86TkQJJ",
       "comment_id": 3645748742,
       "path": "frontend/identitycore/src/components/navigation/marketing-nav.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/identitycore/src/components/navigation/marketing-nav.tsx",
+        "frontend/dashboard/src/components/navigation/user-menu.tsx",
+        "frontend/dashboard/src/components/auth/dashboard-session.tsx"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep each tab's displayed user tied to its token**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/39#discussion_r3645748742"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/39#discussion_r3645748742",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "The origin-wide stored-user marketing listener is retired. Actual dashboard UserMenu reads its tab-local session context backed by /auth/me rather than combining localStorage user data with another tab token. Validation: source was individually inspected against immutable main; 174 focused baseline backend tests and the frozen frontend installation passed across the audited batches."
     },
     {
       "pr_number": 41,
       "thread_id": "PRRT_kwDOTN0BU86TlUAb",
       "comment_id": 3646141210,
       "path": "frontend/identitycore/src/components/navigation/marketing-nav.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/identitycore/src/components/navigation/marketing-nav.tsx",
+        "frontend/dashboard/src/components/auth/dashboard-session.tsx",
+        "frontend/packages/api-client/src/index.ts:logout"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Revoke the refresh cookie when signing out**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/41#discussion_r3646141210"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/41#discussion_r3646141210",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "This repeated marketing logout path no longer exists. Dashboard logout delegates to the authenticated shared client and calls the server revocation endpoint. Validation: source was individually inspected against immutable main; 174 focused baseline backend tests and the frozen frontend installation passed across the audited batches."
     },
     {
       "pr_number": 41,
       "thread_id": "PRRT_kwDOTN0BU86TlUAk",
       "comment_id": 3646141221,
       "path": "frontend/identitycore/src/components/navigation/marketing-nav.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/identitycore/next.config.ts",
+        "frontend/dashboard/src/components/auth/dashboard-session.tsx"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Restore authenticated navigation from the refresh session**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/41#discussion_r3646141221"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/41#discussion_r3646141221",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "The public site has no authenticated navigation state to restore. Account routes are owned by the dashboard; DashboardSession restores the scoped session and fetches /auth/me on mount. Validation: source was individually inspected against immutable main; 174 focused baseline backend tests and the frozen frontend installation passed across the audited batches."
     },
     {
       "pr_number": 41,
       "thread_id": "PRRT_kwDOTN0BU86TlUAq",
       "comment_id": 3646141227,
       "path": "backend/django/apps/organizations/views.py",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Permit the advertised 10 MB proxy uploads**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/41#discussion_r3646141227"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/41#discussion_r3646141227",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Individually confirmed raw request.body applies the default 2.5 MiB limit to allowed PDFs. Proposed bounded stream reads pass a real 3 MiB request and reject oversized records/extra bytes; keep actionable until protected merge."
     },
     {
       "pr_number": 41,
       "thread_id": "PRRT_kwDOTN0BU86TlUAu",
       "comment_id": 3646141233,
       "path": "frontend/identitycore/src/lib/onboarding-api.ts",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve the longer timeout for proxied document uploads**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/41#discussion_r3646141233"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/41#discussion_r3646141233",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Confirmed organization PDF proxy uses the generic 30-second timeout. Proposed explicit 60-second transfer option preserves ordinary request defaults and awaits protected merge."
     },
     {
       "pr_number": 43,
       "thread_id": "PRRT_kwDOTN0BU86TmeMI",
       "comment_id": 3646572894,
       "path": "frontend/identitycore/src/components/navigation/nav-flyout.tsx",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Close flyouts when focus leaves**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/43#discussion_r3646572894"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/43#discussion_r3646572894",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Confirmed public navigation flyouts lack focus-leave dismissal. Proposed onBlur containment check awaits protected merge."
     },
     {
       "pr_number": 43,
       "thread_id": "PRRT_kwDOTN0BU86TmeML",
       "comment_id": 3646572899,
       "path": "frontend/identitycore/src/app/onboarding/first-workflow/page.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/dashboard/src/app/onboarding/first-workflow/page.tsx:loading and createdWorkflow branches"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Prevent navigation while workflows are loading**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/43#discussion_r3646572899"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/43#discussion_r3646572899",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "The active first-workflow page shows a loading region until template loading completes. Its final Link is rendered only after workflow instantiation, without a disabled anchor. Validation: source was individually inspected against immutable main; 174 focused baseline backend tests and the frozen frontend installation passed across the audited batches."
     },
     {
       "pr_number": 43,
       "thread_id": "PRRT_kwDOTN0BU86TmeMO",
       "comment_id": 3646572903,
       "path": "frontend/identitycore/src/app/robots.ts",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Block the base onboarding route in robots.txt**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/43#discussion_r3646572903"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/43#discussion_r3646572903",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Confirmed robots excludes only slash-suffixed onboarding. Proposed base-path exclusion covers redirects and descendants; await protected merge."
     },
     {
       "pr_number": 44,
@@ -2128,130 +2364,187 @@
       "thread_id": "PRRT_kwDOTN0BU86TnG23",
       "comment_id": 3646810564,
       "path": "frontend/verification-portal/src/components/verification/live-liveness-capture.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/verification-portal/src/lib/media-recording.ts:RECORDING_FORMATS",
+        "frontend/verification-portal/src/components/verification/live-liveness-capture.tsx:selectRecordingFormat"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Support Safari's MP4 MediaRecorder output**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/44#discussion_r3646810564"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/44#discussion_r3646810564",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Recording format selection prefers supported MP4 variants and preserves MP4 file MIME/extension before trying WebM. Validation: source was individually inspected against immutable main; 174 focused baseline backend tests and the frozen frontend installation passed across the audited batches."
     },
     {
       "pr_number": 45,
       "thread_id": "PRRT_kwDOTN0BU86T5N6o",
       "comment_id": 3653460425,
       "path": "docs/architecture/product-alignment.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/verifications/review_access.py",
+        "backend/django/apps/verifications/review_queues.py",
+        "backend/django/apps/verifications/test_review_queues.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Mark verification-review assignment and escalation as gaps**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/45#discussion_r3653460425"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/45#discussion_r3653460425",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Verification assignment, maker-checker and queues now exist, but generalized verification-case escalation is still absent. Organization onboarding escalation is a different workflow. Proposed capability documentation distinguishes these boundaries; keep actionable until protected merge."
     },
     {
       "pr_number": 45,
       "thread_id": "PRRT_kwDOTN0BU86T5N6r",
       "comment_id": 3653460429,
       "path": "README.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "README.md:Current status",
+        "README.md:Roadmap direction"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Update the roadmap to match the new project phase**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/45#discussion_r3653460429"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/45#discussion_r3653460429",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "The immutable-main README roadmap already follows capability maturity rather than suggesting repository/bootstrap foundations have not started. Validation: source was individually inspected against immutable main; 174 focused baseline backend tests and the frozen frontend installation passed across the audited batches."
     },
     {
       "pr_number": 45,
       "thread_id": "PRRT_kwDOTN0BU86T5N6t",
       "comment_id": 3653460431,
       "path": "docs/architecture/product-alignment.md",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Acknowledge the existing deployment-wide KMS integration**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/45#discussion_r3653460431"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/45#discussion_r3653460431",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "The current assessment still describes tenant/KMS capabilities as planned despite implemented deployment SSE-KMS plus tenant data envelopes and AWS KMS bindings. Proposed capability/runbook reconciliation awaits protected merge."
     },
     {
       "pr_number": 45,
       "thread_id": "PRRT_kwDOTN0BU86T5N6w",
       "comment_id": 3653460433,
       "path": "docs/architecture/product-alignment.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/views.py:ProviderListView",
+        "backend/django/apps/providers/serializers.py:serialize_provider",
+        "backend/django/apps/providers/test_manifests.py:test_tenant_listing_hides_foreign_providers_and_all_configuration"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Do not mark tenant isolation implemented while providers leak**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/45#discussion_r3653460433"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/45#discussion_r3653460433",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Provider listing is tenant-or-platform scoped and serialization exposes only a configured flag. The baseline regression proves foreign providers and configuration secrets are withheld. Validation: source was individually inspected against immutable main; 174 focused baseline backend tests and the frozen frontend installation passed across the audited batches."
     },
     {
       "pr_number": 46,
       "thread_id": "PRRT_kwDOTN0BU86T5SOe",
       "comment_id": 3653484532,
       "path": "frontend/identitycore/COMPLETION.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/identitycore/src/app/verification/route.ts",
+        "frontend/verification-portal/src/components/verification/live-liveness-capture.tsx"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Make the camera policy change part of P0**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/46#discussion_r3653484532"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/46#discussion_r3653484532",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Capture is owned by verification-portal; the public website has no camera capture route. Its legacy entry redirects to the dedicated portal, so relaxing the marketing-site camera policy is unnecessary. Validation: source was individually inspected against immutable main; 174 focused baseline backend tests and the frozen frontend installation passed across the audited batches."
     },
     {
       "pr_number": 46,
       "thread_id": "PRRT_kwDOTN0BU86T5SOf",
       "comment_id": 3653484533,
       "path": "frontend/identitycore/COMPLETION.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/identitycore/src/components/navigation/marketing-nav.tsx",
+        "frontend/dashboard/src/components/navigation/user-menu.tsx",
+        "frontend/dashboard/src/components/auth/dashboard-session.tsx"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Require the existing logout controls to revoke the session**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/46#discussion_r3653484533"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/46#discussion_r3653484533",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "The cited marketing logout controls are retired, while the dashboard owns sign-out through the server endpoint. Failure handling is separately remedied in the shared client/platform UI. Validation: source was individually inspected against immutable main; 174 focused baseline backend tests and the frozen frontend installation passed across the audited batches."
     },
     {
       "pr_number": 46,
       "thread_id": "PRRT_kwDOTN0BU86T5SOh",
       "comment_id": 3653484535,
       "path": "docs/architecture/product-alignment.md",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Record the cross-tenant notification fallback**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/46#discussion_r3653484535"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/46#discussion_r3653484535",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Individually confirmed that notification fallback inspects foreign tenant providers. Proposed platform-only fallback and defensive assignment ownership checks have three passing isolation regressions; keep actionable until protected merge."
     },
     {
       "pr_number": 46,
       "thread_id": "PRRT_kwDOTN0BU86T5SOi",
       "comment_id": 3653484537,
       "path": "docs/architecture/product-alignment.md",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Do not mark manual-review access as implemented**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/46#discussion_r3653484537"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/46#discussion_r3653484537",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Individually confirmed collection and object manual-review access omit a reviewer permission code. Tenant membership alone still permits review. Dedicated reviewer RBAC and positive/negative REST/GraphQL regressions remain required."
     },
     {
       "pr_number": 46,
       "thread_id": "PRRT_kwDOTN0BU86T5SOj",
       "comment_id": 3653484539,
       "path": "frontend/identitycore/COMPLETION.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/identitycore/COMPLETION.md:Transactional first workflow",
+        "frontend/dashboard/src/app/onboarding/first-workflow/page.tsx",
+        "backend/django/apps/templates/views.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Extend the existing template catalog instead of adding one**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/46#discussion_r3653484539"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/46#discussion_r3653484539",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "The immutable-main completion document already describes transactional first-workflow creation from the existing published template catalog; the implementation uses that catalog rather than creating a duplicate domain. Validation: source was individually inspected against immutable main; 174 focused baseline backend tests and the frozen frontend installation passed across the audited batches."
     },
     {
       "pr_number": 46,
       "thread_id": "PRRT_kwDOTN0BU86T5SOk",
       "comment_id": 3653484540,
       "path": "docs/architecture/product-alignment.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/views.py:ProviderListView",
+        "backend/django/apps/providers/test_manifests.py:test_tenant_listing_hides_foreign_providers_and_all_configuration"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Do not classify tenant isolation as implemented**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/46#discussion_r3653484540"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/46#discussion_r3653484540",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "This repeated provider isolation report is superseded by tenant/platform filtering and configuration-redacted serialization; the immutable baseline regression passes. Validation: source was individually inspected against immutable main; 174 focused baseline backend tests and the frozen frontend installation passed across the audited batches."
     },
     {
       "pr_number": 47,
       "thread_id": "PRRT_kwDOTN0BU86T5Y1z",
       "comment_id": 3653522724,
       "path": "frontend/identitycore/COMPLETION.md",
-      "status": "pending",
+      "status": "actionable",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Remove the stale embedded-session API claim**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/47#discussion_r3653522724"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/47#discussion_r3653522724",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Confirmed the public-site completion inventory still claims embedded administrator-session REST calls after those routes moved. Proposed ownership/completion documentation removes the stale claim and awaits protected merge."
     },
     {
       "pr_number": 48,
       "thread_id": "PRRT_kwDOTN0BU86UTF-M",
       "comment_id": 3663129280,
       "path": "frontend/identitycore/src/app/verification/route.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verification_sessions/views.py:VerificationSessionLivenessView.post",
+        "backend/django/apps/organizations/onboarding.py:submit_administrator_identity_verification"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve the onboarding completion transition**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/48#discussion_r3663129280"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/48#discussion_r3663129280",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Successful administrator-onboarding liveness submission now synchronizes the organization onboarding transition on the backend, in the same transaction before durable biometric job publication. The portal need not own an organization mutation. Validation: source was individually inspected against immutable main; 174 focused baseline backend tests and the frozen frontend installation passed across the audited batches."
     },
     {
       "pr_number": 49,
@@ -12316,5 +12609,5 @@
     }
   ],
   "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
-  "inventory_note": "860 threads from closed or merged PRs: 237 fixed, 288 verified, 6 actionable and 329 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
+  "inventory_note": "860 threads from closed or merged PRs: 237 fixed, 332 verified, 37 actionable and 254 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence."
 }

@@ -117,11 +117,18 @@ Implemented foundations include:
 - Python, JavaScript/TypeScript, Java, and .NET SDKs and a Python CLI;
 - organization, developer, verification, marketing, and platform-admin frontends.
 
-Important work remains before broad production use, including richer conditional provider
-routes and ordered fallback chains, provider conformance tooling, organization-facing
-provider onboarding, tenant-routed storage and customer-managed keys, broader claims
-lifecycle support, formal assurance, production model validation, and operational
-hardening.
+Implemented platform extensions include conditional provider routes and ordered fallback,
+shared replay protection for signed custom providers, executable conformance fixtures,
+organization-facing provider setup and independently approved production activation,
+tenant/environment storage routes, customer-managed AWS KMS keys, review queues and
+quality sampling, and GHS Paystack invoice payment/recovery.
+
+Engineering closure still requires completing the individual historical review audit
+([#281](https://github.com/quarj0/IdentityCore/issues/281)) and its protected remediation
+merges. Reusable claims, a generalized evidence/lineage API, broader provider certification
+and general asynchronous provider completion remain platform expansion work. Production
+model validation, independent assurance and deployed operational evidence remain separate
+release requirements.
 
 See the [product alignment and gap assessment](docs/architecture/product-alignment.md)
 for capability-level maturity.
@@ -226,6 +233,11 @@ infrastructure/
 - [Coding Standards](docs/architecture/coding-standards.md)
 - [Architecture Decision Records](docs/decisions/)
 - [Implementation Backlog](docs/planning/implementation-backlog.md)
+- [Hosted Subject Metadata](docs/operations/subject-metadata.md)
+- [Provider Setup](docs/operations/provider-setup.md)
+- [Tenant Storage](docs/operations/tenant-storage.md)
+- [Customer-managed Keys](docs/operations/customer-kms.md)
+- [Release Evidence Gate](docs/operations/release-evidence-gate.md)
 
 Some filenames may evolve as the documentation is consolidated. The canonical
 architecture and ADRs determine architectural meaning; OpenAPI remains the source of
@@ -245,7 +257,9 @@ starting Django with `DJANGO_SETTINGS_MODULE=config.settings.production`, provid
 
 Production settings validate these requirements during import and stop startup when
 configuration is missing or unsafe. Errors name configuration variables, never secret
-values.
+values. The production verification portal additionally requires a dedicated
+`VERIFICATION_METADATA_SECRET` shared with Django (at least 32 random characters);
+see the [subject metadata runbook](docs/operations/subject-metadata.md).
 
 Generate a secret with:
 
@@ -287,11 +301,11 @@ Development is organized around platform capability maturity rather than treatin
 identity verification as the whole product:
 
 1. Harden the platform kernel, isolation, privacy, audit, and operational controls.
-2. Complete Provider Runtime routing, fallback, health, and conformance.
+2. Extend provider certification and asynchronous completion beyond the implemented routing, fallback and health foundations.
 3. Expand workflow, policy, decision, evidence, and claims capabilities.
 4. Improve SDKs, CLI, hosted journeys, and developer experience.
 5. Certify the verification workload for supported countries and providers.
-6. Add provider ecosystem and organization self-service operations.
+6. Expand the provider ecosystem beyond implemented organization setup and promotion controls.
 7. Introduce future workloads using the same platform primitives.
 
 ## Engineering principles

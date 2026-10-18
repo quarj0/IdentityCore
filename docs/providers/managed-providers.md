@@ -153,16 +153,16 @@ managed OCR   customer OCR
 
 Managed providers may participate in fallback chains, but fallback must be explicit and auditable.
 
-A future complete route may state:
+An implemented ordered route can select:
 
 ```text
 customer-hosted OCR
     -> commercial OCR on retryable failure
-    -> managed OCR on regional availability
+    -> managed OCR if the published route and declared coverage permit it
     -> Manual Review if no acceptable result
 ```
 
-The current runtime has invocation and adapter foundations, but documentation should not claim every conditional route and ordered fallback behavior is complete until implemented and tested end to end.
+Conditional routes, bounded attempts, ordered fallback and circuit recovery are implemented; see [route resilience](../operations/provider-route-resilience.md). Cost/tier optimization and general asynchronous providers remain future work. Validate the exact deployed provider chain before release.
 
 ## Security boundary
 

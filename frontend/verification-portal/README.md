@@ -93,9 +93,10 @@ pnpm test:e2e:verify
 ```
 
 The browser matrix runs desktop Chromium and WebKit plus Pixel and iPhone device
-profiles. Current tests cover the mocked primary subject flow, landing-page keyboard and
-axe checks, expiry handling, and response security headers. IC-081 through IC-086 track
-the broader critical-journey acceptance matrix. Physical-device certification remains a
+profiles. Current tests cover subject journeys, keyboard/axe checks, camera recovery, locales,
+expiry and security headers. The original IC-081 through IC-086 issues are closed;
+ongoing historical review findings remain tracked separately in #281. Real standalone
+HTTP/browser transport checks exercise the BFF with a strict TLS upstream fixture. Physical-device certification remains a
 release evidence gate because an emulator cannot certify camera hardware.
 Provider, storage, worker, and Django integration tests live in their owning
 backend applications.
@@ -110,8 +111,8 @@ locale, and SHA-256 digest, and the backend rejects stale artifacts.
 
 English and Arabic are the initial locale architecture baseline. The document language
 and direction follow locale negotiation and are updated to the session-selected locale.
-IC-083 remains open until both configured locales cover the complete applicant journey
-and pass formatting, fallback, RTL, keyboard, axe, and WebKit checks. Production locale
+IC-083 is closed with repository locale/fallback/RTL acceptance coverage; later review
+findings still require individual disposition. Production locale
 support also requires the physical-device evidence described in
 `docs/operations/verification-portal-production.md`.
 
