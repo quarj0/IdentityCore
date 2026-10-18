@@ -108,6 +108,9 @@ class AuditEventTests(APITestCase):
         )
 
     def test_manual_decision_creates_audit_event(self):
+        from apps.access_control.test_helpers import grant_review_permission
+
+        grant_review_permission(self.user)
         verification = Verification.objects.create(
             tenant=self.tenant,
             organization=self.organization,

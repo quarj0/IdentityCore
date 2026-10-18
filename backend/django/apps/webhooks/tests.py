@@ -619,6 +619,9 @@ class WebhookEndpointTests(APITestCase):
         )
 
     def test_manual_decision_queues_verification_result_webhook(self):
+        from apps.access_control.test_helpers import grant_review_permission
+
+        grant_review_permission(self.user)
         endpoint = WebhookEndpoint(
             tenant=self.tenant,
             url="https://example.com/webhooks/identitycore",
