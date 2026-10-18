@@ -1,3 +1,4 @@
+import { subjectMetadataHeaders } from "@/lib/bff-subject-metadata";
 import { NextResponse } from "next/server";
 import {
   apiUrl,
@@ -69,7 +70,18 @@ async function proxy(
   try {
     const query = new URL(request.url).search;
     const body = await readBoundedProxyBody(request, controller.signal);
-    upstream = await fetch(`${apiUrl(upstreamPath)}${query}`, {
+    const upstreamUrl = `${apiUrl(upstreamPath)}${query}`;
+    for (const [name, value] of Object.entries(
+      subjectMetadataHeaders(
+        request,
+        upstreamUrl,
+        request.method,
+        `Bearer ${session.sessionToken}`,
+        id,
+      ),
+    ))
+      headers.set(name, value);
+    upstream = await fetch(upstreamUrl, {
       method: request.method,
       headers,
       body,

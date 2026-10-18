@@ -23,6 +23,14 @@ export function runtimeConfiguration() {
   const configuredOrigin = process.env.API_ORIGIN;
   const errors: string[] = [];
 
+  if (
+    production &&
+    (process.env.VERIFICATION_METADATA_SECRET ?? "").length < 32
+  ) {
+    errors.push(
+      "VERIFICATION_METADATA_SECRET must contain at least 32 characters.",
+    );
+  }
   if (production && !process.env.API_ORIGIN) {
     errors.push("API_ORIGIN is required in production.");
   }

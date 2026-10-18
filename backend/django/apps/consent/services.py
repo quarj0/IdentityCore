@@ -117,6 +117,11 @@ def build_proof(
         "content_hash": sha256(record.consent_text_snapshot.encode()).hexdigest(),
         "evidence_scope": sorted(scopes),
         "binding_source": source,
+        **(
+            {"request_provenance": record._request_provenance}
+            if hasattr(record, "_request_provenance")
+            else {}
+        ),
     }
 
 

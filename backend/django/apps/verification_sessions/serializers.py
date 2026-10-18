@@ -1,3 +1,4 @@
+from common.subject_metadata import subject_metadata
 from django.core.exceptions import ValidationError as DjangoValidationError
 from datetime import timedelta
 import hashlib
@@ -717,11 +718,12 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
             consent_content_hash=artifact["content_hash"],
             accepted=True,
             accepted_at=now,
-            ip_address=request.META.get("REMOTE_ADDR"),
-            user_agent=request.headers.get("User-Agent", ""),
+            ip_address=subject_metadata(request).ip_address,
+            user_agent=subject_metadata(request).user_agent,
             device_fingerprint=request.headers.get("X-Device-Fingerprint", ""),
         )
 
+        consent_record._request_provenance = subject_metadata(request).attribution
         consent_record._notice_template_id = artifact["template_id"]
         consent_record._notice_version = artifact["version"]
         consent_record._notice_scope = artifact["evidence_scope"]
@@ -735,8 +737,8 @@ class VerificationSessionConsentSerializer(serializers.Serializer):
         if verification_session.started_at is None:
             verification_session.started_at = now
             update_session_fields.append("started_at")
-        verification_session.ip_address = request.META.get("REMOTE_ADDR")
-        verification_session.user_agent = request.headers.get("User-Agent", "")
+        verification_session.ip_address = subject_metadata(request).ip_address
+        verification_session.user_agent = subject_metadata(request).user_agent
         verification_session.device_fingerprint = request.headers.get(
             "X-Device-Fingerprint", ""
         )

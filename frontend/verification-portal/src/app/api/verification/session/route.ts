@@ -1,3 +1,4 @@
+import { subjectMetadataHeaders } from "@/lib/bff-subject-metadata";
 import { NextResponse } from "next/server";
 import { ProxyBodyLimitError, readBoundedRequestText } from "@/lib/bff-proxy";
 import {
@@ -49,21 +50,28 @@ export async function POST(request: Request) {
   const timeout = setTimeout(() => controller.abort(), 10_000);
   let upstream: Response;
   try {
-    upstream = await fetch(
-      apiUrl(`sessions/${encodeURIComponent(body.sessionId)}`),
-      {
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${body.sessionToken}`,
-          "X-Session-Id": body.sessionId,
-          "Accept-Language": request.headers.get("accept-language") ?? "en",
-          "X-Request-Id": id,
-        },
-        cache: "no-store",
-        redirect: "manual",
-        signal: controller.signal,
-      },
+    const upstreamUrl = apiUrl(
+      `sessions/${encodeURIComponent(body.sessionId)}`,
     );
+    upstream = await fetch(upstreamUrl, {
+      headers: {
+        ...subjectMetadataHeaders(
+          request,
+          upstreamUrl,
+          "GET",
+          `Bearer ${body.sessionToken}`,
+          id,
+        ),
+        Accept: "application/json",
+        Authorization: `Bearer ${body.sessionToken}`,
+        "X-Session-Id": body.sessionId,
+        "Accept-Language": request.headers.get("accept-language") ?? "en",
+        "X-Request-Id": id,
+      },
+      cache: "no-store",
+      redirect: "manual",
+      signal: controller.signal,
+    });
   } catch {
     return NextResponse.json(
       { error: "Verification service unavailable." },

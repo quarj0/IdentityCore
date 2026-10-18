@@ -19,6 +19,10 @@ repository paths; deployment personnel are assigned in the controlled register.
    Django/PostgreSQL.
 2. A subject opens the verification portal, exchanges a fragment credential for a
    secure portal session, reviews the immutable consent artifact, and uploads evidence.
+   A server-signed metadata envelope carries reported User-Agent and, only with an
+   explicitly trusted ingress header, client IP to Django. Session, consent proof
+   and audit records label attribution; absent trusted IP remains unknown. The
+   envelope is not logged and does not change the transport peer used for throttling.
 3. New media enters the temporary object-storage bucket. Django finalizes it into the
    protected media bucket and queues only the required checks.
 4. The internal AI service or a tenant-selected provider returns normalized evidence;

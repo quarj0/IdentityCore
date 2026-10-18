@@ -118,6 +118,7 @@
       "id": "consent-audit-and-compliance",
       "fields": [
         "consent artifact and acceptance",
+        "Request provenance distinguishing direct immediate-peer metadata from signed portal context, ingress-asserted or unavailable subject IP, and browser-reported User-Agent",
         "actor identity",
         "IP address",
         "user agent",

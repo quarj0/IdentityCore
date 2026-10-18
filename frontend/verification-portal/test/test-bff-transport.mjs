@@ -1,6 +1,7 @@
 /** Real standalone BFF HTTP checks against a strict loopback TLS upstream. */
+import "./subject-metadata.test.mjs";
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { spawn, execFileSync } from "node:child_process";
 import { createServer } from "node:https";
 import { request as httpRequest } from "node:http";
@@ -17,6 +18,7 @@ const portal = process.argv[2]
   : resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const standalone = join(portal, ".next/standalone/verification-portal");
 const sessionId = "ses_BffTransport";
+const metadataSecret = "synthetic-private-metadata-secret-for-testing";
 const token = "synthetic-bff-transport-token";
 const routes = new Set([
   `/api/v1/sessions/${sessionId}`,
@@ -69,6 +71,27 @@ try {
     { key: await readFile(keyPath), cert: await readFile(certificatePath) },
     async (request, response) => {
       upstreamRequests++;
+      const encoded = request.headers["x-ic-subject-metadata"];
+      assert.equal(
+        request.headers["user-agent"],
+        "IdentityCore-Verification-BFF/1",
+      );
+      assert.equal(
+        request.headers["x-ic-subject-signature"],
+        createHmac("sha256", metadataSecret).update(encoded).digest("hex"),
+      );
+      const subject = JSON.parse(Buffer.from(encoded, "base64url").toString());
+      assert.equal(subject.method, request.method);
+      assert.equal(subject.path, request.url.split("?")[0]);
+      assert.equal(
+        subject.authorization,
+        createHash("sha256")
+          .update(request.headers.authorization ?? "")
+          .digest("hex"),
+      );
+      assert.equal(subject.request_id, request.headers["x-request-id"]);
+      assert.equal(subject.ip, null); // No trusted ingress configured; XFF cannot override this.
+
       const url = new URL(request.url, "https://127.0.0.1");
       const handoff = url.pathname === "/api/v1/sessions/mobile-handoff/redeem";
       if (
@@ -135,6 +158,8 @@ try {
           PORT: String(frontendPort),
           HOSTNAME: "127.0.0.1",
           API_ORIGIN: `https://127.0.0.1:${upstreamPort}`,
+          VERIFICATION_METADATA_SECRET: metadataSecret,
+          VERIFICATION_CLIENT_IP_HEADER: "",
           DEPLOYMENT_VERSION: "bff-transport-test",
           NODE_EXTRA_CA_CERTS: certificatePath,
         },

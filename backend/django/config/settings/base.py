@@ -169,6 +169,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "common.observability.ObservabilityMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "common.subject_metadata.SubjectMetadataMiddleware",
     "common.tenant_crypto_middleware.TenantKeyReadCacheMiddleware",
     "common.cors.LocalCorsMiddleware",
     "common.usage_headers.APIUsageHeadersMiddleware",
@@ -538,3 +539,6 @@ LOGGING = {
 # Deployment-approved bucket -> residency region. No tenant-supplied endpoints.
 TENANT_STORAGE_DESTINATIONS = json.loads(os.getenv("TENANT_STORAGE_DESTINATIONS", "{}"))
 TENANT_STORAGE_BUCKET_REMAP = json.loads(os.getenv("TENANT_STORAGE_BUCKET_REMAP", "{}"))
+
+# Shared only between the hosted verification BFF and Django; never a browser variable.
+VERIFICATION_METADATA_SECRET = os.getenv("VERIFICATION_METADATA_SECRET", "")

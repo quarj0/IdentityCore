@@ -1,3 +1,4 @@
+import { subjectMetadataHeaders } from "@/lib/bff-subject-metadata";
 import { NextResponse } from "next/server.js";
 import { ProxyBodyLimitError, readBoundedRequestText } from "@/lib/bff-proxy";
 import {
@@ -44,9 +45,11 @@ export async function POST(request: Request) {
   const timeout = setTimeout(() => controller.abort(), 10_000);
   let upstream: Response;
   try {
-    upstream = await fetch(apiUrl("sessions/mobile-handoff/redeem"), {
+    const upstreamUrl = apiUrl("sessions/mobile-handoff/redeem");
+    upstream = await fetch(upstreamUrl, {
       method: "POST",
       headers: {
+        ...subjectMetadataHeaders(request, upstreamUrl, "POST", "", id),
         Accept: "application/json",
         "Content-Type": "application/json",
         "X-Request-Id": id,

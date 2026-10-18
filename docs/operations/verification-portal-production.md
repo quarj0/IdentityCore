@@ -12,6 +12,13 @@ The verification portal is releasable only when every gate below has an owner,
 dated evidence, and approval. Repository tests are necessary but do not replace
 independent assessment or a physical-device pilot.
 
+## Subject attribution
+
+Configure the dedicated server-only metadata key on Django and the portal. Establish
+the trusted ingress boundary before enabling a client-IP header; otherwise keep
+subject IP unavailable. Verify synthetic session, consent and audit provenance using
+[Hosted subject metadata attribution](subject-metadata.md).
+
 ## Service-level objectives
 
 | Signal                     | Target                         | Page when                                |

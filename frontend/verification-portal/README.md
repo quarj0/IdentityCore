@@ -26,6 +26,8 @@ the portal BFF.
 | Variable                             | Purpose                                                   |
 | ------------------------------------ | --------------------------------------------------------- |
 | `API_ORIGIN`                         | Required server-only Django API origin used by the BFF.   |
+| `VERIFICATION_METADATA_SECRET` | Required production server-only metadata key shared with Django (at least 32 random characters). |
+| `VERIFICATION_CLIENT_IP_HEADER` | Optional single-address header overwritten by a trusted ingress; empty means unknown subject IP. |
 | `DEPLOYMENT_VERSION`                 | Release identifier returned by the readiness endpoint.    |
 | `NEXT_PUBLIC_ONBOARDING_RETURN_URL`  | Optional safe fallback after completion.                  |
 | `VERIFICATION_PUBLIC_ORIGIN` | Canonical browser origin, e.g. `https://verify.example.com`. Set this when ingress terminates TLS; it must match the preserved Host header. Paths, credentials and query strings are rejected. |
@@ -48,6 +50,10 @@ non-HTTPS `API_ORIGIN`. TLS and `Strict-Transport-Security` must be enforced at
 the production ingress.
 The browser does not require Django CORS access. Mutating BFF routes reject
 cross-origin requests in addition to the strict cookie policy.
+
+The BFF signs subject metadata rather than forwarding arbitrary browser headers.
+See [subject metadata attribution](../../docs/operations/subject-metadata.md) for
+ingress trust, rollout, rotation and audit semantics.
 
 ## Camera and media compatibility
 
