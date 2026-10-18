@@ -161,6 +161,27 @@ def deliver_notification(notification: Notification) -> Notification:
         return notification
 
     delivery = notification.delivery_json or {}
+    if delivery.get("platform_invitation"):
+        from apps.reviewers.models import PlatformAdminInvitation
+
+        live = PlatformAdminInvitation.objects.filter(
+            public_id=delivery["platform_invitation"],
+            status="pending",
+            expires_at__gt=timezone.now(),
+            token_hash=PlatformAdminInvitation.digest_token(delivery.get("token", "")),
+            invited_by__is_platform_admin=True,
+            invited_by__status="active",
+            invited_by__deleted_at__isnull=True,
+            role__scope="platform",
+            role__status="active",
+            role__deleted_at__isnull=True,
+            role__name="Platform Admin",
+        ).exists()
+        if not live:
+            notification.status = NotificationStatus.CANCELLED
+            notification.delivery_json = {}
+            notification.save(update_fields=["status", "delivery_json", "updated_at"])
+            return notification
     if delivery.get("team_invitation"):
         import hashlib
         from apps.accounts.models import TeamInvitation

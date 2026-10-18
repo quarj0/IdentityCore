@@ -9,7 +9,7 @@ export default function robots(): MetadataRoute.Robots {
           userAgent: "*",
           allow: "/",
           disallow: [
-            "/onboarding/",
+            "/onboarding",
             "/verification",
             "/verify-email",
             "/login",

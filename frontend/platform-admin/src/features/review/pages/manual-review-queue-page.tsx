@@ -12,6 +12,8 @@ import {
   type OrganizationReviewItem,
 } from "@/features/review/review-api";
 
+import { csvCell } from "@/lib/export-csv";
+
 function formatDateTime(value: string | null) {
   if (!value) return "Pending";
   const date = new Date(value);
@@ -131,11 +133,7 @@ export function ManualReviewQueuePage() {
       item.organizationVerificationReviewNote ?? "",
     ]);
     const csv = [header, ...rows]
-      .map((row) =>
-        row
-          .map((value) => `"${String(value).replaceAll('"', '""')}"`)
-          .join(","),
-      )
+      .map((row) => row.map(csvCell).join(","))
       .join("\n");
     const url = URL.createObjectURL(
       new Blob([csv], { type: "text/csv;charset=utf-8" }),
@@ -180,7 +178,7 @@ export function ManualReviewQueuePage() {
               onClick={exportQueue}
               disabled={!filteredItems.length}
             >
-              Export queue
+              Export loaded results
             </Button>
           </>
         }

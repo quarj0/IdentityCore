@@ -16,7 +16,7 @@ from apps.access_control.models import (
 )
 from apps.accounts.models import PlatformUser, PlatformUserStatus
 from apps.accounts.verification import issue_and_queue_email_verification
-from apps.audit.services import record_audit_event
+from apps.audit.services import lock_audit_chain, record_audit_event
 from apps.organizations.models import Organization, OrganizationStatus
 from apps.tenants.models import Tenant, TenantStatus
 from common.validators import normalize_email, validate_business_email
@@ -640,7 +640,10 @@ def submit_organization_verification(
     if not supporting_document_keys or not 1 <= len(supporting_document_keys) <= 5:
         raise ValidationError("Upload between one and five supporting PDF documents.")
     tenant = user.tenant
-    organization = tenant.organization
+    lock_audit_chain(tenant.pk)
+    organization = Organization.objects.select_for_update().get(
+        pk=tenant.organization_id
+    )
     documents = organization.supporting_documents.filter(
         tenant=tenant,
         storage_key__in=supporting_document_keys,
@@ -795,8 +798,25 @@ def review_organization_onboarding(
         raise ValidationError("Unsupported onboarding review decision.")
 
     tenant = organization.tenant
+    lock_audit_chain(None)
+    lock_audit_chain(tenant.pk)
+    actor = PlatformUser.objects.get(pk=actor.pk)
+    if (
+        not actor.is_platform_admin
+        or actor.status != PlatformUserStatus.ACTIVE
+        or actor.deleted_at is not None
+    ):
+        raise ValidationError("An active platform administrator is required.")
+    organization = Organization.objects.select_for_update().get(pk=organization.pk)
     user = tenant.platform_users.order_by("created_at").first()
     onboarding = _get_onboarding_settings(organization)
+    if _organization_verification_review_status(onboarding) not in {
+        ORGANIZATION_VERIFICATION_REVIEW_SUBMITTED,
+        ORGANIZATION_VERIFICATION_REVIEW_CHANGED_AFTER_APPROVAL,
+    }:
+        raise ValidationError(
+            "This organization is not awaiting a review. New evidence must be submitted before another decision."
+        )
     platform_review = dict(onboarding.get("platform_review") or {})
     onboarding["platform_review"] = {
         "status": platform_review.get("status", PLATFORM_REVIEW_STATUS_QUEUED),

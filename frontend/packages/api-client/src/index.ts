@@ -214,7 +214,7 @@ export function createIdentityCoreClient({
     return payload.data;
   }
 
-  async function rest<T>(path: string, init: RequestInit = {}) {
+  async function authenticatedResponse(path: string, init: RequestInit = {}) {
     const headers = new Headers(init.headers);
     headers.set("Accept", "application/json");
     headers.set("X-Request-Id", createRequestId());
@@ -245,7 +245,34 @@ export function createIdentityCoreClient({
         setAccessToken(null);
       }
     }
+    return { response, requestId };
+  }
+
+  async function rest<T>(path: string, init: RequestInit = {}) {
+    const { response, requestId } = await authenticatedResponse(path, init);
     return parse<T>(response, requestId);
+  }
+
+  async function download(path: string) {
+    if (
+      !path.startsWith("/") ||
+      path.startsWith("//") ||
+      /[?#\\]/.test(path) ||
+      path
+        .split("/")
+        .some((part) => [".", ".."].includes(decodeURIComponent(part)))
+    ) {
+      throw new IdentityCoreApiError(
+        "Invalid download path.",
+        "invalid_request",
+        400,
+      );
+    }
+    const { response, requestId } = await authenticatedResponse(path, {
+      redirect: "error",
+    });
+    if (!response.ok) await parse<never>(response, requestId);
+    return response.blob();
   }
 
   async function beginLogin<T = unknown>(email: string, password: string) {
@@ -278,9 +305,12 @@ export function createIdentityCoreClient({
   }
 
   async function logout() {
-    await rest("/auth/logout", { method: "POST" });
-    setAccessToken(null);
+    try {
+      await rest("/auth/logout", { method: "POST" });
+    } finally {
+      setAccessToken(null);
+    }
   }
 
-  return { rest, restoreSession, beginLogin, login, me, logout };
+  return { rest, download, restoreSession, beginLogin, login, me, logout };
 }

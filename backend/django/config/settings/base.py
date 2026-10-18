@@ -542,3 +542,5 @@ TENANT_STORAGE_BUCKET_REMAP = json.loads(os.getenv("TENANT_STORAGE_BUCKET_REMAP"
 
 # Shared only between the hosted verification BFF and Django; never a browser variable.
 VERIFICATION_METADATA_SECRET = os.getenv("VERIFICATION_METADATA_SECRET", "")
+
+PLATFORM_INVITATION_BASE_URL = os.getenv("PLATFORM_INVITATION_BASE_URL", "http://localhost:3004/accept-invitation")

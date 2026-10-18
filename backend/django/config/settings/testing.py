@@ -29,3 +29,5 @@ CACHES["provider_signatures"] = {  # noqa: F405
     "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
     "LOCATION": "provider-signature-tests",
 }
+
+PLATFORM_INVITATION_BASE_URL = "https://admin.example.test/accept-invitation"

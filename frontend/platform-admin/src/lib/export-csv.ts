@@ -1,13 +1,18 @@
+export function csvCell(value: unknown) {
+  const text = String(value ?? "");
+  const safe =
+    /^[\s]*[=+@-]/.test(text) || /^[\t\r\n]/.test(text) ? "'" + text : text;
+  return `"${safe.replaceAll('"', '""')}"`;
+}
+
 export function downloadCsv(
   filename: string,
   rows: Array<Record<string, unknown>>,
 ) {
   const keys = Array.from(new Set(rows.flatMap((row) => Object.keys(row))));
-  const escape = (value: unknown) =>
-    `"${String(value ?? "").replaceAll('"', '""')}"`;
   const csv = [
-    keys.join(","),
-    ...rows.map((row) => keys.map((key) => escape(row[key])).join(",")),
+    keys.map(csvCell).join(","),
+    ...rows.map((row) => keys.map((key) => csvCell(row[key])).join(",")),
   ].join("\n");
   const url = URL.createObjectURL(
     new Blob([csv], { type: "text/csv;charset=utf-8" }),

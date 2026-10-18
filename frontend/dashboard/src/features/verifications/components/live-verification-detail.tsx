@@ -19,6 +19,8 @@ import {
   PendingIdempotentSubmission,
 } from "@/lib/idempotent-submission";
 
+import { backend } from "@/lib/backend";
+
 import { AuthenticityEvidence } from "./authenticity-evidence";
 
 function messageOf(error: unknown) {
@@ -69,6 +71,29 @@ export function LiveVerificationDetail({
       .then(setItem)
       .catch((caught) => setError(messageOf(caught)));
   }, [id]);
+
+  async function downloadEvidence(format: "json" | "pdf") {
+    setBusy(`evidence-${format}`);
+    setError("");
+    try {
+      const suffix = format === "pdf" ? ".pdf" : "";
+      const blob = await backend.download(
+        `/verifications/${encodeURIComponent(id)}/evidence-report/download${suffix}`,
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `verification-evidence.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (caught) {
+      setError(messageOf(caught));
+    } finally {
+      setBusy("");
+    }
+  }
 
   async function resend() {
     setBusy("resend");
@@ -246,17 +271,23 @@ export function LiveVerificationDetail({
             )}
             {item.evidence_report ? (
               <div className="flex flex-wrap gap-2 pt-2">
-                <Button asChild variant="outline" className="rounded-xl">
-                  <a href={item.evidence_report.download_url}>
-                    <Download className="h-4 w-4" />
-                    Evidence JSON
-                  </a>
+                <Button
+                  variant="outline"
+                  className="rounded-xl"
+                  disabled={!!busy}
+                  onClick={() => downloadEvidence("json")}
+                >
+                  <Download className="h-4 w-4" />
+                  Evidence JSON
                 </Button>
-                <Button asChild variant="outline" className="rounded-xl">
-                  <a href={item.evidence_report.pdf_download_url}>
-                    <Download className="h-4 w-4" />
-                    Evidence PDF
-                  </a>
+                <Button
+                  variant="outline"
+                  className="rounded-xl"
+                  disabled={!!busy}
+                  onClick={() => downloadEvidence("pdf")}
+                >
+                  <Download className="h-4 w-4" />
+                  Evidence PDF
                 </Button>
               </div>
             ) : null}
@@ -300,7 +331,10 @@ export function LiveVerificationDetail({
       {review && <AuthenticityEvidence verificationId={id} />}
 
       {review &&
-      (!item.decision || item.decision.approval_status === "pending") ? (
+      item.status === "manual_review_required" &&
+      (!item.decision ||
+        ["automatic", "system"].includes(item.decision.decision_type) ||
+        item.decision.approval_status === "pending") ? (
         <Card className="rounded-2xl border-slate-200 shadow-sm">
           <CardHeader>
             <CardTitle>

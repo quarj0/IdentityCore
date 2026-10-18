@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("reviewer selects an outcome-specific reason and supplies required notes", async ({
+test("reviewer can resolve an automatically routed case with an outcome-specific reason", async ({
   page,
   baseURL,
 }) => {
@@ -60,7 +60,12 @@ test("reviewer selects an outcome-specific reason and supplies required notes", 
         },
         checks: {},
         risk_assessment: null,
-        decision: null,
+        decision: {
+          decision: "manual_review_required",
+          decision_type: "automatic",
+          approval_status: "not_required",
+          reason_detail: "Synthetic review route",
+        },
         evidence_report: null,
         created_at: "2026-10-01T00:00:00Z",
         expires_at: "2099-01-01T00:00:00Z",

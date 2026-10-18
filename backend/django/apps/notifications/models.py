@@ -30,6 +30,8 @@ class Notification(PublicIdModel, BaseModel):
         "tenants.Tenant",
         on_delete=models.PROTECT,
         related_name="notifications",
+        null=True,
+        blank=True,
     )
     recipient_type = models.CharField(
         max_length=32,
@@ -59,6 +61,17 @@ class Notification(PublicIdModel, BaseModel):
 
     class Meta:
         ordering = ["-created_at"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(tenant__isnull=False)
+                | models.Q(
+                    template_code="platform_admin.invitation",
+                    channel="email",
+                    recipient_type="platform_user",
+                ),
+                name="notification_platform_invitation_scope",
+            ),
+        ]
 
     def clean(self):
         super().clean()

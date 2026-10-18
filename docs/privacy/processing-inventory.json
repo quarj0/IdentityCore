@@ -40,7 +40,7 @@
         "configured email/SMS provider",
         "Customer-approved AWS KMS, including CloudHSM-backed customer keys"
       ],
-      "transfers": "Notification contact data is sent only to the tenant-configured notification provider; deployment owner records region and safeguards. Only random DEKs and connection probes are sent to the customer-approved KMS region; applicant plaintext stays in the application. Deployment records document region and safeguards.",
+      "transfers": "Tenant notification contact data is sent to the tenant-configured provider. Platform administrator invitation contact data and encrypted single-use delivery payload use deployment email configuration, never tenant provider credentials; terminal delivery clears the credential. The deployment owner records region and safeguards. Only random DEKs and connection probes are sent to the customer-approved KMS region; applicant plaintext stays in the application. Deployment records document region and safeguards.",
       "owners": [
         "identity",
         "security",

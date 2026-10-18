@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { LogOut, Menu } from "lucide-react";
 import { Button } from "@identitycore/ui";
 import { useRouter } from "next/navigation";
@@ -11,12 +12,17 @@ type PlatformTopbarProps = {
 
 export function PlatformTopbar({ onOpenNavigation }: PlatformTopbarProps) {
   const router = useRouter();
+  const [logoutError, setLogoutError] = useState("");
   async function logout() {
     try {
       await logoutPlatformAdmin();
-    } finally {
-      router.replace("/login");
+    } catch {
+      setLogoutError(
+        "Local credentials were cleared. Server sign-out could not be confirmed; retry before leaving this device.",
+      );
+      return;
     }
+    router.replace("/login");
   }
 
   return (
@@ -42,6 +48,11 @@ export function PlatformTopbar({ onOpenNavigation }: PlatformTopbarProps) {
           <LogOut className="size-5" aria-hidden="true" />
         </Button>
 
+        {logoutError ? (
+          <p role="alert" className="text-sm text-red-200">
+            {logoutError}
+          </p>
+        ) : null}
         <div className="flex size-9 items-center justify-center rounded-full bg-cyan-300 text-sm font-bold text-slate-950">
           IC
         </div>

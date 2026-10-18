@@ -74,12 +74,10 @@ function buildHeaders(
 async function fetchWithTimeout(
   input: RequestInfo | URL,
   init: RequestInit = {},
+  timeoutMs = REQUEST_TIMEOUT_MS,
 ) {
   const controller = new AbortController();
-  const timeout = window.setTimeout(
-    () => controller.abort(),
-    REQUEST_TIMEOUT_MS,
-  );
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   const abort = () => controller.abort();
   init.signal?.addEventListener("abort", abort, { once: true });
   try {
@@ -165,6 +163,7 @@ export async function restRequest<T>(
   options: {
     token?: string | null;
     useAuth?: boolean;
+    timeoutMs?: number;
   } = {},
 ) {
   const token =
@@ -175,11 +174,15 @@ export async function restRequest<T>(
         : getAccessToken();
 
   const send = (access: string | null) =>
-    fetchWithTimeout(`${getRestApiBaseUrl()}${path}`, {
-      ...init,
-      credentials: "include",
-      headers: buildHeaders(init.headers, access, init.body),
-    });
+    fetchWithTimeout(
+      `${getRestApiBaseUrl()}${path}`,
+      {
+        ...init,
+        credentials: "include",
+        headers: buildHeaders(init.headers, access, init.body),
+      },
+      options.timeoutMs,
+    );
   let response = await send(token);
   if (
     response.status === 401 &&

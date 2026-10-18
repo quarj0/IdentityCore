@@ -1,3 +1,4 @@
+import { csvCell } from "../../platform-admin/src/lib/export-csv";
 import { createRequire } from "node:module";
 import { expect, test, type Page, type Route } from "@playwright/test";
 
@@ -21,7 +22,7 @@ const reviewItem = {
   currentStep: "organization_verification",
   organizationVerificationSubmittedAt: "2026-08-22T12:00:00Z",
   organizationVerificationEditable: false,
-  organizationVerificationReviewStatus: "pending",
+  organizationVerificationReviewStatus: "submitted",
   organizationVerificationChangedAfterApproval: false,
   organizationVerificationReviewedAt: null,
   organizationVerificationReviewNote: "",
@@ -201,6 +202,10 @@ test("review queue and decision flow are WCAG-clean and keyboard operable", asyn
   await expect(approve).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.getByText(/approved/i).first()).toBeVisible();
+  await expect(approve).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Reject", exact: true }),
+  ).toBeDisabled();
   await assertNoSeriousViolations(page);
 });
 
@@ -487,3 +492,145 @@ for (const entity of ["template", "workflow"]) {
     });
   }
 }
+
+test("platform invitation acceptance clears the fragment and continues through sign-in", async ({
+  page,
+}) => {
+  const submissions: Record<string, unknown>[] = [];
+  await page.route("**/api/graphql", async (route) => {
+    const request = route.request();
+    const headers = {
+      "Access-Control-Allow-Origin": "http://127.0.0.1:3004",
+      "Access-Control-Allow-Credentials": "true",
+      "Access-Control-Allow-Headers":
+        "Content-Type, X-IdentityCore-Session-Scope",
+    };
+    if (request.method() === "OPTIONS")
+      return route.fulfill({ status: 204, headers });
+    expect(request.headers().authorization).toBeUndefined();
+    expect(request.headers()["x-identitycore-session-scope"]).toBe(
+      "platform_admin",
+    );
+    submissions.push(request.postDataJSON().variables);
+    return route.fulfill({
+      headers,
+      json: {
+        data: {
+          acceptPlatformAdminInvitation: {
+            user: { email: "synthetic@example.test" },
+            mfaRequired: true,
+          },
+        },
+      },
+    });
+  });
+  await page.goto("/accept-invitation#token=synthetic-invitation-token");
+  await expect(page).toHaveURL(/\/accept-invitation$/);
+  await page.getByLabel("New password").fill("StrongSyntheticPassword123!");
+  await page
+    .getByRole("button", { name: "Accept invitation", exact: true })
+    .click();
+  await expect(page.getByRole("status")).toContainText(
+    "Your account was created",
+  );
+  expect(submissions).toEqual([
+    {
+      token: "synthetic-invitation-token",
+      password: "StrongSyntheticPassword123!",
+    },
+  ]);
+  expect(
+    await page.evaluate(() =>
+      JSON.stringify({ ...sessionStorage, ...localStorage }),
+    ),
+  ).not.toContain("synthetic-invitation-token");
+  await expect(
+    page.getByRole("link", { name: "Continue to sign in" }),
+  ).toHaveAttribute("href", "/login");
+  await assertNoSeriousViolations(page);
+});
+
+test("platform invitation UI states full privilege and queues a validated address", async ({
+  page,
+}) => {
+  await mockAdminBackend(page);
+  const submissions: Record<string, unknown>[] = [];
+  await page.route("**/api/graphql", async (route) => {
+    const request = route.request();
+    const headers = {
+      "Access-Control-Allow-Origin": "http://127.0.0.1:3004",
+      "Access-Control-Allow-Credentials": "true",
+      "Access-Control-Allow-Headers":
+        "Content-Type, Authorization, X-IdentityCore-Session-Scope",
+    };
+    if (request.method() === "OPTIONS")
+      return route.fulfill({ status: 204, headers });
+    const body = request.postDataJSON();
+    if (body.query.includes("InvitePlatformAdmin")) {
+      submissions.push(body.variables);
+      return route.fulfill({
+        headers,
+        json: {
+          data: {
+            invitePlatformAdmin: {
+              invitation: { id: "pinv_synthetic", status: "pending" },
+            },
+          },
+        },
+      });
+    }
+    return route.fulfill({ headers, json: { data: { platformAdmins: [] } } });
+  });
+  await page.goto("/users");
+  await page.getByRole("button", { name: "Invite admin", exact: true }).click();
+  await expect(
+    page.getByText("This invitation grants full platform administration.", {
+      exact: false,
+    }),
+  ).toBeVisible();
+  await page.getByLabel("Email address").fill("not-an-address");
+  await expect(
+    page.getByRole("button", { name: "Send invite" }),
+  ).toBeDisabled();
+  await page.getByLabel("Email address").fill("synthetic@example.test");
+  await page.getByRole("button", { name: "Send invite" }).click();
+  await expect(page.getByRole("status")).toContainText("Invitation queued");
+  expect(submissions).toEqual([
+    { email: "synthetic@example.test", roleName: "Platform Admin" },
+  ]);
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("CSV exports neutralize formula and control prefixes", () => {
+  for (const value of [
+    '=HYPERLINK("https://example.test")',
+    "+1+1",
+    "-1+1",
+    "@SUM(1)",
+    "  =1+1",
+    "\t=1+1",
+    "\rvalue",
+    "\nvalue",
+  ]) {
+    expect(csvCell(value).startsWith("\"'")).toBe(true);
+  }
+  expect(csvCell('ordinary "text"')).toBe('"ordinary ""text"""');
+  expect(csvCell(null)).toBe('""');
+});
+
+test("generic admin lists retain a functional safe export of loaded results", async ({page}) => {
+  await mockAdminBackend(page);
+  await page.route("**/api/graphql", async route => {
+    const headers = {"Access-Control-Allow-Origin": "http://127.0.0.1:3004", "Access-Control-Allow-Credentials": "true", "Access-Control-Allow-Headers": "Content-Type, Authorization, X-IdentityCore-Session-Scope"};
+    if (route.request().method() === "OPTIONS") return route.fulfill({status: 204, headers});
+    return route.fulfill({headers, json: {data: {platformProviders: [{id: "prv_synthetic", name: "=SUM(1)", code: "synthetic", providerType: "document", status: "active", configuration: {configured: true}, updatedAt: "2026-10-18T00:00:00Z"}]}}});
+  });
+  await page.goto("/providers");
+  const pending = page.waitForEvent("download");
+  await page.getByRole("button", {name: "Export loaded results", exact: true}).click();
+  const stream = await (await pending).createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream!) chunks.push(chunk);
+  expect(Buffer.concat(chunks).toString()).toContain('"\'=SUM(1)"');
+});

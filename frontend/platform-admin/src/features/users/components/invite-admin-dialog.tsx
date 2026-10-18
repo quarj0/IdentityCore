@@ -12,11 +12,7 @@ import {
   DialogTrigger,
   Input,
   Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  DialogClose,
 } from "@identitycore/ui";
 import { UserPlus } from "lucide-react";
 import { invitePlatformAdmin } from "@/features/users/live-data";
@@ -27,7 +23,7 @@ type InviteAdminDialogProps = {
 
 export function InviteAdminDialog({ onInvited }: InviteAdminDialogProps) {
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("");
+  const role = "Platform Admin";
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -36,9 +32,10 @@ export function InviteAdminDialog({ onInvited }: InviteAdminDialogProps) {
     setMessage(null);
     try {
       await invitePlatformAdmin(email, role);
-      setMessage(`Invitation sent to ${email.trim()}.`);
+      setMessage(
+        `Invitation queued for ${email.trim()}. Delivery status is tracked by the notification service.`,
+      );
       setEmail("");
-      setRole("");
       onInvited();
     } catch (error) {
       setMessage(
@@ -79,24 +76,10 @@ export function InviteAdminDialog({ onInvited }: InviteAdminDialogProps) {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Role</Label>
-            <Select value={role} onValueChange={setRole}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select admin role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="platform-owner">Platform Owner</SelectItem>
-                <SelectItem value="security-admin">Security Admin</SelectItem>
-                <SelectItem value="compliance-admin">
-                  Compliance Admin
-                </SelectItem>
-                <SelectItem value="support-lead">Support Lead</SelectItem>
-                <SelectItem value="billing-admin">Billing Admin</SelectItem>
-                <SelectItem value="read-only">Read Only</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <p className="text-sm text-slate-600">
+            This invitation grants full platform administration. Limited
+            platform roles are not available.
+          </p>
           {message ? (
             <p className="text-sm text-slate-600" role="status">
               {message}
@@ -105,9 +88,13 @@ export function InviteAdminDialog({ onInvited }: InviteAdminDialogProps) {
         </div>
 
         <DialogFooter>
-          <Button variant="outline">Cancel</Button>
+          <DialogClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DialogClose>
           <Button
-            disabled={!email.trim() || !role || isSubmitting}
+            disabled={
+              !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) || isSubmitting
+            }
             onClick={submit}
           >
             {isSubmitting ? "Sending…" : "Send invite"}

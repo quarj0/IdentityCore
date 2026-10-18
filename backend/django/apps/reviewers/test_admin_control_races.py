@@ -79,9 +79,7 @@ class PlatformAdminControlRaceTests(APITransactionTestCase):
             password="StrongPassword123!",
             status="active",
         )
-        role = Role.objects.create(
-            name="Replacement race admin", scope=RoleScope.PLATFORM
-        )
+        role = Role.objects.create(name="Platform Admin", scope=RoleScope.PLATFORM)
         actual_now = timezone.now
         clock = local()
 
@@ -202,3 +200,54 @@ class PlatformAdminControlRaceTests(APITransactionTestCase):
             self.assertFalse(
                 AuditEvent.objects.filter(action="platform_admin.invited").exists()
             )
+
+
+@skipUnless(connection.vendor == "postgresql", "Requires PostgreSQL row/advisory locks")
+class OrganizationReviewRaceTests(APITransactionTestCase):
+    def setUp(self):
+        from apps.organizations.test_review_finalization import (
+            OrganizationReviewFinalizationTests,
+        )
+
+        OrganizationReviewFinalizationTests.setUp(self)
+        OrganizationReviewFinalizationTests.submit(self)
+
+    def test_concurrent_organization_decisions_commit_only_one_final_outcome(self):
+        from django.core.exceptions import ValidationError
+        from apps.organizations.models import Organization
+        from apps.organizations.onboarding import review_organization_onboarding
+
+        start = Barrier(2)
+
+        def decide(decision):
+            close_old_connections()
+            try:
+                actor = PlatformUser.objects.get(pk=self.actor.pk)
+                organization = Organization.objects.get(pk=self.organization.pk)
+                start.wait(timeout=10)
+                try:
+                    review_organization_onboarding(
+                        organization=organization,
+                        actor=actor,
+                        decision=decision,
+                        note="Synthetic concurrent review",
+                    )
+                except ValidationError:
+                    return False
+                return True
+            finally:
+                connection.close()
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            first, second = pool.submit(decide, "approved"), pool.submit(
+                decide, "rejected"
+            )
+            results = [first.result(timeout=25), second.result(timeout=25)]
+        self.assertEqual(sorted(results), [False, True])
+        self.assertEqual(
+            AuditEvent.objects.filter(
+                action__in=["onboarding.review_approved", "onboarding.review_rejected"]
+            ).count(),
+            1,
+        )
+        self.assertTrue(verify_audit_chain(tenant_id=self.tenant.pk)[0])

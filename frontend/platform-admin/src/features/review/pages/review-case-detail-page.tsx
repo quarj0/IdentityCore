@@ -188,6 +188,9 @@ export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
     );
   }
 
+  const canDecide = ["submitted", "changed_after_approval"].includes(
+    item.organizationVerificationReviewStatus,
+  );
   const supportingDocuments = normalizeSupportingDocuments(
     item.supportingDocuments,
   );
@@ -384,7 +387,7 @@ export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
             <div className="mt-4 flex flex-wrap gap-2">
               <Button
                 onClick={() => submitDecision("approved")}
-                disabled={savingDecision !== null}
+                disabled={savingDecision !== null || !canDecide}
               >
                 <ShieldCheck className="mr-2 size-4" />
                 {savingDecision === "approved" ? "Approving..." : "Approve"}
@@ -392,7 +395,7 @@ export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
               <Button
                 variant="outline"
                 onClick={() => submitDecision("needs_information")}
-                disabled={savingDecision !== null}
+                disabled={savingDecision !== null || !canDecide}
               >
                 {savingDecision === "needs_information"
                   ? "Requesting..."
@@ -401,7 +404,7 @@ export function ReviewCaseDetailPage({ caseId }: ReviewCaseDetailPageProps) {
               <Button
                 variant="destructive"
                 onClick={() => submitDecision("rejected")}
-                disabled={savingDecision !== null}
+                disabled={savingDecision !== null || !canDecide}
               >
                 <AlertTriangle className="mr-2 size-4" />
                 {savingDecision === "rejected" ? "Rejecting..." : "Reject"}

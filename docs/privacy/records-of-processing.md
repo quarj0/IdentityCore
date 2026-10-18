@@ -31,6 +31,12 @@ repository paths; deployment personnel are assigned in the controlled register.
    delete media and records according to tenant policy; compliance exports use the
    evidence bucket.
 
+Platform administrator invitation emails are a separate platform-scoped outbox use.
+Their single-use links are encrypted in notification delivery data, excluded from
+previews, delivered through deployment email configuration and cleared after terminal
+delivery. They never use tenant notification credentials. See
+[platform invitations](../operations/platform-invitations.md).
+
 ## Operating procedure
 
 - The **privacy owner** reviews purpose, lawful basis, retention, data-subject rights,

@@ -789,8 +789,18 @@ class Mutation:
             raise GraphQLError("An active platform administrator is required.")
         request = info.context["request"]
         normalized_email = email.strip().lower()
-        if not normalized_email:
-            raise GraphQLError("Email is required.")
+        from django.core.validators import validate_email
+
+        try:
+            validate_email(normalized_email)
+        except ValidationError:
+            raise GraphQLError(
+                "A valid invitation email address is required."
+            ) from None
+        if role_name.strip() != "Platform Admin":
+            raise GraphQLError(
+                "Only the full Platform Admin role is supported for platform invitations."
+            )
         if PlatformUser.objects.filter(email=normalized_email).exists():
             raise GraphQLError("An account already exists for this email address.")
         now = timezone.now()
@@ -803,19 +813,46 @@ class Mutation:
         # committed account must be checked again before issuing a replacement.
         if PlatformUser.objects.filter(email=normalized_email).exists():
             raise GraphQLError("An account already exists for this email address.")
-        if PlatformAdminInvitation.objects.filter(
+        pending = PlatformAdminInvitation.objects.filter(
             email=normalized_email,
             status=PlatformAdminInvitationStatus.PENDING,
             expires_at__gt=now,
-        ).exists():
-            raise GraphQLError(
-                "A pending invitation already exists for this email address."
+        ).first()
+        if pending is not None:
+            from apps.notifications.models import Notification
+
+            failed_delivery = Notification.objects.filter(
+                tenant__isnull=True,
+                template_code="platform_admin.invitation",
+                recipient=normalized_email,
+                status="failed",
+                created_at__gte=pending.created_at,
+            ).exists()
+            if not failed_delivery:
+                raise GraphQLError(
+                    "A pending invitation already exists for this email address."
+                )
+            pending.status = PlatformAdminInvitationStatus.REVOKED
+            pending.save(update_fields=["status", "updated_at"])
+            record_audit_event(
+                tenant=None,
+                actor=actor,
+                request=request,
+                action="platform_admin.invitation_replaced_after_delivery_failure",
+                target_type="platform_admin_invitation",
+                target_id=pending.public_id,
             )
         role = ensure_platform_role(
             name=role_name.strip() or "Platform Admin",
             description=role_description.strip(),
             created_by=actor,
         )
+        if (
+            role.status != "active"
+            or role.deleted_at is not None
+            or role.scope != "platform"
+        ):
+            raise GraphQLError("An active platform role is required.")
         raw_token = PlatformAdminInvitation.generate_token()
         invitation = PlatformAdminInvitation.objects.create(
             email=normalized_email,
@@ -824,6 +861,12 @@ class Mutation:
             expires_at=now + timedelta(days=max(expires_in_days, 1)),
             token_hash=PlatformAdminInvitation.digest_token(raw_token),
         )
+        from apps.reviewers.invitation_delivery import queue_platform_invitation
+
+        try:
+            queue_platform_invitation(invitation, raw_token)
+        except ValidationError as exc:
+            raise_graphql_validation_error(exc)
         record_audit_event(
             tenant=actor.tenant,
             actor=actor,
@@ -879,6 +922,16 @@ class Mutation:
         rejection_reason = None
         if invitation is None:
             rejection_reason = "invitation_not_found"
+        elif (
+            invitation.role.name != "Platform Admin"
+            or invitation.role.status != "active"
+            or invitation.role.deleted_at is not None
+            or invitation.role.scope != "platform"
+            or not invitation.invited_by.is_platform_admin
+            or invitation.invited_by.status != PlatformUserStatus.ACTIVE
+            or invitation.invited_by.deleted_at is not None
+        ):
+            rejection_reason = "invitation_authority_unavailable"
         elif PlatformUser.objects.filter(email=invitation.email).exists():
             rejection_reason = "account_already_exists"
         if rejection_reason:
@@ -903,6 +956,14 @@ class Mutation:
         invitation.status = PlatformAdminInvitationStatus.ACCEPTED
         invitation.accepted_at = timezone.now()
         invitation.save(update_fields=["status", "accepted_at", "updated_at"])
+        record_audit_event(
+            tenant=None,
+            actor=user,
+            request=request,
+            action="platform_admin.invitation_accepted",
+            target_type="platform_admin_invitation",
+            target_id=invitation.public_id,
+        )
         if is_mfa_required(user) or user.mfa_enabled:
             return AuthPayload(
                 user=AuthUserNode(**serialize_user(user)),
