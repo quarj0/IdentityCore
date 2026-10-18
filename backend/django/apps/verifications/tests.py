@@ -1,3 +1,4 @@
+from apps.access_control.test_helpers import grant_review_permission
 from datetime import timedelta
 from importlib import import_module
 from io import StringIO
@@ -155,6 +156,7 @@ class VerificationWorkflowTests(APITestCase):
             status=PlatformUserStatus.ACTIVE,
             tenant=self.tenant,
         )
+        grant_review_permission(self.user)
         self.api_client = APIClient(
             tenant=self.tenant,
             created_by=self.user,
@@ -1351,6 +1353,7 @@ class VerificationWorkflowTests(APITestCase):
             status=PlatformUserStatus.ACTIVE,
             tenant=self.tenant,
         )
+        grant_review_permission(other_reviewer)
         self.client.force_authenticate(other_reviewer)
 
         response = self.client.post(
@@ -1396,6 +1399,7 @@ class VerificationWorkflowTests(APITestCase):
             status=PlatformUserStatus.ACTIVE,
             tenant=self.tenant,
         )
+        grant_review_permission(checker)
         webhook = WebhookEndpoint(
             tenant=self.tenant,
             url="https://example.com/verification-events",
@@ -1462,6 +1466,7 @@ class VerificationWorkflowTests(APITestCase):
             status=PlatformUserStatus.ACTIVE,
             tenant=self.tenant,
         )
+        grant_review_permission(checker)
         outcomes = (
             VerificationStatus.VERIFIED,
             VerificationStatus.REJECTED,
@@ -1517,6 +1522,7 @@ class VerificationWorkflowTests(APITestCase):
             status=PlatformUserStatus.ACTIVE,
             tenant=self.tenant,
         )
+        grant_review_permission(checker)
         verification = Verification.objects.create(
             tenant=self.tenant,
             organization=self.organization,
@@ -1563,6 +1569,7 @@ class VerificationWorkflowTests(APITestCase):
             status=PlatformUserStatus.ACTIVE,
             tenant=self.tenant,
         )
+        grant_review_permission(checker)
         verification = Verification.objects.create(
             tenant=self.tenant,
             organization=self.organization,
@@ -2427,6 +2434,7 @@ class ManualReviewOwnershipTests(APITestCase):
             status=PlatformUserStatus.ACTIVE,
             tenant=self.tenant,
         )
+        grant_review_permission(self.tenant_reviewer)
         self.platform_reviewer = PlatformUser.objects.create_user(
             email="platform-reviewer@example.com",
             password="StrongPassword123!",

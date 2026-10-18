@@ -60,9 +60,8 @@ class AuthorizationPolicyTests(TestCase):
             is_platform_admin=True,
             status=PlatformUserStatus.ACTIVE,
         )
-        cls.permission = Permission.objects.create(
-            code=cls.permission_code,
-            name="Review verification",
+        cls.permission, _ = Permission.objects.get_or_create(
+            code=cls.permission_code, defaults={"name": "Review verification"}
         )
 
     def _assign_role(self, *, status=RoleStatus.ACTIVE, with_permission=False):
@@ -142,6 +141,7 @@ class AuthorizationPolicyTests(TestCase):
         self.assertFalse(decision.allowed)
 
     def test_manual_review_owner_is_explicit_for_each_role(self):
+        self._assign_role(with_permission=True)
         tenant_review = decide_user_access(
             self.user,
             action=AuthorizationAction.MANUAL_REVIEW,

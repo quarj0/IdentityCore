@@ -53,3 +53,8 @@ and identified four additional actionable UI/documentation findings. Three basel
 suites now total 174 passing backend tests; no pending finding is classified by
 thread resolution state alone. Reviewer RBAC, workflow creation steps and ordered
 active liveness remain explicit engineering work after this batch.
+
+Reviewer-permission remediation adds a mandatory `review_verification` boundary,
+a narrowly scoped built-in-role migration and REST/GraphQL/service negative tests.
+It remains actionable until protected review and merge; membership and queue skills
+never substitute for the role grant. See [rollout](../operations/reviewer-permissions.md).

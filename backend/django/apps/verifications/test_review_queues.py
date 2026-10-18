@@ -1,3 +1,4 @@
+from apps.access_control.test_helpers import grant_review_permission
 from datetime import timedelta
 from unittest import skipUnless
 from django.db import connection
@@ -26,7 +27,9 @@ class ReviewQueueTests(TestCase):
             tenant=self.tenant, environment="sandbox", name="Document Review", **kwargs
         )
 
-    def member(self, queue, user=None, **kwargs):
+    def member(self, queue, user=None, *, with_review_permission=True, **kwargs):
+        if with_review_permission:
+            grant_review_permission(user or self.tenant_reviewer)
         return ReviewQueueMember.objects.create(
             queue=queue, user=user or self.tenant_reviewer, **kwargs
         )

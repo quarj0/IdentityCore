@@ -191,6 +191,7 @@ Read the status in each ADR; acceptance records an architectural decision, not d
 | [ADR-050](ADR-050-purpose-bound-consent.md) | ADR 050: Purpose-bound consent and withdrawal |
 | [ADR-051](ADR-051-trusted-subject-metadata.md) | ADR 051: Trusted hosted-journey subject metadata |
 | [ADR-052](ADR-052-platform-invitation-delivery.md) | ADR 052: Platform administrator invitation delivery |
+| [ADR-053](ADR-053-verification-reviewer-permission.md) | ADR 053: Explicit verification reviewer permission |
 
 ---
 

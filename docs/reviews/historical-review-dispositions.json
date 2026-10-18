@@ -2482,11 +2482,14 @@
       "comment_id": 3653484537,
       "path": "docs/architecture/product-alignment.md",
       "status": "actionable",
-      "evidence": [],
+      "evidence": [
+        "backend/django/apps/verifications/test_reviewer_permissions.py:ReviewerPermissionTests",
+        "docs/operations/reviewer-permissions.md"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Do not mark manual-review access as implemented**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/46#discussion_r3653484537",
       "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
-      "disposition_note": "Individually confirmed collection and object manual-review access omit a reviewer permission code. Tenant membership alone still permits review. Dedicated reviewer RBAC and positive/negative REST/GraphQL regressions remain required."
+      "disposition_note": "Individually confirmed membership-only manual-review authorization. Remediation now requires review_verification for tenant collection/object review, queue allocation and QA; narrowly migrates designated system roles and rechecks actor authority during finalization. REST/GraphQL/service regressions cover denied membership-only access and revoked permissions. Remains actionable until protected review and merge."
     },
     {
       "pr_number": 46,

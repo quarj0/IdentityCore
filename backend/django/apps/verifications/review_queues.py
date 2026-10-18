@@ -1,5 +1,7 @@
 """Tenant-serialized queue admission and least-loaded reviewer assignment."""
 
+from common.authorization import AuthorizationAction, decide_user_access
+
 from datetime import timedelta
 import re
 
@@ -150,7 +152,13 @@ def assign_next(queue, *, actor, request=None):
     lock_audit_chain(queue.tenant_id)
     queue = ReviewQueue.objects.select_for_update().get(pk=queue.pk)
     if (
-        actor.tenant_id != queue.tenant_id
+        not decide_user_access(
+            actor,
+            action=AuthorizationAction.MANUAL_REVIEW,
+            tenant=queue.tenant_id,
+            review_owner="tenant",
+        ).allowed
+        or actor.tenant_id != queue.tenant_id
         or actor.is_platform_admin
         or not actor.is_active
         or queue.tenant.status != "active"

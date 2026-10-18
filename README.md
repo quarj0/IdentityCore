@@ -234,6 +234,7 @@ infrastructure/
 - [Architecture Decision Records](docs/decisions/)
 - [Implementation Backlog](docs/planning/implementation-backlog.md)
 - [Hosted Subject Metadata](docs/operations/subject-metadata.md)
+- [Reviewer Permissions](docs/operations/reviewer-permissions.md)
 - [Provider Setup](docs/operations/provider-setup.md)
 - [Tenant Storage](docs/operations/tenant-storage.md)
 - [Customer-managed Keys](docs/operations/customer-kms.md)

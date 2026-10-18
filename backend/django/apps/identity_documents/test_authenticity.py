@@ -218,11 +218,14 @@ class AuthenticityTests(TestCase):
 
     def reviewer(self):
         user = get_user_model().objects.create_user(
-            email="reviewer@example.test", password="unused", tenant=self.tenant
+            email="reviewer@example.test",
+            password="unused",
+            tenant=self.tenant,
+            status="active",
         )
         role = Role.objects.create(tenant=self.tenant, scope="tenant", name="Reviewer")
         permission, _ = Permission.objects.get_or_create(
-            code="manual_review", defaults={"name": "Review"}
+            code="review_verification", defaults={"name": "Review verification cases"}
         )
         RolePermission.objects.create(role=role, permission=permission)
         UserRole.objects.create(user=user, role=role, tenant=self.tenant)

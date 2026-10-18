@@ -225,8 +225,8 @@ It includes:
 
 Verification case assignment, queues and maker-checker controls are implemented. General
 verification-case escalation is not complete; organization onboarding has a separate
-escalation workflow. Dedicated reviewer RBAC remains an explicit historical audit
-remediation until its protected implementation merges.
+escalation workflow. Tenant review requires the explicit `review_verification` role
+permission, rechecked at decision finalization. See the [permission rollout guide](docs/operations/reviewer-permissions.md); historical closure still requires protected merge.
 
 Human review does not bypass policy, privacy, or audit controls.
 

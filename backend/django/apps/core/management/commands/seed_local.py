@@ -121,6 +121,13 @@ class Command(BaseCommand):
                 },
             )
             UserRole.objects.get_or_create(user=user, role=role, tenant=tenant)
+            review_permission, _ = Permission.objects.get_or_create(
+                code="review_verification",
+                defaults={"name": "Review verification cases"},
+            )
+            RolePermission.objects.get_or_create(
+                role=role, permission=review_permission
+            )
             if role_name == "Organization Administrator":
                 for code, name in (
                     ("manage_webhooks", "Manage webhooks"),

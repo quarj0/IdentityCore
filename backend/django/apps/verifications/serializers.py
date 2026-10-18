@@ -501,6 +501,19 @@ class ManualReviewDecisionSerializer(serializers.Serializer):
             .select_related("verification_subject")
             .get(pk=verification.pk)
         )
+        from apps.accounts.models import PlatformUser
+        from apps.verifications.review_access import can_review_verification
+
+        actor = (
+            PlatformUser.objects.filter(pk=decided_by.pk).first()
+            if isinstance(decided_by, PlatformUser)
+            else None
+        )
+        if actor is None or not can_review_verification(actor, verification):
+            raise serializers.ValidationError(
+                {"decision": "Current reviewer authority is required."}
+            )
+        decided_by = actor
         terminal_statuses = {
             VerificationStatus.VERIFIED,
             VerificationStatus.REJECTED,
