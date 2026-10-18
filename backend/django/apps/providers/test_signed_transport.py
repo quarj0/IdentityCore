@@ -44,6 +44,8 @@ class SignedTransportTests(SimpleTestCase):
         self.response_body = b'{"status":"completed","score":1.0}'
         self.mutate_headers = lambda headers: headers
         self.response_calls = 0
+        self.response_status = 200
+        self.content_type = "application/json"
 
         def response():
             self.response_calls += 1
@@ -67,11 +69,11 @@ class SignedTransportTests(SimpleTestCase):
                 nonce=outgoing["X-IC-Nonce"],
             )
             headers = Message()
-            headers["Content-Type"] = "application/json"
+            headers["Content-Type"] = self.content_type
             for key, value in self.mutate_headers(signed.headers()).items():
                 headers[key] = value
             result = Mock()
-            result.status = 200
+            result.status = self.response_status
             result.headers = headers
             result.read1.side_effect = [self.response_body, b""]
             return result
@@ -140,6 +142,52 @@ class SignedTransportTests(SimpleTestCase):
             error.exception.error_code, "provider_replay_store_unavailable"
         )
         self.assertTrue(error.exception.retryable)
+
+    def test_unsigned_http_errors_cannot_control_routing(self):
+        for status in (400, 401, 408, 425, 429, 500, 503):
+            with self.subTest(status=status):
+                self.response_status = status
+                self.content_type = "text/html"
+                self.response_body = b"upstream failure"
+                self.mutate_headers = lambda _headers: {}
+                with self.assertRaises(SecureHTTPAdapterError) as error:
+                    self.invoke()
+                self.assertEqual(
+                    error.exception.error_code, "provider_signature_invalid"
+                )
+                self.assertFalse(error.exception.retryable)
+
+    def test_authenticated_http_errors_preserve_retry_classification(self):
+        self.response_body = b"upstream failure"
+        self.content_type = "text/plain"
+        for status in (400, 401, 408, 425, 429, 500, 503):
+            with self.subTest(status=status):
+                self.response_status = status
+                with self.assertRaises(SecureHTTPAdapterError) as error:
+                    self.invoke()
+                self.assertEqual(error.exception.error_code, f"provider_http_{status}")
+                self.assertEqual(
+                    error.exception.retryable, status in (408, 425, 429, 500, 503)
+                )
+
+    def test_authenticated_error_replay_is_rejected(self):
+        self.response_status = 503
+
+        def outgoing(**kwargs):
+            return sign_message(**{**kwargs, "nonce": "fixed-error-nonce"})
+
+        with patch("apps.providers.http_adapter.sign_message", side_effect=outgoing):
+            for expected in ("provider_http_503", "provider_signature_invalid"):
+                with self.assertRaises(SecureHTTPAdapterError) as error:
+                    self.invoke()
+                self.assertEqual(error.exception.error_code, expected)
+
+    def test_signed_error_body_limits_still_apply(self):
+        self.response_status = 503
+        self.adapter.max_response_bytes = 4
+        with self.assertRaises(SecureHTTPAdapterError) as error:
+            self.invoke()
+        self.assertEqual(error.exception.error_code, "provider_response_too_large")
 
     def test_replayed_response_is_rejected(self):
         signed = sign_message(

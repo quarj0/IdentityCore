@@ -76,7 +76,10 @@ Verify the signature over the exact request body bytes and the POST URL path
 using that same method/path and echo the request nonce. Responses may choose a
 fresh timestamp within the five-minute tolerance. Missing, malformed, stale,
 unbound or invalid response signatures fail before JSON results are returned.
-No response-signature failure falls back to bearer mode.
+No response-signature failure falls back to bearer mode. Signed HTTP error bodies
+are also bounded and authenticated before their status can control retries, fallback
+or circuit state. Authenticated HTTP errors retain their status-based retry semantics;
+unsigned, altered or replayed errors return `provider_signature_invalid`.
 
 Replay namespaces bind provider ID, environment and response direction, excluding
 configuration/key IDs so rotation cannot reopen an accepted nonce. Nonces expire

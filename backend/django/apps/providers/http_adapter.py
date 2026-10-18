@@ -508,7 +508,7 @@ class SecureHTTPProviderAdapter:
                     "Provider redirects are not permitted.",
                     error_code="provider_redirect_blocked",
                 )
-            if response.status >= 400:
+            if response.status >= 400 and signing is None:
                 raise SecureHTTPAdapterError(
                     "Provider returned an HTTP error.",
                     error_code=f"provider_http_{response.status}",
@@ -516,7 +516,7 @@ class SecureHTTPProviderAdapter:
                     or response.status >= 500,
                 )
             content_type = response.headers.get_content_type().lower()
-            if content_type != "application/json":
+            if content_type != "application/json" and signing is None:
                 raise SecureHTTPAdapterError(
                     "Provider returned an unsupported content type.",
                     error_code="provider_invalid_content_type",
@@ -581,6 +581,19 @@ class SecureHTTPProviderAdapter:
                     error_code="provider_replay_store_unavailable",
                     retryable=True,
                 ) from exc
+        # In signed mode, authenticate bounded wire bytes before allowing an
+        # HTTP error to influence retries, fallback or circuit state.
+        if response.status >= 400:
+            raise SecureHTTPAdapterError(
+                "Provider returned an HTTP error.",
+                error_code=f"provider_http_{response.status}",
+                retryable=response.status in {408, 425, 429} or response.status >= 500,
+            )
+        if content_type != "application/json":
+            raise SecureHTTPAdapterError(
+                "Provider returned an unsupported content type.",
+                error_code="provider_invalid_content_type",
+            )
         try:
             parsed = json.loads(response_body.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
