@@ -30,9 +30,8 @@ Audit facts, stable identifiers, retained outcomes and media subject to legal
 retention remain; this is pseudonymization, not guaranteed erasure of every copy.
 
 Opaque JSON/PDF report pointers remain tracked instead of being discarded during
-metadata anonymization. Report-object retention deletion and subject notification
-recipient/delivery cleanup are separate outstanding remediation work until their
-protected changes merge. Do not claim complete data-subject erasure or deploy this
+metadata anonymization. Report-object retention deletion remains separate outstanding remediation work
+until its protected changes merge. Do not claim complete data-subject erasure or deploy this
 partial stack as privacy certification. Backups, exports already downloaded, logs,
 external processors and applicable legal schedules require controlled procedures.
 
@@ -41,3 +40,32 @@ routes always supply an authenticated, permission-checked actor. Run privacy tes
 with synthetic data and include PostgreSQL finalization/fingerprint races before
 rollout. The operation needs the tenant encryption keyring for encrypted-field saves;
 a failed transaction does not establish successful deletion.
+
+
+## Subject notification cleanup
+
+Apply the additive notification subject-binding migration before deploying the new
+producers/workers. Drain and replace every old delivery worker before enabling
+this deletion protocol; old binaries lack the fresh-result guard. Preserve the
+normal rollout/release gates. New applicant notifications bind their subject; model validation
+rejects a mismatched tenant or non-subject recipient type. Deletion scrubs bound
+messages and unbound legacy subject messages matched by the subject's current email
+or phone, within the tenant. Messages bound to another subject remain untouched,
+even when contacts are shared. Recipients become the non-deliverable `deleted`
+marker; previews, encrypted delivery data and provider references are cleared.
+Pending/failed messages become cancelled. Previously sent status/time and opaque
+binding remain as delivery facts. No notification-row purge is claimed.
+
+Delivery reloads current status and subject at admission and again before recording
+its result, with short tenant-serialized transactions. Provider I/O runs outside SQL.
+An already admitted send may reach its external processor during deletion and cannot
+be recalled. Its late result cannot restore cleared references, message content or
+recipient data. A queued/stale request after deletion does not send. External
+mailboxes, SMS devices and processor retention require separate deletion procedures.
+
+The migration adds a nullable binding without guessing legacy ownership. Historical
+unbound rows with changed/unknown contacts, including subjects erased before this
+rollout, require authorized reconciliation against an independently established
+mapping. Do not assign shared addresses to guessed subjects or erase unrelated
+recipient records. This limitation must be accounted for in deployment privacy
+acceptance; it is not evidence of complete historical erasure.

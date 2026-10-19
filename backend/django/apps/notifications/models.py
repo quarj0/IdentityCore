@@ -33,6 +33,13 @@ class Notification(PublicIdModel, BaseModel):
         null=True,
         blank=True,
     )
+    verification_subject = models.ForeignKey(
+        "verification_subjects.VerificationSubject",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="notifications",
+    )
     recipient_type = models.CharField(
         max_length=32,
         choices=NotificationRecipientType.choices,
@@ -75,6 +82,15 @@ class Notification(PublicIdModel, BaseModel):
 
     def clean(self):
         super().clean()
+        if self.verification_subject_id and (
+            self.verification_subject.tenant_id != self.tenant_id
+            or self.recipient_type != NotificationRecipientType.VERIFICATION_SUBJECT
+        ):
+            raise ValidationError(
+                {
+                    "verification_subject": "The subject notification must share its tenant."
+                }
+            )
         if self.status == NotificationStatus.SENT and self.sent_at is None:
             raise ValidationError(
                 {"sent_at": "Sent notifications must include a sent timestamp."}

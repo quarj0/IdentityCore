@@ -174,6 +174,9 @@ def request_subject_deletion(
                 ]
             )
 
+        from apps.notifications.privacy import scrub_subject_notifications
+        notifications_anonymized = scrub_subject_notifications(subject)
+
         subject.full_name = "Deleted subject"
         subject.external_reference = ""
         subject.email = ""
@@ -238,6 +241,7 @@ def request_subject_deletion(
                 "decision_inputs",
                 "provider_result_copies",
                 "subject_exports",
+                "subject_notifications",
             ],
             "retained_categories": [
                 "audit_facts",
@@ -252,6 +256,7 @@ def request_subject_deletion(
             "documents_anonymized": document_count,
             "verifications_anonymized": verification_count,
             "decision_inputs_anonymized": decision_count,
+            "notifications_anonymized": notifications_anonymized,
         }
         record_audit_event(
             tenant=subject.tenant,

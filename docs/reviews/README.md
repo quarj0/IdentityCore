@@ -220,3 +220,11 @@ The current-actor and cached-export safeguards, migration grant boundaries and t
 PostgreSQL finalization races are covered alongside existing fingerprint races.
 Four findings are prepared, not closed; notification cleanup and report-object
 retention remain open in the [privacy procedure](../operations/subject-privacy.md).
+
+
+Notification privacy remediation binds new applicant messages to their subject,
+scrubs linked/current-contact legacy matches and prevents stale queue/result writes
+from restoring personal data. Sent facts remain pseudonymous; unrelated recipients
+and other bound subjects are preserved. Short transactions surround provider I/O;
+already-admitted external sends cannot be recalled. Unknown historical ownership
+requires controlled reconciliation. The finding remains actionable until merge.

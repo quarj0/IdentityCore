@@ -34,7 +34,10 @@ repository paths; deployment personnel are assigned in the controlled register.
 Notification delivery has its own inventory activity covering persisted recipients,
 subject/body previews (including link content where a flow stores it), channel/status,
 provider references and encrypted pending invitation payloads. Notification rows have
-no scheduled purge; delivery or capability expiry does not erase those rows. Define
+no scheduled purge; subject deletion scrubs linked/current-contact-matched applicant
+messages and cancels pending delivery, while sent facts and opaque linkage remain.
+Other messages and unmatched historical contacts require controlled reconciliation;
+delivery or capability expiry alone does not erase those rows. Define
 and implement the deployment's approved deletion schedule before release. Email
 verification/password-reset token hashes also have no scheduled purge: expiry or
 use revokes capability, while rows remain until user deletion or controlled maintenance.
@@ -79,5 +82,6 @@ statutory periods, contacts, regions, and vendor agreements to its controlled RO
 Subject privacy requests require an explicit privileged tenant grant. Deletion
 revokes processing, scrubs provider-result copies and invalidates stored subject
 exports while retaining required audit/outcome facts and tracked report pointers.
-Notification cleanup and report-object retention remediation remain open; see the
+Report-object retention remediation remains open; subject notification cleanup and
+legacy mapping limitations are described in the
 [privacy procedure](../operations/subject-privacy.md) before claiming erasure coverage.

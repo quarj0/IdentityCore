@@ -6731,11 +6731,15 @@
       "path": "backend/django/apps/verification_subjects/services.py",
       "status": "actionable",
       "evidence": [
-        "backend/django/apps/verification_subjects/services.py:request_subject_deletion"
+        "backend/django/apps/notifications/privacy.py",
+        "backend/django/apps/notifications/models.py:verification_subject binding",
+        "backend/django/apps/notifications/test_subject_privacy.py",
+        "backend/django/apps/notifications/test_privacy_races.py",
+        "docs/operations/subject-privacy.md"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Scrub subject notification recipients before deletion**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/253#discussion_r3702668093",
-      "disposition_note": "Confirmed persisted subject notification recipients and pending delivery are not cancelled/anonymized. Original individually read and current implementation inspected. Remains open until protected remediation merge."
+      "disposition_note": "Prepared subject-bound notification creation and deletion cleanup, plus tenant-scoped current-contact matching for legacy unbound rows. Queued sends reload current state; external sends use short admission/finalization transactions and late results cannot restore cleared fields. Sent facts remain pseudonymous. Unknown historical ownership is not guessed and requires controlled deployment reconciliation. Remains actionable until protected review/merge."
     },
     {
       "pr_number": 253,
