@@ -3597,10 +3597,14 @@
       "thread_id": "PRRT_kwDOTN0BU86Vrhmt",
       "comment_id": 3696851646,
       "path": "backend/django/apps/verifications/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/verifications/views.py:VerificationListCreateView.get",
+        "backend/django/apps/verifications/tests.py:test_list_rejects_impossible_and_non_contract_dates"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Return 400 for invalid calendar dates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/179#discussion_r3696851646"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/179#discussion_r3696851646",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Immutable main parse_date raises on impossible dates. Remediation catches ValueError and enforces the documented YYYY-MM-DD shape; eight boundary requests return 400. Await protected merge."
     },
     {
       "pr_number": 179,
@@ -3623,90 +3627,130 @@
       "thread_id": "PRRT_kwDOTN0BU86Vrhm0",
       "comment_id": 3696851654,
       "path": "backend/django/apps/verifications/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "docs/openapi/identitycore-public-api.yaml:/verifications/ GET",
+        "sdk/javascript/src/index.js:verifications.list",
+        "sdk/python/identitycore/client.py:VerificationsResource.list",
+        "sdk/java/src/main/java/io/identitycore/IdentityCoreClient.java:Verifications",
+        "sdk/dotnet/src/IdentityCore/IdentityCoreClient.cs:VerificationsResource"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Expose the date filters through the public API contract**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/179#discussion_r3696851654"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/179#discussion_r3696851654",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Immutable main omits creation-date filters from the verification contract and all four SDKs. Remediation adds inclusive date parameters to list and cursor iteration, retaining filters on every page. All four SDK date-filter regressions, Java/.NET builds, typed JavaScript consumer, model drift and 69-operation contract checks pass. Live compatibility services were not configured. Await protected review and merge."
     },
     {
       "pr_number": 180,
       "thread_id": "PRRT_kwDOTN0BU86Vrhwr",
       "comment_id": 3696852627,
       "path": "backend/README.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/README.md:complete backend stack instructions",
+        "docker-compose.yml:ai-model-bootstrap profile",
+        "backend/ai-service/README.md:model provisioning"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Bootstrap AI models before starting the documented stack**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852627"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852627",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. The root backend startup sequence still omits the PAD fetch and model bootstrap needed before real-mode readiness. Correct the advertised fresh-checkout sequence."
     },
     {
       "pr_number": 180,
       "thread_id": "PRRT_kwDOTN0BU86Vrhwv",
       "comment_id": 3696852629,
       "path": "docs/privacy/processing-inventory.json",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "docs/privacy/processing-inventory.json:account-and-tenant-administration",
+        "backend/django/apps/notifications/models.py:Notification"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Record persisted notification data in the inventory**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852629"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852629",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. The inventory now lists notification storage but still does not accurately describe persisted recipients, subject/body preview/provider references and their actual retention. Complete the activity rather than treating a listed path as sufficient coverage."
     },
     {
       "pr_number": 180,
       "thread_id": "PRRT_kwDOTN0BU86Vrhwx",
       "comment_id": 3696852633,
       "path": "backend/django/README.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/README.md:mypy backend",
+        "docker-compose.yml:django working_dir"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Pass an existing path to the documented mypy command**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852633"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852633",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. The documented Compose mypy positional backend path is still absent from the service working directory. Correct it to the actual Django tree."
     },
     {
       "pr_number": 180,
       "thread_id": "PRRT_kwDOTN0BU86Vrhw0",
       "comment_id": 3696852638,
       "path": "frontend/developer-portal/README.md",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/developer-portal/src/lib/public-api-docs.ts:configuredApiOrigin",
+        "frontend/developer-portal/src/lib/api-origin.ts:configuredApiOrigin",
+        "frontend/developer-portal/src/lib/api-origin.test.js"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Document an origin rather than a versioned API URL**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852638"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852638",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Immutable main normalizes both current and legacy settings with URL.origin before appending /api/v1 paths. Thus the documented legacy versioned URL no longer duplicates the path. Four direct Node origin tests and two request-template tests pass; no source change required."
     },
     {
       "pr_number": 180,
       "thread_id": "PRRT_kwDOTN0BU86Vrhw2",
       "comment_id": 3696852644,
       "path": "docs/privacy/processing-inventory.json",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "docs/privacy/processing-inventory.json:account-and-tenant-administration retention",
+        "backend/django/apps/accounts/models.py:EmailVerificationToken and PasswordResetToken",
+        "backend/django/config/settings/base.py:CELERY_BEAT_SCHEDULE"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Remove the unsupported token-purge claim**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852644"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852644",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Expiry/revocation rejects account capabilities but does not purge these account-token rows. The inventory still promises purge; correct the retention statement to actual storage behavior."
     },
     {
       "pr_number": 181,
       "thread_id": "PRRT_kwDOTN0BU86Vrio4",
       "comment_id": 3696858895,
       "path": "frontend/dashboard/src/features/operations/live-settings-page.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/dashboard/src/features/operations/live-settings-page.tsx:Workspace management and status details"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Gate the active-state card on actual statuses**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/181#discussion_r3696858895"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/181#discussion_r3696858895",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Immutable main no longer renders an unconditional Workspace is active success card. It presents actual organization/workspace details and neutral management links; loading success is not asserted as activation."
     },
     {
       "pr_number": 181,
       "thread_id": "PRRT_kwDOTN0BU86Vrio5",
       "comment_id": 3696858896,
       "path": "frontend/dashboard/src/features/operations/live-settings-page.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/dashboard/src/features/operations/live-settings-page.tsx:management link destinations"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Route the approval CTA to a real page**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/181#discussion_r3696858896"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/181#discussion_r3696858896",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Immutable main removed the orphan approval-status CTA. Current management links target existing /team, /settings/security and /settings/profile routes; the reported dead CTA is absent."
     },
     {
       "pr_number": 181,
       "thread_id": "PRRT_kwDOTN0BU86Vrio7",
       "comment_id": 3696858898,
       "path": "frontend/dashboard/src/components/shared/settings-navigation.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/dashboard/src/app/settings/security/page.tsx",
+        "frontend/dashboard/src/components/shared/settings-navigation.tsx"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep the settings navigation visible on Security**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/181#discussion_r3696858898"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/181#discussion_r3696858898",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Security still renders without the shared settings navigation. Add the same persistent navigation used by Workspace and Profile."
     },
     {
       "pr_number": 185,
@@ -3872,10 +3916,14 @@
       "thread_id": "PRRT_kwDOTN0BU86VruP2",
       "comment_id": 3696926618,
       "path": "backend/django/apps/biometrics/migrations/0005_selfiecapture_face_detection_evidence.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/biometrics/migrations/0005_selfiecapture_face_detection_evidence.py",
+        "backend/django/apps/biometrics/migrations/0001_initial.py:face_count default"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Clear legacy placeholder face counts during migration**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/187#discussion_r3696926618"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/187#discussion_r3696926618",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Migration 0005 only changes schema; no later data migration clears historical default-one counts without analysis provenance. Repair legacy placeholders without erasing attributable analysis."
     },
     {
       "pr_number": 187,
@@ -3899,50 +3947,70 @@
       "thread_id": "PRRT_kwDOTN0BU86VruP5",
       "comment_id": 3696926621,
       "path": "backend/django/apps/biometrics/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/verifications/evidence.py:serialize_verification_evidence_report selfie_captures",
+        "backend/django/apps/biometrics/models.py:SelfieCapture"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include face detection evidence in generated reports**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/187#discussion_r3696926621"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/187#discussion_r3696926621",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Newly generated evidence still copies selfie identifiers/storage/status/type only, omitting persisted face detection count, confidence and model attribution. Include them in fresh JSON/PDF reports while preserving old artifacts."
     },
     {
       "pr_number": 188,
       "thread_id": "PRRT_kwDOTN0BU86VrvYE",
       "comment_id": 3696933154,
       "path": "frontend/security-headers.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/security-headers.ts:contentSecurityPolicy img-src",
+        "frontend/verification-portal/src/components/verification/verification-frame.tsx:organizationLogo"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Allow the external origins used for organization logos**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/188#discussion_r3696933154"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/188#discussion_r3696933154",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. The dashboard shared CSP still permits self/data/blob images only; the portal has a separate policy allowing HTTPS images. Explicit configured public asset origins must be supported for valid external dashboard branding."
     },
     {
       "pr_number": 188,
       "thread_id": "PRRT_kwDOTN0BU86VrvYG",
       "comment_id": 3696933156,
       "path": "frontend/security-headers.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/security-headers.ts:style-src-attr none",
+        "frontend/packages/ui/src/components/progress.tsx:Indicator inline transform"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Remove the remaining inline progress style**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/188#discussion_r3696933156"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/188#discussion_r3696933156",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Progress still relies on a blocked inline transform. Use CSP-compatible progress rendering and verify a nonterminal value in a production browser."
     },
     {
       "pr_number": 188,
       "thread_id": "PRRT_kwDOTN0BU86VrvYH",
       "comment_id": 3696933157,
       "path": "frontend/security-headers.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/dashboard/src/app/layout.tsx:dynamic force-dynamic",
+        "frontend/dashboard/src/proxy.ts:forwarded Content-Security-Policy and x-nonce"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Dynamically render pages before enforcing request nonces**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/188#discussion_r3696933157"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/188#discussion_r3696933157",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Immutable main forces nonce-protected dashboard rendering to be dynamic and forwards the same request CSP/nonce to Next. The reported cached static HTML/nonced policy mismatch is already repaired."
     },
     {
       "pr_number": 188,
       "thread_id": "PRRT_kwDOTN0BU86VrvYJ",
       "comment_id": 3696933159,
       "path": "frontend/security-headers.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "frontend/security-headers.ts:connectSources",
+        "frontend/dashboard/src/features/operations/live-branding-page.tsx:presigned upload"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Permit the object-storage origin used for branding uploads**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/188#discussion_r3696933159"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/188#discussion_r3696933159",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. CSP connect-src lacks an explicitly configured object-storage upload origin. Add bounded configured origins without a blanket HTTPS allowance."
     },
     {
       "pr_number": 189,
@@ -3964,30 +4032,42 @@
       "thread_id": "PRRT_kwDOTN0BU86Vru-0",
       "comment_id": 3696930814,
       "path": "backend/django/apps/verifications/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/developer-portal/src/data/endpoints.ts:GET /api/v1/verifications example"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Update the developer portal's pagination example**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/189#discussion_r3696930814"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/189#discussion_r3696930814",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Immutable main shows limit, next_cursor and has_more for the default verification-list request, matching cursor pagination. The stale total/page example is no longer present."
     },
     {
       "pr_number": 189,
       "thread_id": "PRRT_kwDOTN0BU86Vru-1",
       "comment_id": 3696930815,
       "path": "backend/django/common/pagination.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/views.py:tenant/environment cursor_scope",
+        "backend/django/common/pagination.py:scope signing and validation",
+        "backend/django/apps/verifications/tests.py:test_cursor_cannot_cross_api_client_environment_scope"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Bind each cursor to its tenant result set**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/189#discussion_r3696930815"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/189#discussion_r3696930815",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Immutable main signs and validates tenant identity plus API-client environment with the cursor filters. A changed scope fails before applying the boundary. Both filter and environment cursor regressions pass in the 19-test immutable-main auth/locale/cursor run."
     },
     {
       "pr_number": 189,
       "thread_id": "PRRT_kwDOTN0BU86Vru-2",
       "comment_id": 3696930816,
       "path": "backend/django/common/pagination.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/models.py:verif_tenant_created_pk_idx",
+        "backend/django/apps/verifications/migrations/0008_verification_verif_tenant_created_pk_idx.py"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Add an index matching the cursor traversal order**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/189#discussion_r3696930816"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/189#discussion_r3696930816",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Immutable main includes the migrated composite tenant/-created_at/-id index matching the cursor traversal predicate/order. No new migration required."
     },
     {
       "pr_number": 190,
@@ -4010,40 +4090,55 @@
       "thread_id": "PRRT_kwDOTN0BU86VrxWu",
       "comment_id": 3696944684,
       "path": "backend/ai-service/app/settings.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/ai-service/app/settings.py:model_asset_integrity_errors",
+        "backend/ai-service/app/settings.py:real_inference_missing_requirements"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reject model assets omitted from the manifest**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/191#discussion_r3696944684"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/191#discussion_r3696944684",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Manifest validation checks listed files and mandatory PAD only; it does not bind all configured InsightFace/OCR assets or reject unlisted model files. Close this real-mode integrity gap."
     },
     {
       "pr_number": 191,
       "thread_id": "PRRT_kwDOTN0BU86VrxWw",
       "comment_id": 3696944687,
       "path": "backend/ai-service/app/pipeline.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/ai-service/app/pipeline.py:run_with_mode",
+        "backend/ai-service/app/settings.py:model_asset_integrity_errors"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Avoid rehashing the complete model volume per request**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/191#discussion_r3696944687"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/191#discussion_r3696944687",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Every real call and readiness still re-read each complete model file with read_bytes and hash it. Replace per-request whole-volume scans with a validated, invalidation-aware runtime integrity state and streaming digests."
     },
     {
       "pr_number": 191,
       "thread_id": "PRRT_kwDOTN0BU86VrxWy",
       "comment_id": 3696944689,
       "path": "backend/ai-service/app/settings.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/ai-service/app/settings.py:model_manifest_path",
+        "docker-compose.yml:ai-service ai-models mount"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Anchor the manifest outside the writable model volume**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/191#discussion_r3696944689"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/191#discussion_r3696944689",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Default manifest remains on the writable asset volume without a separately configured authenticated digest or read-only trust anchor. Integrity checks do not authenticate a replaced manifest; fix the trust boundary and deployment contract."
     },
     {
       "pr_number": 191,
       "thread_id": "PRRT_kwDOTN0BU86VrxWz",
       "comment_id": 3696944690,
       "path": "backend/ai-service/app/bootstrap_models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/ai-service/app/bootstrap_models.py:manifest inventory lexical exclusion"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Resolve the manifest path before excluding it**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/191#discussion_r3696944690"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/191#discussion_r3696944690",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Bootstrap still compares path != manifest_path lexically. Canonicalize both before exclusion to avoid hashing a manifest through a symlink alias."
     },
     {
       "pr_number": 192,
@@ -4153,10 +4248,13 @@
       "thread_id": "PRRT_kwDOTN0BU86VryyW",
       "comment_id": 3696953116,
       "path": "backend/django/apps/identity_documents/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/identity_documents/tasks.py:quality/classification/OCR completed_at = now"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep document completion times after their invocation starts**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/194#discussion_r3696953116"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/194#discussion_r3696953116",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. The task still overwrites provider completion timestamps with its earlier task-start now. Preserve invocation completion or use a new completion time in success/failure finalization."
     },
     {
       "pr_number": 194,
@@ -4195,10 +4293,14 @@
       "thread_id": "PRRT_kwDOTN0BU86VryyZ",
       "comment_id": 3696953121,
       "path": "backend/django/apps/providers/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/serializers.py:serialize_provider_check duration_ms",
+        "backend/django/config/graphql_types.py:ProviderCheckNode.duration_ms"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Expose recorded durations through provider-check APIs**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/194#discussion_r3696953121"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/194#discussion_r3696953121",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Immutable main exposes recorded duration_ms in both the shared provider-check serializer and GraphQL node. The originally omitted fields are present."
     },
     {
       "pr_number": 194,
@@ -4251,20 +4353,26 @@
       "thread_id": "PRRT_kwDOTN0BU86Vr2V2",
       "comment_id": 3696973560,
       "path": "backend/django/config/test_tenant_isolation.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/config/test_tenant_isolation.py:test_cross_tenant_write_matrix_cannot_mutate_resources"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Include every tenant-owned write surface in the matrix**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/196#discussion_r3696973560"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/196#discussion_r3696973560",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. The generic write matrix remains limited to four PATCH resources. Extend action/resource coverage for invitations, policies, verifications and other tenant-owned mutations, and repair any reproduced non-disclosing lookup failures."
     },
     {
       "pr_number": 196,
       "thread_id": "PRRT_kwDOTN0BU86Vr2V4",
       "comment_id": 3696973563,
       "path": "backend/django/config/test_tenant_isolation.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/config/test_tenant_isolation.py:assert_non_disclosing_not_found"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Compare the complete non-disclosing error payload**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/196#discussion_r3696973563"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/196#discussion_r3696973563",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. The helper compares status and code only. It still ignores potentially disclosing differences in message/details; compare full normalized error objects."
     },
     {
       "pr_number": 197,
@@ -4552,10 +4660,14 @@
       "thread_id": "PRRT_kwDOTN0BU86Vr3CY",
       "comment_id": 3696977662,
       "path": "backend/django/apps/verifications/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/projects/serializers.py:ProjectSerializer.validate",
+        "backend/django/apps/verifications/views.py:_scope_to_client_environment"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Prevent project edits from promoting existing credentials**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/198#discussion_r3696977662"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/198#discussion_r3696977662",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Project environment changes are blocked only after verification activity, not after credential issuance. Attached sandbox credentials can still acquire production scope through a project edit with no verification rows. Make issued environment immutable at the appropriate boundary."
     },
     {
       "pr_number": 198,
@@ -4580,50 +4692,71 @@
       "thread_id": "PRRT_kwDOTN0BU86Vr4C7",
       "comment_id": 3696983474,
       "path": "backend/django/apps/accounts/sessions.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/accounts/sessions.py:_register and rotate_refresh_token",
+        "backend/django/apps/accounts/test_sessions.py:test_rotation_registers_successor_as_outstanding_and_keeps_one_session"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Register each rotated token as outstanding**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/199#discussion_r3696983474"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/199#discussion_r3696983474",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Immutable main registers each rotated successor in OutstandingToken and RefreshTokenSession through _register. The dedicated regression passes in the 19-test immutable-main auth/locale/cursor run."
     },
     {
       "pr_number": 199,
       "thread_id": "PRRT_kwDOTN0BU86Vr4C9",
       "comment_id": 3696983476,
       "path": "backend/django/apps/accounts/sessions.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/accounts/sessions.py:rotate_refresh_token legacy branch",
+        "backend/django/apps/accounts/test_sessions.py:test_legacy_refresh_migrates_once_after_signature_validation"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve refresh tokens issued before deployment**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/199#discussion_r3696983476"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/199#discussion_r3696983476",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Immutable main verifies signed legacy tokens, creates their family/session records and registers a successor instead of unconditionally logging out pre-family sessions. Legacy migration/replay and invalid-signature regressions pass in the 19-test immutable-main run."
     },
     {
       "pr_number": 199,
       "thread_id": "PRRT_kwDOTN0BU86Vr4C_",
       "comment_id": 3696983478,
       "path": "backend/django/apps/accounts/sessions.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/accounts/sessions.py:_revoke_family and purge_expired_session_history",
+        "backend/django/apps/accounts/tasks.py:purge_session_history_task",
+        "backend/django/config/settings/base.py:session history schedule",
+        "backend/django/apps/accounts/test_sessions.py:test_history_cleanup_keeps_live_token_and_recent_session_records"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Bound the cost of revoking long-lived token families**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/199#discussion_r3696983478"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/199#discussion_r3696983478",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Immutable main bulk-fetches/blacklists live outstanding tokens and retains explicit refresh expiry. Scheduled bounded cleanup prunes expired refresh/outstanding rows and old dashboard sessions. Cleanup/live-history regression passes in the 19-test immutable-main run."
     },
     {
       "pr_number": 199,
       "thread_id": "PRRT_kwDOTN0BU86Vr4DB",
       "comment_id": 3696983480,
       "path": "backend/django/apps/accounts/views.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/accounts/views.py:LogoutView catches TokenError only",
+        "backend/django/apps/accounts/test_sessions.py:test_logout_does_not_claim_success_on_database_failure"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Do not hide failures while revoking on logout**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/199#discussion_r3696983480"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/199#discussion_r3696983480",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Immutable main catches expected TokenError only; operational revocation failures propagate instead of claiming logged_out. The database-failure regression passes in the 19-test immutable-main run."
     },
     {
       "pr_number": 200,
       "thread_id": "PRRT_kwDOTN0BU86Vr5LR",
       "comment_id": 3696989632,
       "path": "backend/django/apps/identity_documents/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/identity_documents/tasks.py:completed_at assignments"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Set completion timestamps after document calls**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/200#discussion_r3696989632"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/200#discussion_r3696989632",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Duplicate original timestamp finding individually read: quality/classification/OCR and generic failure still overwrite completion with task-start now. Track with the provider timestamp remediation; no resolution inferred from the other thread."
     },
     {
       "pr_number": 200,
@@ -4647,10 +4780,15 @@
       "thread_id": "PRRT_kwDOTN0BU86Vr5LV",
       "comment_id": 3696989636,
       "path": "backend/django/apps/identity_documents/tasks.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/providers/services.py:execute_provider_route use_initial_check and per-invocation ProviderCheck creation",
+        "backend/django/apps/providers/services.py:preserve_provider_result_envelope",
+        "backend/django/apps/identity_documents/tasks.py:per-capture execute_provider_route"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Measure the whole multi-capture quality check**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/200#discussion_r3696989636"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/200#discussion_r3696989636",
+      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Immutable main creates a distinct check/attempt for each capture invocation: a completed or already-attempted initial check is ineligible for reuse. Individual normalized provider contracts remain intact; aggregate persistence details live separately under workflow_result. Thus per-invocation duration attribution replaces the old reused-check timing described in this original. Completion timestamp overwrites are separately actionable."
     },
     {
       "pr_number": 200,

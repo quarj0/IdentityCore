@@ -1,4 +1,5 @@
 from datetime import timedelta
+import re
 
 from django.conf import settings
 from django.db import transaction
@@ -143,7 +144,14 @@ class VerificationListCreateView(VerificationAccessMixin, APIView):
         for name, value in (("created_from", created_from), ("created_to", created_to)):
             if not value:
                 continue
-            parsed = parse_date(value)
+            try:
+                parsed = (
+                    parse_date(value)
+                    if re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value)
+                    else None
+                )
+            except ValueError:
+                parsed = None
             if parsed is None:
                 raise ValidationError(
                     {name: "Must be a valid date in YYYY-MM-DD format."}

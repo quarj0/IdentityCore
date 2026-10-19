@@ -16,3 +16,8 @@ Only data models are generated. Authentication headers, idempotency behavior,
 timeouts, retries, response parsing, and webhook verification intentionally
 remain in each SDK's hand-written client layer so their behavior can be reviewed
 and tested using language-native tools.
+
+Verification listing supports inclusive `created_from` and `created_to` filters
+(`YYYY-MM-DD`, deployment time zone). All four SDKs expose them on list and cursor
+iteration methods and retain them across pages. See each SDK README for its typed
+calling convention. The API returns HTTP 400 for invalid dates or reversed ranges.

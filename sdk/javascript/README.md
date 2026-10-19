@@ -58,3 +58,17 @@ const valid = await verifyWebhookSignatureWithReplayClaim(rawRequestBody, {
 Always verify the unmodified request body before parsing JSON. The default timestamp tolerance is five minutes. The asynchronous helper awaits `claimProcessedEventId`, which must atomically insert the event ID only if absent and return whether it succeeded. Retain the previous secret only until its rotation overlap expires; IdentityCore emits v1 signatures for both secrets during that window. The synchronous `verifyWebhookSignature` remains compatible with the original `X-IdentityCore-Signature` header but intentionally performs no replay claim.
 
 `VerificationSubjectInput` is the generated API model with snake_case properties. Use `VerificationSubjectClientInput` for the client convenience input that also accepts camelCase names.
+
+## Creation date filters
+
+List and cursor iteration accept inclusive `created_from`/`created_to` dates in
+`YYYY-MM-DD` format (camelCase options in JavaScript, Java and .NET). The API uses
+the deployment's configured time zone, rejects impossible dates and reversed
+ranges with HTTP 400, and binds cursors to the unchanged filters. Iterators retain
+both dates on every page. Existing calls without dates keep their behavior.
+
+```javascript
+for await (const verification of client.verifications.iterate({
+  createdFrom: "2026-01-01", createdTo: "2026-01-31",
+})) { /* handle verification */ }
+```

@@ -223,6 +223,8 @@ export class IdentityCoreClient {
       list: ({
         status = "",
         externalReference = "",
+        createdFrom = "",
+        createdTo = "",
         cursor = "",
         limit,
         page,
@@ -230,7 +232,7 @@ export class IdentityCoreClient {
       } = {}) =>
         this.request(
           "GET",
-          `/verifications/${compactQuery({ status, external_reference: externalReference, cursor, limit, page, page_size: pageSize })}`,
+          `/verifications/${compactQuery({ status, external_reference: externalReference, created_from: createdFrom, created_to: createdTo, cursor, limit, page, page_size: pageSize })}`,
         ),
       iterate: async function* (options = {}) {
         let cursor = "";

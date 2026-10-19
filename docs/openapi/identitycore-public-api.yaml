@@ -2622,6 +2622,18 @@ paths:
           in: query
           schema:
             type: string
+        - name: created_from
+          in: query
+          description: Inclusive creation date (YYYY-MM-DD), using the deployment's configured time zone.
+          schema:
+            type: string
+            format: date
+        - name: created_to
+          in: query
+          description: Inclusive creation date (YYYY-MM-DD); must be on or after created_from.
+          schema:
+            type: string
+            format: date
         - name: cursor
           in: query
           schema:
@@ -2655,6 +2667,8 @@ paths:
                         $ref: "#/components/schemas/CursorPagination"
                   request_id:
                     type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
         "403":
           $ref: "#/components/responses/PermissionDenied"
     post:

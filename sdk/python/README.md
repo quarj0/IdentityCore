@@ -94,3 +94,18 @@ Always verify the unmodified webhook body before parsing JSON. The default times
 Required scopes are `policies:read`, `verifications:create`, and `verifications:read` for their corresponding resources.
 
 CLI options require their full names (for example, `--profile`); abbreviated long options are rejected so parsing stays consistent with shell completion.
+
+## Creation date filters
+
+List and cursor iteration accept inclusive `created_from`/`created_to` dates in
+`YYYY-MM-DD` format (camelCase options in JavaScript, Java and .NET). The API uses
+the deployment's configured time zone, rejects impossible dates and reversed
+ranges with HTTP 400, and binds cursors to the unchanged filters. Iterators retain
+both dates on every page. Existing calls without dates keep their behavior.
+
+```python
+for verification in client.verifications.iter(
+    created_from="2026-01-01", created_to="2026-01-31"
+):
+    pass  # handle verification
+```

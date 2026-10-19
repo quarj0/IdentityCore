@@ -8,6 +8,26 @@ namespace IdentityCore.Tests;
 public sealed class IdentityCoreClientTests
 {
     [Fact]
+    public async Task Date_filters_survive_list_and_every_cursor_page()
+    {
+        var urls = new List<string>();
+        var http = new HttpClient(new Handler(request => {
+            urls.Add(request.RequestUri!.Query);
+            var cursor = urls.Count == 3 ? "\"next\"" : "null";
+            return Response(HttpStatusCode.OK, "{\"success\":true,\"data\":{\"results\":[{\"id\":\"1\"}],\"pagination\":{\"next_cursor\":" + cursor + "}}}");
+        }));
+        using var client = new IdentityCoreClient(new(){ApiOrigin=new Uri("https://api.example.test"),ClientId="c",ClientSecret="s"},http);
+        await client.Verifications.ListAsync(createdFrom: "2026-01-01", createdTo: "2026-01-31", page: 1);
+        await client.Verifications.ListCursorAsync(createdFrom: "2026-01-01", createdTo: "2026-01-31");
+        var count = 0;
+        await foreach (var item in client.Verifications.IterateAsync(createdFrom: "2026-01-01", createdTo: "2026-01-31")) count++;
+        Assert.Equal(2, count);
+        Assert.Equal(4, urls.Count);
+        Assert.All(urls, url => { Assert.Contains("created_from=2026-01-01", url); Assert.Contains("created_to=2026-01-31", url); });
+        Assert.Contains("cursor=next", urls[3]);
+    }
+
+    [Fact]
     public async Task Create_sends_auth_and_idempotency_headers()
     {
         HttpRequestMessage? seen = null;

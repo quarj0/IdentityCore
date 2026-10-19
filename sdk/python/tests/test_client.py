@@ -50,6 +50,44 @@ def failure(message):
 
 
 class IdentityCoreClientTests(unittest.TestCase):
+    def test_date_filters_survive_list_and_all_cursor_pages(self):
+        transport = FakeTransport(
+            [
+                (200, envelope({"results": [], "pagination": {"next_cursor": None}})),
+                (
+                    200,
+                    envelope(
+                        {
+                            "results": [{"id": "1"}],
+                            "pagination": {"next_cursor": "next"},
+                        }
+                    ),
+                ),
+                (
+                    200,
+                    envelope(
+                        {"results": [{"id": "2"}], "pagination": {"next_cursor": None}}
+                    ),
+                ),
+            ]
+        )
+        client = IdentityCoreClient(
+            api_origin="https://api.example.test",
+            client_id="c",
+            client_secret="s",
+            transport=transport,
+        )
+        filters = {"created_from": "2026-01-01", "created_to": "2026-01-31"}
+        client.verifications.list(**filters, page=1)
+        self.assertEqual(len(list(client.verifications.iter(**filters))), 2)
+        from urllib.parse import parse_qs, urlparse
+
+        for call in transport.calls:
+            query = parse_qs(urlparse(call["url"]).query)
+            self.assertEqual(query["created_from"], [filters["created_from"]])
+            self.assertEqual(query["created_to"], [filters["created_to"]])
+        self.assertIn("cursor=next", transport.calls[2]["url"])
+
     def make_client(self, responses, **kwargs):
         self.transport = FakeTransport(responses)
         return IdentityCoreClient(

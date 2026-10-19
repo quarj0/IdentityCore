@@ -155,24 +155,40 @@ public final class IdentityCoreClient {
         }
 
         public JsonNode list(String status, String externalReference, Integer page, Integer pageSize) {
+            return list(status, externalReference, page, pageSize, null, null);
+        }
+
+        public JsonNode list(String status, String externalReference, Integer page, Integer pageSize, String createdFrom, String createdTo) {
             Map<String, Object> q = new LinkedHashMap<>();
             q.put("status", status);
             q.put("external_reference", externalReference);
+            q.put("created_from", createdFrom);
+            q.put("created_to", createdTo);
             q.put("page", page);
             q.put("page_size", pageSize);
             return request("GET", "/verifications/" + query(q), null, null);
         }
 
         public JsonNode listCursor(String status, String externalReference, String cursor, Integer limit) {
+            return listCursor(status, externalReference, cursor, limit, null, null);
+        }
+
+        public JsonNode listCursor(String status, String externalReference, String cursor, Integer limit, String createdFrom, String createdTo) {
             Map<String, Object> q = new LinkedHashMap<>();
             q.put("status", status);
             q.put("external_reference", externalReference);
+            q.put("created_from", createdFrom);
+            q.put("created_to", createdTo);
             q.put("cursor", cursor);
             q.put("limit", limit);
             return request("GET", "/verifications/" + query(q), null, null);
         }
 
         public Iterable<JsonNode> iterate(String status, String externalReference, int pageSize) {
+            return iterate(status, externalReference, pageSize, null, null);
+        }
+
+        public Iterable<JsonNode> iterate(String status, String externalReference, int pageSize, String createdFrom, String createdTo) {
             return () -> new java.util.Iterator<>() {
                 String cursor = "";
                 int index = 0;
@@ -194,7 +210,7 @@ public final class IdentityCoreClient {
 
                 private void loadIfNeeded() {
                     while (index >= items.size() && !finished) {
-                        JsonNode result = listCursor(status, externalReference, cursor, pageSize);
+                        JsonNode result = listCursor(status, externalReference, cursor, pageSize, createdFrom, createdTo);
                         items = result.path("results");
                         index = 0;
                         cursor = result.path("pagination").path("next_cursor").asText("");

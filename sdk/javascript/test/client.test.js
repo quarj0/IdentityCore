@@ -67,3 +67,21 @@ test("verifies signatures over the raw payload", async () => {
   assert.equal(verifyWebhookSignature(fixture.raw_body, { signature: fixture.legacy_signature, timestamp: fixture.timestamp, signingKey: fixture.legacy_signing_key, now: fixture.now_within_tolerance }), true);
   assert.equal(verifyWebhookSignature(fixture.raw_body, { signature: fixture.legacy_signature, timestamp: fixture.timestamp, signingKeys: ["wrong-key", fixture.legacy_signing_key], now: fixture.now_within_tolerance }), true);
 });
+
+test("date filters survive explicit list and every cursor page", async () => {
+  const urls = [];
+  const client = new IdentityCoreClient({ apiOrigin: "https://api.example.test", clientId: "c", clientSecret: "s", fetch: async (url) => {
+    urls.push(new URL(url));
+    return response(success({ results: [{ id: `ver_${urls.length}` }], pagination: { next_cursor: urls.length === 2 ? "next" : null } }));
+  }});
+  const filters = { createdFrom: "2026-01-01", createdTo: "2026-01-31" };
+  await client.verifications.list({ ...filters, page: 1 });
+  const items = [];
+  for await (const item of client.verifications.iterate(filters)) items.push(item);
+  assert.equal(items.length, 2);
+  for (const url of urls) {
+    assert.equal(url.searchParams.get("created_from"), filters.createdFrom);
+    assert.equal(url.searchParams.get("created_to"), filters.createdTo);
+  }
+  assert.equal(urls[2].searchParams.get("cursor"), "next");
+});

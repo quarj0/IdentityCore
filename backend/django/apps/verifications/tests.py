@@ -717,6 +717,17 @@ class VerificationWorkflowTests(APITestCase):
         )
         self.assertEqual(invalid_response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_list_rejects_impossible_and_non_contract_dates(self):
+        for field in ("created_from", "created_to"):
+            for value in ("2026-02-30", "2026-13-01", "not-a-date", "20260101"):
+                with self.subTest(field=field, value=value):
+                    response = self.client.get(
+                        reverse("verification-list-create") + f"?{field}={value}",
+                        **self.auth_headers(),
+                    )
+                    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                    self.assertIn(field, response.data["error"]["details"])
+
     def test_detail_requires_read_scope(self):
         self.api_client.scopes_json = ["verifications:create"]
         self.api_client.save(update_fields=["scopes_json", "updated_at"])
