@@ -313,7 +313,16 @@ test("subject completes consent, document, selfie, liveness, and review routing"
     ) {
       return json(route, {
         challenge_id: "lch_1",
-        actions: ["turn_left", "look_up"],
+        actions: [
+          "turn_left",
+          "look_up",
+          "turn_right",
+          "look_down",
+          "turn_left",
+          "look_up",
+          "turn_right",
+          "look_down",
+        ],
         expires_in: 60,
         expires_at: new Date(Date.now() + 60_000).toISOString(),
       });
@@ -426,7 +435,22 @@ test("subject completes consent, document, selfie, liveness, and review routing"
   ).toBeVisible();
   await page.getByRole("button", { name: "Enable camera" }).click();
   await page.getByRole("button", { name: "Start live challenge" }).click();
-  await page.getByRole("button", { name: "Finish recording" }).click();
+  const instruction = page.getByRole("status", {
+    name: "Live challenge instruction",
+  });
+  await expect(instruction).toHaveText("Face forward and hold still");
+  for (const direction of [
+    "Turn your head left",
+    "Look up",
+    "Turn your head right",
+    "Look down",
+    "Turn your head left",
+    "Look up",
+    "Turn your head right",
+    "Look down",
+  ]) {
+    await expect(instruction).toHaveText(direction);
+  }
   await expect(
     page.getByRole("button", { name: "Submit live check" }),
   ).toBeVisible();

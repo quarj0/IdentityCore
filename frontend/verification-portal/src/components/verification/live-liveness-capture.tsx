@@ -15,7 +15,7 @@ const ACTION_LABELS: Record<string, string> = {
   look_down: "Look down",
 };
 const MAX_RECORDING_BYTES = 25 * 1024 * 1024;
-const MAX_RECORDING_MS = 15_000;
+const MAX_RECORDING_MS = 22_000;
 
 export function LiveLivenessCapture({
   actions,
@@ -207,7 +207,7 @@ export function LiveLivenessCapture({
 
     chunksRef.current = [];
     discardRecordingRef.current = false;
-    setActionIndex(0);
+    setActionIndex(-1);
     setError(null);
     const recorder = new MediaRecorder(streamRef.current, {
       mimeType: format.recorderMimeType,
@@ -262,7 +262,7 @@ export function LiveLivenessCapture({
     }
     const timer = window.setTimeout(
       () => setActionIndex((index) => index + 1),
-      2500,
+      actionIndex < 0 ? 1000 : 2200,
     );
     return () => window.clearTimeout(timer);
   }, [actionIndex, actions.length, recording]);
@@ -298,14 +298,21 @@ export function LiveLivenessCapture({
           </div>
         ) : null}
         {recording ? (
-          <div className="absolute inset-x-4 top-4 rounded-2xl bg-info px-4 py-3 text-center text-sm font-semibold text-info-foreground shadow-lg">
+          <div
+            role="status"
+            aria-live="polite"
+            aria-label={localizeText(locale, "Live challenge instruction")}
+            className="absolute inset-x-4 top-4 rounded-2xl bg-info px-4 py-3 text-center text-sm font-semibold text-info-foreground shadow-lg"
+          >
             <span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-destructive" />
-            {currentAction
-              ? localizeText(
-                  locale,
-                  ACTION_LABELS[currentAction] ?? currentAction,
-                )
-              : localizeText(locale, "Hold still while we finish recording")}
+            {actionIndex < 0
+              ? localizeText(locale, "Face forward and hold still")
+              : currentAction
+                ? localizeText(
+                    locale,
+                    ACTION_LABELS[currentAction] ?? currentAction,
+                  )
+                : localizeText(locale, "Hold still while we finish recording")}
           </div>
         ) : null}
         {active ? (

@@ -90,13 +90,150 @@ def test_active_liveness_returns_challenge_metadata():
                 verification_id="ver_01TEST",
                 selfie_storage_key="uploads/selfies/sel_good",
                 liveness_type="active",
-                challenge_actions=["turn_left", "turn_right"],
+                challenge_actions=[
+                    "turn_left",
+                    "look_up",
+                    "turn_right",
+                    "look_down",
+                    "turn_left",
+                    "look_up",
+                    "turn_right",
+                    "look_down",
+                ],
+                challenge_id="lch_test",
+                challenge_protocol="ordered_motion_v1",
             )
         )
     )
 
     assert response["status"] == "completed"
     assert response["result"]["challenge_passed"] is True
+    assert response["result"]["challenge_id"] == "lch_test"
+    assert response["result"]["challenge_protocol"] == "ordered_motion_v1"
+
+
+@pytest.mark.parametrize(
+    "observed,expected",
+    [
+        (
+            [
+                "turn_left",
+                "look_up",
+                "turn_right",
+                "look_down",
+                "turn_left",
+                "look_up",
+                "turn_right",
+                "look_down",
+            ],
+            True,
+        ),
+        (["look_up", "turn_left", "turn_right", "look_down", "turn_left"], False),
+        (["turn_left", "look_up", "turn_right", "look_down"], False),
+        (
+            ["turn_left", "look_up", "turn_right", "look_down", "turn_left", "look_up"],
+            False,
+        ),
+    ],
+)
+def test_real_active_pipeline_requires_exact_observed_order(
+    monkeypatch, observed, expected
+):
+    np = pytest.importorskip("numpy")
+    actions = [
+        "turn_left",
+        "look_up",
+        "turn_right",
+        "look_down",
+        "turn_left",
+        "look_up",
+        "turn_right",
+        "look_down",
+    ]
+    positions = {
+        "turn_left": (0.65, 0.5),
+        "turn_right": (0.35, 0.5),
+        "look_up": (0.5, 0.35),
+        "look_down": (0.5, 0.65),
+    }
+    centers = [(0.5, 0.5)]
+    for action in observed:
+        centers.extend([positions[action], (0.5, 0.5)])
+    frames = [np.full((8, 8, 3), index, dtype="uint8") for index in range(len(centers))]
+    asset = MediaAsset("capture.webm", b"video", "video", frames[0], frames)
+    requested = {}
+
+    def load(*args, **kwargs):
+        requested.update(kwargs)
+        return asset
+
+    def detect(frame):
+        x, y = centers[int(frame[0, 0, 0])]
+        return [
+            {
+                "score": 0.99,
+                "bbox": {"xmin": x - 0.1, "ymin": y - 0.1, "width": 0.2, "height": 0.2},
+            }
+        ]
+
+    monkeypatch.setattr("app.pipeline.load_media_asset", load)
+    monkeypatch.setattr("app.pipeline._detect_faces", detect)
+    monkeypatch.setattr(
+        "app.pipeline._compute_image_quality_metrics",
+        lambda frame: {"quality_score": 1.0, "blur_variance": 1000.0},
+    )
+    monkeypatch.setattr(
+        "app.pad.run_pad_model",
+        lambda *args: {
+            "pad_score": 0.99,
+            "model_name": "synthetic-pad",
+            "model_version": "test",
+        },
+    )
+    result = run_liveness_pipeline(
+        "capture.webm",
+        "active",
+        challenge_actions=actions,
+        challenge_id="lch_ordered",
+        challenge_protocol="ordered_motion_v1",
+    )
+    assert result["passed"] is expected
+    assert result["challenge_passed"] is expected
+    assert result["metrics"]["detected_actions"] == observed
+    assert result["challenge_id"] == "lch_ordered"
+    assert requested["frame_sample_limit"] == 48
+
+
+@pytest.mark.parametrize(
+    "updates",
+    [
+        {"challenge_id": ""},
+        {"challenge_protocol": "legacy"},
+        {"challenge_actions": ["turn_left", "look_up"]},
+    ],
+)
+def test_active_request_rejects_legacy_or_missing_challenge(updates):
+    from pydantic import ValidationError
+
+    fields = dict(
+        verification_id="ver_test",
+        selfie_storage_key="capture.webm",
+        liveness_type="active",
+        challenge_actions=[
+            "turn_left",
+            "look_up",
+            "turn_right",
+            "look_down",
+            "turn_left",
+            "look_up",
+            "turn_right",
+            "look_down",
+        ],
+        challenge_id="lch_test",
+        challenge_protocol="ordered_motion_v1",
+    )
+    with pytest.raises(ValidationError):
+        LivenessCheckRequest(**{**fields, **updates})
 
 
 def test_document_ocr_returns_extracted_fields():

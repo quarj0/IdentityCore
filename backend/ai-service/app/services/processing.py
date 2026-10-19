@@ -45,6 +45,8 @@ def process_liveness(payload: LivenessCheckRequest) -> dict:
             storage_key=payload.selfie_storage_key,
             liveness_type=payload.liveness_type,
             challenge_actions=payload.challenge_actions,
+            challenge_id=payload.challenge_id,
+            challenge_protocol=payload.challenge_protocol,
             bucket_name=payload.selfie_storage_bucket,
             media_mime_type=payload.selfie_mime_type,
         ),
@@ -53,6 +55,8 @@ def process_liveness(payload: LivenessCheckRequest) -> dict:
             payload.selfie_storage_key,
             payload.liveness_type,
             payload.challenge_actions,
+            payload.challenge_id,
+            payload.challenge_protocol,
         ),
     )
 

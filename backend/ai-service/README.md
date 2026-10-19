@@ -71,3 +71,7 @@ service. `hybrid` is intended for non-production use because it permits mock fal
 Storage and encryption variables are shared with Django and documented in
 [`.env.example`](../../.env.example). Never expose this port publicly or log media,
 extracted identity attributes, embeddings, or the shared token.
+
+Active liveness requires the `ordered_motion_v1` challenge ID and eight ordered
+actions; legacy active requests are rejected. Results bind the ID/protocol and
+retain the full observed order. See [active-liveness operations](../../docs/operations/active-liveness.md).

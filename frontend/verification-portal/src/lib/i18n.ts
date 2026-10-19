@@ -200,6 +200,8 @@ const arabicCopy: Record<string, string> = {
   "Live camera check": "فحص الكاميرا المباشر",
   "A short video is recorded only after you start the challenge.": "لن يتم تسجيل مقطع قصير إلا بعد بدء التحدي.",
   "Hold still while we finish recording": "ابقَ ثابتًا حتى يكتمل التسجيل.",
+  "Face forward and hold still": "انظر إلى الأمام وابقَ ثابتًا",
+  "Live challenge instruction": "تعليمات التحقق المباشر",
   "Continue securely on your phone": "تابع بأمان على هاتفك",
   "requested this verification. A phone camera usually gives clearer document and selfie captures.": "طلبت هذه المؤسسة إجراء التحقق. توفر كاميرا الهاتف عادةً صورًا أوضح للوثائق والصور الذاتية.",
   "Scan with your phone camera": "امسح الرمز بكاميرا هاتفك",

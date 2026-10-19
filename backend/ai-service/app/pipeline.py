@@ -20,6 +20,7 @@ from app.storage import (
     get_object_storage_media_bucket_name,
     get_object_storage_temp_bucket_name,
 )
+from shared.liveness_challenge import PROTOCOL, infer_ordered_actions, valid_actions
 
 
 class ProcessingConfigurationError(RuntimeError):
@@ -114,6 +115,7 @@ def load_media_asset(
     storage_key: str,
     bucket_name: str | None = None,
     media_mime_type: str | None = None,
+    frame_sample_limit: int | None = None,
 ) -> MediaAsset:
     settings = get_settings()
     media_bucket_name = get_object_storage_media_bucket_name()
@@ -172,7 +174,11 @@ def load_media_asset(
     frames = _sample_video_frames(
         content=content,
         storage_key=storage_key,
-        limit=settings.video_frame_sample_limit,
+        limit=(
+            frame_sample_limit
+            if frame_sample_limit is not None
+            else settings.video_frame_sample_limit
+        ),
         media_mime_type=media_mime_type,
     )
     if not frames:
@@ -230,19 +236,7 @@ def _bbox_center(bbox: dict[str, float]) -> tuple[float, float]:
 def _infer_motion_directions(
     centers: list[tuple[float, float]], *, movement_threshold: float = 0.03
 ) -> list[str]:
-    directions: list[str] = []
-    for prev, curr in zip(centers, centers[1:]):
-        x_delta = curr[0] - prev[0]
-        y_delta = curr[1] - prev[1]
-        if x_delta >= movement_threshold:
-            directions.append("turn_right")
-        elif x_delta <= -movement_threshold:
-            directions.append("turn_left")
-        if y_delta >= movement_threshold:
-            directions.append("look_down")
-        elif y_delta <= -movement_threshold:
-            directions.append("look_up")
-    return list(dict.fromkeys(directions))
+    return infer_ordered_actions(centers, movement_threshold=movement_threshold)
 
 
 def _compute_image_quality_metrics(frame: np.ndarray) -> dict[str, float]:
@@ -318,10 +312,19 @@ def run_liveness_pipeline(
     liveness_type: str,
     *,
     challenge_actions: list[str] | None = None,
+    challenge_id: str = "",
+    challenge_protocol: str = "",
     bucket_name: str | None = None,
     media_mime_type: str | None = None,
 ) -> dict[str, Any]:
     settings = get_settings()
+    challenge_actions = challenge_actions or []
+    if liveness_type == "active" and (
+        not challenge_id
+        or challenge_protocol != PROTOCOL
+        or not valid_actions(challenge_actions)
+    ):
+        raise ProcessingError("Active liveness requires a current ordered challenge.")
     # Import lazily so mock-mode tests and deployments do not initialize ONNX
     # before the real-mode asset checks have run.
     from app.pad import run_pad_model
@@ -330,6 +333,7 @@ def run_liveness_pipeline(
         storage_key,
         bucket_name=bucket_name,
         media_mime_type=media_mime_type,
+        frame_sample_limit=48 if liveness_type == "active" else None,
     )
     frame_detections = [_detect_faces(frame) for frame in asset.frames]
     face_presence_ratio = _safe_mean(
@@ -378,6 +382,8 @@ def run_liveness_pipeline(
                 "challenge_actions": challenge_actions or [],
             },
             "challenge_passed": False,
+            "challenge_id": challenge_id,
+            "challenge_protocol": challenge_protocol,
             "model_name": settings.pad_model_name,
             "model_version": settings.pad_model_version,
         }
@@ -431,13 +437,9 @@ def run_liveness_pipeline(
         elif movement_score < settings.active_liveness_motion_threshold:
             issues.append("insufficient_live_motion")
             passed = False
-        if challenge_actions:
-            missing_actions = [
-                action for action in challenge_actions if action not in detected_actions
-            ]
-            if missing_actions:
-                issues.append("challenge_actions_not_completed")
-                passed = False
+        if detected_actions != challenge_actions:
+            issues.append("challenge_sequence_not_completed")
+            passed = False
 
     return {
         "passed": passed,
@@ -456,8 +458,10 @@ def run_liveness_pipeline(
             "detected_actions": detected_actions,
             "challenge_actions": challenge_actions,
         },
-        "challenge_passed": not challenge_actions
-        or all(action in detected_actions for action in challenge_actions),
+        "challenge_passed": bool(challenge_actions)
+        and detected_actions == challenge_actions,
+        "challenge_id": challenge_id,
+        "challenge_protocol": challenge_protocol,
         "model_name": pad_result["model_name"],
         "model_version": pad_result["model_version"],
     }
@@ -808,8 +812,17 @@ def build_mock_liveness(
     selfie_storage_key: str,
     liveness_type: str,
     challenge_actions: list[str] | None = None,
+    challenge_id: str = "",
+    challenge_protocol: str = "",
 ) -> dict[str, Any]:
-    passed = "spoof" not in selfie_storage_key
+    passed = "spoof" not in selfie_storage_key and (
+        liveness_type != "active"
+        or (
+            bool(challenge_id)
+            and challenge_protocol == PROTOCOL
+            and valid_actions(challenge_actions)
+        )
+    )
     score = 0.94 if passed else 0.23
     challenge_actions = challenge_actions or []
     return {
@@ -819,6 +832,8 @@ def build_mock_liveness(
         "liveness_type": liveness_type,
         "pad_score": score,
         "challenge_passed": passed if challenge_actions else True,
+        "challenge_id": challenge_id,
+        "challenge_protocol": challenge_protocol,
         "metrics": {
             "challenge_actions": challenge_actions,
             "detected_actions": challenge_actions,

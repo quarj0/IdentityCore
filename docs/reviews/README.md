@@ -63,3 +63,10 @@ Workflow authoring remediation now submits an explicit supported step sequence,
 provides a working draft editor, and rejects invalid creation payloads before
 persistence. Backend tests cover create/publish/edit/republish with immutable prior
 versions. Findings remain actionable until protected review and merge.
+
+Active-liveness remediation replaces unordered action membership with exact ordered
+observations, binds provider results to the issued challenge and protocol, and
+bounds challenge issuance across replacement sessions. The motion approximation
+and finite challenge space require physical/adversarial evaluation before production
+claims; synthetic regressions establish the contract. The finding stays actionable
+until protected review and merge.

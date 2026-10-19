@@ -382,3 +382,11 @@ Before production activation, a provider author should be able to answer:
 The repository already contains important Provider SDK foundations: adapter registration, centralized invocation, secure custom HTTP execution, message signing, replay prevention, redacted telemetry, versioned capability results, provider-check persistence, and an executable Contract v1 conformance baseline.
 
 Machine-readable manifest v1 and organization self-service setup/promotion are implemented; see [provider setup](../operations/provider-setup.md). A packaged multi-language Provider SDK and broader capability/evidence/retention certification remain incomplete. Passing setup or baseline protocol fixtures does not establish arbitrary plug-and-play production integration.
+
+## Current active-liveness sub-contract
+
+Active liveness inputs and results must bind an issued `challenge_id`,
+`challenge_protocol: ordered_motion_v1` and the complete eight-action sequence.
+`challenge_passed: true` requires exact ordered observations, including revisits;
+worker finalization rejects legacy/unbound or contradictory success. See the
+[active-liveness contract and deployment guide](../operations/active-liveness.md).

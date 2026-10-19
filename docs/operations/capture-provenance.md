@@ -32,3 +32,7 @@ controls. Neither another case identifier nor its media digest enters the risk r
 
 Replay lookup uses a composite index on tenant, checksum, status and deletion time
 so peer matching does not scan the tenant's complete retained upload history.
+
+Active motion matching uses a bound, ordered eight-direction challenge rather than
+unordered membership. See [active liveness](active-liveness.md) for its retry budget,
+rollout requirements and evaluation limits.

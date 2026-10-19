@@ -1468,11 +1468,17 @@
       "comment_id": 3644802544,
       "path": "backend/django/apps/verification_sessions/serializers.py",
       "status": "actionable",
-      "evidence": [],
+      "evidence": [
+        "backend/shared/liveness_challenge.py:validate_result",
+        "backend/django/common/test_ordered_liveness.py",
+        "backend/django/apps/biometrics/test_ordered_challenge.py",
+        "backend/ai-service/tests/test_health.py:test_real_active_pipeline_requires_exact_observed_order",
+        "docs/operations/active-liveness.md"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Bind the challenge to an unrecorded action sequence**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/31#discussion_r3644802544",
       "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
-      "disposition_note": "Confirmed that managed active-liveness scoring uses unordered membership of two sampled actions. This is still actionable; a replay-resistant ordered challenge contract and regression are required."
+      "disposition_note": "Confirmed unordered direction membership and globally deduplicated observations let one all-directions video satisfy every challenge. Remediation adds eight ordered random actions, a five-challenge case-wide budget, neutral-anchored observations preserving revisits, provider challenge ID/protocol binding and fresh/recovered finalization validation. Automated tests distinguish order, missing/extra actions and legacy evidence; physical-device and adversarial model evaluation remain separate. Remains actionable until protected review and merge."
     },
     {
       "pr_number": 31,

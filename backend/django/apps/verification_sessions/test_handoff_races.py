@@ -66,6 +66,40 @@ class MobileHandoffRaceTests(APITransactionTestCase):
             1,
         )
 
+    def test_simultaneous_challenge_issuance_cannot_exceed_case_budget(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from apps.biometrics.models import LivenessChallenge
+        from apps.consent.test_helpers import accept_test_consent
+        from shared.liveness_challenge import MAX_CHALLENGES, new_actions
+
+        accept_test_consent(self.verification)
+        self.verification.policy_snapshot_json = {"required_liveness_level": "active"}
+        self.verification.save()
+        for _ in range(MAX_CHALLENGES - 1):
+            LivenessChallenge.objects.create(
+                tenant=self.tenant,
+                verification=self.verification,
+                verification_session=self.session,
+                actions=new_actions(),
+                expires_at=timezone.now() + timedelta(minutes=3),
+            )
+        statuses = self.parallel(
+            lambda _: APIClient()
+            .post(
+                f"/api/v1/sessions/{self.session.public_id}/liveness/challenge",
+                {},
+                format="json",
+                **self.session_headers(),
+            )
+            .status_code
+        )
+        self.assertEqual(sorted(statuses), [200, 400])
+        self.assertEqual(
+            LivenessChallenge.objects.filter(verification=self.verification).count(),
+            MAX_CHALLENGES,
+        )
+
     def test_simultaneous_liveness_posts_consume_one_challenge(self):
         from datetime import timedelta
         from unittest.mock import patch
@@ -117,7 +151,16 @@ class MobileHandoffRaceTests(APITransactionTestCase):
             tenant=self.tenant,
             verification=self.verification,
             verification_session=self.session,
-            actions=["blink", "turn_left"],
+            actions=[
+                "turn_left",
+                "look_up",
+                "turn_right",
+                "look_down",
+                "turn_left",
+                "look_up",
+                "turn_right",
+                "look_down",
+            ],
             expires_at=timezone.now() + timedelta(minutes=2),
         )
         with patch(

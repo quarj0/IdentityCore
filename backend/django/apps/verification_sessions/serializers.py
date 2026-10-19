@@ -2,7 +2,6 @@ from common.subject_metadata import subject_metadata
 from django.core.exceptions import ValidationError as DjangoValidationError
 from datetime import timedelta
 import hashlib
-import secrets
 
 from django.db import transaction
 from django.utils import timezone
@@ -1174,6 +1173,14 @@ class VerificationSessionLivenessSerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     {"selfie_capture_id": "Active liveness requires a video capture."}
                 )
+            from shared.liveness_challenge import valid_actions
+
+            if not valid_actions(challenge.actions):
+                raise serializers.ValidationError(
+                    {
+                        "challenge_id": "Request a new ordered liveness challenge and record it again."
+                    }
+                )
 
         attrs["selfie_capture"] = selfie_capture
         attrs["challenge"] = challenge
@@ -1287,11 +1294,22 @@ class VerificationSessionLivenessChallengeSerializer(serializers.Serializer):
                 "An active liveness challenge is not enabled by this verification policy."
             )
         now = timezone.now()
-        actions = list(
-            secrets.SystemRandom().sample(
-                ["turn_left", "turn_right", "look_up", "look_down"], k=2
+        from shared.liveness_challenge import MAX_CHALLENGES, new_actions
+
+        # The request view holds the verification lock across this count/create.
+        # Count all sessions (including handoffs) and retained deleted rows.
+        if (
+            LivenessChallenge.objects.filter(
+                verification=verification_session.verification,
+                tenant=verification_session.tenant,
+            ).count()
+            >= MAX_CHALLENGES
+        ):
+            raise serializers.ValidationError(
+                "The live challenge attempt limit was reached. Contact the requesting organization to restart verification."
             )
-        )
+
+        actions = new_actions()
         return LivenessChallenge.objects.create(
             tenant=verification_session.tenant,
             verification=verification_session.verification,

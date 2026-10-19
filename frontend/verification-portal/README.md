@@ -134,3 +134,8 @@ The portal is a working repository vertical slice with open acceptance work in I
 through IC-086. `COMPLETION.md` distinguishes those repository-owned gaps from the
 additional deployment, independent-assurance, provider, physical-device, pilot, and
 approval gates.
+
+Active capture uses an initial neutral hold followed by eight ordered prompts in
+about 20 seconds. The server binds provider evidence to the issued challenge and
+caps retries across sessions. See [active-liveness operations](../../docs/operations/active-liveness.md)
+for provider compatibility, rollout and physical-device evaluation limits.

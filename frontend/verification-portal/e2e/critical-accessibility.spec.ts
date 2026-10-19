@@ -221,7 +221,16 @@ test("critical verification journey is WCAG-clean and browser operable", async (
     if (path.endsWith("/liveness/challenge") && method === "POST") {
       return json(route, {
         challenge_id: "lch_a11y",
-        actions: ["turn_left", "look_up"],
+        actions: [
+          "turn_left",
+          "look_up",
+          "turn_right",
+          "look_down",
+          "turn_left",
+          "look_up",
+          "turn_right",
+          "look_down",
+        ],
         expires_in: 60,
         expires_at: new Date(Date.now() + 60_000).toISOString(),
       });

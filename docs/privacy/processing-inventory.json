@@ -89,7 +89,8 @@
         "face embedding",
         "match/liveness scores",
         "quality and fraud signals",
-        "optional keyed document/portrait/device/network reuse fingerprints"
+        "optional keyed document/portrait/device/network reuse fingerprints",
+        "active challenge ID, protocol and ordered requested/observed directions"
       ],
       "purpose": "Assess document authenticity, extract asserted identity data, and produce biometric match/liveness evidence.",
       "locations": [
@@ -107,7 +108,7 @@
         "S3-compatible object storage",
         "tenant-selected document/biometric providers"
       ],
-      "transfers": "Media leaves the deployment only when the tenant policy selects an external provider; provider region, subprocessors, and transfer mechanism must be recorded before enablement.",
+      "transfers": "Media leaves the deployment only when the tenant policy selects an external provider; provider region, subprocessors, and transfer mechanism must be recorded before enablement. Active providers receive the issued challenge ID/protocol and ordered directions; returned observations bind that same challenge. These associated-case signals follow biometric evidence access and retention.",
       "owners": [
         "identity",
         "security",
