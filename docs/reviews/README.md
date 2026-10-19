@@ -395,11 +395,12 @@ itself establish a passing base-settings CI run.
 
 AI dependency installation was reproduced with Python 3.14: pinned PaddlePaddle
 3.3.1 has wheels for CPython 3.12/3.13 and cannot install on 3.14. Frozen Python
-3.12 dependency selection succeeds and all 91 local AI tests pass. An exact
-three-line proposal selects Python 3.12 for backend/migration/AI CI while retaining
-SDK 3.14 coverage. The protected workflow was not changed: automatic approval review
-rejected the edit because narrow publisher-environment approval is absent. Final
-head review and governed publisher approval remain required before merge.
+3.12 dependency selection succeeds and all 91 local AI tests pass. With explicit
+user approval, CI now selects Python 3.12 for backend/migration/AI jobs while retaining
+SDK 3.14 coverage. Automatic approval review initially blocked the workflow edit;
+the user subsequently approved the exact patch and authorized review evidence and
+a fresh Codex review. Final-head review and governed publisher approval remain
+required before merge.
 
 The consolidated review also identified a creation/subject-erasure race. The common
 REST/GraphQL creation serializer now holds the tenant audit lock before finding a
@@ -421,5 +422,6 @@ dismissed and no scan exclusion was added.
 
 The final PostgreSQL run passed all 239 checks with CI base settings, including
 the existing deletion/finalization races and the two new creation/erasure races.
-The proposed CI patch includes these privacy modules explicitly; it remains
-unapplied while approval is pending. Final type, formatting, Ruff and diff checks pass.
+The approved CI patch includes these privacy modules explicitly. Its selector
+matches the validated 239-test run, and workflow actionlint passes. Final type,
+formatting, Ruff and diff checks pass.
