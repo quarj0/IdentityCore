@@ -4,9 +4,9 @@ set -Eeuo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export DJANGO_SETTINGS_MODULE=config.settings.testing
 rm -f "$root/backend/django/test.sqlite3"
-uv run --project "$root/backend" python "$root/backend/django/manage.py" migrate --noinput
-fixture="$(uv run --project "$root/backend" python "$root/scripts/seed_sdk_compatibility.py")"
-setsid uv run --project "$root/backend" python "$root/backend/django/manage.py" runserver 127.0.0.1:8765 --noreload >"${RUNNER_TEMP:-/tmp}/identitycore-sdk-backend.log" 2>&1 &
+uv run --frozen --project "$root/backend" --group django python "$root/backend/django/manage.py" migrate --noinput
+fixture="$(uv run --frozen --project "$root/backend" --group django python "$root/scripts/seed_sdk_compatibility.py")"
+setsid uv run --frozen --project "$root/backend" --group django python "$root/backend/django/manage.py" runserver 127.0.0.1:8765 --noreload >"${RUNNER_TEMP:-/tmp}/identitycore-sdk-backend.log" 2>&1 &
 server_pid=$!
 
 if [[ -n "${GITHUB_ENV:-}" ]]; then

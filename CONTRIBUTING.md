@@ -257,7 +257,7 @@ New AI models should be evaluated before replacing existing ones.
 If you discover a security vulnerability:
 
 - Do **not** create a public issue.
-- Report it privately to the maintainers.
+- Use [GitHub private vulnerability reporting](https://github.com/quarj0/IdentityCore/security/advisories/new), as described in [SECURITY.md](SECURITY.md).
 - Include reproduction steps where possible.
 - Allow time for investigation and remediation before public disclosure.
 

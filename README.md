@@ -292,7 +292,10 @@ repository root:
 make test-all
 ```
 
-The command prints each suite and stops at the first failure. Use the component-specific
+The command selects frozen Django and AI dependency groups for their backend
+suites and runs AI tests from the service directory. It prints each suite and stops
+at the first failure. Frontend browsers and Java/.NET toolchains still need their
+component-specific installation. Use the component-specific
 commands in `.github/workflows/ci.yml` to install dependencies or troubleshoot a single
 suite.
 

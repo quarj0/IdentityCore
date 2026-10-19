@@ -3,6 +3,9 @@ description: Propose one independently deliverable product or engineering outcom
 title: "[Feature]: "
 labels: ["type:feature", "status:triage"]
 body:
+  - type: markdown
+    attributes:
+      value: For any possible or confirmed vulnerability, use [private reporting](https://github.com/quarj0/IdentityCore/security/advisories/new). Do not disclose vulnerability details in this public form.
   - type: input
     id: backlog
     attributes:

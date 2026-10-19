@@ -770,3 +770,18 @@ Version 1.0 excludes:
 IdentityCore must be tested like a trust platform, not like an ordinary web app.
 
 Every test should increase confidence that the system protects data, respects permissions, preserves auditability, and produces reliable verification outcomes.
+
+## Repository test entry points
+
+`make test-all` requests the frozen Django group for backend and public-contract
+checks, verifies the single supported OpenCV runtime, and runs AI tests from the
+service directory with the AI dependency group. Model-generation Make targets and
+the SDK compatibility backend also select the Django group. A default UV environment
+is not sufficient merely because it contains the backend project's base dependencies.
+Java/.NET toolchains, frontend packages and Playwright browsers retain their own
+installation requirements. The script stops at the first failed suite.
+
+If the OpenCV verifier reports overlapping distributions, recreate a dedicated
+environment from the frozen lock and its declared exclusions rather than letting
+multiple packages overwrite the shared cv2 namespace. The supported current runtime
+is opencv-contrib-python-headless 5.0.0.93; no downgrade normalization is required.

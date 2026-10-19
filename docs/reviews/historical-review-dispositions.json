@@ -29,7 +29,8 @@
         "backend/django/apps/biometrics/tests.py:test_face_failure_preserves_completed_liveness"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Do not overwrite completed liveness evidence**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/3#discussion_r3607627875"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/3#discussion_r3607627875",
+      "disposition_note": ""
     },
     {
       "pr_number": 3,
@@ -2628,7 +2629,7 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Restore existing workflows when onboarding reloads**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207270",
-      "disposition_note": "Individually inspected the current dashboard successor: initial load fetches templates/projects only and loses the created workflow after refresh. Restore existing project workflows; preserve an intentional route to create another. Remediation is implemented on the current follow-up branch with backend/browser/legacy migration regressions; remains actionable until protected review and merge."
+      "disposition_note": "Individually inspected the current dashboard successor: initial load fetches templates/projects only and loses the created workflow after refresh. Restore existing project workflows and their configuration navigation. Remediation is implemented on the current follow-up branch with backend/browser/legacy migration regressions; remains actionable until protected review and merge."
     },
     {
       "pr_number": 49,
@@ -3499,10 +3500,13 @@
       "comment_id": 3696498511,
       "path": ".github/ISSUE_TEMPLATE/bug.yml",
       "status": "actionable",
-      "evidence": [],
+      "evidence": [
+        "SECURITY.md",
+        "docs/operations/private-reporting.md"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Route suspected vulnerabilities to an actual private channel**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/82#discussion_r3696498511",
-      "disposition_note": "Individually confirmed bug form accepts possible/confirmed vulnerability selections and no concrete private reporting endpoint is supplied by issue-template configuration or repository security guidance. Provide an actual private channel and stop public vulnerability intake."
+      "disposition_note": "Individually confirmed bug form accepts possible/confirmed vulnerability selections and no concrete private reporting endpoint is supplied by issue-template configuration or repository security guidance. Provide an actual private channel and stop public vulnerability intake. Private policy and safe typed intake forms are prepared, but GitHub reports private reporting disabled and the integration enable request returned HTTP 403. Administrator activation is required before release; remains actionable."
     },
     {
       "pr_number": 82,
@@ -3510,10 +3514,14 @@
       "comment_id": 3696498514,
       "path": "docs/planning/implementation-backlog.md",
       "status": "actionable",
-      "evidence": [],
+      "evidence": [
+        ".github/ISSUE_TEMPLATE/docs.yml",
+        ".github/ISSUE_TEMPLATE/security.yml",
+        ".github/ISSUE_TEMPLATE/test.yml"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Provide matching forms for every advertised backlog type**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/82#discussion_r3696498514",
-      "disposition_note": "Individually confirmed only bug and feature forms exist while the backlog advertises security/test/docs types with matching structured forms. Add safe structured engineering forms and align label/dependency instructions."
+      "disposition_note": "Individually confirmed only bug and feature forms exist while the backlog advertises security/test/docs types with matching structured forms. Add safe structured engineering forms and align label/dependency instructions. All five advertised types now have structured issue forms with existing labels and safe private-channel routing. Validation parses all forms and checks required field IDs; remains actionable until protected review/merge."
     },
     {
       "pr_number": 174,
@@ -3537,30 +3545,47 @@
       "comment_id": 3696846071,
       "path": "scripts/test_all.sh",
       "status": "actionable",
-      "evidence": [],
+      "evidence": [
+        "scripts/test_all.sh",
+        "scripts/start_sdk_compat_backend.sh",
+        "Makefile",
+        "docs/architecture/testing-strategy.md"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Select the required backend dependency groups**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/178#discussion_r3696846071",
-      "disposition_note": "Individually confirmed scripts/test_all.sh invokes uv run without the Django or AI dependency groups for their suites and contract checks. Select the correct frozen groups or synchronize required groups explicitly; verify clean-environment execution."
+      "disposition_note": "Individually confirmed scripts/test_all.sh invokes uv run without the Django or AI dependency groups for their suites and contract checks. Select the correct frozen groups or synchronize required groups explicitly; verify clean-environment execution. Test, SDK model and compatibility entry points now select frozen dependency groups; AI pytest runs from its service directory. Fresh isolated environment passes model drift,69 OpenAPI operations,1,234 backend tests and82 AI tests. Remains actionable until protected review/merge."
     },
     {
       "pr_number": 178,
       "thread_id": "PRRT_kwDOTN0BU86Vrgxh",
       "comment_id": 3696846073,
       "path": "scripts/test_all.sh",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "scripts/test_all.sh",
+        "backend/pyproject.toml",
+        "backend/shared/opencv_runtime.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Normalize OpenCV before running AI tests**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/178#discussion_r3696846073"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/178#discussion_r3696846073",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Individually verified immutable-main dependency exclusions resolve only opencv-contrib-python-headless 5.0.0.93. A fresh isolated frozen environment passed shared/opencv_runtime.py and all 82 AI tests; no legacy 4.x normalization is needed. The test entry point now also verifies the runtime before inference tests."
     },
     {
       "pr_number": 178,
       "thread_id": "PRRT_kwDOTN0BU86Vrgxi",
       "comment_id": 3696846074,
       "path": "scripts/test_all.sh",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "scripts/test_all.sh",
+        "backend/pyproject.toml",
+        "backend/shared/opencv_runtime.py"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Include the common Django tests**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/178#discussion_r3696846074"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/178#discussion_r3696846074",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f",
+      "disposition_note": "Individually verified main already includes apps common config in Django discovery. The fresh isolated test-entrypoint run executed 1,234 tests with 1,186 passes and 48 skips, including common configuration, encryption/storage and policy coverage; no common-test omission remains."
     },
     {
       "pr_number": 179,
@@ -3570,7 +3595,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Return 400 for invalid calendar dates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/179#discussion_r3696851646"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/179#discussion_r3696851646",
+      "disposition_note": ""
     },
     {
       "pr_number": 179,
@@ -3596,7 +3622,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Expose the date filters through the public API contract**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/179#discussion_r3696851654"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/179#discussion_r3696851654",
+      "disposition_note": ""
     },
     {
       "pr_number": 180,
@@ -3606,7 +3633,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Bootstrap AI models before starting the documented stack**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852627"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852627",
+      "disposition_note": ""
     },
     {
       "pr_number": 180,
@@ -3616,7 +3644,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Record persisted notification data in the inventory**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852629"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852629",
+      "disposition_note": ""
     },
     {
       "pr_number": 180,
@@ -3626,7 +3655,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Pass an existing path to the documented mypy command**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852633"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852633",
+      "disposition_note": ""
     },
     {
       "pr_number": 180,
@@ -3636,7 +3666,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Document an origin rather than a versioned API URL**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852638"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852638",
+      "disposition_note": ""
     },
     {
       "pr_number": 180,
@@ -3646,7 +3677,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Remove the unsupported token-purge claim**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852644"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/180#discussion_r3696852644",
+      "disposition_note": ""
     },
     {
       "pr_number": 181,
@@ -3656,7 +3688,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Gate the active-state card on actual statuses**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/181#discussion_r3696858895"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/181#discussion_r3696858895",
+      "disposition_note": ""
     },
     {
       "pr_number": 181,
@@ -3666,7 +3699,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Route the approval CTA to a real page**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/181#discussion_r3696858896"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/181#discussion_r3696858896",
+      "disposition_note": ""
     },
     {
       "pr_number": 181,
@@ -3676,7 +3710,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep the settings navigation visible on Security**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/181#discussion_r3696858898"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/181#discussion_r3696858898",
+      "disposition_note": ""
     },
     {
       "pr_number": 185,
@@ -3748,7 +3783,8 @@
         "Current main 47ebf156a5e79ca83f2c5f42334f745880da98fd: executed .github/workflows/ci.yml backend job and scripts/test_all.sh run scripts/generate_sdk_models.py --check. Drift validation passes, and final-head backend CI is green."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Run model drift validation in CI**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/186#discussion_r3696923940"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/186#discussion_r3696923940",
+      "disposition_note": ""
     },
     {
       "pr_number": 186,
@@ -3845,7 +3881,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Clear legacy placeholder face counts during migration**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/187#discussion_r3696926618"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/187#discussion_r3696926618",
+      "disposition_note": ""
     },
     {
       "pr_number": 187,
@@ -3872,7 +3909,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include face detection evidence in generated reports**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/187#discussion_r3696926621"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/187#discussion_r3696926621",
+      "disposition_note": ""
     },
     {
       "pr_number": 188,
@@ -3882,7 +3920,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Allow the external origins used for organization logos**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/188#discussion_r3696933154"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/188#discussion_r3696933154",
+      "disposition_note": ""
     },
     {
       "pr_number": 188,
@@ -3892,7 +3931,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Remove the remaining inline progress style**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/188#discussion_r3696933156"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/188#discussion_r3696933156",
+      "disposition_note": ""
     },
     {
       "pr_number": 188,
@@ -3902,7 +3942,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Dynamically render pages before enforcing request nonces**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/188#discussion_r3696933157"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/188#discussion_r3696933157",
+      "disposition_note": ""
     },
     {
       "pr_number": 188,
@@ -3912,7 +3953,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Permit the object-storage origin used for branding uploads**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/188#discussion_r3696933159"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/188#discussion_r3696933159",
+      "disposition_note": ""
     },
     {
       "pr_number": 189,
@@ -3937,7 +3979,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Update the developer portal's pagination example**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/189#discussion_r3696930814"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/189#discussion_r3696930814",
+      "disposition_note": ""
     },
     {
       "pr_number": 189,
@@ -3947,7 +3990,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Bind each cursor to its tenant result set**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/189#discussion_r3696930815"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/189#discussion_r3696930815",
+      "disposition_note": ""
     },
     {
       "pr_number": 189,
@@ -3957,7 +4001,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Add an index matching the cursor traversal order**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/189#discussion_r3696930816"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/189#discussion_r3696930816",
+      "disposition_note": ""
     },
     {
       "pr_number": 190,
@@ -3983,7 +4028,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reject model assets omitted from the manifest**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/191#discussion_r3696944684"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/191#discussion_r3696944684",
+      "disposition_note": ""
     },
     {
       "pr_number": 191,
@@ -3993,7 +4039,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Avoid rehashing the complete model volume per request**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/191#discussion_r3696944687"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/191#discussion_r3696944687",
+      "disposition_note": ""
     },
     {
       "pr_number": 191,
@@ -4003,7 +4050,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Anchor the manifest outside the writable model volume**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/191#discussion_r3696944689"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/191#discussion_r3696944689",
+      "disposition_note": ""
     },
     {
       "pr_number": 191,
@@ -4013,7 +4061,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Resolve the manifest path before excluding it**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/191#discussion_r3696944690"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/191#discussion_r3696944690",
+      "disposition_note": ""
     },
     {
       "pr_number": 192,
@@ -4126,7 +4175,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep document completion times after their invocation starts**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/194#discussion_r3696953116"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/194#discussion_r3696953116",
+      "disposition_note": ""
     },
     {
       "pr_number": 194,
@@ -4168,7 +4218,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Expose recorded durations through provider-check APIs**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/194#discussion_r3696953121"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/194#discussion_r3696953121",
+      "disposition_note": ""
     },
     {
       "pr_number": 194,
@@ -4224,7 +4275,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Include every tenant-owned write surface in the matrix**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/196#discussion_r3696973560"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/196#discussion_r3696973560",
+      "disposition_note": ""
     },
     {
       "pr_number": 196,
@@ -4234,7 +4286,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Compare the complete non-disclosing error payload**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/196#discussion_r3696973563"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/196#discussion_r3696973563",
+      "disposition_note": ""
     },
     {
       "pr_number": 197,
@@ -4266,7 +4319,8 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Update the existing clients for the MFA login response**",
       "verified_main": "9b56daaab54417a59a929f2183634ce27f2e2b51",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3696982696"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3696982696",
+      "disposition_note": ""
     },
     {
       "pr_number": 197,
@@ -4282,7 +4336,8 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Do not mark unverified sessions as MFA-verified**",
       "verified_main": "9b56daaab54417a59a929f2183634ce27f2e2b51",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3696982698"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3696982698",
+      "disposition_note": ""
     },
     {
       "pr_number": 197,
@@ -4297,7 +4352,8 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Adapt GraphQL login to the new serializer contract**",
       "verified_main": "9b56daaab54417a59a929f2183634ce27f2e2b51",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3696982699"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3696982699",
+      "disposition_note": ""
     },
     {
       "pr_number": 197,
@@ -4312,7 +4368,8 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Invalidate enrollment tokens after MFA is enabled**",
       "verified_main": "9b56daaab54417a59a929f2183634ce27f2e2b51",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3696982700"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3696982700",
+      "disposition_note": ""
     },
     {
       "pr_number": 197,
@@ -4327,7 +4384,8 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Enforce MFA when accepting platform-admin invitations**",
       "verified_main": "9b56daaab54417a59a929f2183634ce27f2e2b51",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3696982701"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3696982701",
+      "disposition_note": ""
     },
     {
       "pr_number": 197,
@@ -4342,7 +4400,8 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Throttle MFA challenge attempts**",
       "verified_main": "9b56daaab54417a59a929f2183634ce27f2e2b51",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3696982702"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3696982702",
+      "disposition_note": ""
     },
     {
       "pr_number": 197,
@@ -4359,7 +4418,8 @@
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Use a password-grade hash for recovery codes**",
       "verified_main": "9b56daaab54417a59a929f2183634ce27f2e2b51",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3696982703"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3696982703",
+      "disposition_note": ""
     },
     {
       "pr_number": 197,
@@ -4373,7 +4433,8 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Chain the MFA migration after the existing 0006**",
       "verified_main": "9b56daaab54417a59a929f2183634ce27f2e2b51",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3697003431"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3697003431",
+      "disposition_note": ""
     },
     {
       "pr_number": 197,
@@ -4389,7 +4450,8 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Import the SimpleJWT classes used by the refresh serializer**",
       "verified_main": "9b56daaab54417a59a929f2183634ce27f2e2b51",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3697003433"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3697003433",
+      "disposition_note": ""
     },
     {
       "pr_number": 197,
@@ -4405,7 +4467,8 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Import RefreshToken before completing login**",
       "verified_main": "9b56daaab54417a59a929f2183634ce27f2e2b51",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3697003436"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3697003436",
+      "disposition_note": ""
     },
     {
       "pr_number": 197,
@@ -4421,7 +4484,8 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve refresh-token family rotation**",
       "verified_main": "9b56daaab54417a59a929f2183634ce27f2e2b51",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3697003440"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3697003440",
+      "disposition_note": ""
     },
     {
       "pr_number": 197,
@@ -4437,7 +4501,8 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Restore the logout revocation import**",
       "verified_main": "9b56daaab54417a59a929f2183634ce27f2e2b51",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3697003445"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3697003445",
+      "disposition_note": ""
     },
     {
       "pr_number": 197,
@@ -4453,7 +4518,8 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Revoke verified sessions when resetting required MFA**",
       "verified_main": "9b56daaab54417a59a929f2183634ce27f2e2b51",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3697003451"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3697003451",
+      "disposition_note": ""
     },
     {
       "pr_number": 197,
@@ -4469,7 +4535,8 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reject reuse of an accepted TOTP timestep**",
       "verified_main": "9b56daaab54417a59a929f2183634ce27f2e2b51",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3697003453"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3697003453",
+      "disposition_note": ""
     },
     {
       "pr_number": 197,
@@ -4484,7 +4551,8 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Enroll legacy users whose MFA flag lacks configuration**",
       "verified_main": "9b56daaab54417a59a929f2183634ce27f2e2b51",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3697003454"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3697003454",
+      "disposition_note": ""
     },
     {
       "pr_number": 197,
@@ -4499,7 +4567,8 @@
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep password hashes out of signed MFA tokens**",
       "verified_main": "9b56daaab54417a59a929f2183634ce27f2e2b51",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3697003460"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/197#discussion_r3697003460",
+      "disposition_note": ""
     },
     {
       "pr_number": 198,
@@ -4525,7 +4594,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Prevent project edits from promoting existing credentials**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/198#discussion_r3696977662"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/198#discussion_r3696977662",
+      "disposition_note": ""
     },
     {
       "pr_number": 198,
@@ -4553,7 +4623,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Register each rotated token as outstanding**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/199#discussion_r3696983474"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/199#discussion_r3696983474",
+      "disposition_note": ""
     },
     {
       "pr_number": 199,
@@ -4563,7 +4634,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve refresh tokens issued before deployment**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/199#discussion_r3696983476"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/199#discussion_r3696983476",
+      "disposition_note": ""
     },
     {
       "pr_number": 199,
@@ -4573,7 +4645,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Bound the cost of revoking long-lived token families**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/199#discussion_r3696983478"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/199#discussion_r3696983478",
+      "disposition_note": ""
     },
     {
       "pr_number": 199,
@@ -4583,7 +4656,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Do not hide failures while revoking on logout**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/199#discussion_r3696983480"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/199#discussion_r3696983480",
+      "disposition_note": ""
     },
     {
       "pr_number": 200,
@@ -4593,7 +4667,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Set completion timestamps after document calls**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/200#discussion_r3696989632"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/200#discussion_r3696989632",
+      "disposition_note": ""
     },
     {
       "pr_number": 200,
@@ -4620,7 +4695,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Measure the whole multi-capture quality check**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/200#discussion_r3696989636"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/200#discussion_r3696989636",
+      "disposition_note": ""
     },
     {
       "pr_number": 200,
@@ -4659,7 +4735,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Allow direct object-storage uploads in the CSP**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/200#discussion_r3696989641"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/200#discussion_r3696989641",
+      "disposition_note": ""
     },
     {
       "pr_number": 201,
@@ -4669,7 +4746,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Forward the nonce-bearing CSP to the renderer**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/201#discussion_r3696990106"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/201#discussion_r3696990106",
+      "disposition_note": ""
     },
     {
       "pr_number": 201,
@@ -4696,7 +4774,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep document completion timestamps after invocation start**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/201#discussion_r3696990112"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/201#discussion_r3696990112",
+      "disposition_note": ""
     },
     {
       "pr_number": 201,
@@ -4721,7 +4800,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Record the duration of all quality invocations**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/201#discussion_r3696990116"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/201#discussion_r3696990116",
+      "disposition_note": ""
     },
     {
       "pr_number": 201,
@@ -4749,7 +4829,8 @@
         "Current main 47ebf156a5e79ca83f2c5f42334f745880da98fd: RefreshInputSerializer delegates to rotate_refresh_token, whose _validate_user rechecks current MFA policy before returning tokens. Direct checks reject missing/false mfa_verified and accept true; authentication test selection passes."
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Re-check MFA before rotating tracked tokens**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/203#discussion_r3697080325"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/203#discussion_r3697080325",
+      "disposition_note": ""
     },
     {
       "pr_number": 203,
@@ -4776,7 +4857,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep the broken authentication items open**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/204#discussion_r3697097330"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/204#discussion_r3697097330",
+      "disposition_note": ""
     },
     {
       "pr_number": 204,
@@ -4786,7 +4868,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep IC-011 open until denied accesses are audited**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/204#discussion_r3697097340"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/204#discussion_r3697097340",
+      "disposition_note": ""
     },
     {
       "pr_number": 204,
@@ -4796,7 +4879,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Record each invocation before closing IC-031**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/204#discussion_r3697097344"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/204#discussion_r3697097344",
+      "disposition_note": ""
     },
     {
       "pr_number": 215,
@@ -4913,7 +4997,8 @@
         "Current main 47ebf156a5e79ca83f2c5f42334f745880da98fd: scripts/start_sdk_compat_backend.sh uses setsid with no EXIT cleanup trap. CI SDK jobs stop the saved process group in always() steps after live tests; all final-head live SDK checks pass."
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep the backend alive for subsequent live-test steps**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/217#discussion_r3697400963"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/217#discussion_r3697400963",
+      "disposition_note": ""
     },
     {
       "pr_number": 219,
@@ -4973,7 +5058,8 @@
         "Current main 47ebf156a5e79ca83f2c5f42334f745880da98fd: frontend/developer-portal/src/app/cli/page.tsx logs in both profiles with user access tokens before projects list. Python SDK authentication/profile/project tests pass (27 tests, one live skip)."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Use a user token for the documented projects example**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528220"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/219#discussion_r3697528220",
+      "disposition_note": ""
     },
     {
       "pr_number": 219,
@@ -5164,7 +5250,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Allow required API headers through CORS**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/220#discussion_r3698320531"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/220#discussion_r3698320531",
+      "disposition_note": ""
     },
     {
       "pr_number": 220,
@@ -5174,7 +5261,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include the legacy API URL in the explorer CSP**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/220#discussion_r3698320535"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/220#discussion_r3698320535",
+      "disposition_note": ""
     },
     {
       "pr_number": 220,
@@ -5202,7 +5290,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Avoid persisting client secrets across browser sessions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/220#discussion_r3698320542"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/220#discussion_r3698320542",
+      "disposition_note": ""
     },
     {
       "pr_number": 222,
@@ -5246,7 +5335,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Replace allowBuilds placeholders with booleans**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062294"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062294",
+      "disposition_note": ""
     },
     {
       "pr_number": 222,
@@ -5256,7 +5346,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Verify downloads before replacing the approved model**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062300"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/222#discussion_r3702062300",
+      "disposition_note": ""
     },
     {
       "pr_number": 222,
@@ -5334,7 +5425,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Surface the overlap in the dashboard rotation flow**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/240#discussion_r3702164065"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/240#discussion_r3702164065",
+      "disposition_note": ""
     },
     {
       "pr_number": 241,
@@ -5344,7 +5436,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Allow manual-review verifications to expire**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/241#discussion_r3702276376"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/241#discussion_r3702276376",
+      "disposition_note": ""
     },
     {
       "pr_number": 241,
@@ -5369,7 +5462,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Save the cancellation timestamp in the locked transaction**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/241#discussion_r3702276389"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/241#discussion_r3702276389",
+      "disposition_note": ""
     },
     {
       "pr_number": 241,
@@ -5392,7 +5486,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Do not classify transition conflicts as document failures**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/241#discussion_r3702276393"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/241#discussion_r3702276393",
+      "disposition_note": ""
     },
     {
       "pr_number": 241,
@@ -5402,7 +5497,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Translate invalid cancellation transitions into an API response**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/241#discussion_r3702276395"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/241#discussion_r3702276395",
+      "disposition_note": ""
     },
     {
       "pr_number": 242,
@@ -5412,7 +5508,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Treat an empty action set as denying all actions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/242#discussion_r3702348139"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/242#discussion_r3702348139",
+      "disposition_note": ""
     },
     {
       "pr_number": 242,
@@ -5465,7 +5562,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve restrictions when redeeming a mobile handoff**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/242#discussion_r3702348172"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/242#discussion_r3702348172",
+      "disposition_note": ""
     },
     {
       "pr_number": 242,
@@ -5489,7 +5587,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve action scopes across mobile handoff redemption**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/243#discussion_r3702336348"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/243#discussion_r3702336348",
+      "disposition_note": ""
     },
     {
       "pr_number": 243,
@@ -5499,7 +5598,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Treat an empty action set as deny-all**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/243#discussion_r3702336354"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/243#discussion_r3702336354",
+      "disposition_note": ""
     },
     {
       "pr_number": 244,
@@ -5509,7 +5609,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Finalize uploads sent through the presigned URL**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/244#discussion_r3702413690"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/244#discussion_r3702413690",
+      "disposition_note": ""
     },
     {
       "pr_number": 244,
@@ -5519,7 +5620,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Check the declared size before reading the upload**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/244#discussion_r3702413698"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/244#discussion_r3702413698",
+      "disposition_note": ""
     },
     {
       "pr_number": 244,
@@ -5529,7 +5631,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep upload I/O outside the database transaction**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/244#discussion_r3702413705"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/244#discussion_r3702413705",
+      "disposition_note": ""
     },
     {
       "pr_number": 245,
@@ -5539,7 +5642,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Finalize direct object-storage uploads before accepting evidence**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/245#discussion_r3702426075"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/245#discussion_r3702426075",
+      "disposition_note": ""
     },
     {
       "pr_number": 245,
@@ -5549,7 +5653,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reject oversized uploads before reading them into memory**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/245#discussion_r3702426079"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/245#discussion_r3702426079",
+      "disposition_note": ""
     },
     {
       "pr_number": 245,
@@ -5559,7 +5664,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Accept completion retries after the upload is consumed**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/245#discussion_r3702426082"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/245#discussion_r3702426082",
+      "disposition_note": ""
     },
     {
       "pr_number": 245,
@@ -5569,7 +5675,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Parse multipart bodies before opening the row-locking transaction**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/245#discussion_r3702426086"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/245#discussion_r3702426086",
+      "disposition_note": ""
     },
     {
       "pr_number": 246,
@@ -5579,7 +5686,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Add Pillow to the Django dependency group**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/246#discussion_r3702472448"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/246#discussion_r3702472448",
+      "disposition_note": ""
     },
     {
       "pr_number": 246,
@@ -5604,7 +5712,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Check retry checksums before quarantining completed uploads**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/246#discussion_r3702472461"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/246#discussion_r3702472461",
+      "disposition_note": ""
     },
     {
       "pr_number": 246,
@@ -5614,7 +5723,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Quarantine Pillow decompression-bomb errors**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/246#discussion_r3702472469"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/246#discussion_r3702472469",
+      "disposition_note": ""
     },
     {
       "pr_number": 246,
@@ -5638,7 +5748,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Validate video containers beyond their leading magic bytes**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/246#discussion_r3702472479"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/246#discussion_r3702472479",
+      "disposition_note": ""
     },
     {
       "pr_number": 247,
@@ -5648,7 +5759,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Declare Pillow in the Django dependency group**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/247#discussion_r3702505462"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/247#discussion_r3702505462",
+      "disposition_note": ""
     },
     {
       "pr_number": 247,
@@ -5734,7 +5846,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Quarantine all Pillow verification exceptions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/247#discussion_r3702505486"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/247#discussion_r3702505486",
+      "disposition_note": ""
     },
     {
       "pr_number": 248,
@@ -5791,7 +5904,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Do not label legacy decisions as contract v1**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/248#discussion_r3702526019"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/248#discussion_r3702526019",
+      "disposition_note": ""
     },
     {
       "pr_number": 248,
@@ -5816,7 +5930,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject provider results that omit status**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/248#discussion_r3702526030"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/248#discussion_r3702526030",
+      "disposition_note": ""
     },
     {
       "pr_number": 248,
@@ -5874,7 +5989,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Route direct uploads through the quarantine gate**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/249#discussion_r3702513871"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/249#discussion_r3702513871",
+      "disposition_note": ""
     },
     {
       "pr_number": 249,
@@ -5884,7 +6000,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve legacy status when migrating decision contracts**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/249#discussion_r3702513878"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/249#discussion_r3702513878",
+      "disposition_note": ""
     },
     {
       "pr_number": 249,
@@ -5925,7 +6042,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Quarantine decompression-bomb images instead of raising**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/249#discussion_r3702513890"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/249#discussion_r3702513890",
+      "disposition_note": ""
     },
     {
       "pr_number": 249,
@@ -5935,7 +6053,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Populate contracts for biometric fallback decisions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/249#discussion_r3702513892"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/249#discussion_r3702513892",
+      "disposition_note": ""
     },
     {
       "pr_number": 249,
@@ -5945,7 +6064,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Check duplicate checksums before quarantining**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/249#discussion_r3702513894"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/249#discussion_r3702513894",
+      "disposition_note": ""
     },
     {
       "pr_number": 250,
@@ -5970,7 +6090,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve the maker's proposed decision**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576741"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576741",
+      "disposition_note": ""
     },
     {
       "pr_number": 250,
@@ -5980,7 +6101,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Emit final status events after checker approval**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576748"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576748",
+      "disposition_note": ""
     },
     {
       "pr_number": 250,
@@ -5990,7 +6112,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Apply self-review restrictions to the checker**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576750"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576750",
+      "disposition_note": ""
     },
     {
       "pr_number": 250,
@@ -6015,7 +6138,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Wire the approval endpoint into the reviewer UI**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576756"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/250#discussion_r3702576756",
+      "disposition_note": ""
     },
     {
       "pr_number": 250,
@@ -6160,7 +6284,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Invoke chain verification in a production path**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/251#discussion_r3702616672"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/251#discussion_r3702616672",
+      "disposition_note": ""
     },
     {
       "pr_number": 252,
@@ -6236,7 +6361,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Require the hold and verification to share a tenant**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/252#discussion_r3702637544"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/252#discussion_r3702637544",
+      "disposition_note": ""
     },
     {
       "pr_number": 252,
@@ -6297,7 +6423,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Revoke active sessions before completing deletion**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/253#discussion_r3702668068"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/253#discussion_r3702668068",
+      "disposition_note": ""
     },
     {
       "pr_number": 253,
@@ -6307,7 +6434,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Clear verification external references**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/253#discussion_r3702668075"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/253#discussion_r3702668075",
+      "disposition_note": ""
     },
     {
       "pr_number": 253,
@@ -6317,7 +6445,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Erase persisted OCR results during deletion**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/253#discussion_r3702668082"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/253#discussion_r3702668082",
+      "disposition_note": ""
     },
     {
       "pr_number": 253,
@@ -6327,7 +6456,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Delete retained evidence reports when retention expires**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/253#discussion_r3702668087"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/253#discussion_r3702668087",
+      "disposition_note": ""
     },
     {
       "pr_number": 253,
@@ -6337,7 +6467,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Scrub subject notification recipients before deletion**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/253#discussion_r3702668093"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/253#discussion_r3702668093",
+      "disposition_note": ""
     },
     {
       "pr_number": 253,
@@ -6347,7 +6478,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Require a privileged permission for subject deletion**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/253#discussion_r3702668102"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/253#discussion_r3702668102",
+      "disposition_note": ""
     },
     {
       "pr_number": 265,
@@ -6357,7 +6489,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Point seeded credentials at the dashboard port**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/265#discussion_r3741873081"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/265#discussion_r3741873081",
+      "disposition_note": ""
     },
     {
       "pr_number": 265,
@@ -6367,7 +6500,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep terminal timestamps after record creation**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/265#discussion_r3741873084"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/265#discussion_r3741873084",
+      "disposition_note": ""
     },
     {
       "pr_number": 265,
@@ -6377,7 +6511,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Set the assignment timestamp with the seeded reviewer**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/265#discussion_r3741873086"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/265#discussion_r3741873086",
+      "disposition_note": ""
     },
     {
       "pr_number": 267,
@@ -6387,7 +6522,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include unfixed findings in scan artifacts**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/267#discussion_r3742049580"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/267#discussion_r3742049580",
+      "disposition_note": ""
     },
     {
       "pr_number": 267,
@@ -6397,7 +6533,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Run the secret gate despite dependency findings**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/267#discussion_r3742049584"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/267#discussion_r3742049584",
+      "disposition_note": ""
     },
     {
       "pr_number": 268,
@@ -6407,7 +6544,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve unfixed findings in the JSON reports**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/268#discussion_r3742052307"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/268#discussion_r3742052307",
+      "disposition_note": ""
     },
     {
       "pr_number": 268,
@@ -6417,7 +6555,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep Node 18 in the compatibility matrix**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/268#discussion_r3742052310"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/268#discussion_r3742052310",
+      "disposition_note": ""
     },
     {
       "pr_number": 270,
@@ -6427,7 +6566,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Deny explicitly unscoped target objects**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/270#discussion_r3742097640"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/270#discussion_r3742097640",
+      "disposition_note": ""
     },
     {
       "pr_number": 271,
@@ -6437,7 +6577,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Exempt authenticated portal traffic from the public IP throttle**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/271#discussion_r3742141930"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/271#discussion_r3742141930",
+      "disposition_note": ""
     },
     {
       "pr_number": 271,
@@ -6447,7 +6588,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Derive throttle keys only from trusted proxy data**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/271#discussion_r3742141931"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/271#discussion_r3742141931",
+      "disposition_note": ""
     },
     {
       "pr_number": 274,
@@ -6457,7 +6599,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject malformed backlog rows during validation**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/274#discussion_r3743058315"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/274#discussion_r3743058315",
+      "disposition_note": ""
     },
     {
       "pr_number": 274,
@@ -6467,7 +6610,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Document the dashboard's production redirect origin**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/274#discussion_r3743058319"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/274#discussion_r3743058319",
+      "disposition_note": ""
     },
     {
       "pr_number": 275,
@@ -6665,7 +6809,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Prevent published routes from returning to draft**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/277#discussion_r3743170372"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/277#discussion_r3743170372",
+      "disposition_note": ""
     },
     {
       "pr_number": 277,
@@ -6929,7 +7074,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include route state in the scoped status summary**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269309"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/279#discussion_r3743269309",
+      "disposition_note": ""
     },
     {
       "pr_number": 279,
@@ -7102,7 +7248,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Return an error envelope for unsupported actions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/283#discussion_r3767205617"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/283#discussion_r3767205617",
+      "disposition_note": ""
     },
     {
       "pr_number": 284,
@@ -7112,7 +7259,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Dispatch failed outcomes from direct reviews**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/284#discussion_r3767443396"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/284#discussion_r3767443396",
+      "disposition_note": ""
     },
     {
       "pr_number": 284,
@@ -7122,7 +7270,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Hide approval actions from the original maker**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/284#discussion_r3767443409"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/284#discussion_r3767443409",
+      "disposition_note": ""
     },
     {
       "pr_number": 284,
@@ -7228,7 +7377,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Allow upload completion through the portal BFF**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/287#discussion_r3767872640"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/287#discussion_r3767872640",
+      "disposition_note": ""
     },
     {
       "pr_number": 287,
@@ -7238,7 +7388,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Delete direct objects when multipart fallback finalizes**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/287#discussion_r3767872648"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/287#discussion_r3767872648",
+      "disposition_note": ""
     },
     {
       "pr_number": 288,
@@ -7248,7 +7399,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Repair missing cancellation timestamps on idempotent retries**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/288#discussion_r3767984324"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/288#discussion_r3767984324",
+      "disposition_note": ""
     },
     {
       "pr_number": 288,
@@ -7278,7 +7430,8 @@
         "Local validation: all 23 SecureHTTPProviderAdapterTests pass (2026-10-05)."
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Read close-delimited responses without using connection.sock**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/289#discussion_r3768124847"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/289#discussion_r3768124847",
+      "disposition_note": ""
     },
     {
       "pr_number": 289,
@@ -7292,7 +7445,8 @@
         "Local validation: all 23 SecureHTTPProviderAdapterTests pass (2026-10-05)."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Bound the number of abandoned DNS resolver threads**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/289#discussion_r3768124852"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/289#discussion_r3768124852",
+      "disposition_note": ""
     },
     {
       "pr_number": 289,
@@ -7306,7 +7460,8 @@
         "Local validation: all 23 SecureHTTPProviderAdapterTests pass (2026-10-05)."
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Interrupt response-header reads at the deadline**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/289#discussion_r3768124858"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/289#discussion_r3768124858",
+      "disposition_note": ""
     },
     {
       "pr_number": 289,
@@ -7320,7 +7475,8 @@
         "Local validation: all 23 SecureHTTPProviderAdapterTests pass (2026-10-05)."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject an explicit zero port instead of replacing it**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/289#discussion_r3768124865"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/289#discussion_r3768124865",
+      "disposition_note": ""
     },
     {
       "pr_number": 289,
@@ -7334,7 +7490,8 @@
         "Local validation: all 23 SecureHTTPProviderAdapterTests pass (2026-10-05)."
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve configured HTTPS proxy routing**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/289#discussion_r3768124871"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/289#discussion_r3768124871",
+      "disposition_note": ""
     },
     {
       "pr_number": 290,
@@ -7611,7 +7768,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Align the live index with the documented output order**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3768940391"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/293#discussion_r3768940391",
+      "disposition_note": ""
     },
     {
       "pr_number": 293,
@@ -7688,7 +7846,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep API variables eligible for build-time inlining**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/296#discussion_r3775686768"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/296#discussion_r3775686768",
+      "disposition_note": ""
     },
     {
       "pr_number": 298,
@@ -7734,7 +7893,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Package the OpenAPI file before loading it in the overview**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3775981161"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3775981161",
+      "disposition_note": ""
     },
     {
       "pr_number": 298,
@@ -7780,7 +7940,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Restrict the health route to the declared GET method**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776071332"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776071332",
+      "disposition_note": ""
     },
     {
       "pr_number": 298,
@@ -7790,7 +7951,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve anonymous auth metadata in generated resources**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776071336"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776071336",
+      "disposition_note": ""
     },
     {
       "pr_number": 298,
@@ -7818,7 +7980,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Remove literal diff markers from generated curl commands**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776232086"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776232086",
+      "disposition_note": ""
     },
     {
       "pr_number": 298,
@@ -7828,7 +7991,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Render headers for the operation's actual security scheme**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776232100"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776232100",
+      "disposition_note": ""
     },
     {
       "pr_number": 298,
@@ -8059,7 +8223,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Mark policy creation as a public operation**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776632827"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776632827",
+      "disposition_note": ""
     },
     {
       "pr_number": 298,
@@ -8069,7 +8234,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include request bodies in generated curl templates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776632834"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776632834",
+      "disposition_note": ""
     },
     {
       "pr_number": 298,
@@ -8202,7 +8368,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Publish the MFA challenge operation needed to finish login**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776998461"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/298#discussion_r3776998461",
+      "disposition_note": ""
     },
     {
       "pr_number": 298,
@@ -8305,7 +8472,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Supply keys from first-party mutation callers**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/300#discussion_r3835847420"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/300#discussion_r3835847420",
+      "disposition_note": ""
     },
     {
       "pr_number": 300,
@@ -8315,7 +8483,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Purge expired idempotency records**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/300#discussion_r3835889115"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/300#discussion_r3835889115",
+      "disposition_note": ""
     },
     {
       "pr_number": 302,
@@ -8325,7 +8494,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve the prior signing key during rotation**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836042729"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836042729",
+      "disposition_note": ""
     },
     {
       "pr_number": 302,
@@ -8383,7 +8553,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reject rotations while an earlier overlap is active**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836082167"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836082167",
+      "disposition_note": ""
     },
     {
       "pr_number": 302,
@@ -8471,7 +8642,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve the disclosed secret when rotation is rejected**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836127975"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836127975",
+      "disposition_note": ""
     },
     {
       "pr_number": 302,
@@ -8495,7 +8667,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve the rotated secret across failed creates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836147852"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/302#discussion_r3836147852",
+      "disposition_note": ""
     },
     {
       "pr_number": 303,
@@ -8606,7 +8779,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Queue retry-exhaustion transitions in the webhook outbox**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836354482"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836354482",
+      "disposition_note": ""
     },
     {
       "pr_number": 303,
@@ -8630,7 +8804,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Make the storage move itself recoverable**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836412273"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836412273",
+      "disposition_note": ""
     },
     {
       "pr_number": 303,
@@ -8654,7 +8829,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Isolate notification dispatch from cancellation commit**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836458308"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/303#discussion_r3836458308",
+      "disposition_note": ""
     },
     {
       "pr_number": 303,
@@ -8877,7 +9053,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Commit the document failure ownership guards directly**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3836939671"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3836939671",
+      "disposition_note": ""
     },
     {
       "pr_number": 304,
@@ -8887,7 +9064,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Use a single workflow to mutate the PR branch**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3836939674"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3836939674",
+      "disposition_note": ""
     },
     {
       "pr_number": 304,
@@ -8913,7 +9091,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Repair document route exhaustion after ownership handoff**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3837115813"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3837115813",
+      "disposition_note": ""
     },
     {
       "pr_number": 304,
@@ -8923,7 +9102,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve document failure state after terminal transitions**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3837115814"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/304#discussion_r3837115814",
+      "disposition_note": ""
     },
     {
       "pr_number": 306,
@@ -8933,7 +9113,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Label the review-note field before enforcing this scan**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944573"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944573",
+      "disposition_note": ""
     },
     {
       "pr_number": 306,
@@ -8943,7 +9124,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve the approved state in the detail-query mock**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944574"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944574",
+      "disposition_note": ""
     },
     {
       "pr_number": 306,
@@ -8953,7 +9135,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep axe coverage enabled for mobile projects**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944575"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944575",
+      "disposition_note": ""
     },
     {
       "pr_number": 306,
@@ -8963,7 +9146,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reach controls through keyboard navigation instead of focus()**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944583"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944583",
+      "disposition_note": ""
     },
     {
       "pr_number": 306,
@@ -8973,7 +9157,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include WCAG 2.1 Level A rules in the axe gate**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944589"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944589",
+      "disposition_note": ""
     },
     {
       "pr_number": 306,
@@ -8983,7 +9168,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Exercise the actual mobile-handoff branch**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944595"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944595",
+      "disposition_note": ""
     },
     {
       "pr_number": 306,
@@ -8993,7 +9179,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Exclude the admin spec from the portal test configuration**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944601"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944601",
+      "disposition_note": ""
     },
     {
       "pr_number": 306,
@@ -9003,7 +9190,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Scan the live-camera UI after mounting it**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944607"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944607",
+      "disposition_note": ""
     },
     {
       "pr_number": 306,
@@ -9013,7 +9201,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Handle CORS preflights in the admin backend mock**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944610"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944610",
+      "disposition_note": ""
     },
     {
       "pr_number": 306,
@@ -9023,7 +9212,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include supporting evidence in the reviewer fixture**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944612"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3836944612",
+      "disposition_note": ""
     },
     {
       "pr_number": 306,
@@ -9033,7 +9223,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Bypass CSP before injecting axe**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3837116018"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3837116018",
+      "disposition_note": ""
     },
     {
       "pr_number": 306,
@@ -9043,7 +9234,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Scan captured evidence before submitting it**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3837116019"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3837116019",
+      "disposition_note": ""
     },
     {
       "pr_number": 306,
@@ -9053,7 +9245,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Scan the post-decision review state**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3837150057"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/306#discussion_r3837150057",
+      "disposition_note": ""
     },
     {
       "pr_number": 307,
@@ -9063,7 +9256,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Drive controls through the real tab order**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/307#discussion_r3836982507"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/307#discussion_r3836982507",
+      "disposition_note": ""
     },
     {
       "pr_number": 307,
@@ -9089,7 +9283,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Wait for the handoff UI before scanning it**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/307#discussion_r3837157190"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/307#discussion_r3837157190",
+      "disposition_note": ""
     },
     {
       "pr_number": 307,
@@ -9099,7 +9294,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Cover the remaining decision terminal states**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/307#discussion_r3837157193"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/307#discussion_r3837157193",
+      "disposition_note": ""
     },
     {
       "pr_number": 308,
@@ -9124,7 +9320,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Redact every typed-array view before traversing objects**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3984757476"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3984757476",
+      "disposition_note": ""
     },
     {
       "pr_number": 308,
@@ -9269,7 +9466,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject computed and qualified console calls**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3986604713"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3986604713",
+      "disposition_note": ""
     },
     {
       "pr_number": 308,
@@ -9279,7 +9477,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Split camelCase before matching sensitive keys**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3986604716"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3986604716",
+      "disposition_note": ""
     },
     {
       "pr_number": 308,
@@ -9304,7 +9503,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject every output-capable console method**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3992438271"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3992438271",
+      "disposition_note": ""
     },
     {
       "pr_number": 308,
@@ -9404,7 +9604,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Contain failures while traversing frontend log context**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3998204477"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3998204477",
+      "disposition_note": ""
     },
     {
       "pr_number": 308,
@@ -9414,7 +9615,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Avoid logging arbitrary render-error messages**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3999173418"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3999173418",
+      "disposition_note": ""
     },
     {
       "pr_number": 308,
@@ -9424,7 +9626,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Track aliases of the console object**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3999173423"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3999173423",
+      "disposition_note": ""
     },
     {
       "pr_number": 308,
@@ -9524,7 +9727,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep required deletion running for over-retention incidents**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3986505154"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3986505154",
+      "disposition_note": ""
     },
     {
       "pr_number": 312,
@@ -9534,7 +9738,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve temporary uploads when placing a legal hold**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3986505158"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3986505158",
+      "disposition_note": ""
     },
     {
       "pr_number": 312,
@@ -9544,7 +9749,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Validate idempotent webhook effects instead of zero duplicates**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3986505161"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3986505161",
+      "disposition_note": ""
     },
     {
       "pr_number": 312,
@@ -9554,7 +9760,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Add recovery for exhausted webhook events**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3986607581"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3986607581",
+      "disposition_note": ""
     },
     {
       "pr_number": 312,
@@ -9564,7 +9771,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Prevent failed uploads from monopolizing the cleanup batch**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3986607589"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3986607589",
+      "disposition_note": ""
     },
     {
       "pr_number": 312,
@@ -9632,7 +9840,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Provide an executable path for placing retention holds**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3995504951"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3995504951",
+      "disposition_note": ""
     },
     {
       "pr_number": 312,
@@ -9656,7 +9865,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Provide an executable path for placing retention holds**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3995504957"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3995504957",
+      "disposition_note": ""
     },
     {
       "pr_number": 312,
@@ -9811,7 +10021,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Provision the replay permission before enforcing it**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3999206944"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r3999206944",
+      "disposition_note": ""
     },
     {
       "pr_number": 312,
@@ -9835,7 +10046,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Wait for controls before treating them as activated**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r4000929910"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r4000929910",
+      "disposition_note": ""
     },
     {
       "pr_number": 312,
@@ -9890,7 +10102,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Replay before reactivating the failed endpoint**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r4003436753"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/312#discussion_r4003436753",
+      "disposition_note": ""
     },
     {
       "pr_number": 318,
@@ -9917,7 +10130,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve the twice-yearly provider exercise cadence**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/321#discussion_r4114531419"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/321#discussion_r4114531419",
+      "disposition_note": ""
     },
     {
       "pr_number": 322,
@@ -9927,7 +10141,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Run the TypeScript tests through a transforming loader**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/322#discussion_r4114578227"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/322#discussion_r4114578227",
+      "disposition_note": ""
     },
     {
       "pr_number": 322,
@@ -9937,7 +10152,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Require a usable idempotency key before retrying**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/322#discussion_r4114578234"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/322#discussion_r4114578234",
+      "disposition_note": ""
     },
     {
       "pr_number": 322,
@@ -9947,7 +10163,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Stop retrying requests canceled by their caller**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/322#discussion_r4114578238"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/322#discussion_r4114578238",
+      "disposition_note": ""
     },
     {
       "pr_number": 322,
@@ -9957,7 +10174,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Use the fallback backoff when Retry-After is absent**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/322#discussion_r4114578242"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/322#discussion_r4114578242",
+      "disposition_note": ""
     },
     {
       "pr_number": 323,
@@ -9981,7 +10199,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Add a checklist version to the record template**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/324#discussion_r4114652518"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/324#discussion_r4114652518",
+      "disposition_note": ""
     },
     {
       "pr_number": 325,
@@ -9991,7 +10210,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Scope the visibility assertion to the QR code**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/325#discussion_r4114657776"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/325#discussion_r4114657776",
+      "disposition_note": ""
     },
     {
       "pr_number": 326,
@@ -10044,7 +10264,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Apply quality weighting to backend session negotiation**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/326#discussion_r4114761108"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/326#discussion_r4114761108",
+      "disposition_note": ""
     },
     {
       "pr_number": 327,
@@ -10054,7 +10275,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Calculate aggregates from one database snapshot**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/327#discussion_r4114763385"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/327#discussion_r4114763385",
+      "disposition_note": ""
     },
     {
       "pr_number": 327,
@@ -10064,7 +10286,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Record opt-out changes in the tenant audit trail**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/327#discussion_r4114763394"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/327#discussion_r4114763394",
+      "disposition_note": ""
     },
     {
       "pr_number": 327,
@@ -10089,7 +10312,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Generate a distinct object key for every logo draft**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/328#discussion_r4114815890"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/328#discussion_r4114815890",
+      "disposition_note": ""
     },
     {
       "pr_number": 328,
@@ -10099,7 +10323,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Validate the same legacy palette that publication persists**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/328#discussion_r4114815892"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/328#discussion_r4114815892",
+      "disposition_note": ""
     },
     {
       "pr_number": 328,
@@ -10109,7 +10334,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Enforce the size limit on the uploaded object**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/328#discussion_r4114815895"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/328#discussion_r4114815895",
+      "disposition_note": ""
     },
     {
       "pr_number": 328,
@@ -10119,7 +10345,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Apply the tenant background variable to the page**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/328#discussion_r4114815899"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/328#discussion_r4114815899",
+      "disposition_note": ""
     },
     {
       "pr_number": 328,
@@ -10129,7 +10356,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Assert the absent published key without indexing it**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/328#discussion_r4114815900"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/328#discussion_r4114815900",
+      "disposition_note": ""
     },
     {
       "pr_number": 333,
@@ -10139,7 +10367,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Avoid returning an all-zero trace ID when telemetry is disabled**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/333#discussion_r4176056633"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/333#discussion_r4176056633",
+      "disposition_note": ""
     },
     {
       "pr_number": 334,
@@ -10149,7 +10378,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Pass database credentials into the exec process**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/334#discussion_r4176141727"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/334#discussion_r4176141727",
+      "disposition_note": ""
     },
     {
       "pr_number": 334,
@@ -10159,7 +10389,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Select only live supporting-document references**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/334#discussion_r4176141729"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/334#discussion_r4176141729",
+      "disposition_note": ""
     },
     {
       "pr_number": 336,
@@ -10169,7 +10400,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Enforce environment support for global assignments**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/336#discussion_r4177217958"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/336#discussion_r4177217958",
+      "disposition_note": ""
     },
     {
       "pr_number": 336,
@@ -10179,7 +10411,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Serialize manifest edits with route and assignment activation**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/336#discussion_r4177217959"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/336#discussion_r4177217959",
+      "disposition_note": ""
     },
     {
       "pr_number": 336,
@@ -10189,7 +10422,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Report configuration state accurately to platform admin**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/336#discussion_r4177217961"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/336#discussion_r4177217961",
+      "disposition_note": ""
     },
     {
       "pr_number": 337,
@@ -10199,7 +10433,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Hide capabilities that have no runtime execution path**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/337#discussion_r4177413692"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/337#discussion_r4177413692",
+      "disposition_note": ""
     },
     {
       "pr_number": 337,
@@ -10209,7 +10444,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Recheck the sandbox source before production activation**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/337#discussion_r4177413698"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/337#discussion_r4177413698",
+      "disposition_note": ""
     },
     {
       "pr_number": 338,
@@ -10219,7 +10455,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve external-risk controls in policy clones**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/338#discussion_r4177487937"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/338#discussion_r4177487937",
+      "disposition_note": ""
     },
     {
       "pr_number": 338,
@@ -10259,7 +10496,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Validate every gate before short-circuiting**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/340#discussion_r4177678451"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/340#discussion_r4177678451",
+      "disposition_note": ""
     },
     {
       "pr_number": 340,
@@ -10269,7 +10507,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Bound aggregate OCR edit-distance work**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/340#discussion_r4177678457"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/340#discussion_r4177678457",
+      "disposition_note": ""
     },
     {
       "pr_number": 341,
@@ -10279,7 +10518,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Exempt API clients from the dashboard throttle**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/341#discussion_r4177754138"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/341#discussion_r4177754138",
+      "disposition_note": ""
     },
     {
       "pr_number": 342,
@@ -10289,7 +10529,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Attribute inherited fields to each concrete model**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/342#discussion_r4178442090"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/342#discussion_r4178442090",
+      "disposition_note": ""
     },
     {
       "pr_number": 343,
@@ -10299,7 +10540,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Grant team management to organization administrators**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/343#discussion_r4178590701"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/343#discussion_r4178590701",
+      "disposition_note": ""
     },
     {
       "pr_number": 344,
@@ -10309,7 +10551,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Invalidate legacy access tokens when replay revokes a family**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/344#discussion_r4178694651"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/344#discussion_r4178694651",
+      "disposition_note": ""
     },
     {
       "pr_number": 345,
@@ -10319,7 +10562,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reject empty mandatory fields before marking an MRZ valid**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/345#discussion_r4178746871"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/345#discussion_r4178746871",
+      "disposition_note": ""
     },
     {
       "pr_number": 346,
@@ -10329,7 +10573,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Keep self-reported dates from resolving the MRZ century**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/346#discussion_r4178818633"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/346#discussion_r4178818633",
+      "disposition_note": ""
     },
     {
       "pr_number": 346,
@@ -10339,7 +10584,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Exclude claimed-only dates from document future signals**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/346#discussion_r4178818635"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/346#discussion_r4178818635",
+      "disposition_note": ""
     },
     {
       "pr_number": 347,
@@ -10349,7 +10595,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Avoid sharing one throttle bucket across all portal users**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/347#discussion_r4179487539"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/347#discussion_r4179487539",
+      "disposition_note": ""
     },
     {
       "pr_number": 348,
@@ -10359,7 +10606,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject downgrades to legacy provenance**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/348#discussion_r4179526673"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/348#discussion_r4179526673",
+      "disposition_note": ""
     },
     {
       "pr_number": 348,
@@ -10369,7 +10617,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Add an index for tenant checksum replay lookups**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/348#discussion_r4179526677"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/348#discussion_r4179526677",
+      "disposition_note": ""
     },
     {
       "pr_number": 349,
@@ -10379,7 +10628,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Synchronize fingerprint writes with subject erasure**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/349#discussion_r4179621377"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/349#discussion_r4179621377",
+      "disposition_note": ""
     },
     {
       "pr_number": 349,
@@ -10389,7 +10639,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Drain expired fingerprints faster than they are created**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/349#discussion_r4179621379"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/349#discussion_r4179621379",
+      "disposition_note": ""
     },
     {
       "pr_number": 350,
@@ -10413,7 +10664,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Validate the effective script element CSP directive**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/351#discussion_r4179729102"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/351#discussion_r4179729102",
+      "disposition_note": ""
     },
     {
       "pr_number": 351,
@@ -10423,7 +10675,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Revoke the cookie actually issued by the login response**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/351#discussion_r4179729104"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/351#discussion_r4179729104",
+      "disposition_note": ""
     },
     {
       "pr_number": 351,
@@ -10433,7 +10686,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject the normalized IPv6 loopback hostname**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/351#discussion_r4179729108"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/351#discussion_r4179729108",
+      "disposition_note": ""
     },
     {
       "pr_number": 352,
@@ -10443,7 +10697,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Reject fields that create implicit blocking indexes**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/352#discussion_r4179770985"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/352#discussion_r4179770985",
+      "disposition_note": ""
     },
     {
       "pr_number": 352,
@@ -10453,7 +10708,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Avoid enabling late acknowledgements for every task**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/352#discussion_r4179770986"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/352#discussion_r4179770986",
+      "disposition_note": ""
     },
     {
       "pr_number": 352,
@@ -10463,7 +10719,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Reject NULL database defaults for non-null fields**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/352#discussion_r4179770989"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/352#discussion_r4179770989",
+      "disposition_note": ""
     },
     {
       "pr_number": 352,
@@ -10473,7 +10730,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Require a stable worker snapshot before declaring drain complete**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/352#discussion_r4179770991"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/352#discussion_r4179770991",
+      "disposition_note": ""
     },
     {
       "pr_number": 353,
@@ -10483,7 +10741,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Return the refresh credential from GraphQL login**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/353#discussion_r4181017598"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/353#discussion_r4181017598",
+      "disposition_note": ""
     },
     {
       "pr_number": 356,
@@ -10493,7 +10752,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Track assignment recency across environment queues**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/356#discussion_r4181339870"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/356#discussion_r4181339870",
+      "disposition_note": ""
     },
     {
       "pr_number": 358,
@@ -10503,7 +10763,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Bind provider credentials to tenant environment keys**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/358#discussion_r4181848615"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/358#discussion_r4181848615",
+      "disposition_note": ""
     },
     {
       "pr_number": 358,
@@ -10513,7 +10774,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preload projects while inventorying encrypted metadata**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/358#discussion_r4181848618"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/358#discussion_r4181848618",
+      "disposition_note": ""
     },
     {
       "pr_number": 359,
@@ -10523,7 +10785,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Cache the unwrapped customer DEK during batch operations**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/359#discussion_r4185486065"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/359#discussion_r4185486065",
+      "disposition_note": ""
     },
     {
       "pr_number": 360,
@@ -10533,7 +10796,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Verify routed objects at the remapped destination**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/360#discussion_r4185932395"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/360#discussion_r4185932395",
+      "disposition_note": ""
     },
     {
       "pr_number": 360,
@@ -10543,7 +10807,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Block bulk deletion of retained routes**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/360#discussion_r4185932407"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/360#discussion_r4185932407",
+      "disposition_note": ""
     },
     {
       "pr_number": 362,
@@ -10553,7 +10818,8 @@
       "status": "pending",
       "evidence": [],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Guard upserts through bulk_create**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/362#discussion_r4186225694"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/362#discussion_r4186225694",
+      "disposition_note": ""
     },
     {
       "pr_number": 363,

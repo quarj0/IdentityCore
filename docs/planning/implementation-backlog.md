@@ -12,7 +12,7 @@ exist.
 
 1. Work in milestone order. Within a milestone, take `P0` before `P1`, then `P2`.
 2. Confirm every listed dependency is complete before assigning an issue.
-3. Copy the row's outcome and acceptance checks into the matching GitHub issue form.
+3. Copy the row's outcome and acceptance checks into the matching bug, feature, security-hardening, test or documentation form. Security-hardening forms are for preventive work; report possible or confirmed vulnerabilities through [private reporting](../../SECURITY.md). Only maintainers should transfer sanitized remediation tasks into public planning.
 4. Keep one issue focused on one independently reviewable outcome; split it if its pull
    request grows across unrelated subsystems.
 5. Close an issue only when its acceptance checks, automated tests, documentation, and
