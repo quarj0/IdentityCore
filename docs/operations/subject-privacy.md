@@ -70,3 +70,14 @@ rollout, require authorized reconciliation against an independently established
 mapping. Do not assign shared addresses to guessed subjects or erase unrelated
 recipient records. This limitation must be accounted for in deployment privacy
 acceptance; it is not evidence of complete historical erasure.
+
+## Concurrent verification creation
+
+REST and GraphQL creation use the same transactional serializer. It takes the
+shared tenant audit lock before subject lookup/insertion and locks a reused live
+subject, matching deletion's admission order. If creation commits first, deletion's
+case snapshot includes the new verification and revokes its session. If deletion
+commits first, a later onboarding request creates a fresh subject profile rather
+than attaching an active session to the erased profile. Soft-deleted legacy subjects
+are never reused, even if their external reference was retained. PostgreSQL race
+regressions exercise both orderings and verify actual lock waits.

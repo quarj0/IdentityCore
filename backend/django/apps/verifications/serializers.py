@@ -9,6 +9,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from apps.accounts.models import PlatformUser
+from apps.audit.services import lock_audit_chain
 from apps.platform_settings.services import get_platform_setting_value
 from apps.verification_subjects.models import VerificationSubject
 from apps.verifications.evidence import (
@@ -346,9 +347,14 @@ class VerificationCreateSerializer(serializers.Serializer):
             attrs["resolved_project"] = project
         return attrs
 
+    @transaction.atomic
     def create(self, validated_data):
         request = self.context["request"]
         tenant = get_request_tenant(request)
+        # Deletion takes the audit lock before capturing its case snapshot.
+        # Serialize lookup and insertion with that snapshot, then lock only a
+        # live subject; otherwise an invisible new case can escape erasure.
+        lock_audit_chain(tenant.pk)
         subject_data = validated_data["verification_subject"]
         external_reference = validated_data.get("external_reference", "")
         policy = validated_data.get("policy")
@@ -356,9 +362,8 @@ class VerificationCreateSerializer(serializers.Serializer):
         verification_subject = None
         if external_reference:
             verification_subject = (
-                tenant.verification_subjects.filter(
-                    external_reference=external_reference
-                )
+                tenant.verification_subjects.select_for_update(no_key=True)
+                .filter(external_reference=external_reference, deleted_at__isnull=True)
                 .order_by("created_at")
                 .first()
             )

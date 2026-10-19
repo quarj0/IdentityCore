@@ -266,6 +266,11 @@ Example:
 GET /verifications?status=verified&created_from=2026-01-01&created_to=2026-01-31
 ```
 
+Verification creation-date filters accept calendar dates in `YYYY-MM-DD` format.
+Both bounds are inclusive in the active Django timezone, including daylight-saving
+transitions. Queries compare timestamp bounds against the raw `created_at` column
+to preserve use of the tenant/creation-time index.
+
 Sorting:
 
 ```http

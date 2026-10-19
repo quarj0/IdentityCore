@@ -1,5 +1,5 @@
 from apps.access_control.test_helpers import grant_review_permission
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone as datetime_timezone
 from importlib import import_module
 from io import StringIO
 from unittest.mock import Mock, patch
@@ -716,6 +716,38 @@ class VerificationWorkflowTests(APITestCase):
             response.data["data"]["results"][0]["id"], verification.public_id
         )
         self.assertEqual(invalid_response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @override_settings(TIME_ZONE="America/New_York")
+    def test_created_date_range_respects_local_dst_boundaries(self):
+        # March 8 has 23 hours in New York: 05:00 UTC through 03:59:59.999999 UTC.
+        cases = []
+        for instant in (
+            datetime(2026, 3, 8, 4, 59, 59, 999999, tzinfo=datetime_timezone.utc),
+            datetime(2026, 3, 8, 5, tzinfo=datetime_timezone.utc),
+            datetime(2026, 3, 9, 3, 59, 59, 999999, tzinfo=datetime_timezone.utc),
+            datetime(2026, 3, 9, 4, tzinfo=datetime_timezone.utc),
+        ):
+            case = Verification.objects.create(
+                tenant=self.tenant,
+                organization=self.organization,
+                verification_subject=self.tenant.verification_subjects.create(
+                    full_name="Date boundary"
+                ),
+                purpose="Date boundary",
+                expires_at=timezone.now() + timedelta(hours=1),
+            )
+            Verification.objects.filter(pk=case.pk).update(created_at=instant)
+            cases.append(case)
+        response = self.client.get(
+            reverse("verification-list-create")
+            + "?created_from=2026-03-08&created_to=2026-03-08",
+            **self.auth_headers(),
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            {item["id"] for item in response.data["data"]["results"]},
+            {cases[1].public_id, cases[2].public_id},
+        )
 
     def test_list_rejects_impossible_and_non_contract_dates(self):
         for field in ("created_from", "created_to"):

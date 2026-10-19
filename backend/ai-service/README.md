@@ -1,5 +1,10 @@
 # Internal AI service
 
+Use Python 3.12 for the current frozen AI dependency set. PaddlePaddle 3.3.1
+has no CPython 3.14 wheel or source distribution, so the SDK's Python 3.14
+compatibility does not establish AI-runtime compatibility. Validate native model
+dependencies separately before upgrading the AI interpreter.
+
 FastAPI performs document quality/classification/OCR and biometric checks. It is an
 internal service, not a browser-facing API, and requires `X-Internal-Token`.
 

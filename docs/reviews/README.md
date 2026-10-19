@@ -379,3 +379,47 @@ build also passes using a temporary local proxy/CA adapter, and its unprivileged
 runtime (UID 1001) serves `/api/health` with HTTP 200. No TLS verification or TypeScript
 checks were disabled. The Dockerfile ignore file keeps host dependencies, environment
 files and build/test artifacts outside the image build context.
+
+Follow-up on the consolidated PR's native checks: the withdrawal allowlist browser
+fixture still used obsolete shared cookies and omitted the session ID header. It
+now uses the session-scoped cookie/header contract; the four browser profiles pass.
+The review bot's creation-date index finding is addressed with timezone-aware
+start/end timestamp bounds on the raw column, with inclusive DST boundary coverage.
+Three date-filter regressions pass. The API specification documents those bounds.
+
+A separate PostgreSQL run with CI's actual base settings reproduced two failures
+hidden by the testing settings' configured invitation URL. The historical admin
+fixture now explicitly supplies a safe HTTPS delivery URL; production URL validation
+is unchanged. The earlier 235-test result used testing settings and does not by
+itself establish a passing base-settings CI run.
+
+AI dependency installation was reproduced with Python 3.14: pinned PaddlePaddle
+3.3.1 has wheels for CPython 3.12/3.13 and cannot install on 3.14. Frozen Python
+3.12 dependency selection succeeds and all 91 local AI tests pass. An exact
+three-line proposal selects Python 3.12 for backend/migration/AI CI while retaining
+SDK 3.14 coverage. The protected workflow was not changed: automatic approval review
+rejected the edit because narrow publisher-environment approval is absent. Final
+head review and governed publisher approval remain required before merge.
+
+The consolidated review also identified a creation/subject-erasure race. The common
+REST/GraphQL creation serializer now holds the tenant audit lock before finding a
+subject or inserting a case/session, and reuses only a locked live subject. Two
+PostgreSQL regressions failed against the previous code and pass with this change,
+checking actual database lock waits and both transaction orderings. Creation first
+is captured by deletion; deletion first causes a fresh profile rather than reuse
+of the erased profile. The session authentication fail-closed check is preserved.
+The 235-check CI selection with base settings passed after fixing the HTTPS fixture;
+the final run additionally includes both existing and new privacy race modules.
+
+Final combined backend validation after these follow-ups ran 1,294 tests: 1,239
+passed and 55 skipped; PostgreSQL coverage is validated separately. The date-filter regressions also pass
+on PostgreSQL with CI base settings. GitGuardian still reports incident 38304031
+for the deterministic signing test vector in `docs/fixtures/provider-signing-wire-v1.json`.
+Python/JavaScript conformance derives that value from the checked-in synthetic
+fixture credential; the external scanner disposition remains pending. No alert was
+dismissed and no scan exclusion was added.
+
+The final PostgreSQL run passed all 239 checks with CI base settings, including
+the existing deletion/finalization races and the two new creation/erasure races.
+The proposed CI patch includes these privacy modules explicitly; it remains
+unapplied while approval is pending. Final type, formatting, Ruff and diff checks pass.

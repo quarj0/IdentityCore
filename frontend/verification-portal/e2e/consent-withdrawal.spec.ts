@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { expect, test, type Locator } from "@playwright/test";
 
 const sessionId = "ses_withdrawal";
@@ -6,7 +7,8 @@ test("BFF admits only the exact authenticated withdrawal route", async ({
   request,
 }) => {
   const headers = {
-    Cookie: `__Host-identitycore_verify=opaque; __Host-identitycore_verify_id=${sessionId}`,
+    "X-Session-Id": sessionId,
+    Cookie: `__Host-identitycore_verify_${createHash("sha256").update(sessionId).digest("hex").slice(0, 32)}=opaque`,
   };
   // The test upstream is deliberately unavailable. Reaching it proves the
   // authenticated route passed the real server-side allowlist.

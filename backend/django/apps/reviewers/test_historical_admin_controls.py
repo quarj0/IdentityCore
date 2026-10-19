@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.db import transaction
-from django.test import RequestFactory
+from django.test import RequestFactory, override_settings
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
@@ -11,6 +11,9 @@ from apps.reviewers.models import PlatformAdminInvitation
 from config.graphql_schema import schema
 
 
+@override_settings(
+    PLATFORM_INVITATION_BASE_URL="https://admin.example.test/accept-invitation"
+)
 class HistoricalPlatformAdminControlTests(APITestCase):
     def setUp(self):
         self.actor = PlatformUser.objects.create_superuser(

@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 import re
 
 from django.conf import settings
@@ -169,11 +169,15 @@ class VerificationListCreateView(VerificationAccessMixin, APIView):
                 )
         if "created_from" in date_filters:
             verifications = verifications.filter(
-                created_at__date__gte=date_filters["created_from"]
+                created_at__gte=timezone.make_aware(
+                    datetime.combine(date_filters["created_from"], time.min)
+                )
             )
         if "created_to" in date_filters:
             verifications = verifications.filter(
-                created_at__date__lte=date_filters["created_to"]
+                created_at__lte=timezone.make_aware(
+                    datetime.combine(date_filters["created_to"], time.max)
+                )
             )
 
         if "page" in request.query_params or "page_size" in request.query_params:
