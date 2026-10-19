@@ -4989,12 +4989,13 @@
       "path": "docs/planning/implementation-backlog.md",
       "status": "actionable",
       "evidence": [
-        "backend/django/apps/verification_policies/views.py:VerificationPolicyDetailView.get_object and environment filter",
-        "backend/django/apps/verifications/views.py:environment-filtered retrieval"
+        "backend/django/common/environment_access.py:EnvironmentDenialAuditMixin",
+        "backend/django/config/test_environment_denials.py:EnvironmentDenialAuditTests",
+        "docs/planning/implementation-backlog.md:IC-011 remains open"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Keep IC-011 open until denied accesses are audited**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/204#discussion_r3697097340",
-      "disposition_note": "Original review individually read and current implementation inspected against immutable main 07a683f. Creation-path environment denials are audited, but detail retrieval still filters wrong-environment objects into a 404 without an audit event. Add non-disclosing denial auditing for scoped retrievals; do not treat the earlier acceptance issue closure as complete coverage."
+      "disposition_note": "Prepared same-tenant environment-filtered lookup denial auditing after rejected mutation rollback, preserving complete unknown-ID error equivalence and excluding foreign-tenant/unknown/success/list events. Three transaction-level API regressions cover all nine policy/verification routes and immutable audit-chain verification; 60 policy/workflow/denial tests pass. IC-011/#95 and this finding remain open until protected merge."
     },
     {
       "pr_number": 204,

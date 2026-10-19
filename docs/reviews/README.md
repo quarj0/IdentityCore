@@ -181,3 +181,10 @@ and real-processing denial regressions are included; all 91 AI tests pass. These
 four findings remain actionable until protected merge. The
 [provisioning guide](../operations/ai-models.md) requires independent release approval,
 no concurrent writers and worker restart; synthetic tests do not certify real models.
+
+
+Environment-denial remediation audits same-tenant wrong-environment retrievals and
+rejected actions after mutation rollback. Three transaction-level regressions cover
+policy and eight verification routes, full error equivalence, chain integrity and
+absence of false events for foreign/unknown/success/list requests; 60 focused tests
+pass. IC-011/#95 and the historical finding stay open until protected merge.

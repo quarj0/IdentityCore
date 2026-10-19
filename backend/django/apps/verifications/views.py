@@ -67,6 +67,7 @@ from apps.verifications.review_access import manual_review_queryset_for_user
 from common.authentication import APIClientAuthentication
 from common.permissions import HasAPIClientScopes, IsManualReviewUser, IsTenantUser
 from common.responses import success_response
+from common.environment_access import EnvironmentDenialAuditMixin
 
 
 class VerificationTransitionConflict(APIException):
@@ -75,7 +76,8 @@ class VerificationTransitionConflict(APIException):
     default_code = "verification_transition_conflict"
 
 
-class VerificationAccessMixin:
+class VerificationAccessMixin(EnvironmentDenialAuditMixin):
+    environment_audit_target = "verification"
     authentication_classes = [
         APIClientAuthentication,
         *api_settings.DEFAULT_AUTHENTICATION_CLASSES,
@@ -107,7 +109,7 @@ class VerificationAccessMixin:
         environment_filter = Q(project__environment=environment)
         if environment == "sandbox":
             environment_filter |= Q(project__isnull=True)
-        return queryset.filter(environment_filter)
+        return self._remember_environment_lookup(request, queryset, queryset.filter(environment_filter))
 
     def get_permissions(self):
         if self._is_api_client_request(self.request):

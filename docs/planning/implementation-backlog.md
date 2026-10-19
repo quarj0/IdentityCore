@@ -68,6 +68,13 @@ or create a focused reconciliation issue rather than adding a second status list
 | IC-017 | P1  | security | Add session/device management for dashboard users.                                                          | Users can inspect and revoke sessions; sensitive account changes revoke other sessions; IP/user-agent display is privacy-safe. | IC-012         |
 | IC-018 | P1  | bug      | Prevent user and organization enumeration in login, password reset, invitations, and public session lookup. | Equivalent responses and rate limits are verified by tests; logs retain actionable internal reasons without exposing them.     | IC-012         |
 
+IC-011 remains open for protected review/merge of retrieval-denial auditing. The
+prepared implementation records same-tenant wrong-environment policy/verification
+lookups, including detail/result/evidence and rejected actions, after failed mutation
+transactions unwind. Responses retain the same complete error payload as unknown
+identifiers. Unknown or foreign-tenant identifiers do not create environment-denial
+events. This does not claim deployment acceptance or close issue #95.
+
 ## Milestone 2 — Verification workflow correctness
 
 | ID     | Pri | Type     | Issue-ready outcome                                                                    | Acceptance checks                                                                                                                   | Depends on     |

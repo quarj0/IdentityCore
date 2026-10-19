@@ -17,6 +17,7 @@ from apps.verification_policies.serializers import (
 from common.authentication import APIClientAuthentication
 from common.permissions import HasAPIClientScopes, IsTenantUser
 from common.responses import success_response
+from common.environment_access import EnvironmentDenialAuditMixin
 
 
 class APIClientPolicyWriteDenied(BasePermission):
@@ -26,7 +27,8 @@ class APIClientPolicyWriteDenied(BasePermission):
         return False
 
 
-class VerificationPolicyAccessMixin:
+class VerificationPolicyAccessMixin(EnvironmentDenialAuditMixin):
+    environment_audit_target = "verification_policy"
     authentication_classes = [
         APIClientAuthentication,
         *api_settings.DEFAULT_AUTHENTICATION_CLASSES,
@@ -48,7 +50,7 @@ class VerificationPolicyAccessMixin:
         environment_filter = Q(project__environment=environment)
         if environment == "sandbox":
             environment_filter |= Q(project__isnull=True)
-        return queryset.filter(environment_filter)
+        return self._remember_environment_lookup(request, queryset, queryset.filter(environment_filter))
 
     def get_permissions(self):
         if self._is_api_client_request(self.request):
