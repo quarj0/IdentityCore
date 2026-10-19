@@ -4,13 +4,18 @@ import { securityHeaders } from "./security-headers";
 
 export function proxy(request: NextRequest) {
   const nonce = crypto.randomUUID().replaceAll("-", "");
+  const headers = securityHeaders(nonce);
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set(
+    "Content-Security-Policy",
+    headers["Content-Security-Policy"],
+  );
 
   const response = NextResponse.next({
     request: { headers: requestHeaders },
   });
-  for (const [name, value] of Object.entries(securityHeaders(nonce))) {
+  for (const [name, value] of Object.entries(headers)) {
     response.headers.set(name, value);
   }
   if (process.env.NODE_ENV === "production") {

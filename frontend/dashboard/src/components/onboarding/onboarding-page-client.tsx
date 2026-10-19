@@ -110,7 +110,10 @@ export function OnboardingPageClient() {
                   <CardTitle>{progressValue}% complete</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Progress value={progressValue} />
+                  <Progress
+                    value={progressValue}
+                    aria-label="Onboarding progress"
+                  />
                   <p className="text-sm leading-6 text-muted-foreground">
                     {completedSteps} of {steps.length} onboarding milestones
                     completed.

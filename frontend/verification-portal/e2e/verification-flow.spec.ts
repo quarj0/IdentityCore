@@ -10,9 +10,11 @@ const image = Buffer.from(
 );
 
 test("verification pages send hardened browser security headers", async ({
-  request,
+  page,
 }) => {
-  const response = await request.get("/");
+  const response = await page.goto("/");
+  expect(response).not.toBeNull();
+  if (!response) throw new Error("Missing page response");
 
   expect(response.headers()["cache-control"]).toContain("no-store");
   const csp = response.headers()["content-security-policy"];
@@ -30,6 +32,18 @@ test("verification pages send hardened browser security headers", async ({
   expect(response.headers()["x-content-type-options"]).toBe("nosniff");
   expect(response.headers()["x-frame-options"]).toBe("DENY");
   expect(response.headers()["x-powered-by"]).toBeUndefined();
+  const nonce = csp.match(/'nonce-([^']+)'/)?.[1];
+  expect(nonce).toBeTruthy();
+  const scripts =
+    (await response.text()).match(
+      /<script\b[^>]*\bsrc="[^"]*\/_next\/[^"]*"[^>]*>/g,
+    ) ?? [];
+  expect(scripts.length).toBeGreaterThan(0);
+  for (const script of scripts) expect(script).toContain(`nonce="${nonce}"`);
+  await page.getByRole("button", { name: "Switch to dark theme" }).click();
+  await expect(
+    page.getByRole("button", { name: "Switch to light theme" }),
+  ).toBeVisible();
 });
 
 test("health and readiness endpoints expose safe orchestration state", async ({

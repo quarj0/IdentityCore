@@ -27,3 +27,26 @@ corepack pnpm install --frozen-lockfile
 `frontend/pnpm-lock.yaml` is the sole dependency lockfile for all frontend applications and shared packages. Do not create or use app-local lockfiles; run package commands from this directory so workspace dependency resolution remains reproducible.
 
 Use each package's `lint` and `build` scripts for validation.
+
+## Dashboard CSP resource configuration
+
+Pass these server environment values to the dashboard process (or its `.env.local`
+for development). `PUBLIC_ASSET_URL_BASE` automatically allows that origin for images.
+`FRONTEND_ASSET_ORIGINS` adds comma-separated approved image/CDN origins, while
+`FRONTEND_UPLOAD_ORIGINS` adds the exact origins returned by branding presigned PUT
+URLs, including bucket-specific hosts. Paths normalize to origins; wildcard,
+credential-bearing and malformed values are ignored. Resource origins require HTTPS
+in production; explicit HTTP origins are permitted only during development.
+
+These settings are server configuration, so restart the dashboard after changing
+them. They do not allow arbitrary HTTPS sources or relax nonce/inline-style rules.
+The verification portal retains its separate image policy and uses consent-aware
+same-origin evidence transfers; it does not need external object-storage connect
+permission for the current upload contract.
+
+From the frontend workspace, run `pnpm --filter dashboard test:csp` for allowlist
+units and `pnpm --filter verification-portal test:e2e:dashboard:csp` for production
+Chromium/WebKit checks. The browser fixture verifies nonce-bearing HTML, hydration,
+40% native onboarding progress, approved image/PUT requests and blocked unlisted
+connections. Portal header coverage also checks script nonce equality and a hydrated
+theme change under its enforced policy. No test disables CSP.

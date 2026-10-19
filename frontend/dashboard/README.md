@@ -24,3 +24,11 @@ Evidence report downloads use the authenticated API client, including scoped ref
 and download exact response bytes. Organization PDF transfers allow a 60-second deadline,
 normalize a missing browser MIME to `application/pdf`, and retain server content validation.
 Replacing submitted documents is detected by storage-key changes rather than file count.
+
+Dashboard image and branding-upload origins are configured by the server-only
+`PUBLIC_ASSET_URL_BASE`, `FRONTEND_ASSET_ORIGINS` and `FRONTEND_UPLOAD_ORIGINS`
+settings. Configure the actual presigned-upload bucket origins before using branding
+uploads. See the [workspace CSP guide](../README.md#dashboard-csp-resource-configuration)
+for HTTPS/allowlist rules and production browser checks. Onboarding progress uses
+native progress rendering, preserving its numeric/accessibility value without
+inline styles.

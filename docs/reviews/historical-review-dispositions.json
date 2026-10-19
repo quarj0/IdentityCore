@@ -3961,12 +3961,13 @@
       "path": "frontend/security-headers.ts",
       "status": "actionable",
       "evidence": [
-        "frontend/security-headers.ts:contentSecurityPolicy img-src",
-        "frontend/verification-portal/src/components/verification/verification-frame.tsx:organizationLogo"
+        "frontend/security-headers.ts:configured asset origins",
+        "frontend/dashboard/src/proxy.ts:PUBLIC_ASSET_URL_BASE and FRONTEND_ASSET_ORIGINS",
+        "frontend/verification-portal/e2e/dashboard-csp.spec.ts"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Allow the external origins used for organization logos**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/188#discussion_r3696933154",
-      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. The dashboard shared CSP still permits self/data/blob images only; the portal has a separate policy allowing HTTPS images. Explicit configured public asset origins must be supported for valid external dashboard branding."
+      "disposition_note": "Dashboard remediation permits exact configured public asset/CDN origins in img-src, normalized from the public asset base and optional resource allowlist. Wildcard/credential/malformed/insecure-production values are rejected. Actual Chromium/WebKit image loads pass under enforced production CSP. The portal retains its separate HTTPS-image policy. Await protected review/merge."
     },
     {
       "pr_number": 188,
@@ -3975,12 +3976,13 @@
       "path": "frontend/security-headers.ts",
       "status": "actionable",
       "evidence": [
-        "frontend/security-headers.ts:style-src-attr none",
-        "frontend/packages/ui/src/components/progress.tsx:Indicator inline transform"
+        "frontend/packages/ui/src/components/progress.tsx:native progress rendering and Radix numeric value",
+        "frontend/dashboard/src/components/onboarding/onboarding-page-client.tsx:accessible progress name",
+        "frontend/verification-portal/e2e/dashboard-csp.spec.ts:40 percent under style-src-attr none"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Remove the remaining inline progress style**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/188#discussion_r3696933156",
-      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Progress still relies on a blocked inline transform. Use CSP-compatible progress rendering and verify a nonterminal value in a production browser."
+      "disposition_note": "Remediation removes the inline transform, uses a native progress value/max and supplies the wrapper numeric/accessibility state. Actual Chromium/WebKit production checks show visible 40% progress with no inline style and the correct aria-valuenow. Await protected review/merge."
     },
     {
       "pr_number": 188,
@@ -4003,12 +4005,14 @@
       "path": "frontend/security-headers.ts",
       "status": "actionable",
       "evidence": [
-        "frontend/security-headers.ts:connectSources",
-        "frontend/dashboard/src/features/operations/live-branding-page.tsx:presigned upload"
+        "frontend/security-headers.ts:configured uploadOrigins in connect-src",
+        "frontend/dashboard/src/proxy.ts:FRONTEND_UPLOAD_ORIGINS",
+        "frontend/verification-portal/e2e/dashboard-csp.spec.ts:allowed PUT and blocked unlisted fetch",
+        "frontend/README.md:Dashboard CSP resource configuration"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Permit the object-storage origin used for branding uploads**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/188#discussion_r3696933159",
-      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. CSP connect-src lacks an explicitly configured object-storage upload origin. Add bounded configured origins without a blanket HTTPS allowance."
+      "disposition_note": "Remediation permits only configured branding-upload origins in connect-src, including explicit bucket hosts. Chromium/WebKit production checks perform a real browser PUT to the allowed fixture origin and prove an unlisted connection never reaches transport. Inline/script restrictions remain enforced. Await protected review/merge."
     },
     {
       "pr_number": 189,
@@ -4842,11 +4846,12 @@
       "path": "frontend/verification-portal/src/proxy.ts",
       "status": "actionable",
       "evidence": [
-        "frontend/verification-portal/src/proxy.ts:only x-nonce forwarded"
+        "frontend/verification-portal/src/proxy.ts:identical request/response CSP",
+        "frontend/verification-portal/e2e/verification-flow.spec.ts:framework nonce and hydration assertions"
       ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Forward the nonce-bearing CSP to the renderer**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/201#discussion_r3696990106",
-      "disposition_note": "Original review individually read and current implementation inspected against immutable main 07a683f. The portal proxy still adds nonce-bearing CSP only to the response. Forward the same CSP to the renderer and verify real production HTML script nonces and hydration under enforced policy."
+      "disposition_note": "Remediation forwards the same nonce-bearing CSP to Next and the response. Chromium/WebKit production checks compare initial framework-script nonces with the actual response policy and exercise a hydrated theme toggle; both full Arabic journeys also pass under the policy. Await protected review/merge."
     },
     {
       "pr_number": 201,

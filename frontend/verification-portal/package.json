@@ -11,7 +11,8 @@
     "lint": "eslint",
     "test:e2e:install": "playwright install chromium webkit",
     "test:e2e": "playwright test",
-    "test:bff:transport": "node test/localization.test.mjs && node test/session-credentials.test.mjs && node test/test-bff-transport.mjs"
+    "test:bff:transport": "node test/localization.test.mjs && node test/session-credentials.test.mjs && node test/test-bff-transport.mjs",
+    "test:e2e:dashboard:csp": "playwright test --config=playwright.dashboard-csp.config.ts"
   },
   "dependencies": {
     "@identitycore/api-client": "workspace:*",

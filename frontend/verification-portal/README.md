@@ -167,3 +167,9 @@ BFF transfer path; self-only connect-src does not require object-storage origin 
 The default Playwright acceptance suite starts its own production build on port 3002
 and does not reuse development servers. Stop a development server on that port
 before running it; strict production CSP and release-version assertions remain active.
+
+The HTML proxy forwards the exact nonce-bearing CSP to Next's renderer and returns
+that same policy to the browser. Production header tests check the initial framework
+script nonces and a hydrated theme toggle, rather than checking response headers
+alone. The portal's same-origin evidence transfer contract is documented in the
+[session guide](../../docs/operations/portal-sessions.md).

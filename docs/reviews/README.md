@@ -152,3 +152,12 @@ environment-denial audit events on retrieval. Two-capture timing remediation
 preserves orchestrator timestamps; its prior-head regression reproduced three
 backwards completion times without losing the four independent invocation records.
 The audit remains open until all pending/actionable dispositions are completed.
+
+Frontend CSP remediation forwards the portal's policy to its renderer and allows
+configured dashboard image/upload origins without broadening script/inline-style
+rules. Native onboarding progress replaces the blocked inline transform. Three
+allowlist units, two production dashboard browser cases and four portal nonce/Arabic
+journey cases pass across Chromium/WebKit. Exact script nonces, hydration, allowed
+asset/PUT requests and blocked unlisted connections are verified. These four
+findings stay actionable until protected merge; configuration is documented in the
+[frontend guide](../../frontend/README.md#dashboard-csp-resource-configuration).
