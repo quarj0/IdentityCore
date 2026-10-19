@@ -1,10 +1,13 @@
 from django.db import migrations, models
+from ._legacy_names import recovered_name
 
 
 def backfill_workflow_names(apps, schema_editor):
     WorkflowVersion = apps.get_model("workflows", "WorkflowVersion")
-    for version in WorkflowVersion.objects.select_related("workflow").iterator():
-        version.workflow_name = version.workflow.name
+    for version in WorkflowVersion.objects.select_related(
+        "workflow", "policy", "published_by"
+    ).iterator():
+        version.workflow_name = recovered_name(version)
         version.save(update_fields=["workflow_name"])
 
 

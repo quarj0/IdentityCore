@@ -33,9 +33,9 @@ export type InstantiatedWorkflow = {
   status: string;
   steps: string[];
   settings: Record<string, unknown>;
-  source_template_id: string;
+  source_template_id: string | null;
   source_template_version: string;
-  created: boolean;
+  created?: boolean;
 };
 
 export async function fetchWorkflowTemplates() {
@@ -47,6 +47,13 @@ export async function fetchWorkflowTemplates() {
 
 export async function fetchWorkspaceProjects() {
   const data = await restRequest<{ results: WorkspaceProject[] }>("/projects/");
+  return data.results;
+}
+
+export async function fetchProjectWorkflows(projectId: string) {
+  const data = await restRequest<{ results: InstantiatedWorkflow[] }>(
+    `/workflows/?project_id=${encodeURIComponent(projectId)}`,
+  );
   return data.results;
 }
 

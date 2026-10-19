@@ -17,7 +17,9 @@ class WorkflowListCreateView(APIView):
     permission_classes = [IsAuthenticated, IsTenantUser]
 
     def get(self, request):
-        qs = request.user.tenant.workflows.select_related("project")
+        qs = request.user.tenant.workflows.filter(
+            deleted_at__isnull=True
+        ).select_related("project", "source_template")
         project = request.query_params.get("project_id")
         qs = qs.filter(project__public_id=project) if project else qs
         return success_response(
@@ -46,7 +48,9 @@ class WorkflowDetailView(APIView):
 
     def obj(self, r, i):
         return get_object_or_404(
-            r.user.tenant.workflows.select_related("project"), public_id=i
+            r.user.tenant.workflows.select_related("project", "source_template"),
+            public_id=i,
+            deleted_at__isnull=True,
         )
 
     def get(self, r, workflow_id):
@@ -80,6 +84,8 @@ class WorkflowActionView(WorkflowDetailView):
             x.name = f"{x.name} Copy"
             x.status = WorkflowStatus.DRAFT
             x.current_version = 0
+            x.instantiation_key = ""
+            x.instantiation_request_hash = ""
             x.created_by = r.user
             x.save()
         else:

@@ -27,3 +27,33 @@ its status to draft; retained workflow versions and policies keep their original
 contents. Publishing creates a new immutable version and policy, subject to current
 organization approval and policy validation. These workflows are tenant/project
 records; global template publication is a separate lifecycle.
+
+## Existing workflows and legacy lineage
+
+First-workflow onboarding reloads the selected sandbox project's existing workflows
+before showing a new creation form. It restores the configuration link even when no
+published templates remain. REST clones preserve template lineage but clear both the
+instantiation key and request digest, so the clone cannot collide with or impersonate
+the source request. Collection/detail responses exclude deleted workflows and eagerly
+load source-template lineage.
+
+Apply `workflows.0006` and `verifications.0025` in a planned maintenance window,
+with workflow publication and evidence generation paused. These are data repairs,
+not automatic rolling-schema expansion; keep rollout guards intact. Fresh installs
+also use defensive historical backfills. Snapshot construction and migration 0017
+preserve legacy JSON settings as stored, including scalar/list values; this does not
+authorize publishing new workflows with invalid settings.
+
+The original name backfill used the mutable parent workflow name. Recovery uses the
+associated immutable published policy and its historical REST/platform naming format.
+Unrecoverable or truncated names become an empty string (unavailable), never a guessed
+current name. The forward repair applies only to versions published before migration
+0004 was applied; newer published names remain authoritative. Case snapshots copied
+from affected versions retain `workflow_name_backfill_correction`, including the old
+assertion, correction source and reason. Rerunning repairs is idempotent.
+
+Historical audit events and already-written evidence artifacts remain unchanged.
+Their old assertions are historical records; use the corrected case snapshot when
+issuing a new evidence report, and retain the previous artifact and correction record
+under normal retention/legal-hold rules. Do not present an old artifact as proof that
+a legacy mutable-name assertion was accurate.

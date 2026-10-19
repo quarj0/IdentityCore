@@ -26,6 +26,7 @@ import { getErrorMessage } from "@/lib/api-client";
 import {
   fetchWorkflowTemplates,
   fetchWorkspaceProjects,
+  fetchProjectWorkflows,
   instantiateWorkflowTemplate,
   type InstantiatedWorkflow,
   type WorkflowTemplate,
@@ -65,6 +66,10 @@ export default function FirstWorkflowPage() {
         null;
       setTemplates(availableTemplates);
       setProject(sandbox);
+      if (sandbox) {
+        const existing = await fetchProjectWorkflows(sandbox.id);
+        setCreatedWorkflow(existing[0] ?? null);
+      }
       if (availableTemplates.length > 0) {
         const first = availableTemplates[0];
         setSelectedId((current) => current || first.id);
@@ -85,7 +90,7 @@ export default function FirstWorkflowPage() {
   useEffect(() => {
     let active = true;
     void Promise.all([fetchWorkflowTemplates(), fetchWorkspaceProjects()])
-      .then(([availableTemplates, projects]) => {
+      .then(async ([availableTemplates, projects]) => {
         if (!active) return;
         const sandbox =
           projects.find(
@@ -95,6 +100,11 @@ export default function FirstWorkflowPage() {
           null;
         setTemplates(availableTemplates);
         setProject(sandbox);
+        if (sandbox) {
+          const existing = await fetchProjectWorkflows(sandbox.id);
+          if (!active) return;
+          setCreatedWorkflow(existing[0] ?? null);
+        }
         if (availableTemplates.length > 0) {
           setSelectedId(availableTemplates[0].id);
           setWorkflowName(availableTemplates[0].name);
@@ -152,7 +162,7 @@ export default function FirstWorkflowPage() {
       }
       description={
         createdWorkflow
-          ? "The versioned template was copied into your sandbox project and is ready to configure."
+          ? "Resume the sandbox workflow already created for this workspace."
           : "Select a published template, review its requirements, and create a sandbox workflow."
       }
       pathname="/onboarding/first-workflow"
@@ -334,8 +344,11 @@ function CreatedWorkflowCard({ workflow }: { workflow: InstantiatedWorkflow }) {
         <CheckCircle2 className="mb-4 h-8 w-8 text-emerald-600" />
         <CardTitle>{workflow.name}</CardTitle>
         <CardDescription>
-          Draft created from template version {workflow.source_template_version}{" "}
-          with {workflow.steps.length} steps.
+          {workflow.source_template_version
+            ? `Workflow from template version ${workflow.source_template_version}`
+            : "Project workflow"}{" "}
+          with {workflow.steps.length} steps. Status:{" "}
+          {workflow.status.replaceAll("_", " ")}.
         </CardDescription>
       </CardHeader>
       <CardContent>

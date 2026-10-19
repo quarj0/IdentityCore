@@ -3,7 +3,7 @@
 The workspace contains five Next.js applications:
 
 - `dashboard` (`3000`): authenticated organization operations.
-- `identitycore` (`3001`): public home, auth, and onboarding.
+- `identitycore` (`3001`): public marketing site; account and onboarding entry points route to the dashboard.
 - `verification-portal` (`3002`): subject verification sessions.
 - `developer-portal` (`3003`): integration documentation.
 - `platform-admin` (`3004`): internal platform administration.

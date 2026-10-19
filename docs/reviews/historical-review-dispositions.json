@@ -2620,10 +2620,15 @@
       "thread_id": "PRRT_kwDOTN0BU86UTTFm",
       "comment_id": 3663207270,
       "path": "frontend/identitycore/src/app/onboarding/first-workflow/page.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/workflows/test_legacy_lineage.py",
+        "docs/operations/workflow-template-instantiation.md",
+        "frontend/verification-portal/e2e/dashboard-workflow-recovery.spec.ts"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Restore existing workflows when onboarding reloads**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207270"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207270",
+      "disposition_note": "Individually inspected the current dashboard successor: initial load fetches templates/projects only and loses the created workflow after refresh. Restore existing project workflows; preserve an intentional route to create another. Remediation is implemented on the current follow-up branch with backend/browser/legacy migration regressions; remains actionable until protected review and merge."
     },
     {
       "pr_number": 49,
@@ -2663,10 +2668,14 @@
       "thread_id": "PRRT_kwDOTN0BU86UTTFx",
       "comment_id": 3663207285,
       "path": "backend/django/apps/workflows/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/workflows/test_legacy_lineage.py",
+        "docs/operations/workflow-template-instantiation.md"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Clear the instantiation key when cloning workflows**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207285"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207285",
+      "disposition_note": "Individually inspected REST clone: pk/public_id reset retains nonempty instantiation_key and request hash, violating tenant/key uniqueness for template-derived workflows. Clear replay identity on clones. Remediation is implemented on the current follow-up branch with backend/browser/legacy migration regressions; remains actionable until protected review and merge."
     },
     {
       "pr_number": 49,
@@ -2729,10 +2738,14 @@
       "thread_id": "PRRT_kwDOTN0BU86UTTF9",
       "comment_id": 3663207297,
       "path": "backend/django/apps/workflows/serializers.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/workflows/test_legacy_lineage.py",
+        "docs/operations/workflow-template-instantiation.md"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Eager-load template lineage in workflow lists**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207297"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/49#discussion_r3663207297",
+      "disposition_note": "Individually inspected REST workflow collection and detail querysets: source_template is lazily loaded by serialize_workflow. Include template lineage in select_related and verify list query growth. Remediation is implemented on the current follow-up branch with backend/browser/legacy migration regressions; remains actionable until protected review and merge."
     },
     {
       "pr_number": 49,
@@ -5346,20 +5359,28 @@
       "thread_id": "PRRT_kwDOTN0BU86V517q",
       "comment_id": 3702348156,
       "path": "backend/django/apps/verifications/evidence.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verifications/tests.py:test_evidence_pdf_renders_workflow_version_lineage"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Render the workflow version in PDF evidence**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/242#discussion_r3702348156"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/242#discussion_r3702348156",
+      "disposition_note": "Individually verified current PDF builder renders workflow ID, version ID and version. Immutable-main test test_evidence_pdf_renders_workflow_version_lineage passed.",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f"
     },
     {
       "pr_number": 242,
       "thread_id": "PRRT_kwDOTN0BU86V517x",
       "comment_id": 3702348164,
       "path": "backend/django/apps/verifications/migrations/0010_verification_workflow_snapshot_json.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/workflows/test_legacy_lineage.py",
+        "docs/operations/workflow-template-instantiation.md"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Backfill workflow snapshots for existing verifications**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/242#discussion_r3702348164"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/242#discussion_r3702348164",
+      "disposition_note": "The later 0017 data migration backfills normal workflow-backed records, but assumes settings is a mapping. Legacy scalar/list JSON aborts the migration; complete defensive backfill together with original finding 3767591692. Remediation is implemented on the current follow-up branch with backend/browser/legacy migration regressions; remains actionable until protected review and merge."
     },
     {
       "pr_number": 242,
@@ -5376,10 +5397,14 @@
       "thread_id": "PRRT_kwDOTN0BU86V5179",
       "comment_id": 3702348177,
       "path": "backend/django/apps/workflows/models.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/workflows/models.py:WorkflowVersion.snapshot"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Freeze the published workflow name with each version**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/242#discussion_r3702348177"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/242#discussion_r3702348177",
+      "disposition_note": "Individually verified publication persists workflow_name on WorkflowVersion and snapshots use that field rather than the editable parent name. Immutable-main snapshot regression passed; historical migration name recovery remains a separate actionable finding 3767591674.",
+      "verified_main": "07a683f1447a186cd7a021b762d658ece602165f"
     },
     {
       "pr_number": 243,
@@ -7045,20 +7070,28 @@
       "thread_id": "PRRT_kwDOTN0BU86YnWka",
       "comment_id": 3767591674,
       "path": "backend/django/apps/workflows/migrations/0004_workflowversion_workflow_name.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/workflows/test_legacy_lineage.py",
+        "docs/operations/workflow-template-instantiation.md"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve each version's original name during backfill**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/285#discussion_r3767591674"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/285#discussion_r3767591674",
+      "disposition_note": "Individually confirmed 0004 assigns the mutable current workflow name to all historical versions. Recover version-specific immutable policy/audit evidence where possible and mark unavailable provenance honestly; repair previously applied rows without overwriting trustworthy new names. Remediation is implemented on the current follow-up branch with backend/browser/legacy migration regressions; remains actionable until protected review and merge."
     },
     {
       "pr_number": 285,
       "thread_id": "PRRT_kwDOTN0BU86YnWkm",
       "comment_id": 3767591692,
       "path": "backend/django/apps/verifications/migrations/0017_backfill_workflow_snapshots.py",
-      "status": "pending",
-      "evidence": [],
+      "status": "actionable",
+      "evidence": [
+        "backend/django/apps/workflows/test_legacy_lineage.py",
+        "docs/operations/workflow-template-instantiation.md"
+      ],
       "summary": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserve arbitrary JSON settings during snapshot backfill**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/285#discussion_r3767591692"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/285#discussion_r3767591692",
+      "disposition_note": "Individually confirmed 0017 uses dict(version.settings_json), which raises on valid legacy scalar/list JSON. Preserve the actual stored JSON in defensive migration and runtime snapshots; include upgrade tests. Remediation is implemented on the current follow-up branch with backend/browser/legacy migration regressions; remains actionable until protected review and merge."
     },
     {
       "pr_number": 286,

@@ -1,3 +1,4 @@
+from copy import deepcopy
 from django.db import migrations
 
 
@@ -23,8 +24,8 @@ def backfill_workflow_snapshots(apps, schema_editor):
             "workflow_id": version.workflow.public_id,
             "workflow_name": version.workflow_name,
             "version": version.version,
-            "steps": list(version.steps_json),
-            "settings": dict(version.settings_json),
+            "steps": deepcopy(version.steps_json),
+            "settings": deepcopy(version.settings_json),
             "published_at": version.published_at.isoformat(),
         }
         verification.save(update_fields=["workflow_snapshot_json"])

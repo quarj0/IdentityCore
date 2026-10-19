@@ -2,7 +2,7 @@
 
 The disposition register tracks findings by original PR, comment and thread identifier. A resolved GitHub thread does not establish that its finding was implemented. Completed dispositions cite inspected implementation and regression evidence.
 
-860 threads from closed or merged PRs: 237 fixed, 332 verified, 37 actionable and 254 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence. It extends the original 484-thread scope with subsequent closed-PR feedback. The original issue remains open.
+860 threads from closed or merged PRs: 237 fixed, 334 verified, 43 actionable and 246 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence. It extends the original 484-thread scope with subsequent closed-PR feedback. The original issue remains open.
 
 Merged remediation covers OCR outage gates, biometric evidence promotion, submitted-review expiry, MRZ issuer matching, provider attempt/evidence invariants, single-variant OpenCV runtime and authenticated immutable audit records. Current-main validation also covers redaction, secure HTTP adapters and webhook outbox/claim/disable/replay behavior. Delivery-time webhook isolation and controlled provider-health codes are merged in #370 and #372. Additional validation covers decision locks, external-risk I/O, authenticity redaction, retention holds and deferred evidence generation. System fallback contract fixes are merged in #373. Parser fixes are merged in #365. The independent SDK/idempotency audit verifies existing signing, replay, profile, retry and compiler behavior, and tracks live project/example, completion/type and conformance fixes in #375–#377. Conformance fixes are merged in #377; completion fixes are merged in #376. Reproduced adapter-test and partial-decision-contract findings are merged in #380, and generated SDK contract fixes in #381. Platform MFA auditing and public sample-token rejection are merged in #382, including independent AI service startup enforcement.
 
@@ -70,3 +70,9 @@ bounds challenge issuance across replacement sessions. The motion approximation
 and finite challenge space require physical/adversarial evaluation before production
 claims; synthetic regressions establish the contract. The finding stays actionable
 until protected review and merge.
+
+Eight more original workflow comments were individually inspected. Two lineage/PDF
+behaviors were verified against immutable main with two focused regressions; six
+findings remain actionable. Their remediation restores onboarding state, clears clone
+replay identity, loads lineage efficiently and repairs legacy names/JSON snapshots
+without rewriting audit events or retained evidence artifacts.
