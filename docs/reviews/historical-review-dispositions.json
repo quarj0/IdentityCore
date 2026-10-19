@@ -6784,11 +6784,12 @@
       "path": ".github/workflows/security.yml",
       "status": "actionable",
       "evidence": [
-        ".github/workflows/security.yml:Record dependency/container findings"
+        ".github/workflows/security.yml:Record dependency/container findings and independent blocking gates",
+        "docs/operations/security-scanning.md"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include unfixed findings in scan artifacts**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/267#discussion_r3742049580",
-      "disposition_note": "Confirmed JSON artifacts still filter unfixed findings; remove report filtering without weakening enforcement. Original individually read and current implementation inspected. Remains open until protected remediation merge."
+      "disposition_note": "Prepared governed workflow remediation: JSON dependency/container artifacts retain unfixed vulnerabilities, enforcement retains high/critical fixed-finding blocking, dependency and secret gates each run unless cancelled. Workflow syntax/step semantics checked locally. Remains actionable pending exact-head independent review, separately authorized protected-definition approval, required CI/Security/App evidence and trusted merge. No existing alert dismissed and no review message sent."
     },
     {
       "pr_number": 267,
@@ -6797,11 +6798,12 @@
       "path": ".github/workflows/security.yml",
       "status": "actionable",
       "evidence": [
-        ".github/workflows/security.yml:Block detected secrets"
+        ".github/workflows/security.yml:Record dependency/container findings and independent blocking gates",
+        "docs/operations/security-scanning.md"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Run the secret gate despite dependency findings**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/267#discussion_r3742049584",
-      "disposition_note": "Confirmed secret enforcement lacks an independent non-cancellation condition after a failed dependency gate. Original individually read and current implementation inspected. Remains open until protected remediation merge."
+      "disposition_note": "Prepared governed workflow remediation: JSON dependency/container artifacts retain unfixed vulnerabilities, enforcement retains high/critical fixed-finding blocking, dependency and secret gates each run unless cancelled. Workflow syntax/step semantics checked locally. Remains actionable pending exact-head independent review, separately authorized protected-definition approval, required CI/Security/App evidence and trusted merge. No existing alert dismissed and no review message sent."
     },
     {
       "pr_number": 268,
@@ -6810,11 +6812,12 @@
       "path": ".github/workflows/security.yml",
       "status": "actionable",
       "evidence": [
-        ".github/workflows/security.yml:Record dependency/container findings"
+        ".github/workflows/security.yml:Record dependency/container findings and independent blocking gates",
+        "docs/operations/security-scanning.md"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve unfixed findings in the JSON reports**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/268#discussion_r3742052307",
-      "disposition_note": "Repeated original individually inspected; JSON artifacts omit unfixed vulnerabilities contrary to operations documentation. Original individually read and current implementation inspected. Remains open until protected remediation merge."
+      "disposition_note": "Prepared governed workflow remediation: JSON dependency/container artifacts retain unfixed vulnerabilities, enforcement retains high/critical fixed-finding blocking, dependency and secret gates each run unless cancelled. Workflow syntax/step semantics checked locally. Remains actionable pending exact-head independent review, separately authorized protected-definition approval, required CI/Security/App evidence and trusted merge. No existing alert dismissed and no review message sent."
     },
     {
       "pr_number": 268,

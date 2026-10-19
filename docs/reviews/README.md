@@ -205,3 +205,9 @@ checks, strict valid/malformed backlog parsing and the full backend suite: 1,252
 1,203 passed and 49 skipped. The two-capture timing scenario now has its own test,
 preserving single-capture recovery fixtures and all invocation chronology assertions.
 No pending disposition or unmerged remediation is represented as completed.
+
+
+Security workflow remediation retains unfixed findings in JSON artifacts and runs
+dependency/secret enforcement independently unless cancelled. These three findings
+remain actionable, with governed protected-definition review and approval required
+before merge. This does not resolve the current secret alert or claim deployed scans.

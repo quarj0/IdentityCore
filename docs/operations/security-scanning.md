@@ -40,3 +40,12 @@ pnpm audit --audit-level high
 
 The CI workflow is authoritative because it also scans all supported dependency
 manifests, the source tree for secrets, and the built runtime images.
+
+
+Dependency and container JSON recording includes unfixed findings for triage; only
+the blocking vulnerability scans filter them. The dependency and secret enforcement
+steps use independent non-cancellation conditions, so a dependency failure does not
+skip secret enforcement. The job retains failure status if either gate fails.
+Changing these workflow definitions requires the governed protected-definition
+review/approval path before merge; a prepared draft does not establish rollout or
+resolve an existing secret alert. Do not dismiss alerts to obtain passing checks.
