@@ -370,3 +370,12 @@ candidates. Closing them does not resolve findings or mark prepared work as merg
 Final-head independent review, CI/Security, dedicated App evidence and protected
 workflow approval remain required. The current integration cannot read native
 branch protection (HTTP 403); no trusted merge has been performed.
+
+The reproduced portal container failure came from production TypeScript compilation
+including browser tests that import a platform-admin module absent from the image.
+Application builds now exclude browser fixtures; the explicit CI typecheck runs both
+application and browser-test configs. Both checks pass. The complete Alpine image
+build also passes using a temporary local proxy/CA adapter, and its unprivileged
+runtime (UID 1001) serves `/api/health` with HTTP 200. No TLS verification or TypeScript
+checks were disabled. The Dockerfile ignore file keeps host dependencies, environment
+files and build/test artifacts outside the image build context.

@@ -186,6 +186,9 @@ jobs:
         working-directory: frontend
       - run: pnpm --recursive lint
         working-directory: frontend
+      - name: Check portal application and browser-test types
+        run: pnpm --filter verification-portal typecheck
+        working-directory: frontend
       - run: pnpm --recursive build
         working-directory: frontend
       - name: Verify standalone verification transport

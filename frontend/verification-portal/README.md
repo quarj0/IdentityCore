@@ -184,3 +184,8 @@ assessment.
 The Dockerfile-specific ignore file excludes local dependencies, build/test outputs
 and environment files from the build context. The image installs dependencies from
 the frozen lockfile; local browser-test artifacts must not replace container output.
+
+Run `pnpm --filter verification-portal typecheck` from `frontend/` to check both
+application and browser-test TypeScript. Production builds use the application
+config; the separate `tsconfig.e2e.json` checks browser fixtures and cross-app test
+imports in CI without requiring other applications inside the portal image.
