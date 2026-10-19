@@ -3914,12 +3914,13 @@
       "path": "backend/django/apps/biometrics/migrations/0005_selfiecapture_face_detection_evidence.py",
       "status": "actionable",
       "evidence": [
-        "backend/django/apps/biometrics/migrations/0005_selfiecapture_face_detection_evidence.py",
-        "backend/django/apps/biometrics/migrations/0001_initial.py:face_count default"
+        "backend/django/apps/biometrics/migrations/0006_clear_legacy_placeholder_face_counts.py",
+        "backend/django/apps/biometrics/test_detection_evidence.py:LegacyDetectionMigrationTests",
+        "docs/operations/legacy-selfie-detection.md"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Clear legacy placeholder face counts during migration**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/187#discussion_r3696926618",
-      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Migration 0005 only changes schema; no later data migration clears historical default-one counts without analysis provenance. Repair legacy placeholders without erasing attributable analysis."
+      "disposition_note": "Remediation clears only unattributed default-one rows created before 0005 was applied, preserving previous count/reason/cohort/correction timestamp in explicit JSON provenance. Attributable analysis, zeros and later captures remain unchanged. Populated pre-0005 schema and idempotence regressions pass on SQLite and PostgreSQL. This is an explicitly documented maintenance/data migration; no rolling gate bypass. Await protected review/merge."
     },
     {
       "pr_number": 187,
@@ -3945,12 +3946,13 @@
       "path": "backend/django/apps/biometrics/models.py",
       "status": "actionable",
       "evidence": [
-        "backend/django/apps/verifications/evidence.py:serialize_verification_evidence_report selfie_captures",
-        "backend/django/apps/biometrics/models.py:SelfieCapture"
+        "backend/django/apps/verifications/evidence.py:serialize_verification_evidence_report and paginated PDF",
+        "backend/django/apps/biometrics/test_detection_evidence.py:DetectionReportTests",
+        "docs/architecture/evidence-model.md:Persisted selfie detection and legacy corrections"
       ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Include face detection evidence in generated reports**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/187#discussion_r3696926621",
-      "disposition_note": "Original review individually read and implementation inspected against immutable main 07a683f. Newly generated evidence still copies selfie identifiers/storage/status/type only, omitting persisted face detection count, confidence and model attribution. Include them in fresh JSON/PDF reports while preserving old artifacts."
+      "disposition_note": "Remediation exposes recorded count/confidence/model attribution and explicit legacy correction metadata in newly generated JSON/PDF. Null remains unavailable and zero is preserved. The renderer now wraps lines and paginates rather than dropping later sections, with readable text colors. Four dedicated regressions pass on SQLite and PostgreSQL; 83 broader biometric/workflow/evidence tests pass. PDF parser/text extraction and rendered page inspection confirm later evidence. The migration itself does not regenerate stored objects. Await protected review/merge."
     },
     {
       "pr_number": 188,

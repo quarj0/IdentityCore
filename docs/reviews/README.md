@@ -134,3 +134,12 @@ being promoted through a project edit. Ordinary partial settings updates preserv
 omitted fields. One additional original unsupported-action review was individually
 reproduced and remediated with the standard error envelope; both findings stay
 actionable until protected merge. See [ADR 056](../decisions/ADR-056-immutable-project-environment.md).
+
+Selfie evidence remediation records explicit correction provenance while clearing only
+the pre-detection-migration default-one cohort without analysis attribution. Fresh
+JSON/PDF exports include measured count/confidence/model attribution, unavailable
+values and corrections. PDF pagination preserves late sections and long values.
+Four dedicated regressions pass on SQLite and PostgreSQL, including populated legacy
+migration; 83 broader regressions pass. The two findings remain actionable until
+protected merge. The [maintenance guide](../operations/legacy-selfie-detection.md)
+requires coordinated data migration rather than bypassing rollout checks.

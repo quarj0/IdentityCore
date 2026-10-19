@@ -93,7 +93,8 @@
         "match/liveness scores",
         "quality and fraud signals",
         "optional keyed document/portrait/device/network reuse fingerprints",
-        "active challenge ID, protocol and ordered requested/observed directions"
+        "active challenge ID, protocol and ordered requested/observed directions",
+        "Explicit legacy face-count correction metadata: previous default count, reason, migration cohort and correction time; retained with the associated selfie/report provenance."
       ],
       "purpose": "Assess document authenticity, extract asserted identity data, and produce biometric match/liveness evidence.",
       "locations": [
@@ -2301,6 +2302,11 @@
     {
       "source": "backend/django/apps/biometrics/models.py",
       "field": "SelfieCapture.face_count",
+      "activity": "document-and-biometric-evidence"
+    },
+    {
+      "source": "backend/django/apps/biometrics/models.py",
+      "field": "SelfieCapture.face_detection_correction_json",
       "activity": "document-and-biometric-evidence"
     },
     {
