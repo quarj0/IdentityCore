@@ -113,6 +113,10 @@ locale, and SHA-256 digest, and the backend rejects stale artifacts.
 
 English and Arabic are the initial locale architecture baseline. The document language
 and direction follow locale negotiation and are updated to the session-selected locale.
+The shared shell, skip link, theme controls, known document-retry messages and
+root/missing/render-error pages use that locale. Organization/provider content
+retains its supplied language; see the [locale contract](../../docs/architecture/applicant-localization.md).
+Legacy outcome URL suffixes load authenticated session state instead of asserting an outcome.
 IC-083 is closed with repository locale/fallback/RTL acceptance coverage; later review
 findings still require individual disposition. Production locale
 support also requires the physical-device evidence described in

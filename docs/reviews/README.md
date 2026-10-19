@@ -2,7 +2,7 @@
 
 The disposition register tracks findings by original PR, comment and thread identifier. A resolved GitHub thread does not establish that its finding was implemented. Completed dispositions cite inspected implementation and regression evidence.
 
-860 threads from closed or merged PRs: 237 fixed, 350 verified, 57 actionable and 216 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence. It extends the original 484-thread scope with subsequent closed-PR feedback. The original issue remains open.
+860 threads from closed or merged PRs: 237 fixed, 352 verified, 57 actionable and 214 pending individual audit. Actionable findings remain open until their remediation merges; resolution state is not implementation evidence. It extends the original 484-thread scope with subsequent closed-PR feedback. The original issue remains open.
 
 Merged remediation covers OCR outage gates, biometric evidence promotion, submitted-review expiry, MRZ issuer matching, provider attempt/evidence invariants, single-variant OpenCV runtime and authenticated immutable audit records. Current-main validation also covers redaction, secure HTTP adapters and webhook outbox/claim/disable/replay behavior. Delivery-time webhook isolation and controlled provider-health codes are merged in #370 and #372. Additional validation covers decision locks, external-risk I/O, authenticity redaction, retention holds and deferred evidence generation. System fallback contract fixes are merged in #373. Parser fixes are merged in #365. The independent SDK/idempotency audit verifies existing signing, replay, profile, retry and compiler behavior, and tracks live project/example, completion/type and conformance fixes in #375–#377. Conformance fixes are merged in #377; completion fixes are merged in #376. Reproduced adapter-test and partial-decision-contract findings are merged in #380, and generated SDK contract fixes in #381. Platform MFA auditing and public sample-token rejection are merged in #382, including independent AI service startup enforcement.
 
@@ -99,3 +99,10 @@ Dependency groups and AI working-directory selection are now explicit. Typed iss
 forms and private-intake guidance are prepared, but GitHub returned HTTP 403 when the
 integration attempted to enable private reporting; administrator activation remains
 a release blocker. Findings remain actionable until protected review and merge.
+
+Arabic remediation completes controlled journey/fallback copy and shared theme/skip
+controls, preserves supplied organization/provider content, and makes legacy outcome
+URLs use authenticated session state. English/Arabic browser journeys cover the
+presentation boundary. The finding remains actionable until protected merge. Two
+related originals were individually verified against immutable main: backend locale
+quality weighting and render-error logging without arbitrary error messages.

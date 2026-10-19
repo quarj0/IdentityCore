@@ -92,7 +92,13 @@ export function VerificationFrame({
                 </option>
               ))}
             </select>
-            <ThemeToggle />
+            <ThemeToggle
+              labels={{
+                light: localizeText(locale, "Switch to light theme"),
+                dark: localizeText(locale, "Switch to dark theme"),
+                toggle: localizeText(locale, "Toggle theme"),
+              }}
+            />
           </div>
         </div>
       </header>
@@ -143,7 +149,10 @@ export function VerificationFrame({
                   {localizeText(locale, "Your data stays protected")}
                 </h2>
                 <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
-                  {localizeText(locale, "Evidence is encrypted, access is audited, and it is used only for this verification.")}
+                  {localizeText(
+                    locale,
+                    "Evidence is encrypted, access is audited, and it is used only for this verification.",
+                  )}
                 </p>
               </div>
             </div>

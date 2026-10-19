@@ -5,6 +5,8 @@ import { AlertTriangle } from "lucide-react";
 import { safeLog } from "@identitycore/api-client";
 import { Button } from "@identitycore/ui";
 import { VerificationShell } from "@/components/layout/verification-shell";
+import { usePortalLocale } from "@/lib/portal-locale";
+import { localizeText } from "@/lib/i18n";
 
 export default function GlobalError({
   error,
@@ -13,6 +15,8 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const locale = usePortalLocale();
+  const t = (text: string) => localizeText(locale, text);
   useEffect(() => {
     safeLog("error", "verification_portal_render_error", {
       error_code: "unexpected_render_error",
@@ -28,21 +32,21 @@ export default function GlobalError({
         </div>
 
         <h1 className="mt-6 text-3xl font-semibold tracking-tight">
-          Something went wrong
+          {t("Something went wrong")}
         </h1>
         <p className="mt-3 text-sm leading-7 text-muted-foreground">
-          The verification portal hit an unexpected error. Your evidence was not
-          lost — try again, and if this keeps happening, contact the
-          organization that sent you this link.
+          {t(
+            "The verification portal hit an unexpected error. Try again, and if this keeps happening, contact the organization that sent you this link.",
+          )}
         </p>
         {error.digest ? (
           <p className="mt-4 text-xs text-muted-foreground">
-            Reference {error.digest}
+            {t("Reference")} {error.digest}
           </p>
         ) : null}
 
         <Button onClick={reset} className="mt-6 rounded-xl">
-          Try again
+          {t("Try again")}
         </Button>
       </div>
     </VerificationShell>

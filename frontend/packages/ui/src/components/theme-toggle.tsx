@@ -8,9 +8,14 @@ import { useTheme } from "./theme-provider";
 interface ThemeToggleProps {
   className?: string;
   variant?: "icon" | "sidebar";
+  labels?: { light: string; dark: string; toggle: string };
 }
 
-export function ThemeToggle({ className, variant = "icon" }: ThemeToggleProps) {
+export function ThemeToggle({
+  className,
+  variant = "icon",
+  labels,
+}: ThemeToggleProps) {
   const { theme, setTheme } = useTheme();
   const nextTheme = theme === "dark" ? "light" : "dark";
 
@@ -24,12 +29,12 @@ export function ThemeToggle({ className, variant = "icon" }: ThemeToggleProps) {
           "text-sidebar-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         className,
       )}
-      aria-label={`Switch to ${nextTheme} theme`}
+      aria-label={labels?.[nextTheme] ?? `Switch to ${nextTheme} theme`}
       onClick={() => setTheme(nextTheme)}
     >
       <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
       <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-      <span className="sr-only">Toggle theme</span>
+      <span className="sr-only">{labels?.toggle ?? "Toggle theme"}</span>
     </Button>
   );
 }

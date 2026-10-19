@@ -367,7 +367,7 @@ export function LiveLivenessCapture({
             onClick={onUseAnotherDevice}
             className="text-white hover:bg-white/10 hover:text-white"
           >
-            Continue on another device
+            {localizeText(locale, "Continue on another device")}
           </Button>
         ) : null}
         {active && !recording ? (

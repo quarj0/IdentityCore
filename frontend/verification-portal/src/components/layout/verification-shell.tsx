@@ -1,12 +1,18 @@
+"use client";
+
 import type { ReactNode } from "react";
 import { ShieldCheck } from "lucide-react";
 import { ThemeToggle } from "@identitycore/ui";
+import { usePortalLocale } from "@/lib/portal-locale";
+import { localizeText } from "@/lib/i18n";
 
 interface VerificationShellProps {
   children: ReactNode;
 }
 
 export function VerificationShell({ children }: VerificationShellProps) {
+  const locale = usePortalLocale();
+  const t = (text: string) => localizeText(locale, text);
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border bg-card">
@@ -16,13 +22,21 @@ export function VerificationShell({ children }: VerificationShellProps) {
               <ShieldCheck className="h-5 w-5" aria-hidden="true" />
             </div>
             <div>
-              <p className="text-sm font-semibold">IdentityCore Verify</p>
+              <p className="text-sm font-semibold">
+                {t("IdentityCore Verify")}
+              </p>
               <p className="text-xs text-muted-foreground">
-                Secure verification session
+                {t("Secure verification session")}
               </p>
             </div>
           </div>
-          <ThemeToggle />
+          <ThemeToggle
+            labels={{
+              light: t("Switch to light theme"),
+              dark: t("Switch to dark theme"),
+              toggle: t("Toggle theme"),
+            }}
+          />
         </div>
       </header>
 

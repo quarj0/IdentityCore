@@ -41,3 +41,8 @@ Handoff response decoding shares the ten-second upstream deadline and a 16 KiB
 response limit. Receiving headers does not end that deadline. The standalone fault
 case deliberately stalls after headers and must receive a controlled unavailable
 response before the body completes.
+
+Legacy outcome URL suffixes (`complete`, `expired`, `error`) render the normal
+session flow. They require the same scoped credential and show only the result
+reported by authenticated session/status responses. Bookmarking or constructing
+one of these paths cannot establish a verification outcome.

@@ -57,6 +57,66 @@ const messages = {
 export type MessageKey = keyof typeof messages.en;
 
 const arabicCopy: Record<string, string> = {
+  "Continue on another device": "المتابعة على جهاز آخر",
+  "Live selfie camera": "كاميرا الصورة الذاتية المباشرة",
+  "The submitted evidence is being evaluated against the requesting organization’s verification policy.": "جارٍ تقييم الأدلة المرسلة وفق سياسة التحقق الخاصة بالمؤسسة الطالبة.",
+  "Health ID": "البطاقة الصحية",
+  "Voter ID": "بطاقة الناخب",
+  "Passeport": "جواز السفر",
+  "Front": "الوجه الأمامي",
+  "Back": "الوجه الخلفي",
+  "Photo page": "صفحة الصورة",
+  "Single": "صفحة واحدة",
+  "camera": "الكاميرا",
+  "National ID": "بطاقة الهوية الوطنية",
+  "Passport": "جواز السفر",
+  "Driver's license": "رخصة القيادة",
+  "Driver License": "رخصة القيادة",
+  "Please review and accept the current consent notice to continue.": "يرجى مراجعة إشعار الموافقة الحالي وقبوله للمتابعة.",
+  "Please review and accept consent to continue.": "يرجى مراجعة الموافقة وقبولها للمتابعة.",
+  "Please submit your identity document.": "يرجى إرسال وثيقة هويتك.",
+  "Please capture and submit your selfie.": "يرجى التقاط صورتك الذاتية وإرسالها.",
+  "Your verification is being processed.": "جارٍ معالجة التحقق الخاص بك.",
+  "Your verification was submitted and requires additional review.": "تم إرسال التحقق الخاص بك ويتطلب مراجعة إضافية.",
+  "Your verification has been completed successfully.": "اكتمل التحقق الخاص بك بنجاح.",
+  "Your verification could not be completed.": "تعذر إكمال التحقق الخاص بك.",
+  "Your verification session has expired.": "انتهت صلاحية جلسة التحقق الخاصة بك.",
+  "This verification has been cancelled.": "تم إلغاء هذا التحقق.",
+  "We could not complete your verification at this time.": "تعذر إكمال التحقق الخاص بك في الوقت الحالي.",
+  "Your identity document is being checked before selfie capture.": "جارٍ فحص وثيقة هويتك قبل التقاط الصورة الذاتية.",
+  "Please complete the active liveness challenge.": "يرجى إكمال تحدي التحقق النشط من الحضور.",
+  "Please complete the passive liveness check.": "يرجى إكمال فحص التحقق السلبي من الحضور.",
+  "another document type": "نوع آخر من الوثائق",
+  "Begin live camera check": "ابدأ فحص الكاميرا المباشر",
+  "organization default": "إعداد المؤسسة الافتراضي",
+  "Secure verification session": "جلسة تحقق آمنة",
+  "Switch to light theme": "التبديل إلى المظهر الفاتح",
+  "Switch to dark theme": "التبديل إلى المظهر الداكن",
+  "Toggle theme": "تغيير المظهر",
+  "Something went wrong": "حدث خطأ",
+  "The verification portal hit an unexpected error. Try again, and if this keeps happening, contact the organization that sent you this link.": "حدث خطأ غير متوقع في بوابة التحقق. حاول مرة أخرى، وإذا استمرت المشكلة فتواصل مع المؤسسة التي أرسلت إليك هذا الرابط.",
+  "Try again": "حاول مرة أخرى",
+  "Open your secure verification link.": "افتح رابط التحقق الآمن الخاص بك.",
+  "IdentityCore verification sessions are opened from the link sent by the requesting organization. If your link expired, ask them to send a fresh one.": "تُفتح جلسات التحقق عبر IdentityCore من الرابط الذي ترسله المؤسسة الطالبة. إذا انتهت صلاحية رابطك، فاطلب منها إرسال رابط جديد.",
+  "Verification links are time limited": "روابط التحقق محدودة الصلاحية",
+  "Before you start": "قبل البدء",
+  "Use the newest verification link you received.": "استخدم أحدث رابط تحقق وصل إليك.",
+  "Have your identity document ready.": "جهّز وثيقة هويتك.",
+  "Use a mobile phone for the best camera and liveness experience.": "استخدم هاتفًا محمولًا للحصول على أفضل تجربة للكاميرا والتحقق من الحضور.",
+  "Verification page not found": "لم يتم العثور على صفحة التحقق",
+  "The verification page you are looking for does not exist or may have been removed.": "صفحة التحقق التي تبحث عنها غير موجودة أو ربما تمت إزالتها.",
+  "Back home": "العودة إلى الصفحة الرئيسية",
+  "Verification session is not authenticated.": "جلسة التحقق غير مصادق عليها.",
+  "Verification request failed. Please try again.": "تعذر تنفيذ طلب التحقق. حاول مرة أخرى.",
+  "The request took too long. Check your connection and try again.": "استغرق الطلب وقتًا طويلاً. تحقق من اتصالك وحاول مرة أخرى.",
+  "The evidence upload took too long. Check your connection and try again.": "استغرق رفع ملفات التحقق وقتًا طويلاً. تحقق من اتصالك وحاول مرة أخرى.",
+  "Verification service unavailable.": "خدمة التحقق غير متاحة.",
+  "Verification service returned an invalid response.": "أعادت خدمة التحقق استجابة غير صالحة.",
+  "Verification service returned an invalid credential.": "أعادت خدمة التحقق بيانات اعتماد غير صالحة.",
+  "Session identifier mismatch.": "معرّف الجلسة غير متطابق.",
+  "Cross-origin request denied.": "تم رفض الطلب من مصدر مختلف.",
+  "Verification route is not allowed.": "مسار التحقق غير مسموح به.",
+  "Verification request is too large.": "طلب التحقق يتجاوز الحجم المسموح به.",
   "Opening your secure session": "جارٍ فتح جلستك الآمنة",
   "Verification unavailable": "التحقق غير متاح",
   "Retry secure session": "أعد محاولة فتح الجلسة الآمنة",
@@ -233,8 +293,27 @@ const arabicCopy: Record<string, string> = {
   "Mobile handoff QR code": "رمز QR للمتابعة على الهاتف",
 };
 
+const nameInArabic = (name: string) => arabicCopy[name] ?? name;
+const arabicMessageFormats: Array<[RegExp, (match: RegExpMatchArray) => string]> = [
+  [/^We couldn't process your previous (.+) just now\. Please capture it again to continue\.$/, (m) => `تعذرت معالجة صورة ${nameInArabic(m[1])} السابقة في الوقت الحالي. أعد التقاطها للمتابعة.`],
+  [/^Your previous (.+) image did not meet the capture quality requirements\. Use good lighting, avoid glare and blur, and try again\.$/, (m) => `لم تستوفِ صورة ${nameInArabic(m[1])} السابقة متطلبات جودة الالتقاط. استخدم إضاءة جيدة وتجنب الانعكاسات والضبابية، ثم حاول مرة أخرى.`],
+  [/^That image appears to be (.+), not (.+)\. Please capture the physical (.+) and try again\.$/, (m) => `تبدو الصورة وكأنها ${nameInArabic(m[1])} وليست ${nameInArabic(m[2])}. التقط وثيقة ${nameInArabic(m[3])} الأصلية وحاول مرة أخرى.`],
+  [/^We could not read enough information to confirm this as (.+)\. Capture the full physical document in clear, even lighting and try again\.$/, (m) => `تعذر قراءة معلومات كافية للتأكد من أن الوثيقة هي ${nameInArabic(m[1])}. التقط الوثيقة الأصلية كاملة بإضاءة واضحة ومتوازنة وحاول مرة أخرى.`],
+  [/^Your previous (.+) image could not be verified\. Please capture the physical (.+) and try again\.$/, (m) => `تعذر التحقق من صورة ${nameInArabic(m[1])} السابقة. التقط وثيقة ${nameInArabic(m[2])} الأصلية وحاول مرة أخرى.`],
+];
+
 export function localizeText(locale: string, text: string): string {
-  return resolveLocale(locale) === "ar" ? arabicCopy[text] ?? text : text;
+  if (resolveLocale(locale) !== "ar") return text;
+  if (arabicCopy[text] !== undefined) return arabicCopy[text];
+  // Only known application messages are formatted. Organization/provider text
+  // and unknown document names retain their supplied content.
+  if (text.length <= 2048) {
+    for (const [pattern, render] of arabicMessageFormats) {
+      const match = text.match(pattern);
+      if (match) return render(match);
+    }
+  }
+  return text;
 }
 
 
@@ -298,4 +377,10 @@ export function formatDate(
   ).format(
     value instanceof Date || typeof value === "number" ? value : new Date(value),
   );
+}
+
+export function countryLabel(locale: string, code: string, fallback: string) {
+  if (!/^[A-Z]{2}$/.test(code) || code === "ZZ") return fallback;
+  const label = new Intl.DisplayNames([resolveLocale(locale)], { type: "region" }).of(code);
+  return label && label !== code ? label : fallback;
 }

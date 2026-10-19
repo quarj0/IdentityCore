@@ -3169,10 +3169,16 @@
       "comment_id": 3665042780,
       "path": "frontend/verification-portal/src/lib/i18n.ts",
       "status": "actionable",
-      "evidence": [],
+      "evidence": [
+        "frontend/verification-portal/src/lib/i18n.ts:controlled Arabic copy and bounded document retry messages",
+        "frontend/verification-portal/src/lib/portal-locale.tsx:initial locale and document language subscription",
+        "frontend/verification-portal/e2e/critical-subject-accessibility.spec.ts:English and Arabic consent-to-result journeys",
+        "frontend/verification-portal/e2e/localization-fallback.spec.ts:Arabic root/missing pages and authenticated legacy aliases",
+        "frontend/verification-portal/test/localization.test.mjs"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Translate the complete Arabic verification journey**",
       "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/70#discussion_r3665042780",
-      "disposition_note": "Individually inspected the Arabic catalog and static portal JSX against immutable main. Most journey copy is translated, but Begin live camera check is missing and raw consent-template, submit-live-check, device-continuation and global error/root/not-found copy remains English. Complete known journey and fallback-page localization with Arabic browser regressions."
+      "disposition_note": "Remediation completes controlled journey, shell, theme, error/root/not-found and known document retry copy, with locale-aware country names and skip link. Unknown organization/provider content retains supplied text. Legacy outcome suffixes render authenticated session state. Remains actionable until protected review and merge."
     },
     {
       "pr_number": 70,
@@ -9435,10 +9441,13 @@
       "thread_id": "PRRT_kwDOTN0BU86h3lSy",
       "comment_id": 3999173418,
       "path": "frontend/verification-portal/src/app/error.tsx",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "frontend/verification-portal/src/app/error.tsx:stable unexpected_render_error and digest; no Error.message"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Avoid logging arbitrary render-error messages**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3999173418"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/308#discussion_r3999173418",
+      "disposition_note": "Individually read original review and immutable main 07a683f render-error boundary. It logs only the stable error_code and digest, not arbitrary error messages or source Error objects. Arabic copy changes preserve this boundary."
     },
     {
       "pr_number": 308,
@@ -10065,10 +10074,14 @@
       "thread_id": "PRRT_kwDOTN0BU86mY_8t",
       "comment_id": 4114761108,
       "path": "frontend/verification-portal/src/lib/i18n.ts",
-      "status": "pending",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "backend/django/apps/verification_sessions/serializers.py:_request_locale quality weighting",
+        "backend/django/apps/verification_sessions/tests.py:ApplicantLocaleNegotiationTests.test_accept_language_quality_weights_select_highest_supported_locale"
+      ],
       "summary": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Apply quality weighting to backend session negotiation**",
-      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/326#discussion_r4114761108"
+      "original_comment_url": "https://github.com/quarj0/IdentityCore/pull/326#discussion_r4114761108",
+      "disposition_note": "Individually read original review and immutable main 07a683f backend implementation. Session negotiation already sorts positive q values descending with stable input-order ties and selects supported locales. The regression checks en;q=0.1, ar;q=1.0 selects Arabic."
     },
     {
       "pr_number": 327,

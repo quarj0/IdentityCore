@@ -1,6 +1,6 @@
 # Verification portal maturity and release boundary
 
-Last reviewed: 2026-10-18
+Last reviewed: 2026-10-19
 
 The hosted applicant journey is implemented with repository acceptance coverage.
 Historical review audit [#281](https://github.com/quarj0/IdentityCore/issues/281) remains
@@ -14,7 +14,10 @@ open; repository completion does not establish deployment or biometric certifica
   allowlists, bounded streamed uploads, upstream timeouts and safe request IDs.
 - Camera/recorder cleanup, permission/interruption recovery, supported codecs,
   active-video capture and desktop-to-mobile handoff.
-- English/Arabic locale negotiation, RTL/fallback and accessibility acceptance fixtures.
+- English/Arabic controlled journey, shell and fallback copy; RTL, translated theme/skip
+  controls, country names and consent-to-result accessibility fixtures. Supplied custom
+  organization/provider text retains its language.
+- Legacy outcome URLs render the authenticated session flow; suffixes cannot assert results.
 - Tenant branding and configured safe return destinations.
 - Signed hosted subject metadata with explicit ingress trust and unavailable-IP semantics.
 - Non-root standalone image, liveness and runtime readiness.

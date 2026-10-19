@@ -1,7 +1,11 @@
 import { Clock, ShieldCheck } from "lucide-react";
 import { VerificationShell } from "@/components/layout/verification-shell";
+import { headers } from "next/headers";
+import { localizeText, resolveLocale } from "@/lib/i18n";
 
-export default function VerificationPortalHome() {
+export default async function VerificationPortalHome() {
+  const locale = resolveLocale((await headers()).get("accept-language"));
+  const t = (text: string) => localizeText(locale, text);
   return (
     <VerificationShell>
       <section className="grid gap-6 lg:grid-cols-[1fr_0.42fr]">
@@ -11,29 +15,31 @@ export default function VerificationPortalHome() {
           </div>
 
           <h1 className="mt-6 text-4xl font-semibold tracking-tight sm:text-5xl">
-            Open your secure verification link.
+            {t("Open your secure verification link.")}
           </h1>
 
           <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-            IdentityCore verification sessions are opened from the link sent by
-            the requesting organization. If your link expired, ask them to send
-            a fresh one.
+            {t(
+              "IdentityCore verification sessions are opened from the link sent by the requesting organization. If your link expired, ask them to send a fresh one.",
+            )}
           </p>
         </div>
 
         <aside className="rounded-4xl border border-border bg-card p-6 shadow-sm">
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <Clock className="h-4 w-4 text-info" />
-            Verification links are time limited
+            {t("Verification links are time limited")}
           </div>
 
           <div className="mt-6">
-            <p className="text-sm font-semibold">Before you start</p>
+            <p className="text-sm font-semibold">{t("Before you start")}</p>
             <ul className="mt-3 space-y-3 text-sm text-muted-foreground">
-              <li>Use the newest verification link you received.</li>
-              <li>Have your identity document ready.</li>
+              <li>{t("Use the newest verification link you received.")}</li>
+              <li>{t("Have your identity document ready.")}</li>
               <li>
-                Use a mobile phone for the best camera and liveness experience.
+                {t(
+                  "Use a mobile phone for the best camera and liveness experience.",
+                )}
               </li>
             </ul>
           </div>
